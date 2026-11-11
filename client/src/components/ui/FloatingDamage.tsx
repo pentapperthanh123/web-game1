@@ -5,24 +5,25 @@ import { useGameStore } from '../../store/gameStore';
 import { DAMAGE_TYPE, DamageType, TEAM_KEY } from '../../constants/game';
 
 const DAMAGE_TEXT_CLASS_MAP: Record<DamageType, string> = {
-  [DAMAGE_TYPE.NORMAL]: 'text-sm sm:text-base font-extrabold drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]',
+  [DAMAGE_TYPE.NORMAL]:
+    'text-xs sm:text-sm font-extrabold drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]',
   [DAMAGE_TYPE.CRIT]:
-    'text-xl sm:text-2xl font-black px-2 py-0.5 rounded-full bg-rose-950/75 border border-rose-400/70 drop-shadow-[0_0_16px_rgba(244,63,94,0.95)]',
+    'text-xs sm:text-sm font-black px-1.5 py-0.5 rounded-full bg-rose-950/80 border border-rose-400/70 drop-shadow-[0_0_10px_rgba(244,63,94,0.85)]',
   [DAMAGE_TYPE.ULTIMATE]:
-    'text-2xl sm:text-3xl font-black px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-300/85 drop-shadow-[0_0_24px_rgba(245,158,11,0.98)]',
+    'text-sm sm:text-base font-black px-2 py-0.5 rounded-full bg-amber-950/85 border border-amber-300/85 drop-shadow-[0_0_14px_rgba(245,158,11,0.9)]',
 };
 
 const DamageBadgeIcon = ({ damageType }: { damageType: DamageType }) => {
   if (damageType === DAMAGE_TYPE.ULTIMATE) {
     return (
-      <span className="flex items-center space-x-0.5 shrink-0">
-        <Flame className="w-5 h-5 text-orange-400 fill-current animate-pulse" />
-        <Sparkles className="w-4 h-4 text-yellow-300 animate-spin" />
+      <span className="flex items-center gap-0.5 shrink-0">
+        <Flame className="w-3.5 h-3.5 text-orange-400 fill-current animate-pulse" />
+        <Sparkles className="w-3 h-3 text-yellow-300 animate-spin" />
       </span>
     );
   }
   if (damageType === DAMAGE_TYPE.CRIT) {
-    return <Zap className="w-4 h-4 text-rose-400 fill-current animate-bounce shrink-0" />;
+    return <Zap className="w-3 h-3 text-rose-400 fill-current animate-bounce shrink-0" />;
   }
   return null;
 };
@@ -78,13 +79,21 @@ export const FloatingDamage = React.memo(() => {
               transform: `translate(${item.x}px, ${item.y}px) scale(${item.scale})`,
               color: item.color,
             }}
-            className={`absolute flex items-center space-x-1 tracking-tight animate-float-damage select-none whitespace-nowrap ${typeClass}`}
+            className="absolute pointer-events-none"
           >
-            <DamageBadgeIcon damageType={item.damageType} />
-            {tagLabel && <span className="text-[10px] sm:text-xs font-black tracking-wider">{tagLabel}</span>}
-            <span className="font-mono font-black drop-shadow-[0_2px_4px_#000000]">
-              {item.text}
-            </span>
+            <div
+              className={`flex items-center gap-1 tracking-tight animate-float-damage select-none whitespace-nowrap ${typeClass}`}
+            >
+              <DamageBadgeIcon damageType={item.damageType} />
+              {tagLabel && (
+                <span className="text-[9px] sm:text-[10px] font-black tracking-wide">
+                  {tagLabel}
+                </span>
+              )}
+              <span className="font-mono font-black drop-shadow-[0_2px_4px_#000000]">
+                {item.text}
+              </span>
+            </div>
           </div>
         );
       })}

@@ -19,7 +19,7 @@ const CRYSTAL_COLORS = {
 } as const;
 
 const MAX_ORBIT_CRYSTALS = 9;
-const SHIELD_DOME_RADIUS = 1.85;
+const SHIELD_DOME_RADIUS = 1.18;
 
 const resolveBossPhase = (bossHp: number, bossMaxHp: number): 1 | 2 | 3 => {
   if (bossMaxHp <= 0) return 1;
@@ -172,25 +172,25 @@ export const Boss3DPresence = () => {
 
       {/* 3D Forcefield Dome when Void/Dragon Shield is active */}
       {bossShield && (
-        <group position={[0, 0.15, 0.4]}>
+        <group position={[0, 0.08, 0.08]}>
           <mesh ref={shieldDomeRef}>
             <icosahedronGeometry args={[SHIELD_DOME_RADIUS, 1]} />
             <meshBasicMaterial
               color="#38bdf8"
               wireframe
               transparent
-              opacity={0.62}
+              opacity={0.52}
               blending={THREE.AdditiveBlending}
               depthWrite={false}
               toneMapped={false}
             />
           </mesh>
           <mesh ref={shieldInnerRef}>
-            <sphereGeometry args={[SHIELD_DOME_RADIUS * 0.94, 24, 18]} />
+            <sphereGeometry args={[SHIELD_DOME_RADIUS * 0.94, 20, 16]} />
             <meshBasicMaterial
               color="#0284c7"
               transparent
-              opacity={0.14}
+              opacity={0.10}
               blending={THREE.AdditiveBlending}
               depthWrite={false}
               toneMapped={false}
@@ -201,7 +201,7 @@ export const Boss3DPresence = () => {
 
       {/* 3D Lock-On Ring when Weak Point is open */}
       {bossWeakPoint && (
-        <mesh ref={weakPointRingRef} position={[0, 0.15, 0.7]}>
+        <mesh ref={weakPointRingRef} position={[0, 0.15, 0.15]}>
           <ringGeometry args={[0.92, 1.04, 6]} />
           <meshBasicMaterial
             color="#facc15"

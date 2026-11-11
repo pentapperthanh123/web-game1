@@ -26,12 +26,62 @@ const resolveBossPhase = (bossHp: number, bossMaxHp: number): 1 | 2 | 3 => {
   return 1;
 };
 
-export const BossPhaseVisuals = ({
+export const BossArmorCracks = ({
   bossHp,
   bossMaxHp,
   isElderDragon,
   isDefeated,
 }: BossPhaseVisualsProps) => {
+  if (isDefeated) return null;
+
+  const phase = resolveBossPhase(bossHp, bossMaxHp);
+  if (phase < 2) return null;
+
+  const crackStrokeColor = isElderDragon ? '#fbbf24' : '#c084fc';
+  const crackSecondaryColor = phase === 3 ? '#f43f5e' : '#38bdf8';
+
+  return (
+    <svg
+      viewBox="0 0 200 200"
+      className={`absolute inset-0 w-full h-full pointer-events-none mix-blend-screen transition-opacity duration-500 ${
+        phase === 3 ? 'opacity-90 animate-pulse' : 'opacity-55'
+      }`}
+      aria-hidden="true"
+    >
+      <path
+        d="M98 48 L92 66 L104 78 L95 98 L108 116 L99 138"
+        fill="none"
+        stroke={crackStrokeColor}
+        strokeWidth={phase === 3 ? '3.2' : '2.2'}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M104 78 L124 88 L134 102"
+        fill="none"
+        stroke={crackSecondaryColor}
+        strokeWidth={phase === 3 ? '2.4' : '1.6'}
+        strokeLinecap="round"
+      />
+      <path
+        d="M92 66 L72 78 L62 94"
+        fill="none"
+        stroke={crackSecondaryColor}
+        strokeWidth={phase === 3 ? '2.4' : '1.6'}
+        strokeLinecap="round"
+      />
+      {phase === 3 && (
+        <circle cx="100" cy="96" r="10" fill={crackSecondaryColor} opacity="0.35" />
+      )}
+    </svg>
+  );
+};
+
+export const BossPhaseVisuals = ({
+  bossHp,
+  bossMaxHp,
+  isDefeated,
+}: Omit<BossPhaseVisualsProps, 'isElderDragon'>) => {
   const { t } = useTranslation();
   const bossShield = useGameStore((state) => state.bossShield);
   const bossShieldBrokenTimestamp = useGameStore((state) => state.bossShieldBrokenTimestamp);
@@ -47,9 +97,8 @@ export const BossPhaseVisuals = ({
     return () => clearInterval(timer);
   }, [bossShield, bossWeakPoint, bossShieldBrokenTimestamp]);
 
-  if (isDefeated) return null;
+  if (isDefeated || bossHp <= 0 || bossMaxHp <= 0) return null;
 
-  const phase = resolveBossPhase(bossHp, bossMaxHp);
   const showShieldBrokenNotice =
     bossShieldBrokenTimestamp > 0 &&
     now - bossShieldBrokenTimestamp <= BOSS_MECHANICS_CONSTANTS.SHIELD.BROKEN_BANNER_MS;
@@ -61,51 +110,12 @@ export const BossPhaseVisuals = ({
     ? Math.max(0, Math.min(100, (bossShield.hp / bossShield.maxHp) * 100))
     : 0;
 
-  const crackStrokeColor = isElderDragon ? '#fbbf24' : '#c084fc';
-  const crackSecondaryColor = phase === 3 ? '#f43f5e' : '#38bdf8';
-
   return (
     <>
-      {/* Phase 2 & 3 Glowing Armor Fissures layered directly onto Boss anatomy */}
-      {phase >= 2 && (
-        <svg
-          viewBox="0 0 200 200"
-          className={`absolute inset-0 w-full h-full pointer-events-none mix-blend-screen transition-opacity duration-500 ${
-            phase === 3 ? 'opacity-90 animate-pulse' : 'opacity-55'
-          }`}
-          aria-hidden="true"
-        >
-          <path
-            d="M98 48 L92 66 L104 78 L95 98 L108 116 L99 138"
-            fill="none"
-            stroke={crackStrokeColor}
-            strokeWidth={phase === 3 ? '3.2' : '2.2'}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M104 78 L124 88 L134 102"
-            fill="none"
-            stroke={crackSecondaryColor}
-            strokeWidth={phase === 3 ? '2.4' : '1.6'}
-            strokeLinecap="round"
-          />
-          <path
-            d="M92 66 L72 78 L62 94"
-            fill="none"
-            stroke={crackSecondaryColor}
-            strokeWidth={phase === 3 ? '2.4' : '1.6'}
-            strokeLinecap="round"
-          />
-          {phase === 3 && (
-            <circle cx="100" cy="96" r="10" fill={crackSecondaryColor} opacity="0.35" />
-          )}
-        </svg>
-      )}
 
-      {/* Active Energy Shield HUD Card & Forcefield Rim */}
+      {/* Active Energy Shield HUD Card (Positioned safely above Boss head, avoiding bottom leaderboard) */}
       {bossShield && (
-        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-52 sm:w-60 z-30 pointer-events-none">
+        <div className="absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 w-52 sm:w-60 z-20 pointer-events-none">
           <div className="bg-slate-950/90 border border-cyan-400/90 rounded-xl px-2.5 py-1.5 shadow-[0_0_20px_rgba(56,189,248,0.65)] backdrop-blur-md">
             <div className="flex items-center justify-between text-[9px] font-black uppercase text-cyan-300">
               <span className="flex items-center space-x-1">

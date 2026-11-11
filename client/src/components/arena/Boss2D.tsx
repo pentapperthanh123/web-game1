@@ -23,7 +23,7 @@ import { WingGustVFX } from './WingGustVFX';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossEnragedAura } from './BossEnragedAura';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
-import { BossPhaseVisuals } from './BossPhaseVisuals';
+import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
 import { audioService } from '../../services/audioService';
 
 const getAnimationClass = (
@@ -192,12 +192,53 @@ export const Boss2D = () => {
   const [isEyesSurging, setIsEyesSurging] = useState(false);
   const [isWingGustActive, setIsWingGustActive] = useState(false);
   const [isRestless, setIsRestless] = useState(false);
+  const [isFacingRight, setIsFacingRight] = useState(false);
+  const [verticalTierIndex, setVerticalTierIndex] = useState<number>(1);
   const [activeSpeech, setActiveSpeech] = useState<BossSpeechItem | null>(null);
+
+  const verticalTiers = isElderDragon
+    ? BOSS_IDLE_CONSTANTS.VERTICAL_TIERS_DRAGON_PX
+    : BOSS_IDLE_CONSTANTS.VERTICAL_TIERS_BARON_PX;
 
   const lastActivityTimestampRef = useRef(Date.now());
   const lastSpeechTimestampRef = useRef<number>(0);
+  const lastFlipTimestampRef = useRef<number>(0);
   const pokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const shiftVerticalPatrolTier = useCallback(
+    (preferredTier?: number) => {
+      setVerticalTierIndex((prev) => {
+        if (preferredTier !== undefined && preferredTier !== prev) {
+          return preferredTier;
+        }
+        const candidateTiers: number[] = [];
+        for (let idx = 0; idx < verticalTiers.length; idx += 1) {
+          if (idx !== prev) {
+            candidateTiers.push(idx);
+          }
+        }
+        if (candidateTiers.length === 0) return prev;
+        const pickedIndex = Math.floor(Math.random() * candidateTiers.length);
+        return candidateTiers[pickedIndex] ?? prev;
+      });
+    },
+    [verticalTiers.length]
+  );
+
+  const updateFacingSide = useCallback((targetFacingRight: boolean | 'TOGGLE') => {
+    const now = Date.now();
+    if (now - lastFlipTimestampRef.current < BOSS_IDLE_CONSTANTS.FLIP_COOLDOWN_MS) {
+      return;
+    }
+    setIsFacingRight((prev) => {
+      const next = targetFacingRight === 'TOGGLE' ? !prev : targetFacingRight;
+      if (next !== prev) {
+        lastFlipTimestampRef.current = now;
+      }
+      return next;
+    });
+  }, []);
 
   // Mark activity whenever combat events fire
   useEffect(() => {
@@ -223,14 +264,32 @@ export const Boss2D = () => {
       setIsHitActive(false);
     }, duration);
 
+    // Turn toward attacker on heavy Crit or Ultimate hits (guarded by flip cooldown)
+    if (isHeavy) {
+      if (lastHitTeam === TEAM_KEY.BLG) {
+        updateFacingSide(false);
+      } else if (lastHitTeam === TEAM_KEY.GENG) {
+        updateFacingSide(true);
+      }
+    }
+
     return () => clearTimeout(timer);
-  }, [bossHitTimestamp, lastHitDamageType]);
+  }, [bossHitTimestamp, lastHitDamageType, lastHitTeam, updateFacingSide]);
 
   // Dynamic attack animation timer (faster recovery when enraged)
   useEffect(() => {
     if (bossAttackTimestamp === 0) return;
 
+    if (bossAttackTargetTeam === TEAM_KEY.BLG) {
+      updateFacingSide(false);
+    } else if (bossAttackTargetTeam === TEAM_KEY.GENG) {
+      updateFacingSide(true);
+    } else if (bossAttackTargetTeam === 'ALL') {
+      updateFacingSide('TOGGLE');
+    }
+
     setIsRoarActive(true);
+    shiftVerticalPatrolTier(0);
     const baseDuration = activeBossSkillBanner?.isUltimate
       ? BOSS_ANIMATION_CONSTANTS.ULTIMATE_ATTACK_DURATION_MS
       : BOSS_ANIMATION_CONSTANTS.ATTACK_DURATION_MS;
@@ -241,7 +300,14 @@ export const Boss2D = () => {
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [bossAttackTimestamp, activeBossSkillBanner?.isUltimate, isEnraged]);
+  }, [
+    bossAttackTimestamp,
+    bossAttackTargetTeam,
+    activeBossSkillBanner?.isUltimate,
+    isEnraged,
+    updateFacingSide,
+    shiftVerticalPatrolTier,
+  ]);
 
   // Periodic Ambient Idle Lifecycle Loop with non-repeating speech queue and cooldown
   useEffect(() => {
@@ -326,6 +392,8 @@ export const Boss2D = () => {
           setIsEyesSurging(true);
           setIsWingGustActive(true);
           setIsRoarActive(true);
+          updateFacingSide('TOGGLE');
+          shiftVerticalPatrolTier(0);
 
           if (settleTimer) clearTimeout(settleTimer);
           settleTimer = setTimeout(() => {
@@ -344,7 +412,56 @@ export const Boss2D = () => {
       if (roarTimer) clearTimeout(roarTimer);
       if (settleTimer) clearTimeout(settleTimer);
     };
-  }, [isBossAlive, isElderDragon]);
+  }, [isBossAlive, isElderDragon, updateFacingSide, shiftVerticalPatrolTier]);
+
+  // Periodic Vertical Altitude Patrol (smooth glide across High / Mid / Low tiers)
+  useEffect(() => {
+    if (!isBossAlive) return;
+
+    let patrolTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const scheduleNextPatrol = () => {
+      const span =
+        BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_MAX_INTERVAL_MS -
+        BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_MIN_INTERVAL_MS;
+      const delay =
+        BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_MIN_INTERVAL_MS + Math.round(Math.random() * span);
+
+      patrolTimer = setTimeout(() => {
+        shiftVerticalPatrolTier();
+        scheduleNextPatrol();
+      }, delay);
+    };
+
+    scheduleNextPatrol();
+
+    return () => {
+      if (patrolTimer) clearTimeout(patrolTimer);
+    };
+  }, [isBossAlive, shiftVerticalPatrolTier]);
+
+  // Periodic Natural Side Flip so Boss scans left/right across both teams
+  useEffect(() => {
+    if (!isBossAlive) return;
+
+    let flipTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const scheduleNextFlip = () => {
+      const span = BOSS_IDLE_CONSTANTS.FLIP_MAX_INTERVAL_MS - BOSS_IDLE_CONSTANTS.FLIP_MIN_INTERVAL_MS;
+      const delay = BOSS_IDLE_CONSTANTS.FLIP_MIN_INTERVAL_MS + Math.round(Math.random() * span);
+
+      flipTimer = setTimeout(() => {
+        updateFacingSide('TOGGLE');
+        scheduleNextFlip();
+      }, delay);
+    };
+
+    scheduleNextFlip();
+
+    return () => {
+      if (flipTimer) clearTimeout(flipTimer);
+    };
+  }, [isBossAlive, updateFacingSide]);
 
   // Clean up timers on unmount
   useEffect(() => {
@@ -439,6 +556,22 @@ export const Boss2D = () => {
     tiltXDeg = -10;
   }
 
+  const verticalOffsetPx = isDefeated ? 0 : (verticalTiers[verticalTierIndex] ?? 0);
+
+  let verticalMotionClass = '';
+  if (!isDefeated) {
+    verticalMotionClass = isElderDragon
+      ? 'animate-boss-vertical-dragon'
+      : 'animate-boss-vertical-baron';
+  }
+
+  let groundShadowAnimationClass = '';
+  if (!isDefeated) {
+    groundShadowAnimationClass = isElderDragon
+      ? 'animate-dragon-shadow'
+      : 'animate-baron-shadow';
+  }
+
   return (
     <div
       style={{ perspective: '900px' }}
@@ -468,9 +601,7 @@ export const Boss2D = () => {
 
       {/* 4. Realistic Ground Contact Shadow under Monster */}
       <div
-        className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-52 sm:w-68 h-9 sm:h-12 bg-black/60 rounded-[50%] blur-md pointer-events-none ${
-          isElderDragon ? 'animate-dragon-shadow' : ''
-        }`}
+        className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-52 sm:w-68 h-9 sm:h-12 bg-black/60 rounded-[50%] blur-md pointer-events-none ${groundShadowAnimationClass}`}
       />
 
       {/* 5. Dynamic Ground Shockwave Ripples during Slam & Heavy Hit */}
@@ -490,58 +621,85 @@ export const Boss2D = () => {
         isDefeated={isDefeated}
       />
 
-      {/* 8. High-Definition Boss 2.5D Monster Sprite with Interactive Poke, Cracks, Shield & Weak Point */}
+      {/* 8. Vertical Altitude Patrol + Uninterrupted Hover/Coil Wrapper around Interactive Boss */}
       <div
-        id="boss-monster-target"
-        onClick={handleBossClick}
-        title={t('BossInteractive.pokeTooltip', 'Click để tương tác với Boss!')}
-        className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-auto group`}
+        className="relative pointer-events-none"
+        style={{
+          transform: `translate3d(0, ${verticalOffsetPx}px, 0)`,
+          transition: `transform ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms cubic-bezier(0.37, 0, 0.63, 1)`,
+        }}
       >
-        {/* Dynamic Non-Repeating Comic Speech Bubble Anchored directly over monster head */}
-        <BossSpeechBubble
-          speech={isRoarActive || isDefeated ? null : activeSpeech}
-          isElderDragon={isElderDragon}
-          isRestless={isRestless}
-        />
-
-        <div
-          className="w-full h-full relative"
-          style={{
-            transform: `perspective(900px) rotateX(${tiltXDeg}deg) rotateY(${tiltYDeg}deg)`,
-            transformStyle: 'preserve-3d',
-            transition: 'transform 160ms ease-out',
-          }}
-        >
-          <picture className="w-full h-full block">
-            <source srcSet={themeConfig.bossImageWebp} type="image/webp" />
-            <img
-              src={themeConfig.bossImagePng}
-              alt={themeConfig.bossName}
-              className="w-full h-full object-contain filter contrast-110 brightness-105 group-hover:scale-105 transition-transform duration-200"
-              loading="eager"
-              draggable={false}
+        <div className={verticalMotionClass}>
+          <div
+            id="boss-monster-target"
+            onClick={handleBossClick}
+            title={t('BossInteractive.pokeTooltip', 'Click để tương tác với Boss!')}
+            className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-auto group`}
+          >
+            {/* Dynamic Non-Repeating Comic Speech Bubble Anchored directly over monster head */}
+            <BossSpeechBubble
+              speech={isRoarActive || isDefeated ? null : activeSpeech}
+              isElderDragon={isElderDragon}
+              isRestless={isRestless}
             />
-          </picture>
 
-          {/* 8b. 2.5D Phase Cracks, Energy Shield & Weak Point Reticle */}
-          <BossPhaseVisuals
-            bossHp={bossHp}
-            bossMaxHp={bossMaxHp}
-            isElderDragon={isElderDragon}
-            isDefeated={isDefeated}
-          />
+            <div
+              className="w-full h-full relative"
+              style={{
+                transform: `perspective(900px) rotateX(${tiltXDeg}deg) rotateY(${tiltYDeg}deg)`,
+                transformStyle: 'preserve-3d',
+                transition: 'transform 160ms ease-out',
+              }}
+            >
+              {/* Body Flip Wrapper: flips artwork, eyes, and armor cracks smoothly without mirroring HUD text */}
+              <div
+                className="w-full h-full relative"
+                style={{
+                  transform: `rotateY(${isFacingRight ? 180 : 0}deg)`,
+                  transformStyle: 'preserve-3d',
+                  transition: `transform ${BOSS_IDLE_CONSTANTS.FLIP_TRANSITION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+                }}
+              >
+                <picture className="w-full h-full block">
+                  <source srcSet={themeConfig.bossImageWebp} type="image/webp" />
+                  <img
+                    src={themeConfig.bossImagePng}
+                    alt={themeConfig.bossName}
+                    className="w-full h-full object-contain filter contrast-110 brightness-105 group-hover:scale-105 transition-transform duration-200"
+                    loading="eager"
+                    draggable={false}
+                  />
+                </picture>
 
-          {/* 9. Glowing Eyes Surge during Idle / Restless / Poke / Enraged */}
-          <BossGlowingEyes
-            isActive={isEyesSurging || isRestless}
-            isElderDragon={isElderDragon}
-            isRestless={isRestless}
-            isEnraged={isEnraged}
-          />
+                {/* Phase 2 & 3 Glowing Armor Cracks flipped in sync with Boss body */}
+                <BossArmorCracks
+                  bossHp={bossHp}
+                  bossMaxHp={bossMaxHp}
+                  isElderDragon={isElderDragon}
+                  isDefeated={isDefeated}
+                />
+
+                {/* 9. Glowing Eyes Surge during Idle / Restless / Poke / Enraged */}
+                <BossGlowingEyes
+                  isActive={isEyesSurging || isRestless}
+                  isElderDragon={isElderDragon}
+                  isRestless={isRestless}
+                  isEnraged={isEnraged}
+                />
+              </div>
+
+              {/* 8b. Upright Energy Shield HUD Card & Clickable Weak Point Reticle */}
+              <BossPhaseVisuals
+                bossHp={bossHp}
+                bossMaxHp={bossMaxHp}
+                isDefeated={isDefeated}
+              />
+            </div>
+
+            {/* Crisp Impact Flares aligned directly over Boss */}
+            <BossHitMarks2D />
+          </div>
         </div>
-
-        {/* Crisp Impact Flares aligned directly over Boss */}
-        <BossHitMarks2D />
       </div>
 
       {/* 10. Cinematic Shatter & Execution Callout outside fading sprite */}

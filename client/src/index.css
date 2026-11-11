@@ -26,7 +26,7 @@
   }
   15% {
     opacity: 1;
-    transform: translateY(0px) scale(1.15);
+    transform: translateY(0px) scale(1.04);
   }
   75% {
     opacity: 1;
@@ -300,19 +300,19 @@
    DYNAMIC BOSS COMBAT MOVEMENT & CINEMATIC VFX (OPTION A: FULL COMBO)
    ========================================================================== */
 
-/* 1. Natural Breathing & Hover Animations */
+/* 1. Natural Breathing & Continuous Uninterrupted Vertical Hover/Coil */
 @keyframes dragonHover {
   0%, 100% {
     transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
   25% {
-    transform: translate3d(-6px, -14px, 0) rotate(-1.5deg) scale(1.02);
+    transform: translate3d(-3px, -3px, 0) rotate(-1.5deg) scale(1.02);
   }
   50% {
-    transform: translate3d(0, -22px, 0) rotate(0deg) scale(1.035);
+    transform: translate3d(0, -5px, 0) rotate(0deg) scale(1.035);
   }
   75% {
-    transform: translate3d(6px, -12px, 0) rotate(1.5deg) scale(1.015);
+    transform: translate3d(3px, -2px, 0) rotate(1.5deg) scale(1.015);
   }
 }
 
@@ -327,14 +327,14 @@
     filter: blur(6px);
   }
   50% {
-    transform: scale(0.8);
-    opacity: 0.35;
+    transform: scale(0.78);
+    opacity: 0.34;
     filter: blur(12px);
   }
 }
 
 .animate-dragon-shadow {
-  animation: dragonShadowHover 4.2s ease-in-out infinite;
+  animation: dragonShadowHover 4.4s ease-in-out infinite;
 }
 
 @keyframes baronIdleSlither {
@@ -342,18 +342,73 @@
     transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
   25% {
-    transform: translate3d(-5px, -8px, 0) rotate(-1.6deg) scale(1.02);
+    transform: translate3d(-3px, -2px, 0) rotate(-1.6deg) scale(1.02);
   }
   50% {
-    transform: translate3d(0, -14px, 0) rotate(0deg) scale(1.03);
+    transform: translate3d(0, -4px, 0) rotate(0deg) scale(1.03);
   }
   75% {
-    transform: translate3d(5px, -6px, 0) rotate(1.6deg) scale(1.015);
+    transform: translate3d(3px, -1px, 0) rotate(1.6deg) scale(1.015);
   }
 }
 
 .animate-baron-idle {
   animation: baronIdleSlither 3.8s ease-in-out infinite;
+}
+
+@keyframes baronShadowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.62;
+  }
+  50% {
+    transform: scale(0.88);
+    opacity: 0.44;
+  }
+}
+
+.animate-baron-shadow {
+  animation: baronShadowPulse 3.8s ease-in-out infinite;
+}
+
+@keyframes bossVerticalDragonFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-5px, -14px, 0);
+  }
+  50% {
+    transform: translate3d(0, -24px, 0);
+  }
+  75% {
+    transform: translate3d(5px, -10px, 0);
+  }
+}
+
+.animate-boss-vertical-dragon {
+  animation: bossVerticalDragonFloat 4.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes bossVerticalBaronCoil {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  30% {
+    transform: translate3d(-4px, -12px, 0) scaleY(1.02);
+  }
+  55% {
+    transform: translate3d(0, -16px, 0) scaleY(1.025);
+  }
+  80% {
+    transform: translate3d(4px, 6px, 0) scaleY(0.985);
+  }
+}
+
+.animate-boss-vertical-baron {
+  animation: bossVerticalBaronCoil 3.8s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* 2. Directional Attack Lunges */

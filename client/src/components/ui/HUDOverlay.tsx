@@ -76,7 +76,7 @@ export const HUDOverlay = () => {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none z-10 overflow-hidden select-none">
+    <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none z-40 overflow-hidden select-none">
       {/* Incandescent Flash on Ultimates */}
       <ScreenFlash />
       <ChampionArrowVFX />

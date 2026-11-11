@@ -770,7 +770,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         x: randomInRange(-76, 76),
         y: randomInRange(-44, 34),
         color: isShieldBroken ? '#fbbf24' : '#38bdf8',
-        scale: isShieldBroken ? 1.5 : 1.1,
+        scale: isShieldBroken
+          ? COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_ULTIMATE
+          : COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_NORMAL,
         createdAt: now,
       };
 
@@ -966,12 +968,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         : effectiveDamageType === DAMAGE_TYPE.CRIT
           ? '#fb7185'
           : teamPalette.secondary;
-    const textScale =
-      effectiveDamageType === DAMAGE_TYPE.ULTIMATE
-        ? 1.55
-        : effectiveDamageType === DAMAGE_TYPE.CRIT
-          ? 1.25
-          : 1.0;
+    const floatingScaleMap: Record<DamageType, number> = {
+      [DAMAGE_TYPE.NORMAL]: COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_NORMAL,
+      [DAMAGE_TYPE.CRIT]: COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_CRIT,
+      [DAMAGE_TYPE.ULTIMATE]: COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_ULTIMATE,
+    };
+    const textScale = floatingScaleMap[effectiveDamageType];
 
     const newFloat: FloatingDamageText = {
       id: `float-${now}-${Math.random()}`,
@@ -1606,7 +1608,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         x: posX - screenW * 0.5,
         y: posY - screenH * 0.5,
         color: '#ef4444',
-        scale: skill.isUltimate ? 1.4 : 1.1,
+        scale: skill.isUltimate
+          ? COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_ULTIMATE
+          : COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_CRIT,
         createdAt: now,
       });
 

@@ -18,7 +18,7 @@ import { GAME_CONSTANTS } from '../../constants/game';
 
 export const GameCanvas = () => {
   return (
-    <div className="absolute inset-0 w-full h-full pointer-events-none z-10">
+    <div className="absolute inset-0 w-full h-full pointer-events-none z-20">
       <Canvas
         camera={{
           position: [0, GAME_CONSTANTS.RENDER.CAMERA_POS_Y, GAME_CONSTANTS.RENDER.CAMERA_POS_Z],
