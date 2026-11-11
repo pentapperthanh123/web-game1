@@ -190,6 +190,18 @@ class GameSocketClient {
       this.socket.emit('admin:heal-team', { team, amount, senderId: CLIENT_INSTANCE_ID });
     }
   }
+
+  public sendAutoProBattle(config: { enabled?: boolean; onlyWhenIdle?: boolean; intervalMs?: number }): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:auto-pro-battle', { ...config, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public sendBotControl(isActive: boolean, speedMs?: number): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:toggle-bot', { isActive, speedMs, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
 }
 
 export const gameSocket = new GameSocketClient();

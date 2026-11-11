@@ -1,0 +1,8 @@
+version: "2"
+tunnels:
+  client:
+    proto: http
+    addr: 8000
+  admin:
+    proto: http
+    addr: 8001

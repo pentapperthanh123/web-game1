@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Volume2, VolumeX, Swords, UserCheck, ShieldAlert } from 'lucide-react';
+import { Volume2, VolumeX, UserCheck, ShieldAlert } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { audioService } from '../../services/audioService';
 import { BossHealthBar } from './BossHealthBar';
@@ -26,7 +26,6 @@ export const HUDOverlay = () => {
   const { t } = useTranslation();
   const overlayVisibility = useGameStore((state) => state.overlayVisibility);
   const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
-  const setAutoProBattleConfig = useGameStore((state) => state.setAutoProBattleConfig);
   const gameTheme = useGameStore((state) => state.gameTheme);
   const minionsLength = useGameStore((state) => state.minions.length);
   const bossHp = useGameStore((state) => state.bossHp);
@@ -74,12 +73,6 @@ export const HUDOverlay = () => {
     if (next) {
       audioService.playGiftFanfare();
     }
-  };
-
-  const toggleAutoProBattle = () => {
-    const nextEnabled = !autoProBattleConfig.enabled;
-    setAutoProBattleConfig({ enabled: nextEnabled });
-    audioService.playUiToggleSound(nextEnabled);
   };
 
   const toggleGuestMode = () => {
@@ -130,27 +123,6 @@ export const HUDOverlay = () => {
             ) : (
               <VolumeX className="w-3 h-3 text-slate-500" />
             )}
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleAutoProBattle}
-            title={t(
-              'HUD.autoProTooltip',
-              'Bật/tắt chế độ tuyển thủ BLG & GEN.G tự bắn chiêu khi không có người tham gia'
-            )}
-            className={`pointer-events-auto flex items-center space-x-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
-              autoProBattleConfig.enabled
-                ? 'bg-emerald-950/90 border-emerald-400/80 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.45)]'
-                : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
-            }`}
-          >
-            <Swords className={`w-2.5 h-2.5 ${autoProBattleConfig.enabled ? 'animate-pulse text-emerald-400' : ''}`} />
-            <span>
-              {autoProBattleConfig.enabled
-                ? t('HUD.autoProOn', 'Tự đánh: BẬT')
-                : t('HUD.autoProOff', 'Tự đánh')}
-            </span>
           </button>
 
           <button

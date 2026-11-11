@@ -161,3 +161,4 @@ export const AdminMapSkillsTab: React.FC = () => {
     </div>
   );
 };
+

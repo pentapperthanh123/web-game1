@@ -163,6 +163,13 @@
     "speedFast": "Fast (500ms)",
     "speedNormal": "Normal (1200ms)",
     "speedSlow": "Slow (2500ms)",
-    "overlayTitle": "UI Overlay Visibility Settings:"
+    "overlayTitle": "UI Overlay Visibility Settings:",
+    "autoProTitle": "Pro Players Auto-Attack:",
+    "autoProRunning": "Auto-Attack: ON",
+    "autoProStopped": "Auto-Attack: OFF",
+    "autoProOnlyIdle": "Only attack when no viewers are active",
+    "autoProInterval": "Skill attack interval:",
+    "yes": "Yes",
+    "no": "No"
   }
 }

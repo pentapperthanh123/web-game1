@@ -1,11 +1,19 @@
 @echo off
+setlocal
 echo ========================================================
-echo   Mo Cong Ngrok cho TikTok Live Game: Client va Admin
+echo   Mo Cong Ngrok cho TikTok Live Game: Admin Portal
 echo ========================================================
 echo.
-echo Dang khoi chay 2 tunnel ngrok song song:
-echo   - Client Game (port 3000)
-echo   - Admin Panel (port 3001)
+echo Dang khoi chay 1 tunnel ngrok (tam thoi):
+echo   - Admin Portal (port 8001)
 echo.
-ngrok start --all
+
+set "NGROK_CMD=ngrok start admin"
+if exist "%LOCALAPPDATA%\ngrok\ngrok.yml" (
+  %NGROK_CMD% --config "%LOCALAPPDATA%\ngrok\ngrok.yml" --config "%~dp0ngrok.yml"
+) else if exist "%USERPROFILE%\.config\ngrok\ngrok.yml" (
+  %NGROK_CMD% --config "%USERPROFILE%\.config\ngrok\ngrok.yml" --config "%~dp0ngrok.yml"
+) else (
+  %NGROK_CMD% --config "%~dp0ngrok.yml"
+)
 pause

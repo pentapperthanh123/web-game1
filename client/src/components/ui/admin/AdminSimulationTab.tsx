@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Bot, Swords, Gauge, Clock, Check } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
 import { ADMIN_CONSTANTS } from '../../../constants/game';
+import { gameSocket } from '../../../services/socket';
 
 export const AdminSimulationTab: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -26,23 +27,27 @@ export const AdminSimulationTab: React.FC = () => {
   const handleToggleBot = () => {
     const nextState = !isSimulationActive;
     toggleSimulation(nextState, botSpeedMs);
+    gameSocket.sendBotControl(nextState, botSpeedMs);
     showFeedback(nextState ? 'Đã bật Bot giả lập người xem!' : 'Đã dừng Bot giả lập!');
   };
 
   const handleChangeBotSpeed = (speedMs: number, label: string) => {
     toggleSimulation(isSimulationActive, speedMs);
+    gameSocket.sendBotControl(isSimulationActive, speedMs);
     showFeedback(`Đã chuyển tốc độ Bot: ${label}`);
   };
 
   const handleToggleAutoPro = () => {
     const nextEnabled = !autoProBattleConfig.enabled;
     setAutoProBattleConfig({ enabled: nextEnabled });
+    gameSocket.sendAutoProBattle({ enabled: nextEnabled });
     showFeedback(nextEnabled ? 'Đã bật Tự đánh Pro!' : 'Đã tắt Tự đánh Pro!');
   };
 
   const handleToggleOnlyIdle = () => {
     const nextVal = !autoProBattleConfig.onlyWhenIdle;
     setAutoProBattleConfig({ onlyWhenIdle: nextVal });
+    gameSocket.sendAutoProBattle({ onlyWhenIdle: nextVal });
     showFeedback(
       nextVal
         ? 'Chỉ tự đánh khi vắng người xem (Bật)'
@@ -52,6 +57,7 @@ export const AdminSimulationTab: React.FC = () => {
 
   const handleChangeInterval = (intervalMs: number, label: string) => {
     setAutoProBattleConfig({ intervalMs });
+    gameSocket.sendAutoProBattle({ intervalMs });
     showFeedback(`Đã đổi nhịp tự đánh: ${label}`);
   };
 
@@ -122,7 +128,7 @@ export const AdminSimulationTab: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1.5 font-bold text-amber-300">
             <Swords className="w-3.5 h-3.5 text-amber-400" />
-            <span>Tự Đánh Tuyển Thủ Pro:</span>
+            <span>{t('Admin.autoProTitle', 'Tự Đánh Tuyển Thủ Pro:')}</span>
           </div>
 
           <button
@@ -134,14 +140,16 @@ export const AdminSimulationTab: React.FC = () => {
                 : 'bg-slate-950/80 border-slate-700 text-slate-400 hover:text-slate-200'
             }`}
           >
-            {autoProBattleConfig.enabled ? 'BẬT' : 'TẮT'}
+            {autoProBattleConfig.enabled
+              ? t('Admin.autoProRunning', 'Đang Tự Đánh: BẬT')
+              : t('Admin.autoProStopped', 'Đã Tắt')}
           </button>
         </div>
 
         {/* Toggle only when idle */}
         <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800">
           <div className="text-[10px] text-slate-300">
-            Chỉ đánh khi vắng người xem (Only When Idle)
+            {t('Admin.autoProOnlyIdle', 'Chỉ tự đánh khi vắng người xem (Only When Idle)')}
           </div>
           <button
             type="button"
@@ -152,7 +160,9 @@ export const AdminSimulationTab: React.FC = () => {
                 : 'bg-slate-800 border-slate-700 text-slate-400'
             }`}
           >
-            {autoProBattleConfig.onlyWhenIdle ? 'Có' : 'Không'}
+            {autoProBattleConfig.onlyWhenIdle
+              ? t('Admin.yes', 'Có')
+              : t('Admin.no', 'Không')}
           </button>
         </div>
 
@@ -160,7 +170,7 @@ export const AdminSimulationTab: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center space-x-1 text-[10px] text-slate-400">
             <Clock className="w-3 h-3 text-amber-400" />
-            <span>Nhịp đánh chiêu:</span>
+            <span>{t('Admin.autoProInterval', 'Nhịp xuất chiêu của tuyển thủ:')}</span>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
             {ADMIN_CONSTANTS.PRO_INTERVAL_PRESETS.map((preset) => {

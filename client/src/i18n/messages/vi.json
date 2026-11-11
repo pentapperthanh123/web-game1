@@ -163,6 +163,13 @@
     "speedFast": "Nhanh (500ms)",
     "speedNormal": "Vừa (1200ms)",
     "speedSlow": "Chậm (2500ms)",
-    "overlayTitle": "Cài đặt hiển thị thành phần giao diện:"
+    "overlayTitle": "Cài đặt hiển thị thành phần giao diện:",
+    "autoProTitle": "Tự Đánh Tuyển Thủ Pro:",
+    "autoProRunning": "Đang Tự Đánh: BẬT",
+    "autoProStopped": "Đã Tắt Tự Đánh",
+    "autoProOnlyIdle": "Chỉ tự đánh khi vắng người xem (Only When Idle)",
+    "autoProInterval": "Nhịp xuất chiêu của tuyển thủ:",
+    "yes": "Có",
+    "no": "Không"
   }
 }
