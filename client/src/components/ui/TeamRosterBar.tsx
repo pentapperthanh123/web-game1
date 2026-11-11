@@ -1,15 +1,47 @@
-import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Users, Zap } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_ROSTERS, RosterPlayer } from '../../constants/roster';
-import { TEAM_KEY } from '../../constants/game';
+import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
 import { audioService } from '../../services/audioService';
 
 interface TeamRosterBarProps {
   side: 'left' | 'right';
 }
 
+const DESKTOP_EXPAND_MIN_WIDTH = 768;
+
+const isCompactViewport = (): boolean => {
+  if (typeof window === 'undefined') return true;
+  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  return isTouch || window.innerWidth < DESKTOP_EXPAND_MIN_WIDTH;
+};
+
+const getAvatarBorderClass = (isFullFury: boolean, isActive: boolean, isLeft: boolean): string => {
+  if (isFullFury) {
+    return 'border-amber-300 ring-1 ring-amber-400/70 shadow-[0_0_10px_rgba(245,158,11,0.7)]';
+  }
+  if (isActive) {
+    return isLeft
+      ? 'border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.5)]'
+      : 'border-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]';
+  }
+  return isLeft ? 'border-cyan-800/50 bg-slate-900' : 'border-amber-800/50 bg-slate-900';
+};
+
+const getFuryBarFillClass = (isFullFury: boolean, fury: number): string => {
+  if (isFullFury) {
+    return 'bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300 shadow-[0_0_6px_#f59e0b]';
+  }
+  if (fury >= GAME_CONSTANTS.PRO_FURY.FURY_AUTO_CAP) {
+    return 'bg-amber-400';
+  }
+  return 'bg-gradient-to-r from-cyan-500/80 to-amber-400/80';
+};
+
 export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
+  const { t } = useTranslation();
   const team = side === 'left' ? TEAM_KEY.BLG : TEAM_KEY.GENG;
   const roster = TEAM_ROSTERS[team];
   const minions = useGameStore((state) => state.minions);
@@ -17,20 +49,15 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
   const rosterPlayerFury = useGameStore((state) => state.rosterPlayerFury);
   const isLeft = side === 'left';
 
-  // Default to collapsed on mobile/touch screens or narrow viewports to prevent screen cluttering
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      return isTouch || window.innerWidth < 768;
-    }
-    return false;
-  });
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(isCompactViewport);
+  const isCollapsedRef = useRef(isCollapsed);
+  isCollapsedRef.current = isCollapsed;
+  const wasAutoCollapsedRef = useRef(false);
+  const prevHasViewersRef = useRef(minions.length > 0);
 
-  // Handle responsive resizing
   useEffect(() => {
     const handleResize = () => {
-      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouch || window.innerWidth < 768) {
+      if (isCompactViewport()) {
         setIsCollapsed(true);
       }
     };
@@ -38,7 +65,24 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Count active summons per player
+  // Auto-yield side wings to Viewer SummonShowcase whenever any viewer champion enters
+  const hasActiveViewers = minions.length > 0;
+  useEffect(() => {
+    const hadViewers = prevHasViewersRef.current;
+    prevHasViewersRef.current = hasActiveViewers;
+
+    if (!hadViewers && hasActiveViewers && !isCollapsedRef.current) {
+      wasAutoCollapsedRef.current = true;
+      setIsCollapsed(true);
+      return;
+    }
+
+    if (hadViewers && !hasActiveViewers && wasAutoCollapsedRef.current && !isCompactViewport()) {
+      wasAutoCollapsedRef.current = false;
+      setIsCollapsed(false);
+    }
+  }, [hasActiveViewers]);
+
   const getSummonCount = (player: RosterPlayer) => {
     return minions.filter(
       (m) => m.team === team && m.championName.toLowerCase().includes(player.name.toLowerCase())
@@ -46,8 +90,11 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
   };
 
   const totalTeamSummons = minions.filter((m) => m.team === team).length;
+  const shortTeamLabel = isLeft ? 'BLG' : 'GEN';
 
   if (isCollapsed) {
+    const collapsedLabel =
+      totalTeamSummons > 0 ? `${shortTeamLabel} (${totalTeamSummons})` : shortTeamLabel;
     return (
       <div
         className={`absolute top-[168px] sm:top-[176px] ${
@@ -58,21 +105,20 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
           id={`roster-collapsed-${team}`}
           type="button"
           onClick={() => {
+            wasAutoCollapsedRef.current = false;
             audioService.playUiToggleSound(true);
             setIsCollapsed(false);
           }}
-          className={`flex items-center space-x-1 px-2 py-1 rounded-full border backdrop-blur-md shadow-lg transition active:scale-95 hover:scale-105 ${
+          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full border backdrop-blur-md shadow-md transition active:scale-95 hover:scale-105 opacity-85 hover:opacity-100 ${
             isLeft
-              ? 'bg-cyan-950/90 border-cyan-500/80 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
-              : 'bg-amber-950/90 border-amber-500/80 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+              ? 'bg-cyan-950/80 border-cyan-500/60 text-cyan-300'
+              : 'bg-amber-950/80 border-amber-500/60 text-amber-300'
           }`}
-          title={isLeft ? 'Mở BLG Lineup' : 'Mở GEN.G Lineup'}
+          title={t('HUD.lineupExpand', 'Mở đội hình {{team}}', { team: shortTeamLabel })}
         >
-          {isLeft ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-          <Users className="w-3 h-3" />
-          <span className="text-[9px] font-black">
-            {totalTeamSummons > 0 ? `${isLeft ? 'BLG' : 'GEN'} (${totalTeamSummons})` : isLeft ? 'BLG' : 'GEN'}
-          </span>
+          {isLeft ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+          <Users className="w-2.5 h-2.5" />
+          <span className="text-[9px] font-black">{collapsedLabel}</span>
         </button>
       </div>
     );
@@ -83,39 +129,37 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
       aria-label={isLeft ? 'BLG Team Roster' : 'Gen.G Team Roster'}
       className={`absolute top-[168px] sm:top-[176px] ${
         isLeft ? 'left-1' : 'right-1'
-      } flex flex-col space-y-1 pointer-events-auto z-20 select-none max-w-[114px] sm:max-w-[150px]`}
+      } flex flex-col space-y-1 pointer-events-auto z-20 select-none max-w-[90px] sm:max-w-[104px]`}
     >
-      {/* Roster Header with Toggle Button */}
+      {/* Compact Roster Header with Collapse Button */}
       <div
-        className={`text-[8px] sm:text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border backdrop-blur-md mb-0.5 flex items-center justify-between shadow-md ${
+        className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border backdrop-blur-md flex items-center justify-between shadow-sm opacity-90 ${
           isLeft
-            ? 'bg-cyan-950/85 border-cyan-500/80 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
-            : 'bg-amber-950/85 border-amber-500/80 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+            ? 'bg-cyan-950/75 border-cyan-500/60 text-cyan-300'
+            : 'bg-amber-950/75 border-amber-500/60 text-amber-300'
         }`}
       >
-        <div className="flex items-center space-x-1">
-          <span className="w-1.5 h-1.5 rounded-full animate-ping bg-current inline-block" />
-          <span className="truncate">{isLeft ? 'BLG LINEUP' : 'GEN.G LINEUP'}</span>
-        </div>
+        <span className="truncate">{shortTeamLabel}</span>
         <button
           type="button"
           onClick={() => {
+            wasAutoCollapsedRef.current = false;
             audioService.playUiToggleSound(false);
             setIsCollapsed(true);
           }}
           className="p-0.5 hover:bg-white/10 rounded transition"
-          aria-label="Thu gọn"
+          aria-label={t('HUD.lineupCollapse', 'Thu gọn đội hình')}
         >
           {isLeft ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </button>
       </div>
 
-      {/* Players List with Real Pro Player Portraits & Fury Bars */}
+      {/* Compact Pro Player Strip (Supporting Role, Viewer Remains Spotlight) */}
       {roster.map((player) => {
         const count = getSummonCount(player);
         const isAttacking = Boolean(rosterAttackTimestamps[player.id]);
         const fury = rosterPlayerFury[player.id] ?? 0;
-        const isFullFury = fury >= 100;
+        const isFullFury = fury >= GAME_CONSTANTS.PRO_FURY.MAX_FURY;
         const isActive = count > 0 || isAttacking || isFullFury;
 
         return (
@@ -128,6 +172,7 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
             isActive={isActive}
             isAttacking={isAttacking}
             isLeft={isLeft}
+            furyReadyLabel={t('HUD.furyReady', 'NỘ')}
           />
         );
       })}
@@ -143,6 +188,7 @@ interface RosterItemProps {
   isActive: boolean;
   isAttacking: boolean;
   isLeft: boolean;
+  furyReadyLabel: string;
 }
 
 const getRosterItemCardClass = (
@@ -152,17 +198,16 @@ const getRosterItemCardClass = (
   isLeft: boolean
 ): string => {
   if (isFullFury) {
-    const scaleClass = isAttacking ? 'scale-115 ring-2 ring-yellow-300' : 'scale-105';
-    return `bg-gradient-to-r from-rose-950/95 via-amber-950/90 to-slate-950/90 border-amber-300 shadow-[0_0_18px_rgba(245,158,11,0.95)] ${scaleClass} animate-pulse`;
+    return 'bg-gradient-to-r from-rose-950/85 via-amber-950/80 to-slate-950/80 border-amber-300/90 shadow-[0_0_12px_rgba(245,158,11,0.65)] scale-105';
   }
   if (!isActive) {
-    return 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700';
+    return 'bg-slate-950/50 border-slate-800/55 opacity-80 hover:opacity-100';
   }
-  const scaleClass = isAttacking ? 'scale-110 ring-1 ring-white/60' : 'scale-105';
+  const scaleClass = isAttacking ? 'scale-105 ring-1 ring-white/40' : '';
   if (isLeft) {
-    return `bg-gradient-to-r from-cyan-950/95 to-slate-950/90 border-cyan-400 shadow-[0_0_14px_rgba(6,182,212,0.7)] ${scaleClass}`;
+    return `bg-gradient-to-r from-cyan-950/80 to-slate-950/75 border-cyan-400/80 shadow-[0_0_10px_rgba(6,182,212,0.4)] ${scaleClass}`;
   }
-  return `bg-gradient-to-r from-amber-950/95 to-slate-950/90 border-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.7)] ${scaleClass}`;
+  return `bg-gradient-to-r from-amber-950/80 to-slate-950/75 border-amber-400/80 shadow-[0_0_10px_rgba(245,158,11,0.4)] ${scaleClass}`;
 };
 
 const RosterItem = ({
@@ -173,29 +218,24 @@ const RosterItem = ({
   isActive,
   isAttacking,
   isLeft,
+  furyReadyLabel,
 }: RosterItemProps) => {
   const [imageError, setImageError] = useState(false);
 
   return (
     <div
-      className={`relative flex items-center space-x-1.5 px-1.5 py-1 rounded-xl border backdrop-blur-md transition-all duration-200 ${
+      className={`relative flex items-center space-x-1.5 px-1.5 py-0.5 rounded-lg border backdrop-blur-sm transition-all duration-200 ${
         isLeft ? 'flex-row' : 'flex-row-reverse space-x-reverse'
       } ${getRosterItemCardClass(isActive, isAttacking, isFullFury, isLeft)}`}
     >
-      {/* Real Pro Player Avatar with Role Badge */}
+      {/* Compact Pro Avatar with Mini Role Tag */}
       <div id={`roster-avatar-${player.id}`} className="relative shrink-0 transition-transform duration-200">
         <div
-          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border ${
-            isFullFury
-              ? 'border-yellow-300 ring-2 ring-amber-400/80 shadow-[0_0_14px_#f59e0b]'
-              : isActive
-              ? isLeft
-                ? 'border-cyan-400 shadow-[0_0_10px_#06b6d4]'
-                : 'border-amber-400 shadow-[0_0_10px_#f59e0b]'
-              : isLeft
-              ? 'border-cyan-800/60 bg-slate-900'
-              : 'border-amber-800/60 bg-slate-900'
-          }`}
+          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden border ${getAvatarBorderClass(
+            isFullFury,
+            isActive,
+            isLeft
+          )}`}
         >
           {!imageError ? (
             <img
@@ -207,7 +247,7 @@ const RosterItem = ({
             />
           ) : (
             <div
-              className={`w-full h-full flex items-center justify-center text-[9px] font-black ${
+              className={`w-full h-full flex items-center justify-center text-[8px] font-black ${
                 isLeft ? 'bg-cyan-900 text-cyan-200' : 'bg-amber-900 text-amber-200'
               }`}
             >
@@ -216,27 +256,26 @@ const RosterItem = ({
           )}
         </div>
 
-        {/* Floating Mini Role Tag */}
         <span
-          className={`absolute -bottom-1 -right-1 text-[6px] sm:text-[7px] font-mono font-black px-0.5 rounded leading-none shadow ${
-            isFullFury
-              ? 'bg-amber-400 text-slate-950 font-bold'
-              : isLeft
-              ? 'bg-cyan-400 text-slate-950'
-              : 'bg-amber-400 text-slate-950'
+          className={`absolute -bottom-0.5 -right-0.5 text-[6px] font-mono font-black px-0.5 rounded leading-none shadow ${
+            isLeft ? 'bg-cyan-400 text-slate-950' : 'bg-amber-400 text-slate-950'
           }`}
         >
           {player.role}
         </span>
       </div>
 
-      {/* Player Name, Role and Animated Fury Bar */}
-      <div className={`text-[9px] sm:text-[10px] leading-tight min-w-0 flex-1 ${isLeft ? 'text-left' : 'text-right'}`}>
-        <div className="font-black text-white flex items-center space-x-0.5 truncate">
+      {/* Compact Player Name & Hairline Fury Progress */}
+      <div className={`text-[9px] leading-tight min-w-0 flex-1 ${isLeft ? 'text-left' : 'text-right'}`}>
+        <div
+          className={`font-bold text-slate-100 flex items-center space-x-0.5 truncate ${
+            isLeft ? 'justify-start' : 'justify-end'
+          }`}
+        >
           <span className="truncate">{player.name}</span>
           {count > 0 && (
             <span
-              className={`text-[7px] sm:text-[8px] px-1 rounded-full font-mono font-black shrink-0 ${
+              className={`text-[7px] px-1 rounded-full font-mono font-black shrink-0 ${
                 isLeft ? 'bg-cyan-400 text-slate-950' : 'bg-amber-400 text-slate-950'
               }`}
             >
@@ -244,38 +283,21 @@ const RosterItem = ({
             </span>
           )}
           {isFullFury && (
-            <span className="text-[6.5px] px-1 py-0.2 rounded bg-red-600 text-white font-black uppercase tracking-tight animate-pulse shrink-0">
-              NỘ!
+            <span className="text-[6px] px-1 rounded bg-red-600 text-white font-black uppercase shrink-0">
+              {furyReadyLabel}!
             </span>
           )}
         </div>
-        <div className="text-[7.5px] sm:text-[8px] text-slate-400 font-semibold tracking-tight truncate">
-          {player.roleName}
-        </div>
 
-        {/* Animated Fury Bar */}
-        <div className="w-full mt-0.5">
-          <div className={`flex items-center justify-between text-[6.5px] font-mono leading-none mb-0.5 ${isLeft ? 'flex-row' : 'flex-row-reverse'}`}>
-            <span className="flex items-center space-x-0.5 text-amber-400 font-bold">
-              <Zap className="w-2 h-2 text-amber-400 fill-current animate-pulse" />
-              <span>NỘ</span>
-            </span>
-            <span className={`font-black ${isFullFury ? 'text-amber-300 font-bold' : 'text-slate-400'}`}>
-              {Math.round(fury)}%
-            </span>
-          </div>
-          <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-            <div
-              className={`h-full transition-all duration-300 rounded-full ${
-                isFullFury
-                  ? 'bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300 shadow-[0_0_8px_#f59e0b] animate-pulse'
-                  : fury >= 75
-                  ? 'bg-gradient-to-r from-orange-500 to-amber-400'
-                  : 'bg-gradient-to-r from-cyan-500 to-amber-400'
-              }`}
-              style={{ width: `${Math.min(100, Math.max(5, fury))}%` }}
-            />
-          </div>
+        {/* Hairline Fury Bar */}
+        <div className="w-full h-0.5 bg-slate-900/90 rounded-full overflow-hidden mt-1">
+          <div
+            className={`h-full transition-all duration-300 rounded-full ${getFuryBarFillClass(
+              isFullFury,
+              fury
+            )}`}
+            style={{ width: `${Math.min(GAME_CONSTANTS.PRO_FURY.MAX_FURY, Math.max(4, fury))}%` }}
+          />
         </div>
       </div>
     </div>

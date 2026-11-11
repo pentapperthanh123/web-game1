@@ -91,8 +91,10 @@ export const GAME_CONSTANTS = {
   },
   PRO_FURY: {
     MAX_FURY: 100,
-    FURY_GAIN_AUTO_ATTACK: 25, // +25 Nộ mỗi đòn đánh thường (4 đòn = Full Nộ)
+    FURY_AUTO_CAP: 90, // Tuyển thủ tự đánh tối đa 90% Nộ — cần người xem chat/donate để kích hoạt Bạo Nộ 100%
+    FURY_GAIN_AUTO_ATTACK: 10, // +10 Nộ mỗi đòn giữ nhịp
     FURY_GAIN_SUMMON_MATCH: 35, // +35 Nộ khi người xem chat gọi tướng trùng với tuyển thủ
+    FURY_GAIN_GIFT_BOOST: 50, // +50 Nộ cho toàn đội hình tuyển thủ khi có người xem tặng quà
     FURY_ULTIMATE_DAMAGE_MULTIPLIER: 4.5, // 4.5x sát thương khi tung Đòn Bạo Nộ
     FURY_ULTIMATE_DURATION_MS: 1200,
   },
@@ -832,20 +834,21 @@ export const getChampionSkillVFX = (
 export const AUTO_PRO_STORAGE_KEY = 'lol_auto_pro_battle_config';
 
 export const AUTO_PRO_BATTLE_CONSTANTS = {
-  DEFAULT_INTERVAL_MS: 1800,
+  DEFAULT_INTERVAL_MS: 2800,
   MIN_INTERVAL_MS: 900,
-  MAX_INTERVAL_MS: 4000,
+  MAX_INTERVAL_MS: 4500,
   TICK_MS: 120,
-  INITIAL_STAGGER_MS: 140,
-  DAMAGE_MIN: 240,
-  DAMAGE_MAX: 440,
-  CRIT_CHANCE: 0.22,
-  CRIT_MULTIPLIER: 1.65,
+  INITIAL_STAGGER_MS: 220,
+  DAMAGE_MIN: 85,
+  DAMAGE_MAX: 155,
+  CRIT_CHANCE: 0.12,
+  CRIT_MULTIPLIER: 1.4,
+  BOSS_HP_FLOOR_PERCENT: 0.15, // Auto-pro giữ nhịp tối đa tới 15% HP Boss, người xem phải ra đòn dứt điểm
   FLYING_ARROW_HIT_DELAY_MS: 380,
-  ROSTER_ATTACK_GLOW_MS: 420,
+  ROSTER_ATTACK_GLOW_MS: 380,
   ROLE_COOLDOWN_FACTOR: {
-    ADC: 0.82,
-    MID: 0.92,
+    ADC: 0.85,
+    MID: 0.94,
     JUG: 1.0,
     TOP: 1.1,
     SUP: 1.18,

@@ -26,7 +26,12 @@
     "giftBonus": "Send any gift to trigger Ultimate & Meteor Shower!",
     "autoProOn": "Auto Pro: ON",
     "autoProOff": "Auto Pro",
-    "autoProTooltip": "Toggle BLG & GEN.G pro players auto-attacking when no viewers are active"
+    "autoProTooltip": "Toggle BLG & GEN.G pro players auto-attacking when no viewers are active",
+    "soloHoldingCta": "🛡️ Pros are holding the line — Chat a champion or send a Gift to carry!",
+    "clutchKillCta": "⚡ Boss at finisher threshold (15% HP) — Chat or Gift to clutch & claim MVP!",
+    "lineupCollapse": "Collapse lineup",
+    "lineupExpand": "Expand {{team}} lineup",
+    "furyReady": "FURY"
   },
   "Gift": {
     "sentLabel": "SENT GIFT",

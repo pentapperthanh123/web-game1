@@ -239,16 +239,16 @@ const INITIAL_STATE = {
   autoProBattleConfig: getStoredAutoProBattleConfig(),
   rosterAttackTimestamps: {} as Record<string, number>,
   rosterPlayerFury: {
-    'blg-bin': 25,
-    'blg-xun': 50,
+    'blg-bin': 10,
+    'blg-xun': 20,
     'blg-knight': 0,
-    'blg-elk': 75,
-    'blg-on': 25,
-    'geng-kiin': 50,
-    'geng-canyon': 25,
-    'geng-chovy': 75,
+    'blg-elk': 30,
+    'blg-on': 10,
+    'geng-kiin': 20,
+    'geng-canyon': 10,
+    'geng-chovy': 30,
     'geng-ruler': 0,
-    'geng-duro': 50,
+    'geng-duro': 20,
   } as Record<string, number>,
   lastFuryUltimatePlayerId: null as string | null,
   bo5Score: {
@@ -325,6 +325,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
 
+    const bossFloorHp = Math.ceil(state.bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT);
+    if (state.bossHp <= bossFloorHp) return;
+
     const roster = TEAM_ROSTERS[team];
     if (!roster || roster.length === 0) return;
 
@@ -337,7 +340,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     let isCrit: boolean;
 
     if (isFullFury) {
-      // FULL NỘ -> XẢ SIÊU TUYỆT KỸ (FURY SIGNATURE ULTIMATE)
+      // FULL NỘ (kích hoạt bởi tiếp sức từ người xem) -> XẢ SIÊU TUYỆT KỸ
       isCrit = true;
       damageType = DAMAGE_TYPE.ULTIMATE;
       finalDamage = Math.round(
@@ -346,8 +349,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       );
 
       audioService.playDamageImpactSound(DAMAGE_TYPE.ULTIMATE, true);
-      get().triggerScreenFlash(player.team === TEAM_KEY.BLG ? '#00f2fe' : '#f59e0b');
-      get().triggerScreenShake(0.85);
+      get().triggerScreenShake(0.45);
 
       get().addLog(
         'BOSS',
@@ -375,7 +377,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const nextFury = isFullFury
       ? 0
       : Math.min(
-          GAME_CONSTANTS.PRO_FURY.MAX_FURY,
+          GAME_CONSTANTS.PRO_FURY.FURY_AUTO_CAP,
           prevFury + GAME_CONSTANTS.PRO_FURY.FURY_GAIN_AUTO_ATTACK
         );
 
@@ -403,7 +405,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         team,
         isFullFury ? `🔥 ${player.name} (Bạo Nộ)` : `${player.name} (${player.role})`,
         damageType,
-        { excludeFromLeaderboard: true, proPlayer: player }
+        {
+          excludeFromLeaderboard: true,
+          proPlayer: player,
+          suppressCombo: true,
+          minHpFloorPercent: AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT,
+        }
       );
     }, AUTO_PRO_BATTLE_CONSTANTS.FLYING_ARROW_HIT_DELAY_MS);
   },
@@ -446,8 +453,22 @@ export const useGameStore = create<GameState>((set, get) => ({
       startY = Math.min(screenH * 0.45, 180 + idx * 42);
     }
 
-    const targetX = screenW * 0.5 + (Math.random() - 0.5) * 50;
-    const targetY = screenH * 0.36 + (Math.random() - 0.5) * 40;
+    const bossEl =
+      typeof document !== 'undefined'
+        ? document.getElementById('boss-monster-target')
+        : null;
+
+    let targetX: number;
+    let targetY: number;
+
+    if (bossEl) {
+      const bossRect = bossEl.getBoundingClientRect();
+      targetX = bossRect.left + bossRect.width * 0.5 + (Math.random() - 0.5) * 44;
+      targetY = bossRect.top + bossRect.height * 0.48 + (Math.random() - 0.5) * 36;
+    } else {
+      targetX = screenW * 0.5 + (Math.random() - 0.5) * 50;
+      targetY = screenH * 0.59 + (Math.random() - 0.5) * 40;
+    }
 
     const palette = ARROW_VFX_CONFIG.COLORS;
     const blgColor = isCrit ? palette.BLG_CRIT : palette.BLG;
@@ -467,6 +488,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       targetY,
       isCrit,
       color,
+      glowColor: skillVfx.glowColor || color,
+      coreColor: skillVfx.coreColor || '#ffffff',
       createdAt: Date.now(),
       durationMs: ARROW_VFX_CONFIG.DURATION_MS,
     };
@@ -654,6 +677,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       arcHeight: isCrit ? randomInRange(1.2, 1.9) : randomInRange(0.4, 1.15),
       isCrit,
       color,
+      glowColor: color,
+      coreColor: '#ffffff',
       createdAt: Date.now(),
     };
     set((state) => ({
@@ -674,10 +699,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.bossHp <= 0) return;
 
+    const floorHp = options?.minHpFloorPercent
+      ? Math.ceil(state.bossMaxHp * options.minHpFloorPercent)
+      : 0;
+    const newHp = Math.max(floorHp, state.bossHp - amount);
+    const effectiveDamage = Math.max(0, state.bossHp - newHp);
+    if (effectiveDamage <= 0) return;
+
     audioService.playDamageImpactSound(damageType, damageType === DAMAGE_TYPE.CRIT);
 
     const now = Date.now();
-    const newHp = Math.max(0, state.bossHp - amount);
     const wasEnraged =
       state.bossHp > 0 &&
       state.bossHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
@@ -706,13 +737,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       nextStatus = BOSS_STATUS.ENRAGED;
     }
 
-    const newBLGScore = team === TEAM_KEY.BLG ? state.teamScoreBLG + amount : state.teamScoreBLG;
-    const newGENGScore = team === TEAM_KEY.GENG ? state.teamScoreGENG + amount : state.teamScoreGENG;
+    const newBLGScore = team === TEAM_KEY.BLG ? state.teamScoreBLG + effectiveDamage : state.teamScoreBLG;
+    const newGENGScore = team === TEAM_KEY.GENG ? state.teamScoreGENG + effectiveDamage : state.teamScoreGENG;
     const topLeaderboard = options?.excludeFromLeaderboard
       ? state.leaderboard
-      : updateLeaderboardList(state.leaderboard, playerName, team, amount);
+      : updateLeaderboardList(state.leaderboard, playerName, team, effectiveDamage);
     const nextProLeaderboard = options?.proPlayer
-      ? updateProLeaderboardList(state.proLeaderboard, options.proPlayer, amount)
+      ? updateProLeaderboardList(state.proLeaderboard, options.proPlayer, effectiveDamage)
       : state.proLeaderboard;
 
     let nextBO5Score = { ...state.bo5Score };
@@ -764,7 +795,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().triggerScreenShake(damageType === DAMAGE_TYPE.ULTIMATE ? 1.2 : 0.55);
     }
 
-    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    const safeAmount = Number.isFinite(effectiveDamage) ? effectiveDamage : 0;
     const textColor =
       damageType === DAMAGE_TYPE.ULTIMATE
         ? '#fbbf24'
@@ -798,12 +829,21 @@ export const useGameStore = create<GameState>((set, get) => ({
       createdAt: now,
     };
 
-    const isComboActive = now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
-    const nextComboCount = isComboActive ? state.comboCount + 1 : 1;
-    const nextComboDamage = isComboActive ? state.comboDamage + safeAmount : safeAmount;
+    let nextComboCount = state.comboCount;
+    let nextComboDamage = state.comboDamage;
+    let nextComboTeam = state.comboTeam;
+    let nextLastComboTimestamp = state.lastComboTimestamp;
 
-    if (isComboMilestoneReached(nextComboCount)) {
-      audioService.playComboMilestoneSound(nextComboCount);
+    if (!options?.suppressCombo) {
+      const isComboActive = now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
+      nextComboCount = isComboActive ? state.comboCount + 1 : 1;
+      nextComboDamage = isComboActive ? state.comboDamage + safeAmount : safeAmount;
+      nextComboTeam = team;
+      nextLastComboTimestamp = now;
+
+      if (isComboMilestoneReached(nextComboCount)) {
+        audioService.playComboMilestoneSound(nextComboCount);
+      }
     }
 
     if (isDefeated) {
@@ -872,8 +912,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       ],
       comboCount: nextComboCount,
       comboDamage: nextComboDamage,
-      comboTeam: team,
-      lastComboTimestamp: now,
+      comboTeam: nextComboTeam,
+      lastComboTimestamp: nextLastComboTimestamp,
       bo5Score: nextBO5Score,
       roundWinner: nextRoundWinner,
       isSeriesEnded: nextIsSeriesEnded,
@@ -1065,6 +1105,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().damageBoss(giftDamage, team, `${donorName} (${giftName})`, 'ULTIMATE');
     get().triggerScreenFlash(team === TEAM_KEY.BLG ? '#38bdf8' : '#fbbf24');
     get().triggerScreenShake(1.3);
+
+    // Supercharge Fury for all Pro Players on the gifted team!
+    TEAM_ROSTERS[team].forEach((pro) => {
+      get().addPlayerFury(pro.id, GAME_CONSTANTS.PRO_FURY.FURY_GAIN_GIFT_BOOST);
+    });
 
     // Option D: Donating gifts breaks through champion limits and summons an Elite Champion for the donor
     const giftRosterBLG = ['Jax', "Kai'Sa", 'Ahri', 'Aatrox', 'Zed'];

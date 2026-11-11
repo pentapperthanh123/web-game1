@@ -17,7 +17,7 @@ import { SummonShowcase } from './SummonShowcase';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
-import { GAME_THEME } from '../../constants/game';
+import { AUTO_PRO_BATTLE_CONSTANTS, GAME_THEME } from '../../constants/game';
 
 export const HUDOverlay = () => {
   const { t } = useTranslation();
@@ -25,7 +25,14 @@ export const HUDOverlay = () => {
   const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
   const setAutoProBattleConfig = useGameStore((state) => state.setAutoProBattleConfig);
   const gameTheme = useGameStore((state) => state.gameTheme);
+  const minionsLength = useGameStore((state) => state.minions.length);
+  const bossHp = useGameStore((state) => state.bossHp);
+  const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
+
+  const isSoloAutoHolding = autoProBattleConfig.enabled && minionsLength === 0 && bossHp > 0;
+  const isBossClutchZone =
+    bossHp > 0 && bossHp <= Math.ceil(bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT);
 
   const toggleAudio = () => {
     const next = !isAudioOn;
@@ -133,6 +140,29 @@ export const HUDOverlay = () => {
           {overlayVisibility.chat ? <LiveChatStream /> : <div />}
           {overlayVisibility.likeCounter ? <LikeCounter /> : <div />}
         </div>
+
+        {/* Viewer Call-to-Action when Auto-Pro is holding without viewers */}
+        {isSoloAutoHolding && (
+          <div className="max-w-md mx-auto px-2 text-center pointer-events-none">
+            <div
+              className={`text-[10px] font-black rounded-full py-1 px-3 backdrop-blur-md shadow-lg border ${
+                isBossClutchZone
+                  ? 'text-amber-200 bg-rose-950/85 border-amber-400/80 animate-pulse'
+                  : 'text-emerald-200 bg-slate-950/80 border-emerald-500/50'
+              }`}
+            >
+              {isBossClutchZone
+                ? t(
+                    'HUD.clutchKillCta',
+                    '⚡ Boss ở ngưỡng kết liễu (15% HP) — Chat hoặc Tặng quà để dứt điểm & giành MVP!'
+                  )
+                : t(
+                    'HUD.soloHoldingCta',
+                    '🛡️ Tuyển thủ đang giữ nhịp — Chat tên tướng hoặc Tặng quà để gánh team!'
+                  )}
+            </div>
+          </div>
+        )}
 
         {/* Viewer Chat Guide */}
         {overlayVisibility.howToPlay && (

@@ -69,6 +69,8 @@ export interface ProjectileEntity {
   arcHeight: number;
   isCrit: boolean;
   color: string;
+  glowColor?: string;
+  coreColor?: string;
   createdAt: number;
 }
 
@@ -85,6 +87,8 @@ export interface FlyingArrowEntity {
   targetY: number;
   isCrit: boolean;
   color: string;
+  glowColor?: string;
+  coreColor?: string;
   createdAt: number;
   durationMs: number;
 }
@@ -101,6 +105,8 @@ export interface MeteorEntity {
   start: [number, number, number];
   target: [number, number, number];
   color: string;
+  glowColor?: string;
+  coreColor?: string;
   createdAt: number;
   duration: number;
 }
@@ -224,6 +230,8 @@ export interface AutoProBattleConfig {
 export interface DamageBossOptions {
   excludeFromLeaderboard?: boolean;
   proPlayer?: RosterPlayer;
+  suppressCombo?: boolean;
+  minHpFloorPercent?: number;
 }
 
 export interface GameState {

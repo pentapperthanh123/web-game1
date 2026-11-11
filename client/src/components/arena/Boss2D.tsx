@@ -431,6 +431,7 @@ export const Boss2D = () => {
 
       {/* 8. High-Definition Boss 2D Monster Sprite with Interactive Poke */}
       <div
+        id="boss-monster-target"
         onClick={handleBossClick}
         title={t('BossInteractive.pokeTooltip', 'Click để tương tác với Boss!')}
         className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-auto group`}

@@ -26,7 +26,12 @@
     "giftBonus": "Tặng quà bất kỳ kích hoạt Tuyệt Kỹ & Mưa Thiên Thạch!",
     "autoProOn": "Tự đánh: BẬT",
     "autoProOff": "Tự đánh",
-    "autoProTooltip": "Bật/tắt chế độ tuyển thủ BLG & GEN.G tự bắn chiêu khi không có người tham gia"
+    "autoProTooltip": "Bật/tắt chế độ tuyển thủ BLG & GEN.G tự bắn chiêu khi không có người tham gia",
+    "soloHoldingCta": "🛡️ Tuyển thủ đang giữ nhịp — Chat tên tướng hoặc Tặng quà để gánh team!",
+    "clutchKillCta": "⚡ Boss ở ngưỡng kết liễu (15% HP) — Chat hoặc Tặng quà để dứt điểm & giành MVP!",
+    "lineupCollapse": "Thu gọn đội hình",
+    "lineupExpand": "Mở đội hình {{team}}",
+    "furyReady": "NỘ"
   },
   "Gift": {
     "sentLabel": "ĐÃ TẶNG",
