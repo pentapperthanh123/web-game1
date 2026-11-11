@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Production build outputs
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
+build/
+**/build/
+out/
+**/out/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+logs/
+**/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor & IDE files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Temp, Cache & Archive files
+.turbo/
+.cache/
+.temp/
+tmp/
+temp/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Heavy raw unpacked game dumps (over 700MB, 7400+ files)
+client/public/models/*_extracted/
+client/public/models/*_skn_out/
+client/public/models/skn_out/
+client/public/models/aatrox_textures/
+
+# Session cache
+.agents/.session/

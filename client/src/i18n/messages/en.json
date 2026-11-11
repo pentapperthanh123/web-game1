@@ -1,0 +1,41 @@
+{
+  "Game": {
+    "title": "WORLDS 2026: BLG VS GEN.G CLASH",
+    "subtitle": "TikTok Live Interactive 3D Game",
+    "bossName": "BARON NASHOR WORLDS",
+    "hpLabel": "BOSS HP",
+    "rageMode": "ENRAGED",
+    "defeated": "DEFEATED!",
+    "teamBLG": "Bilibili Gaming",
+    "teamGENG": "Gen.G Esports",
+    "damageContribution": "Damage Contribution",
+    "vs": "VS",
+    "voidRoar": "BARON VOID ROAR!"
+  },
+  "HUD": {
+    "leaderboardTitle": "TOP 5 DAMAGE (DPS)",
+    "noPlayersYet": "No damage yet, chat champion name to attack!",
+    "rank": "Rank",
+    "damage": "DMG",
+    "summonedMinions": "Active Minions",
+    "howToPlay": "Chat: [Champ] BLG or [Champ] GEN to summon warriors!",
+    "giftBonus": "Send any gift to trigger Ultimate & Meteor Shower!"
+  },
+  "Gift": {
+    "sentLabel": "SENT GIFT"
+  },
+  "Controls": {
+    "title": "TikTok Live Simulator Panel",
+    "autoSimulation": "Auto Simulate (Chat bots)",
+    "autoSimulationOn": "Running Bot",
+    "autoSimulationOff": "Stop Bot",
+    "testSummonBLG": "Chat 'Zed BLG'",
+    "testSummonGEN": "Chat 'Yasuo GEN'",
+    "testGiftBLG": "Gift Dragon BLG",
+    "testGiftGEN": "Gift Phoenix GEN",
+    "resetBoss": "Respawn Boss",
+    "minimize": "Minimize test panel",
+    "expand": "Open test panel"
+  }
+}
+

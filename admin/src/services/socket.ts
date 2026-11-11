@@ -1,0 +1,112 @@
+import { io, Socket } from 'socket.io-client';
+
+const SERVER_URL =
+  import.meta.env.VITE_SERVER_URL ||
+  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:4000'
+    : '');
+const CHANNEL_NAME = 'tiktok_live_game_bus';
+
+class AdminSocketService {
+  private socket: Socket | null = null;
+  private broadcastChannel: BroadcastChannel | null = null;
+  public isConnected = false;
+
+  constructor() {
+    // 1. Initialize BroadcastChannel for local offline sync
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      this.broadcastChannel = new BroadcastChannel(CHANNEL_NAME);
+    }
+
+    // 2. Initialize Socket.io client to backend server
+    try {
+      this.socket = io(SERVER_URL, {
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 5,
+        timeout: 3000,
+      });
+
+      this.socket.on('connect', () => {
+        this.isConnected = true;
+        console.log('[Admin Socket] Connected to Backend Server on port 4000');
+      });
+
+      this.socket.on('disconnect', () => {
+        this.isConnected = false;
+        console.log('[Admin Socket] Disconnected from Backend Server');
+      });
+    } catch (err) {
+      console.warn('[Admin Socket] Could not connect to backend server, falling back to BroadcastChannel', err);
+    }
+  }
+
+  // Generic emitter that sends to both Socket.io and BroadcastChannel
+  public emit(event: string, payload: any): void {
+    if (this.socket && this.socket.connected) {
+      this.socket.emit(event, payload);
+    }
+
+    // Also dispatch to BroadcastChannel for direct client tab sync
+    if (this.broadcastChannel) {
+      let mappedType = '';
+      switch (event) {
+        case 'admin:summon':
+          mappedType = 'SUMMON_MINION';
+          break;
+        case 'admin:gift':
+          mappedType = 'TRIGGER_GIFT';
+          break;
+        case 'admin:like':
+          mappedType = 'ADD_LIKE';
+          break;
+        case 'admin:chat':
+          mappedType = 'SEND_CHAT';
+          break;
+        case 'admin:boss-control':
+          if (payload.action === 'reset') mappedType = 'RESET_BOSS';
+          if (payload.action === 'setHp') {
+            this.broadcastChannel.postMessage({ type: 'SET_BOSS_HP', payload: { hp: payload.hp } });
+            return;
+          }
+          if (payload.action === 'setEnraged') {
+            this.broadcastChannel.postMessage({ type: 'SET_ENRAGED', payload: { isEnraged: payload.isEnraged } });
+            return;
+          }
+          break;
+        default:
+          break;
+      }
+
+      if (mappedType) {
+        this.broadcastChannel.postMessage({ type: mappedType, payload });
+      }
+    }
+  }
+
+  public onTiktokStatus(callback: (status: any) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('tiktok:status', callback);
+    return () => {
+      this.socket?.off('tiktok:status', callback);
+    };
+  }
+
+  public async connectTiktokRoom(username: string): Promise<any> {
+    const res = await fetch(`${SERVER_URL}/api/tiktok/connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+    return res.json();
+  }
+
+  public async disconnectTiktokRoom(): Promise<any> {
+    const res = await fetch(`${SERVER_URL}/api/tiktok/disconnect`, {
+      method: 'POST',
+    });
+    return res.json();
+  }
+}
+
+export const adminSocket = new AdminSocketService();
+

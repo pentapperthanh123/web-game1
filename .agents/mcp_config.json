@@ -1,0 +1,111 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schema/mcp_config.json",
+  "_comment": "AG Kit - MCP Server Configuration Example",
+  "_description": "This is a template for configuring MCP (Model Context Protocol) servers.",
+  "_instructions": {
+    "setup": [
+      "1. Copy this file to one of these locations:",
+      "   - ~/.cursor/mcp_config.json (Cursor IDE)",
+      "   - ~/.claude/mcp_config.json (Claude Code)",
+      "   - ~/.gemini/ag-kit/mcp_config.json (Gemini)",
+      "2. Replace placeholder values (YOUR_API_KEY, etc.) with actual credentials",
+      "3. Uncomment servers you want to use",
+      "4. Restart your AI IDE to load the config"
+    ],
+    "security": [
+      "⚠️ NEVER commit this file with real API keys to version control!",
+      "Store API keys in environment variables when possible",
+      "Use .gitignore to exclude this file from commits"
+    ],
+    "documentation": "See .agents/docs/HUONG-DAN.md for MCP server usage"
+  },
+  "mcpServers": {
+    "_example_context7": {
+      "_comment": "Context7 - Vector database for codebase context",
+      "_enabled": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "YOUR_UPSTASH_API_KEY"
+      ]
+    },
+    "_example_filesystem": {
+      "_comment": "Filesystem MCP - Read/write files (use with caution!)",
+      "_enabled": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/allowed/directory"
+      ]
+    },
+    "_example_github": {
+      "_comment": "GitHub MCP - Repository operations",
+      "_enabled": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "YOUR_GITHUB_TOKEN"
+      }
+    },
+    "_example_postgres": {
+      "_comment": "PostgreSQL MCP - Database queries",
+      "_enabled": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://user:password@localhost:5432/dbname"
+      ]
+    },
+    "_example_puppeteer": {
+      "_comment": "Puppeteer MCP - Browser automation",
+      "_enabled": false,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ]
+    },
+    "_example_custom": {
+      "_comment": "Custom MCP server - Your own implementation",
+      "_enabled": false,
+      "command": "node",
+      "args": [
+        "/path/to/your/mcp-server.js"
+      ],
+      "env": {
+        "CUSTOM_API_KEY": "YOUR_API_KEY"
+      }
+    }
+  },
+  "_available_servers": {
+    "official": [
+      "@modelcontextprotocol/server-filesystem",
+      "@modelcontextprotocol/server-github",
+      "@modelcontextprotocol/server-postgres",
+      "@modelcontextprotocol/server-puppeteer",
+      "@modelcontextprotocol/server-slack",
+      "@modelcontextprotocol/server-sqlite"
+    ],
+    "community": [
+      "@upstash/context7-mcp",
+      "@anthropic-ai/mcp-server-fetch",
+      "mcp-server-docker",
+      "mcp-server-vercel"
+    ],
+    "documentation": "https://modelcontextprotocol.io/servers"
+  },
+  "_tips": [
+    "Start with one server, test it, then add more",
+    "Use environment variables for sensitive data",
+    "Check server logs if connection fails",
+    "Some servers require additional setup (API keys, permissions)",
+    "Read server-specific docs before enabling"
+  ]
+}

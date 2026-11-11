@@ -1,0 +1,41 @@
+{
+  "Game": {
+    "title": "CKTG 2026: ĐẠI CHIẾN BLG VS GEN.G",
+    "subtitle": "TikTok Live Interactive Game 3D",
+    "bossName": "BARON NASHOR CKTG",
+    "hpLabel": "MÁU BOSS",
+    "rageMode": "CUỒNG NỘ",
+    "defeated": "ĐÃ BỊ HẠ GỤC!",
+    "teamBLG": "Bilibili Gaming",
+    "teamGENG": "Gen.G Esports",
+    "damageContribution": "Đóng góp sát thương",
+    "vs": "ĐỐI ĐẦU",
+    "voidRoar": "BARON GẦM RÚ HƯ KHÔNG!"
+  },
+  "HUD": {
+    "leaderboardTitle": "TOP 5 SÁT THƯƠNG (DPS)",
+    "noPlayersYet": "Chưa có sát thương, hãy chat tên tướng!",
+    "rank": "Hạng",
+    "damage": "ST",
+    "summonedMinions": "Linh thú đang tham chiến",
+    "howToPlay": "Chat: [Tên tướng] BLG hoặc [Tên tướng] GEN để triệu hồi chiến binh!",
+    "giftBonus": "Tặng quà bất kỳ kích hoạt Tuyệt Kỹ & Mưa Thiên Thạch!"
+  },
+  "Gift": {
+    "sentLabel": "ĐÃ TẶNG"
+  },
+  "Controls": {
+    "title": "Bảng Giả Lập Tương Tác TikTok Live",
+    "autoSimulation": "Tự động tương tác (Bot chat)",
+    "autoSimulationOn": "Đang chạy Bot",
+    "autoSimulationOff": "Dừng Bot",
+    "testSummonBLG": "Chat 'Zed BLG'",
+    "testSummonGEN": "Chat 'Yasuo GEN'",
+    "testGiftBLG": "Quà Rồng BLG",
+    "testGiftGEN": "Quà Phượng Hoàng GEN",
+    "resetBoss": "Hồi sinh Boss",
+    "minimize": "Thu gọn bảng test",
+    "expand": "Mở bảng test"
+  }
+}
+

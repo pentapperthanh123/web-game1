@@ -1,0 +1,13 @@
+packages:
+  - 'client'
+  - 'admin'
+  - 'server'
+
+allowBuilds:
+  bufferutil: true
+  es5-ext: true
+  esbuild: true
+  protobufjs: true
+  utf-8-validate: true
+
+

@@ -1,0 +1,73 @@
+# 600 Essential Words for the TOEIC - Lesson Structure
+
+This document outlines the 10 major domains and 50 detailed lessons for the "600 Essential Words for the TOEIC" feature. This will be used as a reference when implementing the feature.
+
+## 1. General Business (Kinh doanh Tổng quát)
+- Lesson 1: Contracts (Hợp đồng)
+- Lesson 2: Marketing (Tiếp thị)
+- Lesson 3: Warranties (Bảo hành)
+- Lesson 4: Business Planning (Kế hoạch kinh doanh)
+- Lesson 5: Conferences (Hội nghị)
+
+## 2. Office Issues (Vấn đề Văn phòng)
+- Lesson 6: Computers & the Internet (Máy tính & Internet)
+- Lesson 7: Office Technology (Thiết bị văn phòng)
+- Lesson 8: Office Procedures (Quy trình làm việc)
+- Lesson 9: Electronics (Đồ điện tử)
+- Lesson 10: Correspondence (Thư tín thương mại)
+
+## 3. Personnel (Nhân sự)
+- Lesson 11: Applying and Interviewing (Ứng tuyển & Phỏng vấn)
+- Lesson 12: Hiring and Training (Tuyển dụng & Đào tạo)
+- Lesson 13: Salaries and Benefits (Lương thưởng & Phúc lợi)
+- Lesson 14: Promotions, Pensions, and Awards (Thăng tiến & Hưu trí)
+
+## 4. Purchasing (Mua sắm & Cung ứng)
+- Lesson 15: Shopping (Mua sắm)
+- Lesson 16: Ordering Supplies (Đặt hàng văn phòng phẩm)
+- Lesson 17: Shipping (Vận chuyển hàng hóa)
+- Lesson 18: Invoices (Hóa đơn)
+- Lesson 19: Inventory (Kiểm kê kho)
+
+## 5. Financing & Budgeting (Tài chính & Ngân sách)
+- Lesson 20: Banking (Ngân hàng)
+- Lesson 21: Accounting (Kế toán)
+- Lesson 22: Investments (Đầu tư)
+- Lesson 23: Taxes (Thuế)
+- Lesson 24: Financial Statements (Báo cáo tài chính)
+
+## 6. Management Issues (Quản trị Doanh nghiệp)
+- Lesson 25: Property and Departments (Bất động sản & Phòng ban)
+- Lesson 26: Board Meetings & Committees (Họp hội đồng quản trị)
+- Lesson 27: Quality Control (Kiểm soát chất lượng)
+- Lesson 28: Product Development (Phát triển sản phẩm)
+- Lesson 29: Renting and Leasing (Thuê & Cho thuê)
+
+## 7. Restaurants & Events (Ẩm thực & Sự kiện)
+- Lesson 30: Selecting a Restaurant (Chọn nhà hàng)
+- Lesson 31: Eating Out (Ăn uống ngoài)
+- Lesson 32: Ordering Lunch (Gọi đồ ăn trưa)
+- Lesson 33: Cooking as a Craft (Nấu ăn)
+- Lesson 34: Events (Tổ chức sự kiện)
+- Lesson 35: General Travel (Du lịch tổng quát)
+
+## 8. Travel (Du lịch & Công tác)
+- Lesson 36: Airlines (Hàng không)
+- Lesson 37: Trains (Tàu hỏa)
+- Lesson 38: Hotels (Khách sạn)
+- Lesson 39: Car Rentals (Thuê xe)
+- Lesson 40: Sightseeing (Tham quan)
+
+## 9. Entertainment (Giải trí & Nghệ thuật)
+- Lesson 41: Movies (Điện ảnh)
+- Lesson 42: Theater (Sân khấu kịch)
+- Lesson 43: Music (Âm nhạc)
+- Lesson 44: Museums (Bảo tàng)
+- Lesson 45: Media (Truyền thông)
+
+## 10. Health (Y tế & Sức khỏe)
+- Lesson 46: Doctor's Office (Phòng khám bác sĩ)
+- Lesson 47: Dentist's Office (Phòng khám nha sĩ)
+- Lesson 48: Health Insurance (Bảo hiểm y tế)
+- Lesson 49: Hospitals (Bệnh viện)
+- Lesson 50: Pharmacy (Nhà thuốc)

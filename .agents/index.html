@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="AG Kit - System Overview for Antigravity AI Agents" />
+  <meta property="og:title" content="AG Kit" />
+  <meta property="og:description" content="System Overview for Antigravity AI Agents" />
+  <meta property="og:type" content="website" />
+  <title>AG Kit — System Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1412;
+      --bg-elev: #171e1b;
+      --bg-soft: #1e2824;
+      --line: #2a3530;
+      --text: #e8efe9;
+      --muted: #9aada3;
+      --accent: #d4a574;
+      --accent-2: #6bbf8a;
+      --warn: #e0b15c;
+      --radius: 12px;
+      --font: "DM Sans", system-ui, sans-serif;
+      --display: "Fraunces", Georgia, serif;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(212, 165, 116, 0.14), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(107, 191, 138, 0.1), transparent 50%),
+        linear-gradient(180deg, #121916 0%, var(--bg) 40%, #0c100e 100%);
+      min-height: 100vh;
+      line-height: 1.55;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .wrap { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
+
+    /* Nav */
+    .nav {
+      position: sticky; top: 0; z-index: 40;
+      backdrop-filter: blur(14px);
+      background: rgba(15, 20, 18, 0.82);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.85rem 0; flex-wrap: wrap;
+    }
+    .brand {
+      font-family: var(--display); font-weight: 700; font-size: 1.15rem;
+      letter-spacing: -0.02em; color: var(--text); text-decoration: none;
+    }
+    .brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-left: auto; }
+    .nav-links a {
+      color: var(--muted); font-size: 0.85rem; padding: 0.35rem 0.65rem;
+      border-radius: 999px; text-decoration: none;
+    }
+    .nav-links a:hover { color: var(--text); background: var(--bg-soft); }
+
+    /* Hero */
+    .hero { padding: 3.5rem 0 2.5rem; }
+    .eyebrow {
+      display: inline-block; font-size: 0.75rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem;
+    }
+    h1 {
+      font-family: var(--display); font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.1; margin: 0 0 1rem; letter-spacing: -0.03em;
+      max-width: 16ch;
+    }
+    .lede { font-size: 1.1rem; color: var(--muted); max-width: 42rem; margin: 0 0 1.75rem; }
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;
+    }
+    @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat {
+      background: var(--bg-elev); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 1rem 1.1rem;
+    }
+    .stat b {
+      display: block; font-family: var(--display); font-size: 1.85rem;
+      color: var(--accent); line-height: 1;
+    }
+    .stat span { font-size: 0.8rem; color: var(--muted); }
+
+    section { padding: 2.75rem 0; border-top: 1px solid var(--line); }
+    h2 {
+      font-family: var(--display); font-size: clamp(1.5rem, 3vw, 2rem);
+      margin: 0 0 0.4rem; letter-spacing: -0.02em;
+    }
+    .section-desc { color: var(--muted); margin: 0 0 1.5rem; max-width: 40rem; }
+
+    /* Flow */
+    .flow {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem;
+      align-items: stretch;
+    }
+    @media (max-width: 900px) { .flow { grid-template-columns: 1fr; } }
+    .flow-step {
+      background: var(--bg-elev); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 1rem; position: relative;
+    }
+    .flow-step strong { display: block; font-size: 0.95rem; margin-bottom: 0.35rem; }
+    .flow-step p { margin: 0; font-size: 0.82rem; color: var(--muted); }
+    .flow-n {
+      font-family: var(--display); color: var(--accent-2); font-size: 0.85rem;
+      margin-bottom: 0.35rem;
+    }
+
+    /* Tree */
+    .tree {
+      background: var(--bg-elev); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 1.25rem 1.4rem;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 0.82rem; line-height: 1.7; overflow-x: auto;
+      color: #c5d6cb;
+    }
+    .tree .dir { color: var(--accent); }
+    .tree .note { color: var(--muted); }
+
+    /* Filters */
+    .filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+    .chip {
+      border: 1px solid var(--line); background: transparent; color: var(--muted);
+      border-radius: 999px; padding: 0.35rem 0.75rem; font: inherit; font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .chip:hover, .chip.active {
+      background: var(--bg-soft); color: var(--text); border-color: var(--accent);
+    }
+
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.75rem;
+    }
+    .card {
+      background: var(--bg-elev); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 1rem 1.05rem;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .card:hover { border-color: #3d4f46; transform: translateY(-1px); }
+    .card h3 {
+      margin: 0 0 0.35rem; font-size: 0.95rem; font-family: var(--font);
+      font-weight: 600;
+    }
+    .card h3 code {
+      font-family: ui-monospace, Consolas, monospace; font-size: 0.88rem;
+      color: var(--accent-2);
+    }
+    .tag {
+      display: inline-block; font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--accent); margin-bottom: 0.4rem;
+    }
+    .card p { margin: 0; font-size: 0.82rem; color: var(--muted); }
+    .skills-line {
+      margin-top: 0.55rem; font-size: 0.72rem; color: #7f9588;
+      font-family: ui-monospace, Consolas, monospace;
+    }
+
+    .table-wrap {
+      overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius);
+      background: var(--bg-elev);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:last-child td { border-bottom: 0; }
+    td code { color: var(--accent-2); font-size: 0.84rem; }
+
+    .callout {
+      background: linear-gradient(135deg, rgba(212,165,116,0.12), rgba(107,191,138,0.08));
+      border: 1px solid rgba(212,165,116,0.35);
+      border-radius: var(--radius); padding: 1.1rem 1.25rem; margin-top: 1rem;
+    }
+    .callout strong { color: var(--accent); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+    .cmd {
+      background: #0a0e0c; border: 1px solid var(--line); border-radius: 8px;
+      padding: 0.85rem 1rem; font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.8rem; color: #b8d0c2; overflow-x: auto; margin: 0.5rem 0 0;
+    }
+
+    footer {
+      padding: 2rem 0 3rem; color: var(--muted); font-size: 0.82rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .search {
+      width: 100%; max-width: 320px; margin-bottom: 1rem;
+      background: var(--bg-soft); border: 1px solid var(--line); color: var(--text);
+      border-radius: 999px; padding: 0.55rem 1rem; font: inherit; font-size: 0.9rem;
+    }
+    .search:focus { outline: 1px solid var(--accent); }
+    .hidden { display: none !important; }
+    .count-hint { font-size: 0.8rem; color: var(--muted); margin: -0.5rem 0 1rem; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 1rem;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+      background: var(--bg-elev); border: 1px solid var(--line);
+      border-radius: var(--radius); max-width: 920px; width: 100%;
+      max-height: 85vh; display: flex; flex-direction: column;
+      box-shadow: var(--shadow); animation: slideUp 0.25s ease-out;
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h2 {
+      margin: 0; font-size: 1.35rem; font-family: var(--display);
+    }
+    .modal-close {
+      background: transparent; border: 1px solid var(--line);
+      color: var(--muted); border-radius: 6px; padding: 0.4rem 0.85rem;
+      cursor: pointer; font: inherit; font-size: 0.85rem;
+    }
+    .modal-close:hover { background: var(--bg-soft); color: var(--text); }
+    .modal-body {
+      padding: 1.5rem 1.75rem; overflow-y: auto; line-height: 1.7;
+    }
+    .modal-body h1, .modal-body h2, .modal-body h3 {
+      font-family: var(--display); margin-top: 1.5rem; margin-bottom: 0.75rem;
+    }
+    .modal-body h1 { font-size: 1.85rem; }
+    .modal-body h2 { font-size: 1.45rem; border-bottom: 1px solid var(--line); padding-bottom: 0.5rem; }
+    .modal-body h3 { font-size: 1.15rem; }
+    .modal-body p { margin: 0.75rem 0; }
+    .modal-body ul, .modal-body ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+    .modal-body li { margin: 0.4rem 0; }
+    .modal-body code {
+      background: var(--bg-soft); color: var(--accent-2); padding: 0.15rem 0.4rem;
+      border-radius: 4px; font-size: 0.88em; font-family: ui-monospace, Consolas, monospace;
+    }
+    .modal-body pre {
+      background: #0a0e0c; border: 1px solid var(--line); border-radius: 8px;
+      padding: 1rem; overflow-x: auto; margin: 1rem 0;
+    }
+    .modal-body pre code {
+      background: transparent; color: #b8d0c2; padding: 0;
+    }
+    .modal-body blockquote {
+      border-left: 3px solid var(--accent); padding-left: 1rem;
+      margin: 1rem 0; color: var(--muted); font-style: italic;
+    }
+    .modal-body table {
+      width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.88rem;
+    }
+    .modal-body table th, .modal-body table td {
+      text-align: left; padding: 0.6rem 0.8rem; border: 1px solid var(--line);
+    }
+    .modal-body table th {
+      background: var(--bg-soft); font-weight: 600;
+    }
+    .modal-body a { color: var(--accent); }
+    .modal-body a:hover { text-decoration: underline; }
+    .modal-loading {
+      text-align: center; padding: 3rem; color: var(--muted);
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#">AG <span>Kit</span></a>
+      <div class="nav-links">
+        <a href="#flow">Luồng</a>
+        <a href="#structure">Cấu trúc</a>
+        <a href="#agents">Agents</a>
+        <a href="#skills">Skills</a>
+        <a href="#workflows">Workflows</a>
+        <a href="#scripts">Scripts</a>
+        <a href="#memory">Memory &amp; Graph</a>
+        <a href="#start">Bắt đầu</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero wrap">
+    <div class="eyebrow">Visual system map · .agents/</div>
+    <h1>Bộ công cụ AI Agent modular</h1>
+    <p class="lede">
+      AG Kit gắn vào Cursor (và IDE tương thích): <strong>16 agents</strong> chuyên gia,
+      <strong>47 top-level skills</strong> (+ nested) nạp có điều kiện, <strong>17 workflows</strong> slash,
+      <strong>27 scripts</strong> (11 master + 16 skill-level), memory + knowledge graph —
+      tất cả gói gọn trong thư mục <code>.agents/</code>.
+      Trang này giúp bạn nhìn toàn cảnh trước khi dùng.
+    </p>
+    <div class="stats">
+      <div class="stat"><b>16</b><span>Specialist agents</span></div>
+      <div class="stat"><b>47</b><span>Top-level skills (+ nested)</span></div>
+      <div class="stat"><b>17</b><span>Slash workflows</span></div>
+      <div class="stat"><b>27</b><span>Scripts (11+16)</span></div>
+    </div>
+  </header>
+
+  <section id="flow">
+    <div class="wrap">
+      <h2>Cách hệ thống chạy</h2>
+      <p class="section-desc">Từ request của bạn → routing → agent + skill → kết quả. Không load hết 16 agent mỗi lần.</p>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-n">01</div>
+          <strong>Request</strong>
+          <p>Chat / slash (<code>/create</code>, <code>/review</code>…) hoặc mô tả tự nhiên.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-n">02</div>
+          <strong>Rules + Manifest</strong>
+          <p><code>RULES.md</code> + <code>active-agents.json</code> (stack đã detect).</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-n">03</div>
+          <strong>Intelligent routing</strong>
+          <p>Chọn agent phù hợp (FE / BE / security…). Multi-domain → orchestrator.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-n">04</div>
+          <strong>Load skills</strong>
+          <p>Chỉ skill khớp <code>when_to_use</code> — tiết kiệm 40–70% context.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-n">05</div>
+          <strong>Execute + remember</strong>
+          <p>Làm việc theo protocol; <code>/remember</code> lưu ADR/convention.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>Socratic Gate:</strong> Feature mới / yêu cầu mơ hồ → hỏi mục đích, user, scope trước khi code.
+        Complex → có thể cần <code>{task-slug}.md</code>.
+      </div>
+    </div>
+  </section>
+
+  <section id="structure">
+    <div class="wrap">
+      <h2>Cấu trúc thư mục</h2>
+      <p class="section-desc">Mọi thứ nằm trong <code>.agents/</code> — kể cả knowledge graph Understand (<code>.ua/</code>), không rải ra root repo.</p>
+      <pre class="tree"><span class="dir">.agents/</span>
+├── <span class="dir">index.html</span>          <span class="note">← trang bạn đang xem</span>
+├── ARCHITECTURE.md       <span class="note">bản đồ kiến trúc (markdown)</span>
+├── <span class="dir">agent/</span>               <span class="note">16 personas (.md)</span>
+├── <span class="dir">skills/</span>              <span class="note">47 top-level (+ nested) + scripts</span>
+├── <span class="dir">workflows/</span>           <span class="note">17 slash → sync .cursor/commands</span>
+├── <span class="dir">rules/</span>               <span class="note">RULES.md (P0)</span>
+├── <span class="dir">memory/</span>              <span class="note">MEMORY.md + topics (/remember)</span>
+├── <span class="dir">.ua/</span>                 <span class="note">knowledge-graph.json (chuẩn)</span>
+├── <span class="dir">.session/</span>            <span class="note">manifest + memory-context (gitignore)</span>
+├── <span class="dir">scripts/</span>             <span class="note">boot, smoke, loaders, checklist, <strong>understand_setup.py</strong>…</span>
+└── <span class="dir">docs/</span>                <span class="note">GETTING-STARTED, USER-GUIDE…</span></pre>
+    </div>
+  </section>
+
+  <section id="agents">
+    <div class="wrap">
+      <h2>16 Agents</h2>
+      <p class="section-desc">Core luôn sẵn; agent theo stack chỉ nạp khi <code>load_agents.py</code> / <code>session_boot</code> detect (hoặc <code>--interactive</code>).</p>
+      <div class="filters" id="agent-filters"></div>
+      <input class="search" id="agent-search" type="search" placeholder="Lọc agent…" />
+      <p class="count-hint" id="agent-count"></p>
+      <div class="grid" id="agent-grid"></div>
+    </div>
+  </section>
+
+  <section id="skills">
+    <div class="wrap">
+      <h2>47 Top-level Skills (+ nested)</h2>
+      <p class="section-desc">Mỗi skill có <code>SKILL.md</code> + <code>when_to_use</code>. Agent chỉ đọc skill cần thiết (modular loading).</p>
+      <div class="filters" id="skill-filters"></div>
+      <input class="search" id="skill-search" type="search" placeholder="Lọc skill…" />
+      <p class="count-hint" id="skill-count"></p>
+      <div class="grid" id="skill-grid"></div>
+    </div>
+  </section>
+
+  <section id="workflows">
+    <div class="wrap">
+      <h2>17 Workflows (slash)</h2>
+      <p class="section-desc">Nguồn: <code>.agents/workflows/*.md</code> → sync bằng <code>node .agents/install-agents.js</code> → gõ <code>/</code> trong Cursor chat.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Mục đích</th><th>Gợi ý dùng</th></tr></thead>
+          <tbody id="workflow-body"></tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>Antigravity / IDE không có /understand:</strong> dùng NL + <code>/explore-codebase</code> hoặc prompt explorer.
+        Graph chuẩn: <code>.agents/.ua/knowledge-graph.json</code> (không để <code>.ua/</code> ở root).
+      </div>
+    </div>
+  </section>
+
+  <section id="scripts">
+    <div class="wrap">
+      <h2>Scripts quan trọng</h2>
+      <p class="section-desc">Chạy từ root project. Chi tiết: <code>scripts/README.md</code>.</p>
+      <div class="two-col">
+        <div class="card">
+          <div class="tag">🌟 NEW</div>
+          <h3>Understand-Anything Setup</h3>
+          <p>Auto-setup: Check Node → Install → Quét → View dashboard (một lệnh!).</p>
+          <pre class="cmd">python .agents/scripts/understand_setup.py
+# Options:
+python .agents/scripts/understand_setup.py --check
+python .agents/scripts/understand_setup.py --view-only</pre>
+        </div>
+        <div class="card">
+          <div class="tag">Session</div>
+          <h3>Boot một lệnh</h3>
+          <p>Sync rules (nếu có Node) → detect agents → inject memory.</p>
+          <pre class="cmd">python .agents/scripts/session_boot.py
+python .agents/scripts/session_boot.py --interactive</pre>
+        </div>
+        <div class="card">
+          <div class="tag">Health</div>
+          <h3>Smoke test</h3>
+          <p>Đếm agents/skills/workflows, routing ảo, docs drift, loaders.</p>
+          <pre class="cmd">python .agents/scripts/smoke_test.py
+python .agents/scripts/smoke_test.py --verbose</pre>
+        </div>
+        <div class="card">
+          <div class="tag">Memory</div>
+          <h3>Inject / reset</h3>
+          <p>Nạp context vào chat; reset chỉ giữ file gốc kit.</p>
+          <pre class="cmd">python .agents/scripts/load_memory.py --inject
+python .agents/scripts/reset_memory.py
+# hoặc slash: /load-memory</pre>
+        </div>
+        <div class="card">
+          <div class="tag">Quality</div>
+          <h3>Checklist / verify</h3>
+          <p>Audit ưu tiên Security → Lint → Schema → Tests → UX…</p>
+          <pre class="cmd">python .agents/scripts/checklist.py .
+python .agents/scripts/verify_all.py . --url http://localhost:3000</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="memory">
+    <div class="wrap">
+      <h2>Memory &amp; Knowledge graph</h2>
+      <p class="section-desc">Hai lớp khác nhau — đừng dump cả source vào memory.</p>
+      <div class="two-col">
+        <div class="card">
+          <div class="tag">Memory</div>
+          <h3><code>.agents/memory/</code></h3>
+          <p>Preference, naming, ADR. Index <code>MEMORY.md</code>. Topic tạo bằng <code>/remember</code>. Soft-cap inject ~8KB.</p>
+          <p style="margin-top:0.75rem;font-size:0.82rem;color:var(--muted)">Origin giữ khi reset: MEMORY.md, README, CLEANUP-GUIDE.</p>
+        </div>
+        <div class="card">
+          <div class="tag">Understand</div>
+          <h3><code>.agents/.ua/</code></h3>
+          <p>Bản đồ codebase (knowledge graph). Lookup: <code>.agents/.ua/</code> trước; nếu tool ghi <code>.ua/</code> root → chuyển vào đây.</p>
+          <p style="margin-top:0.75rem;font-size:0.82rem;color:var(--muted)">Xem <code>.ua/README.md</code> · skill <code>codebase-explorer</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <h2>Bắt đầu nhanh</h2>
+      <p class="section-desc">Clone kit hoặc copy <code>.agents/</code> vào app sẵn có.</p>
+      <pre class="cmd"># 1) Sync rules + slash (Cursor)
+node .agents/install-agents.js
+
+# 2) Boot
+python .agents/scripts/session_boot.py
+
+# 3) (Dự án có code) Explore — 🌟 ONE COMMAND!
+python .agents/scripts/understand_setup.py
+#    → Auto: install → scan → view dashboard
+#    hoặc workflow: /explore-codebase
+
+# 4) Làm việc — AI tự route agent
+# 5) /remember convention quan trọng</pre>
+      <div class="callout" style="margin-top:1.25rem">
+        <strong>Đọc thêm:</strong>
+        <a href="#" class="doc-link" data-file="./ARCHITECTURE.md" data-title="ARCHITECTURE.md">ARCHITECTURE.md</a> ·
+        <a href="#" class="doc-link" data-file="./docs/GETTING-STARTED.md" data-title="GETTING-STARTED.md">GETTING-STARTED.md</a> ·
+        <a href="#" class="doc-link" data-file="./docs/QUICK-REFERENCE.md" data-title="QUICK-REFERENCE.md">QUICK-REFERENCE.md</a> ·
+        <a href="#" class="doc-link" data-file="./docs/USER-GUIDE.md" data-title="USER-GUIDE.md">USER-GUIDE.md</a> ·
+        <a href="#" class="doc-link" data-file="../README.md" data-title="README (repo)">README (repo)</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal for displaying markdown content -->
+  <div class="modal-overlay" id="docModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Document</h2>
+        <button class="modal-close" id="modalClose">Đóng</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <div class="modal-loading">Đang tải...</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      AG Kit visual overview · Mở file này bằng trình duyệt (<code>file://</code> hoặc static server).
+      Counts: 16 agents · 47 top-level skills (+ nested) · 17 workflows · 27 scripts. Cập nhật khi kit thay đổi.
+    </div>
+  </footer>
+
+  <!-- Markdown parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    const AGENTS = [
+      { id: "orchestrator", tier: "core", blurb: "Điều phối đa agent, synthesis, gatekeeper orchestration.", skills: "parallel-agents, coordinator-mode, memory-system…" },
+      { id: "project-planner", tier: "core", blurb: "Discovery, MVP, user stories, plan 4 giai đoạn.", skills: "brainstorming, plan-writing, architecture" },
+      { id: "explorer-agent", tier: "core", blurb: "Khám phá codebase, map kiến trúc, Understand graph.", skills: "codebase-explorer, architecture, systematic-debugging" },
+      { id: "debugger", tier: "core", blurb: "Root-cause, debug có hệ thống 4 phase.", skills: "systematic-debugging" },
+      { id: "code-reviewer", tier: "core", blurb: "Clean code, naming, magic values, chất lượng.", skills: "code-quality-review, simplify-code" },
+      { id: "security-auditor", tier: "core", blurb: "OWASP, vuln scan, red-team tactics.", skills: "vulnerability-scanner, red-team-tactics" },
+      { id: "frontend-specialist", tier: "stack", blurb: "UI/UX web, framework-agnostic (React/Vue/Svelte), design systems, perf.", skills: "frontend-design, web-performance, performance-profiling" },
+      { id: "backend-specialist", tier: "stack", blurb: "API, queues, server logic, multi-language BE.", skills: "api-patterns, nodejs/python, database-design" },
+      { id: "database-architect", tier: "stack", blurb: "Schema, index, ORM, serverless DB.", skills: "database-design" },
+      { id: "test-engineer", tier: "stack", blurb: "Unit/integration/E2E, TDD, Playwright.", skills: "testing-patterns, tdd-workflow, webapp-testing" },
+      { id: "devops-engineer", tier: "stack", blurb: "CI/CD, Docker, deploy an toàn, servers.", skills: "deployment-procedures, server-management" },
+      { id: "performance-optimizer", tier: "stack", blurb: "CWV, profiling, bundle, runtime.", skills: "performance-profiling (+ beginner curriculum)" },
+      { id: "mobile-developer", tier: "domain", blurb: "iOS/Android/RN/Flutter — không dùng frontend-specialist.", skills: "mobile-design" },
+      { id: "game-developer", tier: "domain", blurb: "Game systems, platforms, art/audio routing.", skills: "game-development/*" },
+      { id: "seo-specialist", tier: "domain", blurb: "SEO + GEO cho AI search.", skills: "seo-fundamentals, geo-fundamentals" },
+      { id: "documentation-writer", tier: "domain", blurb: "Docs AI-friendly, README, API docs.", skills: "documentation-templates" },
+    ];
+
+    const SKILLS = [
+      { id: "codebase-explorer", cat: "Analysis", blurb: "Understand-Anything graphs, explore architecture." },
+      { id: "web-performance", cat: "Frontend", blurb: "Framework-agnostic web performance + React/Vue/Svelte patterns." },
+      { id: "web-design-guidelines", cat: "Frontend", blurb: "UI audit a11y / UX / perf." },
+      { id: "tailwind-patterns", cat: "Frontend", blurb: "Tailwind v4, tokens, CSS-first." },
+      { id: "frontend-design", cat: "Frontend", blurb: "Design thinking, anti-template UI." },
+      { id: "mobile-design", cat: "Frontend", blurb: "Touch, mobile UX, platform patterns." },
+      { id: "api-patterns", cat: "Backend", blurb: "REST / GraphQL / tRPC decisions." },
+      { id: "nodejs-best-practices", cat: "Backend", blurb: "Node server & API practices." },
+      { id: "python-patterns", cat: "Backend", blurb: "Modern Python patterns." },
+      { id: "rust-pro", cat: "Backend", blurb: "Rust async & systems." },
+      { id: "database-design", cat: "Backend", blurb: "Schema, indexes, ORM." },
+      { id: "mcp-builder", cat: "Backend", blurb: "Build MCP servers/tools." },
+      { id: "clean-code", cat: "Quality", blurb: "Pragmatic clean code (global)." },
+      { id: "code-quality-review", cat: "Quality", blurb: "Naming, constants, generic invariants." },
+      { id: "code-review-checklist", cat: "Quality", blurb: "Review checklist security/quality." },
+      { id: "code-review-graph", cat: "Quality", blurb: "AST graph-assisted review." },
+      { id: "simplify-code", cat: "Quality", blurb: "Reduce over-engineering." },
+      { id: "lint-and-validate", cat: "Quality", blurb: "Lint runners & validation." },
+      { id: "testing-patterns", cat: "Quality", blurb: "Unit/integration strategies." },
+      { id: "tdd-workflow", cat: "Quality", blurb: "RED-GREEN-REFACTOR." },
+      { id: "webapp-testing", cat: "Quality", blurb: "Playwright / E2E." },
+      { id: "verify-changes", cat: "Quality", blurb: "Prove by running, not inspecting." },
+      { id: "vulnerability-scanner", cat: "Security", blurb: "OWASP, supply chain." },
+      { id: "red-team-tactics", cat: "Security", blurb: "ATT&CK-oriented tactics." },
+      { id: "performance-profiling", cat: "Perf", blurb: "Measure → optimize; FE beginner curriculum." },
+      { id: "seo-fundamentals", cat: "Growth", blurb: "SEO & Core Web Vitals." },
+      { id: "geo-fundamentals", cat: "Growth", blurb: "Generative Engine Optimization." },
+      { id: "i18n-localization", cat: "Growth", blurb: "i18n / RTL / locales." },
+      { id: "deployment-procedures", cat: "Ops", blurb: "Safe deploy & rollback." },
+      { id: "server-management", cat: "Ops", blurb: "Process, monitor, scale." },
+      { id: "bash-linux", cat: "Ops", blurb: "Shell on macOS/Linux." },
+      { id: "powershell-windows", cat: "Ops", blurb: "PowerShell pitfalls & patterns." },
+      { id: "brainstorming", cat: "Process", blurb: "Socratic gate & communication." },
+      { id: "plan-writing", cat: "Process", blurb: "Task plans & verification." },
+      { id: "architecture", cat: "Process", blurb: "ADR & trade-offs." },
+      { id: "app-builder", cat: "Process", blurb: "Full-stack build orchestrator." },
+      { id: "behavioral-modes", cat: "Process", blurb: "brainstorm/implement/debug modes." },
+      { id: "intelligent-routing", cat: "Process", blurb: "Auto-select specialist agents." },
+      { id: "parallel-agents", cat: "Process", blurb: "Multi-agent parallel patterns." },
+      { id: "coordinator-mode", cat: "Process", blurb: "Advanced coordinator lifecycle." },
+      { id: "memory-system", cat: "Process", blurb: "Persistent cross-session memory." },
+      { id: "context-compression", cat: "Process", blurb: "Long-session context management." },
+      { id: "systematic-debugging", cat: "Process", blurb: "4-phase debugging." },
+      { id: "documentation-templates", cat: "Process", blurb: "README / API docs templates." },
+      { id: "batch-operations", cat: "Process", blurb: "Bulk multi-file edits." },
+      { id: "skillify", cat: "Process", blurb: "Turn repeated workflows into skills." },
+      { id: "game-development", cat: "Game", blurb: "Game orchestrator + sub-skills (2d/3d/…)." },
+    ];
+
+    const WORKFLOWS = [
+      ["/brainstorm", "Socratic discovery", "Trước khi build khi chưa rõ requirements"],
+      ["/create", "Tạo feature / app", "Sau khi đã hỏi đủ (Socratic)"],
+      ["/plan", "Task breakdown 4 phase", "Multi-step / refactor lớn"],
+      ["/orchestrate", "Điều phối đa agent", "Multi-domain phức tạp"],
+      ["/coordinate", "Parallel workers + synthesis", "Phân tích song song"],
+      ["/debug", "Debug có hệ thống", "Bug khó / production"],
+      ["/review", "Code quality review", "Trước PR"],
+      ["/test", "Chạy test suites", "Sau thay đổi logic"],
+      ["/verify", "Chứng minh bằng runtime", "Không chỉ đọc code"],
+      ["/deploy", "Deploy an toàn", "Pre-prod checklist"],
+      ["/enhance", "Cải thiện / tối ưu code", "Refactor có chủ đích"],
+      ["/explore-codebase", "Knowledge graph / explore", "Join dự án, map kiến trúc"],
+      ["/remember", "Ghi memory", "Convention / ADR"],
+      ["/load-memory", "Nạp memory vào chat", "Đầu session, không cần terminal"],
+      ["/reload", "Reload agent manifest", "Đổi stack mid-session"],
+      ["/preview", "Preview server", "UI iteration"],
+      ["/status", "Trạng thái project/agents", "Theo dõi tiến độ"],
+    ];
+
+    const tierLabel = { core: "Core", stack: "Stack", domain: "Domain" };
+
+    function renderAgents(filter = "all", q = "") {
+      const grid = document.getElementById("agent-grid");
+      const qq = q.trim().toLowerCase();
+      const list = AGENTS.filter(a => {
+        if (filter !== "all" && a.tier !== filter) return false;
+        if (!qq) return true;
+        return (a.id + a.blurb + a.skills).toLowerCase().includes(qq);
+      });
+      document.getElementById("agent-count").textContent = `Hiển thị ${list.length} / ${AGENTS.length}`;
+      grid.innerHTML = list.map(a => `
+        <article class="card" data-tier="${a.tier}">
+          <div class="tag">${tierLabel[a.tier]}</div>
+          <h3><code>@${a.id}</code></h3>
+          <p>${a.blurb}</p>
+          <div class="skills-line">${a.skills}</div>
+        </article>`).join("");
+    }
+
+    function renderSkills(filter = "all", q = "") {
+      const grid = document.getElementById("skill-grid");
+      const qq = q.trim().toLowerCase();
+      const list = SKILLS.filter(s => {
+        if (filter !== "all" && s.cat !== filter) return false;
+        if (!qq) return true;
+        return (s.id + s.blurb + s.cat).toLowerCase().includes(qq);
+      });
+      document.getElementById("skill-count").textContent = `Hiển thị ${list.length} / ${SKILLS.length} (catalog UI; kit đếm 47 gồm sub-skills game…)`;
+      grid.innerHTML = list.map(s => `
+        <article class="card">
+          <div class="tag">${s.cat}</div>
+          <h3><code>${s.id}</code></h3>
+          <p>${s.blurb}</p>
+        </article>`).join("");
+    }
+
+    function setupFilters(containerId, values, onChange) {
+      const el = document.getElementById(containerId);
+      const all = ["all", ...values];
+      el.innerHTML = all.map((v, i) =>
+        `<button type="button" class="chip${i === 0 ? " active" : ""}" data-v="${v}">${v === "all" ? "Tất cả" : v}</button>`
+      ).join("");
+      el.addEventListener("click", (e) => {
+        const btn = e.target.closest(".chip");
+        if (!btn) return;
+        el.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        btn.classList.add("active");
+        onChange(btn.dataset.v);
+      });
+    }
+
+    document.getElementById("workflow-body").innerHTML = WORKFLOWS.map(([cmd, purpose, when]) =>
+      `<tr><td><code>${cmd}</code></td><td>${purpose}</td><td>${when}</td></tr>`
+    ).join("");
+
+    let agentFilter = "all", skillFilter = "all";
+    setupFilters("agent-filters", ["core", "stack", "domain"], v => { agentFilter = v; renderAgents(v, agentSearch.value); });
+    setupFilters("skill-filters", [...new Set(SKILLS.map(s => s.cat))], v => { skillFilter = v; renderSkills(v, skillSearch.value); });
+
+    const agentSearch = document.getElementById("agent-search");
+    const skillSearch = document.getElementById("skill-search");
+    agentSearch.addEventListener("input", () => renderAgents(agentFilter, agentSearch.value));
+    skillSearch.addEventListener("input", () => renderSkills(skillFilter, skillSearch.value));
+
+    renderAgents();
+    renderSkills();
+
+    // Modal handling for documentation links
+    const modal = document.getElementById("docModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalBody = document.getElementById("modalBody");
+    const modalClose = document.getElementById("modalClose");
+
+    // Close modal handlers
+    modalClose.addEventListener("click", () => {
+      modal.classList.remove("active");
+    });
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.classList.remove("active");
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal.classList.contains("active")) {
+        modal.classList.remove("active");
+      }
+    });
+
+    // Open modal and load markdown
+    async function openDoc(file, title) {
+      modal.classList.add("active");
+      modalTitle.textContent = title;
+      modalBody.innerHTML = '<div class="modal-loading">Đang tải...</div>';
+
+      try {
+        const response = await fetch(file);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const markdown = await response.text();
+        
+        // Configure marked options
+        marked.setOptions({
+          breaks: true,
+          gfm: true,
+          headerIds: true,
+          mangle: false
+        });
+
+        const html = marked.parse(markdown);
+        modalBody.innerHTML = html;
+
+        // Smooth scroll to top of modal body
+        modalBody.scrollTop = 0;
+      } catch (error) {
+        modalBody.innerHTML = `
+          <div style="padding: 2rem; text-align: center;">
+            <p style="color: var(--warn); font-weight: 600; margin-bottom: 1rem;">⚠️ Không thể tải file</p>
+            <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+              Lỗi: ${error.message}
+            </p>
+            <p style="color: var(--muted); font-size: 0.85rem; line-height: 1.6;">
+              <strong>Gợi ý:</strong><br />
+              • Nếu bạn đang mở file bằng <code>file://</code> protocol, trình duyệt chặn fetch do bảo mật.<br />
+              • Hãy chạy static server: <code style="display: block; margin-top: 0.5rem; background: var(--bg-soft); padding: 0.5rem; border-radius: 4px;">python -m http.server 8000</code><br />
+              • Sau đó truy cập: <code>http://localhost:8000/.agents/index.html</code><br />
+              • Hoặc dùng VS Code Live Server extension.
+            </p>
+          </div>
+        `;
+      }
+    }
+
+    // Attach click handlers to doc links
+    document.querySelectorAll(".doc-link").forEach(link => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        const file = link.getAttribute("data-file");
+        const title = link.getAttribute("data-title");
+        openDoc(file, title);
+      });
+    });
+  </script>
+</body>
+</html>
