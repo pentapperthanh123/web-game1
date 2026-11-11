@@ -722,14 +722,9 @@ export const SummonPortals3D = () => {
           entranceScale = prog < 0.65 ? (prog / 0.65) * 1.25 : 1.25 - ((prog - 0.65) * 0.25) / 0.35;
         }
 
-        // First opening skill cast right after the 1s spawn shield completes (strictly normal skill at 0% Fury)
+        // First opening skill cast right after the 1s spawn shield completes (strictly normal attack at 0% Fury)
         if (isBossAlive && !isGraceActive && !ai.hasLanded) {
           ai.hasLanded = true;
-          const targetPos: [number, number, number] = [
-            COMBAT_VFX_CONSTANTS.BOSS_TARGET[0] + (minion.team === TEAM_KEY.BLG ? -0.3 : 0.3),
-            COMBAT_VFX_CONSTANTS.BOSS_TARGET[1],
-            COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
-          ];
           const scrStart = project3DToScreen(
             ai.currentX,
             ai.currentY,
@@ -739,12 +734,6 @@ export const SummonPortals3D = () => {
             state.size.height
           );
           spawnFlyingArrow(minion.championName, minion.team, false, scrStart);
-          spawnProjectile(
-            [ai.currentX, ai.currentY, ai.currentZ],
-            COMBAT_VFX_CONSTANTS.TEAM_COLORS[minion.team].primary,
-            false,
-            targetPos
-          );
         }
 
         // 2. Organic floating bobbing
@@ -800,12 +789,6 @@ export const SummonPortals3D = () => {
             ai.hasFiredInThisAttack = true;
 
             const { isFullFury } = consumeMinionAttackFury(minion.id);
-            const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[minion.team];
-            const targetPos: [number, number, number] = ai.targetBossZone || [
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[0],
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[1],
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
-            ];
 
             // Compute 2D launch coordinate from champion token; leave target omitted so it homes onto live #boss-monster-target
             const screenStart = project3DToScreen(
@@ -819,12 +802,19 @@ export const SummonPortals3D = () => {
 
             spawnFlyingArrow(minion.championName, minion.team, isFullFury, screenStart);
 
-            spawnProjectile(
-              [posX, posY, posZ],
-              isFullFury ? FURY_COLOR_FULL : teamPalette.primary,
-              isFullFury,
-              targetPos
-            );
+            if (isFullFury) {
+              const targetPos: [number, number, number] = ai.targetBossZone || [
+                COMBAT_VFX_CONSTANTS.BOSS_TARGET[0],
+                COMBAT_VFX_CONSTANTS.BOSS_TARGET[1],
+                COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
+              ];
+              spawnProjectile(
+                [posX, posY, posZ],
+                FURY_COLOR_FULL,
+                true,
+                targetPos
+              );
+            }
 
             const damage = isFullFury
               ? Math.round(minion.dps * GAME_CONSTANTS.MINION_FURY.ULTIMATE_DAMAGE_MULTIPLIER)

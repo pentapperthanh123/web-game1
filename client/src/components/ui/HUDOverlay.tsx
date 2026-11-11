@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Volume2, VolumeX, Swords, UserCheck } from 'lucide-react';
+import { Volume2, VolumeX, Swords, UserCheck, ShieldAlert } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { audioService } from '../../services/audioService';
 import { BossHealthBar } from './BossHealthBar';
@@ -10,8 +10,10 @@ import { GiftBanner } from './GiftBanner';
 import { FloatingDamage } from './FloatingDamage';
 import { LiveChatStream } from './LiveChatStream';
 import { LikeCounter } from './LikeCounter';
+import { ParticipationGuidePanel } from './ParticipationGuidePanel';
 import { VictoryOverlay } from './VictoryOverlay';
 import { GuestSimulationDock } from './GuestSimulationDock';
+import { AdminControlModal } from './AdminControlModal';
 import { ScreenFlash } from './ScreenFlash';
 import { TeamRosterBar } from './TeamRosterBar';
 import { SummonShowcase } from './SummonShowcase';
@@ -31,6 +33,8 @@ export const HUDOverlay = () => {
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const isGuestModeActive = useGameStore((state) => state.isGuestModeActive);
   const setGuestMode = useGameStore((state) => state.setGuestMode);
+  const isAdminModeActive = useGameStore((state) => state.isAdminModeActive);
+  const setAdminMode = useGameStore((state) => state.setAdminMode);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
   const headerRef = useRef<HTMLElement | null>(null);
   const [headerBottomOffset, setHeaderBottomOffset] = useState<number>(128);
@@ -81,6 +85,12 @@ export const HUDOverlay = () => {
   const toggleGuestMode = () => {
     const nextActive = !isGuestModeActive;
     setGuestMode(nextActive);
+    audioService.playUiToggleSound(nextActive);
+  };
+
+  const toggleAdminMode = () => {
+    const nextActive = !isAdminModeActive;
+    setAdminMode(nextActive);
     audioService.playUiToggleSound(nextActive);
   };
 
@@ -163,6 +173,27 @@ export const HUDOverlay = () => {
                 : t('HUD.guestMode', 'Khách')}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={toggleAdminMode}
+            title={t(
+              'HUD.adminModeTooltip',
+              'Bật/tắt bảng điều khiển trận đấu dành cho Quản trị viên'
+            )}
+            className={`pointer-events-auto flex items-center space-x-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+              isAdminModeActive
+                ? 'bg-amber-950/90 border-amber-400/80 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.45)]'
+                : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+            }`}
+          >
+            <ShieldAlert className={`w-2.5 h-2.5 ${isAdminModeActive ? 'animate-pulse text-amber-400' : ''}`} />
+            <span>
+              {isAdminModeActive
+                ? t('HUD.adminModeOn', 'Admin: BẬT')
+                : t('HUD.adminMode', 'Admin')}
+            </span>
+          </button>
         </div>
 
         {overlayVisibility.bossHealth && <BossHealthBar />}
@@ -182,23 +213,22 @@ export const HUDOverlay = () => {
       <FloatingDamage />
       <VictoryOverlay />
       <GuestSimulationDock />
+      <AdminControlModal />
 
       {/* Center 3D viewport remains 100% unobstructed for Baron Nashor */}
 
-      {/* Bottom Section: Leaderboard, Live Chat Stream, Like Counter & Instructions */}
+      {/* Bottom Section: Left (DPS + Live Chat), Right (Participation Guide + Like Counter) */}
       <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0">
-        {/* Floating Mini Leaderboard positioned above chat */}
-        {overlayVisibility.leaderboard && (
-          <div className="flex justify-start px-1 pointer-events-auto">
-            <DPSLeaderboard />
+        <div className="flex items-end justify-between px-1 gap-2">
+          <div className="flex flex-col items-start space-y-1.5 pointer-events-auto">
+            {overlayVisibility.leaderboard && <DPSLeaderboard />}
+            {overlayVisibility.chat && <LiveChatStream />}
           </div>
-        )}
 
-
-        {/* Split Bottom Row: Live Chat on Left, Like Counter on Right */}
-        <div className="flex items-end justify-between px-1">
-          {overlayVisibility.chat ? <LiveChatStream /> : <div />}
-          {overlayVisibility.likeCounter ? <LikeCounter /> : <div />}
+          <div className="flex flex-col items-end space-y-1.5 pointer-events-auto">
+            {overlayVisibility.howToPlay && <ParticipationGuidePanel />}
+            {overlayVisibility.likeCounter && <LikeCounter />}
+          </div>
         </div>
 
         {/* Viewer Call-to-Action when Auto-Pro is holding without viewers */}
@@ -220,15 +250,6 @@ export const HUDOverlay = () => {
                     'HUD.soloHoldingCta',
                     '🛡️ Tuyển thủ đang giữ nhịp — Chat tên tướng hoặc Tặng quà để gánh team!'
                   )}
-            </div>
-          </div>
-        )}
-
-        {/* Viewer Chat Guide */}
-        {overlayVisibility.howToPlay && (
-          <div className="max-w-md mx-auto px-2 text-center pointer-events-auto">
-            <div className="text-[10px] font-semibold text-cyan-200/90 bg-slate-950/75 border border-cyan-800/40 rounded-full py-1 px-3 backdrop-blur-md shadow-lg">
-              {t('HUD.howToPlay', 'Chat: [Tên tướng] BLG hoặc [Tên tướng] GEN để triệu hồi chiến binh!')}
             </div>
           </div>
         )}

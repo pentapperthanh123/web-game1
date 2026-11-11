@@ -65,14 +65,17 @@ class GameSocketClient {
       });
 
       this.socket.on('game:overlay-visibility', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().setOverlayVisibility(payload);
       });
 
       this.socket.on('game:theme', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         if (payload?.theme) useGameStore.getState().setGameTheme(payload.theme);
       });
 
       this.socket.on('game:boss-control', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         const store = useGameStore.getState();
         if (payload.action === 'reset') store.resetBoss();
         if (payload.action === 'setHp') store.setBossHp(payload.hp);
@@ -80,6 +83,7 @@ class GameSocketClient {
       });
 
       this.socket.on('game:bo5-control', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         const store = useGameStore.getState();
         if (payload.action === 'reset') store.resetBO5Match();
         if (payload.action === 'nextRound') store.startNextRound();
@@ -87,18 +91,22 @@ class GameSocketClient {
       });
 
       this.socket.on('game:boss-skill-config', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().setBossSkillConfig(payload);
       });
 
       this.socket.on('game:boss-cast-skill', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().castBossSkill(payload?.skillIndex);
       });
 
       this.socket.on('game:heal-team', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().healTeamChampions(payload?.team, payload?.amount);
       });
 
       this.socket.on('game:auto-pro-battle', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().setAutoProBattleConfig(payload);
       });
     } catch (err) {
@@ -145,6 +153,41 @@ class GameSocketClient {
         championName,
         senderId: CLIENT_INSTANCE_ID,
       });
+    }
+  }
+
+  public sendBossControl(action: 'reset' | 'setHp', hp?: number): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:boss-control', { action, hp, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public sendBO5Control(
+    action: 'reset' | 'nextRound' | 'setScore',
+    blg?: number,
+    geng?: number,
+    currentRound?: number
+  ): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:bo5-control', { action, blg, geng, currentRound, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public sendTheme(theme: 'BARON' | 'ELDER_DRAGON'): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:set-theme', { theme, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public sendCastBossSkill(skillIndex?: number): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:boss-cast-skill', { skillIndex, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public sendHealTeam(team: 'BLG' | 'GENG' | 'ALL', amount: number): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:heal-team', { team, amount, senderId: CLIENT_INSTANCE_ID });
     }
   }
 }

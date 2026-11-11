@@ -676,6 +676,64 @@ const drawMuzzleLaunchFlash = (
   ctx.restore();
 };
 
+const drawBasicAttackBolt = (
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  glowColor: string
+) => {
+  ctx.save();
+  ctx.shadowColor = glowColor;
+  ctx.shadowBlur = 6;
+
+  // Compact basic attack trail
+  const tailGrad = ctx.createLinearGradient(-24, 0, 8, 0);
+  tailGrad.addColorStop(0, hexToRgba(color, 0));
+  tailGrad.addColorStop(0.65, hexToRgba(color, 0.55));
+  tailGrad.addColorStop(1, '#ffffff');
+
+  ctx.strokeStyle = tailGrad;
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-24, 0);
+  ctx.lineTo(8, 0);
+  ctx.stroke();
+
+  // Small crisp basic bolt head
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(13, 0);
+  ctx.lineTo(3, -3.5);
+  ctx.lineTo(5, 0);
+  ctx.lineTo(3, 3.5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(7, 0, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+};
+
+const drawBasicImpactFlash = (
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  impactProgress: number
+) => {
+  ctx.save();
+  const radius = 10 * Math.sin(impactProgress * Math.PI * 0.5);
+  const fade = Math.max(0, 1 - impactProgress);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.6;
+  ctx.globalAlpha = fade * 0.7;
+  ctx.beginPath();
+  ctx.arc(8, 0, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+};
+
 // -----------------------------------------------------------------------------
 // Main Component
 // -----------------------------------------------------------------------------
@@ -748,16 +806,18 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         const glowColor = arrow.glowColor || arrow.color;
         const coreColor = arrow.coreColor || '#ffffff';
 
-        drawMuzzleLaunchFlash(
-          ctx,
-          arrow.startX,
-          arrow.startY,
-          baseAimAngleRad,
-          arrow.color,
-          glowColor,
-          arrow.isCrit,
-          progress
-        );
+        if (arrow.isCrit) {
+          drawMuzzleLaunchFlash(
+            ctx,
+            arrow.startX,
+            arrow.startY,
+            baseAimAngleRad,
+            arrow.color,
+            glowColor,
+            true,
+            progress
+          );
+        }
 
         let opacity = 1.0;
         if (progress < 0.04) {
@@ -765,7 +825,7 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         } else if (progress > 0.9) {
           opacity = (1.0 - progress) / 0.1;
         }
-        const scale = arrow.isCrit ? 1.35 : 1.08;
+        const scale = arrow.isCrit ? 1.35 : 0.95;
         const clampedOpacity = Math.max(0, Math.min(1, opacity));
 
         ctx.save();
@@ -774,39 +834,49 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         ctx.scale(scale, scale);
         ctx.globalAlpha = clampedOpacity;
 
-        // 1. Draw Streamer Comet Tail & Esports Ribbons
-        drawCometEnergyBody(
-          ctx,
-          arrow.color,
-          glowColor,
-          arrow.team,
-          arrow.isCrit,
-          elapsed
-        );
-
-        // 2. Draw Champion Specific Weapon / Skill Graphic at the Head
-        drawSkillGraphic(
-          ctx,
-          arrow.vfxType || CHAMPION_SKILL_VFX_TYPE.ARROW,
-          arrow.color,
-          glowColor,
-          coreColor,
-          arrow.isCrit,
-          elapsed
-        );
-
-        // 3. Draw Impact Flash & Shockwave Ring on Arrival at Boss
-        if (progress >= VFX_STYLE.IMPACT.START_PROGRESS) {
-          const impactProgress =
-            (progress - VFX_STYLE.IMPACT.START_PROGRESS) /
-            (1.0 - VFX_STYLE.IMPACT.START_PROGRESS);
-          drawImpactBurst(
+        if (arrow.isCrit) {
+          // Full Ultimate Skill VFX (only when Fury/Power reaches 100%)
+          drawCometEnergyBody(
             ctx,
             arrow.color,
             glowColor,
-            arrow.isCrit,
-            impactProgress
+            arrow.team,
+            true,
+            elapsed
           );
+
+          drawSkillGraphic(
+            ctx,
+            arrow.vfxType || CHAMPION_SKILL_VFX_TYPE.ARROW,
+            arrow.color,
+            glowColor,
+            coreColor,
+            true,
+            elapsed
+          );
+
+          if (progress >= VFX_STYLE.IMPACT.START_PROGRESS) {
+            const impactProgress =
+              (progress - VFX_STYLE.IMPACT.START_PROGRESS) /
+              (1.0 - VFX_STYLE.IMPACT.START_PROGRESS);
+            drawImpactBurst(
+              ctx,
+              arrow.color,
+              glowColor,
+              true,
+              impactProgress
+            );
+          }
+        } else {
+          // Normal Basic Attack Bolt (before 100% Fury/Power)
+          drawBasicAttackBolt(ctx, arrow.color, glowColor);
+
+          if (progress >= VFX_STYLE.IMPACT.START_PROGRESS) {
+            const impactProgress =
+              (progress - VFX_STYLE.IMPACT.START_PROGRESS) /
+              (1.0 - VFX_STYLE.IMPACT.START_PROGRESS);
+            drawBasicImpactFlash(ctx, arrow.color, impactProgress);
+          }
         }
 
         ctx.restore();

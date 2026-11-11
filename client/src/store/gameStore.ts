@@ -54,6 +54,7 @@ import {
   AUTO_PRO_STORAGE_KEY,
   DEFAULT_AUTO_PRO_BATTLE_CONFIG,
   AUDIO_SFX_CONSTANTS,
+  CHAMPION_SKILL_VFX_TYPE,
   getChampionSkillVFX,
   BOSS_DEFEAT_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
@@ -213,6 +214,19 @@ const createInitialTeamHeartMomentum = (): Record<TeamType, TeamHeartMomentum> =
   [TEAM_KEY.GENG]: createEmptyTeamHeartMomentum(),
 });
 
+const createInitialRosterFury = (): Record<string, number> => ({
+  'blg-bin': 0,
+  'blg-xun': 0,
+  'blg-knight': 0,
+  'blg-viper': 0,
+  'blg-on': 0,
+  'gen-kiin': 0,
+  'gen-canyon': 0,
+  'gen-chovy': 0,
+  'gen-ruler': 0,
+  'gen-duro': 0,
+});
+
 const getActiveHeartFuryMultiplier = (
   momentum: TeamHeartMomentum | undefined,
   now: number
@@ -278,18 +292,7 @@ const INITIAL_STATE = {
   finisherTeam: null as TeamType | null,
   autoProBattleConfig: getStoredAutoProBattleConfig(),
   rosterAttackTimestamps: {} as Record<string, number>,
-  rosterPlayerFury: {
-    'blg-bin': 10,
-    'blg-xun': 20,
-    'blg-knight': 0,
-    'blg-viper': 30,
-    'blg-on': 10,
-    'gen-kiin': 20,
-    'gen-canyon': 10,
-    'gen-chovy': 30,
-    'gen-ruler': 0,
-    'gen-duro': 20,
-  } as Record<string, number>,
+  rosterPlayerFury: createInitialRosterFury(),
   lastFuryUltimatePlayerId: null as string | null,
   teamHeartMomentum: createInitialTeamHeartMomentum(),
   bo5Score: {
@@ -306,6 +309,7 @@ const INITIAL_STATE = {
   isGuestModeActive: false,
   guestTeam: TEAM_KEY.BLG,
   guestName: 'Khách_VIP_88',
+  isAdminModeActive: false,
 };
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -314,6 +318,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   setGuestMode: (active: boolean) => set({ isGuestModeActive: active }),
   setGuestTeam: (team: TeamType) => set({ guestTeam: team }),
   setGuestName: (name: string) => set({ guestName: name.trim() || 'Khách_VIP_88' }),
+  setAdminMode: (active: boolean) => set({ isAdminModeActive: active }),
 
   setGameTheme: (theme: GameThemeType) => {
     if (typeof window !== 'undefined') {
@@ -479,7 +484,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       : COMBAT_VFX_CONSTANTS.TEAM_COLORS[team].primary;
 
     get().spawnFlyingArrow(player.signatureChampion, team, isFullFury);
-    get().spawnProjectile(proStart3D, proBeamColor, isFullFury);
+    if (isFullFury) {
+      get().spawnProjectile(proStart3D, proBeamColor, true);
+    }
 
     set((prev) => ({
       rosterAttackTimestamps: {
@@ -532,7 +539,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     const skillVfx = getChampionSkillVFX(championName, isCrit);
-    audioService.playChampionSkillSound(skillVfx.type, isCrit, team);
+    audioService.playChampionSkillSound(
+      isCrit ? skillVfx.type : CHAMPION_SKILL_VFX_TYPE.ARROW,
+      isCrit,
+      team
+    );
     const rosterPlayer = findRosterPlayer(championName, team);
     let startX: number;
     let startY: number;
@@ -1146,7 +1157,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     ];
 
     const impactColor = effectiveDamageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : teamPalette.secondary;
-    get().spawnSlash(hitPoint, impactColor, isCritOrUlt);
+    if (isCritOrUlt) {
+      get().spawnSlash(hitPoint, impactColor, true);
+    }
     get().spawnParticleBurst(hitPoint, impactColor, DAMAGE_INTENSITY_MAP[effectiveDamageType]);
 
     const newShockwaves: ShockwaveEntity[] = [...state.activeShockwaves];
@@ -1342,7 +1355,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         const curHp = activeLivingMinion.hp ?? CHAMPION_DEFAULT_MAX_HP;
         const maxHp = activeLivingMinion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
         const nextHp = Math.min(maxHp, curHp + healAmt);
-        const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
 
         const updatedMinions = state.minions.map((m) => {
           if (m.id === activeLivingMinion.id) {
@@ -1357,7 +1369,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         // Trigger immediate support strike from champion against Boss
         get().damageBoss(bonusDmg, team, `${summonerName} (Tiếp sức)`, 'NORMAL');
-        get().spawnProjectile(activeLivingMinion.spawnPosition, teamPalette.primary, false);
         get().spawnFlyingArrow(activeLivingMinion.championName, team, false);
         audioService.playHeartChime();
 
@@ -1439,7 +1450,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       get().consumeMinionAttackFury(newMinion.id);
       get().damageBoss(summonDps, team, summonerName, DAMAGE_TYPE.NORMAL);
-      get().spawnProjectile(spawnPosition, teamPalette.primary, false);
       get().spawnFlyingArrow(championName, team, false);
     }, GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS);
 
@@ -1935,6 +1945,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       leaderboard: [],
       proLeaderboard: [],
       rosterAttackTimestamps: {},
+      rosterPlayerFury: createInitialRosterFury(),
+      lastFuryUltimatePlayerId: null,
     });
   },
 
@@ -1983,6 +1995,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       finisherPlayerName: null,
       finisherTeam: null,
       rosterAttackTimestamps: {},
+      rosterPlayerFury: createInitialRosterFury(),
+      lastFuryUltimatePlayerId: null,
     });
   },
 
@@ -2050,6 +2064,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       finisherPlayerName: null,
       finisherTeam: null,
       rosterAttackTimestamps: {},
+      rosterPlayerFury: createInitialRosterFury(),
+      lastFuryUltimatePlayerId: null,
     });
   },
 

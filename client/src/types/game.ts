@@ -1,4 +1,5 @@
 import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXType } from '../constants/game';
+export type { GameThemeType };
 import { RosterPlayer } from '../constants/roster';
 import { BossSkillConfig, ActiveBossSkillBanner } from './bossSkill';
 
@@ -334,15 +335,17 @@ export interface GameState {
   seriesWinner: TeamType | null;
   roundCountdownSeconds: number;
 
-  // Guest Simulation Mode State
+  // Guest & Admin Simulation Mode State
   isGuestModeActive: boolean;
   guestTeam: TeamType;
   guestName: string;
+  isAdminModeActive: boolean;
 
   // Actions
   setGuestMode: (active: boolean) => void;
   setGuestTeam: (team: TeamType) => void;
   setGuestName: (name: string) => void;
+  setAdminMode: (active: boolean) => void;
   startNextRound: () => void;
   resetBO5Match: () => void;
   setBO5Score: (blg: number, geng: number, currentRound?: number) => void;

@@ -957,3 +957,38 @@ export const DEFAULT_AUTO_PRO_BATTLE_CONFIG = {
   onlyWhenIdle: true,
   intervalMs: AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS,
 };
+
+export const ADMIN_CONSTANTS = {
+  HP_PRESETS: [
+    { label: '100,000 HP (Full)', hp: 100000, color: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/40' },
+    { label: '30,000 HP (Cuồng Nộ)', hp: 30000, color: 'text-amber-400 border-amber-500/40 bg-amber-950/40' },
+    { label: '15,000 HP (Kết Liễu)', hp: 15000, color: 'text-rose-400 border-rose-500/40 bg-rose-950/40' },
+    { label: '0 HP (Hạ Gục)', hp: 0, color: 'text-red-500 border-red-500/50 bg-red-950/50' },
+  ] as const,
+  BOSS_SKILLS: [
+    { index: 0, id: 'skill_1', nameVi: 'Mưa Gai / Hỏa Cầu (Skill 1)', nameEn: 'Spike Rain / Fireball (Skill 1)' },
+    { index: 1, id: 'skill_2', nameVi: 'Quét Đuôi / Gió Bão (Skill 2)', nameEn: 'Tail Sweep / Tempest (Skill 2)' },
+    { index: 2, id: 'skill_3', nameVi: 'Nuốt Chửng Hắc Ám (Skill 3)', nameEn: 'Void Devourer (Skill 3)' },
+    { index: 3, id: 'skill_4', nameVi: 'Nộ Thần Thoại (Skill 4)', nameEn: 'Mythic Rage (Skill 4)' },
+  ] as const,
+  BOT_SPEED_PRESETS: [
+    { speedMs: 500, labelVi: 'Nhanh (500ms)', labelEn: 'Fast (500ms)' },
+    { speedMs: 1200, labelVi: 'Vừa (1200ms)', labelEn: 'Normal (1200ms)' },
+    { speedMs: 2500, labelVi: 'Chậm (2500ms)', labelEn: 'Slow (2500ms)' },
+  ] as const,
+  PRO_INTERVAL_PRESETS: [
+    { intervalMs: 1500, label: '1.5s' },
+    { intervalMs: 2500, label: '2.5s' },
+    { intervalMs: 4000, label: '4.0s' },
+  ] as const,
+  OVERLAYS: [
+    { key: 'bossHealth', labelVi: 'Thanh Máu Quái Vật', labelEn: 'Boss Health Bar' },
+    { key: 'teamScores', labelVi: 'Tỉ Số & Sát Thương BO5', labelEn: 'BO5 Scores & DPS' },
+    { key: 'teamRosters', labelVi: 'Danh Sách Tuyển Thủ 2 Bên', labelEn: 'Team Roster Bars' },
+    { key: 'leaderboard', labelVi: 'Bảng Xếp Hạng Top DPS', labelEn: 'DPS Leaderboard' },
+    { key: 'chat', labelVi: 'Khung Bình Luận Trực Tiếp', labelEn: 'Live Chat Stream' },
+    { key: 'likeCounter', labelVi: 'Đếm Lượt Tim & Tinh Thần', labelEn: 'Like Counter' },
+    { key: 'howToPlay', labelVi: 'Thanh Hướng Dẫn Chat', labelEn: 'How to Play Hint' },
+  ] as const,
+} as const;
+
