@@ -8,6 +8,7 @@ import { audioService } from '../../services/audioService';
 
 interface TeamRosterBarProps {
   side: 'left' | 'right';
+  topOffset?: number;
 }
 
 const DESKTOP_EXPAND_MIN_WIDTH = 768;
@@ -40,7 +41,7 @@ const getFuryBarFillClass = (isFullFury: boolean, fury: number): string => {
   return 'bg-gradient-to-r from-cyan-500/80 to-amber-400/80';
 };
 
-export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
+export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   const { t } = useTranslation();
   const team = side === 'left' ? TEAM_KEY.BLG : TEAM_KEY.GENG;
   const roster = TEAM_ROSTERS[team];
@@ -97,9 +98,11 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
       totalTeamSummons > 0 ? `${shortTeamLabel} (${totalTeamSummons})` : shortTeamLabel;
     return (
       <div
-        className={`absolute top-[168px] sm:top-[176px] ${
+        id={`roster-container-${team}`}
+        style={topOffset ? { top: `${topOffset}px` } : undefined}
+        className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
           isLeft ? 'left-1' : 'right-1'
-        } z-20 pointer-events-auto select-none`}
+        } z-20 pointer-events-auto select-none transition-[top] duration-200`}
       >
         <button
           id={`roster-collapsed-${team}`}
@@ -126,10 +129,12 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
 
   return (
     <aside
+      id={`roster-container-${team}`}
       aria-label={isLeft ? 'BLG Team Roster' : 'Gen.G Team Roster'}
-      className={`absolute top-[168px] sm:top-[176px] ${
+      style={topOffset ? { top: `${topOffset}px` } : undefined}
+      className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
         isLeft ? 'left-1' : 'right-1'
-      } flex flex-col space-y-1 pointer-events-auto z-20 select-none max-w-[90px] sm:max-w-[104px]`}
+      } flex flex-col space-y-1 pointer-events-auto z-20 select-none max-w-[90px] sm:max-w-[104px] transition-[top] duration-200`}
     >
       {/* Compact Roster Header with Collapse Button */}
       <div
@@ -224,6 +229,7 @@ const RosterItem = ({
 
   return (
     <div
+      id={`roster-card-${player.id}`}
       className={`relative flex items-center space-x-1.5 px-1.5 py-0.5 rounded-lg border backdrop-blur-sm transition-all duration-200 ${
         isLeft ? 'flex-row' : 'flex-row-reverse space-x-reverse'
       } ${getRosterItemCardClass(isActive, isAttacking, isFullFury, isLeft)}`}

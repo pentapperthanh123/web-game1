@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Volume2, VolumeX, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -29,6 +29,32 @@ export const HUDOverlay = () => {
   const bossHp = useGameStore((state) => state.bossHp);
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const [headerBottomOffset, setHeaderBottomOffset] = useState<number>(128);
+
+  useEffect(() => {
+    const updateHeaderOffset = () => {
+      if (!headerRef.current) return;
+      const rect = headerRef.current.getBoundingClientRect();
+      setHeaderBottomOffset(Math.round(rect.bottom + 8));
+    };
+
+    updateHeaderOffset();
+    window.addEventListener('resize', updateHeaderOffset);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && headerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        updateHeaderOffset();
+      });
+      resizeObserver.observe(headerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateHeaderOffset);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, []);
 
   const isSoloAutoHolding = autoProBattleConfig.enabled && minionsLength === 0 && bossHp > 0;
   const isBossClutchZone =
@@ -56,14 +82,17 @@ export const HUDOverlay = () => {
       <ChampionArrowVFX />
 
       {/* Unified Non-Overlapping Center Toast Stack */}
-      <div className="absolute top-[164px] sm:top-[176px] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-40 pointer-events-none flex flex-col items-center gap-1.5">
+      <div
+        style={{ top: `${headerBottomOffset}px` }}
+        className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-40 pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
+      >
         <BossEnragedEntranceBanner isElderDragon={gameTheme === GAME_THEME.ELDER_DRAGON} />
         <GiftBanner />
         <HeartMilestoneBanner />
       </div>
 
       {/* Top Section: Esports Broadcast Header & Scores */}
-      <header className="space-y-0.5 sm:space-y-1 shrink-0 pt-0.5">
+      <header ref={headerRef} className="space-y-0.5 sm:space-y-1 shrink-0 pt-0.5">
         <div className="flex items-center justify-center space-x-1.5 pt-0.5">
           <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/80 border border-slate-800 backdrop-blur-md mb-1 shadow-md">
             <span className="text-[10px] font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-amber-400">
@@ -113,8 +142,8 @@ export const HUDOverlay = () => {
       {/* Roster Bars on Left & Right Sides */}
       {overlayVisibility.teamRosters && (
         <>
-          <TeamRosterBar side="left" />
-          <TeamRosterBar side="right" />
+          <TeamRosterBar side="left" topOffset={headerBottomOffset} />
+          <TeamRosterBar side="right" topOffset={headerBottomOffset} />
         </>
       )}
 

@@ -23,6 +23,7 @@ import { WingGustVFX } from './WingGustVFX';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossEnragedAura } from './BossEnragedAura';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
+import { BossPhaseVisuals } from './BossPhaseVisuals';
 import { audioService } from '../../services/audioService';
 
 const getAnimationClass = (
@@ -165,6 +166,7 @@ export const Boss2D = () => {
   const { t } = useTranslation();
   const bossStatus = useGameStore((state) => state.bossStatus);
   const bossHp = useGameStore((state) => state.bossHp);
+  const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const minions = useGameStore((state) => state.minions);
   const bossHitTimestamp = useGameStore((state) => state.bossHitTimestamp);
   const bossAttackTimestamp = useGameStore((state) => state.bossAttackTimestamp);
@@ -379,8 +381,26 @@ export const Boss2D = () => {
 
   const wingGustColor = isElderDragon ? '#38bdf8' : '#a855f7';
 
+  // Dynamic 2.5D perspective tilt reacting to hit side & pokes
+  let tiltYDeg = 0;
+  let tiltXDeg = 0;
+  if (isHitActive && !isDefeated) {
+    const isHeavyHit =
+      lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
+    const hitStrength = isHeavyHit ? 11 : 6;
+    if (lastHitTeam === TEAM_KEY.BLG) {
+      tiltYDeg = hitStrength;
+    } else if (lastHitTeam === TEAM_KEY.GENG) {
+      tiltYDeg = -hitStrength;
+    }
+    tiltXDeg = isHeavyHit ? -8 : -4;
+  } else if (isPoked && !isDefeated) {
+    tiltXDeg = -10;
+  }
+
   return (
     <div
+      style={{ perspective: '900px' }}
       className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none z-10 flex items-center justify-center`}
     >
       {/* 1. Skill Combat Alert Banner */}
@@ -429,7 +449,7 @@ export const Boss2D = () => {
         isDefeated={isDefeated}
       />
 
-      {/* 8. High-Definition Boss 2D Monster Sprite with Interactive Poke */}
+      {/* 8. High-Definition Boss 2.5D Monster Sprite with Interactive Poke, Cracks, Shield & Weak Point */}
       <div
         id="boss-monster-target"
         onClick={handleBossClick}
@@ -443,24 +463,41 @@ export const Boss2D = () => {
           isRestless={isRestless}
         />
 
-        <picture className="w-full h-full block">
-          <source srcSet={themeConfig.bossImageWebp} type="image/webp" />
-          <img
-            src={themeConfig.bossImagePng}
-            alt={themeConfig.bossName}
-            className="w-full h-full object-contain filter contrast-110 brightness-105 group-hover:scale-105 transition-transform duration-200"
-            loading="eager"
-            draggable={false}
-          />
-        </picture>
+        <div
+          className="w-full h-full relative"
+          style={{
+            transform: `perspective(900px) rotateX(${tiltXDeg}deg) rotateY(${tiltYDeg}deg)`,
+            transformStyle: 'preserve-3d',
+            transition: 'transform 160ms ease-out',
+          }}
+        >
+          <picture className="w-full h-full block">
+            <source srcSet={themeConfig.bossImageWebp} type="image/webp" />
+            <img
+              src={themeConfig.bossImagePng}
+              alt={themeConfig.bossName}
+              className="w-full h-full object-contain filter contrast-110 brightness-105 group-hover:scale-105 transition-transform duration-200"
+              loading="eager"
+              draggable={false}
+            />
+          </picture>
 
-        {/* 9. Glowing Eyes Surge during Idle / Restless / Poke / Enraged */}
-        <BossGlowingEyes
-          isActive={isEyesSurging || isRestless}
-          isElderDragon={isElderDragon}
-          isRestless={isRestless}
-          isEnraged={isEnraged}
-        />
+          {/* 8b. 2.5D Phase Cracks, Energy Shield & Weak Point Reticle */}
+          <BossPhaseVisuals
+            bossHp={bossHp}
+            bossMaxHp={bossMaxHp}
+            isElderDragon={isElderDragon}
+            isDefeated={isDefeated}
+          />
+
+          {/* 9. Glowing Eyes Surge during Idle / Restless / Poke / Enraged */}
+          <BossGlowingEyes
+            isActive={isEyesSurging || isRestless}
+            isElderDragon={isElderDragon}
+            isRestless={isRestless}
+            isEnraged={isEnraged}
+          />
+        </div>
 
         {/* Crisp Impact Flares aligned directly over Boss */}
         <BossHitMarks2D />

@@ -30,6 +30,8 @@ import {
   AutoProBattleConfig,
   DamageBossOptions,
   ProDamageRecord,
+  BossShieldState,
+  BossWeakPointState,
 } from '../types/game';
 import {
   GAME_CONSTANTS,
@@ -53,6 +55,7 @@ import {
   getChampionSkillVFX,
   BOSS_DEFEAT_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
+  BOSS_MECHANICS_CONSTANTS,
 } from '../constants/game';
 import { getChampionAvatarUrl, findRosterPlayer, TEAM_ROSTERS, RosterPlayer } from '../constants/roster';
 import { gameBus } from '../services/eventBus';
@@ -234,6 +237,11 @@ const INITIAL_STATE = {
   bossAttackTargetTeam: null as 'BLG' | 'GENG' | 'ALL' | null,
   bossDefeatedTimestamp: 0,
   bossEnragedEntranceTimestamp: 0,
+  bossShield: null as BossShieldState | null,
+  triggeredShieldThresholds: [] as number[],
+  bossShieldBrokenTimestamp: 0,
+  bossWeakPoint: null as BossWeakPointState | null,
+  lastWeakPointSpawnTimestamp: 0,
   finisherPlayerName: null as string | null,
   finisherTeam: null as TeamType | null,
   autoProBattleConfig: getStoredAutoProBattleConfig(),
@@ -242,13 +250,13 @@ const INITIAL_STATE = {
     'blg-bin': 10,
     'blg-xun': 20,
     'blg-knight': 0,
-    'blg-elk': 30,
+    'blg-viper': 30,
     'blg-on': 10,
-    'geng-kiin': 20,
-    'geng-canyon': 10,
-    'geng-chovy': 30,
-    'geng-ruler': 0,
-    'geng-duro': 20,
+    'gen-kiin': 20,
+    'gen-canyon': 10,
+    'gen-chovy': 30,
+    'gen-ruler': 0,
+    'gen-duro': 20,
   } as Record<string, number>,
   lastFuryUltimatePlayerId: null as string | null,
   bo5Score: {
@@ -382,7 +390,18 @@ export const useGameStore = create<GameState>((set, get) => ({
         );
 
     const now = Date.now();
+    const proLaneY = 1.65 - (playerIndex % 5) * 0.55;
+    const proStart3D: [number, number, number] = [
+      team === TEAM_KEY.BLG ? -2.9 : 2.9,
+      proLaneY,
+      0.7,
+    ];
+    const proBeamColor = isFullFury
+      ? '#fbbf24'
+      : COMBAT_VFX_CONSTANTS.TEAM_COLORS[team].primary;
+
     get().spawnFlyingArrow(player.signatureChampion, team, isCrit || isFullFury);
+    get().spawnProjectile(proStart3D, proBeamColor, isCrit || isFullFury);
 
     set((prev) => ({
       rosterAttackTimestamps: {
@@ -415,7 +434,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     }, AUTO_PRO_BATTLE_CONSTANTS.FLYING_ARROW_HIT_DELAY_MS);
   },
 
-  spawnFlyingArrow: (championName: string, team: TeamType, isCrit = false) => {
+  spawnFlyingArrow: (
+    championName: string,
+    team: TeamType,
+    isCrit = false,
+    customStart?: { x: number; y: number },
+    customTarget?: { x: number; y: number }
+  ) => {
     const skillVfx = getChampionSkillVFX(championName, isCrit);
     audioService.playChampionSkillSound(skillVfx.type, isCrit, team);
     const rosterPlayer = findRosterPlayer(championName, team);
@@ -425,32 +450,40 @@ export const useGameStore = create<GameState>((set, get) => ({
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
     const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
 
-    const avatarEl =
+    const cardEl =
       typeof document !== 'undefined' && rosterPlayer
+        ? document.getElementById(`roster-card-${rosterPlayer.id}`)
+        : null;
+    const avatarEl =
+      typeof document !== 'undefined' && !cardEl && rosterPlayer
         ? document.getElementById(`roster-avatar-${rosterPlayer.id}`)
         : null;
     const collapsedEl =
-      typeof document !== 'undefined' && !avatarEl
+      typeof document !== 'undefined' && !cardEl && !avatarEl
         ? document.getElementById(`roster-collapsed-${team}`)
         : null;
-    const anchorEl = avatarEl || collapsedEl;
+    const anchorEl = cardEl || avatarEl || collapsedEl;
 
-    if (anchorEl) {
+    if (customStart) {
+      startX = customStart.x;
+      startY = customStart.y;
+    } else if (anchorEl) {
       const rect = anchorEl.getBoundingClientRect();
-      startX = team === TEAM_KEY.BLG ? rect.right + 2 : rect.left - 2;
+      startX = team === TEAM_KEY.BLG ? rect.right + 4 : rect.left - 4;
       startY = rect.top + rect.height / 2;
 
-      anchorEl.style.transform = 'scale(1.22)';
+      const popTarget = avatarEl || anchorEl;
+      popTarget.style.transform = 'scale(1.18)';
       setTimeout(() => {
-        anchorEl.style.transform = '';
+        popTarget.style.transform = '';
       }, 180);
     } else {
       const playerIndex = rosterPlayer
         ? TEAM_ROSTERS[team].findIndex((p) => p.id === rosterPlayer.id)
         : 2;
       const idx = playerIndex >= 0 ? playerIndex : 2;
-      startX = team === TEAM_KEY.BLG ? 45 : screenW - 45;
-      startY = Math.min(screenH * 0.45, 180 + idx * 42);
+      startX = team === TEAM_KEY.BLG ? 52 : screenW - 52;
+      startY = Math.min(screenH * 0.48, 185 + idx * 42);
     }
 
     const bossEl =
@@ -461,7 +494,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     let targetX: number;
     let targetY: number;
 
-    if (bossEl) {
+    if (customTarget) {
+      targetX = customTarget.x;
+      targetY = customTarget.y;
+    } else if (bossEl) {
       const bossRect = bossEl.getBoundingClientRect();
       targetX = bossRect.left + bossRect.width * 0.5 + (Math.random() - 0.5) * 44;
       targetY = bossRect.top + bossRect.height * 0.48 + (Math.random() - 0.5) * 36;
@@ -699,16 +735,118 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.bossHp <= 0) return;
 
+    const now = Date.now();
+    const isWeakPointActive =
+      !options?.proPlayer &&
+      state.bossWeakPoint !== null &&
+      now < state.bossWeakPoint.expiresAt;
+
+    const scaledAmount = isWeakPointActive
+      ? Math.round(amount * BOSS_MECHANICS_CONSTANTS.WEAK_POINT.DAMAGE_MULTIPLIER)
+      : amount;
+    const effectiveDamageType: DamageType =
+      isWeakPointActive && damageType === DAMAGE_TYPE.NORMAL ? DAMAGE_TYPE.CRIT : damageType;
+
+    // 1. If Boss Shield is active, damage Shield first before Boss HP
+    if (state.bossShield && now < state.bossShield.expiresAt) {
+      const absorbedDamage = Math.max(0, Math.min(state.bossShield.hp, scaledAmount));
+      const remainingShieldHp = state.bossShield.hp - absorbedDamage;
+      const isShieldBroken = remainingShieldHp <= 0;
+
+      audioService.playDamageImpactSound(
+        isShieldBroken ? DAMAGE_TYPE.ULTIMATE : effectiveDamageType,
+        true
+      );
+
+      const shieldHitFloat: FloatingDamageText = {
+        id: `float-${now}-${Math.random()}`,
+        amount: absorbedDamage,
+        text: isShieldBroken
+          ? `💥 -${BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE.toLocaleString()}`
+          : `🛡️ -${absorbedDamage.toLocaleString()}`,
+        damageType: isShieldBroken ? DAMAGE_TYPE.ULTIMATE : effectiveDamageType,
+        team,
+        playerName,
+        x: randomInRange(-76, 76),
+        y: randomInRange(-44, 34),
+        color: isShieldBroken ? '#fbbf24' : '#38bdf8',
+        scale: isShieldBroken ? 1.5 : 1.1,
+        createdAt: now,
+      };
+
+      const nextScoreBLG = team === TEAM_KEY.BLG ? state.teamScoreBLG + absorbedDamage : state.teamScoreBLG;
+      const nextScoreGENG = team === TEAM_KEY.GENG ? state.teamScoreGENG + absorbedDamage : state.teamScoreGENG;
+      const nextViewerBoard = options?.excludeFromLeaderboard
+        ? state.leaderboard
+        : updateLeaderboardList(state.leaderboard, playerName, team, absorbedDamage);
+      const nextProBoard = options?.proPlayer
+        ? updateProLeaderboardList(state.proLeaderboard, options.proPlayer, absorbedDamage)
+        : state.proLeaderboard;
+
+      if (isShieldBroken) {
+        const floorHpAfterBreak = options?.minHpFloorPercent
+          ? Math.ceil(state.bossMaxHp * options.minHpFloorPercent)
+          : 0;
+        const hpAfterBreak = Math.max(
+          floorHpAfterBreak,
+          state.bossHp - BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE
+        );
+
+        get().triggerScreenShake(0.9);
+        get().triggerScreenFlash('#38bdf8');
+        get().spawnParticleBurst([0, 0.4, 0.6], '#38bdf8', COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+        get().addLog(
+          'BOSS',
+          `💥 ${playerName} phá vỡ KHIÊN NĂNG LƯỢNG! Boss choáng nhận ${BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE.toLocaleString()} ST!`,
+          team
+        );
+
+        set((prev) => ({
+          bossHp: hpAfterBreak,
+          bossShield: null,
+          bossShieldBrokenTimestamp: now,
+          bossHitTimestamp: now,
+          lastHitTeam: team,
+          lastHitDamageType: DAMAGE_TYPE.ULTIMATE,
+          teamScoreBLG: nextScoreBLG,
+          teamScoreGENG: nextScoreGENG,
+          leaderboard: nextViewerBoard,
+          proLeaderboard: nextProBoard,
+          floatingDamages: [
+            ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
+            shieldHitFloat,
+          ],
+        }));
+        return;
+      }
+
+      get().spawnParticleBurst([0, 0.4, 0.7], '#38bdf8', 0.8);
+      set((prev) => ({
+        bossShield: prev.bossShield ? { ...prev.bossShield, hp: remainingShieldHp } : null,
+        bossHitTimestamp: now,
+        lastHitTeam: team,
+        lastHitDamageType: effectiveDamageType,
+        teamScoreBLG: nextScoreBLG,
+        teamScoreGENG: nextScoreGENG,
+        leaderboard: nextViewerBoard,
+        proLeaderboard: nextProBoard,
+        floatingDamages: [
+          ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
+          shieldHitFloat,
+        ],
+      }));
+      return;
+    }
+
     const floorHp = options?.minHpFloorPercent
       ? Math.ceil(state.bossMaxHp * options.minHpFloorPercent)
       : 0;
-    const newHp = Math.max(floorHp, state.bossHp - amount);
+    const newHp = Math.max(floorHp, state.bossHp - scaledAmount);
     const effectiveDamage = Math.max(0, state.bossHp - newHp);
     if (effectiveDamage <= 0) return;
 
-    audioService.playDamageImpactSound(damageType, damageType === DAMAGE_TYPE.CRIT);
+    audioService.playDamageImpactSound(effectiveDamageType, effectiveDamageType === DAMAGE_TYPE.CRIT);
 
-    const now = Date.now();
     const wasEnraged =
       state.bossHp > 0 &&
       state.bossHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
@@ -717,6 +855,31 @@ export const useGameStore = create<GameState>((set, get) => ({
       newHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
     const isJustEnraged = !wasEnraged && isEnraged;
     const isDefeated = newHp <= 0;
+
+    // 2. Check Boss Shield trigger thresholds (50% & 22% HP)
+    let nextShield: BossShieldState | null = state.bossShield;
+    let nextTriggeredShieldThresholds = state.triggeredShieldThresholds;
+    if (!isDefeated && !nextShield) {
+      for (const threshold of BOSS_MECHANICS_CONSTANTS.SHIELD.TRIGGER_THRESHOLDS) {
+        const thresholdHp = state.bossMaxHp * threshold;
+        const alreadyTriggered = state.triggeredShieldThresholds.includes(threshold);
+        if (!alreadyTriggered && newHp <= thresholdHp) {
+          nextShield = {
+            hp: BOSS_MECHANICS_CONSTANTS.SHIELD.SHIELD_HP,
+            maxHp: BOSS_MECHANICS_CONSTANTS.SHIELD.SHIELD_HP,
+            createdAt: now,
+            expiresAt: now + BOSS_MECHANICS_CONSTANTS.SHIELD.DURATION_MS,
+          };
+          nextTriggeredShieldThresholds = [...state.triggeredShieldThresholds, threshold];
+          audioService.playBossRoarSound(state.gameTheme === GAME_THEME.ELDER_DRAGON, false);
+          get().addLog(
+            'BOSS',
+            `🛡️ [KHIÊN NĂNG LƯỢNG] Boss bật khiên ${BOSS_MECHANICS_CONSTANTS.SHIELD.SHIELD_HP.toLocaleString()} HP! Phá trong 12s kẻo Boss hồi máu!`
+          );
+          break;
+        }
+      }
+    }
 
     if (isJustEnraged) {
       audioService.playBossEnrageSound(state.gameTheme === GAME_THEME.ELDER_DRAGON);
@@ -770,46 +933,51 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
-    const isCritOrUlt = damageType === DAMAGE_TYPE.CRIT || damageType === DAMAGE_TYPE.ULTIMATE;
+    const isCritOrUlt =
+      effectiveDamageType === DAMAGE_TYPE.CRIT || effectiveDamageType === DAMAGE_TYPE.ULTIMATE;
     const hitPoint: [number, number, number] = [
       randomInRange(-0.65, 0.65),
       0.35 + randomInRange(-0.4, 0.45),
       0.65 + randomInRange(-0.2, 0.25),
     ];
 
-    const impactColor = damageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : teamPalette.secondary;
+    const impactColor = effectiveDamageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : teamPalette.secondary;
     get().spawnSlash(hitPoint, impactColor, isCritOrUlt);
-    get().spawnParticleBurst(hitPoint, impactColor, DAMAGE_INTENSITY_MAP[damageType]);
+    get().spawnParticleBurst(hitPoint, impactColor, DAMAGE_INTENSITY_MAP[effectiveDamageType]);
 
     const newShockwaves: ShockwaveEntity[] = [...state.activeShockwaves];
     if (isCritOrUlt) {
       newShockwaves.push({
         id: `shock-${now}-${Math.random()}`,
         timestamp: now,
-        color: damageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : '#ef4444',
+        color: effectiveDamageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : '#ef4444',
         maxRadius:
-          damageType === DAMAGE_TYPE.ULTIMATE
+          effectiveDamageType === DAMAGE_TYPE.ULTIMATE
             ? COMBAT_VFX_CONSTANTS.DAMAGE.ULTIMATE_SHOCKWAVE_RADIUS
             : COMBAT_VFX_CONSTANTS.DAMAGE.CRIT_SHOCKWAVE_RADIUS,
       });
-      get().triggerScreenShake(damageType === DAMAGE_TYPE.ULTIMATE ? 1.2 : 0.55);
+      get().triggerScreenShake(effectiveDamageType === DAMAGE_TYPE.ULTIMATE ? 1.2 : 0.55);
     }
 
     const safeAmount = Number.isFinite(effectiveDamage) ? effectiveDamage : 0;
     const textColor =
-      damageType === DAMAGE_TYPE.ULTIMATE
+      effectiveDamageType === DAMAGE_TYPE.ULTIMATE
         ? '#fbbf24'
-        : damageType === DAMAGE_TYPE.CRIT
+        : effectiveDamageType === DAMAGE_TYPE.CRIT
           ? '#fb7185'
           : teamPalette.secondary;
     const textScale =
-      damageType === DAMAGE_TYPE.ULTIMATE ? 1.55 : damageType === DAMAGE_TYPE.CRIT ? 1.25 : 1.0;
+      effectiveDamageType === DAMAGE_TYPE.ULTIMATE
+        ? 1.55
+        : effectiveDamageType === DAMAGE_TYPE.CRIT
+          ? 1.25
+          : 1.0;
 
     const newFloat: FloatingDamageText = {
       id: `float-${now}-${Math.random()}`,
       amount: safeAmount,
-      text: `-${safeAmount.toLocaleString()}`,
-      damageType,
+      text: isWeakPointActive ? `🎯 -${safeAmount.toLocaleString()}` : `-${safeAmount.toLocaleString()}`,
+      damageType: effectiveDamageType,
       team,
       playerName,
       x: randomInRange(-88, 88),
@@ -824,7 +992,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       offsetX: randomInRange(-36, 36),
       offsetY: randomInRange(-34, 30),
       color: impactColor,
-      damageType,
+      damageType: effectiveDamageType,
       team,
       createdAt: now,
     };
@@ -887,13 +1055,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossStatus: nextStatus,
       bossHitTimestamp: now,
       lastHitTeam: team,
-      lastHitDamageType: damageType,
+      lastHitDamageType: effectiveDamageType,
       bossDefeatedTimestamp: isDefeated ? now : prev.bossDefeatedTimestamp,
       bossEnragedEntranceTimestamp: isJustEnraged
         ? now
         : isDefeated
           ? 0
           : prev.bossEnragedEntranceTimestamp,
+      bossShield: isDefeated ? null : nextShield,
+      triggeredShieldThresholds: nextTriggeredShieldThresholds,
+      bossWeakPoint: isDefeated ? null : prev.bossWeakPoint,
       finisherPlayerName: isDefeated ? playerName : prev.finisherPlayerName,
       finisherTeam: isDefeated ? team : prev.finisherTeam,
       activeBossSkillBanner: isDefeated ? null : prev.activeBossSkillBanner,
@@ -1161,6 +1332,75 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   clearBossSkillBanner: () => set({ activeBossSkillBanner: null }),
+
+  hitWeakPoint: (playerName = 'Viewer') => {
+    const state = get();
+    const now = Date.now();
+    if (!state.bossWeakPoint || now >= state.bossWeakPoint.expiresAt || state.bossHp <= 0) {
+      return;
+    }
+
+    const dominantTeam =
+      state.teamScoreBLG >= state.teamScoreGENG ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+    const baseDamage = BOSS_MECHANICS_CONSTANTS.WEAK_POINT.POKE_BASE_DAMAGE;
+    set({ bossWeakPoint: null });
+    get().damageBoss(baseDamage, dominantTeam, playerName, DAMAGE_TYPE.CRIT);
+  },
+
+  tickBossMechanics: () => {
+    const state = get();
+    const now = Date.now();
+    if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
+
+    // 1. Check Boss Shield expiry -> Heal Boss if viewers failed to break it
+    if (state.bossShield && now >= state.bossShield.expiresAt) {
+      const healAmount = BOSS_MECHANICS_CONSTANTS.SHIELD.HEAL_PENALTY_AMOUNT;
+      const healedHp = Math.min(state.bossMaxHp, state.bossHp + healAmount);
+      const nextStatus =
+        healedHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT
+          ? BOSS_STATUS.ENRAGED
+          : BOSS_STATUS.IDLE;
+
+      audioService.playBossRoarSound(state.gameTheme === GAME_THEME.ELDER_DRAGON, true);
+      get().spawnParticleBurst([0, 0.5, 0.5], '#22c55e', 1.6);
+      get().addLog(
+        'BOSS',
+        `💚 [HẤP THỤ KHIÊN] Không phá kịp khiên! Boss hồi +${healAmount.toLocaleString()} HP!`
+      );
+
+      set({
+        bossHp: healedHp,
+        bossStatus: nextStatus,
+        bossShield: null,
+      });
+      return;
+    }
+
+    // 2. Expire old Weak Point
+    if (state.bossWeakPoint && now >= state.bossWeakPoint.expiresAt) {
+      set({ bossWeakPoint: null });
+      return;
+    }
+
+    // 3. Periodically spawn a Weak Point if no shield is active
+    const elapsedSinceSpawn = now - state.lastWeakPointSpawnTimestamp;
+    const isInitialDelayDone =
+      state.lastWeakPointSpawnTimestamp === 0 ||
+      elapsedSinceSpawn >= BOSS_MECHANICS_CONSTANTS.WEAK_POINT.SPAWN_INTERVAL_MS;
+    if (!state.bossShield && !state.bossWeakPoint && isInitialDelayDone) {
+      const spots = BOSS_MECHANICS_CONSTANTS.WEAK_POINT.SPOTS;
+      const spot = spots[Math.floor(Math.random() * spots.length)];
+      set({
+        bossWeakPoint: {
+          id: `wp-${now}`,
+          spot,
+          createdAt: now,
+          expiresAt: now + BOSS_MECHANICS_CONSTANTS.WEAK_POINT.DURATION_MS,
+        },
+        lastWeakPointSpawnTimestamp: now,
+      });
+    }
+  },
 
   healTeamChampions: (targetTeam, amount) => {
     const state = get();
@@ -1438,6 +1678,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossAttackTargetTeam: null,
       bossDefeatedTimestamp: 0,
       bossEnragedEntranceTimestamp: 0,
+      bossShield: null,
+      triggeredShieldThresholds: [],
+      bossShieldBrokenTimestamp: 0,
+      bossWeakPoint: null,
+      lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
       leaderboard: [],
@@ -1483,6 +1728,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossAttackTargetTeam: null,
       bossDefeatedTimestamp: 0,
       bossEnragedEntranceTimestamp: 0,
+      bossShield: null,
+      triggeredShieldThresholds: [],
+      bossShieldBrokenTimestamp: 0,
+      bossWeakPoint: null,
+      lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
       rosterAttackTimestamps: {},
@@ -1545,6 +1795,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossAttackTargetTeam: null,
       bossDefeatedTimestamp: 0,
       bossEnragedEntranceTimestamp: 0,
+      bossShield: null,
+      triggeredShieldThresholds: [],
+      bossShieldBrokenTimestamp: 0,
+      bossWeakPoint: null,
+      lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
       roundWinner: null,

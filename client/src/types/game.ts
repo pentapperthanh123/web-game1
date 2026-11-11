@@ -227,6 +227,22 @@ export interface AutoProBattleConfig {
   intervalMs: number;
 }
 
+export type BossWeakPointSpot = 'left-horn' | 'core-chest' | 'right-claw';
+
+export interface BossShieldState {
+  hp: number;
+  maxHp: number;
+  createdAt: number;
+  expiresAt: number;
+}
+
+export interface BossWeakPointState {
+  id: string;
+  spot: BossWeakPointSpot;
+  createdAt: number;
+  expiresAt: number;
+}
+
 export interface DamageBossOptions {
   excludeFromLeaderboard?: boolean;
   proPlayer?: RosterPlayer;
@@ -282,6 +298,11 @@ export interface GameState {
   bossAttackTargetTeam: 'BLG' | 'GENG' | 'ALL' | null;
   bossDefeatedTimestamp: number;
   bossEnragedEntranceTimestamp: number;
+  bossShield: BossShieldState | null;
+  triggeredShieldThresholds: number[];
+  bossShieldBrokenTimestamp: number;
+  bossWeakPoint: BossWeakPointState | null;
+  lastWeakPointSpawnTimestamp: number;
   finisherPlayerName: string | null;
   finisherTeam: TeamType | null;
   autoProBattleConfig: AutoProBattleConfig;
@@ -308,6 +329,8 @@ export interface GameState {
   castBossSkill: (skillIndex?: number) => void;
   healTeamChampions: (team: TeamType | 'ALL', amount: number) => void;
   clearBossSkillBanner: () => void;
+  hitWeakPoint: (playerName?: string) => void;
+  tickBossMechanics: () => void;
   triggerHeartMilestoneHeal: (milestoneCount: number) => void;
   clearHeartMilestoneBanner: () => void;
   setGameTheme: (theme: GameThemeType) => void;

@@ -25,6 +25,7 @@ export function App() {
   const triggerAutoProAttack = useGameStore((state) => state.triggerAutoProAttack);
   const screenShakeTimestamp = useGameStore((state) => state.screenShakeTimestamp);
   const pruneEntities = useGameStore((state) => state.pruneEntities);
+  const tickBossMechanics = useGameStore((state) => state.tickBossMechanics);
   const bossStatus = useGameStore((state) => state.bossStatus);
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
 
@@ -103,13 +104,14 @@ export function App() {
 
   const isScreenShaking = Date.now() - screenShakeTimestamp < 350;
 
-  // Background entity cleanup tick (clears expired meteors, shockwaves, slashes, hearts)
+  // Background entity cleanup & Boss Phase/Shield/WeakPoint tick
   useEffect(() => {
     const pruneInterval = setInterval(() => {
       pruneEntities();
+      tickBossMechanics();
     }, 250);
     return () => clearInterval(pruneInterval);
-  }, [pruneEntities]);
+  }, [pruneEntities, tickBossMechanics]);
 
   // Background bot simulation runner (when triggered via Socket or Admin)
   useEffect(() => {

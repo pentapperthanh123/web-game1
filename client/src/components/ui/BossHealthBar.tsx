@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Flame } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, UI_CONSTANTS, THEME_CONFIGS, GAME_THEME } from '../../constants/game';
-import { BARON_AVATAR_URL } from '../../constants/roster';
+import { BOSS_STATUS, UI_CONSTANTS, GAME_THEME } from '../../constants/game';
 
 const getStatusBadgeConfig = (
   bossStatus: string,
@@ -62,10 +61,8 @@ export const BossHealthBar = () => {
   const bossStatus = useGameStore((state) => state.bossStatus);
   const gameTheme = useGameStore((state) => state.gameTheme);
 
-  const themeConfig = THEME_CONFIGS[gameTheme] || THEME_CONFIGS[GAME_THEME.BARON];
   const isElderDragon = gameTheme === GAME_THEME.ELDER_DRAGON;
 
-  const [avatarError, setAvatarError] = useState(false);
   const [ghostHpPercent, setGhostHpPercent] = useState(100);
 
   const hpPercentage = Math.max(0, Math.min(100, (bossHp / bossMaxHp) * 100));
@@ -82,57 +79,11 @@ export const BossHealthBar = () => {
   const barGradient = getHpBarGradient(bossStatus, isElderDragon);
   const containerBorderClass = getContainerBorderClass(bossStatus, isElderDragon);
 
-  const avatarSrc = themeConfig.avatarIcon || (isElderDragon ? themeConfig.bossImagePng : BARON_AVATAR_URL);
-
   return (
     <div className="w-full max-w-lg mx-auto px-2 sm:px-3 pt-0.5 pointer-events-auto select-none">
-      {/* Header Info: Boss Profile, Title & Enraged Status */}
-      <div className="flex items-center justify-between mb-1 text-[11px] font-black uppercase tracking-wider">
-        <div className="flex items-center space-x-2">
-          {/* Boss Avatar Icon Frame */}
-          <div
-            className={`relative w-8 h-8 rounded-full overflow-hidden border-2 shrink-0 bg-slate-950 transition-all duration-300 ${
-              isElderDragon
-                ? 'border-amber-400 shadow-[0_0_14px_#f59e0b]'
-                : 'border-purple-400 shadow-[0_0_12px_#9333ea]'
-            }`}
-          >
-            {!avatarError ? (
-              <img
-                key={avatarSrc}
-                src={avatarSrc}
-                alt={themeConfig.bossName}
-                className="w-full h-full object-cover scale-110"
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              <Flame
-                className={`w-4 h-4 m-auto mt-1.5 ${
-                  isElderDragon ? 'text-amber-400' : 'text-purple-400'
-                }`}
-              />
-            )}
-            <div className="absolute inset-0 rounded-full border border-white/20 pointer-events-none" />
-          </div>
-
-          <div className="flex flex-col">
-            <span
-              className={`text-[11px] sm:text-xs font-black tracking-widest text-transparent bg-clip-text drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] ${
-                isElderDragon
-                  ? 'bg-gradient-to-r from-cyan-300 via-amber-200 to-yellow-300'
-                  : 'bg-gradient-to-r from-purple-300 via-pink-200 to-cyan-300'
-              }`}
-            >
-              {t(`Game.bossName.${gameTheme}`, themeConfig.bossName.toUpperCase())}
-            </span>
-            <span className="text-[8px] font-mono font-bold text-slate-400">
-              {t('Game.hpLabel', 'MÁU BOSS')}
-            </span>
-          </div>
-        </div>
-
-        {/* Status Badge */}
-        {badgeConfig.text && (
+      {/* Alert badge only if Boss is Enraged or Defeated */}
+      {badgeConfig.text && (
+        <div className="flex items-center justify-center mb-1 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex items-center space-x-1">
             {badgeConfig.isFlame && (
               <Flame className="w-3.5 h-3.5 text-amber-300 animate-bounce shrink-0" />
@@ -146,8 +97,8 @@ export const BossHealthBar = () => {
               {badgeConfig.text}
             </span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Segmented Cyberpunk / Fantasy HP Bar Container */}
       <div

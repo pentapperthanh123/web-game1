@@ -13,6 +13,7 @@ import { AmbientDust } from './AmbientDust';
 import { BossVoidAttack } from './BossVoidAttack';
 import { SummonPortals3D } from './SummonPortals3D';
 import { BossDeathVFX3D } from './BossDeathVFX3D';
+import { Boss3DPresence } from './Boss3DPresence';
 import { GAME_CONSTANTS } from '../../constants/game';
 
 export const GameCanvas = () => {
@@ -35,6 +36,7 @@ export const GameCanvas = () => {
       >
         <CameraRig />
         <ArenaEnvironment />
+        <Boss3DPresence />
         <BossVoidAttack />
         <SummonPortals3D />
         <BossDeathVFX3D />

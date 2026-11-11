@@ -61,7 +61,14 @@
     "ultimateSkill": "ULTIMATE!"
   },
   "BossInteractive": {
-    "pokeTooltip": "Click to poke the Boss!"
+    "pokeTooltip": "Click to poke the Boss!",
+    "shieldTitle": "VOID ENERGY SHIELD",
+    "shieldUrgent": "BREAK SHIELD BEFORE +8,000 HP HEAL!",
+    "shieldBroken": "💥 SHIELD SHATTERED! +4,000 STUN DMG!",
+    "weakPointBadge": "WEAK POINT x2",
+    "weakPointTooltip": "Tap the Weak Point for 200% Critical Damage!",
+    "phase2Label": "FRACTURED ARMOR",
+    "phase3Label": "APOCALYPSE ENRAGE"
   },
   "Victory": {
     "bossDefeated": "BARON NASHOR HAS BEEN SLAIN!",

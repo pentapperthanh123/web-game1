@@ -632,6 +632,50 @@ const drawImpactBurst = (
   ctx.restore();
 };
 
+const drawMuzzleLaunchFlash = (
+  ctx: CanvasRenderingContext2D,
+  startX: number,
+  startY: number,
+  aimAngleRad: number,
+  color: string,
+  glowColor: string,
+  isCrit: boolean,
+  progress: number
+) => {
+  const launchWindow = 0.28;
+  if (progress > launchWindow) return;
+
+  const p = progress / launchWindow;
+  const fade = 1 - p;
+  const ringRadius = (isCrit ? 20 : 14) * (0.35 + p * 0.9);
+
+  ctx.save();
+  ctx.translate(startX, startY);
+  ctx.rotate(aimAngleRad);
+  ctx.globalAlpha = fade * 0.9;
+  ctx.shadowColor = glowColor;
+  ctx.shadowBlur = isCrit ? 18 : 12;
+
+  // Expanding muzzle ring
+  ctx.strokeStyle = glowColor;
+  ctx.lineWidth = isCrit ? 2.8 : 2.0;
+  ctx.beginPath();
+  ctx.arc(0, 0, ringRadius, -Math.PI * 0.55, Math.PI * 0.55);
+  ctx.stroke();
+
+  // Forward directional blast cone
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(ringRadius * 1.4, 0);
+  ctx.lineTo(0, -ringRadius * 0.45);
+  ctx.lineTo(ringRadius * 0.3, 0);
+  ctx.lineTo(0, ringRadius * 0.45);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+};
+
 // -----------------------------------------------------------------------------
 // Main Component
 // -----------------------------------------------------------------------------
@@ -673,12 +717,13 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
       for (let i = 0; i < activeFlyingArrows.length; i++) {
         const arrow = activeFlyingArrows[i];
         const elapsed = now - arrow.createdAt;
-        const progress = Math.min(1.0, elapsed / arrow.durationMs);
+        const progress = Math.min(1.0, Math.max(0, elapsed / arrow.durationMs));
 
         if (progress >= 1.0) continue;
 
-        // Smooth flight curve with power easing
-        const eased = 1 - Math.pow(1 - progress, 2.2);
+        // Smooth accelerating curve so projectiles slam sharply into Boss without stalling/twisting at t -> 1
+        const eased = 0.35 * progress + 0.65 * (progress * progress);
+        const dEasedDt = 0.35 + 1.3 * progress;
 
         const dx = arrow.targetX - arrow.startX;
         const dy = arrow.targetY - arrow.startY;
@@ -687,31 +732,40 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         const perpY = dx / dist;
 
         const sideSign = arrow.team === TEAM_KEY.BLG ? -1 : 1;
-        const maxCurve = Math.min(28, dist * 0.12);
+        const maxCurve = Math.min(26, dist * 0.1);
         const curveOffset = Math.sin(progress * Math.PI) * maxCurve * sideSign;
+        const dCurveDt = Math.cos(progress * Math.PI) * Math.PI * maxCurve * sideSign;
 
         const currentX = computeLerp(arrow.startX, arrow.targetX, eased) + perpX * curveOffset;
         const currentY = computeLerp(arrow.startY, arrow.targetY, eased) + perpY * curveOffset;
 
-        // Trajectory heading angle
-        const nextT = Math.min(1.0, progress + 0.04);
-        const nextEased = 1 - Math.pow(1 - nextT, 2.2);
-        const nextCurveOffset = Math.sin(nextT * Math.PI) * maxCurve * sideSign;
+        // Analytical velocity tangent ensures projectile tip stays aimed squarely along flight arc
+        const velX = dx * dEasedDt + perpX * dCurveDt;
+        const velY = dy * dEasedDt + perpY * dCurveDt;
+        const angleRad = Math.atan2(velY, velX);
+        const baseAimAngleRad = Math.atan2(dy, dx);
 
-        const nextX = computeLerp(arrow.startX, arrow.targetX, nextEased) + perpX * nextCurveOffset;
-        const nextY = computeLerp(arrow.startY, arrow.targetY, nextEased) + perpY * nextCurveOffset;
+        const glowColor = arrow.glowColor || arrow.color;
+        const coreColor = arrow.coreColor || '#ffffff';
 
-        const deltaX = nextX - currentX;
-        const deltaY = nextY - currentY;
-        const angleRad = Math.atan2(deltaY, deltaX);
+        drawMuzzleLaunchFlash(
+          ctx,
+          arrow.startX,
+          arrow.startY,
+          baseAimAngleRad,
+          arrow.color,
+          glowColor,
+          arrow.isCrit,
+          progress
+        );
 
-        const opacity =
-          progress < 0.08
-            ? progress * 12.5
-            : progress > 0.88
-            ? (1.0 - progress) * 8.3
-            : 1.0;
-        const scale = arrow.isCrit ? 1.35 : 1.05;
+        let opacity = 1.0;
+        if (progress < 0.04) {
+          opacity = progress / 0.04;
+        } else if (progress > 0.9) {
+          opacity = (1.0 - progress) / 0.1;
+        }
+        const scale = arrow.isCrit ? 1.35 : 1.08;
         const clampedOpacity = Math.max(0, Math.min(1, opacity));
 
         ctx.save();
@@ -719,9 +773,6 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         ctx.rotate(angleRad);
         ctx.scale(scale, scale);
         ctx.globalAlpha = clampedOpacity;
-
-        const glowColor = arrow.glowColor || arrow.color;
-        const coreColor = arrow.coreColor || '#ffffff';
 
         // 1. Draw Streamer Comet Tail & Esports Ribbons
         drawCometEnergyBody(

@@ -489,7 +489,7 @@ export const DEFAULT_OVERLAY_VISIBILITY = {
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';
 
 export const ARROW_VFX_CONFIG = {
-  DURATION_MS: 520,
+  DURATION_MS: 660,
   MAX_ACTIVE: 24,
   COLORS: {
     BLG: '#06b6d4',
@@ -844,14 +844,36 @@ export const AUTO_PRO_BATTLE_CONSTANTS = {
   CRIT_CHANCE: 0.12,
   CRIT_MULTIPLIER: 1.4,
   BOSS_HP_FLOOR_PERCENT: 0.15, // Auto-pro giữ nhịp tối đa tới 15% HP Boss, người xem phải ra đòn dứt điểm
-  FLYING_ARROW_HIT_DELAY_MS: 380,
-  ROSTER_ATTACK_GLOW_MS: 380,
+  FLYING_ARROW_HIT_DELAY_MS: 580,
+  ROSTER_ATTACK_GLOW_MS: 440,
   ROLE_COOLDOWN_FACTOR: {
     ADC: 0.85,
     MID: 0.94,
     JUG: 1.0,
     TOP: 1.1,
     SUP: 1.18,
+  },
+} as const;
+
+export const BOSS_MECHANICS_CONSTANTS = {
+  PHASES: {
+    PHASE_2_THRESHOLD_PERCENT: 0.65,
+    PHASE_3_THRESHOLD_PERCENT: 0.35,
+  },
+  SHIELD: {
+    TRIGGER_THRESHOLDS: [0.5, 0.22] as readonly number[],
+    SHIELD_HP: 6500,
+    DURATION_MS: 12000,
+    HEAL_PENALTY_AMOUNT: 8000,
+    BREAK_BONUS_DAMAGE: 4000,
+    BROKEN_BANNER_MS: 2200,
+  },
+  WEAK_POINT: {
+    SPAWN_INTERVAL_MS: 14000,
+    DURATION_MS: 6500,
+    DAMAGE_MULTIPLIER: 2.0,
+    POKE_BASE_DAMAGE: 350,
+    SPOTS: ['left-horn', 'core-chest', 'right-claw'] as const,
   },
 } as const;
 

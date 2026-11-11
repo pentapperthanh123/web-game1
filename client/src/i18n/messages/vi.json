@@ -61,7 +61,14 @@
     "ultimateSkill": "CHIÊU CUỐI!"
   },
   "BossInteractive": {
-    "pokeTooltip": "Click để tương tác với Boss!"
+    "pokeTooltip": "Click để tương tác với Boss!",
+    "shieldTitle": "KHIÊN NĂNG LƯỢNG",
+    "shieldUrgent": "PHÁ KHIÊN TRƯỚC KHI HỒI +8,000 HP!",
+    "shieldBroken": "💥 VỠ KHIÊN! +4,000 ST CHOÁNG!",
+    "weakPointBadge": "ĐIỂM YẾU x2",
+    "weakPointTooltip": "Chạm vào Điểm Yếu để gây 200% Sát Thương Bạo Kích!",
+    "phase2Label": "GIÁP NỨT",
+    "phase3Label": "CUỒNG NỘ TỐI THƯỢNG"
   },
   "Victory": {
     "bossDefeated": "BARON NASHOR ĐÃ BỊ TIÊU DIỆT!",
