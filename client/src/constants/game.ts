@@ -44,6 +44,7 @@ export const GAME_CONSTANTS = {
     ORBIT_RADIUS_MAX: 5.4,
     BASE_DPS: 350,
     LIFETIME_MS: 16000,
+    SPAWN_GRACE_PERIOD_MS: 1000, // 1s grace period: only after 1s do newly summoned champions deal and receive damage
     BLG_COLOR: '#06b6d4',
     GENG_COLOR: '#eab308',
   },
@@ -330,7 +331,7 @@ export const COMBAT_VFX_CONSTANTS = {
     ATTACK_DURATION_S: 0.32,
     BOB_AMPLITUDE: 0.12,
     BOB_SPEED: 2.8,
-    ENTRANCE_DURATION_MS: 620,
+    ENTRANCE_DURATION_MS: 1000,
     ENTRANCE_SWOOP_Y: 0.65,
     ENTRANCE_SWOOP_X: 0.0,
     VIEWPORT_SAFE_NDC_X: 0.80,

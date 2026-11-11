@@ -639,32 +639,39 @@ export const useGameStore = create<GameState>((set, get) => ({
       teamPalette.primary,
       COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_CRIT
     );
-    get().damageBoss(
-      summonDps,
-      team,
-      summonerName,
-      isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
-    );
-    get().spawnProjectile(spawnPosition, teamPalette.primary, isCrit);
-    get().spawnFlyingArrow(championName, team, isCrit);
+    // 1s Grace Period: Champion enters the field with invulnerability, dealing damage only after 1s
+    setTimeout(() => {
+      if (get().bossStatus === BOSS_STATUS.DEFEATED) return;
 
-    if (isCrit) {
-      setTimeout(() => {
-        get().spawnFlyingArrow(championName, team, true);
-      }, COMBAT_VFX_CONSTANTS.SUMMON.CRIT_FOLLOWUP_DELAY_MS);
-    }
+      get().damageBoss(
+        summonDps,
+        team,
+        summonerName,
+        isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
+      );
+      get().spawnProjectile(spawnPosition, teamPalette.primary, isCrit);
+      get().spawnFlyingArrow(championName, team, isCrit);
 
-    if (isCrit) {
-      setTimeout(() => {
-        get().spawnProjectile(
-          [spawnPosition[0] + randomInRange(-0.25, 0.25), spawnPosition[1] + 0.2, spawnPosition[2]],
-          teamPalette.crit,
-          true
-        );
-      }, COMBAT_VFX_CONSTANTS.SUMMON.CRIT_FOLLOWUP_DELAY_MS);
-    }
+      if (isCrit) {
+        setTimeout(() => {
+          if (get().bossStatus === BOSS_STATUS.DEFEATED) return;
+          get().spawnFlyingArrow(championName, team, true);
+        }, COMBAT_VFX_CONSTANTS.SUMMON.CRIT_FOLLOWUP_DELAY_MS);
+      }
 
-    get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${team} (-${summonDps} HP)`, team);
+      if (isCrit) {
+        setTimeout(() => {
+          if (get().bossStatus === BOSS_STATUS.DEFEATED) return;
+          get().spawnProjectile(
+            [spawnPosition[0] + randomInRange(-0.25, 0.25), spawnPosition[1] + 0.2, spawnPosition[2]],
+            teamPalette.crit,
+            true
+          );
+        }, COMBAT_VFX_CONSTANTS.SUMMON.CRIT_FOLLOWUP_DELAY_MS);
+      }
+    }, GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS);
+
+    get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${team} (Bảo hộ 1s)`, team);
     get().addChatMessage(summonerName, `Triệu hồi ${championName} chiến đấu!`, team, championName);
 
     set((prev) => ({
@@ -828,11 +835,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
     const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
 
+    const gracePeriodMs = GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
+    // Champions spawned less than 1s ago are completely immune and cannot be targeted
+    const vulnerableMinions = currentMinions.filter(
+      (m) => now - (m.createdAt || 0) >= gracePeriodMs
+    );
+
     const targetedMinionIds = new Set<string>();
     if (skill.targetCount >= 999) {
-      currentMinions.forEach((m) => targetedMinionIds.add(m.id));
+      vulnerableMinions.forEach((m) => targetedMinionIds.add(m.id));
     } else {
-      const shuffled = [...currentMinions].sort(() => Math.random() - 0.5);
+      const shuffled = [...vulnerableMinions].sort(() => Math.random() - 0.5);
       shuffled.slice(0, skill.targetCount).forEach((m) => targetedMinionIds.add(m.id));
     }
 
@@ -878,6 +891,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newDefeatedChampions: DefeatedChampionEntity[] = [];
 
     currentMinions.forEach((minion) => {
+      // 1. Invulnerability grace check: Immune to damage for the first 1s after summon/revival
+      if (now - (minion.createdAt || 0) < gracePeriodMs) {
+        remainingMinions.push(minion);
+        return;
+      }
+
       if (!targetedMinionIds.has(minion.id)) {
         remainingMinions.push(minion);
         return;

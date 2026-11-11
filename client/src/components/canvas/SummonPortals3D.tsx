@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
-import { COMBAT_VFX_CONSTANTS, TEAM_KEY, TeamType, DAMAGE_TYPE } from '../../constants/game';
+import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, TEAM_KEY, TeamType, DAMAGE_TYPE } from '../../constants/game';
 import { MinionEntity, DefeatedChampionEntity } from '../../types/game';
 
 import {
@@ -72,6 +72,7 @@ const SHARED_PORTAL_CYLINDER = new THREE.CylinderGeometry(0.12, 0.32, 1.5, 12, 1
 const SHARED_CELESTIAL_AURA_GEO = new THREE.RingGeometry(0.24, 0.38, 32);
 const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.08, 0.35, 3.2, 16, 1, true);
 const SHARED_LANDING_RING_GEO = new THREE.RingGeometry(0.15, 0.48, 28);
+const SHARED_SHIELD_RING_GEO = new THREE.RingGeometry(0.21, 0.28, 32);
 
 // Defeated Champion Soul & Shockwave Geometries
 const SHARED_DEATH_RING_GEO = new THREE.RingGeometry(0.18, 0.45, 28);
@@ -386,6 +387,21 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
           side={THREE.DoubleSide}
         />
       </mesh>
+
+      {/* 11. Invulnerability Shield Barrier (Khiên bảo hộ bất tử 1s khi mới hồi sinh/triệu hồi) */}
+      <mesh
+        position={[0, 0, 0.035]}
+        geometry={SHARED_SHIELD_RING_GEO}
+      >
+        <meshBasicMaterial
+          color="#facc15"
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
     </group>
   );
 };
@@ -540,6 +556,7 @@ export const SummonPortals3D = () => {
         const minion = visibleMinions[i];
         if (!minion) continue;
 
+        const entranceAgeMs = now - (minion.createdAt || 0);
         activeIds.add(minion.id);
 
         let ai = aiStatesRef.current.get(minion.id);
@@ -565,6 +582,7 @@ export const SummonPortals3D = () => {
             ),
             nextAttackTime:
               elapsedTime +
+              (GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS / 1000) +
               (i * 0.18) +
               randomInRange(
                 COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MIN_S,
@@ -601,8 +619,9 @@ export const SummonPortals3D = () => {
         ai.currentY = THREE.MathUtils.lerp(ai.currentY, ai.targetY, lerpFactor);
         ai.currentZ = THREE.MathUtils.lerp(ai.currentZ, ai.targetZ, lerpFactor);
 
-        // Check attack timer -> trigger forward lunge strike towards Boss
-        if (elapsedTime >= ai.nextAttackTime && !ai.isAttacking) {
+        // Check attack timer -> trigger forward lunge strike towards Boss (only after 1s grace period)
+        const isGraceActive = entranceAgeMs < GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
+        if (!isGraceActive && elapsedTime >= ai.nextAttackTime && !ai.isAttacking) {
           ai.isAttacking = true;
           ai.hasFiredInThisAttack = false;
           ai.attackStartTime = elapsedTime;
@@ -657,7 +676,6 @@ export const SummonPortals3D = () => {
         }
 
         // 1. Dynamic vertical entrance animation when champion is summoned (no off-screen horizontal flight)
-        const entranceAgeMs = now - minion.createdAt;
         const ENTRANCE_MS = COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ENTRANCE_DURATION_MS;
         let swoopX = 0;
         let swoopY = 0;
@@ -670,8 +688,8 @@ export const SummonPortals3D = () => {
           swoopX = 0;
           entranceScale = prog < 0.65 ? (prog / 0.65) * 1.25 : 1.25 - (prog - 0.65) * 0.25 / 0.35;
 
-          // Landing strike when champion hits ground
-          if (prog >= 0.85 && !ai.hasLanded) {
+          // Landing strike when champion hits ground (only after 1s grace period)
+          if (prog >= 0.85 && entranceAgeMs >= GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS && !ai.hasLanded) {
             ai.hasLanded = true;
             const isCrit = Math.random() < COMBAT_VFX_CONSTANTS.SUMMON.CRIT_CHANCE;
             const targetPos: [number, number, number] = [
@@ -748,8 +766,8 @@ export const SummonPortals3D = () => {
           posZ = tempVec.z;
         }
 
-        // 3. Fire individual signature projectile at the apex of this champion's forward lunge
-        if (ai.isAttacking && !ai.hasFiredInThisAttack) {
+        // 3. Fire individual signature projectile at the apex of this champion's forward lunge (only after 1s grace period)
+        if (ai.isAttacking && !ai.hasFiredInThisAttack && !isGraceActive) {
           const attackProgress =
             (elapsedTime - ai.attackStartTime) /
             COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_DURATION_S;
@@ -881,6 +899,23 @@ export const SummonPortals3D = () => {
               landingMesh.visible = true;
             } else {
               landingMesh.visible = false;
+            }
+          }
+
+          // Dynamic Invulnerability Shield Barrier (Khiên Bảo Hộ 1s)
+          const shieldMesh = tokenSubgroup.children[10] as THREE.Mesh | undefined;
+          if (shieldMesh) {
+            const isShieldActive = entranceAgeMs < GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
+            if (isShieldActive) {
+              const shieldPulse = 1.0 + Math.sin(elapsedTime * 12) * 0.08;
+              shieldMesh.scale.setScalar(shieldPulse);
+              shieldMesh.rotation.z = -elapsedTime * 4.0;
+              const shieldProg = entranceAgeMs / GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
+              const shieldOpacity = Math.max(0.2, (1.0 - shieldProg * 0.35) * 0.9);
+              (shieldMesh.material as THREE.MeshBasicMaterial).opacity = shieldOpacity;
+              shieldMesh.visible = true;
+            } else {
+              shieldMesh.visible = false;
             }
           }
         }
