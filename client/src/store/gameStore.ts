@@ -1627,11 +1627,10 @@ export const useGameStore = create<GameState>((set, get) => ({
           screenY: posY,
           killerName: bossName,
           createdAt: now,
-          durationMs: 1400,
+          durationMs: 450,
         });
 
-        // Visceral death particle burst right at champion's live location
-        get().spawnParticleBurst(liveWorldPos, '#ef4444', 2.2);
+        // Clean sound feedback, no heavy particle burst spam to limit effects
         audioService.playChampionDeathSound();
 
         get().addLog('BOSS', `💀 [${bossName}] dùng [${skill.vietnameseName}] hạ gục ${minion.championName} của ${minion.summonerName}!`, minion.team);

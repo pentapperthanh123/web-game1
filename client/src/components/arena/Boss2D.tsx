@@ -305,6 +305,47 @@ export const Boss2D = () => {
     return () => clearInterval(idleInterval);
   }, [bossStatus, bossHp, isHitActive, isRoarActive, isPoked, minions.length, gameTheme, isElderDragon]);
 
+  // Periodic Living Boss Roar Loop (roars every 12-20s even during ongoing pro pokes)
+  const isBossAlive = !isDefeated && bossHp > 0;
+  useEffect(() => {
+    if (!isBossAlive) return;
+
+    let roarTimer: ReturnType<typeof setTimeout> | undefined;
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const scheduleNextRoar = () => {
+      const span =
+        BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_MAX_MS - BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_MIN_MS;
+      const delay = BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_MIN_MS + Math.round(Math.random() * span);
+
+      roarTimer = setTimeout(() => {
+        const latestState = useGameStore.getState();
+        if (latestState.bossStatus !== BOSS_STATUS.DEFEATED && latestState.bossHp > 0) {
+          const enragedNow = latestState.bossStatus === BOSS_STATUS.ENRAGED;
+          audioService.playBossRoarSound(isElderDragon, enragedNow);
+          setIsEyesSurging(true);
+          setIsWingGustActive(true);
+          setIsRoarActive(true);
+
+          if (settleTimer) clearTimeout(settleTimer);
+          settleTimer = setTimeout(() => {
+            setIsRoarActive(false);
+            setIsEyesSurging(false);
+            setIsWingGustActive(false);
+          }, BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_DURATION_MS);
+        }
+        scheduleNextRoar();
+      }, delay);
+    };
+
+    scheduleNextRoar();
+
+    return () => {
+      if (roarTimer) clearTimeout(roarTimer);
+      if (settleTimer) clearTimeout(settleTimer);
+    };
+  }, [isBossAlive, isElderDragon]);
+
   // Clean up timers on unmount
   useEffect(() => {
     return () => {

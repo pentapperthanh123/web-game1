@@ -74,10 +74,6 @@ const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.08, 0.35, 3.2, 16, 1,
 const SHARED_LANDING_RING_GEO = new THREE.RingGeometry(0.15, 0.48, 28);
 const SHARED_SHIELD_RING_GEO = new THREE.RingGeometry(0.21, 0.28, 32);
 
-// Defeated Champion Soul & Shockwave Geometries
-const SHARED_DEATH_RING_GEO = new THREE.RingGeometry(0.18, 0.45, 28);
-const SHARED_SOUL_ORB_GEO = new THREE.SphereGeometry(0.08, 12, 12);
-
 // Commenter Summoner Nameplate Geometry
 const SHARED_NAMEPLATE_GEO = new THREE.PlaneGeometry(
   COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.NAMEPLATE_WIDTH,
@@ -420,70 +416,31 @@ const DefeatedChampionToken = ({ entity }: DefeatedChampionTokenProps) => {
     const ageMs = now - entity.createdAt;
     const prog = Math.min(1.0, Math.max(0.0, ageMs / entity.durationMs));
 
-    // Soul floats up into sky
-    const riseY = entity.position[1] + prog * 1.5;
-    const fade = Math.max(0, 1.0 - Math.pow(prog, 1.2));
-    const expand = 1.0 + prog * 0.35;
+    // Fast, subtle linear fade on the spot with minimal drift
+    const riseY = entity.position[1] + prog * 0.18;
+    const fade = Math.max(0, 1.0 - prog);
 
     groupRef.current.position.set(entity.position[0], riseY, entity.position[2]);
-    groupRef.current.scale.setScalar(expand * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE);
+    groupRef.current.scale.setScalar(COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE);
     groupRef.current.quaternion.copy(state.camera.quaternion);
 
     const ghostMesh = groupRef.current.children[0] as THREE.Mesh | undefined;
-    const soulOrb = groupRef.current.children[1] as THREE.Mesh | undefined;
-    const deathRing = groupRef.current.children[2] as THREE.Mesh | undefined;
-
     if (ghostMesh) {
-      (ghostMesh.material as THREE.MeshBasicMaterial).opacity = fade * 0.85;
-    }
-    if (soulOrb) {
-      soulOrb.position.y = 0.2 + prog * 0.7;
-      (soulOrb.material as THREE.MeshBasicMaterial).opacity = fade * 0.95;
-    }
-    if (deathRing) {
-      const ringScale = 0.5 + prog * 2.6;
-      deathRing.scale.setScalar(ringScale);
-      (deathRing.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 1.0 - prog * 1.4) * 0.8;
+      (ghostMesh.material as THREE.MeshBasicMaterial).opacity = fade * 0.65;
     }
   });
 
   return (
     <group ref={groupRef} position={entity.position}>
-      {/* 1. Ghost Billboard (Crimson Desaturated Defeat) */}
+      {/* Clean & Lightweight Defeat Dissolve (No heavy particles, shockwave rings or soul orbs) */}
       <mesh geometry={SHARED_PORTRAIT_GEO}>
         <meshBasicMaterial
           map={texture}
-          color="#ef4444"
+          color="#94a3b8"
           transparent
-          opacity={0.85}
+          opacity={0.65}
           side={THREE.DoubleSide}
           toneMapped={false}
-        />
-      </mesh>
-
-      {/* 2. Ascending Ethereal Soul Orb */}
-      <mesh position={[0, 0.2, 0.05]} geometry={SHARED_SOUL_ORB_GEO}>
-        <meshBasicMaterial
-          color="#f43f5e"
-          transparent
-          opacity={0.95}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-
-      {/* 3. Expanding Death Floor Shockwave Ring */}
-      <mesh
-        position={[0, -0.22, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        geometry={SHARED_DEATH_RING_GEO}
-      >
-        <meshBasicMaterial
-          color="#dc2626"
-          transparent
-          opacity={0.8}
-          blending={THREE.AdditiveBlending}
-          side={THREE.DoubleSide}
-          depthWrite={false}
         />
       </mesh>
     </group>

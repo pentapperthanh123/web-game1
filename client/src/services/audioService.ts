@@ -96,7 +96,7 @@ class AudioSynthesizerService {
   // Procedural white noise buffer for wind, fire, electricity and whooshes
   private getNoiseBuffer(ctx: AudioContext): AudioBuffer {
     if (!this.noiseBuffer || this.noiseBuffer.sampleRate !== ctx.sampleRate) {
-      const bufferSize = ctx.sampleRate * 0.6;
+      const bufferSize = Math.round(ctx.sampleRate * 1.1);
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
@@ -125,72 +125,82 @@ class AudioSynthesizerService {
     const subOsc = ctx.createOscillator();
     const subGain = ctx.createGain();
     subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(isEnraged ? 110 : 90, t);
-    subOsc.frequency.exponentialRampToValueAtTime(26, t + 0.7);
+    subOsc.frequency.setValueAtTime(isElderDragon ? (isEnraged ? 115 : 92) : isEnraged ? 96 : 78, t);
+    subOsc.frequency.exponentialRampToValueAtTime(24, t + 0.9);
 
-    subGain.gain.setValueAtTime(0.55 * vol, t);
-    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+    subGain.gain.setValueAtTime(0.62 * vol, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
 
     subOsc.connect(subGain);
     subGain.connect(out);
     subOsc.start(t);
-    subOsc.stop(t + 0.75);
+    subOsc.stop(t + 0.95);
 
-    // Layer B: Guttural Dragon Roar Scream (Dual detuned sawtooth with growl vibrato)
+    // Layer B: Guttural Monster Roar Scream (Dual detuned sawtooth + sub-octave growl)
     const roarOsc1 = ctx.createOscillator();
     const roarOsc2 = ctx.createOscillator();
+    const growlSubOsc = ctx.createOscillator();
     const roarGain = ctx.createGain();
     const roarFilter = ctx.createBiquadFilter();
 
     roarOsc1.type = 'sawtooth';
     roarOsc2.type = 'sawtooth';
+    growlSubOsc.type = 'sawtooth';
 
-    const basePitch = isElderDragon ? (isEnraged ? 175 : 145) : isEnraged ? 210 : 165;
+    const basePitch = isElderDragon ? (isEnraged ? 172 : 142) : isEnraged ? 132 : 106;
     roarOsc1.frequency.setValueAtTime(basePitch, t);
-    roarOsc2.frequency.setValueAtTime(basePitch * 1.025, t);
-    roarOsc1.frequency.exponentialRampToValueAtTime(basePitch * 0.45, t + 0.65);
-    roarOsc2.frequency.exponentialRampToValueAtTime(basePitch * 0.45, t + 0.65);
+    roarOsc2.frequency.setValueAtTime(basePitch * 1.032, t);
+    growlSubOsc.frequency.setValueAtTime(basePitch * 0.52, t);
 
-    roarFilter.type = 'peaking';
-    roarFilter.frequency.setValueAtTime(800, t);
-    roarFilter.Q.value = 2.4;
-    roarFilter.gain.value = 8;
+    roarOsc1.frequency.linearRampToValueAtTime(basePitch * 1.12, t + 0.14);
+    roarOsc2.frequency.linearRampToValueAtTime(basePitch * 1.15, t + 0.14);
+    roarOsc1.frequency.exponentialRampToValueAtTime(basePitch * 0.42, t + 0.88);
+    roarOsc2.frequency.exponentialRampToValueAtTime(basePitch * 0.42, t + 0.88);
+    growlSubOsc.frequency.exponentialRampToValueAtTime(basePitch * 0.25, t + 0.9);
 
-    roarGain.gain.setValueAtTime(0.42 * vol, t);
-    roarGain.gain.linearRampToValueAtTime(0.48 * vol, t + 0.15);
-    roarGain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+    roarFilter.type = 'lowpass';
+    roarFilter.frequency.setValueAtTime(isElderDragon ? 1150 : 780, t);
+    roarFilter.frequency.exponentialRampToValueAtTime(220, t + 0.9);
+    roarFilter.Q.value = 3.2;
+
+    roarGain.gain.setValueAtTime(0.02, t);
+    roarGain.gain.linearRampToValueAtTime(0.48 * vol, t + 0.12);
+    roarGain.gain.exponentialRampToValueAtTime(0.001, t + 0.92);
 
     roarOsc1.connect(roarFilter);
     roarOsc2.connect(roarFilter);
+    growlSubOsc.connect(roarFilter);
     roarFilter.connect(roarGain);
     roarGain.connect(out);
 
     roarOsc1.start(t);
     roarOsc2.start(t);
-    roarOsc1.stop(t + 0.65);
-    roarOsc2.stop(t + 0.65);
+    growlSubOsc.start(t);
+    roarOsc1.stop(t + 0.92);
+    roarOsc2.stop(t + 0.92);
+    growlSubOsc.stop(t + 0.92);
 
-    // Layer C: Elemental Fire Torrent / Void Wind Gust (Filtered White Noise)
+    // Layer C: Elemental Fire Torrent / Void Cavern Breath (Filtered Noise)
     const noiseSource = ctx.createBufferSource();
     noiseSource.buffer = this.getNoiseBuffer(ctx);
     const noiseFilter = ctx.createBiquadFilter();
     const noiseGain = ctx.createGain();
 
     noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.setValueAtTime(isElderDragon ? 600 : 420, t);
-    noiseFilter.frequency.linearRampToValueAtTime(isElderDragon ? 1600 : 900, t + 0.25);
-    noiseFilter.frequency.exponentialRampToValueAtTime(300, t + 0.7);
-    noiseFilter.Q.value = 1.4;
+    noiseFilter.frequency.setValueAtTime(isElderDragon ? 560 : 280, t);
+    noiseFilter.frequency.linearRampToValueAtTime(isElderDragon ? 1500 : 860, t + 0.22);
+    noiseFilter.frequency.exponentialRampToValueAtTime(210, t + 0.92);
+    noiseFilter.Q.value = 1.3;
 
-    noiseGain.gain.setValueAtTime(0.35 * vol, t);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+    noiseGain.gain.setValueAtTime(0.38 * vol, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
 
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
     noiseGain.connect(out);
 
     noiseSource.start(t);
-    noiseSource.stop(t + 0.7);
+    noiseSource.stop(t + 0.95);
   }
 
   // 1b. Guttural Poke Flinch / Growl (Triggered when user clicks / taps on Boss)
@@ -777,23 +787,44 @@ class AudioSynthesizerService {
     midOsc.start(t);
     midOsc.stop(t + 0.08);
 
-    // Layer C: High-Pitch Metallic Bell Ping for Critical & Ultimate Strikes
+    // Layer C & D: Visceral Crit Armor-Crack Snap + Crisp Dual-Harmonic Strike (no beepy sine droop)
     if (isCritical || isUltimate) {
-      const bellOsc = ctx.createOscillator();
-      const bellGain = ctx.createGain();
-      const bellFreq = isUltimate ? 1860 : 1480;
+      const snapNoise = ctx.createBufferSource();
+      snapNoise.buffer = this.getNoiseBuffer(ctx);
+      const snapFilter = ctx.createBiquadFilter();
+      const snapGain = ctx.createGain();
 
-      bellOsc.type = 'sine';
-      bellOsc.frequency.setValueAtTime(bellFreq, t);
-      bellOsc.frequency.exponentialRampToValueAtTime(bellFreq * 0.8, t + 0.28);
+      snapFilter.type = 'bandpass';
+      snapFilter.frequency.setValueAtTime(isUltimate ? 2800 : 2200, t);
+      snapFilter.frequency.exponentialRampToValueAtTime(650, t + 0.085);
+      snapFilter.Q.value = 1.7;
 
-      bellGain.gain.setValueAtTime((isUltimate ? 0.32 : 0.24) * vol, t);
-      bellGain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+      snapGain.gain.setValueAtTime((isUltimate ? 0.55 : 0.42) * vol, t);
+      snapGain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
 
-      bellOsc.connect(bellGain);
-      bellGain.connect(out);
-      bellOsc.start(t);
-      bellOsc.stop(t + 0.28);
+      snapNoise.connect(snapFilter);
+      snapFilter.connect(snapGain);
+      snapGain.connect(out);
+      snapNoise.start(t);
+      snapNoise.stop(t + 0.095);
+
+      const strikeFreqs = isUltimate ? [523.25, 783.99, 1046.5] : [440, 659.25];
+      strikeFreqs.forEach((freq, idx) => {
+        const critOsc = ctx.createOscillator();
+        const critGain = ctx.createGain();
+        critOsc.type = idx === 0 ? 'triangle' : 'sine';
+        critOsc.frequency.setValueAtTime(freq * 0.96, t);
+        critOsc.frequency.exponentialRampToValueAtTime(freq * 1.04, t + 0.04);
+
+        const peakGain = (idx === 0 ? 0.24 : 0.16) * (isUltimate ? 1.25 : 1.0) * vol;
+        critGain.gain.setValueAtTime(peakGain, t);
+        critGain.gain.exponentialRampToValueAtTime(0.001, t + (isUltimate ? 0.22 : 0.14));
+
+        critOsc.connect(critGain);
+        critGain.connect(out);
+        critOsc.start(t);
+        critOsc.stop(t + 0.24);
+      });
     }
   }
 
