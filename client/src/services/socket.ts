@@ -7,6 +7,8 @@ const SERVER_URL =
     ? 'http://localhost:4000'
     : '');
 
+const CLIENT_INSTANCE_ID = `client-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
+
 class GameSocketClient {
   private socket: Socket | null = null;
   public isConnected = false;
@@ -36,6 +38,7 @@ class GameSocketClient {
 
       // Listen for game events dispatched by Server or Admin Portal
       this.socket.on('game:summon', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore
           .getState()
           .summonMinion(
@@ -47,14 +50,17 @@ class GameSocketClient {
       });
 
       this.socket.on('game:gift', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().triggerGiftExplosion(payload.giftName, payload.team, payload.donorName, payload.coins);
       });
 
       this.socket.on('game:like', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().addLikes(payload.count, payload.team, payload.userName);
       });
 
       this.socket.on('game:chat', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().addChatMessage(payload.userName, payload.text, payload.team, payload.championName);
       });
 
@@ -97,6 +103,48 @@ class GameSocketClient {
       });
     } catch (err) {
       console.warn('[Game Socket] Could not connect to Server, using local EventBus fallback', err);
+    }
+  }
+
+  public sendLike(count: number, team: string, userName: string): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:like', { count, team, userName, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public sendSummon(summonerName: string, championName: string, team: string, isGiftBypass = false): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:summon', {
+        summonerName,
+        championName,
+        team,
+        isGiftBypass,
+        senderId: CLIENT_INSTANCE_ID,
+      });
+    }
+  }
+
+  public sendGift(giftName: string, team: string, donorName: string, coins: number): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:gift', {
+        giftName,
+        team,
+        donorName,
+        coins,
+        senderId: CLIENT_INSTANCE_ID,
+      });
+    }
+  }
+
+  public sendChat(userName: string, text: string, team: string, championName?: string): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:chat', {
+        userName,
+        text,
+        team,
+        championName,
+        senderId: CLIENT_INSTANCE_ID,
+      });
     }
   }
 }

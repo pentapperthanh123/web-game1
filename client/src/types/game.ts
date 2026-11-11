@@ -334,7 +334,15 @@ export interface GameState {
   seriesWinner: TeamType | null;
   roundCountdownSeconds: number;
 
+  // Guest Simulation Mode State
+  isGuestModeActive: boolean;
+  guestTeam: TeamType;
+  guestName: string;
+
   // Actions
+  setGuestMode: (active: boolean) => void;
+  setGuestTeam: (team: TeamType) => void;
+  setGuestName: (name: string) => void;
   startNextRound: () => void;
   resetBO5Match: () => void;
   setBO5Score: (blg: number, geng: number, currentRound?: number) => void;

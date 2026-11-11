@@ -27,6 +27,9 @@
     "autoProOn": "Auto Pro: ON",
     "autoProOff": "Auto Pro",
     "autoProTooltip": "Toggle BLG & GEN.G pro players auto-attacking when no viewers are active",
+    "guestMode": "Guest",
+    "guestModeOn": "Guest: ON",
+    "guestModeTooltip": "Toggle viewer simulation dock on Client",
     "soloHoldingCta": "🛡️ Pros are holding the line — Chat a champion or send a Gift to carry!",
     "clutchKillCta": "⚡ Boss at finisher threshold (15% HP) — Chat or Gift to clutch & claim MVP!",
     "lineupCollapse": "Collapse lineup",
@@ -97,5 +100,25 @@
     "healNotice": "Restored +{{amount}} HP to all champions (Monsters excluded)",
     "healProgress": "Divine Heal:",
     "furySpeedBoost": "Fury {{team}} x{{multiplier}}"
+  },
+  "Guest": {
+    "dockTitle": "Guest Simulation Dock",
+    "cheerTeam": "Cheering Team:",
+    "guestNameLabel": "Viewer Name:",
+    "randomName": "Randomize",
+    "tabHeart": "Tap Heart",
+    "tabSummon": "Summon",
+    "tabGift": "Gifts",
+    "tabChat": "Live Chat",
+    "tapToLike": "Rapid tap to cheer for",
+    "tapCombo": "Tap streak",
+    "quickSummonTitle": "Quick summon champion:",
+    "searchChampPlaceholder": "Type champion name (e.g. Yasuo, Zed)...",
+    "summonAction": "Summon",
+    "giftAction": "Send Gift",
+    "chatPlaceholder": "Type comment or [Champion name]...",
+    "sendChat": "Send",
+    "presetChatTitle": "Quick presets:",
+    "offlineNotice": "Running high-speed internal store mode"
   }
 }

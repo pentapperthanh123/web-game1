@@ -1,12 +1,88 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Crown, Sparkles, Award, Zap, Shield } from 'lucide-react';
+import { Award, Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY, TeamType } from '../../constants/game';
 
 interface BossDefeatedCrest2DProps {
   isElderDragon: boolean;
 }
+
+interface TeamThemeConfig {
+  primary: string;
+  secondary: string;
+  border: string;
+  badgeBg: string;
+  shadow: string;
+  textColor: string;
+  glowColor: string;
+  teamLabel: string;
+}
+
+const COMPASS_CARDINAL_ANGLES = [0, 90, 180, 270] as const;
+
+const TEAM_THEME_CONFIG: Record<TeamType, TeamThemeConfig> = {
+  [TEAM_KEY.BLG]: {
+    primary: '#00f2fe',
+    secondary: '#38bdf8',
+    border: 'border-cyan-400/90',
+    badgeBg: 'from-cyan-950/95 via-slate-950/95 to-sky-950/95',
+    shadow: 'shadow-[0_0_45px_rgba(6,182,212,0.85)]',
+    textColor: 'text-cyan-200',
+    glowColor: 'rgba(6, 182, 212, 0.5)',
+    teamLabel: 'BLG',
+  },
+  [TEAM_KEY.GENG]: {
+    primary: '#fbbf24',
+    secondary: '#f59e0b',
+    border: 'border-amber-400/90',
+    badgeBg: 'from-amber-950/95 via-slate-950/95 to-yellow-950/95',
+    shadow: 'shadow-[0_0_45px_rgba(245,158,11,0.85)]',
+    textColor: 'text-amber-200',
+    glowColor: 'rgba(245, 158, 11, 0.5)',
+    teamLabel: 'GEN.G',
+  },
+};
+
+const BaronCrestEmblem: React.FC<{ primary: string }> = ({ primary }) => (
+  <svg viewBox="0 0 64 64" className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_0_12px_rgba(255,255,255,0.85)]">
+    <polygon
+      points="12,44 8,22 22,30 32,12 42,30 56,22 52,44"
+      fill="none"
+      stroke="#ffffff"
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+    <polygon
+      points="16,42 13,26 23,33 32,17 41,33 51,26 48,42"
+      fill={primary}
+      fillOpacity="0.28"
+    />
+    <ellipse cx="32" cy="36" rx="10" ry="5.5" fill="#0f172a" stroke={primary} strokeWidth="2" />
+    <circle cx="32" cy="36" r="3" fill="#ffffff" />
+    <path d="M16,49 L48,49" stroke={primary} strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+const ElderCrestEmblem: React.FC<{ primary: string }> = ({ primary }) => (
+  <svg viewBox="0 0 64 64" className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_0_12px_rgba(255,255,255,0.85)]">
+    <path
+      d="M32,10 L42,26 L56,18 L48,40 L32,54 L16,40 L8,18 L22,26 Z"
+      fill={primary}
+      fillOpacity="0.25"
+      stroke="#ffffff"
+      strokeWidth="2.4"
+      strokeLinejoin="round"
+    />
+    <polygon
+      points="32,18 39,34 32,46 25,34"
+      fill="#ffffff"
+      stroke={primary}
+      strokeWidth="1.8"
+    />
+    <path d="M18,29 L26,34 M46,29 L38,34" stroke={primary} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
 
 export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.memo(
   ({ isElderDragon }) => {
@@ -19,31 +95,7 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
     if (bossDefeatedTimestamp === 0) return null;
 
     const winnerTeam: TeamType = (finisherTeam || roundWinner || TEAM_KEY.BLG) as TeamType;
-    const isBLG = winnerTeam === TEAM_KEY.BLG;
-
-    const themeColors = isBLG
-      ? {
-          primary: '#00f2fe',
-          secondary: '#38bdf8',
-          accent: '#0284c7',
-          border: 'border-cyan-400',
-          badgeBg: 'from-cyan-950/95 via-slate-950/95 to-sky-950/95',
-          shadow: 'shadow-[0_0_40px_rgba(6,182,212,0.85)]',
-          textColor: 'text-cyan-200',
-          glowColor: 'rgba(6, 182, 212, 0.45)',
-          teamLabel: 'BLG',
-        }
-      : {
-          primary: '#fbbf24',
-          secondary: '#f59e0b',
-          accent: '#d97706',
-          border: 'border-amber-400',
-          badgeBg: 'from-amber-950/95 via-slate-950/95 to-yellow-950/95',
-          shadow: 'shadow-[0_0_40px_rgba(245,158,11,0.85)]',
-          textColor: 'text-amber-200',
-          glowColor: 'rgba(245, 158, 11, 0.45)',
-          teamLabel: 'GEN.G',
-        };
+    const themeColors = TEAM_THEME_CONFIG[winnerTeam];
 
     const buffTitle = isElderDragon
       ? t('Victory.elderBuffClaimed', 'BÙA LỢI RỒNG NGÀN TUỔI THUỘC VỀ {{team}}', {
@@ -54,104 +106,101 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
         });
 
     return (
-      <div className="absolute inset-0 pointer-events-none z-15 flex items-center justify-center select-none overflow-visible animate-in fade-in zoom-in-95 duration-1000 delay-500">
-        {/* 1. Celestial Ascension God Rays Shining to the Sky */}
+      <div
+        key={bossDefeatedTimestamp}
+        className="absolute inset-0 pointer-events-none z-15 flex items-center justify-center select-none overflow-visible animate-in fade-in zoom-in-90 duration-700 delay-[850ms] fill-mode-both"
+      >
+        {/* 1. Celestial Ascension God Rays */}
         <div
           style={{
-            background: `linear-gradient(to top, ${themeColors.glowColor}, rgba(255,255,255,0.15), transparent)`,
+            background: `linear-gradient(to top, ${themeColors.glowColor}, rgba(255,255,255,0.18), transparent)`,
           }}
-          className="absolute bottom-[20%] w-48 sm:w-64 h-80 rounded-t-full blur-xl animate-buff-soul-beams"
+          className="absolute bottom-[18%] w-48 sm:w-64 h-80 rounded-t-full blur-2xl animate-buff-soul-beams"
         />
 
-        {/* 2. Rotating Ancient Celestial Runic Glyphs Ring */}
-        <div className="absolute w-64 h-64 sm:w-80 sm:h-80 animate-buff-ring-rotate-slow opacity-80 pointer-events-none">
-          <svg viewBox="0 0 240 240" className="w-full h-full">
-            <circle
-              cx="120"
-              cy="120"
-              r="108"
-              fill="none"
-              stroke={themeColors.primary}
-              strokeWidth="2"
-              strokeDasharray="18 10 32 14 8 16"
-              className="drop-shadow-[0_0_10px_rgba(255,255,255,0.7)]"
-            />
-            <circle
-              cx="120"
-              cy="120"
-              r="94"
-              fill="none"
-              stroke={themeColors.secondary}
-              strokeWidth="1.2"
-              strokeDasharray="6 8 20 12"
-              className="opacity-70"
-            />
-          </svg>
-        </div>
-
-        {/* 3. Counter-Rotating Inner Glyphs Ring */}
-        <div className="absolute w-48 h-48 sm:w-60 sm:h-60 animate-buff-ring-rotate-reverse opacity-75 pointer-events-none">
-          <svg viewBox="0 0 200 200" className="w-full h-full">
-            <polygon
-              points="100,15 180,155 20,155"
-              fill="none"
-              stroke={themeColors.secondary}
-              strokeWidth="1.5"
-              strokeDasharray="12 8"
-              className="opacity-50"
-            />
-            <polygon
-              points="100,185 20,45 180,45"
-              fill="none"
-              stroke={themeColors.primary}
-              strokeWidth="1.5"
-              strokeDasharray="12 8"
-              className="opacity-50"
-            />
-          </svg>
-        </div>
-
-        {/* 4. Core Floating Buff Relic Vessel */}
+        {/* 2. Floating Relic Stack (Rings + Emblem + Plate) */}
         <div className="relative flex flex-col items-center animate-buff-crest-float">
-          {/* Central Glowing Relic Orb */}
-          <div
-            style={{
-              boxShadow: `0 0 35px ${themeColors.primary}, 0 0 70px ${themeColors.secondary}`,
-            }}
-            className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 ${themeColors.border} bg-slate-950/90 flex items-center justify-center backdrop-blur-md relative`}
-          >
-            {/* Pulsing Core Emblem */}
+          <div className="relative w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center">
+            {/* Outer Hextech Beveled Runic Ring */}
+            <svg
+              viewBox="0 0 240 240"
+              className="absolute inset-0 w-full h-full animate-buff-ring-rotate-slow"
+            >
+              <polygon
+                points="120,8 199,41 232,120 199,199 120,232 41,199 8,120 41,41"
+                fill="none"
+                stroke={themeColors.primary}
+                strokeWidth="2.4"
+                strokeOpacity="0.85"
+              />
+              <circle
+                cx="120"
+                cy="120"
+                r="98"
+                fill="none"
+                stroke={themeColors.secondary}
+                strokeWidth="2"
+                strokeDasharray="44 18 14 18"
+                strokeLinecap="round"
+              />
+              {COMPASS_CARDINAL_ANGLES.map((angle) => (
+                <polygon
+                  key={angle}
+                  points="120,2 126,14 120,22 114,14"
+                  fill="#ffffff"
+                  stroke={themeColors.primary}
+                  strokeWidth="1.2"
+                  transform={`rotate(${angle} 120 120)`}
+                />
+              ))}
+            </svg>
+
+            {/* Counter-Rotating Inner Geometric Sigil */}
+            <svg
+              viewBox="0 0 200 200"
+              className="absolute inset-3 w-[calc(100%-1.5rem)] h-[calc(100%-1.5rem)] animate-buff-ring-rotate-reverse"
+            >
+              <polygon
+                points="100,10 178,55 178,145 100,190 22,145 22,55"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="1.6"
+                strokeOpacity="0.65"
+              />
+              <polygon
+                points="100,24 166,100 100,176 34,100"
+                fill="none"
+                stroke={themeColors.primary}
+                strokeWidth="2"
+                strokeOpacity="0.8"
+              />
+            </svg>
+
+            {/* Core Crystal Relic Medallion */}
             <div
               style={{
-                background: `radial-gradient(circle, #ffffff 15%, ${themeColors.primary} 60%, transparent 100%)`,
+                boxShadow: `0 0 32px ${themeColors.primary}, inset 0 0 24px ${themeColors.glowColor}`,
               }}
-              className="absolute inset-2 rounded-full opacity-35 animate-pulse"
-            />
-
-            {/* Emblem Icon */}
-            {isElderDragon ? (
-              <Shield
-                style={{ color: themeColors.primary }}
-                className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_rgba(255,255,255,0.9)] animate-pulse"
+              className={`relative w-20 h-20 sm:w-22 sm:h-22 rounded-full border-2 ${themeColors.border} bg-slate-950/95 flex items-center justify-center backdrop-blur-md`}
+            >
+              <div
+                style={{
+                  background: `radial-gradient(circle, #ffffff 10%, ${themeColors.primary} 55%, transparent 100%)`,
+                }}
+                className="absolute inset-1.5 rounded-full opacity-35 animate-pulse"
               />
-            ) : (
-              <Crown
-                style={{ color: themeColors.primary }}
-                className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_rgba(255,255,255,0.9)] animate-pulse"
-              />
-            )}
-
-            {/* Orbiting Sparkle Star */}
-            <div className="absolute -top-1 -right-1">
-              <Sparkles className="w-5 h-5 text-yellow-300 animate-spin-slow" />
+              {isElderDragon ? (
+                <ElderCrestEmblem primary={themeColors.primary} />
+              ) : (
+                <BaronCrestEmblem primary={themeColors.primary} />
+              )}
             </div>
           </div>
 
           {/* Buff Claimed Announcement Plate */}
           <div
-            className={`mt-3 flex flex-col items-center px-4 py-2 rounded-2xl border-2 bg-gradient-to-r backdrop-blur-md ${themeColors.border} ${themeColors.badgeBg} ${themeColors.shadow} max-w-[90vw]`}
+            className={`mt-2 flex flex-col items-center px-4 py-2 rounded-2xl border-2 bg-gradient-to-r backdrop-blur-md ${themeColors.border} ${themeColors.badgeBg} ${themeColors.shadow} max-w-[90vw]`}
           >
-            {/* Header Badge */}
             <div className="flex items-center space-x-1.5">
               <Award className="w-4 h-4 text-yellow-300 shrink-0" />
               <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] text-center">
@@ -159,7 +208,6 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
               </span>
             </div>
 
-            {/* Finisher Attribution */}
             {finisherPlayerName && (
               <div className="flex items-center space-x-1 mt-1 text-[9px] sm:text-[10px] font-bold text-slate-300">
                 <Zap className="w-3 h-3 text-amber-300 shrink-0" />
@@ -170,7 +218,6 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
               </div>
             )}
 
-            {/* Buff Effect Notice */}
             <div className="flex items-center space-x-1 mt-0.5 text-[8px] sm:text-[9px] font-semibold text-cyan-300/90 tracking-wide">
               <span>{t('Victory.buffPerks', 'Toàn bộ tướng được cường hóa sức mạnh vô song!')}</span>
             </div>

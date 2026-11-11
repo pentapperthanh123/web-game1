@@ -234,6 +234,36 @@ export const UI_CONSTANTS = {
   GHOST_HP_DELAY_MS: 350,
 } as const;
 
+export const GUEST_SIMULATION_CONSTANTS = {
+  DEFAULT_NAME: 'Khách_VIP_88',
+  GIFTS: [
+    { id: 'rose', name: 'Hoa Hồng 🌹', coins: 1, label: 'Thường', icon: '🌹', color: '#f43f5e' },
+    { id: 'cookie', name: 'Bánh Quy 🍪', coins: 10, label: 'Thường', icon: '🍪', color: '#f59e0b' },
+    { id: 'watergun', name: 'Súng Nước 🔫', coins: 50, label: 'Hiếm', icon: '🔫', color: '#06b6d4' },
+    { id: 'heart_worlds', name: 'Trái Tim CKTG 💖', coins: 199, label: 'Hiếm', icon: '💖', color: '#ec4899' },
+    { id: 'dragon', name: 'Rồng Thần CKTG 🐉', coins: 1000, label: 'VIP', icon: '🐉', color: '#eab308' },
+    { id: 'phoenix', name: 'Phượng Hoàng Lửa 🔥', coins: 2500, label: 'VIP', icon: '🔥', color: '#ef4444' },
+  ],
+  QUICK_CHAMPIONS: {
+    [TEAM_KEY.BLG]: ['Jax', 'Nidalee', 'Ahri', "Kai'Sa", 'Rakan', 'Aatrox', 'Zed'],
+    [TEAM_KEY.GENG]: ["K'Sante", 'Lee Sin', 'Yone', 'Ezreal', 'Leona', 'Yasuo', 'Sylas'],
+  },
+  PRESET_CHATS: {
+    [TEAM_KEY.BLG]: [
+      'BLG Vô Địch! 🔥',
+      'Bin gánh team!',
+      'Knight xuất chiêu!',
+      'Viper bắn cháy máy!',
+    ],
+    [TEAM_KEY.GENG]: [
+      'GEN.G Cố Lên! ⚡',
+      'Chovy out trình!',
+      'Canyon bắt lẻ đỉnh!',
+      'Ruler xả sát thương!',
+    ],
+  },
+} as const;
+
 export const BOSS_ANIMATION_CONSTANTS = {
   HIT_DURATION_MS: 320,
   HEAVY_HIT_DURATION_MS: 440,
@@ -243,15 +273,23 @@ export const BOSS_ANIMATION_CONSTANTS = {
 } as const;
 
 export const BOSS_DEFEAT_CONSTANTS = {
-  VICTORY_DELAY_MS: 2100,
-  SHATTER_ANIMATION_MS: 2100,
+  VICTORY_DELAY_MS: 2200,
+  SHATTER_ANIMATION_MS: 1350,
+  CRACK_PHASE_END_RATIO: 0.22,
+  EXPLOSION_END_RATIO: 0.65,
   SHOCKWAVE_RADIUS_INNER: 4.5,
-  SHOCKWAVE_RADIUS_MID: 7.0,
-  SHOCKWAVE_RADIUS_OUTER: 9.5,
-  BURST_STAGGER_MS: 160,
-  SCREEN_SHAKE_INTENSITY: 1.6,
+  SHOCKWAVE_RADIUS_MID: 7.5,
+  SHOCKWAVE_RADIUS_OUTER: 10.5,
+  BURST_STAGGER_MS: 140,
+  SCREEN_SHAKE_INTENSITY: 1.75,
+  SHARD_COUNT: 38,
+  SOUL_STREAM_COUNT: 14,
+  BLG_STREAM_TARGET_X: -4.2,
+  GENG_STREAM_TARGET_X: 4.2,
   BARON_DEFEAT_COLOR: '#a855f7',
+  BARON_SECONDARY_COLOR: '#38bdf8',
   ELDER_DRAGON_DEFEAT_COLOR: '#f59e0b',
+  ELDER_SECONDARY_COLOR: '#fef08a',
 } as const;
 
 export const BOSS_ENRAGED_CONSTANTS = {

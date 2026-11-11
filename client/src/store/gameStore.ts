@@ -303,10 +303,17 @@ const INITIAL_STATE = {
   isSeriesEnded: false,
   seriesWinner: null as TeamType | null,
   roundCountdownSeconds: GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS,
+  isGuestModeActive: false,
+  guestTeam: TEAM_KEY.BLG,
+  guestName: 'Khách_VIP_88',
 };
 
 export const useGameStore = create<GameState>((set, get) => ({
   ...INITIAL_STATE,
+
+  setGuestMode: (active: boolean) => set({ isGuestModeActive: active }),
+  setGuestTeam: (team: TeamType) => set({ guestTeam: team }),
+  setGuestName: (name: string) => set({ guestName: name.trim() || 'Khách_VIP_88' }),
 
   setGameTheme: (theme: GameThemeType) => {
     if (typeof window !== 'undefined') {

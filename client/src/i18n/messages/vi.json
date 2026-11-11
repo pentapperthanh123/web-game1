@@ -27,6 +27,9 @@
     "autoProOn": "Tự đánh: BẬT",
     "autoProOff": "Tự đánh",
     "autoProTooltip": "Bật/tắt chế độ tuyển thủ BLG & GEN.G tự bắn chiêu khi không có người tham gia",
+    "guestMode": "Khách",
+    "guestModeOn": "Khách: BẬT",
+    "guestModeTooltip": "Bật/tắt thanh thao tác giả lập cho người xem trên Client",
     "soloHoldingCta": "🛡️ Tuyển thủ đang giữ nhịp — Chat tên tướng hoặc Tặng quà để gánh team!",
     "clutchKillCta": "⚡ Boss ở ngưỡng kết liễu (15% HP) — Chat hoặc Tặng quà để dứt điểm & giành MVP!",
     "lineupCollapse": "Thu gọn đội hình",
@@ -97,5 +100,25 @@
     "healNotice": "Hồi phục +{{amount}} HP cho toàn bộ anh hùng (Trừ quái vật)",
     "healProgress": "Đại Hồi Phục:",
     "furySpeedBoost": "Nộ {{team}} x{{multiplier}}"
+  },
+  "Guest": {
+    "dockTitle": "Thao Tác Giả Lập Khách",
+    "cheerTeam": "Phe cổ vũ:",
+    "guestNameLabel": "Tên người xem:",
+    "randomName": "Đổi tên",
+    "tabHeart": "Thả Tim",
+    "tabSummon": "Gọi Tướng",
+    "tabGift": "Tặng Quà",
+    "tabChat": "Bình Luận",
+    "tapToLike": "Bấm liên tục để Thả Tim cho",
+    "tapCombo": "Nhịp tap",
+    "quickSummonTitle": "Chọn nhanh tướng ra sân:",
+    "searchChampPlaceholder": "Nhập tên tướng (VD: Yasuo, Zed)...",
+    "summonAction": "Triệu Hồi",
+    "giftAction": "Tặng Quà",
+    "chatPlaceholder": "Nhập bình luận hoặc [Tên tướng]...",
+    "sendChat": "Gửi Chat",
+    "presetChatTitle": "Bình luận nhanh:",
+    "offlineNotice": "Đang chạy chế độ Store nội bộ mượt mà"
   }
 }

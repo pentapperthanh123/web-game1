@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Volume2, VolumeX, Swords } from 'lucide-react';
+import { Volume2, VolumeX, Swords, UserCheck } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { audioService } from '../../services/audioService';
 import { BossHealthBar } from './BossHealthBar';
@@ -11,6 +11,7 @@ import { FloatingDamage } from './FloatingDamage';
 import { LiveChatStream } from './LiveChatStream';
 import { LikeCounter } from './LikeCounter';
 import { VictoryOverlay } from './VictoryOverlay';
+import { GuestSimulationDock } from './GuestSimulationDock';
 import { ScreenFlash } from './ScreenFlash';
 import { TeamRosterBar } from './TeamRosterBar';
 import { SummonShowcase } from './SummonShowcase';
@@ -28,6 +29,8 @@ export const HUDOverlay = () => {
   const minionsLength = useGameStore((state) => state.minions.length);
   const bossHp = useGameStore((state) => state.bossHp);
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
+  const isGuestModeActive = useGameStore((state) => state.isGuestModeActive);
+  const setGuestMode = useGameStore((state) => state.setGuestMode);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
   const headerRef = useRef<HTMLElement | null>(null);
   const [headerBottomOffset, setHeaderBottomOffset] = useState<number>(128);
@@ -73,6 +76,12 @@ export const HUDOverlay = () => {
     const nextEnabled = !autoProBattleConfig.enabled;
     setAutoProBattleConfig({ enabled: nextEnabled });
     audioService.playUiToggleSound(nextEnabled);
+  };
+
+  const toggleGuestMode = () => {
+    const nextActive = !isGuestModeActive;
+    setGuestMode(nextActive);
+    audioService.playUiToggleSound(nextActive);
   };
 
   return (
@@ -133,6 +142,27 @@ export const HUDOverlay = () => {
                 : t('HUD.autoProOff', 'Tự đánh')}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={toggleGuestMode}
+            title={t(
+              'HUD.guestModeTooltip',
+              'Bật/tắt thanh thao tác giả lập cho người xem trên Client'
+            )}
+            className={`pointer-events-auto flex items-center space-x-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+              isGuestModeActive
+                ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.45)]'
+                : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+            }`}
+          >
+            <UserCheck className={`w-2.5 h-2.5 ${isGuestModeActive ? 'animate-pulse text-cyan-400' : ''}`} />
+            <span>
+              {isGuestModeActive
+                ? t('HUD.guestModeOn', 'Khách: BẬT')
+                : t('HUD.guestMode', 'Khách')}
+            </span>
+          </button>
         </div>
 
         {overlayVisibility.bossHealth && <BossHealthBar />}
@@ -151,6 +181,7 @@ export const HUDOverlay = () => {
       <SummonShowcase />
       <FloatingDamage />
       <VictoryOverlay />
+      <GuestSimulationDock />
 
       {/* Center 3D viewport remains 100% unobstructed for Baron Nashor */}
 
