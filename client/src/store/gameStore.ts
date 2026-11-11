@@ -195,8 +195,20 @@ const INITIAL_STATE = {
   finisherPlayerName: null as string | null,
   finisherTeam: null as TeamType | null,
   autoProBattleConfig: getStoredAutoProBattleConfig(),
-  lastAttackingRosterId: null as string | null,
-  lastRosterAttackTimestamp: 0,
+  rosterAttackTimestamps: {} as Record<string, number>,
+  rosterPlayerFury: {
+    'blg-bin': 25,
+    'blg-xun': 50,
+    'blg-knight': 0,
+    'blg-elk': 75,
+    'blg-on': 25,
+    'geng-kiin': 50,
+    'geng-canyon': 25,
+    'geng-chovy': 75,
+    'geng-ruler': 0,
+    'geng-duro': 50,
+  } as Record<string, number>,
+  lastFuryUltimatePlayerId: null as string | null,
   bo5Score: {
     [TEAM_KEY.BLG]: 0,
     [TEAM_KEY.GENG]: 0,
@@ -254,6 +266,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
+  addPlayerFury: (playerId: string, amount: number) => {
+    set((prev) => {
+      const cur = prev.rosterPlayerFury[playerId] ?? 0;
+      const next = Math.min(GAME_CONSTANTS.PRO_FURY.MAX_FURY, cur + amount);
+      return {
+        rosterPlayerFury: {
+          ...prev.rosterPlayerFury,
+          [playerId]: next,
+        },
+      };
+    });
+  },
+
   triggerAutoProAttack: (team: TeamType, playerIndex: number) => {
     const state = get();
     if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
@@ -262,22 +287,70 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!roster || roster.length === 0) return;
 
     const player = roster[playerIndex % roster.length];
-    const isCrit = Math.random() < AUTO_PRO_BATTLE_CONSTANTS.CRIT_CHANCE;
-    const baseDamage = randomInRange(
-      AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MIN,
-      AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MAX
-    );
-    const finalDamage = Math.round(
-      isCrit ? baseDamage * AUTO_PRO_BATTLE_CONSTANTS.CRIT_MULTIPLIER : baseDamage
-    );
+    const prevFury = state.rosterPlayerFury[player.id] ?? 0;
+    const isFullFury = prevFury >= GAME_CONSTANTS.PRO_FURY.MAX_FURY;
+
+    let finalDamage: number;
+    let damageType: DamageType;
+    let isCrit: boolean;
+
+    if (isFullFury) {
+      // FULL NỘ -> XẢ SIÊU TUYỆT KỸ (FURY SIGNATURE ULTIMATE)
+      isCrit = true;
+      damageType = DAMAGE_TYPE.ULTIMATE;
+      finalDamage = Math.round(
+        AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MAX * GAME_CONSTANTS.PRO_FURY.FURY_ULTIMATE_DAMAGE_MULTIPLIER +
+          randomInRange(600, 1800)
+      );
+
+      audioService.playDamageImpactSound(DAMAGE_TYPE.ULTIMATE, true);
+      get().triggerScreenFlash(player.team === TEAM_KEY.BLG ? '#00f2fe' : '#f59e0b');
+      get().triggerScreenShake(0.85);
+
+      get().addLog(
+        'BOSS',
+        `🔥 [SIÊU TUYỆT KỸ BẠO NỘ] ${player.name} (${player.role}) xả Full Nộ gây ${finalDamage.toLocaleString()} ST!`,
+        team
+      );
+      get().addChatMessage(
+        player.name,
+        `🔥 BẠO NỘ TUYỆT KỸ: Gây ${finalDamage.toLocaleString()} ST!`,
+        team,
+        player.signatureChampion
+      );
+    } else {
+      isCrit = Math.random() < AUTO_PRO_BATTLE_CONSTANTS.CRIT_CHANCE;
+      const baseDamage = randomInRange(
+        AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MIN,
+        AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MAX
+      );
+      finalDamage = Math.round(
+        isCrit ? baseDamage * AUTO_PRO_BATTLE_CONSTANTS.CRIT_MULTIPLIER : baseDamage
+      );
+      damageType = isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL;
+    }
+
+    const nextFury = isFullFury
+      ? 0
+      : Math.min(
+          GAME_CONSTANTS.PRO_FURY.MAX_FURY,
+          prevFury + GAME_CONSTANTS.PRO_FURY.FURY_GAIN_AUTO_ATTACK
+        );
 
     const now = Date.now();
-    get().spawnFlyingArrow(player.signatureChampion, team, isCrit);
+    get().spawnFlyingArrow(player.signatureChampion, team, isCrit || isFullFury);
 
-    set({
-      lastAttackingRosterId: player.id,
-      lastRosterAttackTimestamp: now,
-    });
+    set((prev) => ({
+      rosterAttackTimestamps: {
+        ...prev.rosterAttackTimestamps,
+        [player.id]: now,
+      },
+      lastFuryUltimatePlayerId: isFullFury ? player.id : prev.lastFuryUltimatePlayerId,
+      rosterPlayerFury: {
+        ...prev.rosterPlayerFury,
+        [player.id]: nextFury,
+      },
+    }));
 
     setTimeout(() => {
       const latest = get();
@@ -286,8 +359,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       latest.damageBoss(
         finalDamage,
         team,
-        `${player.name} (${player.role})`,
-        isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL,
+        isFullFury ? `🔥 ${player.name} (Bạo Nộ)` : `${player.name} (${player.role})`,
+        damageType,
         { excludeFromLeaderboard: true }
       );
     }, AUTO_PRO_BATTLE_CONSTANTS.FLYING_ARROW_HIT_DELAY_MS);
@@ -874,6 +947,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${team} (Bảo hộ 1s)`, team);
     get().addChatMessage(summonerName, `Triệu hồi ${championName} chiến đấu!`, team, championName);
 
+    // Boost Fury of matching Pro Player when fans summon their champion!
+    const matchingPro = findRosterPlayer(championName, team);
+    if (matchingPro) {
+      get().addPlayerFury(matchingPro.id, GAME_CONSTANTS.PRO_FURY.FURY_GAIN_SUMMON_MATCH);
+    }
+
     set((prev) => ({
       minions: [
         ...prev.minions.slice(-(GAME_CONSTANTS.MINIONS.MAX_INSTANCES - 1)),
@@ -1278,6 +1357,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossDefeatedTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
+      rosterAttackTimestamps: {},
     });
   },
 
@@ -1337,6 +1417,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       finisherPlayerName: null,
       finisherTeam: null,
       roundWinner: null,
+      rosterAttackTimestamps: {},
     });
   },
 
@@ -1412,9 +1493,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     const isComboActive =
       state.lastComboTimestamp > 0 &&
       now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
-    const isRosterAttackGlowActive =
-      state.lastAttackingRosterId !== null &&
-      now - state.lastRosterAttackTimestamp <= AUTO_PRO_BATTLE_CONSTANTS.ROSTER_ATTACK_GLOW_MS;
+
+    const nextRosterTimestamps: Record<string, number> = {};
+    let hasRosterAttackChanged = false;
+    for (const [rosterId, firedAt] of Object.entries(state.rosterAttackTimestamps)) {
+      if (now - firedAt <= AUTO_PRO_BATTLE_CONSTANTS.ROSTER_ATTACK_GLOW_MS) {
+        nextRosterTimestamps[rosterId] = firedAt;
+      } else {
+        hasRosterAttackChanged = true;
+      }
+    }
 
     const hasMinionsChanged = activeMinions.length !== state.minions.length;
     const hasHeartsChanged = activeHearts.length !== state.activeHearts.length;
@@ -1432,7 +1520,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const hasBannerChanged = (state.activeBossSkillBanner !== null) !== isBannerActive;
     const hasHeartBannerChanged = (state.activeHeartMilestoneBanner !== null) !== isHeartMilestoneBannerActive;
     const hasComboChanged = (state.comboCount > 0) !== isComboActive;
-    const hasRosterAttackChanged = (state.lastAttackingRosterId !== null) !== isRosterAttackGlowActive;
 
     if (
       !hasMinionsChanged &&
@@ -1475,7 +1562,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       screenFlashColor: isFlashActive ? state.screenFlashColor : null,
       activeBossSkillBanner: isBannerActive ? state.activeBossSkillBanner : null,
       activeHeartMilestoneBanner: isHeartMilestoneBannerActive ? state.activeHeartMilestoneBanner : null,
-      lastAttackingRosterId: isRosterAttackGlowActive ? state.lastAttackingRosterId : null,
+      rosterAttackTimestamps: hasRosterAttackChanged
+        ? nextRosterTimestamps
+        : state.rosterAttackTimestamps,
     });
   },
 }));

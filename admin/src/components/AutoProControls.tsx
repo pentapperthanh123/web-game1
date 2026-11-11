@@ -88,7 +88,7 @@ export function AutoProControls() {
       </div>
 
       <p className="text-[11px] text-slate-400">
-        Khi bật, 10 tuyển thủ ở hai cánh (Bin, Xun, Knight, Viper, ON &amp; Kiin, Canyon, Chovy, Ruler, Duro) sẽ tự động bắn chiêu từ avatar vào Boss, không chiếm Top 5 MVP người xem.
+        Khi bật, cả 10 tuyển thủ ở hai cánh (Bin, Xun, Knight, Viper, ON &amp; Kiin, Canyon, Chovy, Ruler, Duro) sẽ tự động bắn chiêu liên tục từ avatar vào Boss, không chiếm Top 5 MVP người xem.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -109,10 +109,10 @@ export function AutoProControls() {
           <div className="flex items-center justify-between text-[11px] font-semibold">
             <span className="text-slate-400 flex items-center space-x-1">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Nhịp bắn giữa các tuyển thủ:</span>
+              <span>Tốc độ bắn mỗi tuyển thủ:</span>
             </span>
             <span className="font-mono font-bold text-emerald-400">
-              {(config.intervalMs / 1000).toFixed(1)}s / lượt
+              {(config.intervalMs / 1000).toFixed(1)}s / đòn
             </span>
           </div>
           <input

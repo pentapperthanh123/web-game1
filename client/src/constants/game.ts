@@ -89,6 +89,13 @@ export const GAME_CONSTANTS = {
     ALIVE_SUPPORT_DAMAGE: 200, // Option B: Đòn đánh tiếp sức gây thêm +200 sát thương vào Boss
     LIFETIME_EXTENSION_MS: 3000, // Option B: Gia hạn thêm 3s thời gian tham chiến cho tướng
   },
+  PRO_FURY: {
+    MAX_FURY: 100,
+    FURY_GAIN_AUTO_ATTACK: 25, // +25 Nộ mỗi đòn đánh thường (4 đòn = Full Nộ)
+    FURY_GAIN_SUMMON_MATCH: 35, // +35 Nộ khi người xem chat gọi tướng trùng với tuyển thủ
+    FURY_ULTIMATE_DAMAGE_MULTIPLIER: 4.5, // 4.5x sát thương khi tung Đòn Bạo Nộ
+    FURY_ULTIMATE_DURATION_MS: 1200,
+  },
   AUDIO: {
     DEFAULT_ENABLED: true,
     DEFAULT_TTS_ENABLED: false,
@@ -806,12 +813,21 @@ export const AUTO_PRO_BATTLE_CONSTANTS = {
   DEFAULT_INTERVAL_MS: 1800,
   MIN_INTERVAL_MS: 900,
   MAX_INTERVAL_MS: 4000,
-  DAMAGE_MIN: 420,
-  DAMAGE_MAX: 780,
+  TICK_MS: 120,
+  INITIAL_STAGGER_MS: 140,
+  DAMAGE_MIN: 240,
+  DAMAGE_MAX: 440,
   CRIT_CHANCE: 0.22,
   CRIT_MULTIPLIER: 1.65,
   FLYING_ARROW_HIT_DELAY_MS: 380,
-  ROSTER_ATTACK_GLOW_MS: 450,
+  ROSTER_ATTACK_GLOW_MS: 420,
+  ROLE_COOLDOWN_FACTOR: {
+    ADC: 0.82,
+    MID: 0.92,
+    JUG: 1.0,
+    TOP: 1.1,
+    SUP: 1.18,
+  },
 } as const;
 
 export const DEFAULT_AUTO_PRO_BATTLE_CONFIG = {

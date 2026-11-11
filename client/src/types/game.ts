@@ -263,8 +263,9 @@ export interface GameState {
   finisherPlayerName: string | null;
   finisherTeam: TeamType | null;
   autoProBattleConfig: AutoProBattleConfig;
-  lastAttackingRosterId: string | null;
-  lastRosterAttackTimestamp: number;
+  rosterAttackTimestamps: Record<string, number>;
+  rosterPlayerFury: Record<string, number>;
+  lastFuryUltimatePlayerId: string | null;
 
   // BO5 Match State
   bo5Score: {
@@ -291,6 +292,7 @@ export interface GameState {
   setOverlayVisibility: (visibility: Partial<OverlayVisibility>) => void;
   setAutoProBattleConfig: (config: Partial<AutoProBattleConfig>) => void;
   triggerAutoProAttack: (team: TeamType, playerIndex: number) => void;
+  addPlayerFury: (playerId: string, amount: number) => void;
   spawnFlyingArrow: (
     championName: string,
     team: TeamType,

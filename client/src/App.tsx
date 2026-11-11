@@ -27,7 +27,7 @@ export function App() {
   const bossStatus = useGameStore((state) => state.bossStatus);
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
 
-  const proTurnRef = useRef(0);
+  const nextFireAtRef = useRef<Record<string, number>>({});
   const isBossDefeated = bossStatus === BOSS_STATUS.DEFEATED;
 
   // Enforce document title to strictly match user branding
@@ -122,24 +122,50 @@ export function App() {
     return () => clearInterval(intervalId);
   }, [isSimulationActive, botSpeedMs, summonMinion, triggerGiftExplosion, addLikes]);
 
-  // Manual-toggled Auto Pro-Player Combat: shoots signature skills from roster portraits when idle
+  // Manual-toggled Auto Pro-Player Combat: all 10 pro players fire continuously by role speed
   useEffect(() => {
-    if (!autoProBattleConfig.enabled || isBossDefeated) return;
+    if (!autoProBattleConfig.enabled || isBossDefeated) {
+      nextFireAtRef.current = {};
+      return;
+    }
 
-    const intervalMs = autoProBattleConfig.intervalMs || AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS;
+    const allPlayers = [...TEAM_ROSTERS[TEAM_KEY.BLG], ...TEAM_ROSTERS[TEAM_KEY.GENG]];
+    const baseIntervalMs =
+      autoProBattleConfig.intervalMs || AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS;
+    const startNow = Date.now();
+
+    allPlayers.forEach((player, idx) => {
+      const teamOffset = player.team === TEAM_KEY.BLG ? 0 : Math.round(AUTO_PRO_BATTLE_CONSTANTS.INITIAL_STAGGER_MS / 2);
+      const laneIndex = idx % TEAM_ROSTERS[player.team].length;
+      nextFireAtRef.current[player.id] =
+        startNow + laneIndex * AUTO_PRO_BATTLE_CONSTANTS.INITIAL_STAGGER_MS + teamOffset;
+    });
+
     const intervalId = setInterval(() => {
       const state = useGameStore.getState();
       if (state.bossStatus === BOSS_STATUS.DEFEATED || state.bossHp <= 0) return;
-      if (autoProBattleConfig.onlyWhenIdle && state.minions.length > 0) return;
 
-      const step = proTurnRef.current;
-      proTurnRef.current += 1;
+      if (autoProBattleConfig.onlyWhenIdle && state.minions.length > 0) {
+        return;
+      }
 
-      const team = step % 2 === 0 ? TEAM_KEY.BLG : TEAM_KEY.GENG;
-      const rosterIndex = Math.floor(step / 2) % TEAM_ROSTERS[team].length;
+      const now = Date.now();
+      for (const team of [TEAM_KEY.BLG, TEAM_KEY.GENG]) {
+        const roster = TEAM_ROSTERS[team];
+        for (let playerIndex = 0; playerIndex < roster.length; playerIndex++) {
+          const player = roster[playerIndex];
+          const scheduledAt = nextFireAtRef.current[player.id] ?? now;
+          if (now < scheduledAt) continue;
 
-      triggerAutoProAttack(team, rosterIndex);
-    }, intervalMs);
+          triggerAutoProAttack(team, playerIndex);
+
+          const roleFactor = AUTO_PRO_BATTLE_CONSTANTS.ROLE_COOLDOWN_FACTOR[player.role] ?? 1.0;
+          const jitter = 0.85 + Math.random() * 0.3;
+          nextFireAtRef.current[player.id] =
+            now + Math.round(baseIntervalMs * roleFactor * jitter);
+        }
+      }
+    }, AUTO_PRO_BATTLE_CONSTANTS.TICK_MS);
 
     return () => clearInterval(intervalId);
   }, [
