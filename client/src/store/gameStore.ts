@@ -1,3 +1,11 @@
+import { BossSkillConfig, ActiveBossSkillBanner } from '../types/bossSkill';
+import {
+  DEFAULT_BOSS_SKILL_CONFIG,
+  BOSS_SKILL_STORAGE_KEY,
+  CHAMPION_DEFAULT_MAX_HP,
+  getBossSkillsByTheme,
+  BOSS_ATTACK_BANNER_DURATION_MS,
+} from '../constants/bossSkills';
 import { create } from 'zustand';
 import {
   GameState,
@@ -15,6 +23,9 @@ import {
   SlashEntity,
   SummonPortalEntity,
   HitImpactEntity,
+  OverlayVisibility,
+  FlyingArrowEntity,
+  DefeatedChampionEntity,
 } from '../types/game';
 import {
   GAME_CONSTANTS,
@@ -25,10 +36,17 @@ import {
   TeamType,
   BossStatusType,
   DamageType,
+  DEFAULT_OVERLAY_VISIBILITY,
+  OVERLAY_STORAGE_KEY,
+  ARROW_VFX_CONFIG,
+  GAME_THEME,
+  GameThemeType,
+  THEME_STORAGE_KEY,
 } from '../constants/game';
-import { getChampionAvatarUrl } from '../constants/roster';
+import { getChampionAvatarUrl, findRosterPlayer, TEAM_ROSTERS } from '../constants/roster';
 import { gameBus } from '../services/eventBus';
 import { audioService } from '../services/audioService';
+import { getLiveMinionScreenPos, getLiveMinionPosition } from '../services/minionPositionRegistry';
 
 const randomInRange = (min: number, max: number): number =>
   min + Math.random() * (max - min);
@@ -75,6 +93,40 @@ const DAMAGE_INTENSITY_MAP: Record<DamageType, number> = {
   [DAMAGE_TYPE.ULTIMATE]: COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE,
 };
 
+const getStoredGameTheme = (): GameThemeType => {
+  if (typeof window === 'undefined') return GAME_THEME.BARON;
+  try {
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    if (raw === GAME_THEME.ELDER_DRAGON) return GAME_THEME.ELDER_DRAGON;
+    return GAME_THEME.BARON;
+  } catch {
+    return GAME_THEME.BARON;
+  }
+};
+
+const getStoredBossSkillConfig = (): BossSkillConfig => {
+  if (typeof window === 'undefined') return DEFAULT_BOSS_SKILL_CONFIG;
+  try {
+    const raw = localStorage.getItem(BOSS_SKILL_STORAGE_KEY);
+    if (!raw) return DEFAULT_BOSS_SKILL_CONFIG;
+    return { ...DEFAULT_BOSS_SKILL_CONFIG, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_BOSS_SKILL_CONFIG;
+  }
+};
+
+const getStoredOverlayVisibility = (): OverlayVisibility => {
+  if (typeof window === 'undefined') return DEFAULT_OVERLAY_VISIBILITY;
+  try {
+    const raw = localStorage.getItem(OVERLAY_STORAGE_KEY);
+    if (!raw) return DEFAULT_OVERLAY_VISIBILITY;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_OVERLAY_VISIBILITY, ...parsed };
+  } catch {
+    return DEFAULT_OVERLAY_VISIBILITY;
+  }
+};
+
 const INITIAL_STATE = {
   bossHp: GAME_CONSTANTS.BOSS.INITIAL_HP,
   bossMaxHp: GAME_CONSTANTS.BOSS.MAX_HP,
@@ -99,6 +151,7 @@ const INITIAL_STATE = {
   activeSlashes: [] as SlashEntity[],
   activeSummonPortals: [] as SummonPortalEntity[],
   activeHitImpacts: [] as HitImpactEntity[],
+  activeDefeatedChampions: [] as DefeatedChampionEntity[],
   activeGiftBanner: null as GiftAnnouncement | null,
   floatingDamages: [] as FloatingDamageText[],
   comboCount: 0,
@@ -109,10 +162,123 @@ const INITIAL_STATE = {
   eventLogs: [] as AdminEventLog[],
   isSimulationActive: false,
   botSpeedMs: 1200,
+  overlayVisibility: getStoredOverlayVisibility(),
+  activeFlyingArrows: [] as FlyingArrowEntity[],
+  gameTheme: getStoredGameTheme(),
+  bossSkillConfig: getStoredBossSkillConfig(),
+  activeBossSkillBanner: null as ActiveBossSkillBanner | null,
+  bossSkillRotationIndex: 0,
+  lastHitTeam: null as TeamType | null,
+  lastHitDamageType: null as DamageType | null,
+  bossAttackTargetTeam: null as 'BLG' | 'GENG' | 'ALL' | null,
+  bo5Score: {
+    [TEAM_KEY.BLG]: 0,
+    [TEAM_KEY.GENG]: 0,
+  },
+  currentRound: 1,
+  bo5TargetWins: GAME_CONSTANTS.BO5.TARGET_WINS,
+  roundWinner: null as TeamType | null,
+  isSeriesEnded: false,
+  seriesWinner: null as TeamType | null,
+  roundCountdownSeconds: GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS,
 };
 
 export const useGameStore = create<GameState>((set, get) => ({
   ...INITIAL_STATE,
+
+  setGameTheme: (theme: GameThemeType) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+      } catch {
+        // ignore
+      }
+    }
+    set({ gameTheme: theme });
+  },
+
+  setOverlayVisibility: (visibility) => {
+    set((state) => {
+      const next = { ...state.overlayVisibility, ...visibility };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(OVERLAY_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // ignore storage error
+        }
+      }
+      return { overlayVisibility: next };
+    });
+  },
+
+  spawnFlyingArrow: (championName: string, team: TeamType, isCrit = false) => {
+    audioService.playLaserSound();
+
+    const rosterPlayer = findRosterPlayer(championName, team);
+    let startX: number;
+    let startY: number;
+
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
+    const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
+
+    const avatarEl =
+      typeof document !== 'undefined' && rosterPlayer
+        ? document.getElementById(`roster-avatar-${rosterPlayer.id}`)
+        : null;
+
+    if (avatarEl) {
+      const rect = avatarEl.getBoundingClientRect();
+      startX = team === TEAM_KEY.BLG ? rect.right + 2 : rect.left - 2;
+      startY = rect.top + rect.height / 2;
+
+      avatarEl.style.transform = 'scale(1.22)';
+      setTimeout(() => {
+        avatarEl.style.transform = '';
+      }, 180);
+    } else {
+      const playerIndex = rosterPlayer
+        ? TEAM_ROSTERS[team].findIndex((p) => p.id === rosterPlayer.id)
+        : 2;
+      const idx = playerIndex >= 0 ? playerIndex : 2;
+      startX = team === TEAM_KEY.BLG ? 45 : screenW - 45;
+      startY = Math.min(screenH * 0.45, 180 + idx * 42);
+    }
+
+    const targetX = screenW * 0.5 + (Math.random() - 0.5) * 50;
+    const targetY = screenH * 0.36 + (Math.random() - 0.5) * 40;
+
+    const palette = ARROW_VFX_CONFIG.COLORS;
+    const color =
+      team === TEAM_KEY.BLG
+        ? isCrit
+          ? palette.BLG_CRIT
+          : palette.BLG
+        : isCrit
+        ? palette.GENG_CRIT
+        : palette.GENG;
+
+    const newArrow: FlyingArrowEntity = {
+      id: `arrow-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      sourceRosterId: rosterPlayer?.id,
+      championName,
+      team,
+      startX,
+      startY,
+      targetX,
+      targetY,
+      isCrit,
+      color,
+      createdAt: Date.now(),
+      durationMs: ARROW_VFX_CONFIG.DURATION_MS,
+    };
+
+    set((state) => ({
+      activeFlyingArrows: [
+        ...state.activeFlyingArrows.slice(-(ARROW_VFX_CONFIG.MAX_ACTIVE - 1)),
+        newArrow,
+      ],
+    }));
+  },
 
   addLog: (type: AdminEventLog['type'], message: string, team?: TeamType) => {
     const newLog: AdminEventLog = {
@@ -185,6 +351,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set((prev) => ({
       bossAttackTimestamp: Date.now(),
+      bossAttackTargetTeam: 'ALL',
       activeShockwaves: [...prev.activeShockwaves.slice(-5), newWave],
     }));
   },
@@ -309,6 +476,29 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newGENGScore = team === TEAM_KEY.GENG ? state.teamScoreGENG + amount : state.teamScoreGENG;
     const topLeaderboard = updateLeaderboardList(state.leaderboard, playerName, team, amount);
 
+    let nextBO5Score = { ...state.bo5Score };
+    let nextRoundWinner: TeamType | null = state.roundWinner;
+    let nextIsSeriesEnded = state.isSeriesEnded;
+    let nextSeriesWinner: TeamType | null = state.seriesWinner;
+
+    if (isDefeated && !state.roundWinner && !state.isSeriesEnded) {
+      nextRoundWinner = newBLGScore >= newGENGScore ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+      nextBO5Score[nextRoundWinner] = (nextBO5Score[nextRoundWinner] || 0) + 1;
+      if (nextBO5Score[nextRoundWinner] >= state.bo5TargetWins) {
+        nextIsSeriesEnded = true;
+        nextSeriesWinner = nextRoundWinner;
+        get().addLog(
+          'SYSTEM',
+          `🏆 ${nextRoundWinner} VÔ ĐỊCH CKTG 2026 BO5 (${nextBO5Score.BLG} - ${nextBO5Score.GENG})!`
+        );
+      } else {
+        get().addLog(
+          'SYSTEM',
+          `🚩 ${nextRoundWinner} THẮNG VÁN ${state.currentRound}! (BO5: BLG ${nextBO5Score.BLG} - ${nextBO5Score.GENG} GEN.G)`
+        );
+      }
+    }
+
     const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
     const isCritOrUlt = damageType === DAMAGE_TYPE.CRIT || damageType === DAMAGE_TYPE.ULTIMATE;
     const hitPoint: [number, number, number] = [
@@ -350,6 +540,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       amount: safeAmount,
       text: `-${safeAmount.toLocaleString()}`,
       damageType,
+      team,
+      playerName,
       x: randomInRange(-88, 88),
       y: randomInRange(-48, 44),
       color: textColor,
@@ -363,6 +555,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       offsetY: randomInRange(-34, 30),
       color: impactColor,
       damageType,
+      team,
       createdAt: now,
     };
 
@@ -374,6 +567,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossHp: newHp,
       bossStatus: nextStatus,
       bossHitTimestamp: now,
+      lastHitTeam: team,
+      lastHitDamageType: damageType,
       teamScoreBLG: newBLGScore,
       teamScoreGENG: newGENGScore,
       leaderboard: topLeaderboard,
@@ -390,6 +585,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       comboDamage: nextComboDamage,
       comboTeam: team,
       lastComboTimestamp: now,
+      bo5Score: nextBO5Score,
+      roundWinner: nextRoundWinner,
+      isSeriesEnded: nextIsSeriesEnded,
+      seriesWinner: nextSeriesWinner,
     }));
   },
 
@@ -418,6 +617,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       createdAt: now,
       lifetimeMs: GAME_CONSTANTS.MINIONS.LIFETIME_MS,
       dps: baseDps,
+      hp: CHAMPION_DEFAULT_MAX_HP,
+      maxHp: CHAMPION_DEFAULT_MAX_HP,
     };
 
     const newPortal: SummonPortalEntity = {
@@ -445,6 +646,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
     );
     get().spawnProjectile(spawnPosition, teamPalette.primary, isCrit);
+    get().spawnFlyingArrow(championName, team, isCrit);
+
+    if (isCrit) {
+      setTimeout(() => {
+        get().spawnFlyingArrow(championName, team, true);
+      }, COMBAT_VFX_CONSTANTS.SUMMON.CRIT_FOLLOWUP_DELAY_MS);
+    }
 
     if (isCrit) {
       setTimeout(() => {
@@ -458,7 +666,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${team} (-${summonDps} HP)`, team);
     get().addChatMessage(summonerName, `Triệu hồi ${championName} chiến đấu!`, team, championName);
-    audioService.speak(`${summonerName} triệu hồi ${championName}!`);
 
     set((prev) => ({
       minions: [
@@ -493,6 +700,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       });
     }
 
+    get().healTeamChampions(team, 50);
     const giftDamage = coins * 120;
     get().damageBoss(giftDamage, team, `${donorName} (${giftName})`, 'ULTIMATE');
     get().triggerScreenFlash(team === TEAM_KEY.BLG ? '#38bdf8' : '#fbbf24');
@@ -511,7 +719,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().addLog('GIFT', `💎 ${donorName} tặng [${giftName}] (${coins} xu) phe ${team} gây ${safeGiftDamage.toLocaleString()} ST!`, team);
     get().addChatMessage(donorName, `Đã tặng ${giftName} (+${safeGiftDamage.toLocaleString()} DMG)!`, team);
 
-    audioService.speak(`Cảm ơn ${donorName} đã tặng ${giftName} cho phe ${team}!`);
 
     set((prev) => ({
       activeBursts: [
@@ -527,10 +734,310 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ activeGiftBanner: null });
   },
 
-  resetBoss: () => {
-    get().addLog('BOSS', '🔄 Hồi sinh Boss Baron Nashor về trạng thái ban đầu');
+  setBossSkillConfig: (config) => {
+    set((state) => {
+      const next = { ...state.bossSkillConfig, ...config };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(BOSS_SKILL_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+      }
+      return { bossSkillConfig: next };
+    });
+  },
+
+  clearBossSkillBanner: () => set({ activeBossSkillBanner: null }),
+
+  healTeamChampions: (targetTeam, amount) => {
+    const state = get();
+    if (state.minions.length === 0) return;
+
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
+    const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
+    const now = Date.now();
+    const newFloats: FloatingDamageText[] = [];
+
+    const updatedMinions = state.minions.map((minion) => {
+      if (targetTeam !== 'ALL' && minion.team !== targetTeam) {
+        return minion;
+      }
+      const curHp = minion.hp ?? CHAMPION_DEFAULT_MAX_HP;
+      const nextHp = Math.min(minion.maxHp ?? CHAMPION_DEFAULT_MAX_HP, curHp + amount);
+
+      const livePos = getLiveMinionScreenPos(minion.championName);
+      const posX = livePos ? livePos.x : (minion.team === TEAM_KEY.BLG ? screenW * 0.25 : screenW * 0.75);
+      const posY = livePos ? livePos.y : screenH * 0.65;
+
+      newFloats.push({
+        id: `heal-${now}-${Math.random()}`,
+        amount,
+        text: `+${amount} HP`,
+        damageType: DAMAGE_TYPE.NORMAL,
+        team: minion.team,
+        playerName: minion.championName,
+        x: posX - screenW * 0.5,
+        y: posY - screenH * 0.5,
+        color: '#22c55e',
+        scale: 1.1,
+        createdAt: now,
+      });
+
+      return { ...minion, hp: nextHp };
+    });
+
+    audioService.playHeartChime();
+    set((prev) => ({
+      minions: updatedMinions,
+      floatingDamages: [...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)), ...newFloats],
+    }));
+  },
+
+  castBossSkill: (skillIndex) => {
+    const state = get();
+    if (state.bossStatus === BOSS_STATUS.DEFEATED) return;
+
+    const skills = getBossSkillsByTheme(state.gameTheme);
+    if (!skills || skills.length === 0) return;
+
+    let nextIndex = 0;
+    if (skillIndex !== undefined && skillIndex >= 0 && skillIndex < skills.length) {
+      nextIndex = skillIndex;
+    } else if (state.bossSkillConfig.mode === 'ROTATION') {
+      nextIndex = state.bossSkillRotationIndex % skills.length;
+    } else if (state.bossSkillConfig.mode === 'RANDOM_EQUAL') {
+      nextIndex = Math.floor(Math.random() * skills.length);
+    } else {
+      // RANDOM_WEIGHTED (40% Skill 1, 30% Skill 2, 20% Skill 3, 10% Ultimate)
+      const roll = Math.random();
+      if (roll < 0.40) nextIndex = 0;
+      else if (roll < 0.70) nextIndex = 1;
+      else if (roll < 0.90) nextIndex = 2;
+      else nextIndex = 3;
+    }
+
+    const skill = skills[nextIndex];
+    const damageMultiplier = state.bossSkillConfig.damageMultiplier || 1.0;
+    const actualDamage = Math.max(1, Math.round(skill.baseDamage * damageMultiplier));
+    const now = Date.now();
+    const isElderDragon = state.gameTheme === GAME_THEME.ELDER_DRAGON;
+    const bossName = isElderDragon ? 'Rồng Ngàn Tuổi' : 'Baron Nashor';
+
+    const currentMinions = state.minions;
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
+    const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
+
+    const targetedMinionIds = new Set<string>();
+    if (skill.targetCount >= 999) {
+      currentMinions.forEach((m) => targetedMinionIds.add(m.id));
+    } else {
+      const shuffled = [...currentMinions].sort(() => Math.random() - 0.5);
+      shuffled.slice(0, skill.targetCount).forEach((m) => targetedMinionIds.add(m.id));
+    }
+
+    let targetTeam: 'BLG' | 'GENG' | 'ALL' = 'ALL';
+    if (!skill.isUltimate && targetedMinionIds.size > 0) {
+      const targetedMinions = currentMinions.filter((m) => targetedMinionIds.has(m.id));
+      const blgCount = targetedMinions.filter((m) => m.team === TEAM_KEY.BLG).length;
+      const gengCount = targetedMinions.filter((m) => m.team === TEAM_KEY.GENG).length;
+      if (blgCount > 0 && gengCount === 0) {
+        targetTeam = 'BLG';
+      } else if (gengCount > 0 && blgCount === 0) {
+        targetTeam = 'GENG';
+      } else if (blgCount > gengCount) {
+        targetTeam = 'BLG';
+      } else if (gengCount > blgCount) {
+        targetTeam = 'GENG';
+      }
+    }
+
+    const banner: ActiveBossSkillBanner = {
+      skillId: skill.id,
+      skillName: skill.name,
+      vietnameseName: skill.vietnameseName,
+      damage: actualDamage,
+      color: skill.color,
+      isUltimate: skill.isUltimate,
+      bossName,
+      timestamp: now,
+      targetTeam,
+    };
+
+    if (skill.isUltimate) {
+      get().triggerScreenShake(1.6);
+      get().triggerScreenFlash(skill.color);
+      audioService.playBossRoarSound(isElderDragon, true);
+    } else {
+      get().triggerScreenShake(0.5);
+      audioService.playDamageImpactSound(DAMAGE_TYPE.CRIT, false);
+    }
+
+    const remainingMinions: MinionEntity[] = [];
+    const newFloats: FloatingDamageText[] = [];
+    const newDefeatedChampions: DefeatedChampionEntity[] = [];
+
+    currentMinions.forEach((minion) => {
+      if (!targetedMinionIds.has(minion.id)) {
+        remainingMinions.push(minion);
+        return;
+      }
+
+      const curHp = minion.hp ?? minion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
+      const nextHp = curHp - actualDamage;
+
+      const livePos = getLiveMinionScreenPos(minion.id) || getLiveMinionScreenPos(minion.championName);
+      const posX = livePos ? livePos.x : (minion.team === TEAM_KEY.BLG ? screenW * 0.25 : screenW * 0.75);
+      const posY = livePos ? livePos.y : screenH * 0.65;
+
+      newFloats.push({
+        id: `boss-dmg-${now}-${Math.random()}`,
+        amount: actualDamage,
+        text: `-${actualDamage} HP`,
+        damageType: skill.isUltimate ? DAMAGE_TYPE.ULTIMATE : DAMAGE_TYPE.CRIT,
+        team: minion.team,
+        playerName: minion.championName,
+        x: posX - screenW * 0.5,
+        y: posY - screenH * 0.5,
+        color: '#ef4444',
+        scale: skill.isUltimate ? 1.4 : 1.1,
+        createdAt: now,
+      });
+
+      const liveWorldPos = getLiveMinionPosition(minion.id) || minion.spawnPosition;
+      get().spawnParticleBurst(liveWorldPos, skill.color, skill.isUltimate ? 2.0 : 1.0);
+
+      if (nextHp > 0) {
+        remainingMinions.push({ ...minion, hp: nextHp });
+      } else {
+        newDefeatedChampions.push({
+          id: `defeat-${now}-${Math.random().toString(36).substring(2, 6)}`,
+          championName: minion.championName,
+          summonerName: minion.summonerName,
+          avatarUrl: minion.avatarUrl,
+          team: minion.team,
+          position: liveWorldPos,
+          screenX: posX,
+          screenY: posY,
+          killerName: bossName,
+          createdAt: now,
+          durationMs: 1400,
+        });
+
+        // Visceral death particle burst right at champion's live location
+        get().spawnParticleBurst(liveWorldPos, '#ef4444', 2.2);
+        audioService.playChampionDeathSound();
+
+        get().addLog('BOSS', `💀 [${bossName}] dùng [${skill.vietnameseName}] hạ gục ${minion.championName} của ${minion.summonerName}!`, minion.team);
+      }
+    });
+
+    set((prev) => ({
+      bossAttackTimestamp: now,
+      bossAttackTargetTeam: targetTeam,
+      activeBossSkillBanner: banner,
+      bossSkillRotationIndex: (state.bossSkillRotationIndex + 1) % skills.length,
+      minions: remainingMinions,
+      activeDefeatedChampions: [
+        ...prev.activeDefeatedChampions.slice(-8),
+        ...newDefeatedChampions,
+      ],
+      floatingDamages: [...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)), ...newFloats],
+    }));
+  },
+
+  startNextRound: () => {
+    const state = get();
+    if (state.isSeriesEnded) return;
+    const nextRound = Math.min(GAME_CONSTANTS.BO5.MAX_ROUNDS, state.currentRound + 1);
+    get().addLog('SYSTEM', `⚔️ Bắt đầu Ván ${nextRound} / BO5!`);
     set({
-      bossHp: GAME_CONSTANTS.BOSS.INITIAL_HP,
+      bossHp: state.bossMaxHp,
+      bossStatus: BOSS_STATUS.IDLE,
+      currentRound: nextRound,
+      roundWinner: null,
+      teamScoreBLG: 0,
+      teamScoreGENG: 0,
+      minions: [],
+      comboCount: 0,
+      comboDamage: 0,
+      comboTeam: null,
+      floatingDamages: [],
+      activeSlashes: [],
+      activeHitImpacts: [],
+      activeDefeatedChampions: [],
+      lastHitTeam: null,
+      lastHitDamageType: null,
+      bossAttackTargetTeam: null,
+      leaderboard: [],
+    });
+  },
+
+  resetBO5Match: () => {
+    const maxHp = get().bossMaxHp;
+    get().addLog('SYSTEM', '🔄 Bắt đầu Trận đấu BO5 Mới (0 - 0)!');
+    set({
+      bossHp: maxHp,
+      bossStatus: BOSS_STATUS.IDLE,
+      bo5Score: { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 },
+      currentRound: 1,
+      roundWinner: null,
+      isSeriesEnded: false,
+      seriesWinner: null,
+      teamScoreBLG: 0,
+      teamScoreGENG: 0,
+      minions: [],
+      activeBursts: [],
+      activeHearts: [],
+      activeProjectiles: [],
+      activeShockwaves: [],
+      activeMeteors: [],
+      activeSlashes: [],
+      activeSummonPortals: [],
+      activeHitImpacts: [],
+      activeGiftBanner: null,
+      floatingDamages: [],
+      activeDefeatedChampions: [],
+      comboCount: 0,
+      comboDamage: 0,
+      comboTeam: null,
+      lastComboTimestamp: 0,
+      leaderboard: [],
+      lastHitTeam: null,
+      lastHitDamageType: null,
+      bossAttackTargetTeam: null,
+    });
+  },
+
+  setBO5Score: (blg: number, geng: number, currentRound?: number) => {
+    const targetWins = get().bo5TargetWins;
+    const clampedBlg = Math.max(0, Math.min(targetWins, blg));
+    const clampedGeng = Math.max(0, Math.min(targetWins, geng));
+    const isEnded = clampedBlg >= targetWins || clampedGeng >= targetWins;
+    const seriesWinner = isEnded ? (clampedBlg >= targetWins ? TEAM_KEY.BLG : TEAM_KEY.GENG) : null;
+    const nextRound = currentRound ?? Math.min(GAME_CONSTANTS.BO5.MAX_ROUNDS, clampedBlg + clampedGeng + 1);
+
+    get().addLog('SYSTEM', `⚙️ Cập nhật điểm BO5: BLG ${clampedBlg} - ${clampedGeng} GEN.G (Ván ${nextRound})`);
+    set({
+      bo5Score: {
+        [TEAM_KEY.BLG]: clampedBlg,
+        [TEAM_KEY.GENG]: clampedGeng,
+      },
+      currentRound: nextRound,
+      isSeriesEnded: isEnded,
+      seriesWinner,
+    });
+  },
+
+  resetBoss: () => {
+    const state = get();
+    if (state.isSeriesEnded) {
+      get().resetBO5Match();
+      return;
+    }
+    get().addLog('BOSS', '🔄 Hồi sinh Boss về trạng thái ban đầu');
+    set({
+      bossHp: state.bossMaxHp,
       bossStatus: BOSS_STATUS.IDLE,
       teamScoreBLG: 0,
       teamScoreGENG: 0,
@@ -545,11 +1052,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeHitImpacts: [],
       activeGiftBanner: null,
       floatingDamages: [],
+      activeDefeatedChampions: [],
       comboCount: 0,
       comboDamage: 0,
       comboTeam: null,
       lastComboTimestamp: 0,
       leaderboard: [],
+      lastHitTeam: null,
+      lastHitDamageType: null,
+      bossAttackTargetTeam: null,
+      roundWinner: null,
     });
   },
 
@@ -604,27 +1116,75 @@ export const useGameStore = create<GameState>((set, get) => ({
       (impact) => now - impact.createdAt < COMBAT_VFX_CONSTANTS.DAMAGE.HIT_IMPACT_DURATION_MS
     );
     const activeBursts = state.activeBursts.filter((b) => now - b.timestamp < 1500);
+    const activeArrows = state.activeFlyingArrows.filter(
+      (a) => now - a.createdAt < a.durationMs + 100
+    );
+    const activeDefeated = state.activeDefeatedChampions.filter(
+      (d) => now - d.createdAt < d.durationMs
+    );
 
     const isFlashActive = state.screenFlashColor !== null && now - state.screenFlashTimestamp < 450;
+    const isBannerActive =
+      state.activeBossSkillBanner !== null &&
+      now - state.activeBossSkillBanner.timestamp <= BOSS_ATTACK_BANNER_DURATION_MS;
     const isComboActive =
       state.lastComboTimestamp > 0 &&
       now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
 
+    const hasMinionsChanged = activeMinions.length !== state.minions.length;
+    const hasHeartsChanged = activeHearts.length !== state.activeHearts.length;
+    const hasProjChanged = activeProj.length !== state.activeProjectiles.length;
+    const hasFloatsChanged = activeFloats.length !== state.floatingDamages.length;
+    const hasSlashesChanged = activeSlashes.length !== state.activeSlashes.length;
+    const hasWavesChanged = activeWaves.length !== state.activeShockwaves.length;
+    const hasMeteorsChanged = activeMeteors.length !== state.activeMeteors.length;
+    const hasPortalsChanged = activeSummonPortals.length !== state.activeSummonPortals.length;
+    const hasImpactsChanged = activeHitImpacts.length !== state.activeHitImpacts.length;
+    const hasBurstsChanged = activeBursts.length !== state.activeBursts.length;
+    const hasArrowsChanged = activeArrows.length !== state.activeFlyingArrows.length;
+    const hasDefeatedChanged = activeDefeated.length !== state.activeDefeatedChampions.length;
+    const hasFlashChanged = (state.screenFlashColor !== null) !== isFlashActive;
+    const hasBannerChanged = (state.activeBossSkillBanner !== null) !== isBannerActive;
+    const hasComboChanged = (state.comboCount > 0) !== isComboActive;
+
+    if (
+      !hasMinionsChanged &&
+      !hasHeartsChanged &&
+      !hasProjChanged &&
+      !hasFloatsChanged &&
+      !hasSlashesChanged &&
+      !hasWavesChanged &&
+      !hasMeteorsChanged &&
+      !hasPortalsChanged &&
+      !hasImpactsChanged &&
+      !hasBurstsChanged &&
+      !hasArrowsChanged &&
+      !hasDefeatedChanged &&
+      !hasFlashChanged &&
+      !hasBannerChanged &&
+      !hasComboChanged
+    ) {
+      return;
+    }
+
     set({
-      minions: activeMinions,
-      activeHearts,
-      activeProjectiles: activeProj,
-      floatingDamages: activeFloats,
-      activeSlashes,
-      activeShockwaves: activeWaves,
-      activeMeteors,
-      activeSummonPortals,
-      activeHitImpacts,
-      activeBursts,
+      minions: hasMinionsChanged ? activeMinions : state.minions,
+      activeHearts: hasHeartsChanged ? activeHearts : state.activeHearts,
+      activeProjectiles: hasProjChanged ? activeProj : state.activeProjectiles,
+      floatingDamages: hasFloatsChanged ? activeFloats : state.floatingDamages,
+      activeSlashes: hasSlashesChanged ? activeSlashes : state.activeSlashes,
+      activeShockwaves: hasWavesChanged ? activeWaves : state.activeShockwaves,
+      activeMeteors: hasMeteorsChanged ? activeMeteors : state.activeMeteors,
+      activeSummonPortals: hasPortalsChanged ? activeSummonPortals : state.activeSummonPortals,
+      activeHitImpacts: hasImpactsChanged ? activeHitImpacts : state.activeHitImpacts,
+      activeBursts: hasBurstsChanged ? activeBursts : state.activeBursts,
+      activeFlyingArrows: hasArrowsChanged ? activeArrows : state.activeFlyingArrows,
+      activeDefeatedChampions: hasDefeatedChanged ? activeDefeated : state.activeDefeatedChampions,
       comboCount: isComboActive ? state.comboCount : 0,
       comboDamage: isComboActive ? state.comboDamage : 0,
       comboTeam: isComboActive ? state.comboTeam : null,
       screenFlashColor: isFlashActive ? state.screenFlashColor : null,
+      activeBossSkillBanner: isBannerActive ? state.activeBossSkillBanner : null,
     });
   },
 }));
@@ -652,11 +1212,23 @@ if (typeof window !== 'undefined') {
       case 'RESET_BOSS':
         store.resetBoss();
         break;
+      case 'START_NEXT_ROUND':
+        store.startNextRound();
+        break;
+      case 'RESET_BO5':
+        store.resetBO5Match();
+        break;
+      case 'SET_BO5_SCORE':
+        store.setBO5Score(event.payload.blg, event.payload.geng, event.payload.currentRound);
+        break;
       case 'SET_BOSS_HP':
         store.setBossHp(event.payload.hp);
         break;
       case 'SET_ENRAGED':
         store.setBossStatus(event.payload.isEnraged ? BOSS_STATUS.ENRAGED : BOSS_STATUS.IDLE);
+        break;
+      case 'SET_OVERLAY_VISIBILITY':
+        store.setOverlayVisibility(event.payload);
         break;
       case 'TOGGLE_BOT':
         store.toggleSimulation(event.payload.isActive, event.payload.speedMs);

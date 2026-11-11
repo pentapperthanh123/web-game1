@@ -92,8 +92,8 @@ Hệ thống được tổ chức theo kiến trúc **PNPM Monorepo** với 3 d�
 
 | Dịch vụ | Thư mục | Cổng (Port) | Vai trò |
 |---|---|---|---|
-| **Game OBS 3D** | `client/` | `http://localhost:3000` | Giao diện đồ họa 3D Three.js tỉ lệ 9:16 (720x1280) cho OBS Studio Browser Source. |
-| **Admin Portal** | `admin/` | `http://localhost:3001` | Bảng điều khiển giả lập comment, thả tim, donate quà VIP và kết nối TikTok Live. |
+| **Game OBS 3D** | `client/` | `http://localhost:8000` | Giao diện đồ họa 3D Three.js tỉ lệ 9:16 (720x1280) cho OBS Studio Browser Source. |
+| **Admin Portal** | `admin/` | `http://localhost:8001` | Bảng điều khiển giả lập comment, thả tim, donate quà VIP và kết nối TikTok Live. |
 | **Backend Gateway** | `server/` | `http://localhost:4000` | Máy chủ trung gian Socket.io và cầu nối `tiktok-live-connector`. |
 
 ### Lệnh Khởi Động (Chạy Mọi Terminal)

@@ -64,20 +64,21 @@ export const ProjectilesBeam = () => {
 
       lookTarget.set(nextX, nextY, nextZ);
 
-      const widthMult = proj.isCrit ? 1.55 : 1.0;
-      const lengthScale = (2.1 + rawProgress * 1.35) * (proj.isCrit ? 1.25 : 1.0);
+      const widthMult = proj.isCrit ? 1.4 : 1.0;
+      // Proportional projectile missile length - sleek bullet instead of full-screen beam
+      const lengthScale = (0.75 + rawProgress * 0.45) * (proj.isCrit ? 1.25 : 1.0);
 
       dummyCore.position.set(x, y, z);
       dummyCore.lookAt(lookTarget);
       dummyCore.rotateX(Math.PI / 2);
-      dummyCore.scale.set(0.11 * widthMult, lengthScale, 0.11 * widthMult);
+      dummyCore.scale.set(0.06 * widthMult, lengthScale, 0.06 * widthMult);
       dummyCore.updateMatrix();
       coreMesh.setMatrixAt(i, dummyCore.matrix);
 
       dummyAura.position.set(x, y, z);
       dummyAura.lookAt(lookTarget);
       dummyAura.rotateX(Math.PI / 2);
-      dummyAura.scale.set(0.28 * widthMult, lengthScale * 1.28, 0.28 * widthMult);
+      dummyAura.scale.set(0.14 * widthMult, lengthScale * 1.15, 0.14 * widthMult);
       dummyAura.updateMatrix();
       auraMesh.setMatrixAt(i, dummyAura.matrix);
 
@@ -97,11 +98,11 @@ export const ProjectilesBeam = () => {
   return (
     <group>
       <instancedMesh ref={coreMeshRef} args={[undefined, undefined, maxInstances]} frustumCulled={false}>
-        <cylinderGeometry args={[0.04, 0.11, 1.4, 6]} />
+        <cylinderGeometry args={[0.03, 0.07, 0.45, 6]} />
         <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={auraMeshRef} args={[undefined, undefined, maxInstances]} frustumCulled={false}>
-        <cylinderGeometry args={[0.06, 0.18, 1.6, 6]} />
+        <cylinderGeometry args={[0.05, 0.12, 0.52, 6]} />
         <meshBasicMaterial
           transparent
           opacity={0.72}

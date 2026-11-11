@@ -1,4 +1,5 @@
-import { TeamType, BossStatusType, DamageType } from '../constants/game';
+import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXType } from '../constants/game';
+import { BossSkillConfig, ActiveBossSkillBanner } from './bossSkill';
 
 export interface MinionEntity {
   id: string;
@@ -14,6 +15,8 @@ export interface MinionEntity {
   createdAt: number;
   lifetimeMs: number;
   dps: number;
+  hp: number;
+  maxHp: number;
 }
 
 export interface DPSPlayer {
@@ -56,6 +59,23 @@ export interface ProjectileEntity {
   isCrit: boolean;
   color: string;
   createdAt: number;
+}
+
+export interface FlyingArrowEntity {
+  id: string;
+  sourceRosterId?: string;
+  championName: string;
+  vfxType?: ChampionSkillVFXType;
+  skillName?: string;
+  team: TeamType;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  isCrit: boolean;
+  color: string;
+  createdAt: number;
+  durationMs: number;
 }
 
 export interface ShockwaveEntity {
@@ -105,6 +125,9 @@ export interface HitImpactEntity {
   offsetY: number;
   color: string;
   damageType: DamageType;
+  team: TeamType;
+  slashAngle?: number;
+  isSmite?: boolean;
   createdAt: number;
 }
 
@@ -122,6 +145,8 @@ export interface FloatingDamageText {
   amount: number;
   text: string;
   damageType: DamageType;
+  team: TeamType;
+  playerName?: string;
   x: number;
   y: number;
   color: string;
@@ -140,12 +165,36 @@ export interface LiveChatMessage {
   timestamp: string;
 }
 
+export interface DefeatedChampionEntity {
+  id: string;
+  championName: string;
+  summonerName: string;
+  avatarUrl: string;
+  team: TeamType;
+  position: [number, number, number];
+  screenX: number;
+  screenY: number;
+  killerName: string;
+  createdAt: number;
+  durationMs: number;
+}
+
 export interface AdminEventLog {
   id: string;
   time: string;
   type: 'SUMMON' | 'GIFT' | 'DAMAGE' | 'BOSS' | 'SYSTEM' | 'LIKE';
   message: string;
   team?: TeamType;
+}
+
+export interface OverlayVisibility {
+  chat: boolean;
+  leaderboard: boolean;
+  teamRosters: boolean;
+  bossHealth: boolean;
+  teamScores: boolean;
+  likeCounter: boolean;
+  howToPlay: boolean;
 }
 
 export interface GameState {
@@ -172,6 +221,7 @@ export interface GameState {
   activeSlashes: SlashEntity[];
   activeSummonPortals: SummonPortalEntity[];
   activeHitImpacts: HitImpactEntity[];
+  activeDefeatedChampions: DefeatedChampionEntity[];
   activeGiftBanner: GiftAnnouncement | null;
   floatingDamages: FloatingDamageText[];
   comboCount: number;
@@ -182,14 +232,55 @@ export interface GameState {
   eventLogs: AdminEventLog[];
   isSimulationActive: boolean;
   botSpeedMs: number;
+  overlayVisibility: OverlayVisibility;
+  activeFlyingArrows: FlyingArrowEntity[];
+  gameTheme: GameThemeType;
+  bossSkillConfig: BossSkillConfig;
+  activeBossSkillBanner: ActiveBossSkillBanner | null;
+  bossSkillRotationIndex: number;
+  lastHitTeam: TeamType | null;
+  lastHitDamageType: DamageType | null;
+  bossAttackTargetTeam: 'BLG' | 'GENG' | 'ALL' | null;
+
+  // BO5 Match State
+  bo5Score: {
+    [key in TeamType]: number;
+  };
+  currentRound: number;
+  bo5TargetWins: number;
+  roundWinner: TeamType | null;
+  isSeriesEnded: boolean;
+  seriesWinner: TeamType | null;
+  roundCountdownSeconds: number;
 
   // Actions
+  startNextRound: () => void;
+  resetBO5Match: () => void;
+  setBO5Score: (blg: number, geng: number, currentRound?: number) => void;
+  setBossSkillConfig: (config: Partial<BossSkillConfig>) => void;
+  castBossSkill: (skillIndex?: number) => void;
+  healTeamChampions: (team: TeamType | 'ALL', amount: number) => void;
+  clearBossSkillBanner: () => void;
+  setGameTheme: (theme: GameThemeType) => void;
+  setOverlayVisibility: (visibility: Partial<OverlayVisibility>) => void;
+  spawnFlyingArrow: (
+    championName: string,
+    team: TeamType,
+    isCrit?: boolean,
+    customStart?: { x: number; y: number },
+    customTarget?: { x: number; y: number }
+  ) => void;
   damageBoss: (amount: number, team: TeamType, playerName: string, damageType?: DamageType) => void;
   summonMinion: (summonerName: string, championName: string, team: TeamType) => void;
   triggerGiftExplosion: (giftName: string, team: TeamType, donorName: string, coins?: number) => void;
   addLikes: (count: number, team: TeamType, userName?: string) => void;
   addChatMessage: (userName: string, text: string, team?: TeamType, championName?: string) => void;
-  spawnProjectile: (from: [number, number, number], color: string, isCrit?: boolean) => void;
+  spawnProjectile: (
+    from: [number, number, number],
+    color: string,
+    isCrit?: boolean,
+    customTarget?: [number, number, number]
+  ) => void;
   spawnSlash: (position: [number, number, number], color: string, isCrit?: boolean) => void;
   spawnParticleBurst: (origin: [number, number, number], color: string, intensity: number) => void;
   triggerScreenShake: (intensity?: number) => void;

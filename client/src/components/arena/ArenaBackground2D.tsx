@@ -1,10 +1,13 @@
 import { useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { ASSET_PATHS } from '../../constants/game';
+import { THEME_CONFIGS, GAME_THEME } from '../../constants/game';
 
 export const ArenaBackground2D = () => {
   const teamScoreBLG = useGameStore((state) => state.teamScoreBLG);
   const teamScoreGENG = useGameStore((state) => state.teamScoreGENG);
+  const gameTheme = useGameStore((state) => state.gameTheme);
+
+  const themeConfig = THEME_CONFIGS[gameTheme] || THEME_CONFIGS[GAME_THEME.BARON];
 
   // Dynamic light intensity based on which team is currently dealing more damage
   const { blgGlowOpacity, gengGlowOpacity } = useMemo(() => {
@@ -22,12 +25,12 @@ export const ArenaBackground2D = () => {
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
-      {/* 1. Main High-Resolution 2D Summoner's Rift Baron Pit Digital Art */}
-      <picture className="absolute inset-0 w-full h-full">
-        <source srcSet={ASSET_PATHS.ARENA_BACKGROUND_WEBP} type="image/webp" />
+      {/* 1. Dynamic Arena Background based on selected Game Theme */}
+      <picture className="absolute inset-0 w-full h-full transition-opacity duration-500">
+        <source srcSet={themeConfig.backgroundImageWebp} type="image/webp" />
         <img
-          src={ASSET_PATHS.ARENA_BACKGROUND_PNG}
-          alt="Summoner's Rift Baron Pit Arena"
+          src={themeConfig.backgroundImagePng}
+          alt={themeConfig.nameVi}
           className="w-full h-full object-cover object-center scale-[1.02] transform-gpu"
           loading="eager"
         />
@@ -44,8 +47,10 @@ export const ArenaBackground2D = () => {
         className={`absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-amber-500/25 via-amber-900/10 to-transparent transition-opacity duration-700 pointer-events-none ${gengGlowOpacity}`}
       />
 
-      {/* 3. Floating Atmospheric Void Mist Layer */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-950/20 to-slate-950/40 pointer-events-none animate-mist-drift" />
+      {/* 3. Floating Atmospheric Mist Layer */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-b ${themeConfig.ambientMistClass} pointer-events-none animate-mist-drift transition-all duration-700`}
+      />
 
       {/* 4. Radial Vignette for Broadcast HUD Readability */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(2,6,23,0.7)_85%,rgba(2,6,23,0.95)_100%)] pointer-events-none" />

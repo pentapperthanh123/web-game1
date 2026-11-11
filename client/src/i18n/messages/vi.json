@@ -42,7 +42,23 @@
     "ultimateTag": "TUYỆT KỸ!",
     "comboLabel": "COMBO",
     "summonTag": "TRIỆU HỒI",
-    "activeSquad": "ĐANG THAM CHIẾN"
+    "activeSquad": "ĐANG THAM CHIẾN",
+    "defeated": "TỬ TRẬN!",
+    "ultimateSkill": "CHIÊU CUỐI!"
+  },
+  "BossInteractive": {
+    "pokeTooltip": "Click để tương tác với Boss!"
+  },
+  "Victory": {
+    "bossDefeated": "BARON NASHOR ĐÃ BỊ TIÊU DIỆT!",
+    "roundWin": "{{team}} CHIẾN THẮNG VÁN {{round}}!",
+    "seriesChampion": "🏆 {{team}} VÔ ĐỊCH CKTG 2026 BO5!",
+    "seriesScore": "TỈ SỐ CHUNG CUỘC BO5: {{blg}} - {{geng}}",
+    "bo5Score": "TỈ SỐ BO5 HIỆN TẠI",
+    "mvpTitle": "MVP CỦA TRẬN ĐẤU",
+    "damage": "SÁT THƯƠNG",
+    "nextRoundIn": "Ván mới bắt đầu sau:",
+    "nextRoundNow": "VÀO VÁN TIẾP THEO",
+    "newSeries": "BẮT ĐẦU TRẬN ĐẤU MỚI"
   }
 }
-

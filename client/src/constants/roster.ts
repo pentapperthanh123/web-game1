@@ -49,6 +49,8 @@ const CHAMPION_KEY_ALIAS_MAP: Record<string, string> = {
   akali: 'Akali',
   irelia: 'Irelia',
   caitlyn: 'Caitlyn',
+  sylas: 'Sylas',
+  viper: 'Kaisa',
   faker: 'Azir',
   chovy: 'Yone',
   bin: 'Jax',
@@ -94,7 +96,7 @@ export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
       championKey: 'Jax',
       team: TEAM_KEY.BLG,
       color: '#38bdf8',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jax.png',
+      avatarUrl: '/images/players/bin.png',
     },
     {
       id: 'blg-xun',
@@ -105,29 +107,29 @@ export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
       championKey: 'XinZhao',
       team: TEAM_KEY.BLG,
       color: '#06b6d4',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/XinZhao.png',
+      avatarUrl: '/images/players/xun.png',
     },
     {
       id: 'blg-knight',
-      name: 'knight',
+      name: 'Knight',
       role: 'MID',
       roleName: 'Đường Giữa',
       signatureChampion: 'Ahri',
       championKey: 'Ahri',
       team: TEAM_KEY.BLG,
       color: '#60a5fa',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ahri.png',
+      avatarUrl: '/images/players/knight.png',
     },
     {
-      id: 'blg-elk',
-      name: 'Elk',
+      id: 'blg-viper',
+      name: 'Viper',
       role: 'ADC',
       roleName: 'Xạ Thủ',
-      signatureChampion: 'Kai\'Sa',
+      signatureChampion: "Kai'Sa",
       championKey: 'Kaisa',
       team: TEAM_KEY.BLG,
       color: '#22d3ee',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kaisa.png',
+      avatarUrl: '/images/players/viper.png',
     },
     {
       id: 'blg-on',
@@ -138,7 +140,7 @@ export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
       championKey: 'Rakan',
       team: TEAM_KEY.BLG,
       color: '#34d399',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rakan.png',
+      avatarUrl: '/images/players/on.png',
     },
   ],
   [TEAM_KEY.GENG]: [
@@ -147,11 +149,11 @@ export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
       name: 'Kiin',
       role: 'TOP',
       roleName: 'Đường Trên',
-      signatureChampion: 'K\'Sante',
+      signatureChampion: "K'Sante",
       championKey: 'KSante',
       team: TEAM_KEY.GENG,
       color: '#f59e0b',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/KSante.png',
+      avatarUrl: '/images/players/kiin.png',
     },
     {
       id: 'gen-canyon',
@@ -161,8 +163,8 @@ export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
       signatureChampion: 'Nidalee',
       championKey: 'Nidalee',
       team: TEAM_KEY.GENG,
-      color: '#eab308',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nidalee.png',
+      color: '#fbbf24',
+      avatarUrl: '/images/players/canyon.png',
     },
     {
       id: 'gen-chovy',
@@ -172,8 +174,8 @@ export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
       signatureChampion: 'Yone',
       championKey: 'Yone',
       team: TEAM_KEY.GENG,
-      color: '#fbbf24',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Yone.png',
+      color: '#eab308',
+      avatarUrl: '/images/players/chovy.png',
     },
     {
       id: 'gen-ruler',
@@ -184,7 +186,7 @@ export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
       championKey: 'Ezreal',
       team: TEAM_KEY.GENG,
       color: '#f97316',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ezreal.png',
+      avatarUrl: '/images/players/ruler.png',
     },
     {
       id: 'gen-duro',
@@ -195,7 +197,20 @@ export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
       championKey: 'Nautilus',
       team: TEAM_KEY.GENG,
       color: '#d97706',
-      avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nautilus.png',
+      avatarUrl: '/images/players/duro.png',
     },
   ],
+};
+
+export const findRosterPlayer = (championName: string, team: TeamType): RosterPlayer => {
+  const norm = championName.trim().toLowerCase();
+  const list = TEAM_ROSTERS[team];
+  const matched = list.find(
+    (p) =>
+      norm.includes(p.name.toLowerCase()) ||
+      norm.includes(p.signatureChampion.toLowerCase()) ||
+      p.signatureChampion.toLowerCase().includes(norm)
+  );
+  if (matched) return matched;
+  return list[Math.floor(Math.random() * list.length)];
 };

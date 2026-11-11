@@ -4,7 +4,7 @@ import { Boss2D } from './components/arena/Boss2D';
 import { GameCanvas } from './components/canvas/GameCanvas';
 import { HUDOverlay } from './components/ui/HUDOverlay';
 import { useGameStore } from './store/gameStore';
-import { SIMULATION_PRESETS, BOSS_STATUS } from './constants/game';
+import { SIMULATION_PRESETS, BOSS_STATUS, APP_TITLE } from './constants/game';
 import './services/socket'; // Auto-connects to Socket.io backend on port 4000
 
 export function App() {
@@ -16,19 +16,61 @@ export function App() {
   const screenShakeTimestamp = useGameStore((state) => state.screenShakeTimestamp);
   const pruneEntities = useGameStore((state) => state.pruneEntities);
   const bossStatus = useGameStore((state) => state.bossStatus);
-  const triggerBossAttack = useGameStore((state) => state.triggerBossAttack);
+  const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
+
+  const isBossDefeated = bossStatus === BOSS_STATUS.DEFEATED;
+
+  // Enforce document title to strictly match user branding
+  useEffect(() => {
+    document.title = APP_TITLE;
+  }, []);
 
   // Periodic Boss Retaliation Loop (Roar shockwave & lightning arcs)
   useEffect(() => {
-    if (bossStatus === BOSS_STATUS.DEFEATED) return;
+    if (isBossDefeated) return;
 
-    const intervalMs = bossStatus === BOSS_STATUS.ENRAGED ? 4500 : 8500;
     const interval = setInterval(() => {
-      triggerBossAttack();
-    }, intervalMs);
+      const state = useGameStore.getState();
+      if (state.bossStatus !== BOSS_STATUS.DEFEATED && state.minions.length > 0) {
+        state.triggerBossAttack();
+      }
+    }, 7500);
 
     return () => clearInterval(interval);
-  }, [bossStatus, triggerBossAttack]);
+  }, [isBossDefeated]);
+
+  // Periodic Boss Counterattack Loop with 4 Configurable Skills targeting Champions
+  useEffect(() => {
+    if (isBossDefeated || !bossSkillConfig.autoAttackEnabled) {
+      return;
+    }
+
+    let timerId: ReturnType<typeof setTimeout>;
+
+    const runAttackCycle = () => {
+      const baseInterval = bossSkillConfig.intervalMs || 4000;
+      const nextDelay = bossSkillConfig.randomIntervalEnabled
+        ? Math.round(baseInterval * (0.7 + Math.random() * 0.6))
+        : baseInterval;
+
+      timerId = setTimeout(() => {
+        const state = useGameStore.getState();
+        if (state.bossStatus !== BOSS_STATUS.DEFEATED && state.minions.length > 0) {
+          state.castBossSkill();
+        }
+        runAttackCycle();
+      }, nextDelay);
+    };
+
+    runAttackCycle();
+
+    return () => clearTimeout(timerId);
+  }, [
+    isBossDefeated,
+    bossSkillConfig.autoAttackEnabled,
+    bossSkillConfig.intervalMs,
+    bossSkillConfig.randomIntervalEnabled,
+  ]);
 
   // Expose store for debugging and prevent mobile browser scroll offset
   useEffect(() => {

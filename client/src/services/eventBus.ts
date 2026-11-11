@@ -1,4 +1,4 @@
-import { GameState } from '../types/game';
+import { GameState, OverlayVisibility } from '../types/game';
 
 export type GameBusEvent =
   | { type: 'SUMMON_MINION'; payload: { summonerName: string; championName: string; team: 'BLG' | 'GENG' } }
@@ -7,9 +7,14 @@ export type GameBusEvent =
   | { type: 'ADD_LIKE'; payload: { count: number; team: 'BLG' | 'GENG'; userName?: string } }
   | { type: 'SEND_CHAT'; payload: { userName: string; text: string; team?: 'BLG' | 'GENG'; championName?: string } }
   | { type: 'RESET_BOSS' }
+  | { type: 'START_NEXT_ROUND' }
+  | { type: 'RESET_BO5' }
+  | { type: 'SET_BO5_SCORE'; payload: { blg: number; geng: number; currentRound?: number } }
   | { type: 'SET_BOSS_HP'; payload: { hp: number } }
   | { type: 'SET_ENRAGED'; payload: { isEnraged: boolean } }
   | { type: 'TOGGLE_BOT'; payload: { isActive: boolean; speedMs: number } }
+  | { type: 'SET_OVERLAY_VISIBILITY'; payload: Partial<OverlayVisibility> }
+  | { type: 'SET_GAME_THEME'; payload: { theme: 'BARON' | 'ELDER_DRAGON' } }
   | { type: 'SYNC_STATE_REQUEST' }
   | { type: 'SYNC_STATE_RESPONSE'; payload: Partial<GameState> };
 

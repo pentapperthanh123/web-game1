@@ -7,6 +7,8 @@ export const TeamScoreBoard = () => {
   const { t } = useTranslation();
   const teamScoreBLG = useGameStore((state) => state.teamScoreBLG);
   const teamScoreGENG = useGameStore((state) => state.teamScoreGENG);
+  const bo5Score = useGameStore((state) => state.bo5Score);
+  const currentRound = useGameStore((state) => state.currentRound);
 
   const totalScore = teamScoreBLG + teamScoreGENG;
   let blgRatio = 50;
@@ -40,14 +42,48 @@ export const TeamScoreBoard = () => {
           </div>
         </div>
 
-        {/* Center Worlds VS Crest */}
+        {/* Center Worlds BO5 & VS Crest */}
         <div className="flex flex-col items-center px-1.5 shrink-0">
-          <div className="w-6 h-6 rounded-full bg-slate-950 border-2 border-slate-700 flex items-center justify-center shadow-[0_0_10px_rgba(0,0,0,0.8)]">
-            <Swords className="w-3 h-3 text-amber-400" />
+          <div className="text-[8px] font-black tracking-widest text-slate-300 uppercase bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full mb-1 shadow flex items-center space-x-1">
+            <Swords className="w-2.5 h-2.5 text-amber-400" />
+            <span>{t('Game.roundLabel', 'VÁN {{round}} / BO5', { round: currentRound })}</span>
           </div>
-          <span className="text-[7px] font-black tracking-widest text-slate-400 uppercase mt-0.5">
-            {t('Game.vs', 'VS')}
-          </span>
+
+          {/* Win Pips + Score */}
+          <div className="flex items-center space-x-1.5 bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-md shadow-inner">
+            {/* BLG Win Pips */}
+            <div className="flex items-center space-x-1" title={`BLG thắng ${bo5Score.BLG} ván`}>
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={`blg-pip-${i}`}
+                  className={`w-2 h-2 rotate-45 border transition-all ${
+                    i < bo5Score.BLG
+                      ? 'bg-cyan-400 border-cyan-300 shadow-[0_0_6px_#06b6d4]'
+                      : 'bg-slate-900 border-slate-700'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Score */}
+            <span className="font-mono text-xs font-black text-white px-0.5">
+              {bo5Score.BLG} - {bo5Score.GENG}
+            </span>
+
+            {/* GEN.G Win Pips */}
+            <div className="flex items-center space-x-1" title={`GEN.G thắng ${bo5Score.GENG} ván`}>
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={`gen-pip-${i}`}
+                  className={`w-2 h-2 rotate-45 border transition-all ${
+                    i < bo5Score.GENG
+                      ? 'bg-amber-400 border-amber-300 shadow-[0_0_6px_#f59e0b]'
+                      : 'bg-slate-900 border-slate-700'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* GEN.G Team Block */}

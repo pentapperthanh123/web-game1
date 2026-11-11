@@ -10,42 +10,85 @@ import {
   Play,
   Square,
   Sparkles,
+  Flame,
   ExternalLink,
   Crown,
   Trash2,
   Send,
   Zap,
+  MapPin,
 } from 'lucide-react';
 import { adminSocket } from './services/socket';
 import { BLGLogo, GenGLogo } from './components/TeamLogos';
+import { OverlayControls } from './components/OverlayControls';
+import { BossSkillControls } from './components/BossSkillControls';
 
-const BLG_ROSTER = [
-  { name: 'Bin', role: 'TOP', champ: 'Jax', avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jax.png' },
-  { name: 'Xun', role: 'JUG', champ: 'Xin Zhao', avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/XinZhao.png' },
-  { name: 'knight', role: 'MID', champ: 'Ahri', avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ahri.png' },
-  { name: 'Elk', role: 'ADC', champ: "Kai'Sa", avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kaisa.png' },
-  { name: 'ON', role: 'SUP', champ: 'Rakan', avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rakan.png' },
+const ADMIN_APP_TITLE = 'LOL CKTG';
+
+const RANDOM_CHAMPION_LIST = [
+  'Jax',
+  'Xin Zhao',
+  'Ahri',
+  "Kai'Sa",
+  'Rakan',
+  "K'Sante",
+  'Nidalee',
+  'Yone',
+  'Ezreal',
+  'Nautilus',
+  'Zed',
+  'Yasuo',
+  'Lee Sin',
+  'Aatrox',
+  'Lux',
+  'Akali',
+  'Sylas',
+  'Vayne',
+  'Jinx',
+  'Orianna',
+  'Azir',
+  'Irelia',
+  'Caitlyn',
 ];
 
-const GENG_ROSTER = [
-  { name: 'Kiin', role: 'TOP', champ: "K'Sante", avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/KSante.png' },
-  { name: 'Canyon', role: 'JUG', champ: 'Nidalee', avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nidalee.png' },
-  { name: 'Chovy', role: 'MID', champ: 'Yone', avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Yone.png' },
-  { name: 'Ruler', role: 'ADC', champ: 'Ezreal', avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ezreal.png' },
-  { name: 'Duro', role: 'SUP', champ: 'Nautilus', avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nautilus.png' },
+const RANDOM_SPECTATOR_NAMES = [
+  'Gamer_Pro_99',
+  'Fan_Faker_VIP',
+  'Bin_WarLord',
+  'Chovy_God',
+  'Knight_Super',
+  'Viper_Sniper',
+  'On_God',
+  'Kiin_TopGod',
+  'Canyon_Apex',
+  'Ruler_Legend',
+  'Duro_Shield',
+  'SofM_ChienThan',
+  'Top1_ThachDau',
+  'HuyHuyenThoai',
+  'ThanhLong_CKTG',
 ];
 
 const CHAMPION_PRESETS = [
-  { name: 'Zed', role: 'Sát Thủ' },
-  { name: 'Yasuo', role: 'Đấu Sĩ' },
-  { name: 'Ahri', role: 'Pháp Sư' },
-  { name: 'Lee Sin', role: 'Đi Rừng' },
-  { name: 'Aatrox', role: 'Đường Trên' },
-  { name: 'Lux', role: 'Hỗ Trợ' },
-  { name: 'Akali', role: 'Sát Thủ' },
-  { name: 'Bin Đao Phủ', role: 'Siêu Sao BLG' },
-  { name: 'Chovy CKTG', role: 'Siêu Sao GEN' },
-  { name: 'Faker Quỷ Vương', role: 'Huyền Thoại' },
+  { name: '🎲 Ngẫu Nhiên (Random)', role: 'Tự Động Chọn Mỗi Lượt' },
+  { name: 'Jax', role: 'Đấu Sĩ / Bậc Thầy Vũ Khí' },
+  { name: 'Xin Zhao', role: 'Đấu Sĩ / Tể Tướng Demacia' },
+  { name: 'Ahri', role: 'Pháp Sư / Hồ Ly Chín Đuôi' },
+  { name: "Kai'Sa", role: 'Xạ Thủ / Ái Nữ Hư Không' },
+  { name: 'Rakan', role: 'Hỗ Trợ / Vũ Sư Quyến Rũ' },
+  { name: "K'Sante", role: 'Đỡ Đòn / Niềm Tự Hào Nazumah' },
+  { name: 'Nidalee', role: 'Sát Thủ / Nữ Thợ Săn Hóa Thú' },
+  { name: 'Yone', role: 'Sát Thủ / Kẻ Về Từ Cõi Chết' },
+  { name: 'Ezreal', role: 'Xạ Thủ / Nhà Thám Hiểm' },
+  { name: 'Nautilus', role: 'Đỡ Đòn / Khổng Lồ Đáy Sâu' },
+  { name: 'Zed', role: 'Sát Thủ / Chúa Tể Bóng Tối' },
+  { name: 'Yasuo', role: 'Đấu Sĩ / Kẻ Bất Dung Thứ' },
+  { name: 'Lee Sin', role: 'Đi Rừng / Thầy Tu Mù' },
+  { name: 'Aatrox', role: 'Đấu Sĩ / Quỷ Kiếm Darkin' },
+  { name: 'Lux', role: 'Pháp Sư / Tiểu Thư Ánh Sáng' },
+  { name: 'Akali', role: 'Sát Thủ / Sát Thủ Đơn Độc' },
+  { name: 'Sylas', role: 'Đấu Sĩ / Kẻ Phá Xiềng' },
+  { name: 'Vayne', role: 'Xạ Thủ / Thợ Săn Bóng Đêm' },
 ];
 
 const GIFT_PRESETS = [
@@ -66,6 +109,117 @@ interface LogItem {
   team?: string;
 }
 
+export const detectSummonCommand = (
+  text: string,
+  defaultTeam: 'BLG' | 'GENG' = 'BLG'
+): { championName: string; team: 'BLG' | 'GENG' } | null => {
+  if (!text || !text.trim()) return null;
+
+  const upper = text.toUpperCase().trim();
+
+  let team: 'BLG' | 'GENG' | undefined = undefined;
+  if (upper.includes('BLG')) {
+    team = 'BLG';
+  } else if (upper.includes('GENG') || upper.includes('GEN.G') || upper.includes('GEN')) {
+    team = 'GENG';
+  }
+
+  const rosterBLG = ['BIN', 'XUN', 'WEI', 'KNIGHT', 'ELK', 'ON', 'JAX', 'XIN ZHAO', 'XINZHAO', 'RAKAN', "KAI'SA", 'KAISA'];
+  const rosterGEN = ['KIIN', 'CANYON', 'CHOVY', 'RULER', 'DURO', 'PEYZ', 'LEHENDS', 'YONE', 'NIDALEE', 'EZREAL', 'NAUTILUS', 'LEONA', "K'SANTE", 'KSANTE'];
+  const generalChamps = ['ZED', 'YASUO', 'LUX', 'AHRI', 'LEE SIN', 'LEESIN', 'AATROX', 'FAKER', 'KALISTA', 'AZIR', 'AKALI'];
+
+  const canonicalNames: Record<string, string> = {
+    'BIN': 'Bin',
+    'XUN': 'Xun',
+    'WEI': 'Wei',
+    'KNIGHT': 'Knight',
+    'ELK': 'Elk',
+    'ON': 'ON',
+    'JAX': 'Jax',
+    'XIN ZHAO': 'Xin Zhao',
+    'XINZHAO': 'Xin Zhao',
+    'RAKAN': 'Rakan',
+    "KAI'SA": "Kai'Sa",
+    'KAISA': "Kai'Sa",
+    'KIIN': 'Kiin',
+    'CANYON': 'Canyon',
+    'CHOVY': 'Chovy',
+    'RULER': 'Ruler',
+    'DURO': 'Duro',
+    'PEYZ': 'Peyz',
+    'LEHENDS': 'Lehends',
+    'YONE': 'Yone',
+    'NIDALEE': 'Nidalee',
+    'EZREAL': 'Ezreal',
+    'NAUTILUS': 'Nautilus',
+    'LEONA': 'Leona',
+    "K'SANTE": "K'Sante",
+    'KSANTE': "K'Sante",
+    'ZED': 'Zed',
+    'YASUO': 'Yasuo',
+    'LUX': 'Lux',
+    'AHRI': 'Ahri',
+    'LEE SIN': 'Lee Sin',
+    'LEESIN': 'Lee Sin',
+    'AATROX': 'Aatrox',
+    'FAKER': 'Faker',
+    'KALISTA': 'Kalista',
+    'AZIR': 'Azir',
+    'AKALI': 'Akali',
+  };
+
+  let detectedChampion: string | undefined = undefined;
+
+  // 1. Check BLG specific
+  for (const name of rosterBLG) {
+    if (upper.includes(name)) {
+      detectedChampion = canonicalNames[name] || name;
+      if (!team) team = 'BLG';
+      break;
+    }
+  }
+
+  // 2. Check GEN specific
+  if (!detectedChampion) {
+    for (const name of rosterGEN) {
+      if (upper.includes(name)) {
+        detectedChampion = canonicalNames[name] || name;
+        if (!team) team = 'GENG';
+        break;
+      }
+    }
+  }
+
+  // 3. Check general champions
+  if (!detectedChampion) {
+    for (const name of generalChamps) {
+      if (upper.includes(name)) {
+        detectedChampion = canonicalNames[name] || name;
+        break;
+      }
+    }
+  }
+
+  // 4. Check random commands
+  if (!detectedChampion) {
+    if (
+      upper.includes('RANDOM') ||
+      upper.includes('NGAU NHIEN') ||
+      upper.includes('NGAUNHIEN')
+    ) {
+      const pool = ['Bin', 'Knight', 'Chovy', 'Ruler', 'Zed', 'Yasuo', 'Lux', 'Ahri', 'Jax', 'Yone', 'Faker', 'Aatrox'];
+      detectedChampion = pool[Math.floor(Math.random() * pool.length)];
+    }
+  }
+
+  if (!detectedChampion) return null;
+
+  return {
+    championName: detectedChampion,
+    team: team || defaultTeam,
+  };
+};
+
 export function App() {
   // TikTok Live connection state
   const [tiktokUsername, setTiktokUsername] = useState('sofm_official');
@@ -85,9 +239,23 @@ export function App() {
   const [customComment, setCustomComment] = useState('BLG vô địch CKTG 2026!');
   const [chatTeam, setChatTeam] = useState<'BLG' | 'GENG'>('BLG');
 
+  const [selectedTheme, setSelectedTheme] = useState<'BARON' | 'ELDER_DRAGON'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('lol_game_theme_config');
+      if (stored === 'ELDER_DRAGON') return 'ELDER_DRAGON';
+    }
+    return 'BARON';
+  });
   const [bossHp, setBossHp] = useState(100000);
   const [isBotActive, setIsBotActive] = useState(false);
+  const [isAutoSummonActive, setIsAutoSummonActive] = useState(false);
+  const [autoSummonSpeed, setAutoSummonSpeed] = useState(800);
+  const [autoSummonBatchSize, setAutoSummonBatchSize] = useState(2);
+  const [autoSummonAlternateTeams, setAutoSummonAlternateTeams] = useState(true);
+  const [autoSummonRandomChampions, setAutoSummonRandomChampions] = useState(true);
   const [botSpeed, setBotSpeed] = useState(1200);
+  const [bo5Score, setBo5Score] = useState({ BLG: 0, GENG: 0 });
+  const [currentRound, setCurrentRound] = useState(1);
 
   const [logs, setLogs] = useState<LogItem[]>([]);
 
@@ -102,7 +270,70 @@ export function App() {
     setLogs((prev) => [newLog, ...prev.slice(0, 99)]);
   };
 
+  const handleBo5Control = (
+    action: 'reset' | 'nextRound' | 'setScore',
+    blg?: number,
+    geng?: number,
+    round?: number
+  ) => {
+    if (action === 'reset') {
+      setBo5Score({ BLG: 0, GENG: 0 });
+      setCurrentRound(1);
+      adminSocket.emit('admin:bo5-control', { action: 'reset' });
+      addLog('SYSTEM', '🔄 Đã Reset toàn bộ kết quả trận đấu BO5 về 0 - 0 (Ván 1)');
+      return;
+    }
+
+    if (action === 'nextRound') {
+      const nextRound = Math.min(5, currentRound + 1);
+      setCurrentRound(nextRound);
+      adminSocket.emit('admin:bo5-control', { action: 'nextRound' });
+      addLog('SYSTEM', `⚔️ Chuyển sang Ván ${nextRound} / BO5`);
+      return;
+    }
+
+    if (action === 'setScore') {
+      const nextBlg = Math.max(0, Math.min(3, blg ?? bo5Score.BLG));
+      const nextGeng = Math.max(0, Math.min(3, geng ?? bo5Score.GENG));
+      const nextRound = round ?? Math.min(5, nextBlg + nextGeng + 1);
+      setBo5Score({ BLG: nextBlg, GENG: nextGeng });
+      setCurrentRound(nextRound);
+      adminSocket.emit('admin:bo5-control', {
+        action: 'setScore',
+        blg: nextBlg,
+        geng: nextGeng,
+        currentRound: nextRound,
+      });
+      addLog('SYSTEM', `⚙️ Cập nhật điểm BO5: BLG ${nextBlg} - ${nextGeng} GEN.G (Ván ${nextRound})`);
+    }
+  };
+
+  const handleSelectTheme = (theme: 'BARON' | 'ELDER_DRAGON') => {
+    setSelectedTheme(theme);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('lol_game_theme_config', theme);
+      } catch {
+        // ignore
+      }
+    }
+    adminSocket.setGameTheme(theme);
+    addLog(
+      'SYSTEM',
+      `🗺️ Đã đổi bản đồ sang: ${theme === 'ELDER_DRAGON' ? 'Hang Rồng Ngàn Tuổi (Elder Dragon)' : 'Hang Baron Hư Không'}`
+    );
+  };
+
   useEffect(() => {
+    // Set document title strictly to LOL CKTG
+    document.title = ADMIN_APP_TITLE;
+
+    const unsubscribeTheme = adminSocket.onGameTheme((data) => {
+      if (data?.theme) {
+        setSelectedTheme(data.theme);
+      }
+    });
+
     const unsubscribe = adminSocket.onTiktokStatus((data) => {
       setTiktokStatus(data.status);
       if (data.roomId) setTiktokRoomId(data.roomId);
@@ -112,7 +343,10 @@ export function App() {
         addLog('SYSTEM', `Lỗi kết nối: ${data.error || 'Không xác định'}`);
       }
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      unsubscribeTheme();
+    };
   }, []);
 
   // Bot simulation runner
@@ -153,6 +387,73 @@ export function App() {
     return () => clearInterval(interval);
   }, [isBotActive, botSpeed]);
 
+  useEffect(() => {
+    if (!isAutoSummonActive) return;
+
+    let currentTeam = selectedTeam;
+    const interval = setInterval(() => {
+      const championsPerWave = Math.max(1, Math.min(4, autoSummonBatchSize));
+
+      for (let i = 0; i < championsPerWave; i++) {
+        const champTeam = autoSummonAlternateTeams
+          ? (i % 2 === 0 ? currentTeam : (currentTeam === 'BLG' ? 'GENG' : 'BLG'))
+          : selectedTeam;
+
+        let targetChampName = selectedChampion;
+        if (autoSummonRandomChampions || selectedChampion.includes('Ngẫu Nhiên')) {
+          const rawChamp = RANDOM_CHAMPION_LIST[Math.floor(Math.random() * RANDOM_CHAMPION_LIST.length)];
+          const match = rawChamp.match(/\((.*?)\)/);
+          targetChampName = match && match[1] ? match[1] : rawChamp;
+        } else if (targetChampName.includes('(')) {
+          const match = targetChampName.match(/\((.*?)\)/);
+          if (match && match[1]) {
+            targetChampName = match[1];
+          }
+        }
+
+        const randomSpectator =
+          RANDOM_SPECTATOR_NAMES[Math.floor(Math.random() * RANDOM_SPECTATOR_NAMES.length)];
+        const randomNum = Math.floor(Math.random() * 899) + 100;
+        const baseName = summonerName.trim() || randomSpectator;
+        const user = `${baseName}_${randomNum}`;
+
+        adminSocket.emit('admin:summon', {
+          summonerName: user,
+          championName: targetChampName,
+          team: champTeam,
+        });
+
+        adminSocket.emit('admin:chat', {
+          userName: user,
+          text: `${targetChampName} ${champTeam}`,
+          team: champTeam,
+          championName: targetChampName,
+        });
+
+        addLog(
+          'SUMMON',
+          `⚡ [Auto] ${user} triệu hồi [${targetChampName}] phe ${champTeam}`,
+          champTeam
+        );
+      }
+
+      if (autoSummonAlternateTeams) {
+        currentTeam = currentTeam === 'BLG' ? 'GENG' : 'BLG';
+      }
+    }, autoSummonSpeed);
+
+    return () => clearInterval(interval);
+  }, [
+    isAutoSummonActive,
+    autoSummonSpeed,
+    autoSummonBatchSize,
+    autoSummonAlternateTeams,
+    autoSummonRandomChampions,
+    selectedTeam,
+    selectedChampion,
+    summonerName,
+  ]);
+
   const handleConnectTiktok = async () => {
     setIsConnecting(true);
     try {
@@ -172,13 +473,62 @@ export function App() {
   };
 
   const handleSummon = () => {
+    let finalChamp = selectedChampion;
+    if (finalChamp.includes('Ngẫu Nhiên') || finalChamp.includes('Random')) {
+      finalChamp = RANDOM_CHAMPION_LIST[Math.floor(Math.random() * RANDOM_CHAMPION_LIST.length)];
+    }
     const user = summonerName.trim() || 'Viewer_Anonym';
     adminSocket.emit('admin:summon', {
       summonerName: user,
-      championName: selectedChampion,
+      championName: finalChamp,
       team: selectedTeam,
     });
-    addLog('SUMMON', `${user} triệu hồi [${selectedChampion}] phe ${selectedTeam}`, selectedTeam);
+    addLog('SUMMON', `${user} triệu hồi [${finalChamp}] phe ${selectedTeam}`, selectedTeam);
+  };
+
+  const handleRandomSummon = (teamOverride?: 'BLG' | 'GENG') => {
+    const chosenTeam = teamOverride || selectedTeam;
+    const randomChamp = RANDOM_CHAMPION_LIST[Math.floor(Math.random() * RANDOM_CHAMPION_LIST.length)];
+    const randomName = summonerName.trim() || RANDOM_SPECTATOR_NAMES[Math.floor(Math.random() * RANDOM_SPECTATOR_NAMES.length)];
+
+    adminSocket.emit('admin:summon', {
+      summonerName: randomName,
+      championName: randomChamp,
+      team: chosenTeam,
+    });
+    addLog('SUMMON', `🎲 Triệu hồi ngẫu nhiên: [${randomChamp}] phe ${chosenTeam} bởi ${randomName}`, chosenTeam);
+  };
+
+  const handleSwarmSummon = (count = 10) => {
+    let team: 'BLG' | 'GENG' = selectedTeam;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        team = i % 2 === 0 ? 'BLG' : 'GENG';
+        const rawChamp =
+          RANDOM_CHAMPION_LIST[Math.floor(Math.random() * RANDOM_CHAMPION_LIST.length)];
+        const match = rawChamp.match(/\((.*?)\)/);
+        const champName = match && match[1] ? match[1] : rawChamp;
+        const randomSpectator =
+          RANDOM_SPECTATOR_NAMES[Math.floor(Math.random() * RANDOM_SPECTATOR_NAMES.length)];
+        const randomNum = Math.floor(Math.random() * 899) + 100;
+        const user = `${randomSpectator}_${randomNum}`;
+
+        adminSocket.emit('admin:summon', {
+          summonerName: user,
+          championName: champName,
+          team,
+        });
+
+        adminSocket.emit('admin:chat', {
+          userName: user,
+          text: `${champName} ${team}!`,
+          team,
+          championName: champName,
+        });
+
+        addLog('SUMMON', `🔥 [Quân Đoàn] ${user} triệu hồi [${champName}] phe ${team}`, team);
+      }, i * 75);
+    }
   };
 
   const handleSendGift = () => {
@@ -202,13 +552,43 @@ export function App() {
   };
 
   const handleSendCustomChat = () => {
-    if (!customComment.trim()) return;
-    adminSocket.emit('admin:chat', {
-      userName: summonerName || 'Viewer',
-      text: customComment,
-      team: chatTeam,
-    });
-    addLog('CHAT', `[${chatTeam}] ${summonerName}: ${customComment}`, chatTeam);
+    const trimmed = customComment.trim();
+    if (!trimmed) return;
+
+    const user = summonerName.trim() || 'Viewer';
+    const summonResult = detectSummonCommand(trimmed, chatTeam);
+
+    if (summonResult) {
+      // 1. Emit summon minion event directly
+      adminSocket.emit('admin:summon', {
+        summonerName: user,
+        championName: summonResult.championName,
+        team: summonResult.team,
+      });
+
+      // 2. Emit chat event with detected champion
+      adminSocket.emit('admin:chat', {
+        userName: user,
+        text: trimmed,
+        team: summonResult.team,
+        championName: summonResult.championName,
+      });
+
+      addLog(
+        'SUMMON',
+        `💬 [Chat Summon] ${user} triệu hồi [${summonResult.championName}] phe ${summonResult.team}`,
+        summonResult.team
+      );
+    } else {
+      // Normal chat broadcast
+      adminSocket.emit('admin:chat', {
+        userName: user,
+        text: trimmed,
+        team: chatTeam,
+      });
+      addLog('CHAT', `[${chatTeam}] ${user}: ${trimmed}`, chatTeam);
+    }
+
     setCustomComment('');
   };
 
@@ -237,23 +617,23 @@ export function App() {
               <h1 className="text-2xl font-black tracking-wide text-white flex items-center space-x-2">
                 <span>TIKTOK LIVE ADMIN PORTAL</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800">
-                  PORT 3001
+                  PORT 8001
                 </span>
               </h1>
               <p className="text-xs text-slate-400">
-                Bảng điều khiển độc lập kết nối WebSocket tới Server (Port 4000) & Game View (Port 3000)
+                Bảng điều khiển độc lập kết nối WebSocket tới Server (Port 4000) & Game View (Port 8000)
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
             <a
-              href="http://localhost:3000"
+              href="http://localhost:8000"
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-xs font-bold text-cyan-300 flex items-center space-x-2 shadow-lg transition"
             >
-              <span>Mở Màn Hình Game OBS (Port 3000)</span>
+              <span>Mở Màn Hình Game OBS (Port 8000)</span>
               <ExternalLink className="w-4 h-4" />
             </a>
 
@@ -413,17 +793,21 @@ export function App() {
                   value={customComment}
                   onChange={(e) => setCustomComment(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendCustomChat()}
-                  placeholder="Nhập nội dung chat..."
+                  placeholder="Nhập chat triệu hồi (vd: Knight, Zed, Yasuo GEN)..."
                   className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500"
                 />
                 <button
                   type="button"
                   onClick={handleSendCustomChat}
+                  title="Gửi bình luận & triệu hồi tướng"
                   className="p-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white"
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </div>
+              <p className="text-[10px] text-slate-400">
+                💡 <span className="text-cyan-400">Chat tên tướng/tuyển thủ</span> (ví dụ: <code className="text-amber-300">Knight</code>, <code className="text-cyan-300">Zed</code>, <code className="text-amber-300">Chovy</code>, <code className="text-cyan-300">random</code>) để triệu hồi trực tiếp!
+              </p>
             </div>
           </div>
 
@@ -471,46 +855,11 @@ export function App() {
                 </div>
               </div>
 
-              {/* 5-Player CKTG Roster Quick Pick */}
               <div>
                 <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                  Đội Hình Tuyển Thủ CKTG ({selectedTeam})
+                  Chọn Tướng Triệu Hồi LMHT ({CHAMPION_PRESETS.length} Tướng)
                 </label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {(selectedTeam === 'BLG' ? BLG_ROSTER : GENG_ROSTER).map((p) => (
-                    <button
-                      key={p.name}
-                      type="button"
-                      onClick={() => setSelectedChampion(`${p.name} (${p.champ})`)}
-                      className={`p-1.5 rounded-xl text-center transition border flex flex-col items-center ${
-                        selectedChampion.includes(p.name)
-                          ? selectedTeam === 'BLG'
-                            ? 'bg-cyan-950 border-cyan-400 text-cyan-300 shadow-[0_0_10px_#06b6d4]'
-                            : 'bg-amber-950 border-amber-400 text-amber-300 shadow-[0_0_10px_#f59e0b]'
-                          : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-700 mb-1">
-                        <img
-                          src={p.avatarUrl}
-                          alt={p.champ}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        <span className="absolute bottom-0 right-0 bg-slate-950/80 text-[7px] font-black px-0.5 rounded text-white leading-none">
-                          {p.role}
-                        </span>
-                      </div>
-                      <div className="text-[10px] font-black leading-tight">{p.name}</div>
-                      <div className="text-[8px] text-slate-400 truncate w-full">{p.champ}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-slate-400 block mb-1">Chọn Tướng Triệu Hồi</label>
-                <div className="grid grid-cols-2 gap-1 max-h-36 overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
                   {CHAMPION_PRESETS.map((c) => (
                     <button
                       key={c.name}
@@ -528,13 +877,129 @@ export function App() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleSummon}
+                  className="py-2 px-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow flex items-center justify-center space-x-1"
+                >
+                  <Swords className="w-3.5 h-3.5" />
+                  <span>Triệu Hồi Ngay</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRandomSummon()}
+                  className="py-2 px-2 rounded-lg bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:from-purple-500 hover:to-amber-400 text-white font-black text-xs uppercase tracking-wide transition shadow-[0_0_12px_rgba(236,72,153,0.5)] flex items-center justify-center space-x-1"
+                  title="Triệu hồi ngay 1 tướng ngẫu nhiên từ danh sách"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
+                  <span>🎲 Tướng Ngẫu Nhiên</span>
+                </button>
+              </div>
+
+              {/* Swarm Army Burst Button */}
               <button
                 type="button"
-                onClick={handleSummon}
-                className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow"
+                onClick={() => handleSwarmSummon(10)}
+                className="w-full py-2 px-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider transition shadow-[0_0_16px_rgba(245,158,11,0.5)] flex items-center justify-center space-x-1.5 active:scale-95"
+                title="Triệu hồi ngay 10 tướng ngẫu nhiên tấn công ồ ạt"
               >
-                Triệu Hồi Ngay
+                <Flame className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
+                <span>🔥 Bão Quân Đoàn (+10 Tướng)</span>
               </button>
+
+              {/* Auto Summon Continuous Controls */}
+              <div className="pt-2.5 border-t border-slate-800 space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAutoSummonActive(!isAutoSummonActive)}
+                  className={`w-full py-2.5 px-3 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all duration-200 shadow-md ${
+                    isAutoSummonActive
+                      ? 'bg-rose-950/90 border-rose-500 text-rose-200 shadow-[0_0_16px_rgba(244,63,94,0.5)]'
+                      : 'bg-emerald-950/90 border-emerald-500 text-emerald-200 hover:bg-emerald-900/80 shadow-[0_0_16px_rgba(16,185,129,0.4)]'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full ${
+                        isAutoSummonActive ? 'bg-rose-400 animate-ping' : 'bg-emerald-400'
+                      }`}
+                    />
+                    <span>{isAutoSummonActive ? 'DỪNG TỰ ĐỘNG TRIỆU HỒI' : 'BẬT TỰ ĐỘNG TRIỆU HỒI'}</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 text-xs font-mono">
+                    {isAutoSummonActive ? (
+                      <Square className="w-3.5 h-3.5 fill-current text-rose-400" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Auto-Summon Speed Slider & Alternate Toggle */}
+                <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
+                  <div className="flex justify-between items-center text-[11px] font-semibold">
+                    <span className="text-slate-400">Tốc độ tự động:</span>
+                    <span className="font-mono text-cyan-400 font-bold">{autoSummonSpeed} ms / lượt</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="200"
+                    max="2000"
+                    step="100"
+                    value={autoSummonSpeed}
+                    onChange={(e) => setAutoSummonSpeed(Number(e.target.value))}
+                    className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
+                  />
+                  {/* Batch Size Selector */}
+                  <div className="flex justify-between items-center text-[11px] font-semibold pt-1 border-t border-slate-800/80">
+                    <span className="text-slate-400">Số tướng mỗi đợt:</span>
+                    <div className="flex space-x-1">
+                      {[1, 2, 3, 4, 6, 8].map((count) => (
+                        <button
+                          key={count}
+                          type="button"
+                          onClick={() => setAutoSummonBatchSize(count)}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono transition ${
+                            autoSummonBatchSize === count
+                              ? 'bg-cyan-500 text-slate-950 shadow-[0_0_8px_#00f2fe]'
+                              : 'bg-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {count}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px]">
+                    <label className="flex items-center space-x-1.5 text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoSummonAlternateTeams}
+                        onChange={(e) => setAutoSummonAlternateTeams(e.target.checked)}
+                        className="rounded accent-cyan-500 w-3.5 h-3.5"
+                      />
+                      <span>Luân phiên 2 phe (BLG ⚔️ GEN)</span>
+                    </label>
+                    <span className="text-slate-500 font-mono">
+                      {autoSummonAlternateTeams ? 'Cả 2 phe' : `Phe ${selectedTeam}`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px]">
+                    <label className="flex items-center space-x-1.5 text-pink-300 font-bold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoSummonRandomChampions}
+                        onChange={(e) => setAutoSummonRandomChampions(e.target.checked)}
+                        className="rounded accent-pink-500 w-3.5 h-3.5"
+                      />
+                      <span>🎲 Triệu hồi ngẫu nhiên tất cả tướng ({RANDOM_CHAMPION_LIST.length} tướng)</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -664,6 +1129,53 @@ export function App() {
                 </div>
               </div>
 
+              {/* BO5 Match State & Controls */}
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center space-x-1">
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Trận Đấu BO5 (Ván {currentRound}/5)</span>
+                  </span>
+                  <span className="font-mono text-xs font-black text-cyan-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                    BLG {bo5Score.BLG} - {bo5Score.GENG} GEN
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleBo5Control('setScore', bo5Score.BLG + 1, bo5Score.GENG)}
+                    className="py-1 px-2 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[10px] font-bold transition active:scale-95"
+                  >
+                    +1 Ván BLG
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBo5Control('setScore', bo5Score.BLG, bo5Score.GENG + 1)}
+                    className="py-1 px-2 rounded bg-amber-950 hover:bg-amber-900 border border-amber-800 text-amber-300 text-[10px] font-bold transition active:scale-95"
+                  >
+                    +1 Ván GEN.G
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleBo5Control('nextRound')}
+                    className="py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold transition active:scale-95"
+                  >
+                    Ván Kế Tiếp ⏩
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBo5Control('reset')}
+                    className="py-1 px-2 rounded bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[10px] font-bold transition active:scale-95"
+                  >
+                    Reset BO5 (0-0)
+                  </button>
+                </div>
+              </div>
+
               <div className="pt-2 border-t border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white">Bão Comment Bot</span>
@@ -697,6 +1209,97 @@ export function App() {
             </div>
           </div>
         </div>
+
+        {/* Map / Arena Theme Switcher Section */}
+        <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center space-x-2 text-xs font-black uppercase text-white">
+              <MapPin className="w-4 h-4 text-emerald-400" />
+              <span>5. Bản Đồ & Theme Trận Đấu (Map / Arena Theme)</span>
+            </div>
+            <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-2 py-0.5 rounded-full">
+              Đang chọn: {selectedTheme === 'ELDER_DRAGON' ? '🐉 Hang Rồng Ngàn Tuổi' : '🟣 Hang Baron Nashor'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Card 1: Baron Nashor */}
+            <button
+              type="button"
+              onClick={() => handleSelectTheme('BARON')}
+              className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${
+                selectedTheme === 'BARON'
+                  ? 'bg-purple-950/90 border-purple-400 shadow-[0_0_18px_rgba(168,85,247,0.5)] scale-[1.01]'
+                  : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+              }`}
+            >
+              <div className="w-12 h-12 rounded-lg bg-purple-900/60 border border-purple-500/60 flex items-center justify-center shrink-0 overflow-hidden">
+                <img
+                  src="/images/boss_baron_2d.png"
+                  alt="Baron Nashor"
+                  className="w-10 h-10 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-white">Hang Baron Hư Không</span>
+                  {selectedTheme === 'BARON' && (
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-600 text-white">
+                      ĐANG DÙNG
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  Quái thú Baron Nashor CKTG • Tông tím Hư Không huyền bí
+                </div>
+              </div>
+            </button>
+
+            {/* Card 2: Elder Dragon */}
+            <button
+              type="button"
+              onClick={() => handleSelectTheme('ELDER_DRAGON')}
+              className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${
+                selectedTheme === 'ELDER_DRAGON'
+                  ? 'bg-gradient-to-r from-amber-950/90 to-cyan-950/90 border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.55)] scale-[1.01]'
+                  : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+              }`}
+            >
+              <div className="w-12 h-12 rounded-lg bg-amber-900/60 border border-amber-500/60 flex items-center justify-center shrink-0 overflow-hidden">
+                <img
+                  src="/images/elder_dragon_icon_135001.webp"
+                  alt="Elder Dragon"
+                  className="w-10 h-10 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-white">Hang Rồng Ngàn Tuổi (Elder)</span>
+                  {selectedTheme === 'ELDER_DRAGON' && (
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-600 text-slate-950">
+                      ĐANG DÙNG
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  Long Thần Ngàn Tuổi CKTG • Lửa Thiên Thanh & Vàng Kim rực lửa
+                </div>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        {/* Section 6: Boss Counterattack & 4 Skills Config */}
+        <BossSkillControls currentTheme={selectedTheme} />
+
+        {/* Section 7: Section Visibility Controls (Overlay Controls) */}
+        <OverlayControls />
 
         {/* Live Event Logs */}
         <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">

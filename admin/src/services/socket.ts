@@ -1,4 +1,6 @@
 import { io, Socket } from 'socket.io-client';
+import { OverlayVisibility } from '../types/overlay';
+import { BossSkillConfig } from '../types/bossSkill';
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
@@ -59,6 +61,12 @@ class AdminSocketService {
         case 'admin:like':
           mappedType = 'ADD_LIKE';
           break;
+        case 'admin:overlay-visibility':
+          mappedType = 'SET_OVERLAY_VISIBILITY';
+          break;
+        case 'admin:set-theme':
+          mappedType = 'SET_GAME_THEME';
+          break;
         case 'admin:chat':
           mappedType = 'SEND_CHAT';
           break;
@@ -73,6 +81,17 @@ class AdminSocketService {
             return;
           }
           break;
+        case 'admin:bo5-control':
+          if (payload.action === 'reset') mappedType = 'RESET_BO5';
+          if (payload.action === 'nextRound') mappedType = 'START_NEXT_ROUND';
+          if (payload.action === 'setScore') {
+            this.broadcastChannel.postMessage({
+              type: 'SET_BO5_SCORE',
+              payload: { blg: payload.blg, geng: payload.geng, currentRound: payload.currentRound },
+            });
+            return;
+          }
+          break;
         default:
           break;
       }
@@ -81,6 +100,50 @@ class AdminSocketService {
         this.broadcastChannel.postMessage({ type: mappedType, payload });
       }
     }
+  }
+
+  public setGameTheme(theme: 'BARON' | 'ELDER_DRAGON'): void {
+    this.emit('admin:set-theme', { theme });
+  }
+
+  public onGameTheme(callback: (data: { theme: 'BARON' | 'ELDER_DRAGON' }) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('game:theme', callback);
+    return () => {
+      this.socket?.off('game:theme', callback);
+    };
+  }
+
+  public setOverlayVisibility(payload: Partial<OverlayVisibility>): void {
+    this.emit('admin:overlay-visibility', payload);
+  }
+
+  public onOverlayVisibility(callback: (visibility: OverlayVisibility) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('game:overlay-visibility', callback);
+    return () => {
+      this.socket?.off('game:overlay-visibility', callback);
+    };
+  }
+
+  public setBossSkillConfig(payload: Partial<BossSkillConfig>): void {
+    this.emit('admin:boss-skill-config', payload);
+  }
+
+  public castBossSkill(skillIndex?: number): void {
+    this.emit('admin:boss-cast-skill', { skillIndex });
+  }
+
+  public healTeam(team: 'BLG' | 'GEN' | 'ALL', amount: number): void {
+    this.emit('admin:heal-team', { team, amount });
+  }
+
+  public onBossSkillConfig(callback: (config: BossSkillConfig) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('game:boss-skill-config', callback);
+    return () => {
+      this.socket?.off('game:boss-skill-config', callback);
+    };
   }
 
   public onTiktokStatus(callback: (status: any) => void): () => void {

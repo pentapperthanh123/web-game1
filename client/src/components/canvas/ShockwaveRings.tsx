@@ -3,6 +3,10 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
 
+// Static shared geometries to avoid allocating buffers on every crit/ultimate
+const SHARED_MAIN_RING_GEO = new THREE.RingGeometry(0.88, 0.94, 32);
+const SHARED_EDGE_RING_GEO = new THREE.RingGeometry(0.93, 0.95, 32);
+
 export const ShockwaveRings = () => {
   const groupRef = useRef<THREE.Group>(null);
   const activeShockwaves = useGameStore((state) => state.activeShockwaves);
@@ -29,35 +33,35 @@ export const ShockwaveRings = () => {
       ringGroup.children.forEach((child) => {
         const mesh = child as THREE.Mesh;
         const mat = mesh.material as THREE.MeshBasicMaterial;
-        mat.opacity = Math.max(0, (1 - progress) * 0.95);
+        mat.opacity = Math.max(0, (1 - progress) * 0.85);
       });
     }
   });
+
+  if (activeShockwaves.length === 0) return null;
 
   return (
     <group ref={groupRef} position={[0, -2.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       {activeShockwaves.map((wave) => (
         <group key={wave.id}>
-          {/* Main Colored Shockwave Ring */}
-          <mesh>
-            <ringGeometry args={[0.95, 1.25, 48]} />
+          {/* Main Colored Shockwave Ring - Crisp Arena Runic Edge */}
+          <mesh geometry={SHARED_MAIN_RING_GEO}>
             <meshBasicMaterial
               color={wave.color}
               transparent
-              opacity={0.85}
+              opacity={0.8}
               depthWrite={false}
               blending={THREE.AdditiveBlending}
               side={THREE.DoubleSide}
             />
           </mesh>
 
-          {/* Bright White Leading Edge Ring */}
-          <mesh>
-            <ringGeometry args={[1.18, 1.26, 48]} />
+          {/* Bright Leading Edge Ring */}
+          <mesh geometry={SHARED_EDGE_RING_GEO}>
             <meshBasicMaterial
               color="#ffffff"
               transparent
-              opacity={0.9}
+              opacity={0.85}
               depthWrite={false}
               blending={THREE.AdditiveBlending}
               side={THREE.DoubleSide}

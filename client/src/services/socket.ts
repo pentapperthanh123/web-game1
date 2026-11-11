@@ -51,11 +51,38 @@ class GameSocketClient {
         useGameStore.getState().addChatMessage(payload.userName, payload.text, payload.team, payload.championName);
       });
 
+      this.socket.on('game:overlay-visibility', (payload) => {
+        useGameStore.getState().setOverlayVisibility(payload);
+      });
+
+      this.socket.on('game:theme', (payload) => {
+        if (payload?.theme) useGameStore.getState().setGameTheme(payload.theme);
+      });
+
       this.socket.on('game:boss-control', (payload) => {
         const store = useGameStore.getState();
         if (payload.action === 'reset') store.resetBoss();
         if (payload.action === 'setHp') store.setBossHp(payload.hp);
         if (payload.action === 'setEnraged') store.setBossStatus(payload.isEnraged ? 'ENRAGED' : 'IDLE');
+      });
+
+      this.socket.on('game:bo5-control', (payload) => {
+        const store = useGameStore.getState();
+        if (payload.action === 'reset') store.resetBO5Match();
+        if (payload.action === 'nextRound') store.startNextRound();
+        if (payload.action === 'setScore') store.setBO5Score(payload.blg, payload.geng, payload.currentRound);
+      });
+
+      this.socket.on('game:boss-skill-config', (payload) => {
+        useGameStore.getState().setBossSkillConfig(payload);
+      });
+
+      this.socket.on('game:boss-cast-skill', (payload) => {
+        useGameStore.getState().castBossSkill(payload?.skillIndex);
+      });
+
+      this.socket.on('game:heal-team', (payload) => {
+        useGameStore.getState().healTeamChampions(payload?.team, payload?.amount);
       });
     } catch (err) {
       console.warn('[Game Socket] Could not connect to Server, using local EventBus fallback', err);

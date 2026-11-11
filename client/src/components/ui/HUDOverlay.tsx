@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Volume2, VolumeX } from 'lucide-react';
+import { useGameStore } from '../../store/gameStore';
 import { audioService } from '../../services/audioService';
 import { BossHealthBar } from './BossHealthBar';
 import { TeamScoreBoard } from './TeamScoreBoard';
@@ -13,9 +14,12 @@ import { VictoryOverlay } from './VictoryOverlay';
 import { ScreenFlash } from './ScreenFlash';
 import { TeamRosterBar } from './TeamRosterBar';
 import { SummonShowcase } from './SummonShowcase';
+import { ChampionArrowVFX } from './ChampionArrowVFX';
+import { BossSkillBanner } from './BossSkillBanner';
 
 export const HUDOverlay = () => {
   const { t } = useTranslation();
+  const overlayVisibility = useGameStore((state) => state.overlayVisibility);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
 
   const toggleAudio = () => {
@@ -31,6 +35,8 @@ export const HUDOverlay = () => {
     <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none z-10 overflow-hidden select-none">
       {/* Incandescent Flash on Ultimates */}
       <ScreenFlash />
+      <ChampionArrowVFX />
+      <BossSkillBanner />
 
       {/* Top Section: Esports Broadcast Header & Scores */}
       <header className="space-y-0.5 sm:space-y-1 shrink-0 pt-0.5">
@@ -55,13 +61,17 @@ export const HUDOverlay = () => {
           </button>
         </div>
 
-        <BossHealthBar />
-        <TeamScoreBoard />
+        {overlayVisibility.bossHealth && <BossHealthBar />}
+        {overlayVisibility.teamScores && <TeamScoreBoard />}
       </header>
 
       {/* Roster Bars on Left & Right Sides */}
-      <TeamRosterBar side="left" />
-      <TeamRosterBar side="right" />
+      {overlayVisibility.teamRosters && (
+        <>
+          <TeamRosterBar side="left" />
+          <TeamRosterBar side="right" />
+        </>
+      )}
 
       {/* Floating 3D & Summon Elements */}
       <SummonShowcase />
@@ -74,22 +84,27 @@ export const HUDOverlay = () => {
       {/* Bottom Section: Leaderboard, Live Chat Stream, Like Counter & Instructions */}
       <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0">
         {/* Floating Mini Leaderboard positioned above chat */}
-        <div className="flex justify-start px-1 pointer-events-auto">
-          <DPSLeaderboard />
-        </div>
+        {overlayVisibility.leaderboard && (
+          <div className="flex justify-start px-1 pointer-events-auto">
+            <DPSLeaderboard />
+          </div>
+        )}
+
 
         {/* Split Bottom Row: Live Chat on Left, Like Counter on Right */}
         <div className="flex items-end justify-between px-1">
-          <LiveChatStream />
-          <LikeCounter />
+          {overlayVisibility.chat ? <LiveChatStream /> : <div />}
+          {overlayVisibility.likeCounter ? <LikeCounter /> : <div />}
         </div>
 
         {/* Viewer Chat Guide */}
-        <div className="max-w-md mx-auto px-2 text-center pointer-events-auto">
+        {overlayVisibility.howToPlay && (
+          <div className="max-w-md mx-auto px-2 text-center pointer-events-auto">
           <div className="text-[10px] font-semibold text-cyan-200/90 bg-slate-950/75 border border-cyan-800/40 rounded-full py-1 px-3 backdrop-blur-md shadow-lg">
             {t('HUD.howToPlay', 'Chat: [Tên tướng] BLG hoặc [Tên tướng] GEN để triệu hồi chiến binh!')}
           </div>
         </div>
+      )}
       </footer>
     </div>
   );

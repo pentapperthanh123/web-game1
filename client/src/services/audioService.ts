@@ -1,113 +1,924 @@
-import { GAME_CONSTANTS } from '../constants/game';
+import {
+  GAME_CONSTANTS,
+  DAMAGE_TYPE,
+  DamageType,
+  CHAMPION_SKILL_VFX_TYPE,
+  ChampionSkillVFXType,
+  TEAM_KEY,
+  TeamType,
+} from '../constants/game';
 
 class AudioSynthesizerService {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private noiseBuffer: AudioBuffer | null = null;
+
   public isAudioEnabled: boolean = GAME_CONSTANTS.AUDIO.DEFAULT_ENABLED;
   public isTtsEnabled: boolean = GAME_CONSTANTS.AUDIO.DEFAULT_TTS_ENABLED;
   public volume: number = GAME_CONSTANTS.AUDIO.DEFAULT_VOLUME;
 
   private isSpeaking = false;
   private ttsQueue: string[] = [];
+  private lastHitSoundTime = 0;
+  private lastWhooshSoundTime = 0;
+  private lastRoarSoundTime = 0;
 
   constructor() {
-    // User interaction will resume audio context if suspended
     if (typeof window !== 'undefined') {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       const unlockAudio = () => {
         this.getAudioContext();
         window.removeEventListener('click', unlockAudio);
         window.removeEventListener('keydown', unlockAudio);
+        window.removeEventListener('touchstart', unlockAudio);
       };
       window.addEventListener('click', unlockAudio);
       window.addEventListener('keydown', unlockAudio);
+      window.addEventListener('touchstart', unlockAudio);
     }
   }
 
   private getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
     if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
+
+        // 1. Studio-grade Master Dynamics Compressor (prevents clipping, adds punch & glue)
+        const compressor = this.ctx.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(-12, this.ctx.currentTime);
+        compressor.knee.setValueAtTime(6, this.ctx.currentTime);
+        compressor.ratio.setValueAtTime(4, this.ctx.currentTime);
+        compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+        compressor.release.setValueAtTime(0.1, this.ctx.currentTime);
+        compressor.connect(this.ctx.destination);
+
+        // 2. Master Gain Bus
+        const master = this.ctx.createGain();
+        master.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+        master.connect(compressor);
+        this.masterGain = master;
       }
     }
+
     if (this.ctx && this.ctx.state === 'suspended') {
       void this.ctx.resume();
     }
     return this.ctx;
   }
 
-  // 1. Procedural Hit Sound (Crunchy attack strike)
-  public playHitSound(): void {
-    if (!this.isAudioEnabled) return;
+  // Get output node with optional stereo panning
+  private getOutputNode(pan = 0): AudioNode {
     const ctx = this.getAudioContext();
-    if (!ctx) return;
+    if (!ctx || !this.masterGain) return ctx?.destination as AudioNode;
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    // Use Web Audio StereoPannerNode when available
+    if (typeof ctx.createStereoPanner === 'function' && Math.abs(pan) > 0.05) {
+      const panner = ctx.createStereoPanner();
+      panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), ctx.currentTime);
+      panner.connect(this.masterGain);
+      return panner;
+    }
 
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(140, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.12);
-
-    gain.gain.setValueAtTime(0.3 * this.volume, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.12);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.12);
+    return this.masterGain;
   }
 
-  // 2. Procedural Laser Sound (Minion attack blast)
-  public playLaserSound(): void {
+  // Procedural white noise buffer for wind, fire, electricity and whooshes
+  private getNoiseBuffer(ctx: AudioContext): AudioBuffer {
+    if (!this.noiseBuffer || this.noiseBuffer.sampleRate !== ctx.sampleRate) {
+      const bufferSize = ctx.sampleRate * 0.6;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      this.noiseBuffer = buffer;
+    }
+    return this.noiseBuffer;
+  }
+
+  // 1. Procedural Dragon Roar & Elemental Flame/Void Attack (Elder Dragon & Baron)
+  public playBossRoarSound(isElderDragon = true, isEnraged = false): void {
+    if (!this.isAudioEnabled) return;
+    const now = performance.now();
+    if (now - this.lastRoarSoundTime < 600) return;
+    this.lastRoarSoundTime = now;
+
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const vol = this.volume * (isEnraged ? 1.4 : 1.15);
+
+    // Layer A: Primordial Earthquake Sub-Bass Drop
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(isEnraged ? 110 : 90, t);
+    subOsc.frequency.exponentialRampToValueAtTime(26, t + 0.7);
+
+    subGain.gain.setValueAtTime(0.55 * vol, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(t);
+    subOsc.stop(t + 0.75);
+
+    // Layer B: Guttural Dragon Roar Scream (Dual detuned sawtooth with growl vibrato)
+    const roarOsc1 = ctx.createOscillator();
+    const roarOsc2 = ctx.createOscillator();
+    const roarGain = ctx.createGain();
+    const roarFilter = ctx.createBiquadFilter();
+
+    roarOsc1.type = 'sawtooth';
+    roarOsc2.type = 'sawtooth';
+
+    const basePitch = isElderDragon ? (isEnraged ? 175 : 145) : isEnraged ? 210 : 165;
+    roarOsc1.frequency.setValueAtTime(basePitch, t);
+    roarOsc2.frequency.setValueAtTime(basePitch * 1.025, t);
+    roarOsc1.frequency.exponentialRampToValueAtTime(basePitch * 0.45, t + 0.65);
+    roarOsc2.frequency.exponentialRampToValueAtTime(basePitch * 0.45, t + 0.65);
+
+    roarFilter.type = 'peaking';
+    roarFilter.frequency.setValueAtTime(800, t);
+    roarFilter.Q.value = 2.4;
+    roarFilter.gain.value = 8;
+
+    roarGain.gain.setValueAtTime(0.42 * vol, t);
+    roarGain.gain.linearRampToValueAtTime(0.48 * vol, t + 0.15);
+    roarGain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+
+    roarOsc1.connect(roarFilter);
+    roarOsc2.connect(roarFilter);
+    roarFilter.connect(roarGain);
+    roarGain.connect(out);
+
+    roarOsc1.start(t);
+    roarOsc2.start(t);
+    roarOsc1.stop(t + 0.65);
+    roarOsc2.stop(t + 0.65);
+
+    // Layer C: Elemental Fire Torrent / Void Wind Gust (Filtered White Noise)
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = this.getNoiseBuffer(ctx);
+    const noiseFilter = ctx.createBiquadFilter();
+    const noiseGain = ctx.createGain();
+
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(isElderDragon ? 600 : 420, t);
+    noiseFilter.frequency.linearRampToValueAtTime(isElderDragon ? 1600 : 900, t + 0.25);
+    noiseFilter.frequency.exponentialRampToValueAtTime(300, t + 0.7);
+    noiseFilter.Q.value = 1.4;
+
+    noiseGain.gain.setValueAtTime(0.35 * vol, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(out);
+
+    noiseSource.start(t);
+    noiseSource.stop(t + 0.7);
+  }
+
+  // 1b. Guttural Poke Flinch / Growl (Triggered when user clicks / taps on Boss)
+  public playBossPokeSound(isElderDragon = true): void {
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const vol = this.volume * 0.95;
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(800, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(isElderDragon ? 190 : 135, t);
+    osc.frequency.exponentialRampToValueAtTime(45, t + 0.32);
 
-    gain.gain.setValueAtTime(0.15 * this.volume, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(isElderDragon ? 950 : 650, t);
+    filter.Q.value = 2.8;
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.42 * vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
 
-    osc.start();
-    osc.stop(ctx.currentTime + 0.1);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(out);
+
+    osc.start(t);
+    osc.stop(t + 0.35);
   }
 
-  // 3. Procedural Gift / Fanfare Sound (Glorious ascending chime chord)
+  // 1c. Subtle Ambient Breathing Whoosh (Periodic ambient idle sound)
+  public playBossIdleBreath(isElderDragon = true): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const vol = this.volume * 0.42;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.getNoiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(isElderDragon ? 450 : 320, t);
+    filter.frequency.linearRampToValueAtTime(isElderDragon ? 750 : 500, t + 0.4);
+    filter.frequency.exponentialRampToValueAtTime(280, t + 0.9);
+    filter.Q.value = 1.6;
+
+    gain.gain.setValueAtTime(0.01 * vol, t);
+    gain.gain.linearRampToValueAtTime(0.26 * vol, t + 0.35);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(out);
+
+    noise.start(t);
+    noise.stop(t + 0.95);
+  }
+
+  // 2. Heroic Champion Summon Arrival SFX ("Bay ra ngẫu nhiên & tiếp đất")
+  public playSummonArrivalSound(team: TeamType = TEAM_KEY.BLG, isCrit = false): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const pan = team === TEAM_KEY.BLG ? -0.42 : 0.42;
+    const out = this.getOutputNode(pan);
+    const vol = this.volume * (isCrit ? 1.3 : 1.0);
+
+    // Layer A: Heroic Landing Ground Thud
+    const thudOsc = ctx.createOscillator();
+    const thudGain = ctx.createGain();
+    thudOsc.type = 'triangle';
+    thudOsc.frequency.setValueAtTime(220, t);
+    thudOsc.frequency.exponentialRampToValueAtTime(38, t + 0.22);
+
+    thudGain.gain.setValueAtTime(0.48 * vol, t);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+
+    thudOsc.connect(thudGain);
+    thudGain.connect(out);
+    thudOsc.start(t);
+    thudOsc.stop(t + 0.24);
+
+    // Layer B: Runic Warp Whoosh
+    const whooshOsc = ctx.createOscillator();
+    const whooshGain = ctx.createGain();
+    whooshOsc.type = 'sine';
+    whooshOsc.frequency.setValueAtTime(680, t);
+    whooshOsc.frequency.exponentialRampToValueAtTime(140, t + 0.18);
+
+    whooshGain.gain.setValueAtTime(0.25 * vol, t);
+    whooshGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+    whooshOsc.connect(whooshGain);
+    whooshGain.connect(out);
+    whooshOsc.start(t);
+    whooshOsc.stop(t + 0.18);
+
+    // Layer C: Radiant Team Fanfare Triad
+    const freqs =
+      team === TEAM_KEY.BLG
+        ? [587.33, 880.0, 1174.66] // D5, A5, D6 cyan radiance
+        : [659.25, 987.77, 1318.51]; // E5, B5, E6 gold victory
+
+    freqs.forEach((freq, idx) => {
+      const noteOsc = ctx.createOscillator();
+      const noteGain = ctx.createGain();
+      noteOsc.type = 'sine';
+      noteOsc.frequency.setValueAtTime(freq, t + idx * 0.04);
+
+      noteGain.gain.setValueAtTime(0.22 * vol, t + idx * 0.04);
+      noteGain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.04 + 0.35);
+
+      noteOsc.connect(noteGain);
+      noteGain.connect(out);
+      noteOsc.start(t + idx * 0.04);
+      noteOsc.stop(t + idx * 0.04 + 0.35);
+    });
+  }
+
+  // 3. Multi-Layer Distinct Champion Skill SFX
+  public playChampionSkillSound(
+    vfxType: ChampionSkillVFXType = CHAMPION_SKILL_VFX_TYPE.ARROW,
+    isCrit = false,
+    team?: TeamType
+  ): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const pan = team === TEAM_KEY.BLG ? -0.38 : team === TEAM_KEY.GENG ? 0.38 : 0;
+    const out = this.getOutputNode(pan);
+    const vol = this.volume * (isCrit ? 1.25 : 1.0);
+
+    switch (vfxType) {
+      case CHAMPION_SKILL_VFX_TYPE.SHURIKEN: {
+        // High-speed spinning razor blade whirr with 42Hz tremolo (Zed, Akali)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(isCrit ? 1550 : 1250, t);
+        osc.frequency.exponentialRampToValueAtTime(260, t + 0.11);
+
+        // Fast tremolo modulation
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(42, t);
+        lfoGain.gain.setValueAtTime(0.12 * vol, t);
+        lfo.connect(lfoGain.gain);
+
+        gain.gain.setValueAtTime(0.24 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        lfo.start(t);
+        osc.stop(t + 0.11);
+        lfo.stop(t + 0.11);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.LASER: {
+        // Ionized prismatic laser beam with pre-charge chirp (Lux)
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(480, t);
+        osc1.frequency.exponentialRampToValueAtTime(2100, t + 0.07);
+        osc2.frequency.setValueAtTime(240, t);
+        osc2.frequency.exponentialRampToValueAtTime(1050, t + 0.07);
+
+        gain.gain.setValueAtTime(0.26 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(out);
+        osc1.start(t);
+        osc2.start(t);
+        osc1.stop(t + 0.14);
+        osc2.stop(t + 0.14);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.TORNADO: {
+        // Howling wind turbulence using filtered white noise + steel swing (Yasuo)
+        const noise = ctx.createBufferSource();
+        noise.buffer = this.getNoiseBuffer(ctx);
+        const filter = ctx.createBiquadFilter();
+        const noiseGain = ctx.createGain();
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(260, t);
+        filter.frequency.linearRampToValueAtTime(1180, t + 0.09);
+        filter.frequency.exponentialRampToValueAtTime(280, t + 0.2);
+        filter.Q.value = 2.2;
+
+        noiseGain.gain.setValueAtTime(0.32 * vol, t);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(out);
+        noise.start(t);
+        noise.stop(t + 0.2);
+
+        // Steel sword whoosh undertone
+        const swordOsc = ctx.createOscillator();
+        const swordGain = ctx.createGain();
+        swordOsc.type = 'sawtooth';
+        swordOsc.frequency.setValueAtTime(460, t);
+        swordOsc.frequency.exponentialRampToValueAtTime(110, t + 0.12);
+        swordGain.gain.setValueAtTime(0.18 * vol, t);
+        swordGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        swordOsc.connect(swordGain);
+        swordGain.connect(out);
+        swordOsc.start(t);
+        swordOsc.stop(t + 0.12);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.SPIRIT_ORB: {
+        // Ethereal mystical Fox-Fire bell chord: C5 + G5 + D6 (Ahri)
+        const notes = [523.25, 783.99, 1174.66];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t + idx * 0.02);
+
+          gain.gain.setValueAtTime(0.2 * vol, t + idx * 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.02 + 0.22);
+
+          osc.connect(gain);
+          gain.connect(out);
+          osc.start(t + idx * 0.02);
+          osc.stop(t + idx * 0.02 + 0.22);
+        });
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.VOID_MISSILE: {
+        // Staggered salvo of 3 high-tech plasma dart pings (Kai'Sa)
+        [0, 0.038, 0.076].forEach((delay) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(isCrit ? 1040 : 860, t + delay);
+          osc.frequency.exponentialRampToValueAtTime(280, t + delay + 0.06);
+
+          gain.gain.setValueAtTime(0.15 * vol, t + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.06);
+
+          osc.connect(gain);
+          gain.connect(out);
+          osc.start(t + delay);
+          osc.stop(t + delay + 0.06);
+        });
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.JAVELIN: {
+        // Piercing aerodynamic spear throw + whistling air hiss (Nidalee)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(isCrit ? 1050 : 820, t);
+        osc.frequency.exponentialRampToValueAtTime(120, t + 0.14);
+
+        gain.gain.setValueAtTime(0.28 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        osc.stop(t + 0.14);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.CRESCENT_ARC: {
+        // Brilliant radiant energy arc wave chime (Ezreal)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(659.25, t);
+        osc.frequency.linearRampToValueAtTime(1318.51, t + 0.09);
+
+        gain.gain.setValueAtTime(0.26 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        osc.stop(t + 0.16);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.SONIC_WAVE: {
+        // Dragon Qi sonic resonant blast: sub punch + resonant ring (Lee Sin)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(360, t);
+        osc.frequency.exponentialRampToValueAtTime(75, t + 0.16);
+
+        gain.gain.setValueAtTime(0.32 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        osc.stop(t + 0.16);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.MELEE_LEAP: {
+        // Grandmaster's lantern heavy strike (Jax, Xin Zhao, K'Sante)
+        this.playSlashSound(isCrit);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN: {
+        // Jax: Metallic spinning hum with electric crackle
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(isCrit ? 520 : 380, t);
+        osc.frequency.exponentialRampToValueAtTime(140, t + 0.16);
+
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(isCrit ? 60 : 35, t);
+        lfoGain.gain.setValueAtTime(60, t);
+        lfo.connect(osc.frequency);
+
+        gain.gain.setValueAtTime(0.28 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        lfo.start(t);
+        osc.stop(t + 0.16);
+        lfo.stop(t + 0.16);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.WIND_SPEAR: {
+        // Xin Zhao: High-velocity piercing wind thrust
+        const noise = ctx.createBufferSource();
+        noise.buffer = this.getNoiseBuffer(ctx);
+        const filter = ctx.createBiquadFilter();
+        const noiseGain = ctx.createGain();
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(isCrit ? 2200 : 1600, t);
+        filter.frequency.exponentialRampToValueAtTime(450, t + 0.14);
+        filter.Q.value = 4.0;
+
+        noiseGain.gain.setValueAtTime(0.32 * vol, t);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(out);
+        noise.start(t);
+        noise.stop(t + 0.14);
+
+        const tipOsc = ctx.createOscillator();
+        const tipGain = ctx.createGain();
+        tipOsc.type = 'triangle';
+        tipOsc.frequency.setValueAtTime(isCrit ? 1200 : 880, t);
+        tipOsc.frequency.exponentialRampToValueAtTime(220, t + 0.09);
+        tipGain.gain.setValueAtTime(0.22 * vol, t);
+        tipGain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+        tipOsc.connect(tipGain);
+        tipGain.connect(out);
+        tipOsc.start(t);
+        tipOsc.stop(t + 0.09);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.NTOFO_SLAM: {
+        // K'Sante: Heavy blunt stone slam + earth rumble
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(isCrit ? 180 : 130, t);
+        osc.frequency.exponentialRampToValueAtTime(38, t + 0.22);
+
+        gain.gain.setValueAtTime(0.42 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        osc.stop(t + 0.22);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.ANCHOR_DEPTH: {
+        // Nautilus: Heavy iron anchor clank + deep underwater metallic dredge
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = 'sawtooth';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(isCrit ? 220 : 160, t);
+        osc1.frequency.exponentialRampToValueAtTime(45, t + 0.25);
+        osc2.frequency.setValueAtTime(isCrit ? 110 : 80, t);
+        osc2.frequency.exponentialRampToValueAtTime(25, t + 0.25);
+
+        gain.gain.setValueAtTime(0.38 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(out);
+        osc1.start(t);
+        osc2.start(t);
+        osc1.stop(t + 0.25);
+        osc2.stop(t + 0.25);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.GOLDEN_FEATHER: {
+        // Rakan: Shimmering golden plumage chime + celestial sweep
+        [587.33, 880, 1174.66].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t + idx * 0.025);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.5, t + idx * 0.025 + 0.12);
+
+          gain.gain.setValueAtTime(0.18 * vol, t + idx * 0.025);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.025 + 0.12);
+
+          osc.connect(gain);
+          gain.connect(out);
+          osc.start(t + idx * 0.025);
+          osc.stop(t + idx * 0.025 + 0.12);
+        });
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.SAND_SOLDIER: {
+        // Azir: Shurima desert sand whoosh + imperial brass charge
+        const noise = ctx.createBufferSource();
+        noise.buffer = this.getNoiseBuffer(ctx);
+        const filter = ctx.createBiquadFilter();
+        const noiseGain = ctx.createGain();
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(800, t);
+        filter.frequency.exponentialRampToValueAtTime(2400, t + 0.12);
+        filter.Q.value = 2.5;
+
+        noiseGain.gain.setValueAtTime(0.24 * vol, t);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(out);
+        noise.start(t);
+        noise.stop(t + 0.12);
+
+        const horn = ctx.createOscillator();
+        const hornGain = ctx.createGain();
+        horn.type = 'sawtooth';
+        horn.frequency.setValueAtTime(isCrit ? 440 : 330, t);
+        horn.frequency.exponentialRampToValueAtTime(isCrit ? 660 : 495, t + 0.1);
+        hornGain.gain.setValueAtTime(0.2 * vol, t);
+        hornGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        horn.connect(hornGain);
+        hornGain.connect(out);
+        horn.start(t);
+        horn.stop(t + 0.1);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.DARKIN_BLADE: {
+        // Aatrox: Heavy demonic broadsword cleave with dark undertone
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(isCrit ? 260 : 190, t);
+        osc.frequency.exponentialRampToValueAtTime(45, t + 0.2);
+
+        gain.gain.setValueAtTime(0.38 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        osc.stop(t + 0.2);
+        this.playSlashSound(isCrit);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.BLADE_SLASH: {
+        // Dual spirit katana cross-cut (Yone, Aatrox, Irelia)
+        this.playSlashSound(isCrit);
+        break;
+      }
+
+      default: {
+        // High-tension bowstring snap & aerodynamic arrow whoosh
+        this.playAttackWhoosh(isCrit, false);
+        break;
+      }
+    }
+  }
+
+  // 4. Visceral Multi-Layer Damage Impact Sound (Hit feeling on Baron / Elder Dragon)
+  public playDamageImpactSound(damageType: DamageType = DAMAGE_TYPE.NORMAL, isCrit = false): void {
+    if (!this.isAudioEnabled) return;
+    const now = performance.now();
+    if (now - this.lastHitSoundTime < 32) return;
+    this.lastHitSoundTime = now;
+
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const isUltimate = damageType === DAMAGE_TYPE.ULTIMATE;
+    const isCritical = isCrit || damageType === DAMAGE_TYPE.CRIT;
+    const vol = this.volume;
+
+    // Layer A: Punchy Low-End Sub Kick Thump
+    const bassOsc = ctx.createOscillator();
+    const bassGain = ctx.createGain();
+    const startBass = isUltimate ? 240 : isCritical ? 210 : 165;
+    const endBass = isUltimate ? 24 : isCritical ? 34 : 40;
+    const duration = isUltimate ? 0.35 : isCritical ? 0.22 : 0.12;
+
+    bassOsc.type = 'triangle';
+    bassOsc.frequency.setValueAtTime(startBass * (0.96 + Math.random() * 0.08), t);
+    bassOsc.frequency.exponentialRampToValueAtTime(endBass, t + duration);
+
+    bassGain.gain.setValueAtTime((isUltimate ? 0.52 : isCritical ? 0.42 : 0.28) * vol, t);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+    bassOsc.connect(bassGain);
+    bassGain.connect(out);
+    bassOsc.start(t);
+    bassOsc.stop(t + duration);
+
+    // Layer B: Crunchy Flesh/Armor Impact Bite
+    const midOsc = ctx.createOscillator();
+    const midGain = ctx.createGain();
+    midOsc.type = 'sawtooth';
+    midOsc.frequency.setValueAtTime(340 * (0.92 + Math.random() * 0.16), t);
+    midOsc.frequency.exponentialRampToValueAtTime(55, t + 0.08);
+
+    midGain.gain.setValueAtTime(0.14 * vol, t);
+    midGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+    midOsc.connect(midGain);
+    midGain.connect(out);
+    midOsc.start(t);
+    midOsc.stop(t + 0.08);
+
+    // Layer C: High-Pitch Metallic Bell Ping for Critical & Ultimate Strikes
+    if (isCritical || isUltimate) {
+      const bellOsc = ctx.createOscillator();
+      const bellGain = ctx.createGain();
+      const bellFreq = isUltimate ? 1860 : 1480;
+
+      bellOsc.type = 'sine';
+      bellOsc.frequency.setValueAtTime(bellFreq, t);
+      bellOsc.frequency.exponentialRampToValueAtTime(bellFreq * 0.8, t + 0.28);
+
+      bellGain.gain.setValueAtTime((isUltimate ? 0.32 : 0.24) * vol, t);
+      bellGain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+
+      bellOsc.connect(bellGain);
+      bellGain.connect(out);
+      bellOsc.start(t);
+      bellOsc.stop(t + 0.28);
+    }
+  }
+
+  // 5. Procedural Blade Slash Strike (Jax, Xin Zhao, Yone, K'Sante)
+  public playSlashSound(isCrit = false): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    const pitch = (isCrit ? 720 : 540) * (0.94 + Math.random() * 0.12);
+    osc.frequency.setValueAtTime(pitch, t);
+    osc.frequency.exponentialRampToValueAtTime(65, t + 0.12);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1450, t);
+    filter.frequency.exponentialRampToValueAtTime(380, t + 0.12);
+    filter.Q.value = 1.9;
+
+    gain.gain.setValueAtTime((isCrit ? 0.32 : 0.2) * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(out);
+
+    osc.start(t);
+    osc.stop(t + 0.12);
+  }
+
+  // 6. Combo Milestone Hype Fanfare (Combo x10, x25, x50, x100)
+  public playComboMilestoneSound(comboCount: number): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const chord =
+      comboCount >= 50
+        ? [523.25, 659.25, 783.99, 1046.5, 1318.51] // C Major 9 epic glory
+        : [587.33, 739.99, 880.0, 1174.66]; // D Major fanfare
+
+    chord.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t + idx * 0.05);
+
+      gain.gain.setValueAtTime(0.24 * this.volume, t + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.05 + 0.45);
+
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(t + idx * 0.05);
+      osc.stop(t + idx * 0.05 + 0.45);
+    });
+  }
+
+  // 7. Procedural Attack Whoosh
+  public playAttackWhoosh(isCrit = false, isMelee = false): void {
+    if (!this.isAudioEnabled) return;
+    const now = performance.now();
+    if (now - this.lastWhooshSoundTime < 40) return;
+    this.lastWhooshSoundTime = now;
+
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    if (isMelee) {
+      this.playSlashSound(isCrit);
+      return;
+    }
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const baseFreq = (isCrit ? 1180 : 880) * (0.92 + Math.random() * 0.16);
+
+    osc.type = isCrit ? 'sawtooth' : 'triangle';
+    osc.frequency.setValueAtTime(baseFreq, t);
+    osc.frequency.exponentialRampToValueAtTime(170, t + 0.1);
+
+    gain.gain.setValueAtTime((isCrit ? 0.24 : 0.15) * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+
+    osc.connect(gain);
+    gain.connect(out);
+    osc.start(t);
+    osc.stop(t + 0.1);
+  }
+
+  // Backward-compatible alias for existing callers
+  public playHitSound(): void {
+    this.playDamageImpactSound(DAMAGE_TYPE.NORMAL, false);
+  }
+
+  // Backward-compatible alias for laser callers
+  public playLaserSound(): void {
+    this.playAttackWhoosh(false, false);
+  }
+
+  // 8. Procedural Gift / Fanfare Sound
   public playGiftFanfare(): void {
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
     const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6 chord
     notes.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t + idx * 0.08);
 
-      gain.gain.setValueAtTime(0.25 * this.volume, ctx.currentTime + idx * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.5);
+      gain.gain.setValueAtTime(0.28 * this.volume, t + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.08 + 0.55);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(ctx.currentTime + idx * 0.08);
-      osc.stop(ctx.currentTime + idx * 0.08 + 0.5);
+      gain.connect(out);
+      osc.start(t + idx * 0.08);
+      osc.stop(t + idx * 0.08 + 0.55);
     });
   }
 
-  // 4. Procedural Victory Sound
+  // 9. Procedural Victory Sound
   public playVictoryFanfare(): void {
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
@@ -121,6 +932,7 @@ class AudioSynthesizerService {
     ];
 
     let start = ctx.currentTime;
+    const out = this.getOutputNode(0);
     melody.forEach((note) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -128,51 +940,93 @@ class AudioSynthesizerService {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(note.f, start);
 
-      gain.gain.setValueAtTime(0.4 * this.volume, start);
+      gain.gain.setValueAtTime(0.42 * this.volume, start);
       gain.gain.exponentialRampToValueAtTime(0.001, start + note.d);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
-
+      gain.connect(out);
       osc.start(start);
       osc.stop(start + note.d);
       start += note.d * 0.85;
     });
   }
 
-  // 5. Procedural Heart Sparkle Chime
+  // 10. Procedural Champion Defeat / Death Sound
+  public playChampionDeathSound(): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+
+    // Dramatic defeat resonance gong with exponential pitch decay
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(36, t + 0.65);
+
+    gain.gain.setValueAtTime(0.24 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+
+    osc.connect(gain);
+    gain.connect(out);
+    osc.start(t);
+    osc.stop(t + 0.7);
+  }
+
+  // 11. Procedural Heart Sparkle Chime
   public playHeartChime(): void {
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(1100 + Math.random() * 300, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100 + Math.random() * 320, t);
 
-    gain.gain.setValueAtTime(0.08 * this.volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    gain.gain.setValueAtTime(0.1 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.18);
+    gain.connect(out);
+    osc.start(t);
+    osc.stop(t + 0.18);
   }
 
-  // 6. Web Speech API (Vietnamese TTS)
+  // 11. Web Speech API (Vietnamese TTS)
+  public cancelSpeech(): void {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    this.ttsQueue = [];
+    this.isSpeaking = false;
+  }
+
   public speak(text: string): void {
     if (!this.isTtsEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return;
     }
 
-    // Queue management: limit queue to max 4 to avoid speech congestion
+    // Sanitize: strip out numeric IDs and raw numbers (e.g. Viewer_830, Gamer_Pro_99_358, 120000)
+    const sanitized = text
+      .replace(/[A-Za-z0-9_]*_\d+[A-Za-z0-9_]*/g, '')
+      .replace(/\d+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!sanitized) return;
+
     if (this.ttsQueue.length >= 4) {
       this.ttsQueue.shift();
     }
-    this.ttsQueue.push(text);
+    this.ttsQueue.push(sanitized);
     this.processTtsQueue();
   }
 
@@ -185,7 +1039,7 @@ class AudioSynthesizerService {
     this.isSpeaking = true;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'vi-VN';
-    utterance.rate = 1.15; // slightly faster for live stream pace
+    utterance.rate = 1.15;
     utterance.volume = this.volume;
 
     utterance.onend = () => {
@@ -203,4 +1057,3 @@ class AudioSynthesizerService {
 }
 
 export const audioService = new AudioSynthesizerService();
-

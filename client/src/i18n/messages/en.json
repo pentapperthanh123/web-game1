@@ -42,7 +42,23 @@
     "ultimateTag": "ULTIMATE!",
     "comboLabel": "COMBO",
     "summonTag": "SUMMON",
-    "activeSquad": "ACTIVE SQUAD"
+    "activeSquad": "ACTIVE SQUAD",
+    "defeated": "FALLEN!",
+    "ultimateSkill": "ULTIMATE!"
+  },
+  "BossInteractive": {
+    "pokeTooltip": "Click to poke the Boss!"
+  },
+  "Victory": {
+    "bossDefeated": "BARON NASHOR HAS BEEN SLAIN!",
+    "roundWin": "{{team}} WINS GAME {{round}}!",
+    "seriesChampion": "🏆 {{team}} WORLDS 2026 CHAMPIONS!",
+    "seriesScore": "FINAL BO5 SERIES SCORE: {{blg}} - {{geng}}",
+    "bo5Score": "CURRENT BO5 SERIES SCORE",
+    "mvpTitle": "GAME MVP",
+    "damage": "DAMAGE",
+    "nextRoundIn": "Next game starts in:",
+    "nextRoundNow": "START NEXT GAME",
+    "newSeries": "START NEW BO5 MATCH"
   }
 }
-

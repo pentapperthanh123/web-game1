@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Flame } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, UI_CONSTANTS } from '../../constants/game';
+import { BOSS_STATUS, UI_CONSTANTS, THEME_CONFIGS, GAME_THEME } from '../../constants/game';
 import { BARON_AVATAR_URL } from '../../constants/roster';
 
 const getStatusBadgeConfig = (bossStatus: string, t: (key: string, fallback: string) => string) => {
@@ -23,9 +23,12 @@ const getStatusBadgeConfig = (bossStatus: string, t: (key: string, fallback: str
   return { text: '', className: '', isAlert: false };
 };
 
-const getHpBarGradient = (bossStatus: string): string => {
+const getHpBarGradient = (bossStatus: string, isElderDragon: boolean): string => {
   if (bossStatus === BOSS_STATUS.ENRAGED) {
     return 'bg-gradient-to-r from-rose-700 via-pink-600 to-amber-500 shadow-[0_0_20px_#f43f5e]';
+  }
+  if (isElderDragon) {
+    return 'bg-gradient-to-r from-cyan-600 via-amber-500 to-yellow-400 shadow-[0_0_16px_#f59e0b]';
   }
   return 'bg-gradient-to-r from-violet-700 via-purple-600 to-cyan-400 shadow-[0_0_16px_#06b6d4]';
 };
@@ -35,6 +38,11 @@ export const BossHealthBar = () => {
   const bossHp = useGameStore((state) => state.bossHp);
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const bossStatus = useGameStore((state) => state.bossStatus);
+  const gameTheme = useGameStore((state) => state.gameTheme);
+
+  const themeConfig = THEME_CONFIGS[gameTheme] || THEME_CONFIGS[GAME_THEME.BARON];
+  const isElderDragon = gameTheme === GAME_THEME.ELDER_DRAGON;
+
   const [avatarError, setAvatarError] = useState(false);
   const [ghostHpPercent, setGhostHpPercent] = useState(100);
 
@@ -49,31 +57,50 @@ export const BossHealthBar = () => {
   }, [hpPercentage]);
 
   const badgeConfig = getStatusBadgeConfig(bossStatus, t);
-  const barGradient = getHpBarGradient(bossStatus);
+  const barGradient = getHpBarGradient(bossStatus, isElderDragon);
+
+  const avatarSrc = themeConfig.avatarIcon || (isElderDragon ? themeConfig.bossImagePng : BARON_AVATAR_URL);
 
   return (
-    <div className="w-full max-w-lg mx-auto px-2 sm:px-3 pt-0.5 pointer-events-auto">
-      {/* Header Info: Baron Profile, Title & Enraged Status */}
+    <div className="w-full max-w-lg mx-auto px-2 sm:px-3 pt-0.5 pointer-events-auto select-none">
+      {/* Header Info: Boss Profile, Title & Enraged Status */}
       <div className="flex items-center justify-between mb-1 text-[11px] font-black uppercase tracking-wider">
         <div className="flex items-center space-x-2">
-          {/* Baron Icon Frame */}
-          <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-purple-400 shadow-[0_0_12px_#9333ea] shrink-0 bg-slate-950">
+          {/* Boss Avatar Icon Frame */}
+          <div
+            className={`relative w-8 h-8 rounded-full overflow-hidden border-2 shrink-0 bg-slate-950 transition-all duration-300 ${
+              isElderDragon
+                ? 'border-amber-400 shadow-[0_0_14px_#f59e0b]'
+                : 'border-purple-400 shadow-[0_0_12px_#9333ea]'
+            }`}
+          >
             {!avatarError ? (
               <img
-                src={BARON_AVATAR_URL}
-                alt="Baron Nashor"
+                key={avatarSrc}
+                src={avatarSrc}
+                alt={themeConfig.bossName}
                 className="w-full h-full object-cover scale-110"
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <Flame className="w-4 h-4 text-purple-400 m-auto mt-1.5" />
+              <Flame
+                className={`w-4 h-4 m-auto mt-1.5 ${
+                  isElderDragon ? 'text-amber-400' : 'text-purple-400'
+                }`}
+              />
             )}
-            <div className="absolute inset-0 rounded-full border border-purple-300/40 pointer-events-none" />
+            <div className="absolute inset-0 rounded-full border border-white/20 pointer-events-none" />
           </div>
 
           <div className="flex flex-col">
-            <span className="text-[11px] sm:text-xs font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-200 to-cyan-300 drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]">
-              {t('Game.bossName', 'BARON NASHOR CKTG')}
+            <span
+              className={`text-[11px] sm:text-xs font-black tracking-widest text-transparent bg-clip-text drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] ${
+                isElderDragon
+                  ? 'bg-gradient-to-r from-cyan-300 via-amber-200 to-yellow-300'
+                  : 'bg-gradient-to-r from-purple-300 via-pink-200 to-cyan-300'
+              }`}
+            >
+              {t(`Game.bossName.${gameTheme}`, themeConfig.bossName.toUpperCase())}
             </span>
             <span className="text-[8px] font-mono font-bold text-slate-400">
               {t('Game.hpLabel', 'MÁU BOSS')}
@@ -96,8 +123,12 @@ export const BossHealthBar = () => {
         )}
       </div>
 
-      {/* Cyberpunk Segmented HP Bar Container */}
-      <div className="relative w-full h-5 sm:h-6 bg-slate-950/95 rounded-lg border-2 border-purple-900/80 p-0.5 shadow-[0_0_20px_rgba(0,0,0,0.9)] backdrop-blur-md overflow-hidden">
+      {/* Segmented Cyberpunk / Fantasy HP Bar Container */}
+      <div
+        className={`relative w-full h-5 sm:h-6 bg-slate-950/95 rounded-lg border-2 p-0.5 shadow-[0_0_20px_rgba(0,0,0,0.9)] backdrop-blur-md overflow-hidden transition-colors duration-500 ${
+          isElderDragon ? 'border-amber-900/80' : 'border-purple-900/80'
+        }`}
+      >
         {/* Tech Grid Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px)] bg-[size:16px_100%] opacity-20 pointer-events-none" />
 
@@ -118,8 +149,12 @@ export const BossHealthBar = () => {
 
         {/* HP Numeric Overlay */}
         <div className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-[11px] font-mono font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tracking-wider">
-          {(bossHp ?? 0).toLocaleString()} / {(bossMaxHp ?? 0).toLocaleString()} (
-          {hpPercentage.toFixed(1)}%)
+          <span>{bossHp.toLocaleString()}</span>
+          <span className="text-slate-400 mx-1">/</span>
+          <span className="text-slate-400">{bossMaxHp.toLocaleString()}</span>
+          <span className="ml-1.5 text-[9px] text-cyan-300 font-bold">
+            ({hpPercentage.toFixed(1)}%)
+          </span>
         </div>
       </div>
     </div>

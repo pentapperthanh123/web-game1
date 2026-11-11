@@ -1,3 +1,4 @@
+import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { DAMAGE_TYPE, DamageType } from '../../constants/game';
 
@@ -13,7 +14,7 @@ const CORE_SIZE_CLASS_MAP: Record<DamageType, string> = {
   [DAMAGE_TYPE.ULTIMATE]: 'w-12 h-12',
 };
 
-export const BossHitMarks2D = () => {
+export const BossHitMarks2D = React.memo(() => {
   const activeHitImpacts = useGameStore((state) => state.activeHitImpacts);
 
   if (activeHitImpacts.length === 0) return null;
@@ -51,4 +52,4 @@ export const BossHitMarks2D = () => {
       })}
     </div>
   );
-};
+});

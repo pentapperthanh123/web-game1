@@ -103,7 +103,10 @@ const SummonSpotlightCard = ({
         <p className={`text-[11px] sm:text-xs font-black truncate mt-0.5 ${theme.textClass}`}>
           {portal.championName}
         </p>
-        <p className="text-[9px] text-slate-300 truncate font-semibold">@{portal.summonerName}</p>
+        <p className="text-[9px] text-slate-300 truncate font-semibold flex items-center space-x-0.5">
+          <span>💬</span>
+          <span className="truncate">@{portal.summonerName.replace(/^@+/, '')}</span>
+        </p>
       </div>
     </div>
   );
@@ -127,23 +130,33 @@ const ActiveSquadRow = ({
     <div
       className={`flex items-center -space-x-1.5 ${isRight ? 'justify-end' : 'justify-start'}`}
     >
-      {warriors.map((warrior) => (
-        <div
-          key={warrior.id}
-          style={{ boxShadow: theme.glowStyle }}
-          className={`relative rounded-full p-0.5 border bg-slate-950/80 ${theme.borderClass}`}
-          title={`${warrior.championName} - ${warrior.summonerName}`}
-        >
-          <ChampionPortrait
-            avatarUrl={warrior.avatarUrl}
-            championName={warrior.championName}
-            sizeClass="w-6 h-6 sm:w-8 sm:h-8"
-          />
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[7px] font-black px-1 rounded bg-slate-950/90 text-white border border-slate-700/80 max-w-[44px] truncate">
-            {warrior.championName}
-          </span>
-        </div>
-      ))}
+      {warriors.map((warrior) => {
+        const cleanName = warrior.summonerName.replace(/^@+/, '');
+        const isBLG = team === TEAM_KEY.BLG;
+        return (
+          <div
+            key={warrior.id}
+            style={{ boxShadow: theme.glowStyle }}
+            className={`relative rounded-full p-0.5 border bg-slate-950/85 ${theme.borderClass}`}
+            title={`${warrior.championName} - @${cleanName}`}
+          >
+            <ChampionPortrait
+              avatarUrl={warrior.avatarUrl}
+              championName={warrior.championName}
+              sizeClass="w-6 h-6 sm:w-8 sm:h-8"
+            />
+            <span
+              className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[6.5px] sm:text-[7.5px] font-black px-1 rounded-full bg-slate-950/95 border max-w-[54px] truncate shadow ${
+                isBLG
+                  ? 'border-cyan-500/80 text-cyan-200'
+                  : 'border-amber-500/80 text-amber-200'
+              }`}
+            >
+              @{cleanName}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -183,18 +196,14 @@ export const SummonShowcase = () => {
   return (
     <>
       {/* Left Wing: BLG Summon Spotlight & Active Warriors */}
-      <div className="absolute top-[25%] left-1.5 sm:left-3 z-20 pointer-events-none flex flex-col space-y-2">
+      <div className="absolute top-[22%] left-1.5 sm:left-3 z-20 pointer-events-none flex flex-col space-y-2">
         {latestBLGPortal && <SummonSpotlightCard portal={latestBLGPortal} side="left" />}
-      </div>
-      <div className="absolute top-[48%] left-1.5 sm:left-3 z-20 pointer-events-none">
         <ActiveSquadRow warriors={blgWarriors} team={TEAM_KEY.BLG} side="left" />
       </div>
 
       {/* Right Wing: GEN.G Summon Spotlight & Active Warriors */}
-      <div className="absolute top-[25%] right-1.5 sm:right-3 z-20 pointer-events-none flex flex-col items-end space-y-2">
+      <div className="absolute top-[22%] right-1.5 sm:right-3 z-20 pointer-events-none flex flex-col items-end space-y-2">
         {latestGENGPortal && <SummonSpotlightCard portal={latestGENGPortal} side="right" />}
-      </div>
-      <div className="absolute top-[48%] right-1.5 sm:right-3 z-20 pointer-events-none">
         <ActiveSquadRow warriors={gengWarriors} team={TEAM_KEY.GENG} side="right" />
       </div>
     </>
