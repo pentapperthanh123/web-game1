@@ -73,3 +73,4 @@ export const getChampionAvatar = (championName: string, fallbackId = 'Ahri'): st
 export const getRandomChampion = (): ChampionInfo => {
   return ALL_CHAMPIONS[Math.floor(Math.random() * ALL_CHAMPIONS.length)];
 };
+
