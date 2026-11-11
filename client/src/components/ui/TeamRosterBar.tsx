@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Users, Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_ROSTERS, RosterPlayer } from '../../constants/roster';
 import { TEAM_KEY } from '../../constants/game';
+import { audioService } from '../../services/audioService';
 
 interface TeamRosterBarProps {
   side: 'left' | 'right';
@@ -56,7 +57,10 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
         <button
           id={`roster-collapsed-${team}`}
           type="button"
-          onClick={() => setIsCollapsed(false)}
+          onClick={() => {
+            audioService.playUiToggleSound(true);
+            setIsCollapsed(false);
+          }}
           className={`flex items-center space-x-1 px-2 py-1 rounded-full border backdrop-blur-md shadow-lg transition active:scale-95 hover:scale-105 ${
             isLeft
               ? 'bg-cyan-950/90 border-cyan-500/80 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
@@ -95,7 +99,10 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
         </div>
         <button
           type="button"
-          onClick={() => setIsCollapsed(true)}
+          onClick={() => {
+            audioService.playUiToggleSound(false);
+            setIsCollapsed(true);
+          }}
           className="p-0.5 hover:bg-white/10 rounded transition"
           aria-label="Thu gọn"
         >

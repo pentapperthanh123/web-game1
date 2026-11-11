@@ -21,6 +21,9 @@ import { BossSpeechBubble } from './BossSpeechBubble';
 import { BossGlowingEyes } from './BossGlowingEyes';
 import { WingGustVFX } from './WingGustVFX';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
+import { BossEnragedAura } from './BossEnragedAura';
+import { BossEnragedEntranceBanner } from './BossEnragedEntranceBanner';
+import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { audioService } from '../../services/audioService';
 
 const getAnimationClass = (
@@ -85,11 +88,11 @@ const getAnimationClass = (
     return `animate-boss-hit-center${suffix} cursor-pointer`;
   }
 
-  // 4. Enraged Stance
+  // 4. Enraged Stance with violent fury tremor
   if (isEnraged) {
     return isElderDragon
-      ? 'animate-boss-enraged drop-shadow-[0_0_45px_rgba(245,158,11,0.95)] cursor-pointer'
-      : 'animate-boss-enraged drop-shadow-[0_0_40px_rgba(239,68,68,0.9)] cursor-pointer';
+      ? 'animate-boss-enraged-tremor drop-shadow-[0_0_55px_rgba(245,158,11,1)] cursor-pointer'
+      : 'animate-boss-enraged-tremor drop-shadow-[0_0_50px_rgba(239,68,68,1)] cursor-pointer';
   }
 
   // 5. Restless Impatient Stance (Prolonged idle with 0 active champions)
@@ -380,7 +383,7 @@ export const Boss2D = () => {
     <div
       className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none z-10 flex items-center justify-center`}
     >
-      {/* 1. Skill Combat Alert Banner */}
+      {/* 1. Skill Combat Alert Banner & Enraged Warning Banner */}
       <BossAlertBanner
         isRoarActive={isRoarActive}
         isElderDragon={isElderDragon}
@@ -388,11 +391,15 @@ export const Boss2D = () => {
         gameTheme={gameTheme}
         defaultRoarTextVi={themeConfig.roarTextVi}
       />
+      <BossEnragedEntranceBanner isElderDragon={isElderDragon} />
 
       {/* 2. Living Elemental Portal Aura Glow */}
       <div
         className={`absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full transition-all duration-300 pointer-events-none animate-aura-pulse ${auraColorClass}`}
       />
+
+      {/* 2b. Violent Enraged Fiery Void Aura */}
+      {isEnraged && !isDefeated && <BossEnragedAura isElderDragon={isElderDragon} />}
 
       {/* 3. Runic Ground Reflection */}
       <div
@@ -447,11 +454,12 @@ export const Boss2D = () => {
           />
         </picture>
 
-        {/* 9. Glowing Eyes Surge during Idle / Restless / Poke */}
+        {/* 9. Glowing Eyes Surge during Idle / Restless / Poke / Enraged */}
         <BossGlowingEyes
           isActive={isEyesSurging || isRestless}
           isElderDragon={isElderDragon}
           isRestless={isRestless}
+          isEnraged={isEnraged}
         />
 
         {/* Crisp Impact Flares aligned directly over Boss */}
@@ -460,6 +468,9 @@ export const Boss2D = () => {
 
       {/* 10. Cinematic Shatter & Execution Callout outside fading sprite */}
       {isDefeated && <BossDeathVFX2D />}
+
+      {/* 11. Mythical Floating Buff Relic Crest Claimed by Winning Team */}
+      {isDefeated && <BossDefeatedCrest2D isElderDragon={isElderDragon} />}
     </div>
   );
 };

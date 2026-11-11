@@ -34,7 +34,9 @@ export const HUDOverlay = () => {
   };
 
   const toggleAutoProBattle = () => {
-    setAutoProBattleConfig({ enabled: !autoProBattleConfig.enabled });
+    const nextEnabled = !autoProBattleConfig.enabled;
+    setAutoProBattleConfig({ enabled: nextEnabled });
+    audioService.playUiToggleSound(nextEnabled);
   };
 
   return (

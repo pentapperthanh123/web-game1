@@ -11,6 +11,14 @@ import {
 } from '../../constants/game';
 import { audioService } from '../../services/audioService';
 import { BLGLogo, GenGLogo } from '../icons/TeamLogos';
+import { ProDamageRecord } from '../../types/game';
+
+const getTeamBadgeClass = (team: TeamType): string => {
+  if (team === TEAM_KEY.BLG) {
+    return 'bg-cyan-950 text-cyan-300 border border-cyan-800';
+  }
+  return 'bg-amber-950 text-amber-300 border border-amber-800';
+};
 
 export const VictoryOverlay = () => {
   const { t } = useTranslation();
@@ -18,6 +26,7 @@ export const VictoryOverlay = () => {
   const teamScoreBLG = useGameStore((state) => state.teamScoreBLG);
   const teamScoreGENG = useGameStore((state) => state.teamScoreGENG);
   const leaderboard = useGameStore((state) => state.leaderboard);
+  const proLeaderboard = useGameStore((state) => state.proLeaderboard);
   const bo5Score = useGameStore((state) => state.bo5Score);
   const currentRound = useGameStore((state) => state.currentRound);
   const roundWinner = useGameStore((state) => state.roundWinner);
@@ -30,12 +39,14 @@ export const VictoryOverlay = () => {
 
   const [countdown, setCountdown] = useState<number>(GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS);
   const [isVictoryVisible, setIsVictoryVisible] = useState<boolean>(false);
+  const [proAvatarFailed, setProAvatarFailed] = useState<boolean>(false);
 
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED;
 
   useEffect(() => {
     if (!isDefeated) {
       setIsVictoryVisible(false);
+      setProAvatarFailed(false);
       return;
     }
 
@@ -56,7 +67,8 @@ export const VictoryOverlay = () => {
     ? t('Game.teamBLG', 'BILIBILI GAMING')
     : t('Game.teamGENG', 'GEN.G ESPORTS');
 
-  const mvpPlayer = leaderboard.length > 0 ? leaderboard[0] : null;
+  const viewerMvp = leaderboard.length > 0 ? leaderboard[0] : null;
+  const proMvp: ProDamageRecord | null = proLeaderboard.length > 0 ? proLeaderboard[0] : null;
 
   useEffect(() => {
     if (!isDefeated || !isVictoryVisible) {
@@ -186,8 +198,8 @@ export const VictoryOverlay = () => {
           </div>
         </div>
 
-        {/* MVP Player Showcase */}
-        {mvpPlayer && (
+        {/* MVP Showcase (Viewer MVP first, Pro-Player MVP fallback when solo) */}
+        {viewerMvp && (
           <div className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-1">
             <div className="flex items-center justify-center space-x-1.5 text-[11px] font-black text-amber-400 uppercase">
               <Crown className="w-3.5 h-3.5 fill-current" />
@@ -196,21 +208,63 @@ export const VictoryOverlay = () => {
             </div>
 
             <div className="text-sm sm:text-base font-extrabold text-white truncate">
-              {mvpPlayer.userName}
+              {viewerMvp.userName}
             </div>
 
             <div className="flex justify-center items-center space-x-2 text-xs">
-              <span
-                className={`text-[9px] font-black px-2 py-0.5 rounded ${
-                  mvpPlayer.team === 'BLG'
-                    ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
-                    : 'bg-amber-950 text-amber-300 border border-amber-800'
-                }`}
-              >
-                {mvpPlayer.team}
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${getTeamBadgeClass(viewerMvp.team)}`}>
+                {viewerMvp.team}
               </span>
               <span className="font-mono text-emerald-400 font-bold text-[11px]">
-                {(mvpPlayer?.totalDamage ?? 0).toLocaleString()} {t('Victory.damage', 'SÁT THƯƠNG')}
+                {(viewerMvp.totalDamage ?? 0).toLocaleString()} {t('Victory.damage', 'SÁT THƯƠNG')}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {!viewerMvp && proMvp && (
+          <div className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-1.5">
+            <div className="flex items-center justify-center space-x-1.5 text-[11px] font-black text-amber-400 uppercase">
+              <Crown className="w-3.5 h-3.5 fill-current" />
+              <span>{t('Victory.proMvpTitle', 'MVP TUYỂN THỦ')}</span>
+              <Sparkles className="w-3 h-3" />
+            </div>
+
+            <div className="flex items-center justify-center space-x-2.5">
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-amber-400/80 bg-slate-800 shrink-0 flex items-center justify-center">
+                {!proAvatarFailed ? (
+                  <img
+                    src={proMvp.avatarUrl}
+                    alt={proMvp.playerName}
+                    className="w-full h-full object-cover object-top"
+                    onError={() => setProAvatarFailed(true)}
+                  />
+                ) : (
+                  <span className="text-xs font-black text-amber-300">
+                    {proMvp.playerName.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+              </div>
+
+              <div className="text-left min-w-0">
+                <div className="text-sm sm:text-base font-extrabold text-white truncate flex items-center space-x-1.5">
+                  <span>{proMvp.playerName}</span>
+                  <span className="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                    {proMvp.role}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-semibold truncate">
+                  {proMvp.championName}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center items-center space-x-2 text-xs">
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${getTeamBadgeClass(proMvp.team)}`}>
+                {proMvp.team}
+              </span>
+              <span className="font-mono text-emerald-400 font-bold text-[11px]">
+                {(proMvp.totalDamage ?? 0).toLocaleString()} {t('Victory.damage', 'SÁT THƯƠNG')}
               </span>
             </div>
           </div>

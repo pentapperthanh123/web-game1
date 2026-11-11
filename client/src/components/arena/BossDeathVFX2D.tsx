@@ -55,6 +55,21 @@ export const BossDeathVFX2D = () => {
         className="absolute w-72 sm:w-96 h-3 rounded-full -rotate-45 animate-defeat-cross-beam"
       />
 
+      {/* 2b. Radiating Celestial Soul Disintegration Sparks */}
+      <div className="absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
+          <div
+            key={angle}
+            style={{
+              transform: `rotate(${angle}deg) translateY(-75px)`,
+              backgroundColor: primaryColor,
+              boxShadow: `0 0 14px ${primaryColor}, 0 0 24px #ffffff`,
+            }}
+            className="absolute w-1.5 h-6 rounded-full animate-pulse opacity-85"
+          />
+        ))}
+      </div>
+
       {/* 3. Execution Finisher Callout Banner */}
       <div className="absolute left-1/2 top-[12%] animate-execution-banner w-max max-w-[90vw]">
         <div

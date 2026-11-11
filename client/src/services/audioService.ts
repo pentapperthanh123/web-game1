@@ -6,6 +6,7 @@ import {
   ChampionSkillVFXType,
   TEAM_KEY,
   TeamType,
+  AUDIO_SFX_CONSTANTS,
 } from '../constants/game';
 
 class AudioSynthesizerService {
@@ -22,6 +23,8 @@ class AudioSynthesizerService {
   private lastHitSoundTime = 0;
   private lastWhooshSoundTime = 0;
   private lastRoarSoundTime = 0;
+  private lastSkillSoundTime = 0;
+  private lastComboSoundTime = 0;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -33,10 +36,12 @@ class AudioSynthesizerService {
         window.removeEventListener('click', unlockAudio);
         window.removeEventListener('keydown', unlockAudio);
         window.removeEventListener('touchstart', unlockAudio);
+        window.removeEventListener('pointerdown', unlockAudio);
       };
       window.addEventListener('click', unlockAudio);
       window.addEventListener('keydown', unlockAudio);
       window.addEventListener('touchstart', unlockAudio);
+      window.addEventListener('pointerdown', unlockAudio);
     }
   }
 
@@ -324,6 +329,12 @@ class AudioSynthesizerService {
     team?: TeamType
   ): void {
     if (!this.isAudioEnabled) return;
+    const now = performance.now();
+    if (!isCrit && now - this.lastSkillSoundTime < AUDIO_SFX_CONSTANTS.SKILL_THROTTLE_MS) {
+      return;
+    }
+    this.lastSkillSoundTime = now;
+
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -822,6 +833,12 @@ class AudioSynthesizerService {
   // 6. Combo Milestone Hype Fanfare (Combo x10, x25, x50, x100)
   public playComboMilestoneSound(comboCount: number): void {
     if (!this.isAudioEnabled) return;
+    const now = performance.now();
+    if (now - this.lastComboSoundTime < AUDIO_SFX_CONSTANTS.COMBO_MILESTONE_THROTTLE_MS) {
+      return;
+    }
+    this.lastComboSoundTime = now;
+
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1089,7 +1106,92 @@ class AudioSynthesizerService {
     });
   }
 
-  // 11. Web Speech API (Vietnamese TTS)
+  // 11c. Boss Enrage Phase Warning Siren (<= 35% HP)
+  public playBossEnrageSound(isElderDragon = false): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+
+    const sirenOsc = ctx.createOscillator();
+    const sirenGain = ctx.createGain();
+    sirenOsc.type = 'sawtooth';
+    sirenOsc.frequency.setValueAtTime(isElderDragon ? 130 : 105, t);
+    sirenOsc.frequency.exponentialRampToValueAtTime(isElderDragon ? 390 : 310, t + 0.35);
+    sirenOsc.frequency.exponentialRampToValueAtTime(65, t + 0.72);
+
+    sirenGain.gain.setValueAtTime(0.32 * this.volume, t);
+    sirenGain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+
+    sirenOsc.connect(sirenGain);
+    sirenGain.connect(out);
+    sirenOsc.start(t);
+    sirenOsc.stop(t + 0.75);
+
+    this.playBossRoarSound(isElderDragon, true);
+  }
+
+  // 11d. Esports Match / Round Start Horn Triad
+  public playRoundStartSound(): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const notes = [293.66, 440.0, 587.33]; // D4 - A4 - D5
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = t + idx * 0.09;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.24 * this.volume, startTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.42);
+
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(startTime);
+      osc.stop(startTime + 0.45);
+    });
+  }
+
+  // 11e. Subtle Tactile UI Toggle Click
+  public playUiToggleSound(isEnabled = true): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    const startFreq = isEnabled
+      ? AUDIO_SFX_CONSTANTS.UI_CLICK_FREQ_ON
+      : AUDIO_SFX_CONSTANTS.UI_CLICK_FREQ_OFF;
+    const endFreq = isEnabled ? startFreq * 1.25 : startFreq * 0.72;
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(startFreq, t);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, t + 0.07);
+
+    gain.gain.setValueAtTime(0.14 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+    osc.connect(gain);
+    gain.connect(out);
+    osc.start(t);
+    osc.stop(t + 0.085);
+  }
+
+  // 12. Web Speech API (Vietnamese TTS)
   public cancelSpeech(): void {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();

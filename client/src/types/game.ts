@@ -1,4 +1,5 @@
 import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXType } from '../constants/game';
+import { RosterPlayer } from '../constants/roster';
 import { BossSkillConfig, ActiveBossSkillBanner } from './bossSkill';
 
 export interface MinionEntity {
@@ -25,6 +26,16 @@ export interface DPSPlayer {
   team: TeamType;
   totalDamage: number;
   avatarUrl?: string;
+}
+
+export interface ProDamageRecord {
+  rosterId: string;
+  playerName: string;
+  role: RosterPlayer['role'];
+  championName: string;
+  avatarUrl: string;
+  team: TeamType;
+  totalDamage: number;
 }
 
 export interface ParticleBurst {
@@ -212,6 +223,7 @@ export interface AutoProBattleConfig {
 
 export interface DamageBossOptions {
   excludeFromLeaderboard?: boolean;
+  proPlayer?: RosterPlayer;
 }
 
 export interface GameState {
@@ -230,6 +242,7 @@ export interface GameState {
   totalLikesGENG: number;
   minions: MinionEntity[];
   leaderboard: DPSPlayer[];
+  proLeaderboard: ProDamageRecord[];
   activeBursts: ParticleBurst[];
   activeHearts: HeartEntity[];
   activeProjectiles: ProjectileEntity[];
@@ -260,6 +273,7 @@ export interface GameState {
   lastHitDamageType: DamageType | null;
   bossAttackTargetTeam: 'BLG' | 'GENG' | 'ALL' | null;
   bossDefeatedTimestamp: number;
+  bossEnragedEntranceTimestamp: number;
   finisherPlayerName: string | null;
   finisherTeam: TeamType | null;
   autoProBattleConfig: AutoProBattleConfig;

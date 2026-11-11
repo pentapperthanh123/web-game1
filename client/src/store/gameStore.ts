@@ -29,6 +29,7 @@ import {
   HeartMilestoneBanner,
   AutoProBattleConfig,
   DamageBossOptions,
+  ProDamageRecord,
 } from '../types/game';
 import {
   GAME_CONSTANTS,
@@ -48,10 +49,12 @@ import {
   AUTO_PRO_BATTLE_CONSTANTS,
   AUTO_PRO_STORAGE_KEY,
   DEFAULT_AUTO_PRO_BATTLE_CONFIG,
+  AUDIO_SFX_CONSTANTS,
   getChampionSkillVFX,
   BOSS_DEFEAT_CONSTANTS,
+  BOSS_ENRAGED_CONSTANTS,
 } from '../constants/game';
-import { getChampionAvatarUrl, findRosterPlayer, TEAM_ROSTERS } from '../constants/roster';
+import { getChampionAvatarUrl, findRosterPlayer, TEAM_ROSTERS, RosterPlayer } from '../constants/roster';
 import { gameBus } from '../services/eventBus';
 import { audioService } from '../services/audioService';
 import { getLiveMinionScreenPos, getLiveMinionPosition } from '../services/minionPositionRegistry';
@@ -93,6 +96,43 @@ const updateLeaderboardList = (
   return [...nextList]
     .sort((a, b) => b.totalDamage - a.totalDamage)
     .slice(0, GAME_CONSTANTS.LEADERBOARD.MAX_DISPLAY);
+};
+
+const updateProLeaderboardList = (
+  proLeaderboard: ProDamageRecord[],
+  player: RosterPlayer,
+  amount: number
+): ProDamageRecord[] => {
+  const existingIndex = proLeaderboard.findIndex((p) => p.rosterId === player.id);
+  const nextList =
+    existingIndex >= 0
+      ? proLeaderboard.map((entry, index) =>
+          index === existingIndex ? { ...entry, totalDamage: entry.totalDamage + amount } : entry
+        )
+      : [
+          ...proLeaderboard,
+          {
+            rosterId: player.id,
+            playerName: player.name,
+            role: player.role,
+            championName: player.signatureChampion,
+            avatarUrl: player.avatarUrl,
+            team: player.team,
+            totalDamage: amount,
+          },
+        ];
+
+  return [...nextList].sort((a, b) => b.totalDamage - a.totalDamage);
+};
+
+const isComboMilestoneReached = (comboCount: number): boolean => {
+  if (AUDIO_SFX_CONSTANTS.COMBO_EARLY_MILESTONES.includes(comboCount)) {
+    return true;
+  }
+  return (
+    comboCount >= AUDIO_SFX_CONSTANTS.COMBO_STEP_MILESTONE &&
+    comboCount % AUDIO_SFX_CONSTANTS.COMBO_STEP_MILESTONE === 0
+  );
 };
 
 const DAMAGE_INTENSITY_MAP: Record<DamageType, number> = {
@@ -162,6 +202,7 @@ const INITIAL_STATE = {
   totalLikesGENG: 0,
   minions: [] as MinionEntity[],
   leaderboard: [] as DPSPlayer[],
+  proLeaderboard: [] as ProDamageRecord[],
   activeBursts: [] as ParticleBurst[],
   activeHearts: [] as HeartEntity[],
   activeProjectiles: [] as ProjectileEntity[],
@@ -192,6 +233,7 @@ const INITIAL_STATE = {
   lastHitDamageType: null as DamageType | null,
   bossAttackTargetTeam: null as 'BLG' | 'GENG' | 'ALL' | null,
   bossDefeatedTimestamp: 0,
+  bossEnragedEntranceTimestamp: 0,
   finisherPlayerName: null as string | null,
   finisherTeam: null as TeamType | null,
   autoProBattleConfig: getStoredAutoProBattleConfig(),
@@ -361,15 +403,14 @@ export const useGameStore = create<GameState>((set, get) => ({
         team,
         isFullFury ? `🔥 ${player.name} (Bạo Nộ)` : `${player.name} (${player.role})`,
         damageType,
-        { excludeFromLeaderboard: true }
+        { excludeFromLeaderboard: true, proPlayer: player }
       );
     }, AUTO_PRO_BATTLE_CONSTANTS.FLYING_ARROW_HIT_DELAY_MS);
   },
 
   spawnFlyingArrow: (championName: string, team: TeamType, isCrit = false) => {
-    audioService.playLaserSound();
-
     const skillVfx = getChampionSkillVFX(championName, isCrit);
+    audioService.playChampionSkillSound(skillVfx.type, isCrit, team);
     const rosterPlayer = findRosterPlayer(championName, team);
     let startX: number;
     let startY: number;
@@ -633,12 +674,30 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.bossHp <= 0) return;
 
-    audioService.playHitSound();
+    audioService.playDamageImpactSound(damageType, damageType === DAMAGE_TYPE.CRIT);
 
     const now = Date.now();
     const newHp = Math.max(0, state.bossHp - amount);
-    const isEnraged = newHp > 0 && newHp <= state.bossMaxHp * 0.35;
+    const wasEnraged =
+      state.bossHp > 0 &&
+      state.bossHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+    const isEnraged =
+      newHp > 0 &&
+      newHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+    const isJustEnraged = !wasEnraged && isEnraged;
     const isDefeated = newHp <= 0;
+
+    if (isJustEnraged) {
+      audioService.playBossEnrageSound(state.gameTheme === GAME_THEME.ELDER_DRAGON);
+      get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
+      get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
+      get().addLog(
+        'BOSS',
+        state.gameTheme === GAME_THEME.ELDER_DRAGON
+          ? '🔥 [CẢNH BÁO: RỒNG NGÀN TUỔI CUỒNG NỘ!] Máu dưới 35% - Sát thương & Tốc đánh tăng vọt!'
+          : '🔥 [CẢNH BÁO: BARON CUỒNG NỘ!] Máu dưới 35% - Sát thương & Tốc đánh tăng vọt!'
+      );
+    }
 
     let nextStatus: BossStatusType = BOSS_STATUS.HIT;
     if (isDefeated) {
@@ -652,6 +711,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     const topLeaderboard = options?.excludeFromLeaderboard
       ? state.leaderboard
       : updateLeaderboardList(state.leaderboard, playerName, team, amount);
+    const nextProLeaderboard = options?.proPlayer
+      ? updateProLeaderboardList(state.proLeaderboard, options.proPlayer, amount)
+      : state.proLeaderboard;
 
     let nextBO5Score = { ...state.bo5Score };
     let nextRoundWinner: TeamType | null = state.roundWinner;
@@ -740,6 +802,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     const nextComboCount = isComboActive ? state.comboCount + 1 : 1;
     const nextComboDamage = isComboActive ? state.comboDamage + safeAmount : safeAmount;
 
+    if (isComboMilestoneReached(nextComboCount)) {
+      audioService.playComboMilestoneSound(nextComboCount);
+    }
+
     if (isDefeated) {
       const isElder = state.gameTheme === GAME_THEME.ELDER_DRAGON;
       const defeatColor = isElder
@@ -783,12 +849,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastHitTeam: team,
       lastHitDamageType: damageType,
       bossDefeatedTimestamp: isDefeated ? now : prev.bossDefeatedTimestamp,
+      bossEnragedEntranceTimestamp: isJustEnraged
+        ? now
+        : isDefeated
+          ? 0
+          : prev.bossEnragedEntranceTimestamp,
       finisherPlayerName: isDefeated ? playerName : prev.finisherPlayerName,
       finisherTeam: isDefeated ? team : prev.finisherTeam,
       activeBossSkillBanner: isDefeated ? null : prev.activeBossSkillBanner,
       teamScoreBLG: newBLGScore,
       teamScoreGENG: newGENGScore,
       leaderboard: topLeaderboard,
+      proLeaderboard: nextProLeaderboard,
       activeShockwaves: newShockwaves.slice(-8),
       floatingDamages: [
         ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
@@ -906,6 +978,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       dps: summonDps,
       createdAt: now,
     };
+
+    audioService.playSummonArrivalSound(team, isCrit);
 
     get().spawnParticleBurst(
       spawnPosition,
@@ -1295,6 +1369,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.isSeriesEnded) return;
     const nextRound = Math.min(GAME_CONSTANTS.BO5.MAX_ROUNDS, state.currentRound + 1);
+    audioService.playRoundStartSound();
     get().addLog('SYSTEM', `⚔️ Bắt đầu Ván ${nextRound} / BO5!`);
     set({
       bossHp: state.bossMaxHp,
@@ -1315,14 +1390,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastHitDamageType: null,
       bossAttackTargetTeam: null,
       bossDefeatedTimestamp: 0,
+      bossEnragedEntranceTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
       leaderboard: [],
+      proLeaderboard: [],
+      rosterAttackTimestamps: {},
     });
   },
 
   resetBO5Match: () => {
     const maxHp = get().bossMaxHp;
+    audioService.playRoundStartSound();
     get().addLog('SYSTEM', '🔄 Bắt đầu Trận đấu BO5 Mới (0 - 0)!');
     set({
       bossHp: maxHp,
@@ -1351,10 +1430,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       comboTeam: null,
       lastComboTimestamp: 0,
       leaderboard: [],
+      proLeaderboard: [],
       lastHitTeam: null,
       lastHitDamageType: null,
       bossAttackTargetTeam: null,
       bossDefeatedTimestamp: 0,
+      bossEnragedEntranceTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
       rosterAttackTimestamps: {},
@@ -1387,6 +1468,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().resetBO5Match();
       return;
     }
+    audioService.playRoundStartSound();
     get().addLog('BOSS', '🔄 Hồi sinh Boss về trạng thái ban đầu');
     set({
       bossHp: state.bossMaxHp,
@@ -1410,10 +1492,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       comboTeam: null,
       lastComboTimestamp: 0,
       leaderboard: [],
+      proLeaderboard: [],
       lastHitTeam: null,
       lastHitDamageType: null,
       bossAttackTargetTeam: null,
       bossDefeatedTimestamp: 0,
+      bossEnragedEntranceTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
       roundWinner: null,
@@ -1424,12 +1508,43 @@ export const useGameStore = create<GameState>((set, get) => ({
   setBossHp: (hp: number) => {
     const max = get().bossMaxHp;
     const clampedHp = Math.max(0, Math.min(max, hp));
-    const status = clampedHp <= 0 ? BOSS_STATUS.DEFEATED : clampedHp <= max * 0.35 ? BOSS_STATUS.ENRAGED : BOSS_STATUS.IDLE;
+    const wasEnraged =
+      get().bossHp > 0 &&
+      get().bossHp <= max * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+    const isEnraged =
+      clampedHp > 0 &&
+      clampedHp <= max * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+    const isJustEnraged = !wasEnraged && isEnraged;
+    const isDefeated = clampedHp <= 0;
+    const status = isDefeated
+      ? BOSS_STATUS.DEFEATED
+      : isEnraged
+        ? BOSS_STATUS.ENRAGED
+        : BOSS_STATUS.IDLE;
+
     get().addLog('BOSS', `Chỉnh máu Boss về ${clampedHp.toLocaleString()} HP`);
+
+    if (isJustEnraged) {
+      audioService.playBossEnrageSound(get().gameTheme === GAME_THEME.ELDER_DRAGON);
+      get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
+      get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
+      get().addLog(
+        'BOSS',
+        get().gameTheme === GAME_THEME.ELDER_DRAGON
+          ? '🔥 [CẢNH BÁO: RỒNG NGÀN TUỔI CUỒNG NỘ!] Máu dưới 35% - Sát thương & Tốc đánh tăng vọt!'
+          : '🔥 [CẢNH BÁO: BARON CUỒNG NỘ!] Máu dưới 35% - Sát thương & Tốc đánh tăng vọt!'
+      );
+    }
+
     set({
       bossHp: clampedHp,
       bossStatus: status,
-      bossDefeatedTimestamp: clampedHp <= 0 ? Date.now() : 0,
+      bossDefeatedTimestamp: isDefeated ? Date.now() : 0,
+      bossEnragedEntranceTimestamp: isJustEnraged
+        ? Date.now()
+        : isDefeated
+          ? 0
+          : get().bossEnragedEntranceTimestamp,
     });
   },
 
