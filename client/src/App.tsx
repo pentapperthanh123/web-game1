@@ -27,11 +27,14 @@ export function App() {
   const pruneEntities = useGameStore((state) => state.pruneEntities);
   const tickBossMechanics = useGameStore((state) => state.tickBossMechanics);
   const bossStatus = useGameStore((state) => state.bossStatus);
+  const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
+  const roundWinner = useGameStore((state) => state.roundWinner);
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
 
   const nextFireAtRef = useRef<Record<string, number>>({});
   const isBossDefeated = bossStatus === BOSS_STATUS.DEFEATED;
   const isBossEnraged = bossStatus === BOSS_STATUS.ENRAGED;
+  const isBattlePaused = isBossDefeated || isRoundIntermission || roundWinner !== null;
 
   // Enforce document title to strictly match user branding
   useEffect(() => {
@@ -40,7 +43,7 @@ export function App() {
 
   // Periodic Boss Retaliation Loop (Roar shockwave & lightning arcs)
   useEffect(() => {
-    if (isBossDefeated) return;
+    if (isBattlePaused) return;
 
     const retaliationInterval = isBossEnraged
       ? BOSS_ENRAGED_CONSTANTS.RETALIATION_INTERVAL_MS
@@ -48,17 +51,25 @@ export function App() {
 
     const interval = setInterval(() => {
       const state = useGameStore.getState();
-      if (state.bossStatus !== BOSS_STATUS.DEFEATED && state.minions.length > 0) {
+      if (
+        state.bossStatus === BOSS_STATUS.DEFEATED ||
+        state.isRoundIntermission ||
+        state.roundWinner !== null ||
+        state.bossHp <= 0
+      ) {
+        return;
+      }
+      if (state.minions.length > 0) {
         state.triggerBossAttack();
       }
     }, retaliationInterval);
 
     return () => clearInterval(interval);
-  }, [isBossDefeated, isBossEnraged]);
+  }, [isBattlePaused, isBossEnraged]);
 
   // Periodic Boss Counterattack Loop with 4 Configurable Skills targeting Champions
   useEffect(() => {
-    if (isBossDefeated || !bossSkillConfig.autoAttackEnabled) {
+    if (isBattlePaused || !bossSkillConfig.autoAttackEnabled) {
       return;
     }
 
@@ -78,7 +89,13 @@ export function App() {
 
       timerId = setTimeout(() => {
         const latestState = useGameStore.getState();
-        if (latestState.bossStatus !== BOSS_STATUS.DEFEATED && latestState.minions.length > 0) {
+        if (
+          latestState.bossStatus !== BOSS_STATUS.DEFEATED &&
+          !latestState.isRoundIntermission &&
+          latestState.roundWinner === null &&
+          latestState.bossHp > 0 &&
+          latestState.minions.length > 0
+        ) {
           latestState.castBossSkill();
         }
         runAttackCycle();
@@ -89,7 +106,7 @@ export function App() {
 
     return () => clearTimeout(timerId);
   }, [
-    isBossDefeated,
+    isBattlePaused,
     isBossEnraged,
     bossSkillConfig.autoAttackEnabled,
     bossSkillConfig.intervalMs,
@@ -113,11 +130,21 @@ export function App() {
     return () => clearInterval(pruneInterval);
   }, [pruneEntities, tickBossMechanics]);
 
-  // Background bot simulation runner (when triggered via Socket or Admin)
+  // Background bot simulation runner (pauses automatically when Boss is defeated or during round intermission)
   useEffect(() => {
-    if (!isSimulationActive) return;
+    if (!isSimulationActive || isBattlePaused) return;
 
     const intervalId = setInterval(() => {
+      const currentState = useGameStore.getState();
+      if (
+        currentState.bossStatus === BOSS_STATUS.DEFEATED ||
+        currentState.bossHp <= 0 ||
+        currentState.isRoundIntermission ||
+        currentState.roundWinner !== null
+      ) {
+        return;
+      }
+
       const randomPreset =
         SIMULATION_PRESETS[Math.floor(Math.random() * SIMULATION_PRESETS.length)];
       const randomViewerNumber = Math.floor(Math.random() * 900) + 100;
@@ -135,11 +162,11 @@ export function App() {
     }, botSpeedMs);
 
     return () => clearInterval(intervalId);
-  }, [isSimulationActive, botSpeedMs, summonMinion, triggerGiftExplosion, addLikes]);
+  }, [isSimulationActive, isBattlePaused, botSpeedMs, summonMinion, triggerGiftExplosion, addLikes]);
 
   // Manual-toggled Auto Pro-Player Combat: all 10 pro players fire continuously by role speed
   useEffect(() => {
-    if (!autoProBattleConfig.enabled || isBossDefeated) {
+    if (!autoProBattleConfig.enabled || isBattlePaused) {
       nextFireAtRef.current = {};
       return;
     }
@@ -158,7 +185,14 @@ export function App() {
 
     const intervalId = setInterval(() => {
       const state = useGameStore.getState();
-      if (state.bossStatus === BOSS_STATUS.DEFEATED || state.bossHp <= 0) return;
+      if (
+        state.bossStatus === BOSS_STATUS.DEFEATED ||
+        state.bossHp <= 0 ||
+        state.isRoundIntermission ||
+        state.roundWinner !== null
+      ) {
+        return;
+      }
 
       if (autoProBattleConfig.onlyWhenIdle && state.minions.length > 0) {
         return;
@@ -187,7 +221,7 @@ export function App() {
     autoProBattleConfig.enabled,
     autoProBattleConfig.onlyWhenIdle,
     autoProBattleConfig.intervalMs,
-    isBossDefeated,
+    isBattlePaused,
     triggerAutoProAttack,
   ]);
 

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Swords, Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY, TeamType, COMBAT_VFX_CONSTANTS } from '../../constants/game';
-import { MinionEntity, SummonPortalEntity } from '../../types/game';
+import { SummonPortalEntity } from '../../types/game';
 
 interface TeamThemeStyle {
   borderClass: string;
@@ -112,55 +112,6 @@ const SummonSpotlightCard = ({
   );
 };
 
-const ActiveSquadRow = ({
-  warriors,
-  team,
-  side,
-}: {
-  warriors: MinionEntity[];
-  team: TeamType;
-  side: 'left' | 'right';
-}) => {
-  if (warriors.length === 0) return null;
-
-  const theme = TEAM_THEME_MAP[team];
-  const isRight = side === 'right';
-
-  return (
-    <div
-      className={`flex items-center -space-x-1.5 ${isRight ? 'justify-end' : 'justify-start'}`}
-    >
-      {warriors.map((warrior) => {
-        const cleanName = warrior.summonerName.replace(/^@+/, '');
-        const isBLG = team === TEAM_KEY.BLG;
-        return (
-          <div
-            key={warrior.id}
-            style={{ boxShadow: theme.glowStyle }}
-            className={`relative rounded-full p-0.5 border bg-slate-950/85 ${theme.borderClass}`}
-            title={`${warrior.championName} - @${cleanName}`}
-          >
-            <ChampionPortrait
-              avatarUrl={warrior.avatarUrl}
-              championName={warrior.championName}
-              sizeClass="w-6 h-6 sm:w-8 sm:h-8"
-            />
-            <span
-              className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[6.5px] sm:text-[7.5px] font-black px-1 rounded-full bg-slate-950/95 border max-w-[54px] truncate shadow ${
-                isBLG
-                  ? 'border-cyan-500/80 text-cyan-200'
-                  : 'border-amber-500/80 text-amber-200'
-              }`}
-            >
-              @{cleanName}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
 const getLatestTeamPortal = (
   portals: SummonPortalEntity[],
   team: TeamType,
@@ -180,31 +131,21 @@ const getLatestTeamPortal = (
 
 export const SummonShowcase = () => {
   const activeSummonPortals = useGameStore((state) => state.activeSummonPortals);
-  const minions = useGameStore((state) => state.minions);
   const now = Date.now();
 
   const latestBLGPortal = getLatestTeamPortal(activeSummonPortals, TEAM_KEY.BLG, now);
   const latestGENGPortal = getLatestTeamPortal(activeSummonPortals, TEAM_KEY.GENG, now);
 
-  const blgWarriors = minions
-    .filter((m) => m.team === TEAM_KEY.BLG)
-    .slice(-COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_BADGES_PER_TEAM);
-  const gengWarriors = minions
-    .filter((m) => m.team === TEAM_KEY.GENG)
-    .slice(-COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_BADGES_PER_TEAM);
-
   return (
     <>
-      {/* Left Wing: BLG Summon Spotlight & Active Warriors (positioned cleanly below TeamRosterBar toggle) */}
+      {/* Left Wing: BLG Summon Spotlight (positioned cleanly below TeamRosterBar toggle) */}
       <div className="absolute top-[206px] sm:top-[216px] left-1.5 sm:left-3 z-20 pointer-events-none flex flex-col space-y-2">
         {latestBLGPortal && <SummonSpotlightCard portal={latestBLGPortal} side="left" />}
-        <ActiveSquadRow warriors={blgWarriors} team={TEAM_KEY.BLG} side="left" />
       </div>
 
-      {/* Right Wing: GEN.G Summon Spotlight & Active Warriors */}
+      {/* Right Wing: GEN.G Summon Spotlight */}
       <div className="absolute top-[206px] sm:top-[216px] right-1.5 sm:right-3 z-20 pointer-events-none flex flex-col items-end space-y-2">
         {latestGENGPortal && <SummonSpotlightCard portal={latestGENGPortal} side="right" />}
-        <ActiveSquadRow warriors={gengWarriors} team={TEAM_KEY.GENG} side="right" />
       </div>
     </>
   );

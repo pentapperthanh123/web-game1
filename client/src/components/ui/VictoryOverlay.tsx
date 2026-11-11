@@ -5,7 +5,6 @@ import { useGameStore } from '../../store/gameStore';
 import {
   BOSS_DEFEAT_CONSTANTS,
   BOSS_STATUS,
-  GAME_CONSTANTS,
   TEAM_KEY,
   TeamType,
 } from '../../constants/game';
@@ -23,6 +22,7 @@ const getTeamBadgeClass = (team: TeamType): string => {
 export const VictoryOverlay = () => {
   const { t } = useTranslation();
   const bossStatus = useGameStore((state) => state.bossStatus);
+  const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const teamScoreBLG = useGameStore((state) => state.teamScoreBLG);
   const teamScoreGENG = useGameStore((state) => state.teamScoreGENG);
   const leaderboard = useGameStore((state) => state.leaderboard);
@@ -37,21 +37,23 @@ export const VictoryOverlay = () => {
   const startNextRound = useGameStore((state) => state.startNextRound);
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
 
-  const [countdown, setCountdown] = useState<number>(GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS);
   const [isVictoryVisible, setIsVictoryVisible] = useState<boolean>(false);
   const [proAvatarFailed, setProAvatarFailed] = useState<boolean>(false);
+  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
 
-  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED;
+  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || isRoundIntermission;
 
   useEffect(() => {
     if (!isDefeated) {
       setIsVictoryVisible(false);
       setProAvatarFailed(false);
+      setIsAdvancing(false);
       return;
     }
 
     const revealTimer = setTimeout(() => {
       setIsVictoryVisible(true);
+      audioService.playVictoryFanfare();
     }, BOSS_DEFEAT_CONSTANTS.VICTORY_DELAY_MS);
 
     return () => clearTimeout(revealTimer);
@@ -70,34 +72,17 @@ export const VictoryOverlay = () => {
   const viewerMvp = leaderboard.length > 0 ? leaderboard[0] : null;
   const proMvp: ProDamageRecord | null = proLeaderboard.length > 0 ? proLeaderboard[0] : null;
 
-  useEffect(() => {
-    if (!isDefeated || !isVictoryVisible) {
-      setCountdown(GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS);
-      return;
-    }
+  const handleStartNextRound = () => {
+    if (isAdvancing) return;
+    setIsAdvancing(true);
+    startNextRound();
+  };
 
-    audioService.playVictoryFanfare();
-
-    const transitionSec = isSeriesEnded ? 15 : GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS;
-    setCountdown(transitionSec);
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          if (isSeriesEnded) {
-            resetBO5Match();
-          } else {
-            startNextRound();
-          }
-          return GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isDefeated, isVictoryVisible, isSeriesEnded, startNextRound, resetBO5Match]);
+  const handleResetBO5Match = () => {
+    if (isAdvancing) return;
+    setIsAdvancing(true);
+    resetBO5Match();
+  };
 
   if (!isDefeated || !isVictoryVisible) return null;
 
@@ -300,31 +285,36 @@ export const VictoryOverlay = () => {
           <span className="text-amber-400 font-bold">GEN: {(teamScoreGENG ?? 0).toLocaleString()} DMG</span>
         </div>
 
-        {/* Auto Next Match Countdown & Manual Advance Button */}
-        <div className="pt-1 flex flex-col items-center space-y-2">
+        {/* Manual Advance / Match Control */}
+        <div className="pt-2 flex flex-col items-center space-y-2.5">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300 shadow">
-            <RotateCcw className="w-3 h-3 animate-spin text-cyan-400" />
-            <span>{t('Victory.nextRoundIn', 'Ván mới bắt đầu sau:')}</span>
-            <span className="font-mono font-black text-cyan-400 text-xs sm:text-sm">{countdown}s</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>
+              {isSeriesEnded
+                ? t('Victory.seriesEndedNotice', 'Loạt trận BO5 đã kết thúc!')
+                : t('Victory.roundIntermissionPrompt', 'Nghỉ giữa hiệp - Sẵn sàng cho ván tiếp theo')}
+            </span>
           </div>
 
           {isSeriesEnded ? (
             <button
               type="button"
-              onClick={() => resetBO5Match()}
-              className="py-2 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_15px_rgba(245,158,11,0.5)] flex items-center space-x-1.5 active:scale-95"
+              disabled={isAdvancing}
+              onClick={handleResetBO5Match}
+              className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_15px_rgba(245,158,11,0.5)] flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-4 h-4" />
               <span>{t('Victory.newSeries', 'BẮT ĐẦU TRẬN ĐẤU MỚI')}</span>
             </button>
           ) : (
             <button
               type="button"
-              onClick={() => startNextRound()}
-              className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_12px_rgba(6,182,212,0.4)] flex items-center space-x-1.5 active:scale-95"
+              disabled={isAdvancing}
+              onClick={handleStartNextRound}
+              className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer animate-pulse hover:animate-none"
             >
               <span>{t('Victory.nextRoundNow', 'VÀO VÁN TIẾP THEO')}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>

@@ -87,12 +87,15 @@
     "damage": "DAMAGE",
     "nextRoundIn": "Next game starts in:",
     "nextRoundNow": "START NEXT GAME",
-    "newSeries": "START NEW BO5 MATCH"
+    "newSeries": "START NEW BO5 MATCH",
+    "seriesEndedNotice": "BO5 Series has concluded!",
+    "roundIntermissionPrompt": "Round Intermission - Ready for next game"
   },
   "Milestone": {
     "healTitle": "GLOBAL DIVINE HEAL!",
     "healSubtitle": "{{milestone}} HEARTS REACHED",
     "healNotice": "Restored +{{amount}} HP to all champions (Monsters excluded)",
-    "healProgress": "Divine Heal:"
+    "healProgress": "Divine Heal:",
+    "furySpeedBoost": "Fury {{team}} x{{multiplier}}"
   }
 }

@@ -1,20 +1,55 @@
-import { Heart, Sparkles } from 'lucide-react';
+import { Heart, Sparkles, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
-import { GAME_CONSTANTS } from '../../constants/game';
+import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
+
+const BOOST_DISPLAY_MIN_MULTIPLIER = 1.05;
 
 export const LikeCounter = () => {
   const { t } = useTranslation();
   const totalLikesBLG = useGameStore((state) => state.totalLikesBLG);
   const totalLikesGENG = useGameStore((state) => state.totalLikesGENG);
+  const teamHeartMomentum = useGameStore((state) => state.teamHeartMomentum);
 
   const totalCombinedLikes = (totalLikesBLG ?? 0) + (totalLikesGENG ?? 0);
   const threshold = GAME_CONSTANTS.HEART_MILESTONE.THRESHOLD;
   const currentProgress = totalCombinedLikes % threshold;
   const progressPercent = Math.min(100, Math.round((currentProgress / threshold) * 100));
 
+  const blgMultiplier = teamHeartMomentum?.[TEAM_KEY.BLG]?.multiplier ?? 1;
+  const gengMultiplier = teamHeartMomentum?.[TEAM_KEY.GENG]?.multiplier ?? 1;
+  const isBlgBoostActive = blgMultiplier > BOOST_DISPLAY_MIN_MULTIPLIER;
+  const isGengBoostActive = gengMultiplier > BOOST_DISPLAY_MIN_MULTIPLIER;
+
   return (
     <div className="flex flex-col space-y-1 pointer-events-auto items-end">
+      {(isBlgBoostActive || isGengBoostActive) && (
+        <div className="flex items-center space-x-1">
+          {isBlgBoostActive && (
+            <div className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded-full bg-cyan-950/90 border border-cyan-400/70 text-[8px] font-black text-cyan-200 shadow-md animate-pulse">
+              <Zap className="w-2.5 h-2.5 text-yellow-300 fill-current" />
+              <span>
+                {t('Milestone.furySpeedBoost', 'Nộ {{team}} x{{multiplier}}', {
+                  team: 'BLG',
+                  multiplier: blgMultiplier.toFixed(1),
+                })}
+              </span>
+            </div>
+          )}
+          {isGengBoostActive && (
+            <div className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded-full bg-amber-950/90 border border-amber-400/70 text-[8px] font-black text-amber-200 shadow-md animate-pulse">
+              <Zap className="w-2.5 h-2.5 text-yellow-300 fill-current" />
+              <span>
+                {t('Milestone.furySpeedBoost', 'Nộ {{team}} x{{multiplier}}', {
+                  team: 'GEN',
+                  multiplier: gengMultiplier.toFixed(1),
+                })}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Heart Milestone Healing Progress */}
       <div className="flex flex-col px-2 py-1 rounded-lg bg-slate-950/85 border border-emerald-500/50 backdrop-blur-md shadow-md text-[9px] w-32">
         <div className="flex items-center justify-between text-emerald-300 font-bold mb-0.5">

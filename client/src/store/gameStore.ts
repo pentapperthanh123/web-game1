@@ -32,6 +32,8 @@ import {
   ProDamageRecord,
   BossShieldState,
   BossWeakPointState,
+  TeamComboState,
+  TeamHeartMomentum,
 } from '../types/game';
 import {
   GAME_CONSTANTS,
@@ -189,6 +191,39 @@ const getStoredAutoProBattleConfig = (): AutoProBattleConfig => {
   }
 };
 
+const createEmptyTeamCombo = (): TeamComboState => ({
+  count: 0,
+  damage: 0,
+  lastTimestamp: 0,
+});
+
+const createInitialTeamCombos = (): Record<TeamType, TeamComboState> => ({
+  [TEAM_KEY.BLG]: createEmptyTeamCombo(),
+  [TEAM_KEY.GENG]: createEmptyTeamCombo(),
+});
+
+const createEmptyTeamHeartMomentum = (): TeamHeartMomentum => ({
+  multiplier: 1,
+  lastTapAt: 0,
+  burstCount: 0,
+});
+
+const createInitialTeamHeartMomentum = (): Record<TeamType, TeamHeartMomentum> => ({
+  [TEAM_KEY.BLG]: createEmptyTeamHeartMomentum(),
+  [TEAM_KEY.GENG]: createEmptyTeamHeartMomentum(),
+});
+
+const getActiveHeartFuryMultiplier = (
+  momentum: TeamHeartMomentum | undefined,
+  now: number
+): number => {
+  if (!momentum) return 1;
+  if (now - momentum.lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS) {
+    return 1;
+  }
+  return momentum.multiplier;
+};
+
 const INITIAL_STATE = {
   bossHp: GAME_CONSTANTS.BOSS.INITIAL_HP,
   bossMaxHp: GAME_CONSTANTS.BOSS.MAX_HP,
@@ -217,10 +252,7 @@ const INITIAL_STATE = {
   activeDefeatedChampions: [] as DefeatedChampionEntity[],
   activeGiftBanner: null as GiftAnnouncement | null,
   floatingDamages: [] as FloatingDamageText[],
-  comboCount: 0,
-  comboDamage: 0,
-  comboTeam: null as TeamType | null,
-  lastComboTimestamp: 0,
+  teamCombos: createInitialTeamCombos(),
   chatMessages: [] as LiveChatMessage[],
   eventLogs: [] as AdminEventLog[],
   isSimulationActive: false,
@@ -259,6 +291,7 @@ const INITIAL_STATE = {
     'gen-duro': 20,
   } as Record<string, number>,
   lastFuryUltimatePlayerId: null as string | null,
+  teamHeartMomentum: createInitialTeamHeartMomentum(),
   bo5Score: {
     [TEAM_KEY.BLG]: 0,
     [TEAM_KEY.GENG]: 0,
@@ -266,6 +299,7 @@ const INITIAL_STATE = {
   currentRound: 1,
   bo5TargetWins: GAME_CONSTANTS.BO5.TARGET_WINS,
   roundWinner: null as TeamType | null,
+  isRoundIntermission: false,
   isSeriesEnded: false,
   seriesWinner: null as TeamType | null,
   roundCountdownSeconds: GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS,
@@ -329,9 +363,43 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
+  consumeMinionAttackFury: (minionId: string) => {
+    const state = get();
+    const targetMinion = state.minions.find((minion) => minion.id === minionId);
+    if (!targetMinion) {
+      return { isFullFury: false, nextFury: 0 };
+    }
+
+    const now = Date.now();
+    const isFullFury = targetMinion.fury >= targetMinion.maxFury;
+    const speedMultiplier = getActiveHeartFuryMultiplier(
+      state.teamHeartMomentum[targetMinion.team],
+      now
+    );
+    const furyGain = Math.round(GAME_CONSTANTS.MINION_FURY.GAIN_PER_ATTACK * speedMultiplier);
+    const nextFury = isFullFury
+      ? 0
+      : Math.min(targetMinion.maxFury, targetMinion.fury + furyGain);
+
+    set((prev) => ({
+      minions: prev.minions.map((minion) =>
+        minion.id === minionId ? { ...minion, fury: nextFury } : minion
+      ),
+    }));
+
+    return { isFullFury, nextFury };
+  },
+
   triggerAutoProAttack: (team: TeamType, playerIndex: number) => {
     const state = get();
-    if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
+    if (
+      state.bossHp <= 0 ||
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null
+    ) {
+      return;
+    }
 
     const bossFloorHp = Math.ceil(state.bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT);
     if (state.bossHp <= bossFloorHp) return;
@@ -345,11 +413,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     let finalDamage: number;
     let damageType: DamageType;
-    let isCrit: boolean;
 
     if (isFullFury) {
-      // FULL NỘ (kích hoạt bởi tiếp sức từ người xem) -> XẢ SIÊU TUYỆT KỸ
-      isCrit = true;
+      // FULL NỘ (100% Nộ) -> XẢ SIÊU TUYỆT KỸ
       damageType = DAMAGE_TYPE.ULTIMATE;
       finalDamage = Math.round(
         AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MAX * GAME_CONSTANTS.PRO_FURY.FURY_ULTIMATE_DAMAGE_MULTIPLIER +
@@ -371,25 +437,30 @@ export const useGameStore = create<GameState>((set, get) => ({
         player.signatureChampion
       );
     } else {
-      isCrit = Math.random() < AUTO_PRO_BATTLE_CONSTANTS.CRIT_CHANCE;
-      const baseDamage = randomInRange(
-        AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MIN,
-        AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MAX
-      );
+      // Chưa đủ 100% Nộ -> chỉ tung đòn đánh thường, tuyệt đối không xả chiêu mạnh/tuyệt kỹ
+      damageType = DAMAGE_TYPE.NORMAL;
       finalDamage = Math.round(
-        isCrit ? baseDamage * AUTO_PRO_BATTLE_CONSTANTS.CRIT_MULTIPLIER : baseDamage
+        randomInRange(
+          AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MIN,
+          AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MAX
+        )
       );
-      damageType = isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL;
     }
 
-    const nextFury = isFullFury
-      ? 0
-      : Math.min(
-          GAME_CONSTANTS.PRO_FURY.FURY_AUTO_CAP,
-          prevFury + GAME_CONSTANTS.PRO_FURY.FURY_GAIN_AUTO_ATTACK
-        );
-
     const now = Date.now();
+    const activeMomentumMultiplier = getActiveHeartFuryMultiplier(
+      state.teamHeartMomentum[team],
+      now
+    );
+    const furyGain = Math.round(
+      GAME_CONSTANTS.PRO_FURY.FURY_GAIN_AUTO_ATTACK * activeMomentumMultiplier
+    );
+    const furyCap =
+      activeMomentumMultiplier > 1
+        ? GAME_CONSTANTS.PRO_FURY.MAX_FURY
+        : GAME_CONSTANTS.PRO_FURY.FURY_AUTO_CAP;
+    const nextFury = isFullFury ? 0 : Math.min(furyCap, prevFury + furyGain);
+
     const proLaneY = 1.65 - (playerIndex % 5) * 0.55;
     const proStart3D: [number, number, number] = [
       team === TEAM_KEY.BLG ? -2.9 : 2.9,
@@ -400,8 +471,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       ? '#fbbf24'
       : COMBAT_VFX_CONSTANTS.TEAM_COLORS[team].primary;
 
-    get().spawnFlyingArrow(player.signatureChampion, team, isCrit || isFullFury);
-    get().spawnProjectile(proStart3D, proBeamColor, isCrit || isFullFury);
+    get().spawnFlyingArrow(player.signatureChampion, team, isFullFury);
+    get().spawnProjectile(proStart3D, proBeamColor, isFullFury);
 
     set((prev) => ({
       rosterAttackTimestamps: {
@@ -417,7 +488,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     setTimeout(() => {
       const latest = get();
-      if (latest.bossHp <= 0 || latest.bossStatus === BOSS_STATUS.DEFEATED) return;
+      if (
+        latest.bossHp <= 0 ||
+        latest.bossStatus === BOSS_STATUS.DEFEATED ||
+        latest.isRoundIntermission ||
+        latest.roundWinner !== null
+      ) {
+        return;
+      }
 
       latest.damageBoss(
         finalDamage,
@@ -441,6 +519,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     customStart?: { x: number; y: number },
     customTarget?: { x: number; y: number }
   ) => {
+    const currentState = get();
+    if (currentState.bossStatus === BOSS_STATUS.DEFEATED || currentState.bossHp <= 0) {
+      return;
+    }
+
     const skillVfx = getChampionSkillVFX(championName, isCrit);
     audioService.playChampionSkillSound(skillVfx.type, isCrit, team);
     const rosterPlayer = findRosterPlayer(championName, team);
@@ -582,7 +665,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   triggerBossAttack: (_type: 'ROAR' | 'LIGHTNING' = 'ROAR') => {
     const state = get();
-    if (state.bossStatus === BOSS_STATUS.DEFEATED) return;
+    if (
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null ||
+      state.bossHp <= 0
+    ) {
+      return;
+    }
 
     audioService.playHitSound();
 
@@ -655,7 +745,70 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newLikesBLG = team === TEAM_KEY.BLG ? state.totalLikesBLG + count : state.totalLikesBLG;
     const newLikesGENG = team === TEAM_KEY.GENG ? state.totalLikesGENG + count : state.totalLikesGENG;
 
+    // During intermission or boss defeat: only accumulate likes counter, no combat or heart spawning
+    if (
+      state.isRoundIntermission ||
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.roundWinner !== null ||
+      state.bossHp <= 0
+    ) {
+      set({
+        totalLikesBLG: newLikesBLG,
+        totalLikesGENG: newLikesGENG,
+      });
+      return;
+    }
+
     audioService.playHeartChime();
+
+    const now = Date.now();
+    const prevMomentum = state.teamHeartMomentum[team] ?? createEmptyTeamHeartMomentum();
+    const isRapidTap =
+      prevMomentum.lastTapAt > 0 &&
+      now - prevMomentum.lastTapAt <= GAME_CONSTANTS.MINION_FURY.HEART_TAP_RAPID_WINDOW_MS;
+    const isWithinSpeedWindow =
+      prevMomentum.lastTapAt > 0 &&
+      now - prevMomentum.lastTapAt <= GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS;
+
+    const batchFactor = Math.min(3, Math.max(1, Math.ceil(count / 5)));
+    let nextMultiplier = 1;
+    let nextBurstCount = 1;
+
+    if (isRapidTap) {
+      nextBurstCount = prevMomentum.burstCount + 1;
+      nextMultiplier = Math.min(
+        GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_MAX,
+        Number(
+          (
+            prevMomentum.multiplier +
+            GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_STEP * batchFactor
+          ).toFixed(2)
+        )
+      );
+    } else if (isWithinSpeedWindow) {
+      nextBurstCount = prevMomentum.burstCount + 1;
+      nextMultiplier = Math.min(
+        GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_MAX,
+        Number(
+          (
+            prevMomentum.multiplier +
+            GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_STEP * 0.5 * batchFactor
+          ).toFixed(2)
+        )
+      );
+    } else if (count >= 3) {
+      nextMultiplier = Math.min(
+        GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_MAX,
+        Number((1 + GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_STEP).toFixed(2))
+      );
+    }
+
+    const minionHeartFuryGain = Math.round(
+      GAME_CONSTANTS.MINION_FURY.HEART_TAP_GAIN_BASE * batchFactor * nextMultiplier
+    );
+    const proHeartFuryGain = Math.round(
+      GAME_CONSTANTS.PRO_FURY.FURY_GAIN_HEART_TAP * batchFactor * nextMultiplier
+    );
 
     const heartsToSpawn = Math.min(count, 8);
     const newHearts: HeartEntity[] = [];
@@ -665,7 +818,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const targetColor = team === TEAM_KEY.BLG ? '#38bdf8' : '#facc15';
       const randomColor = Math.random() < 0.6 ? targetColor : colors[Math.floor(Math.random() * colors.length)];
       newHearts.push({
-        id: `heart-${Date.now()}-${Math.random()}`,
+        id: `heart-${now}-${Math.random()}`,
         x: (team === TEAM_KEY.BLG ? -2.2 : 2.2) + (Math.random() - 0.5) * 1.5,
         y: -3.5,
         z: 3.5 + Math.random() * 1.5,
@@ -673,17 +826,42 @@ export const useGameStore = create<GameState>((set, get) => ({
         color: randomColor,
         scale: 0.18 + Math.random() * 0.14,
         swaySpeed: 2.0 + Math.random() * 3.0,
-        createdAt: Date.now(),
+        createdAt: now,
       });
     }
 
     const likeDamage = count * 15;
     get().damageBoss(likeDamage, team, `${userName} (Thả tim)`, 'NORMAL');
 
-    set({
-      totalLikesBLG: newLikesBLG,
-      totalLikesGENG: newLikesGENG,
-      activeHearts: [...state.activeHearts.slice(-GAME_CONSTANTS.HEARTS.MAX_ACTIVE), ...newHearts],
+    set((prev) => {
+      const nextRosterFury = { ...prev.rosterPlayerFury };
+      for (const rosterPlayer of TEAM_ROSTERS[team]) {
+        const curFury = nextRosterFury[rosterPlayer.id] ?? 0;
+        nextRosterFury[rosterPlayer.id] = Math.min(
+          GAME_CONSTANTS.PRO_FURY.MAX_FURY,
+          curFury + proHeartFuryGain
+        );
+      }
+
+      return {
+        totalLikesBLG: newLikesBLG,
+        totalLikesGENG: newLikesGENG,
+        activeHearts: [...prev.activeHearts.slice(-GAME_CONSTANTS.HEARTS.MAX_ACTIVE), ...newHearts],
+        minions: prev.minions.map((minion) =>
+          minion.team === team
+            ? { ...minion, fury: Math.min(minion.maxFury, minion.fury + minionHeartFuryGain) }
+            : minion
+        ),
+        rosterPlayerFury: nextRosterFury,
+        teamHeartMomentum: {
+          ...prev.teamHeartMomentum,
+          [team]: {
+            multiplier: nextMultiplier,
+            lastTapAt: now,
+            burstCount: nextBurstCount,
+          },
+        },
+      };
     });
 
     // Heart Milestone Check: Trigger all-map heal when total combined likes reach milestone
@@ -698,18 +876,28 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  spawnProjectile: (from: [number, number, number], color: string, isCrit = false) => {
+  spawnProjectile: (
+    from: [number, number, number],
+    color: string,
+    isCrit = false,
+    customTarget?: [number, number, number]
+  ) => {
+    const currentState = get();
+    if (currentState.bossStatus === BOSS_STATUS.DEFEATED || currentState.bossHp <= 0) {
+      return;
+    }
+
     audioService.playLaserSound();
 
-    const [baseTargetX, baseTargetY, baseTargetZ] = COMBAT_VFX_CONSTANTS.BOSS_TARGET;
+    const [baseTargetX, baseTargetY, baseTargetZ] = customTarget ?? COMBAT_VFX_CONSTANTS.BOSS_TARGET;
     const newProj: ProjectileEntity = {
       id: `proj-${Date.now()}-${Math.random()}`,
       startX: from[0],
       startY: from[1],
       startZ: from[2],
-      targetX: baseTargetX + randomInRange(-0.55, 0.55),
-      targetY: baseTargetY + randomInRange(-0.35, 0.45),
-      targetZ: baseTargetZ + randomInRange(-0.25, 0.35),
+      targetX: baseTargetX + randomInRange(-0.45, 0.45),
+      targetY: baseTargetY + randomInRange(-0.3, 0.4),
+      targetZ: baseTargetZ + randomInRange(-0.2, 0.3),
       arcHeight: isCrit ? randomInRange(1.2, 1.9) : randomInRange(0.4, 1.15),
       isCrit,
       color,
@@ -733,7 +921,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     options?: DamageBossOptions
   ) => {
     const state = get();
-    if (state.bossHp <= 0) return;
+    if (
+      state.bossHp <= 0 ||
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null
+    ) {
+      return;
+    }
 
     const now = Date.now();
     const isWeakPointActive =
@@ -999,20 +1194,27 @@ export const useGameStore = create<GameState>((set, get) => ({
       createdAt: now,
     };
 
-    let nextComboCount = state.comboCount;
-    let nextComboDamage = state.comboDamage;
-    let nextComboTeam = state.comboTeam;
-    let nextLastComboTimestamp = state.lastComboTimestamp;
+    let nextTeamCombos = state.teamCombos;
 
     if (!options?.suppressCombo) {
-      const isComboActive = now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
-      nextComboCount = isComboActive ? state.comboCount + 1 : 1;
-      nextComboDamage = isComboActive ? state.comboDamage + safeAmount : safeAmount;
-      nextComboTeam = team;
-      nextLastComboTimestamp = now;
+      const currentTeamCombo = state.teamCombos[team];
+      const isTeamComboActive =
+        currentTeamCombo.lastTimestamp > 0 &&
+        now - currentTeamCombo.lastTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
+      const nextCount = isTeamComboActive ? currentTeamCombo.count + 1 : 1;
+      const nextDamage = isTeamComboActive ? currentTeamCombo.damage + safeAmount : safeAmount;
 
-      if (isComboMilestoneReached(nextComboCount)) {
-        audioService.playComboMilestoneSound(nextComboCount);
+      nextTeamCombos = {
+        ...state.teamCombos,
+        [team]: {
+          count: nextCount,
+          damage: nextDamage,
+          lastTimestamp: now,
+        },
+      };
+
+      if (isComboMilestoneReached(nextCount)) {
+        audioService.playComboMilestoneSound(nextCount);
       }
     }
 
@@ -1055,6 +1257,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((prev) => ({
       bossHp: newHp,
       bossStatus: nextStatus,
+      isRoundIntermission: isDefeated ? true : prev.isRoundIntermission,
       bossHitTimestamp: now,
       lastHitTeam: team,
       lastHitDamageType: effectiveDamageType,
@@ -1075,18 +1278,26 @@ export const useGameStore = create<GameState>((set, get) => ({
       leaderboard: topLeaderboard,
       proLeaderboard: nextProLeaderboard,
       activeShockwaves: newShockwaves.slice(-8),
-      floatingDamages: [
-        ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
-        newFloat,
-      ],
-      activeHitImpacts: [
-        ...prev.activeHitImpacts.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_ACTIVE_HIT_IMPACTS - 1)),
-        newImpact,
-      ],
-      comboCount: nextComboCount,
-      comboDamage: nextComboDamage,
-      comboTeam: nextComboTeam,
-      lastComboTimestamp: nextLastComboTimestamp,
+      floatingDamages: isDefeated
+        ? []
+        : [
+            ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
+            newFloat,
+          ],
+      activeHitImpacts: isDefeated
+        ? []
+        : [
+            ...prev.activeHitImpacts.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_ACTIVE_HIT_IMPACTS - 1)),
+            newImpact,
+          ],
+      teamCombos: isDefeated ? createInitialTeamCombos() : nextTeamCombos,
+      teamHeartMomentum: isDefeated ? createInitialTeamHeartMomentum() : prev.teamHeartMomentum,
+      minions: isDefeated ? [] : prev.minions,
+      activeSummonPortals: isDefeated ? [] : prev.activeSummonPortals,
+      activeProjectiles: isDefeated ? [] : prev.activeProjectiles,
+      activeFlyingArrows: isDefeated ? [] : prev.activeFlyingArrows,
+      activeSlashes: isDefeated ? [] : prev.activeSlashes,
+      activeMeteors: isDefeated ? [] : prev.activeMeteors,
       bo5Score: nextBO5Score,
       roundWinner: nextRoundWinner,
       isSeriesEnded: nextIsSeriesEnded,
@@ -1096,6 +1307,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   summonMinion: (summonerName: string, championName: string, team: TeamType, isGiftBypass = false) => {
     const state = get();
+    if (
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.bossHp <= 0 ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null
+    ) {
+      return;
+    }
     const now = Date.now();
 
     // Option B: Limit to 1 active living champion per user
@@ -1156,10 +1375,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const avatarUrl = getChampionAvatarUrl(championName, team);
     const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
     const baseDps = GAME_CONSTANTS.MINIONS.BASE_DPS + Math.floor(Math.random() * 100);
-    const isCrit = Math.random() < COMBAT_VFX_CONSTANTS.SUMMON.CRIT_CHANCE;
-    const summonDps = isCrit
-      ? baseDps * COMBAT_VFX_CONSTANTS.SUMMON.CRIT_MULTIPLIER
-      : baseDps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER;
+    // Tướng triệu hồi khởi đầu với 0 Nộ, chỉ tung chiêu đánh thường cho đến khi tích đủ 100% Nộ
+    const summonDps = baseDps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER;
 
     const newMinion: MinionEntity = {
       id: `minion-${now}-${Math.random().toString(36).substring(2, 6)}`,
@@ -1177,6 +1394,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       dps: baseDps,
       hp: CHAMPION_DEFAULT_MAX_HP,
       maxHp: CHAMPION_DEFAULT_MAX_HP,
+      fury: 0,
+      maxFury: GAME_CONSTANTS.MINION_FURY.MAX_FURY,
     };
 
     const newPortal: SummonPortalEntity = {
@@ -1187,48 +1406,34 @@ export const useGameStore = create<GameState>((set, get) => ({
       team,
       position: spawnPosition,
       color: teamPalette.primary,
-      isCrit,
+      isCrit: false,
       dps: summonDps,
       createdAt: now,
     };
 
-    audioService.playSummonArrivalSound(team, isCrit);
+    audioService.playSummonArrivalSound(team, false);
 
     get().spawnParticleBurst(
       spawnPosition,
       teamPalette.primary,
-      COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_CRIT
+      COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_NORMAL
     );
-    // 1s Grace Period: Champion enters the field with invulnerability, dealing damage only after 1s
+    // 1s Grace Period: Champion enters the field with invulnerability, opening with a normal strike that builds Fury
     setTimeout(() => {
-      if (get().bossStatus === BOSS_STATUS.DEFEATED) return;
-
-      get().damageBoss(
-        summonDps,
-        team,
-        summonerName,
-        isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
-      );
-      get().spawnProjectile(spawnPosition, teamPalette.primary, isCrit);
-      get().spawnFlyingArrow(championName, team, isCrit);
-
-      if (isCrit) {
-        setTimeout(() => {
-          if (get().bossStatus === BOSS_STATUS.DEFEATED) return;
-          get().spawnFlyingArrow(championName, team, true);
-        }, COMBAT_VFX_CONSTANTS.SUMMON.CRIT_FOLLOWUP_DELAY_MS);
+      const latest = get();
+      if (
+        latest.bossStatus === BOSS_STATUS.DEFEATED ||
+        latest.bossHp <= 0 ||
+        latest.isRoundIntermission ||
+        latest.roundWinner !== null
+      ) {
+        return;
       }
 
-      if (isCrit) {
-        setTimeout(() => {
-          if (get().bossStatus === BOSS_STATUS.DEFEATED) return;
-          get().spawnProjectile(
-            [spawnPosition[0] + randomInRange(-0.25, 0.25), spawnPosition[1] + 0.2, spawnPosition[2]],
-            teamPalette.crit,
-            true
-          );
-        }, COMBAT_VFX_CONSTANTS.SUMMON.CRIT_FOLLOWUP_DELAY_MS);
-      }
+      get().consumeMinionAttackFury(newMinion.id);
+      get().damageBoss(summonDps, team, summonerName, DAMAGE_TYPE.NORMAL);
+      get().spawnProjectile(spawnPosition, teamPalette.primary, false);
+      get().spawnFlyingArrow(championName, team, false);
     }, GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS);
 
     get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${team} (Bảo hộ 1s)`, team);
@@ -1253,6 +1458,27 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   triggerGiftExplosion: (giftName: string, team: TeamType, donorName: string, coins = 100) => {
+    const state = get();
+    const newBanner: GiftAnnouncement = {
+      id: `banner-${Date.now()}`,
+      donorName,
+      giftName,
+      team,
+      coins,
+      timestamp: Date.now(),
+    };
+
+    if (
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.bossHp <= 0 ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null
+    ) {
+      set({ activeGiftBanner: newBanner });
+      get().addChatMessage(donorName, `Đã tặng ${giftName} (${coins} xu)!`, team);
+      return;
+    }
+
     const burstColor = team === TEAM_KEY.BLG ? GAME_CONSTANTS.MINIONS.BLG_COLOR : GAME_CONSTANTS.MINIONS.GENG_COLOR;
 
     audioService.playGiftFanfare();
@@ -1290,15 +1516,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const pool = team === TEAM_KEY.BLG ? giftRosterBLG : giftRosterGEN;
     const eliteChamp = pool[Math.floor(Math.random() * pool.length)];
     get().summonMinion(`👑 ${donorName}`, eliteChamp, team, true);
-
-    const newBanner: GiftAnnouncement = {
-      id: `banner-${Date.now()}`,
-      donorName,
-      giftName,
-      team,
-      coins,
-      timestamp: Date.now(),
-    };
 
     const safeGiftDamage = Number.isFinite(giftDamage) ? giftDamage : 0;
     get().addLog('GIFT', `💎 ${donorName} tặng [${giftName}] (${coins} xu) phe ${team} gây ${safeGiftDamage.toLocaleString()} ST!`, team);
@@ -1352,7 +1569,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   tickBossMechanics: () => {
     const state = get();
     const now = Date.now();
-    if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
+    if (
+      state.bossHp <= 0 ||
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null
+    ) {
+      return;
+    }
 
     // 1. Check Boss Shield expiry -> Heal Boss if viewers failed to break it
     if (state.bossShield && now >= state.bossShield.expiresAt) {
@@ -1490,7 +1714,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   castBossSkill: (skillIndex) => {
     const state = get();
-    if (state.bossStatus === BOSS_STATUS.DEFEATED) return;
+    if (
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.bossHp <= 0 ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null
+    ) {
+      return;
+    }
 
     const skills = getBossSkillsByTheme(state.gameTheme);
     if (!skills || skills.length === 0) return;
@@ -1666,16 +1897,22 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossStatus: BOSS_STATUS.IDLE,
       currentRound: nextRound,
       roundWinner: null,
+      isRoundIntermission: false,
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
-      comboCount: 0,
-      comboDamage: 0,
-      comboTeam: null,
+      teamCombos: createInitialTeamCombos(),
+      teamHeartMomentum: createInitialTeamHeartMomentum(),
       floatingDamages: [],
       activeSlashes: [],
       activeHitImpacts: [],
       activeDefeatedChampions: [],
+      activeBursts: [],
+      activeFlyingArrows: [],
+      activeProjectiles: [],
+      activeShockwaves: [],
+      activeMeteors: [],
+      activeSummonPortals: [],
       lastHitTeam: null,
       lastHitDamageType: null,
       bossAttackTargetTeam: null,
@@ -1704,6 +1941,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       bo5Score: { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 },
       currentRound: 1,
       roundWinner: null,
+      isRoundIntermission: false,
       isSeriesEnded: false,
       seriesWinner: null,
       teamScoreBLG: 0,
@@ -1712,6 +1950,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeBursts: [],
       activeHearts: [],
       activeProjectiles: [],
+      activeFlyingArrows: [],
       activeShockwaves: [],
       activeMeteors: [],
       activeSlashes: [],
@@ -1720,10 +1959,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeGiftBanner: null,
       floatingDamages: [],
       activeDefeatedChampions: [],
-      comboCount: 0,
-      comboDamage: 0,
-      comboTeam: null,
-      lastComboTimestamp: 0,
+      teamCombos: createInitialTeamCombos(),
+      teamHeartMomentum: createInitialTeamHeartMomentum(),
       leaderboard: [],
       proLeaderboard: [],
       lastHitTeam: null,
@@ -1773,6 +2010,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       bossHp: state.bossMaxHp,
       bossStatus: BOSS_STATUS.IDLE,
+      isRoundIntermission: false,
+      roundWinner: null,
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
@@ -1787,10 +2026,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeGiftBanner: null,
       floatingDamages: [],
       activeDefeatedChampions: [],
-      comboCount: 0,
-      comboDamage: 0,
-      comboTeam: null,
-      lastComboTimestamp: 0,
+      teamCombos: createInitialTeamCombos(),
+      teamHeartMomentum: createInitialTeamHeartMomentum(),
       leaderboard: [],
       proLeaderboard: [],
       lastHitTeam: null,
@@ -1805,7 +2042,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
-      roundWinner: null,
       rosterAttackTimestamps: {},
     });
   },
@@ -1910,9 +2146,21 @@ export const useGameStore = create<GameState>((set, get) => ({
     const isHeartMilestoneBannerActive =
       state.activeHeartMilestoneBanner !== null &&
       now - state.activeHeartMilestoneBanner.timestamp <= GAME_CONSTANTS.HEART_MILESTONE.BANNER_DURATION_MS;
-    const isComboActive =
-      state.lastComboTimestamp > 0 &&
-      now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
+    const isBLGComboExpired =
+      state.teamCombos[TEAM_KEY.BLG].count > 0 &&
+      now - state.teamCombos[TEAM_KEY.BLG].lastTimestamp > COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
+    const isGENGComboExpired =
+      state.teamCombos[TEAM_KEY.GENG].count > 0 &&
+      now - state.teamCombos[TEAM_KEY.GENG].lastTimestamp > COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
+    const hasComboChanged = isBLGComboExpired || isGENGComboExpired;
+
+    const isBLGMomentumExpired =
+      state.teamHeartMomentum[TEAM_KEY.BLG].multiplier > 1 &&
+      now - state.teamHeartMomentum[TEAM_KEY.BLG].lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS;
+    const isGENGMomentumExpired =
+      state.teamHeartMomentum[TEAM_KEY.GENG].multiplier > 1 &&
+      now - state.teamHeartMomentum[TEAM_KEY.GENG].lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS;
+    const hasMomentumChanged = isBLGMomentumExpired || isGENGMomentumExpired;
 
     const nextRosterTimestamps: Record<string, number> = {};
     let hasRosterAttackChanged = false;
@@ -1939,7 +2187,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const hasFlashChanged = (state.screenFlashColor !== null) !== isFlashActive;
     const hasBannerChanged = (state.activeBossSkillBanner !== null) !== isBannerActive;
     const hasHeartBannerChanged = (state.activeHeartMilestoneBanner !== null) !== isHeartMilestoneBannerActive;
-    const hasComboChanged = (state.comboCount > 0) !== isComboActive;
 
     if (
       !hasMinionsChanged &&
@@ -1958,10 +2205,29 @@ export const useGameStore = create<GameState>((set, get) => ({
       !hasBannerChanged &&
       !hasHeartBannerChanged &&
       !hasComboChanged &&
+      !hasMomentumChanged &&
       !hasRosterAttackChanged
     ) {
       return;
     }
+
+    const nextTeamCombos = hasComboChanged
+      ? {
+          [TEAM_KEY.BLG]: isBLGComboExpired ? createEmptyTeamCombo() : state.teamCombos[TEAM_KEY.BLG],
+          [TEAM_KEY.GENG]: isGENGComboExpired ? createEmptyTeamCombo() : state.teamCombos[TEAM_KEY.GENG],
+        }
+      : state.teamCombos;
+
+    const nextTeamHeartMomentum = hasMomentumChanged
+      ? {
+          [TEAM_KEY.BLG]: isBLGMomentumExpired
+            ? createEmptyTeamHeartMomentum()
+            : state.teamHeartMomentum[TEAM_KEY.BLG],
+          [TEAM_KEY.GENG]: isGENGMomentumExpired
+            ? createEmptyTeamHeartMomentum()
+            : state.teamHeartMomentum[TEAM_KEY.GENG],
+        }
+      : state.teamHeartMomentum;
 
     set({
       minions: hasMinionsChanged ? activeMinions : state.minions,
@@ -1976,9 +2242,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeBursts: hasBurstsChanged ? activeBursts : state.activeBursts,
       activeFlyingArrows: hasArrowsChanged ? activeArrows : state.activeFlyingArrows,
       activeDefeatedChampions: hasDefeatedChanged ? activeDefeated : state.activeDefeatedChampions,
-      comboCount: isComboActive ? state.comboCount : 0,
-      comboDamage: isComboActive ? state.comboDamage : 0,
-      comboTeam: isComboActive ? state.comboTeam : null,
+      teamCombos: nextTeamCombos,
+      teamHeartMomentum: nextTeamHeartMomentum,
       screenFlashColor: isFlashActive ? state.screenFlashColor : null,
       activeBossSkillBanner: isBannerActive ? state.activeBossSkillBanner : null,
       activeHeartMilestoneBanner: isHeartMilestoneBannerActive ? state.activeHeartMilestoneBanner : null,

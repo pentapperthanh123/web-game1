@@ -18,6 +18,14 @@ export interface MinionEntity {
   dps: number;
   hp: number;
   maxHp: number;
+  fury: number;
+  maxFury: number;
+}
+
+export interface TeamHeartMomentum {
+  multiplier: number;
+  lastTapAt: number;
+  burstCount: number;
 }
 
 export interface DPSPlayer {
@@ -250,6 +258,12 @@ export interface DamageBossOptions {
   minHpFloorPercent?: number;
 }
 
+export interface TeamComboState {
+  count: number;
+  damage: number;
+  lastTimestamp: number;
+}
+
 export interface GameState {
   bossHp: number;
   bossMaxHp: number;
@@ -278,10 +292,7 @@ export interface GameState {
   activeDefeatedChampions: DefeatedChampionEntity[];
   activeGiftBanner: GiftAnnouncement | null;
   floatingDamages: FloatingDamageText[];
-  comboCount: number;
-  comboDamage: number;
-  comboTeam: TeamType | null;
-  lastComboTimestamp: number;
+  teamCombos: Record<TeamType, TeamComboState>;
   chatMessages: LiveChatMessage[];
   eventLogs: AdminEventLog[];
   isSimulationActive: boolean;
@@ -309,6 +320,7 @@ export interface GameState {
   rosterAttackTimestamps: Record<string, number>;
   rosterPlayerFury: Record<string, number>;
   lastFuryUltimatePlayerId: string | null;
+  teamHeartMomentum: Record<TeamType, TeamHeartMomentum>;
 
   // BO5 Match State
   bo5Score: {
@@ -317,6 +329,7 @@ export interface GameState {
   currentRound: number;
   bo5TargetWins: number;
   roundWinner: TeamType | null;
+  isRoundIntermission: boolean;
   isSeriesEnded: boolean;
   seriesWinner: TeamType | null;
   roundCountdownSeconds: number;
@@ -338,6 +351,7 @@ export interface GameState {
   setAutoProBattleConfig: (config: Partial<AutoProBattleConfig>) => void;
   triggerAutoProAttack: (team: TeamType, playerIndex: number) => void;
   addPlayerFury: (playerId: string, amount: number) => void;
+  consumeMinionAttackFury: (minionId: string) => { isFullFury: boolean; nextFury: number };
   spawnFlyingArrow: (
     championName: string,
     team: TeamType,

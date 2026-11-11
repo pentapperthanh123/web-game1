@@ -2,7 +2,58 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Zap, Sparkles, Flame } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { DAMAGE_TYPE, DamageType, TEAM_KEY } from '../../constants/game';
+import { DAMAGE_TYPE, DamageType, TEAM_KEY, TeamType } from '../../constants/game';
+import { TeamComboState } from '../../types/game';
+
+interface TeamComboStyleConfig {
+  teamLabel: string;
+  badgeClass: string;
+}
+
+const TEAM_COMBO_STYLE_MAP: Record<TeamType, TeamComboStyleConfig> = {
+  [TEAM_KEY.BLG]: {
+    teamLabel: 'BLG',
+    badgeClass:
+      'border-cyan-400/80 bg-cyan-950/85 text-cyan-200 shadow-[0_0_18px_rgba(6,182,212,0.55)]',
+  },
+  [TEAM_KEY.GENG]: {
+    teamLabel: 'GEN',
+    badgeClass:
+      'border-amber-400/80 bg-amber-950/85 text-amber-200 shadow-[0_0_18px_rgba(245,158,11,0.55)]',
+  },
+};
+
+const MIN_COMBO_DISPLAY_COUNT = 2;
+
+const TeamComboBadge = ({
+  team,
+  combo,
+  comboLabel,
+}: {
+  team: TeamType;
+  combo: TeamComboState;
+  comboLabel: string;
+}) => {
+  if (combo.count < MIN_COMBO_DISPLAY_COUNT) {
+    return null;
+  }
+
+  const style = TEAM_COMBO_STYLE_MAP[team];
+
+  return (
+    <div
+      key={`${team}-${combo.count}`}
+      className={`flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border backdrop-blur-md animate-in zoom-in-75 duration-150 ${style.badgeClass}`}
+    >
+      <span className="text-[10px] sm:text-xs font-black tracking-wider uppercase whitespace-nowrap">
+        {style.teamLabel} {comboLabel} x{combo.count}
+      </span>
+      <span className="text-[10px] sm:text-xs font-mono font-black text-white whitespace-nowrap">
+        -{combo.damage.toLocaleString()}
+      </span>
+    </div>
+  );
+};
 
 const DAMAGE_TEXT_CLASS_MAP: Record<DamageType, string> = {
   [DAMAGE_TYPE.NORMAL]:
@@ -38,34 +89,22 @@ const DAMAGE_TAG_CONFIG_MAP: Partial<
 export const FloatingDamage = React.memo(() => {
   const { t } = useTranslation();
   const floatingDamages = useGameStore((state) => state.floatingDamages);
-  const comboCount = useGameStore((state) => state.comboCount);
-  const comboDamage = useGameStore((state) => state.comboDamage);
-  const comboTeam = useGameStore((state) => state.comboTeam);
+  const teamCombos = useGameStore((state) => state.teamCombos);
 
-  const isBLGCombo = comboTeam === TEAM_KEY.BLG;
-  const comboBadgeStyle = isBLGCombo
-    ? 'border-cyan-400/80 bg-cyan-950/85 text-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.55)]'
-    : 'border-amber-400/80 bg-amber-950/85 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.55)]';
+  const blgCombo = teamCombos[TEAM_KEY.BLG];
+  const gengCombo = teamCombos[TEAM_KEY.GENG];
+  const comboLabel = t('Combat.comboLabel', 'COMBO');
 
   return (
     <div
       aria-live="polite"
-      className="absolute top-[56%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-56 pointer-events-none z-30 flex items-center justify-center overflow-visible"
+      className="absolute top-[56%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-88 h-56 pointer-events-none z-30 flex items-center justify-center overflow-visible"
     >
-      {/* Active Combo Counter Banner */}
-      {comboCount >= 2 && (
-        <div
-          key={comboCount}
-          className={`absolute -top-3 sm:-top-4 flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border backdrop-blur-md animate-in zoom-in-75 duration-150 ${comboBadgeStyle}`}
-        >
-          <span className="text-[10px] sm:text-xs font-black tracking-wider uppercase">
-            {t('Combat.comboLabel', 'COMBO')} x{comboCount}
-          </span>
-          <span className="text-[10px] sm:text-xs font-mono font-black text-white">
-            -{comboDamage.toLocaleString()}
-          </span>
-        </div>
-      )}
+      {/* Separate Per-Team Combo Counters (BLG Left Cyan / GEN.G Right Amber) */}
+      <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 pointer-events-none">
+        <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} comboLabel={comboLabel} />
+        <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} comboLabel={comboLabel} />
+      </div>
 
       {floatingDamages.map((item) => {
         const typeClass = DAMAGE_TEXT_CLASS_MAP[item.damageType];

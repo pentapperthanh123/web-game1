@@ -87,12 +87,15 @@
     "damage": "SÁT THƯƠNG",
     "nextRoundIn": "Ván mới bắt đầu sau:",
     "nextRoundNow": "VÀO VÁN TIẾP THEO",
-    "newSeries": "BẮT ĐẦU TRẬN ĐẤU MỚI"
+    "newSeries": "BẮT ĐẦU TRẬN ĐẤU MỚI",
+    "seriesEndedNotice": "Loạt trận BO5 đã kết thúc!",
+    "roundIntermissionPrompt": "Nghỉ giữa hiệp - Sẵn sàng cho ván tiếp theo"
   },
   "Milestone": {
     "healTitle": "ĐẠI HỒI PHỤC TOÀN BẢN ĐỒ!",
     "healSubtitle": "MỐC {{milestone}} TIM ĐẠT ĐƯỢC",
     "healNotice": "Hồi phục +{{amount}} HP cho toàn bộ anh hùng (Trừ quái vật)",
-    "healProgress": "Đại Hồi Phục:"
+    "healProgress": "Đại Hồi Phục:",
+    "furySpeedBoost": "Nộ {{team}} x{{multiplier}}"
   }
 }

@@ -91,12 +91,24 @@ export const GAME_CONSTANTS = {
   },
   PRO_FURY: {
     MAX_FURY: 100,
-    FURY_AUTO_CAP: 90, // Tuyển thủ tự đánh tối đa 90% Nộ — cần người xem chat/donate để kích hoạt Bạo Nộ 100%
+    FURY_AUTO_CAP: 90, // Tuyển thủ tự đánh tối đa 90% Nộ — cần người xem chat/donate/tap tim để kích hoạt Bạo Nộ 100%
     FURY_GAIN_AUTO_ATTACK: 10, // +10 Nộ mỗi đòn giữ nhịp
+    FURY_GAIN_HEART_TAP: 4, // +4 Nộ cho tuyển thủ khi người xem thả tim (nhân thêm theo tốc độ tap)
     FURY_GAIN_SUMMON_MATCH: 35, // +35 Nộ khi người xem chat gọi tướng trùng với tuyển thủ
     FURY_GAIN_GIFT_BOOST: 50, // +50 Nộ cho toàn đội hình tuyển thủ khi có người xem tặng quà
     FURY_ULTIMATE_DAMAGE_MULTIPLIER: 4.5, // 4.5x sát thương khi tung Đòn Bạo Nộ
     FURY_ULTIMATE_DURATION_MS: 1200,
+  },
+  MINION_FURY: {
+    MAX_FURY: 100,
+    GAIN_PER_ATTACK: 25, // +25 Nộ mỗi lần tướng triệu hồi tung đòn đánh thường
+    ULTIMATE_DAMAGE_MULTIPLIER: 2.2, // 2.2x sát thương khi tướng triệu hồi đầy 100% Nộ
+    HEART_TAP_GAIN_BASE: 6, // +6 Nộ cơ bản cho tướng triệu hồi mỗi nhịp thả tim
+    HEART_TAP_RAPID_WINDOW_MS: 900, // Khoảng cách giữa các lần tap được tính là tap nhanh liên tục
+    HEART_TAP_SPEED_WINDOW_MS: 2500, // Thời gian duy trì bội số tăng tốc Nộ sau cú tap gần nhất
+    HEART_TAP_MULTIPLIER_STEP: 0.22, // Mỗi lần tap liên tiếp tăng thêm 0.22x tốc độ tích Nộ
+    HEART_TAP_MULTIPLIER_MAX: 3.0, // Tối đa 3.0x tốc độ tích Nộ khi tap tim liên tục
+    HEART_TAP_ATTACK_SPEED_MAX: 1.75, // Tối đa 1.75x tốc độ ra đòn cho tướng triệu hồi khi tap tim nhanh
   },
   AUDIO: {
     DEFAULT_ENABLED: true,
@@ -361,28 +373,28 @@ export const COMBAT_VFX_CONSTANTS = {
   BOSS_TARGET: [0, 0.45, 0] as readonly [number, number, number],
   WING_BOUNDS: {
     [TEAM_KEY.BLG]: {
-      minX: -1.75,
-      maxX: -0.75,
-      minY: -1.5,
-      maxY: -0.2,
-      minZ: 1.0,
-      maxZ: 2.8,
+      minX: -2.35,
+      maxX: -1.35,
+      minY: -0.75,
+      maxY: 0.95,
+      minZ: 0.5,
+      maxZ: 2.1,
     },
     [TEAM_KEY.GENG]: {
-      minX: 0.75,
-      maxX: 1.75,
-      minY: -1.5,
-      maxY: -0.2,
-      minZ: 1.0,
-      maxZ: 2.8,
+      minX: 1.35,
+      maxX: 2.35,
+      minY: -0.75,
+      maxY: 0.95,
+      minZ: 0.5,
+      maxZ: 2.1,
     },
     GEN: {
-      minX: 0.75,
-      maxX: 1.75,
-      minY: -1.5,
-      maxY: -0.2,
-      minZ: 1.0,
-      maxZ: 2.8,
+      minX: 1.35,
+      maxX: 2.35,
+      minY: -0.75,
+      maxY: 0.95,
+      minZ: 0.5,
+      maxZ: 2.1,
     },
   },
   CHAMPION_MOVEMENT: {
@@ -391,16 +403,17 @@ export const COMBAT_VFX_CONSTANTS = {
     MAX_SPEED: 1.65,
     WANDER_INTERVAL_MIN_S: 1.8,
     WANDER_INTERVAL_MAX_S: 3.5,
-    ATTACK_INTERVAL_MIN_S: 1.1,
-    ATTACK_INTERVAL_MAX_S: 2.2,
-    ATTACK_LUNGE_DISTANCE: 0.45,
-    ATTACK_DURATION_S: 0.32,
+    ATTACK_INTERVAL_MIN_S: 0.9,
+    ATTACK_INTERVAL_MAX_S: 1.7,
+    CAST_RECOIL_DISTANCE: 0.08,
+    CAST_LIFT_HEIGHT: 0.08,
+    ATTACK_DURATION_S: 0.34,
     BOB_AMPLITUDE: 0.12,
     BOB_SPEED: 2.8,
     ENTRANCE_DURATION_MS: 1000,
     ENTRANCE_SWOOP_Y: 0.65,
     ENTRANCE_SWOOP_X: 0.0,
-    VIEWPORT_SAFE_NDC_X: 0.80,
+    VIEWPORT_SAFE_NDC_X: 0.86,
     VIEWPORT_SAFE_NDC_Y_MIN: -0.80,
     VIEWPORT_SAFE_NDC_Y_MAX: 0.65,
     NAMEPLATE_WIDTH: 0.54,

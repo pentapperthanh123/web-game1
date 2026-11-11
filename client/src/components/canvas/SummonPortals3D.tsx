@@ -2,7 +2,14 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
-import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, TEAM_KEY, TeamType, DAMAGE_TYPE } from '../../constants/game';
+import {
+  GAME_CONSTANTS,
+  COMBAT_VFX_CONSTANTS,
+  TEAM_KEY,
+  TeamType,
+  DAMAGE_TYPE,
+  BOSS_STATUS,
+} from '../../constants/game';
 import { MinionEntity, DefeatedChampionEntity } from '../../types/game';
 
 import {
@@ -63,6 +70,37 @@ const SHARED_SATELLITE_GEO = new THREE.OctahedronGeometry(0.045, 0);
 const SHARED_HP_BG_GEO = new THREE.PlaneGeometry(0.36, 0.05);
 const SHARED_HP_BORDER_GEO = new THREE.PlaneGeometry(0.38, 0.065);
 const SHARED_HP_FILL_GEO = new THREE.PlaneGeometry(0.34, 0.038);
+
+const SHARED_FURY_BG_GEO = new THREE.PlaneGeometry(0.36, 0.036);
+const SHARED_FURY_BORDER_GEO = new THREE.PlaneGeometry(0.38, 0.048);
+const SHARED_FURY_FILL_GEO = new THREE.PlaneGeometry(0.34, 0.026);
+
+const FURY_COLOR_EMPTY = '#334155';
+const FURY_COLOR_CHARGING = '#f59e0b';
+const FURY_COLOR_FULL = '#fde047';
+
+const getFuryFillColor = (furyRatio: number): string => {
+  if (furyRatio >= 1) return FURY_COLOR_FULL;
+  if (furyRatio > 0) return FURY_COLOR_CHARGING;
+  return FURY_COLOR_EMPTY;
+};
+
+const getMinionAttackSpeedFactor = (
+  momentumMultiplier: number,
+  lastTapAt: number,
+  now: number
+): number => {
+  if (now - lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS) {
+    return 1;
+  }
+  const normalized =
+    (momentumMultiplier - 1) / Math.max(0.1, GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_MAX - 1);
+  return (
+    1 +
+    Math.min(1, Math.max(0, normalized)) *
+      (GAME_CONSTANTS.MINION_FURY.HEART_TAP_ATTACK_SPEED_MAX - 1)
+  );
+};
 
 const SHARED_PORTAL_RING_1 = new THREE.RingGeometry(0.34, 0.46, 24);
 const SHARED_PORTAL_RING_2 = new THREE.RingGeometry(0.16, 0.28, 6);
@@ -232,6 +270,12 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
   const hpRatio = Math.min(1.0, Math.max(0.0, currentHp / maxHp));
   const hpFillColor = hpRatio > 0.5 ? '#10b981' : hpRatio > 0.25 ? '#f59e0b' : '#ef4444';
 
+  const maxFury = minion.maxFury || GAME_CONSTANTS.MINION_FURY.MAX_FURY;
+  const currentFury = Math.max(0, minion.fury ?? 0);
+  const furyRatio = Math.min(1.0, Math.max(0.0, currentFury / maxFury));
+  const isFuryFull = furyRatio >= 1.0;
+  const furyFillColor = getFuryFillColor(furyRatio);
+
   return (
     <group>
       {/* 1. Backing Glow Disc */}
@@ -290,7 +334,7 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
       </mesh>
 
       {/* 6. Mini Health Bar Billboard directly above Champion */}
-      <group position={[0, 0.26, 0.03]}>
+      <group position={[0, 0.295, 0.03]}>
         {/* Dark Background */}
         <mesh position={[0, 0, 0]} geometry={SHARED_HP_BG_GEO}>
           <meshBasicMaterial
@@ -325,6 +369,46 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
             depthWrite={false}
           />
         </mesh>
+      </group>
+
+      {/* 6b. Mini Fury Bar Billboard directly under Health Bar */}
+      <group position={[0, 0.238, 0.03]}>
+        {/* Dark Background */}
+        <mesh position={[0, 0, 0]} geometry={SHARED_FURY_BG_GEO}>
+          <meshBasicMaterial
+            color="#020617"
+            transparent
+            opacity={0.92}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+        {/* Border Outline */}
+        <mesh position={[0, 0, -0.001]} geometry={SHARED_FURY_BORDER_GEO}>
+          <meshBasicMaterial
+            color={isFuryFull ? FURY_COLOR_FULL : '#f59e0b'}
+            transparent
+            opacity={isFuryFull ? 0.98 : 0.72}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+        {/* Dynamic Fury Fill Bar */}
+        {furyRatio > 0 && (
+          <mesh
+            position={[-0.17 * (1.0 - furyRatio), 0, 0.002]}
+            scale={[furyRatio, 1, 1]}
+            geometry={SHARED_FURY_FILL_GEO}
+          >
+            <meshBasicMaterial
+              color={furyFillColor}
+              transparent
+              opacity={0.98}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
       </group>
 
       {/* 7. Celestial Halo Aura */}
@@ -468,6 +552,9 @@ export const SummonPortals3D = () => {
     const now = Date.now();
     const elapsedTime = state.clock.getElapsedTime();
     const clampedDelta = Math.min(0.1, delta);
+    const { bossStatus, bossHp, teamHeartMomentum, consumeMinionAttackFury } =
+      useGameStore.getState();
+    const isBossAlive = bossStatus !== BOSS_STATUS.DEFEATED && bossHp > 0;
 
     // 1. Update Runic Summon Portals
     if (portalsGroupRef.current) {
@@ -576,30 +663,31 @@ export const SummonPortals3D = () => {
         ai.currentY = THREE.MathUtils.lerp(ai.currentY, ai.targetY, lerpFactor);
         ai.currentZ = THREE.MathUtils.lerp(ai.currentZ, ai.targetZ, lerpFactor);
 
-        // Check attack timer -> trigger forward lunge strike towards Boss (only after 1s grace period)
+        // Check attack timer -> trigger stationary ranged skill-cast pose (never dives into Boss)
         const isGraceActive = entranceAgeMs < GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
-        if (!isGraceActive && elapsedTime >= ai.nextAttackTime && !ai.isAttacking) {
+        if (isBossAlive && !isGraceActive && elapsedTime >= ai.nextAttackTime && !ai.isAttacking) {
           ai.isAttacking = true;
           ai.hasFiredInThisAttack = false;
           ai.attackStartTime = elapsedTime;
-          // Assign an individual target zone on the Boss for this champion's attack angle
           const sideOffset = minion.team === TEAM_KEY.BLG ? -0.32 : 0.32;
           ai.targetBossZone = [
             COMBAT_VFX_CONSTANTS.BOSS_TARGET[0] + sideOffset + randomInRange(-0.25, 0.25),
             COMBAT_VFX_CONSTANTS.BOSS_TARGET[1] + randomInRange(-0.25, 0.35),
             COMBAT_VFX_CONSTANTS.BOSS_TARGET[2] + randomInRange(-0.15, 0.2),
           ];
-          ai.nextAttackTime =
-            elapsedTime +
-            randomInRange(
-              COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MIN_S,
-              COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MAX_S
-            );
+          const teamMomentum = teamHeartMomentum[minion.team];
+          const attackSpeedFactor = teamMomentum
+            ? getMinionAttackSpeedFactor(teamMomentum.multiplier, teamMomentum.lastTapAt, now)
+            : 1;
+          const baseCooldown = randomInRange(
+            COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MIN_S,
+            COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MAX_S
+          );
+          ai.nextAttackTime = elapsedTime + baseCooldown / attackSpeedFactor;
         }
 
-        let lungeOffsetX = 0;
-        let lungeOffsetY = 0;
-        let lungeOffsetZ = 0;
+        let castRecoilX = 0;
+        let castLiftY = 0;
         let scalePulse = 1.0;
 
         if (ai.isAttacking) {
@@ -607,34 +695,23 @@ export const SummonPortals3D = () => {
             (elapsedTime - ai.attackStartTime) /
             COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_DURATION_S;
 
-          if (attackProgress >= 1.0) {
+          if (attackProgress >= 1.0 || !isBossAlive) {
             ai.isAttacking = false;
           } else {
-            // Direction vector towards Boss target
-            const targetPos: [number, number, number] = ai.targetBossZone || [
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[0],
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[1],
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
-            ];
-            const dirX = targetPos[0] - ai.currentX;
-            const dirY = targetPos[1] - ai.currentY;
-            const dirZ = targetPos[2] - ai.currentZ;
-            const dist = Math.hypot(dirX, dirY, dirZ) || 1.0;
-
-            const thrustFactor =
-              Math.sin(attackProgress * Math.PI) *
-              COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_LUNGE_DISTANCE;
-
-            lungeOffsetX = (dirX / dist) * thrustFactor;
-            lungeOffsetY = (dirY / dist) * thrustFactor;
-            lungeOffsetZ = (dirZ / dist) * thrustFactor;
-            scalePulse = 1.0 + Math.sin(attackProgress * Math.PI) * 0.22;
+            // In-place skill cast: slight recoil away from Boss + gentle lift + energy pulse
+            const castCurve = Math.sin(attackProgress * Math.PI);
+            const teamAwaySign = minion.team === TEAM_KEY.BLG ? -1 : 1;
+            castRecoilX =
+              teamAwaySign *
+              castCurve *
+              COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.CAST_RECOIL_DISTANCE;
+            castLiftY = castCurve * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.CAST_LIFT_HEIGHT;
+            scalePulse = 1.0 + castCurve * 0.16;
           }
         }
 
-        // 1. Dynamic vertical entrance animation when champion is summoned (no off-screen horizontal flight)
+        // 1. Dynamic vertical entrance animation when champion is summoned
         const ENTRANCE_MS = COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ENTRANCE_DURATION_MS;
-        let swoopX = 0;
         let swoopY = 0;
         let entranceScale = 1.0;
 
@@ -642,42 +719,32 @@ export const SummonPortals3D = () => {
           const prog = Math.min(1.0, entranceAgeMs / ENTRANCE_MS);
           const easeOut = 1 - Math.pow(1 - prog, 3);
           swoopY = (1 - easeOut) * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ENTRANCE_SWOOP_Y;
-          swoopX = 0;
-          entranceScale = prog < 0.65 ? (prog / 0.65) * 1.25 : 1.25 - (prog - 0.65) * 0.25 / 0.35;
+          entranceScale = prog < 0.65 ? (prog / 0.65) * 1.25 : 1.25 - ((prog - 0.65) * 0.25) / 0.35;
+        }
 
-          // Landing strike when champion hits ground (only after 1s grace period)
-          if (prog >= 0.85 && entranceAgeMs >= GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS && !ai.hasLanded) {
-            ai.hasLanded = true;
-            const isCrit = Math.random() < COMBAT_VFX_CONSTANTS.SUMMON.CRIT_CHANCE;
-            const targetPos: [number, number, number] = [
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[0] + (minion.team === TEAM_KEY.BLG ? -0.3 : 0.3),
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[1],
-              COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
-            ];
-            const scrStart = project3DToScreen(
-              ai.currentX,
-              ai.currentY,
-              ai.currentZ,
-              state.camera,
-              state.size.width,
-              state.size.height
-            );
-            const scrTarget = project3DToScreen(
-              targetPos[0],
-              targetPos[1],
-              targetPos[2],
-              state.camera,
-              state.size.width,
-              state.size.height
-            );
-            spawnFlyingArrow(minion.championName, minion.team, isCrit, scrStart, scrTarget);
-            spawnProjectile(
-              [ai.currentX, ai.currentY, ai.currentZ],
-              isCrit ? COMBAT_VFX_CONSTANTS.TEAM_COLORS[minion.team].crit : COMBAT_VFX_CONSTANTS.TEAM_COLORS[minion.team].primary,
-              isCrit,
-              targetPos
-            );
-          }
+        // First opening skill cast right after the 1s spawn shield completes (strictly normal skill at 0% Fury)
+        if (isBossAlive && !isGraceActive && !ai.hasLanded) {
+          ai.hasLanded = true;
+          const targetPos: [number, number, number] = [
+            COMBAT_VFX_CONSTANTS.BOSS_TARGET[0] + (minion.team === TEAM_KEY.BLG ? -0.3 : 0.3),
+            COMBAT_VFX_CONSTANTS.BOSS_TARGET[1],
+            COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
+          ];
+          const scrStart = project3DToScreen(
+            ai.currentX,
+            ai.currentY,
+            ai.currentZ,
+            state.camera,
+            state.size.width,
+            state.size.height
+          );
+          spawnFlyingArrow(minion.championName, minion.team, false, scrStart);
+          spawnProjectile(
+            [ai.currentX, ai.currentY, ai.currentZ],
+            COMBAT_VFX_CONSTANTS.TEAM_COLORS[minion.team].primary,
+            false,
+            targetPos
+          );
         }
 
         // 2. Organic floating bobbing
@@ -686,9 +753,9 @@ export const SummonPortals3D = () => {
             elapsedTime * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.BOB_SPEED + ai.bobPhase
           ) * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.BOB_AMPLITUDE;
 
-        let posX = ai.currentX + lungeOffsetX + swoopX;
-        let posY = ai.currentY + lungeOffsetY + bobOffset + swoopY;
-        let posZ = ai.currentZ + lungeOffsetZ;
+        let posX = ai.currentX + castRecoilX;
+        let posY = ai.currentY + castLiftY + bobOffset + swoopY;
+        let posZ = ai.currentZ;
         const finalScale = scalePulse * entranceScale;
 
         // Clamp 3D position inside safe NDC viewport bounds so champion NEVER flies or drifts out of frame
@@ -723,16 +790,16 @@ export const SummonPortals3D = () => {
           posZ = tempVec.z;
         }
 
-        // 3. Fire individual signature projectile at the apex of this champion's forward lunge (only after 1s grace period)
-        if (ai.isAttacking && !ai.hasFiredInThisAttack && !isGraceActive) {
+        // 3. Fire signature projectile from champion's wing position towards live Boss target
+        if (isBossAlive && ai.isAttacking && !ai.hasFiredInThisAttack && !isGraceActive) {
           const attackProgress =
             (elapsedTime - ai.attackStartTime) /
             COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_DURATION_S;
 
-          if (attackProgress >= 0.35) {
+          if (attackProgress >= 0.18) {
             ai.hasFiredInThisAttack = true;
 
-            const isCrit = Math.random() < COMBAT_VFX_CONSTANTS.SUMMON.CRIT_CHANCE;
+            const { isFullFury } = consumeMinionAttackFury(minion.id);
             const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[minion.team];
             const targetPos: [number, number, number] = ai.targetBossZone || [
               COMBAT_VFX_CONSTANTS.BOSS_TARGET[0],
@@ -740,7 +807,7 @@ export const SummonPortals3D = () => {
               COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
             ];
 
-            // Compute exact 2D screen positions for this champion's token launch and target
+            // Compute 2D launch coordinate from champion token; leave target omitted so it homes onto live #boss-monster-target
             const screenStart = project3DToScreen(
               posX,
               posY,
@@ -750,39 +817,23 @@ export const SummonPortals3D = () => {
               state.size.height
             );
 
-            const screenTarget = project3DToScreen(
-              targetPos[0],
-              targetPos[1],
-              targetPos[2],
-              state.camera,
-              state.size.width,
-              state.size.height
-            );
+            spawnFlyingArrow(minion.championName, minion.team, isFullFury, screenStart);
 
-            // 2D Signature Skill VFX directed from this champion's token to the Boss
-            spawnFlyingArrow(
-              minion.championName,
-              minion.team,
-              isCrit,
-              screenStart,
-              screenTarget
-            );
-
-            // 3D Projectile directed from this champion's 3D position to the Boss
             spawnProjectile(
               [posX, posY, posZ],
-              isCrit ? teamPalette.crit : teamPalette.primary,
-              isCrit,
+              isFullFury ? FURY_COLOR_FULL : teamPalette.primary,
+              isFullFury,
               targetPos
             );
 
-            // Attributed combat damage
-            const damage = isCrit ? Math.round(minion.dps * 1.35) : minion.dps;
+            const damage = isFullFury
+              ? Math.round(minion.dps * GAME_CONSTANTS.MINION_FURY.ULTIMATE_DAMAGE_MULTIPLIER)
+              : minion.dps;
             damageBoss(
               damage,
               minion.team,
               `${minion.summonerName} (${minion.championName})`,
-              isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
+              isFullFury ? DAMAGE_TYPE.ULTIMATE : DAMAGE_TYPE.NORMAL
             );
           }
         }
@@ -806,10 +857,11 @@ export const SummonPortals3D = () => {
         );
         setLiveMinionPositions(minion.id, minion.championName, [posX, posY, posZ], liveScreen);
 
-        // Rotate runic outer ring
+        // Rotate runic outer ring (accelerates cleanly during skill casts)
         const ring = champGroup.children[0]?.children[3] as THREE.Mesh | undefined;
         if (ring) {
-          ring.rotation.z = elapsedTime * (minion.team === TEAM_KEY.BLG ? 2.5 : -2.5);
+          const spinSpeed = ai.isAttacking ? 6.5 : 2.5;
+          ring.rotation.z = elapsedTime * (minion.team === TEAM_KEY.BLG ? spinSpeed : -spinSpeed);
         }
 
         // Dynamic Entrance Celestial Aura & Sky Light Beam
