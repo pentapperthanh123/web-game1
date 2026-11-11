@@ -1,5 +1,23 @@
 import { io, Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
+import { OverlayVisibility } from '../types/game';
+import { OVERLAY_SECTION } from '../constants/game';
+
+const OVERLAY_KEYS = Object.values(OVERLAY_SECTION) as (keyof OverlayVisibility)[];
+
+function pickOverlayVisibilityPatch(rawPayload: unknown): Partial<OverlayVisibility> {
+  if (!rawPayload || typeof rawPayload !== 'object') {
+    return {};
+  }
+  const source = rawPayload as Record<string, unknown>;
+  const patch: Partial<OverlayVisibility> = {};
+  for (const key of OVERLAY_KEYS) {
+    if (typeof source[key] === 'boolean') {
+      patch[key] = source[key];
+    }
+  }
+  return patch;
+}
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
@@ -66,7 +84,10 @@ class GameSocketClient {
 
       this.socket.on('game:overlay-visibility', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
-        useGameStore.getState().setOverlayVisibility(payload);
+        const cleanPatch = pickOverlayVisibilityPatch(payload);
+        if (Object.keys(cleanPatch).length > 0) {
+          useGameStore.getState().setOverlayVisibility(cleanPatch);
+        }
       });
 
       this.socket.on('game:theme', (payload) => {
@@ -194,6 +215,15 @@ class GameSocketClient {
   public sendAutoProBattle(config: { enabled?: boolean; onlyWhenIdle?: boolean; intervalMs?: number }): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:auto-pro-battle', { ...config, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public sendOverlayVisibility(visibility: Partial<OverlayVisibility>): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:overlay-visibility', {
+        ...visibility,
+        senderId: CLIENT_INSTANCE_ID,
+      });
     }
   }
 

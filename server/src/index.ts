@@ -40,6 +40,30 @@ let currentOverlayVisibility: OverlayVisibility = {
   likeCounter: true,
   howToPlay: true,
 };
+
+const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
+  'chat',
+  'leaderboard',
+  'teamRosters',
+  'bossHealth',
+  'teamScores',
+  'likeCounter',
+  'howToPlay',
+];
+
+function pickOverlayVisibilityPatch(rawPayload: unknown): Partial<OverlayVisibility> {
+  if (!rawPayload || typeof rawPayload !== 'object') {
+    return {};
+  }
+  const source = rawPayload as Record<string, unknown>;
+  const patch: Partial<OverlayVisibility> = {};
+  for (const key of OVERLAY_VISIBILITY_KEYS) {
+    if (typeof source[key] === 'boolean') {
+      patch[key] = source[key];
+    }
+  }
+  return patch;
+}
 let currentGameTheme: 'BARON' | 'ELDER_DRAGON' = 'BARON';
 
 interface BossSkillConfig {
@@ -280,9 +304,13 @@ io.on('connection', (socket) => {
     io.emit('game:chat', payload);
   });
 
-  socket.on('admin:overlay-visibility', (payload: Partial<OverlayVisibility>) => {
-    currentOverlayVisibility = { ...currentOverlayVisibility, ...payload };
-    io.emit('game:overlay-visibility', currentOverlayVisibility);
+  socket.on('admin:overlay-visibility', (payload: Partial<OverlayVisibility> & { senderId?: string }) => {
+    const cleanPatch = pickOverlayVisibilityPatch(payload);
+    currentOverlayVisibility = { ...currentOverlayVisibility, ...cleanPatch };
+    io.emit('game:overlay-visibility', {
+      ...currentOverlayVisibility,
+      senderId: typeof payload?.senderId === 'string' ? payload.senderId : undefined,
+    });
   });
 
   socket.on('admin:boss-control', (payload) => {

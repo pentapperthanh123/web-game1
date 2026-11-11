@@ -10,15 +10,18 @@ import {
   APP_TITLE,
   TEAM_KEY,
   AUTO_PRO_BATTLE_CONSTANTS,
+  AUTO_SUMMON_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
 } from './constants/game';
 import { TEAM_ROSTERS } from './constants/roster';
-import './services/socket'; // Auto-connects to Socket.io backend on port 4000
+import { getRandomChampion } from './constants/champions';
+import { gameSocket } from './services/socket'; // Auto-connects to Socket.io backend on port 4000
 
 export function App() {
   const isSimulationActive = useGameStore((state) => state.isSimulationActive);
   const botSpeedMs = useGameStore((state) => state.botSpeedMs);
   const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
+  const autoSummonConfig = useGameStore((state) => state.autoSummonConfig);
   const summonMinion = useGameStore((state) => state.summonMinion);
   const triggerGiftExplosion = useGameStore((state) => state.triggerGiftExplosion);
   const addLikes = useGameStore((state) => state.addLikes);
@@ -32,6 +35,7 @@ export function App() {
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
 
   const nextFireAtRef = useRef<Record<string, number>>({});
+  const autoSummonTickRef = useRef(0);
   const isBossDefeated = bossStatus === BOSS_STATUS.DEFEATED;
   const isBossEnraged = bossStatus === BOSS_STATUS.ENRAGED;
   const isBattlePaused = isBossDefeated || isRoundIntermission || roundWinner !== null;
@@ -223,6 +227,67 @@ export function App() {
     autoProBattleConfig.intervalMs,
     isBattlePaused,
     triggerAutoProAttack,
+  ]);
+
+  // Continuous Auto-Summon Loop configured from Admin Panel
+  useEffect(() => {
+    if (!autoSummonConfig.enabled || isBattlePaused) return;
+
+    const clampedSpeed = Math.max(
+      AUTO_SUMMON_CONSTANTS.MIN_SPEED_MS,
+      autoSummonConfig.speedMs || AUTO_SUMMON_CONSTANTS.DEFAULT_SPEED_MS
+    );
+
+    const intervalId = setInterval(() => {
+      const currentState = useGameStore.getState();
+      if (
+        currentState.bossStatus === BOSS_STATUS.DEFEATED ||
+        currentState.bossHp <= 0 ||
+        currentState.isRoundIntermission ||
+        currentState.roundWinner !== null
+      ) {
+        return;
+      }
+
+      const batchSize = Math.max(1, autoSummonConfig.batchSize || AUTO_SUMMON_CONSTANTS.DEFAULT_BATCH_SIZE);
+      for (let i = 0; i < batchSize; i += 1) {
+        const tickIdx = autoSummonTickRef.current;
+        autoSummonTickRef.current += 1;
+
+        let targetTeam = autoSummonConfig.team;
+        if (autoSummonConfig.alternateTeams) {
+          targetTeam = tickIdx % 2 === 0 ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+        }
+
+        const championName = autoSummonConfig.randomChampions
+          ? getRandomChampion().name
+          : autoSummonConfig.selectedChampion;
+
+        const baseName =
+          AUTO_SUMMON_CONSTANTS.VIEWER_NAMES[
+            Math.floor(Math.random() * AUTO_SUMMON_CONSTANTS.VIEWER_NAMES.length)
+          ];
+        const suffix =
+          AUTO_SUMMON_CONSTANTS.VIEWER_SUFFIX_MIN +
+          Math.floor(Math.random() * AUTO_SUMMON_CONSTANTS.VIEWER_SUFFIX_MOD);
+        const viewerName = `${baseName}_${suffix}`;
+
+        summonMinion(viewerName, championName, targetTeam);
+        gameSocket.sendSummon(viewerName, championName, targetTeam, false);
+      }
+    }, clampedSpeed);
+
+    return () => clearInterval(intervalId);
+  }, [
+    autoSummonConfig.enabled,
+    autoSummonConfig.speedMs,
+    autoSummonConfig.batchSize,
+    autoSummonConfig.alternateTeams,
+    autoSummonConfig.randomChampions,
+    autoSummonConfig.selectedChampion,
+    autoSummonConfig.team,
+    isBattlePaused,
+    summonMinion,
   ]);
 
   return (

@@ -958,6 +958,54 @@ export const DEFAULT_AUTO_PRO_BATTLE_CONFIG = {
   intervalMs: AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS,
 };
 
+export const AUTO_SUMMON_STORAGE_KEY = 'lol_auto_summon_config';
+
+export const AUTO_SUMMON_CONSTANTS = {
+  DEFAULT_CHAMPION: 'Ahri',
+  DEFAULT_SPEED_MS: 800,
+  MIN_SPEED_MS: 200,
+  MAX_SPEED_MS: 2000,
+  SPEED_STEP_MS: 100,
+  DEFAULT_BATCH_SIZE: 1,
+  BATCH_SIZE_OPTIONS: [1, 2, 3, 4, 6, 8] as readonly number[],
+  SPEED_PRESETS: [
+    { speedMs: 400, labelVi: 'Siêu tốc (400ms)', labelEn: 'Turbo (400ms)' },
+    { speedMs: 800, labelVi: 'Nhanh (800ms)', labelEn: 'Fast (800ms)' },
+    { speedMs: 1500, labelVi: 'Vừa (1500ms)', labelEn: 'Normal (1500ms)' },
+  ] as const,
+  SWARM_COUNT: 10,
+  CHAMPION_GRID_LIMIT: 60,
+  FEEDBACK_DURATION_MS: 2400,
+  DEFAULT_ADMIN_SUMMONER: 'Admin_Summon',
+  DEFAULT_VIEWER_PREFIX: 'Viewer',
+  VIEWER_NAMES: [
+    'Minh',
+    'Hùng',
+    'Lan',
+    'Tuấn',
+    'Tài',
+    'Vy',
+    'Hân',
+    'Linh',
+    'Khang',
+    'Phúc',
+    'Nhi',
+    'Quân',
+  ] as readonly string[],
+  VIEWER_SUFFIX_MIN: 10,
+  VIEWER_SUFFIX_MOD: 90,
+} as const;
+
+export const DEFAULT_AUTO_SUMMON_CONFIG = {
+  enabled: false,
+  team: TEAM_KEY.BLG,
+  selectedChampion: AUTO_SUMMON_CONSTANTS.DEFAULT_CHAMPION,
+  speedMs: AUTO_SUMMON_CONSTANTS.DEFAULT_SPEED_MS,
+  batchSize: AUTO_SUMMON_CONSTANTS.DEFAULT_BATCH_SIZE,
+  alternateTeams: true,
+  randomChampions: true,
+};
+
 export const ADMIN_CONSTANTS = {
   HP_PRESETS: [
     { label: '100,000 HP (Full)', hp: 100000, color: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/40' },

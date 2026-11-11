@@ -28,8 +28,8 @@ const GUIDE_ITEMS: readonly GuideItemConfig[] = [
     id: 'summon',
     icon: Swords,
     iconColorClass: 'text-cyan-400',
-    containerClass: 'border-cyan-500/30 bg-cyan-950/35',
-    badgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40',
+    containerClass: 'border-cyan-400/20 bg-cyan-950/10',
+    badgeClass: 'bg-cyan-500/15 text-cyan-200 border-cyan-400/30',
     titleKey: 'HUD.guideSummonTitle',
     titleFallback: 'Triệu hồi & Buff Nộ',
     badgeKey: 'HUD.guideSummonBadge',
@@ -45,8 +45,8 @@ const GUIDE_ITEMS: readonly GuideItemConfig[] = [
     id: 'heart',
     icon: Heart,
     iconColorClass: 'text-rose-400',
-    containerClass: 'border-rose-500/30 bg-rose-950/30',
-    badgeClass: 'bg-rose-500/20 text-rose-200 border-rose-400/40',
+    containerClass: 'border-rose-400/20 bg-rose-950/10',
+    badgeClass: 'bg-rose-500/15 text-rose-200 border-rose-400/30',
     titleKey: 'HUD.guideHeartTitle',
     titleFallback: 'Thả Tim Tăng Sức Mạnh',
     badgeKey: 'HUD.guideHeartBadge',
@@ -63,8 +63,8 @@ const GUIDE_ITEMS: readonly GuideItemConfig[] = [
     id: 'donate',
     icon: Gift,
     iconColorClass: 'text-amber-400',
-    containerClass: 'border-amber-500/35 bg-amber-950/35',
-    badgeClass: 'bg-amber-500/20 text-amber-200 border-amber-400/40',
+    containerClass: 'border-amber-400/20 bg-amber-950/10',
+    badgeClass: 'bg-amber-500/15 text-amber-200 border-amber-400/30',
     titleKey: 'HUD.guideDonateTitle',
     titleFallback: 'Donate / Tặng Quà',
     badgeKey: 'HUD.guideDonateBadge',
@@ -84,11 +84,11 @@ export const ParticipationGuidePanel = () => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
   return (
-    <aside className="w-48 sm:w-56 bg-slate-950/82 backdrop-blur-md border border-slate-800/85 rounded-xl p-2 shadow-2xl pointer-events-auto select-none transition-all duration-300">
-      <div className="flex items-center justify-between pb-1 border-b border-slate-800/60">
-        <div className="flex items-center space-x-1.5 min-w-0">
+    <aside className="relative z-[35] w-full sm:w-56 max-w-full bg-slate-950/20 backdrop-blur-[1px] border border-white/15 rounded-xl p-1.5 sm:p-2 shadow-sm pointer-events-auto select-none transition-all duration-300">
+      <div className="flex items-center justify-between pb-1 border-b border-white/10">
+        <div className="flex items-center space-x-1 min-w-0">
           <BookOpen className="w-3 h-3 text-cyan-400 shrink-0" />
-          <h2 className="text-[9px] sm:text-[10px] font-black tracking-wider text-slate-100 uppercase truncate">
+          <h2 className="text-[9px] sm:text-[10px] font-black tracking-wider text-slate-100 uppercase truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
             {t('HUD.guideTitle', 'CÁCH THAM GIA')}
           </h2>
         </div>
@@ -96,7 +96,7 @@ export const ParticipationGuidePanel = () => {
         <button
           type="button"
           onClick={() => setIsCollapsed((prev) => !prev)}
-          className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition shrink-0"
+          className="p-0.5 hover:bg-slate-800/40 rounded text-slate-300 hover:text-white transition shrink-0"
           aria-label={t('HUD.guideToggleLabel', 'Thu gọn/mở bảng hướng dẫn')}
         >
           {isCollapsed ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -104,7 +104,7 @@ export const ParticipationGuidePanel = () => {
       </div>
 
       {!isCollapsed && (
-        <div className="mt-1.5 space-y-1">
+        <div className="mt-1 space-y-1">
           {GUIDE_ITEMS.map((item) => {
             const IconComponent = item.icon;
             return (
@@ -112,10 +112,10 @@ export const ParticipationGuidePanel = () => {
                 key={item.id}
                 className={`rounded-lg border px-1.5 py-1 ${item.containerClass}`}
               >
-                <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center justify-between gap-1 flex-wrap">
                   <div className="flex items-center space-x-1 min-w-0">
                     <IconComponent className={`w-2.5 h-2.5 shrink-0 ${item.iconColorClass}`} />
-                    <span className="text-[9px] font-black text-slate-100 truncate">
+                    <span className="text-[8.5px] sm:text-[9px] font-black text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                       {t(item.titleKey, item.titleFallback)}
                     </span>
                   </div>
@@ -127,12 +127,12 @@ export const ParticipationGuidePanel = () => {
                 </div>
 
                 {item.commandKey && item.commandFallback && (
-                  <div className="mt-0.5 px-1 py-0.5 rounded bg-slate-900/90 border border-slate-700/70 font-mono text-[8px] font-bold text-cyan-200 truncate">
+                  <div className="mt-0.5 px-1 py-0.5 rounded bg-slate-950/25 border border-cyan-500/20 font-mono text-[7.5px] sm:text-[8px] font-bold text-cyan-200 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                     {t(item.commandKey, item.commandFallback)}
                   </div>
                 )}
 
-                <p className="mt-0.5 text-[8px] leading-snug text-slate-300">
+                <p className="mt-0.5 text-[7.5px] sm:text-[8px] leading-snug text-slate-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                   {t(item.descKey, item.descFallback, item.descParams)}
                 </p>
               </div>

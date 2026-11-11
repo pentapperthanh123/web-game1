@@ -25,7 +25,31 @@ import { BLGLogo, GenGLogo } from './components/TeamLogos';
 import { OverlayControls } from './components/OverlayControls';
 import { BossSkillControls } from './components/BossSkillControls';
 import { AutoProControls } from './components/AutoProControls';
+import { AdminTabBar } from './components/AdminTabBar';
+import {
+  ADMIN_PORTAL_TAB,
+  AdminPortalTabId,
+  loadStoredAdminTab,
+  saveStoredAdminTab,
+} from './constants/tabs';
+import {
+  countVisibleOverlays,
+  loadStoredOverlayVisibility,
+} from './utils/overlayVisibility';
 import { ALL_CHAMPIONS, findChampion, getRandomChampion, normalizeQuery } from './constants/champions';
+
+function getMainGridClassName(activeTab: AdminPortalTabId): string {
+  switch (activeTab) {
+    case ADMIN_PORTAL_TAB.INTERACTION:
+      return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5';
+    case ADMIN_PORTAL_TAB.BOSS_MAP:
+      return 'grid grid-cols-1 gap-5';
+    case ADMIN_PORTAL_TAB.ALL:
+      return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5';
+    default:
+      return 'hidden';
+  }
+}
 
 const ADMIN_APP_TITLE = 'LOL CKTG';
 
@@ -141,6 +165,21 @@ export function App() {
   const [botSpeed, setBotSpeed] = useState(1200);
   const [bo5Score, setBo5Score] = useState({ BLG: 0, GENG: 0 });
   const [currentRound, setCurrentRound] = useState(1);
+  const [activeTab, setActiveTab] = useState<AdminPortalTabId>(loadStoredAdminTab);
+  const [activeOverlayCount, setActiveOverlayCount] = useState<number>(() =>
+    countVisibleOverlays(loadStoredOverlayVisibility())
+  );
+
+  const handleSelectTab = (tabId: AdminPortalTabId) => {
+    setActiveTab(tabId);
+    saveStoredAdminTab(tabId);
+  };
+
+  const isAllTab = activeTab === ADMIN_PORTAL_TAB.ALL;
+  const shouldShowInteraction = isAllTab || activeTab === ADMIN_PORTAL_TAB.INTERACTION;
+  const shouldShowBossMap = isAllTab || activeTab === ADMIN_PORTAL_TAB.BOSS_MAP;
+  const shouldShowOverlays = isAllTab || activeTab === ADMIN_PORTAL_TAB.OVERLAYS;
+  const shouldShowLogs = isAllTab || activeTab === ADMIN_PORTAL_TAB.LOGS;
 
   const [championSearchFilter, setChampionSearchFilter] = useState('');
   const [selectedTagFilter, setSelectedTagFilter] = useState<
@@ -619,10 +658,18 @@ export function App() {
           </div>
         </section>
 
-        {/* Main 4-Column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Admin Section Tabs */}
+        <AdminTabBar
+          activeTab={activeTab}
+          activeOverlayCount={activeOverlayCount}
+          logCount={logs.length}
+          onSelectTab={handleSelectTab}
+        />
+
+        {/* Main Section Grid */}
+        <div className={getMainGridClassName(activeTab)}>
           {/* Column 1: Thả Tim & Bình Luận Chat */}
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <div className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 ${shouldShowInteraction ? '' : 'hidden'}`}>
             <div className="flex items-center space-x-2 pb-2 border-b border-slate-800">
               <Heart className="w-4 h-4 text-rose-500" />
               <h2 className="text-xs font-black uppercase text-white">1. Thả Tim & Bình Luận</h2>
@@ -727,7 +774,7 @@ export function App() {
           </div>
 
           {/* Column 2: Triệu Hồi Tướng */}
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <div className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 ${shouldShowInteraction ? '' : 'hidden'}`}>
             <div className="flex items-center space-x-2 pb-2 border-b border-slate-800">
               <Swords className="w-4 h-4 text-cyan-400" />
               <h2 className="text-xs font-black uppercase text-white">2. Triệu Hồi Tướng</h2>
@@ -994,7 +1041,7 @@ export function App() {
           </div>
 
           {/* Column 3: Donate & Quà Tặng VIP */}
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <div className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 ${shouldShowInteraction ? '' : 'hidden'}`}>
             <div className="flex items-center space-x-2 pb-2 border-b border-slate-800">
               <Gift className="w-4 h-4 text-amber-400" />
               <h2 className="text-xs font-black uppercase text-white">3. Tặng Quà VIP</h2>
@@ -1073,7 +1120,7 @@ export function App() {
           </div>
 
           {/* Column 4: Boss & Bão Bot */}
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <div className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 ${shouldShowBossMap ? '' : 'hidden'}`}>
             <div className="flex items-center space-x-2 pb-2 border-b border-slate-800">
               <Activity className="w-4 h-4 text-purple-400" />
               <h2 className="text-xs font-black uppercase text-white">4. Máu Boss & Bão Bot</h2>
@@ -1200,6 +1247,7 @@ export function App() {
           </div>
         </div>
 
+        <div className={shouldShowBossMap ? 'space-y-6' : 'hidden'}>
         {/* Map / Arena Theme Switcher Section */}
         <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -1290,12 +1338,15 @@ export function App() {
 
         {/* Section 6.5: Auto Pro-Player Battle when Idle */}
         <AutoProControls />
+        </div>
 
         {/* Section 7: Section Visibility Controls (Overlay Controls) */}
-        <OverlayControls />
+        <div className={shouldShowOverlays ? 'block' : 'hidden'}>
+          <OverlayControls onActiveCountChange={setActiveOverlayCount} />
+        </div>
 
         {/* Live Event Logs */}
-        <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+        <section className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 ${shouldShowLogs ? '' : 'hidden'}`}>
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
             <div className="flex items-center space-x-2 text-xs font-bold uppercase text-white">
               <MessageSquare className="w-4 h-4 text-cyan-400" />

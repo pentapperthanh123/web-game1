@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { OverlayVisibility } from '../types/overlay';
 import { BossSkillConfig } from '../types/bossSkill';
+import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
@@ -12,6 +13,7 @@ const CHANNEL_NAME = 'tiktok_live_game_bus';
 class AdminSocketService {
   private socket: Socket | null = null;
   private broadcastChannel: BroadcastChannel | null = null;
+  private lastOverlayPatch: Partial<OverlayVisibility> | null = null;
   public isConnected = false;
 
   constructor() {
@@ -36,6 +38,13 @@ class AdminSocketService {
       this.socket.on('disconnect', () => {
         this.isConnected = false;
         console.log('[Admin Socket] Disconnected from Backend Server');
+      });
+
+      this.socket.on('game:overlay-visibility', (payload: unknown) => {
+        const cleanPatch = pickOverlayVisibilityPatch(payload);
+        if (Object.keys(cleanPatch).length > 0) {
+          this.lastOverlayPatch = { ...this.lastOverlayPatch, ...cleanPatch };
+        }
       });
     } catch (err) {
       console.warn('[Admin Socket] Could not connect to backend server, falling back to BroadcastChannel', err);
@@ -121,11 +130,20 @@ class AdminSocketService {
     this.emit('admin:overlay-visibility', payload);
   }
 
-  public onOverlayVisibility(callback: (visibility: OverlayVisibility) => void): () => void {
+  public onOverlayVisibility(callback: (visibility: Partial<OverlayVisibility>) => void): () => void {
+    if (this.lastOverlayPatch) {
+      callback(this.lastOverlayPatch);
+    }
     if (!this.socket) return () => {};
-    this.socket.on('game:overlay-visibility', callback);
+    const handleEvent = (payload: unknown) => {
+      const cleanPatch = pickOverlayVisibilityPatch(payload);
+      if (Object.keys(cleanPatch).length > 0) {
+        callback(cleanPatch);
+      }
+    };
+    this.socket.on('game:overlay-visibility', handleEvent);
     return () => {
-      this.socket?.off('game:overlay-visibility', callback);
+      this.socket?.off('game:overlay-visibility', handleEvent);
     };
   }
 

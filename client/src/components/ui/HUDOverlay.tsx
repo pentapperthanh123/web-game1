@@ -88,7 +88,7 @@ export const HUDOverlay = () => {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none z-40 overflow-hidden select-none">
+    <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none overflow-hidden select-none">
       {/* Incandescent Flash on Ultimates */}
       <ScreenFlash />
       <ChampionArrowVFX />
@@ -104,9 +104,9 @@ export const HUDOverlay = () => {
       </div>
 
       {/* Top Section: Esports Broadcast Header & Scores */}
-      <header ref={headerRef} className="space-y-0.5 sm:space-y-1 shrink-0 pt-0.5">
+      <header ref={headerRef} className="relative z-[35] space-y-0.5 sm:space-y-1 shrink-0 pt-0.5">
         <div className="flex items-center justify-center space-x-1.5 pt-0.5">
-          <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/80 border border-slate-800 backdrop-blur-md mb-1 shadow-md">
+          <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 backdrop-blur-[1px] mb-1 shadow-md">
             <span className="text-[10px] font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-amber-400">
               {t('Game.title', 'CKTG 2026: ĐẠI CHIẾN BLG VS GEN.G')}
             </span>
@@ -182,14 +182,14 @@ export const HUDOverlay = () => {
       {/* Center 3D viewport remains 100% unobstructed for Baron Nashor */}
 
       {/* Bottom Section: Left (DPS + Live Chat), Right (Participation Guide + Like Counter) */}
-      <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0">
-        <div className="flex items-end justify-between px-1 gap-2">
-          <div className="flex flex-col items-start space-y-1.5 pointer-events-auto">
+      <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0 w-full min-w-0">
+        <div className="flex items-end justify-between w-full min-w-0 px-0.5 sm:px-1 gap-1.5 sm:gap-2">
+          <div className="flex flex-col items-start space-y-1.5 pointer-events-auto min-w-0 w-[47%] max-w-[172px] sm:w-auto sm:max-w-[52%]">
             {overlayVisibility.leaderboard && <DPSLeaderboard />}
             {overlayVisibility.chat && <LiveChatStream />}
           </div>
 
-          <div className="flex flex-col items-end space-y-1.5 pointer-events-auto">
+          <div className="flex flex-col items-end space-y-1.5 pointer-events-auto min-w-0 w-[51%] max-w-[186px] sm:w-auto sm:max-w-[48%]">
             {overlayVisibility.howToPlay && <ParticipationGuidePanel />}
             {overlayVisibility.likeCounter && <LikeCounter />}
           </div>
@@ -197,7 +197,7 @@ export const HUDOverlay = () => {
 
         {/* Viewer Call-to-Action when Auto-Pro is holding without viewers */}
         {isSoloAutoHolding && (
-          <div className="max-w-md mx-auto px-2 text-center pointer-events-none">
+          <div className="relative z-[5] max-w-md mx-auto px-2 text-center pointer-events-none">
             <div
               className={`text-[10px] font-black rounded-full py-1 px-3 backdrop-blur-md shadow-lg border ${
                 isBossClutchZone

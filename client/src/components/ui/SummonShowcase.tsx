@@ -139,12 +139,12 @@ export const SummonShowcase = () => {
   return (
     <>
       {/* Left Wing: BLG Summon Spotlight (positioned cleanly below TeamRosterBar toggle) */}
-      <div className="absolute top-[206px] sm:top-[216px] left-1.5 sm:left-3 z-20 pointer-events-none flex flex-col space-y-2">
+      <div className="absolute top-[206px] sm:top-[216px] left-1.5 sm:left-3 z-[25] pointer-events-none flex flex-col space-y-2">
         {latestBLGPortal && <SummonSpotlightCard portal={latestBLGPortal} side="left" />}
       </div>
 
       {/* Right Wing: GEN.G Summon Spotlight */}
-      <div className="absolute top-[206px] sm:top-[216px] right-1.5 sm:right-3 z-20 pointer-events-none flex flex-col items-end space-y-2">
+      <div className="absolute top-[206px] sm:top-[216px] right-1.5 sm:right-3 z-[25] pointer-events-none flex flex-col items-end space-y-2">
         {latestGENGPortal && <SummonSpotlightCard portal={latestGENGPortal} side="right" />}
       </div>
     </>

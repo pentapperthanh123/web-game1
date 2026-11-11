@@ -11,12 +11,12 @@ export const DPSLeaderboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className="w-52 bg-slate-950/80 backdrop-blur-md border border-slate-800/80 rounded-xl p-2 shadow-2xl pointer-events-auto select-none transition-all duration-300">
+    <aside className="relative z-[35] w-full sm:w-52 max-w-full bg-slate-950/20 backdrop-blur-[1px] border border-white/15 rounded-xl p-1.5 sm:p-2 shadow-sm pointer-events-auto select-none transition-all duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/60">
-        <div className="flex items-center space-x-1.5">
-          <Trophy className="w-3.5 h-3.5 text-amber-400" />
-          <h2 className="text-[10px] font-black tracking-wider text-slate-100 uppercase">
+      <div className="flex items-center justify-between pb-1 mb-1 border-b border-white/10">
+        <div className="flex items-center space-x-1 min-w-0">
+          <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <h2 className="text-[9px] sm:text-[10px] font-black tracking-wider text-slate-100 uppercase truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
             {t('HUD.leaderboardTitle', 'TOP DPS')}
           </h2>
         </div>
@@ -49,7 +49,7 @@ export const DPSLeaderboard = () => {
               return (
                 <div
                   key={player.id}
-                  className="flex items-center justify-between text-[10px] py-0.5 px-1.5 rounded-lg bg-slate-900/60 border border-slate-800/50"
+                  className="flex items-center justify-between text-[10px] py-0.5 px-1.5 rounded-lg bg-slate-950/15 border border-white/10"
                 >
                   <div className="flex items-center space-x-1.5 overflow-hidden">
                     <span

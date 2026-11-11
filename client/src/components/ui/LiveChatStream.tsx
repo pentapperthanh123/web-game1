@@ -15,7 +15,7 @@ export const LiveChatStream = () => {
   }, [chatMessages]);
 
   return (
-    <aside className="w-52 sm:w-64 max-h-36 sm:max-h-48 flex flex-col space-y-1 pointer-events-auto pr-1 select-none">
+    <aside className="relative z-[5] w-full sm:w-64 max-w-full max-h-36 sm:max-h-48 flex flex-col space-y-1 pointer-events-auto pr-0.5 sm:pr-1 select-none">
       <div className="flex items-center space-x-1.5 pb-0.5 text-[10px] font-black uppercase text-slate-400 shrink-0">
         <MessageSquare className="w-3 h-3 text-cyan-400" />
         <span>Bình Luận TikTok Live</span>
@@ -34,7 +34,7 @@ export const LiveChatStream = () => {
             return (
               <div
                 key={msg.id}
-                className="flex items-start space-x-1.5 px-2 py-1 rounded-lg bg-slate-950/70 border border-slate-800/80 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200"
+                className="flex items-start space-x-1.5 px-2 py-1 rounded-lg bg-slate-950/35 border border-white/15 backdrop-blur-[1px] animate-in fade-in slide-in-from-bottom-2 duration-200"
               >
                 {/* Avatar Initial */}
                 <div

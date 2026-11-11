@@ -575,7 +575,7 @@ export const Boss2D = () => {
   return (
     <div
       style={{ perspective: '900px' }}
-      className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none z-10 flex items-center justify-center`}
+      className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-10 flex items-center justify-center`}
     >
       {/* 1. Skill Combat Alert Banner */}
       <BossAlertBanner

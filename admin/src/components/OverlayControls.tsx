@@ -13,11 +13,18 @@ import {
   Check,
 } from 'lucide-react';
 import { adminSocket } from '../services/socket';
+import { OverlayVisibility } from '../types/overlay';
 import {
-  OverlayVisibility,
-  DEFAULT_OVERLAY_VISIBILITY,
-  OVERLAY_STORAGE_KEY,
-} from '../types/overlay';
+  buildUniformOverlayVisibility,
+  countVisibleOverlays,
+  loadStoredOverlayVisibility,
+  saveStoredOverlayVisibility,
+  TOTAL_OVERLAY_SECTIONS,
+} from '../utils/overlayVisibility';
+
+interface OverlayControlsProps {
+  onActiveCountChange?: (count: number) => void;
+}
 
 interface SectionConfig {
   key: keyof OverlayVisibility;
@@ -65,36 +72,26 @@ const SECTION_CONFIGS: SectionConfig[] = [
   },
   {
     key: 'howToPlay',
-    label: 'Cú Pháp Hướng Dẫn Chat',
-    description: 'Banner chỉ dẫn chat triệu hồi ở đáy màn hình',
+    label: 'Hướng Dẫn Tham Gia (Góc Phải)',
+    description: 'Bảng hướng dẫn triệu hồi, thả tim & donate góc phải màn hình',
     icon: Sparkles,
   },
 ];
 
-const loadInitialVisibility = (): OverlayVisibility => {
-  if (typeof window === 'undefined') return DEFAULT_OVERLAY_VISIBILITY;
-  try {
-    const raw = localStorage.getItem(OVERLAY_STORAGE_KEY);
-    if (!raw) return DEFAULT_OVERLAY_VISIBILITY;
-    return { ...DEFAULT_OVERLAY_VISIBILITY, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_OVERLAY_VISIBILITY;
-  }
-};
+export function OverlayControls({ onActiveCountChange }: OverlayControlsProps) {
+  const [visibility, setVisibility] = useState<OverlayVisibility>(loadStoredOverlayVisibility);
 
-export function OverlayControls() {
-  const [visibility, setVisibility] = useState<OverlayVisibility>(loadInitialVisibility);
+  const activeCount = countVisibleOverlays(visibility);
 
   useEffect(() => {
-    // Listen for visibility updates from server or other clients
-    const unsubscribe = adminSocket.onOverlayVisibility((remoteVisibility) => {
+    onActiveCountChange?.(activeCount);
+  }, [activeCount, onActiveCountChange]);
+
+  useEffect(() => {
+    const unsubscribe = adminSocket.onOverlayVisibility((remotePatch) => {
       setVisibility((prev) => {
-        const merged = { ...prev, ...remoteVisibility };
-        try {
-          localStorage.setItem(OVERLAY_STORAGE_KEY, JSON.stringify(merged));
-        } catch {
-          // ignore storage error
-        }
+        const merged = { ...prev, ...remotePatch };
+        saveStoredOverlayVisibility(merged);
         return merged;
       });
     });
@@ -107,11 +104,7 @@ export function OverlayControls() {
   const updateVisibility = (patch: Partial<OverlayVisibility>) => {
     const next = { ...visibility, ...patch };
     setVisibility(next);
-    try {
-      localStorage.setItem(OVERLAY_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // ignore storage error
-    }
+    saveStoredOverlayVisibility(next);
     adminSocket.setOverlayVisibility(patch);
   };
 
@@ -119,20 +112,9 @@ export function OverlayControls() {
     updateVisibility({ [key]: !visibility[key] });
   };
 
-  const handleSetAll = (state: boolean) => {
-    const allState: OverlayVisibility = {
-      chat: state,
-      leaderboard: state,
-      teamRosters: state,
-      bossHealth: state,
-      teamScores: state,
-      likeCounter: state,
-      howToPlay: state,
-    };
-    updateVisibility(allState);
+  const handleSetAll = (isVisible: boolean) => {
+    updateVisibility(buildUniformOverlayVisibility(isVisible));
   };
-
-  const activeCount = Object.values(visibility).filter(Boolean).length;
 
   return (
     <section className="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl backdrop-blur-sm">
@@ -146,7 +128,7 @@ export function OverlayControls() {
             <h2 className="text-base font-bold text-white flex items-center space-x-2">
               <span>7. Cấu Hình Ẩn / Hiện Các Section Màn Hình (Overlay Controls)</span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono">
-                {activeCount}/7 Đang Hiện
+                {activeCount}/{TOTAL_OVERLAY_SECTIONS} Đang Hiện
               </span>
             </h2>
             <p className="text-xs text-slate-400">

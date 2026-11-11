@@ -28,6 +28,7 @@ import {
   DefeatedChampionEntity,
   HeartMilestoneBanner,
   AutoProBattleConfig,
+  AutoSummonConfig,
   DamageBossOptions,
   ProDamageRecord,
   BossShieldState,
@@ -53,6 +54,8 @@ import {
   AUTO_PRO_BATTLE_CONSTANTS,
   AUTO_PRO_STORAGE_KEY,
   DEFAULT_AUTO_PRO_BATTLE_CONFIG,
+  AUTO_SUMMON_STORAGE_KEY,
+  DEFAULT_AUTO_SUMMON_CONFIG,
   AUDIO_SFX_CONSTANTS,
   CHAMPION_SKILL_VFX_TYPE,
   getChampionSkillVFX,
@@ -192,6 +195,19 @@ const getStoredAutoProBattleConfig = (): AutoProBattleConfig => {
   }
 };
 
+const getStoredAutoSummonConfig = (): AutoSummonConfig => {
+  if (typeof window === 'undefined') return DEFAULT_AUTO_SUMMON_CONFIG;
+  try {
+    const raw = localStorage.getItem(AUTO_SUMMON_STORAGE_KEY);
+    if (!raw) return DEFAULT_AUTO_SUMMON_CONFIG;
+    const parsed = JSON.parse(raw) as Partial<AutoSummonConfig>;
+    const team = parsed.team === TEAM_KEY.GENG ? TEAM_KEY.GENG : TEAM_KEY.BLG;
+    return { ...DEFAULT_AUTO_SUMMON_CONFIG, ...parsed, team };
+  } catch {
+    return DEFAULT_AUTO_SUMMON_CONFIG;
+  }
+};
+
 const createEmptyTeamCombo = (): TeamComboState => ({
   count: 0,
   damage: 0,
@@ -291,6 +307,7 @@ const INITIAL_STATE = {
   finisherPlayerName: null as string | null,
   finisherTeam: null as TeamType | null,
   autoProBattleConfig: getStoredAutoProBattleConfig(),
+  autoSummonConfig: getStoredAutoSummonConfig(),
   rosterAttackTimestamps: {} as Record<string, number>,
   rosterPlayerFury: createInitialRosterFury(),
   lastFuryUltimatePlayerId: null as string | null,
@@ -359,6 +376,23 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }
       return { autoProBattleConfig: next };
+    });
+  },
+
+  setAutoSummonConfig: (config: Partial<AutoSummonConfig>) => {
+    set((state) => {
+      const next: AutoSummonConfig = {
+        ...state.autoSummonConfig,
+        ...config,
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(AUTO_SUMMON_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // ignore storage error
+        }
+      }
+      return { autoSummonConfig: next };
     });
   },
 

@@ -102,7 +102,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
         style={topOffset ? { top: `${topOffset}px` } : undefined}
         className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
           isLeft ? 'left-1' : 'right-1'
-        } z-20 pointer-events-auto select-none transition-[top] duration-200`}
+        } z-[5] pointer-events-auto select-none transition-[top] duration-200`}
       >
         <button
           id={`roster-collapsed-${team}`}
@@ -134,7 +134,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
       style={topOffset ? { top: `${topOffset}px` } : undefined}
       className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
         isLeft ? 'left-1' : 'right-1'
-      } flex flex-col space-y-1 pointer-events-auto z-20 select-none max-w-[90px] sm:max-w-[104px] transition-[top] duration-200`}
+      } flex flex-col space-y-1 pointer-events-auto z-[5] select-none max-w-[90px] sm:max-w-[104px] transition-[top] duration-200`}
     >
       {/* Compact Roster Header with Collapse Button */}
       <div

@@ -236,6 +236,16 @@ export interface AutoProBattleConfig {
   intervalMs: number;
 }
 
+export interface AutoSummonConfig {
+  enabled: boolean;
+  team: TeamType;
+  selectedChampion: string;
+  speedMs: number;
+  batchSize: number;
+  alternateTeams: boolean;
+  randomChampions: boolean;
+}
+
 export type BossWeakPointSpot = 'left-horn' | 'core-chest' | 'right-claw';
 
 export interface BossShieldState {
@@ -318,6 +328,7 @@ export interface GameState {
   finisherPlayerName: string | null;
   finisherTeam: TeamType | null;
   autoProBattleConfig: AutoProBattleConfig;
+  autoSummonConfig: AutoSummonConfig;
   rosterAttackTimestamps: Record<string, number>;
   rosterPlayerFury: Record<string, number>;
   lastFuryUltimatePlayerId: string | null;
@@ -360,6 +371,7 @@ export interface GameState {
   setGameTheme: (theme: GameThemeType) => void;
   setOverlayVisibility: (visibility: Partial<OverlayVisibility>) => void;
   setAutoProBattleConfig: (config: Partial<AutoProBattleConfig>) => void;
+  setAutoSummonConfig: (config: Partial<AutoSummonConfig>) => void;
   triggerAutoProAttack: (team: TeamType, playerIndex: number) => void;
   addPlayerFury: (playerId: string, amount: number) => void;
   consumeMinionAttackFury: (minionId: string) => { isFullFury: boolean; nextFury: number };
