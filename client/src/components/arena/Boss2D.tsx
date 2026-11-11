@@ -176,6 +176,7 @@ export const Boss2D = () => {
   const [activeSpeech, setActiveSpeech] = useState<BossSpeechItem | null>(null);
 
   const lastActivityTimestampRef = useRef(Date.now());
+  const lastSpeechTimestampRef = useRef<number>(0);
   const pokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -221,7 +222,7 @@ export const Boss2D = () => {
     return () => clearTimeout(timer);
   }, [bossAttackTimestamp, activeBossSkillBanner?.isUltimate]);
 
-  // Periodic Ambient Idle Lifecycle Loop (Every 4.8s) with non-repeating speech queue
+  // Periodic Ambient Idle Lifecycle Loop with non-repeating speech queue and cooldown
   useEffect(() => {
     const idleInterval = setInterval(() => {
       const isDefeatedState = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0;
@@ -229,23 +230,27 @@ export const Boss2D = () => {
         return;
       }
 
-      const idleDuration = Date.now() - lastActivityTimestampRef.current;
+      const now = Date.now();
+      const idleDuration = now - lastActivityTimestampRef.current;
       const isNoMinionsOnField = minions.length === 0;
+      const canSpeak = now - lastSpeechTimestampRef.current >= BOSS_IDLE_CONSTANTS.SPEECH_COOLDOWN_MS;
 
-      // Check Restless Impatient Threshold (> 8.5s with zero active champions)
+      // Check Restless Impatient Threshold (> 9.0s with zero active champions)
       if (isNoMinionsOnField && idleDuration >= BOSS_IDLE_CONSTANTS.RESTLESS_THRESHOLD_MS) {
         setIsRestless(true);
         setIsEyesSurging(true);
-
-        const nextRestlessSpeech = bossSpeechManager.getNextSpeech(gameTheme, 'RESTLESS');
-        setActiveSpeech(nextRestlessSpeech);
-
-        if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
-        speechTimerRef.current = setTimeout(() => {
-          setActiveSpeech(null);
-        }, BOSS_IDLE_CONSTANTS.SPEECH_BUBBLE_DURATION_MS);
-
         audioService.playBossIdleBreath(isElderDragon);
+
+        if (canSpeak) {
+          lastSpeechTimestampRef.current = now;
+          const nextRestlessSpeech = bossSpeechManager.getNextSpeech(gameTheme, 'RESTLESS');
+          setActiveSpeech(nextRestlessSpeech);
+
+          if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
+          speechTimerRef.current = setTimeout(() => {
+            setActiveSpeech(null);
+          }, BOSS_IDLE_CONSTANTS.SPEECH_BUBBLE_DURATION_MS);
+        }
         return;
       }
 
@@ -253,18 +258,19 @@ export const Boss2D = () => {
       setIsRestless(false);
       const actionRoll = Math.random();
 
-      if (actionRoll < 0.35) {
+      if (actionRoll < 0.4) {
         // Ambient 1: Glowing Eye Flare Surge + Breath
         setIsEyesSurging(true);
         audioService.playBossIdleBreath(isElderDragon);
         setTimeout(() => setIsEyesSurging(false), BOSS_IDLE_CONSTANTS.EYE_SURGE_DURATION_MS);
-      } else if (actionRoll < 0.65) {
+      } else if (actionRoll < 0.75 || !canSpeak) {
         // Ambient 2: Wing Gust (Dragon) or Acid Sputter (Baron)
         setIsWingGustActive(true);
         audioService.playBossIdleBreath(isElderDragon);
         setTimeout(() => setIsWingGustActive(false), BOSS_IDLE_CONSTANTS.WING_GUST_DURATION_MS);
       } else {
-        // Ambient 3: Menacing Non-Repeating Speech Taunt
+        // Ambient 3: Menacing Non-Repeating Speech Taunt (when cooldown allows)
+        lastSpeechTimestampRef.current = now;
         const nextAmbientSpeech = bossSpeechManager.getNextSpeech(gameTheme, 'AMBIENT');
         setActiveSpeech(nextAmbientSpeech);
 
@@ -290,7 +296,9 @@ export const Boss2D = () => {
   const handleBossClick = useCallback(() => {
     if (bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0) return;
 
-    lastActivityTimestampRef.current = Date.now();
+    const now = Date.now();
+    lastActivityTimestampRef.current = now;
+    lastSpeechTimestampRef.current = now;
     setIsRestless(false);
     setIsPoked(true);
     setIsEyesSurging(true);

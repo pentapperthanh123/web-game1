@@ -1,0 +1,2769 @@
+[
+  {
+    "id": "Aatrox",
+    "key": "266",
+    "name": "Aatrox",
+    "nameVi": "Aatrox",
+    "title": "Quỷ Kiếm Darkin",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Aatrox.png",
+    "tags": [
+      "Fighter"
+    ],
+    "roleNameVi": "Đấu Sĩ",
+    "aliases": [
+      "aatrox",
+      "quy kiem darkin",
+      "quykiemdarkin"
+    ]
+  },
+  {
+    "id": "Ahri",
+    "key": "103",
+    "name": "Ahri",
+    "nameVi": "Ahri",
+    "title": "Hồ Ly Chín Đuôi",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ahri.png",
+    "tags": [
+      "Mage",
+      "Assassin"
+    ],
+    "roleNameVi": "Pháp Sư / Sát Thủ",
+    "aliases": [
+      "ahri",
+      "ho ly chin duoi",
+      "holychinduoi"
+    ]
+  },
+  {
+    "id": "Akali",
+    "key": "84",
+    "name": "Akali",
+    "nameVi": "Akali",
+    "title": "Sát Thủ Đơn Độc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Akali.png",
+    "tags": [
+      "Assassin"
+    ],
+    "roleNameVi": "Sát Thủ",
+    "aliases": [
+      "akali",
+      "sat thu don doc",
+      "satthudondoc"
+    ]
+  },
+  {
+    "id": "Akshan",
+    "key": "166",
+    "name": "Akshan",
+    "nameVi": "Akshan",
+    "title": "Vệ Binh Ranh Mãnh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Akshan.png",
+    "tags": [
+      "Marksman",
+      "Assassin"
+    ],
+    "roleNameVi": "Xạ Thủ / Sát Thủ",
+    "aliases": [
+      "akshan"
+    ]
+  },
+  {
+    "id": "Alistar",
+    "key": "12",
+    "name": "Alistar",
+    "nameVi": "Alistar",
+    "title": "Quái Vật Đầu Bò",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Alistar.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "alistar"
+    ]
+  },
+  {
+    "id": "Ambessa",
+    "key": "799",
+    "name": "Ambessa",
+    "nameVi": "Ambessa",
+    "title": "Nữ Tướng Chiến Tranh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ambessa.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "ambessa"
+    ]
+  },
+  {
+    "id": "Amumu",
+    "key": "32",
+    "name": "Amumu",
+    "nameVi": "Amumu",
+    "title": "Xác Ướp U Sầu",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Amumu.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "amumu"
+    ]
+  },
+  {
+    "id": "Anivia",
+    "key": "34",
+    "name": "Anivia",
+    "nameVi": "Anivia",
+    "title": "Phượng Hoàng Băng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Anivia.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "anivia"
+    ]
+  },
+  {
+    "id": "Annie",
+    "key": "1",
+    "name": "Annie",
+    "nameVi": "Annie",
+    "title": "Đứa Trẻ Bóng Tối",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Annie.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "annie"
+    ]
+  },
+  {
+    "id": "Aphelios",
+    "key": "523",
+    "name": "Aphelios",
+    "nameVi": "Aphelios",
+    "title": "Song Nguyệt Chiến Binh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Aphelios.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "aphelios"
+    ]
+  },
+  {
+    "id": "Ashe",
+    "key": "22",
+    "name": "Ashe",
+    "nameVi": "Ashe",
+    "title": "Cung Băng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ashe.png",
+    "tags": [
+      "Marksman",
+      "Support"
+    ],
+    "roleNameVi": "Xạ Thủ / Hỗ Trợ",
+    "aliases": [
+      "ashe"
+    ]
+  },
+  {
+    "id": "AurelionSol",
+    "key": "136",
+    "name": "Aurelion Sol",
+    "nameVi": "Aurelion Sol",
+    "title": "Ác Long Thượng Giới",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/AurelionSol.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "aurelionsol",
+      "aurelion sol",
+      "asol",
+      "a sol"
+    ]
+  },
+  {
+    "id": "Aurora",
+    "key": "893",
+    "name": "Aurora",
+    "nameVi": "Aurora",
+    "title": "Phù Thủy Giữa Hai Thế Giới",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Aurora.png",
+    "tags": [
+      "Mage",
+      "Assassin"
+    ],
+    "roleNameVi": "Pháp Sư / Sát Thủ",
+    "aliases": [
+      "aurora"
+    ]
+  },
+  {
+    "id": "Azir",
+    "key": "268",
+    "name": "Azir",
+    "nameVi": "Azir",
+    "title": "Hoàng Đế Sa Mạc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Azir.png",
+    "tags": [
+      "Mage",
+      "Marksman"
+    ],
+    "roleNameVi": "Pháp Sư / Xạ Thủ",
+    "aliases": [
+      "azir"
+    ]
+  },
+  {
+    "id": "Bard",
+    "key": "432",
+    "name": "Bard",
+    "nameVi": "Bard",
+    "title": "Ông Bụt Vũ Trụ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Bard.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "bard"
+    ]
+  },
+  {
+    "id": "Belveth",
+    "key": "200",
+    "name": "Bel'Veth",
+    "nameVi": "Bel'Veth",
+    "title": "Nữ Chúa Hư Không",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Belveth.png",
+    "tags": [
+      "Fighter"
+    ],
+    "roleNameVi": "Đấu Sĩ",
+    "aliases": [
+      "belveth",
+      "bel'veth"
+    ]
+  },
+  {
+    "id": "Blitzcrank",
+    "key": "53",
+    "name": "Blitzcrank",
+    "nameVi": "Blitzcrank",
+    "title": "Người Máy Hơi Nước",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Blitzcrank.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "blitzcrank",
+      "blitz",
+      "nguoi may hoi sinh",
+      "nguoimayhoisinh",
+      "keo"
+    ]
+  },
+  {
+    "id": "Brand",
+    "key": "63",
+    "name": "Brand",
+    "nameVi": "Brand",
+    "title": "Thần Lửa",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Brand.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "brand"
+    ]
+  },
+  {
+    "id": "Braum",
+    "key": "201",
+    "name": "Braum",
+    "nameVi": "Braum",
+    "title": "Trái Tim của Freljord",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Braum.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "braum"
+    ]
+  },
+  {
+    "id": "Briar",
+    "key": "233",
+    "name": "Briar",
+    "nameVi": "Briar",
+    "title": "Cơn Đói Vĩnh Hằng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Briar.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "briar"
+    ]
+  },
+  {
+    "id": "Caitlyn",
+    "key": "51",
+    "name": "Caitlyn",
+    "nameVi": "Caitlyn",
+    "title": "Cảnh Sát Trưởng Piltover",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Caitlyn.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "caitlyn"
+    ]
+  },
+  {
+    "id": "Camille",
+    "key": "164",
+    "name": "Camille",
+    "nameVi": "Camille",
+    "title": "Bóng Thép",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Camille.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "camille"
+    ]
+  },
+  {
+    "id": "Cassiopeia",
+    "key": "69",
+    "name": "Cassiopeia",
+    "nameVi": "Cassiopeia",
+    "title": "Xà Nữ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Cassiopeia.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "cassiopeia"
+    ]
+  },
+  {
+    "id": "Chogath",
+    "key": "31",
+    "name": "Cho'Gath",
+    "nameVi": "Cho'Gath",
+    "title": "Quái Vật Hư Không",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Chogath.png",
+    "tags": [
+      "Tank",
+      "Mage"
+    ],
+    "roleNameVi": "Đỡ Đòn / Pháp Sư",
+    "aliases": [
+      "chogath",
+      "cho'gath",
+      "cho gath"
+    ]
+  },
+  {
+    "id": "Corki",
+    "key": "42",
+    "name": "Corki",
+    "nameVi": "Corki",
+    "title": "Phi Công Quả Cảm",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Corki.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "corki"
+    ]
+  },
+  {
+    "id": "Darius",
+    "key": "122",
+    "name": "Darius",
+    "nameVi": "Darius",
+    "title": "Đại Tướng Noxus",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Darius.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "darius"
+    ]
+  },
+  {
+    "id": "Diana",
+    "key": "131",
+    "name": "Diana",
+    "nameVi": "Diana",
+    "title": "Vầng Trăng Ai Oán",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Diana.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "diana"
+    ]
+  },
+  {
+    "id": "DrMundo",
+    "key": "36",
+    "name": "Dr. Mundo",
+    "nameVi": "Dr. Mundo",
+    "title": "Cuồng Nhân Xứ Zaun",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/DrMundo.png",
+    "tags": [
+      "Tank",
+      "Fighter"
+    ],
+    "roleNameVi": "Đỡ Đòn / Đấu Sĩ",
+    "aliases": [
+      "drmundo",
+      "dr. mundo",
+      "dr mundo",
+      "mundo"
+    ]
+  },
+  {
+    "id": "Draven",
+    "key": "119",
+    "name": "Draven",
+    "nameVi": "Draven",
+    "title": "Đao Phủ Kiêu Hùng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Draven.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "draven"
+    ]
+  },
+  {
+    "id": "Ekko",
+    "key": "245",
+    "name": "Ekko",
+    "nameVi": "Ekko",
+    "title": "Cậu Bé Đảo Lộn Thời Gian",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ekko.png",
+    "tags": [
+      "Assassin",
+      "Mage"
+    ],
+    "roleNameVi": "Sát Thủ / Pháp Sư",
+    "aliases": [
+      "ekko"
+    ]
+  },
+  {
+    "id": "Elise",
+    "key": "60",
+    "name": "Elise",
+    "nameVi": "Elise",
+    "title": "Nữ Hoàng Nhền Nhện",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Elise.png",
+    "tags": [
+      "Assassin",
+      "Mage"
+    ],
+    "roleNameVi": "Sát Thủ / Pháp Sư",
+    "aliases": [
+      "elise"
+    ]
+  },
+  {
+    "id": "Evelynn",
+    "key": "28",
+    "name": "Evelynn",
+    "nameVi": "Evelynn",
+    "title": "Yêu Nữ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Evelynn.png",
+    "tags": [
+      "Assassin",
+      "Mage"
+    ],
+    "roleNameVi": "Sát Thủ / Pháp Sư",
+    "aliases": [
+      "evelynn"
+    ]
+  },
+  {
+    "id": "Ezreal",
+    "key": "81",
+    "name": "Ezreal",
+    "nameVi": "Ezreal",
+    "title": "Nhà Thám Hiểm",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ezreal.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "ezreal",
+      "nha tham hiem",
+      "nhathamhiem"
+    ]
+  },
+  {
+    "id": "Fiddlesticks",
+    "key": "9",
+    "name": "Fiddlesticks",
+    "nameVi": "Fiddlesticks",
+    "title": "Nỗi Sợ Viễn Cổ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Fiddlesticks.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "fiddlesticks"
+    ]
+  },
+  {
+    "id": "Fiora",
+    "key": "114",
+    "name": "Fiora",
+    "nameVi": "Fiora",
+    "title": "Nữ Kiếm Sư",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Fiora.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "fiora"
+    ]
+  },
+  {
+    "id": "Fizz",
+    "key": "105",
+    "name": "Fizz",
+    "nameVi": "Fizz",
+    "title": "Chú Cá Tinh Nghịch",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Fizz.png",
+    "tags": [
+      "Assassin",
+      "Fighter"
+    ],
+    "roleNameVi": "Sát Thủ / Đấu Sĩ",
+    "aliases": [
+      "fizz"
+    ]
+  },
+  {
+    "id": "Galio",
+    "key": "3",
+    "name": "Galio",
+    "nameVi": "Galio",
+    "title": "Vệ Thần Khổng Lồ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Galio.png",
+    "tags": [
+      "Tank",
+      "Mage"
+    ],
+    "roleNameVi": "Đỡ Đòn / Pháp Sư",
+    "aliases": [
+      "galio"
+    ]
+  },
+  {
+    "id": "Gangplank",
+    "key": "41",
+    "name": "Gangplank",
+    "nameVi": "Gangplank",
+    "title": "Hiểm Họa Vùng Saltwater",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Gangplank.png",
+    "tags": [
+      "Fighter"
+    ],
+    "roleNameVi": "Đấu Sĩ",
+    "aliases": [
+      "gangplank"
+    ]
+  },
+  {
+    "id": "Garen",
+    "key": "86",
+    "name": "Garen",
+    "nameVi": "Garen",
+    "title": "Sức Mạnh Của Demacia",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Garen.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "garen"
+    ]
+  },
+  {
+    "id": "Gnar",
+    "key": "150",
+    "name": "Gnar",
+    "nameVi": "Gnar",
+    "title": "Mắt Xích Thượng Cổ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Gnar.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "gnar"
+    ]
+  },
+  {
+    "id": "Gragas",
+    "key": "79",
+    "name": "Gragas",
+    "nameVi": "Gragas",
+    "title": "Gã Bợm Rượu",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Gragas.png",
+    "tags": [
+      "Fighter",
+      "Mage"
+    ],
+    "roleNameVi": "Đấu Sĩ / Pháp Sư",
+    "aliases": [
+      "gragas"
+    ]
+  },
+  {
+    "id": "Graves",
+    "key": "104",
+    "name": "Graves",
+    "nameVi": "Graves",
+    "title": "Kẻ Ngoài Vòng Pháp Luật",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Graves.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "graves"
+    ]
+  },
+  {
+    "id": "Gwen",
+    "key": "887",
+    "name": "Gwen",
+    "nameVi": "Gwen",
+    "title": "Búp Bê Ước Nguyện",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Gwen.png",
+    "tags": [
+      "Fighter"
+    ],
+    "roleNameVi": "Đấu Sĩ",
+    "aliases": [
+      "gwen"
+    ]
+  },
+  {
+    "id": "Hecarim",
+    "key": "120",
+    "name": "Hecarim",
+    "nameVi": "Hecarim",
+    "title": "Bóng Ma Chiến Tranh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Hecarim.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "hecarim"
+    ]
+  },
+  {
+    "id": "Heimerdinger",
+    "key": "74",
+    "name": "Heimerdinger",
+    "nameVi": "Heimerdinger",
+    "title": "Nhà Phát Minh Lỗi Lạc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Heimerdinger.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "heimerdinger"
+    ]
+  },
+  {
+    "id": "Hwei",
+    "key": "910",
+    "name": "Hwei",
+    "nameVi": "Hwei",
+    "title": "Họa Sĩ Vạn Cảnh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Hwei.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "hwei"
+    ]
+  },
+  {
+    "id": "Illaoi",
+    "key": "420",
+    "name": "Illaoi",
+    "nameVi": "Illaoi",
+    "title": "Nữ Tu Thủy Thần",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Illaoi.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "illaoi"
+    ]
+  },
+  {
+    "id": "Irelia",
+    "key": "39",
+    "name": "Irelia",
+    "nameVi": "Irelia",
+    "title": "Vũ Kiếm Sư",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Irelia.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "irelia"
+    ]
+  },
+  {
+    "id": "Ivern",
+    "key": "427",
+    "name": "Ivern",
+    "nameVi": "Ivern",
+    "title": "Thụ Thần Thân Thiện",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ivern.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "ivern"
+    ]
+  },
+  {
+    "id": "Janna",
+    "key": "40",
+    "name": "Janna",
+    "nameVi": "Janna",
+    "title": "Cơn Thịnh Nộ Của Bão Tố",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Janna.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "janna"
+    ]
+  },
+  {
+    "id": "JarvanIV",
+    "key": "59",
+    "name": "Jarvan IV",
+    "nameVi": "Jarvan IV",
+    "title": "Biểu Tượng Của Demacia",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/JarvanIV.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "jarvaniv",
+      "jarvan iv",
+      "jarvan 4",
+      "jarvan4",
+      "jarvan",
+      "j4"
+    ]
+  },
+  {
+    "id": "Jax",
+    "key": "24",
+    "name": "Jax",
+    "nameVi": "Jax",
+    "title": "Bậc Thầy Vũ Khí",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jax.png",
+    "tags": [
+      "Fighter"
+    ],
+    "roleNameVi": "Đấu Sĩ",
+    "aliases": [
+      "jax"
+    ]
+  },
+  {
+    "id": "Jayce",
+    "key": "126",
+    "name": "Jayce",
+    "nameVi": "Jayce",
+    "title": "Người Bảo Hộ Mai Sau",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jayce.png",
+    "tags": [
+      "Marksman",
+      "Fighter"
+    ],
+    "roleNameVi": "Xạ Thủ / Đấu Sĩ",
+    "aliases": [
+      "jayce"
+    ]
+  },
+  {
+    "id": "Jhin",
+    "key": "202",
+    "name": "Jhin",
+    "nameVi": "Jhin",
+    "title": "Nghệ Sĩ Tử Thần",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jhin.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "jhin"
+    ]
+  },
+  {
+    "id": "Jinx",
+    "key": "222",
+    "name": "Jinx",
+    "nameVi": "Jinx",
+    "title": "Khẩu Pháo Nổi Loạn",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jinx.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "jinx",
+      "khau phao noi loan",
+      "khauphaonoiloan"
+    ]
+  },
+  {
+    "id": "KSante",
+    "key": "897",
+    "name": "K'Sante",
+    "nameVi": "K'Sante",
+    "title": "Niềm Kiêu Hãnh của Nazumah",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/KSante.png",
+    "tags": [
+      "Tank",
+      "Fighter"
+    ],
+    "roleNameVi": "Đỡ Đòn / Đấu Sĩ",
+    "aliases": [
+      "ksante",
+      "k'sante",
+      "k sante"
+    ]
+  },
+  {
+    "id": "Kaisa",
+    "key": "145",
+    "name": "Kai'Sa",
+    "nameVi": "Kai'Sa",
+    "title": "Ái Nữ Hư Không",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kaisa.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "kaisa",
+      "kai'sa",
+      "kai sa",
+      "ai nu hu khong",
+      "ainuhukhong"
+    ]
+  },
+  {
+    "id": "Kalista",
+    "key": "429",
+    "name": "Kalista",
+    "nameVi": "Kalista",
+    "title": "Mũi Giáo Phục Hận",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kalista.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "kalista"
+    ]
+  },
+  {
+    "id": "Karma",
+    "key": "43",
+    "name": "Karma",
+    "nameVi": "Karma",
+    "title": "Kẻ Được Khai Sáng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Karma.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "karma"
+    ]
+  },
+  {
+    "id": "Karthus",
+    "key": "30",
+    "name": "Karthus",
+    "nameVi": "Karthus",
+    "title": "Tiếng Ru Tử Thần",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Karthus.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "karthus"
+    ]
+  },
+  {
+    "id": "Kassadin",
+    "key": "38",
+    "name": "Kassadin",
+    "nameVi": "Kassadin",
+    "title": "Lữ Khách Hư Không",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kassadin.png",
+    "tags": [
+      "Assassin",
+      "Mage"
+    ],
+    "roleNameVi": "Sát Thủ / Pháp Sư",
+    "aliases": [
+      "kassadin"
+    ]
+  },
+  {
+    "id": "Katarina",
+    "key": "55",
+    "name": "Katarina",
+    "nameVi": "Katarina",
+    "title": "Ác Kiếm",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Katarina.png",
+    "tags": [
+      "Assassin",
+      "Mage"
+    ],
+    "roleNameVi": "Sát Thủ / Pháp Sư",
+    "aliases": [
+      "katarina"
+    ]
+  },
+  {
+    "id": "Kayle",
+    "key": "10",
+    "name": "Kayle",
+    "nameVi": "Kayle",
+    "title": "Thiên Thần Phán Quyết",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kayle.png",
+    "tags": [
+      "Mage",
+      "Marksman"
+    ],
+    "roleNameVi": "Pháp Sư / Xạ Thủ",
+    "aliases": [
+      "kayle"
+    ]
+  },
+  {
+    "id": "Kayn",
+    "key": "141",
+    "name": "Kayn",
+    "nameVi": "Kayn",
+    "title": "Tử Thần Bóng Tối",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kayn.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "kayn"
+    ]
+  },
+  {
+    "id": "Kennen",
+    "key": "85",
+    "name": "Kennen",
+    "nameVi": "Kennen",
+    "title": "Trái Tim Sấm Sét",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kennen.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "kennen"
+    ]
+  },
+  {
+    "id": "Khazix",
+    "key": "121",
+    "name": "Kha'Zix",
+    "nameVi": "Kha'Zix",
+    "title": "Sát Thủ Hư Không",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Khazix.png",
+    "tags": [
+      "Assassin"
+    ],
+    "roleNameVi": "Sát Thủ",
+    "aliases": [
+      "khazix",
+      "kha'zix",
+      "kha zix"
+    ]
+  },
+  {
+    "id": "Kindred",
+    "key": "203",
+    "name": "Kindred",
+    "nameVi": "Kindred",
+    "title": "Thợ Săn Vĩnh Hằng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kindred.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "kindred"
+    ]
+  },
+  {
+    "id": "Kled",
+    "key": "240",
+    "name": "Kled",
+    "nameVi": "Kled",
+    "title": "Kị Sĩ Cáu Kỉnh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kled.png",
+    "tags": [
+      "Fighter"
+    ],
+    "roleNameVi": "Đấu Sĩ",
+    "aliases": [
+      "kled"
+    ]
+  },
+  {
+    "id": "KogMaw",
+    "key": "96",
+    "name": "Kog'Maw",
+    "nameVi": "Kog'Maw",
+    "title": "Miệng Của Vực Thẳm",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/KogMaw.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "kogmaw",
+      "kog'maw",
+      "kog maw"
+    ]
+  },
+  {
+    "id": "Leblanc",
+    "key": "7",
+    "name": "LeBlanc",
+    "nameVi": "LeBlanc",
+    "title": "Kẻ Lừa Đảo",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Leblanc.png",
+    "tags": [
+      "Assassin",
+      "Mage"
+    ],
+    "roleNameVi": "Sát Thủ / Pháp Sư",
+    "aliases": [
+      "leblanc"
+    ]
+  },
+  {
+    "id": "LeeSin",
+    "key": "64",
+    "name": "Lee Sin",
+    "nameVi": "Lee Sin",
+    "title": "Thầy Tu Mù",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/LeeSin.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "leesin",
+      "lee sin",
+      "lee",
+      "thay tu mu",
+      "thaytumu"
+    ]
+  },
+  {
+    "id": "Leona",
+    "key": "89",
+    "name": "Leona",
+    "nameVi": "Leona",
+    "title": "Bình Minh Rực Rỡ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Leona.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "leona"
+    ]
+  },
+  {
+    "id": "Lillia",
+    "key": "876",
+    "name": "Lillia",
+    "nameVi": "Lillia",
+    "title": "Nụ Hoa Bẽn Lẽn",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Lillia.png",
+    "tags": [
+      "Fighter",
+      "Mage"
+    ],
+    "roleNameVi": "Đấu Sĩ / Pháp Sư",
+    "aliases": [
+      "lillia"
+    ]
+  },
+  {
+    "id": "Lissandra",
+    "key": "127",
+    "name": "Lissandra",
+    "nameVi": "Lissandra",
+    "title": "Mụ Phù Thủy Băng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Lissandra.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "lissandra"
+    ]
+  },
+  {
+    "id": "Lucian",
+    "key": "236",
+    "name": "Lucian",
+    "nameVi": "Lucian",
+    "title": "Kẻ Thanh Trừng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Lucian.png",
+    "tags": [
+      "Marksman",
+      "Assassin"
+    ],
+    "roleNameVi": "Xạ Thủ / Sát Thủ",
+    "aliases": [
+      "lucian",
+      "ke thanh trung",
+      "kethanhtrung"
+    ]
+  },
+  {
+    "id": "Lulu",
+    "key": "117",
+    "name": "Lulu",
+    "nameVi": "Lulu",
+    "title": "Pháp Sư Tinh Linh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Lulu.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "lulu"
+    ]
+  },
+  {
+    "id": "Lux",
+    "key": "99",
+    "name": "Lux",
+    "nameVi": "Lux",
+    "title": "Tiểu Thư Ánh Sáng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Lux.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "lux"
+    ]
+  },
+  {
+    "id": "Malphite",
+    "key": "54",
+    "name": "Malphite",
+    "nameVi": "Malphite",
+    "title": "Mảnh Vỡ Thiên Thạch",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Malphite.png",
+    "tags": [
+      "Tank",
+      "Mage"
+    ],
+    "roleNameVi": "Đỡ Đòn / Pháp Sư",
+    "aliases": [
+      "malphite",
+      "cuc da",
+      "cucda",
+      "khong the can pha",
+      "khongthecanpha"
+    ]
+  },
+  {
+    "id": "Malzahar",
+    "key": "90",
+    "name": "Malzahar",
+    "nameVi": "Malzahar",
+    "title": "Tiên Tri Hư Không",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Malzahar.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "malzahar"
+    ]
+  },
+  {
+    "id": "Maokai",
+    "key": "57",
+    "name": "Maokai",
+    "nameVi": "Maokai",
+    "title": "Ma Cây",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Maokai.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "maokai"
+    ]
+  },
+  {
+    "id": "MasterYi",
+    "key": "11",
+    "name": "Master Yi",
+    "nameVi": "Master Yi",
+    "title": "Kiếm Sư Wuju",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/MasterYi.png",
+    "tags": [
+      "Assassin",
+      "Fighter"
+    ],
+    "roleNameVi": "Sát Thủ / Đấu Sĩ",
+    "aliases": [
+      "masteryi",
+      "master yi",
+      "yi",
+      "kiem thanh",
+      "kiemthanh"
+    ]
+  },
+  {
+    "id": "Milio",
+    "key": "902",
+    "name": "Milio",
+    "nameVi": "Milio",
+    "title": "Ngọn Lửa Dịu Êm",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Milio.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "milio"
+    ]
+  },
+  {
+    "id": "MissFortune",
+    "key": "21",
+    "name": "Miss Fortune",
+    "nameVi": "Miss Fortune",
+    "title": "Thợ Săn Tiền Thưởng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/MissFortune.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "missfortune",
+      "miss fortune",
+      "mf"
+    ]
+  },
+  {
+    "id": "Mordekaiser",
+    "key": "82",
+    "name": "Mordekaiser",
+    "nameVi": "Mordekaiser",
+    "title": "Ác Quỷ Thiết Giáp",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Mordekaiser.png",
+    "tags": [
+      "Fighter",
+      "Mage"
+    ],
+    "roleNameVi": "Đấu Sĩ / Pháp Sư",
+    "aliases": [
+      "mordekaiser"
+    ]
+  },
+  {
+    "id": "Morgana",
+    "key": "25",
+    "name": "Morgana",
+    "nameVi": "Morgana",
+    "title": "Thiên Thần Sa Ngã",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Morgana.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "morgana"
+    ]
+  },
+  {
+    "id": "Naafiri",
+    "key": "950",
+    "name": "Naafiri",
+    "nameVi": "Naafiri",
+    "title": "Chó Săn Khát Máu",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Naafiri.png",
+    "tags": [
+      "Assassin",
+      "Fighter"
+    ],
+    "roleNameVi": "Sát Thủ / Đấu Sĩ",
+    "aliases": [
+      "naafiri"
+    ]
+  },
+  {
+    "id": "Nami",
+    "key": "267",
+    "name": "Nami",
+    "nameVi": "Nami",
+    "title": "Nàng Tiên Cá",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nami.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "nami"
+    ]
+  },
+  {
+    "id": "Nasus",
+    "key": "75",
+    "name": "Nasus",
+    "nameVi": "Nasus",
+    "title": "Nhà Thông Thái Sa Mạc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nasus.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "nasus"
+    ]
+  },
+  {
+    "id": "Nautilus",
+    "key": "111",
+    "name": "Nautilus",
+    "nameVi": "Nautilus",
+    "title": "Khổng Lồ Biển Sâu",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nautilus.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "nautilus"
+    ]
+  },
+  {
+    "id": "Neeko",
+    "key": "518",
+    "name": "Neeko",
+    "nameVi": "Neeko",
+    "title": "Hóa Hình Sư Ham Học",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Neeko.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "neeko"
+    ]
+  },
+  {
+    "id": "Nidalee",
+    "key": "76",
+    "name": "Nidalee",
+    "nameVi": "Nidalee",
+    "title": "Nữ Thợ Săn Hóa Thú",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nidalee.png",
+    "tags": [
+      "Assassin",
+      "Mage"
+    ],
+    "roleNameVi": "Sát Thủ / Pháp Sư",
+    "aliases": [
+      "nidalee"
+    ]
+  },
+  {
+    "id": "Nilah",
+    "key": "895",
+    "name": "Nilah",
+    "nameVi": "Nilah",
+    "title": "Hiện Thân của Niềm Vui",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nilah.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "nilah"
+    ]
+  },
+  {
+    "id": "Nocturne",
+    "key": "56",
+    "name": "Nocturne",
+    "nameVi": "Nocturne",
+    "title": "Ác Mộng Vĩnh Cửu",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nocturne.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "nocturne"
+    ]
+  },
+  {
+    "id": "Nunu",
+    "key": "20",
+    "name": "Nunu & Willump",
+    "nameVi": "Nunu & Willump",
+    "title": "Cậu Bé & Người Tuyết",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nunu.png",
+    "tags": [
+      "Tank",
+      "Mage"
+    ],
+    "roleNameVi": "Đỡ Đòn / Pháp Sư",
+    "aliases": [
+      "nunu",
+      "nunu & willump",
+      "nunu&willump",
+      "nunu va willump",
+      "nunuvawillump",
+      "nunu and willump",
+      "nunuandwillump"
+    ]
+  },
+  {
+    "id": "Olaf",
+    "key": "2",
+    "name": "Olaf",
+    "nameVi": "Olaf",
+    "title": "Chiến Binh Điên Cuồng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Olaf.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "olaf"
+    ]
+  },
+  {
+    "id": "Orianna",
+    "key": "61",
+    "name": "Orianna",
+    "nameVi": "Orianna",
+    "title": "Quý Cô Dây Cót",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Orianna.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "orianna"
+    ]
+  },
+  {
+    "id": "Ornn",
+    "key": "516",
+    "name": "Ornn",
+    "nameVi": "Ornn",
+    "title": "Ngọn Lửa Khởi Nguyên",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ornn.png",
+    "tags": [
+      "Tank"
+    ],
+    "roleNameVi": "Đỡ Đòn",
+    "aliases": [
+      "ornn"
+    ]
+  },
+  {
+    "id": "Pantheon",
+    "key": "80",
+    "name": "Pantheon",
+    "nameVi": "Pantheon",
+    "title": "Mũi Giáo Bất Diệt",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Pantheon.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "pantheon"
+    ]
+  },
+  {
+    "id": "Poppy",
+    "key": "78",
+    "name": "Poppy",
+    "nameVi": "Poppy",
+    "title": "Người Giữ Búa",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Poppy.png",
+    "tags": [
+      "Tank",
+      "Fighter"
+    ],
+    "roleNameVi": "Đỡ Đòn / Đấu Sĩ",
+    "aliases": [
+      "poppy"
+    ]
+  },
+  {
+    "id": "Pyke",
+    "key": "555",
+    "name": "Pyke",
+    "nameVi": "Pyke",
+    "title": "Sát Thủ Vùng Nước Đỏ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Pyke.png",
+    "tags": [
+      "Support",
+      "Assassin"
+    ],
+    "roleNameVi": "Hỗ Trợ / Sát Thủ",
+    "aliases": [
+      "pyke"
+    ]
+  },
+  {
+    "id": "Qiyana",
+    "key": "246",
+    "name": "Qiyana",
+    "nameVi": "Qiyana",
+    "title": "Nữ Hoàng Nguyên Tố",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Qiyana.png",
+    "tags": [
+      "Assassin"
+    ],
+    "roleNameVi": "Sát Thủ",
+    "aliases": [
+      "qiyana"
+    ]
+  },
+  {
+    "id": "Quinn",
+    "key": "133",
+    "name": "Quinn",
+    "nameVi": "Quinn",
+    "title": "Đôi Cánh Demacia",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Quinn.png",
+    "tags": [
+      "Marksman",
+      "Assassin"
+    ],
+    "roleNameVi": "Xạ Thủ / Sát Thủ",
+    "aliases": [
+      "quinn"
+    ]
+  },
+  {
+    "id": "Rakan",
+    "key": "497",
+    "name": "Rakan",
+    "nameVi": "Rakan",
+    "title": "Anh Chàng Quyến Rũ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rakan.png",
+    "tags": [
+      "Support"
+    ],
+    "roleNameVi": "Hỗ Trợ",
+    "aliases": [
+      "rakan"
+    ]
+  },
+  {
+    "id": "Rammus",
+    "key": "33",
+    "name": "Rammus",
+    "nameVi": "Rammus",
+    "title": "Tê Tê Gai",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rammus.png",
+    "tags": [
+      "Tank"
+    ],
+    "roleNameVi": "Đỡ Đòn",
+    "aliases": [
+      "rammus"
+    ]
+  },
+  {
+    "id": "RekSai",
+    "key": "421",
+    "name": "Rek'Sai",
+    "nameVi": "Rek'Sai",
+    "title": "Nấm Mồ Hư Không",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/RekSai.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "reksai",
+      "rek'sai",
+      "rek sai"
+    ]
+  },
+  {
+    "id": "Rell",
+    "key": "526",
+    "name": "Rell",
+    "nameVi": "Rell",
+    "title": "Nữ Kỵ Sĩ Thép",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rell.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "rell"
+    ]
+  },
+  {
+    "id": "Renata",
+    "key": "888",
+    "name": "Renata Glasc",
+    "nameVi": "Renata Glasc",
+    "title": "Bà Trùm Thành Zaun",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Renata.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "renata",
+      "renata glasc",
+      "renataglasc"
+    ]
+  },
+  {
+    "id": "Renekton",
+    "key": "58",
+    "name": "Renekton",
+    "nameVi": "Renekton",
+    "title": "Đồ Tể Sa Mạc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Renekton.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "renekton"
+    ]
+  },
+  {
+    "id": "Rengar",
+    "key": "107",
+    "name": "Rengar",
+    "nameVi": "Rengar",
+    "title": "Thú Săn Mồi Kiêu Hãnh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rengar.png",
+    "tags": [
+      "Assassin",
+      "Fighter"
+    ],
+    "roleNameVi": "Sát Thủ / Đấu Sĩ",
+    "aliases": [
+      "rengar"
+    ]
+  },
+  {
+    "id": "Riven",
+    "key": "92",
+    "name": "Riven",
+    "nameVi": "Riven",
+    "title": "Kẻ Lưu Đày",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Riven.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "riven"
+    ]
+  },
+  {
+    "id": "Rumble",
+    "key": "68",
+    "name": "Rumble",
+    "nameVi": "Rumble",
+    "title": "Hiểm Họa Cơ Khí",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rumble.png",
+    "tags": [
+      "Fighter",
+      "Mage"
+    ],
+    "roleNameVi": "Đấu Sĩ / Pháp Sư",
+    "aliases": [
+      "rumble"
+    ]
+  },
+  {
+    "id": "Ryze",
+    "key": "13",
+    "name": "Ryze",
+    "nameVi": "Ryze",
+    "title": "Pháp Sư Cổ Ngữ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ryze.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "ryze"
+    ]
+  },
+  {
+    "id": "Samira",
+    "key": "360",
+    "name": "Samira",
+    "nameVi": "Samira",
+    "title": "Hoa Hồng Sa Mạc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Samira.png",
+    "tags": [
+      "Marksman",
+      "Assassin"
+    ],
+    "roleNameVi": "Xạ Thủ / Sát Thủ",
+    "aliases": [
+      "samira"
+    ]
+  },
+  {
+    "id": "Sejuani",
+    "key": "113",
+    "name": "Sejuani",
+    "nameVi": "Sejuani",
+    "title": "Cơn Thịnh Nộ Phương Bắc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sejuani.png",
+    "tags": [
+      "Tank"
+    ],
+    "roleNameVi": "Đỡ Đòn",
+    "aliases": [
+      "sejuani"
+    ]
+  },
+  {
+    "id": "Senna",
+    "key": "235",
+    "name": "Senna",
+    "nameVi": "Senna",
+    "title": "Người Cứu Chuộc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Senna.png",
+    "tags": [
+      "Support",
+      "Marksman"
+    ],
+    "roleNameVi": "Hỗ Trợ / Xạ Thủ",
+    "aliases": [
+      "senna"
+    ]
+  },
+  {
+    "id": "Seraphine",
+    "key": "147",
+    "name": "Seraphine",
+    "nameVi": "Seraphine",
+    "title": "Ca Sĩ Mộng Mơ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Seraphine.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "seraphine"
+    ]
+  },
+  {
+    "id": "Sett",
+    "key": "875",
+    "name": "Sett",
+    "nameVi": "Sett",
+    "title": "Đại Ca",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sett.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "sett"
+    ]
+  },
+  {
+    "id": "Shaco",
+    "key": "35",
+    "name": "Shaco",
+    "nameVi": "Shaco",
+    "title": "Tên Hề Quỷ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Shaco.png",
+    "tags": [
+      "Assassin"
+    ],
+    "roleNameVi": "Sát Thủ",
+    "aliases": [
+      "shaco"
+    ]
+  },
+  {
+    "id": "Shen",
+    "key": "98",
+    "name": "Shen",
+    "nameVi": "Shen",
+    "title": "Mắt Hoàng Hôn",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Shen.png",
+    "tags": [
+      "Tank"
+    ],
+    "roleNameVi": "Đỡ Đòn",
+    "aliases": [
+      "shen"
+    ]
+  },
+  {
+    "id": "Shyvana",
+    "key": "102",
+    "name": "Shyvana",
+    "nameVi": "Shyvana",
+    "title": "Long Nữ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Shyvana.png",
+    "tags": [
+      "Fighter",
+      "Mage"
+    ],
+    "roleNameVi": "Đấu Sĩ / Pháp Sư",
+    "aliases": [
+      "shyvana"
+    ]
+  },
+  {
+    "id": "Singed",
+    "key": "27",
+    "name": "Singed",
+    "nameVi": "Singed",
+    "title": "Dược Sĩ Điên",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Singed.png",
+    "tags": [
+      "Tank",
+      "Mage"
+    ],
+    "roleNameVi": "Đỡ Đòn / Pháp Sư",
+    "aliases": [
+      "singed"
+    ]
+  },
+  {
+    "id": "Sion",
+    "key": "14",
+    "name": "Sion",
+    "nameVi": "Sion",
+    "title": "Chiến Binh Bất Tử",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sion.png",
+    "tags": [
+      "Tank",
+      "Fighter"
+    ],
+    "roleNameVi": "Đỡ Đòn / Đấu Sĩ",
+    "aliases": [
+      "sion"
+    ]
+  },
+  {
+    "id": "Sivir",
+    "key": "15",
+    "name": "Sivir",
+    "nameVi": "Sivir",
+    "title": "Nữ Chúa Chiến Trường",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sivir.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "sivir"
+    ]
+  },
+  {
+    "id": "Skarner",
+    "key": "72",
+    "name": "Skarner",
+    "nameVi": "Skarner",
+    "title": "Thần Quyền Cổ Đại",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Skarner.png",
+    "tags": [
+      "Tank",
+      "Fighter"
+    ],
+    "roleNameVi": "Đỡ Đòn / Đấu Sĩ",
+    "aliases": [
+      "skarner"
+    ]
+  },
+  {
+    "id": "Smolder",
+    "key": "901",
+    "name": "Smolder",
+    "nameVi": "Smolder",
+    "title": "Tiểu Hỏa Long",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Smolder.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "smolder"
+    ]
+  },
+  {
+    "id": "Sona",
+    "key": "37",
+    "name": "Sona",
+    "nameVi": "Sona",
+    "title": "Đại Cầm Nữ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sona.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "sona"
+    ]
+  },
+  {
+    "id": "Soraka",
+    "key": "16",
+    "name": "Soraka",
+    "nameVi": "Soraka",
+    "title": "Tinh Nữ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Soraka.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "soraka"
+    ]
+  },
+  {
+    "id": "Swain",
+    "key": "50",
+    "name": "Swain",
+    "nameVi": "Swain",
+    "title": "Nguyên Soái Noxus",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Swain.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "swain"
+    ]
+  },
+  {
+    "id": "Sylas",
+    "key": "517",
+    "name": "Sylas",
+    "nameVi": "Sylas",
+    "title": "Kẻ Phá Xiềng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sylas.png",
+    "tags": [
+      "Mage",
+      "Assassin"
+    ],
+    "roleNameVi": "Pháp Sư / Sát Thủ",
+    "aliases": [
+      "sylas",
+      "ke pha xieng",
+      "kephaxieng"
+    ]
+  },
+  {
+    "id": "Syndra",
+    "key": "134",
+    "name": "Syndra",
+    "nameVi": "Syndra",
+    "title": "Nữ Chúa Bóng Tối",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Syndra.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "syndra"
+    ]
+  },
+  {
+    "id": "TahmKench",
+    "key": "223",
+    "name": "Tahm Kench",
+    "nameVi": "Tahm Kench",
+    "title": "Thủy Quái Đại Vương",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/TahmKench.png",
+    "tags": [
+      "Tank",
+      "Support"
+    ],
+    "roleNameVi": "Đỡ Đòn / Hỗ Trợ",
+    "aliases": [
+      "tahmkench",
+      "tahm kench",
+      "tk",
+      "tahm",
+      "kench"
+    ]
+  },
+  {
+    "id": "Taliyah",
+    "key": "163",
+    "name": "Taliyah",
+    "nameVi": "Taliyah",
+    "title": "Phù Thủy Đá",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Taliyah.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "taliyah"
+    ]
+  },
+  {
+    "id": "Talon",
+    "key": "91",
+    "name": "Talon",
+    "nameVi": "Talon",
+    "title": "Sát Thủ Bóng Đêm",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Talon.png",
+    "tags": [
+      "Assassin"
+    ],
+    "roleNameVi": "Sát Thủ",
+    "aliases": [
+      "talon"
+    ]
+  },
+  {
+    "id": "Taric",
+    "key": "44",
+    "name": "Taric",
+    "nameVi": "Taric",
+    "title": "Tấm Khiên Valoran",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Taric.png",
+    "tags": [
+      "Support",
+      "Tank"
+    ],
+    "roleNameVi": "Hỗ Trợ / Đỡ Đòn",
+    "aliases": [
+      "taric"
+    ]
+  },
+  {
+    "id": "Teemo",
+    "key": "17",
+    "name": "Teemo",
+    "nameVi": "Teemo",
+    "title": "Trinh Sát Nhanh Nhẹn",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Teemo.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "teemo",
+      "trinh sat nhanh nhen",
+      "trinhsatnhanhnhen",
+      "nam"
+    ]
+  },
+  {
+    "id": "Thresh",
+    "key": "412",
+    "name": "Thresh",
+    "nameVi": "Thresh",
+    "title": "Cai Ngục Xiềng Xích",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Thresh.png",
+    "tags": [
+      "Support",
+      "Tank"
+    ],
+    "roleNameVi": "Hỗ Trợ / Đỡ Đòn",
+    "aliases": [
+      "thresh",
+      "cai nguc xieng xich",
+      "caingucxiengxich"
+    ]
+  },
+  {
+    "id": "Tristana",
+    "key": "18",
+    "name": "Tristana",
+    "nameVi": "Tristana",
+    "title": "Tay Súng Yordle",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Tristana.png",
+    "tags": [
+      "Marksman",
+      "Assassin"
+    ],
+    "roleNameVi": "Xạ Thủ / Sát Thủ",
+    "aliases": [
+      "tristana"
+    ]
+  },
+  {
+    "id": "Trundle",
+    "key": "48",
+    "name": "Trundle",
+    "nameVi": "Trundle",
+    "title": "Vua Quỉ Khổng Lồ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Trundle.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "trundle"
+    ]
+  },
+  {
+    "id": "Tryndamere",
+    "key": "23",
+    "name": "Tryndamere",
+    "nameVi": "Tryndamere",
+    "title": "Bá Vương Man Di",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Tryndamere.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "tryndamere"
+    ]
+  },
+  {
+    "id": "TwistedFate",
+    "key": "4",
+    "name": "Twisted Fate",
+    "nameVi": "Twisted Fate",
+    "title": "Thần Bài",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/TwistedFate.png",
+    "tags": [
+      "Mage",
+      "Marksman"
+    ],
+    "roleNameVi": "Pháp Sư / Xạ Thủ",
+    "aliases": [
+      "twistedfate",
+      "twisted fate",
+      "tf",
+      "than bai",
+      "thanbai"
+    ]
+  },
+  {
+    "id": "Twitch",
+    "key": "29",
+    "name": "Twitch",
+    "nameVi": "Twitch",
+    "title": "Chuột Thành Tinh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Twitch.png",
+    "tags": [
+      "Marksman",
+      "Assassin"
+    ],
+    "roleNameVi": "Xạ Thủ / Sát Thủ",
+    "aliases": [
+      "twitch"
+    ]
+  },
+  {
+    "id": "Udyr",
+    "key": "77",
+    "name": "Udyr",
+    "nameVi": "Udyr",
+    "title": "Lữ Khách Tinh Linh",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Udyr.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "udyr"
+    ]
+  },
+  {
+    "id": "Urgot",
+    "key": "6",
+    "name": "Urgot",
+    "nameVi": "Urgot",
+    "title": "Pháo Đài Di Động",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Urgot.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "urgot"
+    ]
+  },
+  {
+    "id": "Varus",
+    "key": "110",
+    "name": "Varus",
+    "nameVi": "Varus",
+    "title": "Mũi Tên Báo Thù",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Varus.png",
+    "tags": [
+      "Marksman",
+      "Mage"
+    ],
+    "roleNameVi": "Xạ Thủ / Pháp Sư",
+    "aliases": [
+      "varus"
+    ]
+  },
+  {
+    "id": "Vayne",
+    "key": "67",
+    "name": "Vayne",
+    "nameVi": "Vayne",
+    "title": "Thợ Săn Bóng Đêm",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Vayne.png",
+    "tags": [
+      "Marksman",
+      "Assassin"
+    ],
+    "roleNameVi": "Xạ Thủ / Sát Thủ",
+    "aliases": [
+      "vayne",
+      "tho san bong dem",
+      "thosanbongdem"
+    ]
+  },
+  {
+    "id": "Veigar",
+    "key": "45",
+    "name": "Veigar",
+    "nameVi": "Veigar",
+    "title": "Bậc Thầy Tiểu Quỷ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Veigar.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "veigar"
+    ]
+  },
+  {
+    "id": "Velkoz",
+    "key": "161",
+    "name": "Vel'Koz",
+    "nameVi": "Vel'Koz",
+    "title": "Con Mắt Hư Không",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Velkoz.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "velkoz",
+      "vel'koz",
+      "vel koz"
+    ]
+  },
+  {
+    "id": "Vex",
+    "key": "711",
+    "name": "Vex",
+    "nameVi": "Vex",
+    "title": "Pháp Sư Khó Chịu",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Vex.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "vex"
+    ]
+  },
+  {
+    "id": "Vi",
+    "key": "254",
+    "name": "Vi",
+    "nameVi": "Vi",
+    "title": "Cảnh Binh Piltover ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Vi.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "vi"
+    ]
+  },
+  {
+    "id": "Viego",
+    "key": "234",
+    "name": "Viego",
+    "nameVi": "Viego",
+    "title": "Hắc Diệt Đế Vương",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Viego.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "viego"
+    ]
+  },
+  {
+    "id": "Viktor",
+    "key": "112",
+    "name": "Viktor",
+    "nameVi": "Viktor",
+    "title": "Sứ Giả Máy Móc",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Viktor.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "viktor"
+    ]
+  },
+  {
+    "id": "Vladimir",
+    "key": "8",
+    "name": "Vladimir",
+    "nameVi": "Vladimir",
+    "title": "Thần Chết Đỏ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Vladimir.png",
+    "tags": [
+      "Mage",
+      "Fighter"
+    ],
+    "roleNameVi": "Pháp Sư / Đấu Sĩ",
+    "aliases": [
+      "vladimir"
+    ]
+  },
+  {
+    "id": "Volibear",
+    "key": "106",
+    "name": "Volibear",
+    "nameVi": "Volibear",
+    "title": "Bão Tố Cuồng Nộ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Volibear.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "volibear"
+    ]
+  },
+  {
+    "id": "Warwick",
+    "key": "19",
+    "name": "Warwick",
+    "nameVi": "Warwick",
+    "title": "Quái Thú Sổng Chuồng",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Warwick.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "warwick"
+    ]
+  },
+  {
+    "id": "MonkeyKing",
+    "key": "62",
+    "name": "Wukong",
+    "nameVi": "Ngộ Không",
+    "title": "Hầu Vương",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/MonkeyKing.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "monkeyking",
+      "wukong",
+      "ngộ không",
+      "ngo khong",
+      "ngộkhông",
+      "ngokhong",
+      "monkey king",
+      "hau vuong",
+      "hauvuong"
+    ]
+  },
+  {
+    "id": "Xayah",
+    "key": "498",
+    "name": "Xayah",
+    "nameVi": "Xayah",
+    "title": "Cô Nàng Nổi Loạn",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Xayah.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "xayah"
+    ]
+  },
+  {
+    "id": "Xerath",
+    "key": "101",
+    "name": "Xerath",
+    "nameVi": "Xerath",
+    "title": "Pháp Sư Thăng Hoa",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Xerath.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "xerath"
+    ]
+  },
+  {
+    "id": "XinZhao",
+    "key": "5",
+    "name": "Xin Zhao",
+    "nameVi": "Xin Zhao",
+    "title": " Tể Tướng Demacia",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/XinZhao.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "xinzhao",
+      "xin zhao",
+      "xin",
+      "te tuong demacia",
+      "tetuongdemacia"
+    ]
+  },
+  {
+    "id": "Yasuo",
+    "key": "157",
+    "name": "Yasuo",
+    "nameVi": "Yasuo",
+    "title": "Kẻ Bất Dung Thứ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Yasuo.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "yasuo",
+      "dang cap",
+      "dangcap",
+      "hasagi",
+      "ke bat dung thu",
+      "kebatdungthu"
+    ]
+  },
+  {
+    "id": "Yone",
+    "key": "777",
+    "name": "Yone",
+    "nameVi": "Yone",
+    "title": "Kẻ Về Từ Cõi Chết",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Yone.png",
+    "tags": [
+      "Fighter",
+      "Assassin"
+    ],
+    "roleNameVi": "Đấu Sĩ / Sát Thủ",
+    "aliases": [
+      "yone",
+      "ke ve tu coi chet",
+      "kevetucoichet"
+    ]
+  },
+  {
+    "id": "Yorick",
+    "key": "83",
+    "name": "Yorick",
+    "nameVi": "Yorick",
+    "title": "Kẻ Dẫn Dắt Linh Hồn",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Yorick.png",
+    "tags": [
+      "Fighter",
+      "Tank"
+    ],
+    "roleNameVi": "Đấu Sĩ / Đỡ Đòn",
+    "aliases": [
+      "yorick"
+    ]
+  },
+  {
+    "id": "Yuumi",
+    "key": "350",
+    "name": "Yuumi",
+    "nameVi": "Yuumi",
+    "title": "Cô Mèo Ma Thuật",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Yuumi.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "yuumi"
+    ]
+  },
+  {
+    "id": "Zac",
+    "key": "154",
+    "name": "Zac",
+    "nameVi": "Zac",
+    "title": "Vũ Khí Bí Mật",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Zac.png",
+    "tags": [
+      "Tank",
+      "Fighter"
+    ],
+    "roleNameVi": "Đỡ Đòn / Đấu Sĩ",
+    "aliases": [
+      "zac"
+    ]
+  },
+  {
+    "id": "Zed",
+    "key": "238",
+    "name": "Zed",
+    "nameVi": "Zed",
+    "title": "Chúa Tể Bóng Tối",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Zed.png",
+    "tags": [
+      "Assassin"
+    ],
+    "roleNameVi": "Sát Thủ",
+    "aliases": [
+      "zed",
+      "chua te bong toi",
+      "chuatebongtoi"
+    ]
+  },
+  {
+    "id": "Zeri",
+    "key": "221",
+    "name": "Zeri",
+    "nameVi": "Zeri",
+    "title": "Tia Chớp Thành Zaun",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Zeri.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "zeri"
+    ]
+  },
+  {
+    "id": "Ziggs",
+    "key": "115",
+    "name": "Ziggs",
+    "nameVi": "Ziggs",
+    "title": "Chuyên Gia Chất Nổ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ziggs.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "ziggs"
+    ]
+  },
+  {
+    "id": "Zilean",
+    "key": "26",
+    "name": "Zilean",
+    "nameVi": "Zilean",
+    "title": "Giám Hộ Thời Gian",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Zilean.png",
+    "tags": [
+      "Support",
+      "Mage"
+    ],
+    "roleNameVi": "Hỗ Trợ / Pháp Sư",
+    "aliases": [
+      "zilean"
+    ]
+  },
+  {
+    "id": "Zoe",
+    "key": "142",
+    "name": "Zoe",
+    "nameVi": "Zoe",
+    "title": "Bậc Thầy Biến Ảo",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Zoe.png",
+    "tags": [
+      "Mage"
+    ],
+    "roleNameVi": "Pháp Sư",
+    "aliases": [
+      "zoe"
+    ]
+  },
+  {
+    "id": "Zyra",
+    "key": "143",
+    "name": "Zyra",
+    "nameVi": "Zyra",
+    "title": "Gai Nổi Loạn",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Zyra.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "zyra"
+    ]
+  }
+]

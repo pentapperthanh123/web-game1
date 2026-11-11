@@ -61,7 +61,12 @@ let currentTiktokUsername = '';
 let connectionStatus: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR' = 'DISCONNECTED';
 let lastErrorMessage = '';
 
-function parseCommentCommand(comment: string, fallbackTeam?: 'BLG' | 'GENG'): { team?: 'BLG' | 'GENG'; champion?: string } {
+import { findChampion, getRandomChampion } from './constants/champions.js';
+
+function parseCommentCommand(
+  comment: string,
+  fallbackTeam?: 'BLG' | 'GENG'
+): { team?: 'BLG' | 'GENG'; champion?: string } {
   const upperComment = comment.toUpperCase();
   let team: 'BLG' | 'GENG' | undefined = undefined;
   if (upperComment.includes('BLG')) {
@@ -70,55 +75,24 @@ function parseCommentCommand(comment: string, fallbackTeam?: 'BLG' | 'GENG'): { 
     team = 'GENG';
   }
 
-  // Check player and champion keywords
-  const rosterBLG = ['BIN', 'XUN', 'WEI', 'KNIGHT', 'ELK', 'ON', 'JAX', 'XIN ZHAO', 'XINZHAO', 'RAKAN', "KAI'SA", 'KAISA'];
-  const rosterGEN = ['KIIN', 'CANYON', 'CHOVY', 'RULER', 'DURO', 'PEYZ', 'LEHENDS', 'YONE', 'NIDALEE', 'EZREAL', 'NAUTILUS', 'LEONA', "K'SANTE", 'KSANTE'];
-  const generalChamps = ['ZED', 'YASUO', 'LUX', 'AHRI', 'LEE SIN', 'LEESIN', 'AATROX', 'FAKER', 'KALISTA', 'AZIR', 'AKALI'];
-
   let detectedChampion: string | undefined = undefined;
 
-  // Check BLG roster
-  for (const p of rosterBLG) {
-    if (upperComment.includes(p)) {
-      detectedChampion = p;
-      if (!team) team = 'BLG';
-      break;
+  // 1. Check for random summon command
+  if (
+    upperComment.includes('RANDOM') ||
+    upperComment.includes('NGAU NHIEN') ||
+    upperComment.includes('NGAUNHIEN')
+  ) {
+    const randomChamp = getRandomChampion();
+    detectedChampion = randomChamp.name;
+    if (!team) {
+      team = Math.random() < 0.5 ? 'BLG' : 'GENG';
     }
-  }
-
-  // Check Gen.G roster
-  if (!detectedChampion) {
-    for (const p of rosterGEN) {
-      if (upperComment.includes(p)) {
-        detectedChampion = p;
-        if (!team) team = 'GENG';
-        break;
-      }
-    }
-  }
-
-  // Check general champions
-  if (!detectedChampion) {
-    for (const champ of generalChamps) {
-      if (upperComment.includes(champ)) {
-        detectedChampion = champ;
-        break;
-      }
-    }
-  }
-
-  // Check random summon command (e.g. 'random blg', 'ngau nhien')
-  if (!detectedChampion) {
-    if (
-      upperComment.includes('RANDOM') ||
-      upperComment.includes('NGAU NHIEN') ||
-      upperComment.includes('NGAUNHIEN')
-    ) {
-      const pool = [...rosterBLG, ...rosterGEN, ...generalChamps];
-      detectedChampion = pool[Math.floor(Math.random() * pool.length)];
-      if (!team) {
-        team = Math.random() < 0.5 ? 'BLG' : 'GENG';
-      }
+  } else {
+    // 2. Intelligent resolution against all 169 official LoL champions
+    const matched = findChampion(comment);
+    if (matched) {
+      detectedChampion = matched.name;
     }
   }
 

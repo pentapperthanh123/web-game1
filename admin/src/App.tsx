@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Radio,
   Heart,
@@ -17,39 +17,17 @@ import {
   Send,
   Zap,
   MapPin,
+  Search,
 } from 'lucide-react';
 import { adminSocket } from './services/socket';
 import { BLGLogo, GenGLogo } from './components/TeamLogos';
 import { OverlayControls } from './components/OverlayControls';
 import { BossSkillControls } from './components/BossSkillControls';
+import { ALL_CHAMPIONS, findChampion, getRandomChampion, normalizeQuery } from './constants/champions';
 
 const ADMIN_APP_TITLE = 'LOL CKTG';
 
-const RANDOM_CHAMPION_LIST = [
-  'Jax',
-  'Xin Zhao',
-  'Ahri',
-  "Kai'Sa",
-  'Rakan',
-  "K'Sante",
-  'Nidalee',
-  'Yone',
-  'Ezreal',
-  'Nautilus',
-  'Zed',
-  'Yasuo',
-  'Lee Sin',
-  'Aatrox',
-  'Lux',
-  'Akali',
-  'Sylas',
-  'Vayne',
-  'Jinx',
-  'Orianna',
-  'Azir',
-  'Irelia',
-  'Caitlyn',
-];
+const RANDOM_CHAMPION_LIST = ALL_CHAMPIONS.map((c) => c.name);
 
 const RANDOM_SPECTATOR_NAMES = [
   'Gamer_Pro_99',
@@ -67,28 +45,6 @@ const RANDOM_SPECTATOR_NAMES = [
   'Top1_ThachDau',
   'HuyHuyenThoai',
   'ThanhLong_CKTG',
-];
-
-const CHAMPION_PRESETS = [
-  { name: '🎲 Ngẫu Nhiên (Random)', role: 'Tự Động Chọn Mỗi Lượt' },
-  { name: 'Jax', role: 'Đấu Sĩ / Bậc Thầy Vũ Khí' },
-  { name: 'Xin Zhao', role: 'Đấu Sĩ / Tể Tướng Demacia' },
-  { name: 'Ahri', role: 'Pháp Sư / Hồ Ly Chín Đuôi' },
-  { name: "Kai'Sa", role: 'Xạ Thủ / Ái Nữ Hư Không' },
-  { name: 'Rakan', role: 'Hỗ Trợ / Vũ Sư Quyến Rũ' },
-  { name: "K'Sante", role: 'Đỡ Đòn / Niềm Tự Hào Nazumah' },
-  { name: 'Nidalee', role: 'Sát Thủ / Nữ Thợ Săn Hóa Thú' },
-  { name: 'Yone', role: 'Sát Thủ / Kẻ Về Từ Cõi Chết' },
-  { name: 'Ezreal', role: 'Xạ Thủ / Nhà Thám Hiểm' },
-  { name: 'Nautilus', role: 'Đỡ Đòn / Khổng Lồ Đáy Sâu' },
-  { name: 'Zed', role: 'Sát Thủ / Chúa Tể Bóng Tối' },
-  { name: 'Yasuo', role: 'Đấu Sĩ / Kẻ Bất Dung Thứ' },
-  { name: 'Lee Sin', role: 'Đi Rừng / Thầy Tu Mù' },
-  { name: 'Aatrox', role: 'Đấu Sĩ / Quỷ Kiếm Darkin' },
-  { name: 'Lux', role: 'Pháp Sư / Tiểu Thư Ánh Sáng' },
-  { name: 'Akali', role: 'Sát Thủ / Sát Thủ Đơn Độc' },
-  { name: 'Sylas', role: 'Đấu Sĩ / Kẻ Phá Xiềng' },
-  { name: 'Vayne', role: 'Xạ Thủ / Thợ Săn Bóng Đêm' },
 ];
 
 const GIFT_PRESETS = [
@@ -124,98 +80,25 @@ export const detectSummonCommand = (
     team = 'GENG';
   }
 
-  const rosterBLG = ['BIN', 'XUN', 'WEI', 'KNIGHT', 'ELK', 'ON', 'JAX', 'XIN ZHAO', 'XINZHAO', 'RAKAN', "KAI'SA", 'KAISA'];
-  const rosterGEN = ['KIIN', 'CANYON', 'CHOVY', 'RULER', 'DURO', 'PEYZ', 'LEHENDS', 'YONE', 'NIDALEE', 'EZREAL', 'NAUTILUS', 'LEONA', "K'SANTE", 'KSANTE'];
-  const generalChamps = ['ZED', 'YASUO', 'LUX', 'AHRI', 'LEE SIN', 'LEESIN', 'AATROX', 'FAKER', 'KALISTA', 'AZIR', 'AKALI'];
-
-  const canonicalNames: Record<string, string> = {
-    'BIN': 'Bin',
-    'XUN': 'Xun',
-    'WEI': 'Wei',
-    'KNIGHT': 'Knight',
-    'ELK': 'Elk',
-    'ON': 'ON',
-    'JAX': 'Jax',
-    'XIN ZHAO': 'Xin Zhao',
-    'XINZHAO': 'Xin Zhao',
-    'RAKAN': 'Rakan',
-    "KAI'SA": "Kai'Sa",
-    'KAISA': "Kai'Sa",
-    'KIIN': 'Kiin',
-    'CANYON': 'Canyon',
-    'CHOVY': 'Chovy',
-    'RULER': 'Ruler',
-    'DURO': 'Duro',
-    'PEYZ': 'Peyz',
-    'LEHENDS': 'Lehends',
-    'YONE': 'Yone',
-    'NIDALEE': 'Nidalee',
-    'EZREAL': 'Ezreal',
-    'NAUTILUS': 'Nautilus',
-    'LEONA': 'Leona',
-    "K'SANTE": "K'Sante",
-    'KSANTE': "K'Sante",
-    'ZED': 'Zed',
-    'YASUO': 'Yasuo',
-    'LUX': 'Lux',
-    'AHRI': 'Ahri',
-    'LEE SIN': 'Lee Sin',
-    'LEESIN': 'Lee Sin',
-    'AATROX': 'Aatrox',
-    'FAKER': 'Faker',
-    'KALISTA': 'Kalista',
-    'AZIR': 'Azir',
-    'AKALI': 'Akali',
-  };
-
-  let detectedChampion: string | undefined = undefined;
-
-  // 1. Check BLG specific
-  for (const name of rosterBLG) {
-    if (upper.includes(name)) {
-      detectedChampion = canonicalNames[name] || name;
-      if (!team) team = 'BLG';
-      break;
-    }
+  // 1. Check random summon commands
+  if (
+    upper.includes('RANDOM') ||
+    upper.includes('NGAU NHIEN') ||
+    upper.includes('NGAUNHIEN')
+  ) {
+    const randomChamp = getRandomChampion();
+    return {
+      championName: randomChamp.name,
+      team: team || (Math.random() < 0.5 ? 'BLG' : 'GENG'),
+    };
   }
 
-  // 2. Check GEN specific
-  if (!detectedChampion) {
-    for (const name of rosterGEN) {
-      if (upper.includes(name)) {
-        detectedChampion = canonicalNames[name] || name;
-        if (!team) team = 'GENG';
-        break;
-      }
-    }
-  }
-
-  // 3. Check general champions
-  if (!detectedChampion) {
-    for (const name of generalChamps) {
-      if (upper.includes(name)) {
-        detectedChampion = canonicalNames[name] || name;
-        break;
-      }
-    }
-  }
-
-  // 4. Check random commands
-  if (!detectedChampion) {
-    if (
-      upper.includes('RANDOM') ||
-      upper.includes('NGAU NHIEN') ||
-      upper.includes('NGAUNHIEN')
-    ) {
-      const pool = ['Bin', 'Knight', 'Chovy', 'Ruler', 'Zed', 'Yasuo', 'Lux', 'Ahri', 'Jax', 'Yone', 'Faker', 'Aatrox'];
-      detectedChampion = pool[Math.floor(Math.random() * pool.length)];
-    }
-  }
-
-  if (!detectedChampion) return null;
+  // 2. Intelligent resolution against all 169 official champions
+  const matched = findChampion(text);
+  if (!matched) return null;
 
   return {
-    championName: detectedChampion,
+    championName: matched.name,
     team: team || defaultTeam,
   };
 };
@@ -256,6 +139,27 @@ export function App() {
   const [botSpeed, setBotSpeed] = useState(1200);
   const [bo5Score, setBo5Score] = useState({ BLG: 0, GENG: 0 });
   const [currentRound, setCurrentRound] = useState(1);
+
+  const [championSearchFilter, setChampionSearchFilter] = useState('');
+  const [selectedTagFilter, setSelectedTagFilter] = useState<
+    'ALL' | 'Fighter' | 'Mage' | 'Assassin' | 'Marksman' | 'Tank' | 'Support'
+  >('ALL');
+
+  const filteredChampions = useMemo(() => {
+    let list = ALL_CHAMPIONS;
+    if (selectedTagFilter !== 'ALL') {
+      list = list.filter((c) => c.tags.includes(selectedTagFilter));
+    }
+    if (!championSearchFilter.trim()) return list;
+    const q = normalizeQuery(championSearchFilter);
+    return list.filter(
+      (c) =>
+        normalizeQuery(c.name).includes(q) ||
+        normalizeQuery(c.nameVi).includes(q) ||
+        normalizeQuery(c.roleNameVi).includes(q) ||
+        c.aliases.some((a) => a.includes(q))
+    );
+  }, [championSearchFilter, selectedTagFilter]);
 
   const [logs, setLogs] = useState<LogItem[]>([]);
 
@@ -354,7 +258,7 @@ export function App() {
     if (!isBotActive) return;
 
     const interval = setInterval(() => {
-      const champ = CHAMPION_PRESETS[Math.floor(Math.random() * CHAMPION_PRESETS.length)];
+      const champ = getRandomChampion();
       const team = Math.random() > 0.5 ? 'BLG' : 'GENG';
       const user = `Viewer_${Math.floor(Math.random() * 899) + 100}`;
 
@@ -856,24 +760,85 @@ export function App() {
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-400 block mb-1">
-                  Chọn Tướng Triệu Hồi LMHT ({CHAMPION_PRESETS.length} Tướng)
-                </label>
-                <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
-                  {CHAMPION_PRESETS.map((c) => (
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-semibold text-slate-400">
+                    Kho Tướng LMHT ({filteredChampions.length}/{ALL_CHAMPIONS.length})
+                  </label>
+                  <span className="text-[9px] font-mono text-cyan-400">
+                    Đã chọn: <strong className="text-white">{selectedChampion}</strong>
+                  </span>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative mb-1.5">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={championSearchFilter}
+                    onChange={(e) => setChampionSearchFilter(e.target.value)}
+                    placeholder="Tìm trong 169 tướng (VD: Lee Sin, Ahri, Yasuo, Briar...)"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                {/* Role Filter Pills */}
+                <div className="flex space-x-1 mb-1.5 overflow-x-auto pb-0.5 text-[9px] font-bold">
+                  {[
+                    { key: 'ALL', label: 'Tất cả (169)' },
+                    { key: 'Fighter', label: 'Đấu Sĩ' },
+                    { key: 'Mage', label: 'Pháp Sư' },
+                    { key: 'Assassin', label: 'Sát Thủ' },
+                    { key: 'Marksman', label: 'Xạ Thủ' },
+                    { key: 'Tank', label: 'Đỡ Đòn' },
+                    { key: 'Support', label: 'Hỗ Trợ' },
+                  ].map((tab) => (
                     <button
-                      key={c.name}
+                      key={tab.key}
                       type="button"
-                      onClick={() => setSelectedChampion(c.name)}
-                      className={`p-1.5 rounded text-left text-[11px] border ${
-                        selectedChampion === c.name
-                          ? 'bg-slate-800 border-cyan-400 text-white font-bold'
-                          : 'bg-slate-950 border-slate-800 text-slate-300'
+                      onClick={() => setSelectedTagFilter(tab.key as any)}
+                      className={`px-1.5 py-0.5 rounded transition whitespace-nowrap ${
+                        selectedTagFilter === tab.key
+                          ? 'bg-cyan-500 text-slate-950 shadow'
+                          : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
-                      <div>{c.name}</div>
+                      {tab.label}
                     </button>
                   ))}
+                </div>
+
+                {/* 169 Champions Grid */}
+                <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
+                  {filteredChampions.map((c) => {
+                    const isSelected = selectedChampion.toLowerCase() === c.name.toLowerCase();
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedChampion(c.name)}
+                        className={`p-1.5 rounded-lg text-left text-[11px] border flex items-center space-x-2 transition ${
+                          isSelected
+                            ? 'bg-cyan-950/90 border-cyan-400 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+                            : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                        }`}
+                      >
+                        <img
+                          src={c.avatarUrl}
+                          alt={c.name}
+                          className="w-6 h-6 rounded-md object-cover border border-slate-700 shrink-0"
+                          loading="lazy"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-extrabold text-white truncate text-[11px] leading-tight">
+                            {c.name}
+                          </div>
+                          <div className="text-[8px] text-slate-400 truncate leading-none">
+                            {c.roleNameVi}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
