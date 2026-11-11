@@ -1225,8 +1225,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     const skill = skills[nextIndex];
-    const damageMultiplier = state.bossSkillConfig.damageMultiplier || 1.0;
-    const actualDamage = Math.max(1, Math.round(skill.baseDamage * damageMultiplier));
+    const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
+    const baseMultiplier = state.bossSkillConfig.damageMultiplier || 1.0;
+    const rageBoost = isEnraged ? BOSS_ENRAGED_CONSTANTS.DAMAGE_BOOST_MULTIPLIER : 1.0;
+    const actualDamage = Math.max(1, Math.round(skill.baseDamage * baseMultiplier * rageBoost));
     const now = Date.now();
     const isElderDragon = state.gameTheme === GAME_THEME.ELDER_DRAGON;
     const bossName = isElderDragon ? 'Rồng Ngàn Tuổi' : 'Baron Nashor';

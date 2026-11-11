@@ -10,6 +10,7 @@ import {
   APP_TITLE,
   TEAM_KEY,
   AUTO_PRO_BATTLE_CONSTANTS,
+  BOSS_ENRAGED_CONSTANTS,
 } from './constants/game';
 import { TEAM_ROSTERS } from './constants/roster';
 import './services/socket'; // Auto-connects to Socket.io backend on port 4000
@@ -29,6 +30,7 @@ export function App() {
 
   const nextFireAtRef = useRef<Record<string, number>>({});
   const isBossDefeated = bossStatus === BOSS_STATUS.DEFEATED;
+  const isBossEnraged = bossStatus === BOSS_STATUS.ENRAGED;
 
   // Enforce document title to strictly match user branding
   useEffect(() => {
@@ -39,15 +41,19 @@ export function App() {
   useEffect(() => {
     if (isBossDefeated) return;
 
+    const retaliationInterval = isBossEnraged
+      ? BOSS_ENRAGED_CONSTANTS.RETALIATION_INTERVAL_MS
+      : BOSS_ENRAGED_CONSTANTS.NORMAL_RETALIATION_INTERVAL_MS;
+
     const interval = setInterval(() => {
       const state = useGameStore.getState();
       if (state.bossStatus !== BOSS_STATUS.DEFEATED && state.minions.length > 0) {
         state.triggerBossAttack();
       }
-    }, 7500);
+    }, retaliationInterval);
 
     return () => clearInterval(interval);
-  }, [isBossDefeated]);
+  }, [isBossDefeated, isBossEnraged]);
 
   // Periodic Boss Counterattack Loop with 4 Configurable Skills targeting Champions
   useEffect(() => {
@@ -58,15 +64,21 @@ export function App() {
     let timerId: ReturnType<typeof setTimeout>;
 
     const runAttackCycle = () => {
-      const baseInterval = bossSkillConfig.intervalMs || 4000;
+      const state = useGameStore.getState();
+      const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
+      // When enraged: attacks occur ~1.54x faster (interval multiplied by 0.65)
+      const speedMultiplier = isEnraged
+        ? BOSS_ENRAGED_CONSTANTS.ATTACK_INTERVAL_MULTIPLIER
+        : 1.0;
+      const baseInterval = (bossSkillConfig.intervalMs || 4000) * speedMultiplier;
       const nextDelay = bossSkillConfig.randomIntervalEnabled
         ? Math.round(baseInterval * (0.7 + Math.random() * 0.6))
-        : baseInterval;
+        : Math.round(baseInterval);
 
       timerId = setTimeout(() => {
-        const state = useGameStore.getState();
-        if (state.bossStatus !== BOSS_STATUS.DEFEATED && state.minions.length > 0) {
-          state.castBossSkill();
+        const latestState = useGameStore.getState();
+        if (latestState.bossStatus !== BOSS_STATUS.DEFEATED && latestState.minions.length > 0) {
+          latestState.castBossSkill();
         }
         runAttackCycle();
       }, nextDelay);
@@ -77,6 +89,7 @@ export function App() {
     return () => clearTimeout(timerId);
   }, [
     isBossDefeated,
+    isBossEnraged,
     bossSkillConfig.autoAttackEnabled,
     bossSkillConfig.intervalMs,
     bossSkillConfig.randomIntervalEnabled,

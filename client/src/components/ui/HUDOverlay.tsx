@@ -16,12 +16,15 @@ import { TeamRosterBar } from './TeamRosterBar';
 import { SummonShowcase } from './SummonShowcase';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
+import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
+import { GAME_THEME } from '../../constants/game';
 
 export const HUDOverlay = () => {
   const { t } = useTranslation();
   const overlayVisibility = useGameStore((state) => state.overlayVisibility);
   const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
   const setAutoProBattleConfig = useGameStore((state) => state.setAutoProBattleConfig);
+  const gameTheme = useGameStore((state) => state.gameTheme);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
 
   const toggleAudio = () => {
@@ -47,6 +50,7 @@ export const HUDOverlay = () => {
 
       {/* Unified Non-Overlapping Center Toast Stack */}
       <div className="absolute top-[164px] sm:top-[176px] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-40 pointer-events-none flex flex-col items-center gap-1.5">
+        <BossEnragedEntranceBanner isElderDragon={gameTheme === GAME_THEME.ELDER_DRAGON} />
         <GiftBanner />
         <HeartMilestoneBanner />
       </div>

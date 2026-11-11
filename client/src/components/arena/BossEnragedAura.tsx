@@ -72,3 +72,4 @@ export const BossEnragedAura: React.FC<BossEnragedAuraProps> = React.memo(
 );
 
 BossEnragedAura.displayName = 'BossEnragedAura';
+

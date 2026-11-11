@@ -22,7 +22,6 @@ import { BossGlowingEyes } from './BossGlowingEyes';
 import { WingGustVFX } from './WingGustVFX';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossEnragedAura } from './BossEnragedAura';
-import { BossEnragedEntranceBanner } from './BossEnragedEntranceBanner';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { audioService } from '../../services/audioService';
 
@@ -178,6 +177,8 @@ export const Boss2D = () => {
 
   const themeConfig = THEME_CONFIGS[gameTheme] || THEME_CONFIGS[GAME_THEME.BARON];
   const isElderDragon = gameTheme === GAME_THEME.ELDER_DRAGON;
+  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED;
+  const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
 
   // Combat Animation States
   const [isHitActive, setIsHitActive] = useState(false);
@@ -223,21 +224,22 @@ export const Boss2D = () => {
     return () => clearTimeout(timer);
   }, [bossHitTimestamp, lastHitDamageType]);
 
-  // Dynamic attack animation timer
+  // Dynamic attack animation timer (faster recovery when enraged)
   useEffect(() => {
     if (bossAttackTimestamp === 0) return;
 
     setIsRoarActive(true);
-    const duration = activeBossSkillBanner?.isUltimate
+    const baseDuration = activeBossSkillBanner?.isUltimate
       ? BOSS_ANIMATION_CONSTANTS.ULTIMATE_ATTACK_DURATION_MS
       : BOSS_ANIMATION_CONSTANTS.ATTACK_DURATION_MS;
+    const duration = isEnraged ? Math.round(baseDuration * 0.7) : baseDuration;
 
     const timer = setTimeout(() => {
       setIsRoarActive(false);
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [bossAttackTimestamp, activeBossSkillBanner?.isUltimate]);
+  }, [bossAttackTimestamp, activeBossSkillBanner?.isUltimate, isEnraged]);
 
   // Periodic Ambient Idle Lifecycle Loop with non-repeating speech queue and cooldown
   useEffect(() => {
@@ -340,8 +342,6 @@ export const Boss2D = () => {
     }, BOSS_IDLE_CONSTANTS.SPEECH_BUBBLE_DURATION_MS);
   }, [bossStatus, bossHp, isElderDragon, gameTheme, spawnParticleBurst]);
 
-  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED;
-  const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
   const isUltimateAttack = activeBossSkillBanner?.isUltimate ?? false;
 
   const animationClass = getAnimationClass(
@@ -383,7 +383,7 @@ export const Boss2D = () => {
     <div
       className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none z-10 flex items-center justify-center`}
     >
-      {/* 1. Skill Combat Alert Banner & Enraged Warning Banner */}
+      {/* 1. Skill Combat Alert Banner */}
       <BossAlertBanner
         isRoarActive={isRoarActive}
         isElderDragon={isElderDragon}
@@ -391,7 +391,6 @@ export const Boss2D = () => {
         gameTheme={gameTheme}
         defaultRoarTextVi={themeConfig.roarTextVi}
       />
-      <BossEnragedEntranceBanner isElderDragon={isElderDragon} />
 
       {/* 2. Living Elemental Portal Aura Glow */}
       <div

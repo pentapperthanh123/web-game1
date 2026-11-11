@@ -946,33 +946,7 @@
   animation: enragedEyeBlaze 0.65s ease-in-out infinite;
 }
 
-/* 4. Enraged Cinematic Warning Banner Slam */
-@keyframes rageEntranceBanner {
-  0% {
-    transform: translate(-50%, -40px) scale(0.6);
-    opacity: 0;
-  }
-  15% {
-    transform: translate(-50%, 4px) scale(1.1);
-    opacity: 1;
-  }
-  25% {
-    transform: translate(-50%, 0) scale(1);
-    opacity: 1;
-  }
-  85% {
-    transform: translate(-50%, 0) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-50%, -20px) scale(0.9);
-    opacity: 0;
-  }
-}
 
-.animate-rage-entrance-banner {
-  animation: rageEntranceBanner 3.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
 
 /* 5. Molten Lava Health Bar Flow */
 @keyframes lavaFlowShimmer {
