@@ -2,63 +2,114 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
+import { COMBAT_VFX_CONSTANTS } from '../../constants/game';
 
-const dummyProj = new THREE.Object3D();
+const dummyCore = new THREE.Object3D();
+const dummyAura = new THREE.Object3D();
+const lookTarget = new THREE.Vector3();
+const tempColor = new THREE.Color();
+
+const computeArcPoint = (
+  start: number,
+  target: number,
+  easedT: number
+): number => THREE.MathUtils.lerp(start, target, easedT);
 
 export const ProjectilesBeam = () => {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const coreMeshRef = useRef<THREE.InstancedMesh>(null);
+  const auraMeshRef = useRef<THREE.InstancedMesh>(null);
   const activeProjectiles = useGameStore((state) => state.activeProjectiles);
 
   useFrame(() => {
-    if (!meshRef.current) return;
+    const coreMesh = coreMeshRef.current;
+    const auraMesh = auraMeshRef.current;
+    if (!coreMesh || !auraMesh) return;
 
-    const count = activeProjectiles.length;
-    meshRef.current.count = count;
+    const now = Date.now();
+    const duration = COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_DURATION_MS;
+    const count = Math.min(activeProjectiles.length, COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_MAX_ACTIVE);
+    coreMesh.count = count;
+    auraMesh.count = count;
 
     for (let i = 0; i < count; i++) {
       const proj = activeProjectiles[i];
-      const elapsed = Date.now() - proj.createdAt;
-      const duration = 480;
-      const progress = Math.min(1.0, elapsed / duration);
+      const elapsed = now - proj.createdAt;
+      const rawProgress = Math.min(1.0, elapsed / duration);
 
-      if (progress >= 1.0) {
-        dummyProj.scale.set(0, 0, 0);
-        dummyProj.updateMatrix();
-        meshRef.current.setMatrixAt(i, dummyProj.matrix);
+      if (rawProgress >= 1.0) {
+        dummyCore.scale.set(0, 0, 0);
+        dummyCore.updateMatrix();
+        coreMesh.setMatrixAt(i, dummyCore.matrix);
+
+        dummyAura.scale.set(0, 0, 0);
+        dummyAura.updateMatrix();
+        auraMesh.setMatrixAt(i, dummyAura.matrix);
         continue;
       }
 
-      // Smooth flight from team wings to Baron center (0, 0.45, 0)
-      const currentX = THREE.MathUtils.lerp(proj.startX, 0, progress);
-      const currentY = THREE.MathUtils.lerp(proj.startY, 0.45, progress);
-      const currentZ = THREE.MathUtils.lerp(proj.startZ, 0, progress);
+      const eased = 0.25 * rawProgress + 0.75 * (rawProgress * rawProgress);
+      const nextEased = Math.min(1.0, eased + 0.06);
 
-      dummyProj.position.set(currentX, currentY, currentZ);
-      dummyProj.lookAt(0, 0.45, 0);
+      const x = computeArcPoint(proj.startX, proj.targetX, eased);
+      const y =
+        computeArcPoint(proj.startY, proj.targetY, eased) +
+        Math.sin(eased * Math.PI) * proj.arcHeight;
+      const z = computeArcPoint(proj.startZ, proj.targetZ, eased);
 
-      // Elongated high-speed energy bolt
-      const scaleZ = 2.4 * (1 - progress * 0.3);
-      dummyProj.scale.set(0.18, 0.18, scaleZ);
+      const nextX = computeArcPoint(proj.startX, proj.targetX, nextEased);
+      const nextY =
+        computeArcPoint(proj.startY, proj.targetY, nextEased) +
+        Math.sin(nextEased * Math.PI) * proj.arcHeight;
+      const nextZ = computeArcPoint(proj.startZ, proj.targetZ, nextEased);
 
-      dummyProj.updateMatrix();
-      meshRef.current.setMatrixAt(i, dummyProj.matrix);
-      meshRef.current.setColorAt(i, new THREE.Color(proj.color));
+      lookTarget.set(nextX, nextY, nextZ);
+
+      const widthMult = proj.isCrit ? 1.55 : 1.0;
+      const lengthScale = (2.1 + rawProgress * 1.35) * (proj.isCrit ? 1.25 : 1.0);
+
+      dummyCore.position.set(x, y, z);
+      dummyCore.lookAt(lookTarget);
+      dummyCore.rotateX(Math.PI / 2);
+      dummyCore.scale.set(0.11 * widthMult, lengthScale, 0.11 * widthMult);
+      dummyCore.updateMatrix();
+      coreMesh.setMatrixAt(i, dummyCore.matrix);
+
+      dummyAura.position.set(x, y, z);
+      dummyAura.lookAt(lookTarget);
+      dummyAura.rotateX(Math.PI / 2);
+      dummyAura.scale.set(0.28 * widthMult, lengthScale * 1.28, 0.28 * widthMult);
+      dummyAura.updateMatrix();
+      auraMesh.setMatrixAt(i, dummyAura.matrix);
+
+      tempColor.set(proj.color);
+      auraMesh.setColorAt(i, tempColor);
     }
 
-    meshRef.current.instanceMatrix.needsUpdate = true;
-    if (meshRef.current.instanceColor) {
-      meshRef.current.instanceColor.needsUpdate = true;
+    coreMesh.instanceMatrix.needsUpdate = true;
+    auraMesh.instanceMatrix.needsUpdate = true;
+    if (auraMesh.instanceColor) {
+      auraMesh.instanceColor.needsUpdate = true;
     }
   });
 
+  const maxInstances = COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_MAX_ACTIVE;
+
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[undefined, undefined, 50]}
-      frustumCulled={false}
-    >
-      <cylinderGeometry args={[0.07, 0.14, 1.8, 6]} />
-      <meshBasicMaterial toneMapped={false} />
-    </instancedMesh>
+    <group>
+      <instancedMesh ref={coreMeshRef} args={[undefined, undefined, maxInstances]} frustumCulled={false}>
+        <cylinderGeometry args={[0.04, 0.11, 1.4, 6]} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={auraMeshRef} args={[undefined, undefined, maxInstances]} frustumCulled={false}>
+        <cylinderGeometry args={[0.06, 0.18, 1.6, 6]} />
+        <meshBasicMaterial
+          transparent
+          opacity={0.72}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </instancedMesh>
+    </group>
   );
 };

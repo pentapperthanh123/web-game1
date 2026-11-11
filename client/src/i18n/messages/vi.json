@@ -36,6 +36,13 @@
     "resetBoss": "Hồi sinh Boss",
     "minimize": "Thu gọn bảng test",
     "expand": "Mở bảng test"
+  },
+  "Combat": {
+    "critTag": "BẠO KÍCH!",
+    "ultimateTag": "TUYỆT KỸ!",
+    "comboLabel": "COMBO",
+    "summonTag": "TRIỆU HỒI",
+    "activeSquad": "ĐANG THAM CHIẾN"
   }
 }
 

@@ -36,6 +36,13 @@
     "resetBoss": "Respawn Boss",
     "minimize": "Minimize test panel",
     "expand": "Open test panel"
+  },
+  "Combat": {
+    "critTag": "CRIT!",
+    "ultimateTag": "ULTIMATE!",
+    "comboLabel": "COMBO",
+    "summonTag": "SUMMON",
+    "activeSquad": "ACTIVE SQUAD"
   }
 }
 

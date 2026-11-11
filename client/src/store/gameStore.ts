@@ -13,10 +13,67 @@ import {
   ShockwaveEntity,
   MeteorEntity,
   SlashEntity,
+  SummonPortalEntity,
+  HitImpactEntity,
 } from '../types/game';
-import { GAME_CONSTANTS, TEAM_KEY, BOSS_STATUS, TeamType, BossStatusType } from '../constants/game';
+import {
+  GAME_CONSTANTS,
+  TEAM_KEY,
+  BOSS_STATUS,
+  DAMAGE_TYPE,
+  COMBAT_VFX_CONSTANTS,
+  TeamType,
+  BossStatusType,
+  DamageType,
+} from '../constants/game';
+import { getChampionAvatarUrl } from '../constants/roster';
 import { gameBus } from '../services/eventBus';
 import { audioService } from '../services/audioService';
+
+const randomInRange = (min: number, max: number): number =>
+  min + Math.random() * (max - min);
+
+const createWingSpawnPosition = (team: TeamType): [number, number, number] => {
+  const bounds = COMBAT_VFX_CONSTANTS.WING_BOUNDS[team];
+  return [
+    randomInRange(bounds.minX, bounds.maxX),
+    randomInRange(bounds.minY, bounds.maxY),
+    randomInRange(bounds.minZ, bounds.maxZ),
+  ];
+};
+
+const updateLeaderboardList = (
+  leaderboard: DPSPlayer[],
+  playerName: string,
+  team: TeamType,
+  amount: number
+): DPSPlayer[] => {
+  const existingIndex = leaderboard.findIndex((p) => p.userName === playerName);
+  const nextList =
+    existingIndex >= 0
+      ? leaderboard.map((player, index) =>
+          index === existingIndex ? { ...player, totalDamage: player.totalDamage + amount } : player
+        )
+      : [
+          ...leaderboard,
+          {
+            id: `player-${Date.now()}-${Math.random()}`,
+            userName: playerName,
+            team,
+            totalDamage: amount,
+          },
+        ];
+
+  return [...nextList]
+    .sort((a, b) => b.totalDamage - a.totalDamage)
+    .slice(0, GAME_CONSTANTS.LEADERBOARD.MAX_DISPLAY);
+};
+
+const DAMAGE_INTENSITY_MAP: Record<DamageType, number> = {
+  [DAMAGE_TYPE.NORMAL]: COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_NORMAL,
+  [DAMAGE_TYPE.CRIT]: COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_CRIT,
+  [DAMAGE_TYPE.ULTIMATE]: COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE,
+};
 
 const INITIAL_STATE = {
   bossHp: GAME_CONSTANTS.BOSS.INITIAL_HP,
@@ -40,8 +97,14 @@ const INITIAL_STATE = {
   activeShockwaves: [] as ShockwaveEntity[],
   activeMeteors: [] as MeteorEntity[],
   activeSlashes: [] as SlashEntity[],
+  activeSummonPortals: [] as SummonPortalEntity[],
+  activeHitImpacts: [] as HitImpactEntity[],
   activeGiftBanner: null as GiftAnnouncement | null,
   floatingDamages: [] as FloatingDamageText[],
+  comboCount: 0,
+  comboDamage: 0,
+  comboTeam: null as TeamType | null,
+  lastComboTimestamp: 0,
   chatMessages: [] as LiveChatMessage[],
   eventLogs: [] as AdminEventLog[],
   isSimulationActive: false,
@@ -126,17 +189,39 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
   },
 
-  spawnSlash: (position: [number, number, number], color: string) => {
+  spawnParticleBurst: (origin: [number, number, number], color: string, intensity: number) => {
+    const newBurst: ParticleBurst = {
+      id: `burst-${Date.now()}-${Math.random()}`,
+      timestamp: Date.now(),
+      origin,
+      color,
+      intensity,
+    };
+    set((state) => ({
+      activeBursts: [
+        ...state.activeBursts.slice(-(COMBAT_VFX_CONSTANTS.PARTICLES.MAX_BURST_QUEUE - 1)),
+        newBurst,
+      ],
+    }));
+  },
+
+  spawnSlash: (position: [number, number, number], color: string, isCrit = false) => {
     const newSlash: SlashEntity = {
       id: `slash-${Date.now()}-${Math.random()}`,
       position,
       rotationZ: Math.random() * Math.PI * 2,
+      tiltX: (Math.random() - 0.5) * 0.7,
+      tiltY: (Math.random() - 0.5) * 0.7,
+      isCrit,
       color,
-      scale: 0.8 + Math.random() * 0.5,
+      scale: isCrit ? 1.25 + Math.random() * 0.4 : 0.85 + Math.random() * 0.35,
       createdAt: Date.now(),
     };
     set((state) => ({
-      activeSlashes: [...state.activeSlashes.slice(-8), newSlash],
+      activeSlashes: [
+        ...state.activeSlashes.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_ACTIVE_SLASHES - 1)),
+        newSlash,
+      ],
     }));
   },
 
@@ -177,185 +262,214 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
-  spawnProjectile: (from: [number, number, number], color: string) => {
+  spawnProjectile: (from: [number, number, number], color: string, isCrit = false) => {
     audioService.playLaserSound();
 
+    const [baseTargetX, baseTargetY, baseTargetZ] = COMBAT_VFX_CONSTANTS.BOSS_TARGET;
     const newProj: ProjectileEntity = {
       id: `proj-${Date.now()}-${Math.random()}`,
       startX: from[0],
       startY: from[1],
       startZ: from[2],
+      targetX: baseTargetX + randomInRange(-0.55, 0.55),
+      targetY: baseTargetY + randomInRange(-0.35, 0.45),
+      targetZ: baseTargetZ + randomInRange(-0.25, 0.35),
+      arcHeight: isCrit ? randomInRange(1.2, 1.9) : randomInRange(0.4, 1.15),
+      isCrit,
       color,
       createdAt: Date.now(),
     };
     set((state) => ({
-      activeProjectiles: [...state.activeProjectiles.slice(-GAME_CONSTANTS.PROJECTILES.MAX_ACTIVE), newProj],
+      activeProjectiles: [
+        ...state.activeProjectiles.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_MAX_ACTIVE - 1)),
+        newProj,
+      ],
     }));
   },
 
-  damageBoss: (amount: number, team: TeamType, playerName: string, damageType: 'NORMAL' | 'CRIT' | 'ULTIMATE' = 'NORMAL') => {
+  damageBoss: (amount: number, team: TeamType, playerName: string, damageType: DamageType = DAMAGE_TYPE.NORMAL) => {
     const state = get();
     if (state.bossHp <= 0) return;
 
     audioService.playHitSound();
 
+    const now = Date.now();
     const newHp = Math.max(0, state.bossHp - amount);
     const isEnraged = newHp > 0 && newHp <= state.bossMaxHp * 0.35;
     const isDefeated = newHp <= 0;
 
-    let nextStatus: BossStatusType = state.bossStatus;
+    let nextStatus: BossStatusType = BOSS_STATUS.HIT;
     if (isDefeated) {
       nextStatus = BOSS_STATUS.DEFEATED;
     } else if (isEnraged) {
       nextStatus = BOSS_STATUS.ENRAGED;
-    } else {
-      nextStatus = BOSS_STATUS.HIT;
     }
 
     const newBLGScore = team === TEAM_KEY.BLG ? state.teamScoreBLG + amount : state.teamScoreBLG;
     const newGENGScore = team === TEAM_KEY.GENG ? state.teamScoreGENG + amount : state.teamScoreGENG;
+    const topLeaderboard = updateLeaderboardList(state.leaderboard, playerName, team, amount);
 
-    // Leaderboard
-    const existingPlayerIndex = state.leaderboard.findIndex((p) => p.userName === playerName);
-    let updatedLeaderboard: DPSPlayer[] = [];
-
-    if (existingPlayerIndex >= 0) {
-      updatedLeaderboard = state.leaderboard.map((player, index) => {
-        if (index === existingPlayerIndex) {
-          return { ...player, totalDamage: player.totalDamage + amount };
-        }
-        return player;
-      });
-    } else {
-      const newPlayer: DPSPlayer = {
-        id: `player-${Date.now()}-${Math.random()}`,
-        userName: playerName,
-        team,
-        totalDamage: amount,
-      };
-      updatedLeaderboard = [...state.leaderboard, newPlayer];
-    }
-
-    updatedLeaderboard.sort((a, b) => b.totalDamage - a.totalDamage);
-    const topLeaderboard = updatedLeaderboard.slice(0, GAME_CONSTANTS.LEADERBOARD.MAX_DISPLAY);
-
-    // Dynamic Slashes & Shockwaves
-    const slashColor = team === TEAM_KEY.BLG ? '#38bdf8' : '#f59e0b';
-    const randomSlashPos: [number, number, number] = [
-      (Math.random() - 0.5) * 1.2,
-      0.3 + (Math.random() - 0.5) * 0.8,
-      0.6 + (Math.random() - 0.5) * 0.4,
+    const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
+    const isCritOrUlt = damageType === DAMAGE_TYPE.CRIT || damageType === DAMAGE_TYPE.ULTIMATE;
+    const hitPoint: [number, number, number] = [
+      randomInRange(-0.65, 0.65),
+      0.35 + randomInRange(-0.4, 0.45),
+      0.65 + randomInRange(-0.2, 0.25),
     ];
-    get().spawnSlash(randomSlashPos, slashColor);
 
-    // Shockwave on big hits
+    const impactColor = damageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : teamPalette.secondary;
+    get().spawnSlash(hitPoint, impactColor, isCritOrUlt);
+    get().spawnParticleBurst(hitPoint, impactColor, DAMAGE_INTENSITY_MAP[damageType]);
+
     const newShockwaves: ShockwaveEntity[] = [...state.activeShockwaves];
-    if (damageType === 'CRIT' || damageType === 'ULTIMATE') {
+    if (isCritOrUlt) {
       newShockwaves.push({
-        id: `shock-${Date.now()}-${Math.random()}`,
-        timestamp: Date.now(),
-        color: damageType === 'ULTIMATE' ? '#fbbf24' : '#ef4444',
-        maxRadius: damageType === 'ULTIMATE' ? 6.5 : 4.5,
+        id: `shock-${now}-${Math.random()}`,
+        timestamp: now,
+        color: damageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : '#ef4444',
+        maxRadius:
+          damageType === DAMAGE_TYPE.ULTIMATE
+            ? COMBAT_VFX_CONSTANTS.DAMAGE.ULTIMATE_SHOCKWAVE_RADIUS
+            : COMBAT_VFX_CONSTANTS.DAMAGE.CRIT_SHOCKWAVE_RADIUS,
       });
-      get().triggerScreenShake(damageType === 'ULTIMATE' ? 1.2 : 0.6);
+      get().triggerScreenShake(damageType === DAMAGE_TYPE.ULTIMATE ? 1.2 : 0.55);
     }
 
-    // Floating text
     const safeAmount = Number.isFinite(amount) ? amount : 0;
-    const randomOffsetSpreadX = (Math.random() - 0.5) * 170;
-    const randomOffsetSpreadY = (Math.random() - 0.5) * 90;
-    let label = `-${safeAmount.toLocaleString()}`;
-    let textColor = team === TEAM_KEY.BLG ? '#38bdf8' : '#facc15';
-    let textScale = 1.0;
-
-    if (damageType === 'CRIT') {
-      label = `BẠO KÍCH! -${safeAmount.toLocaleString()}`;
-      textColor = '#f43f5e';
-      textScale = 1.35;
-    } else if (damageType === 'ULTIMATE') {
-      label = `TUYỆT KỸ! -${safeAmount.toLocaleString()}`;
-      textColor = '#fbbf24';
-      textScale = 1.8;
-    }
+    const textColor =
+      damageType === DAMAGE_TYPE.ULTIMATE
+        ? '#fbbf24'
+        : damageType === DAMAGE_TYPE.CRIT
+          ? '#fb7185'
+          : teamPalette.secondary;
+    const textScale =
+      damageType === DAMAGE_TYPE.ULTIMATE ? 1.55 : damageType === DAMAGE_TYPE.CRIT ? 1.25 : 1.0;
 
     const newFloat: FloatingDamageText = {
-      id: `float-${Date.now()}-${Math.random()}`,
-      text: label,
+      id: `float-${now}-${Math.random()}`,
+      amount: safeAmount,
+      text: `-${safeAmount.toLocaleString()}`,
       damageType,
-      x: randomOffsetSpreadX,
-      y: randomOffsetSpreadY,
+      x: randomInRange(-88, 88),
+      y: randomInRange(-48, 44),
       color: textColor,
       scale: textScale,
-      createdAt: Date.now(),
+      createdAt: now,
     };
 
-    set({
+    const newImpact: HitImpactEntity = {
+      id: `impact-${now}-${Math.random()}`,
+      offsetX: randomInRange(-36, 36),
+      offsetY: randomInRange(-34, 30),
+      color: impactColor,
+      damageType,
+      createdAt: now,
+    };
+
+    const isComboActive = now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
+    const nextComboCount = isComboActive ? state.comboCount + 1 : 1;
+    const nextComboDamage = isComboActive ? state.comboDamage + safeAmount : safeAmount;
+
+    set((prev) => ({
       bossHp: newHp,
       bossStatus: nextStatus,
-      bossHitTimestamp: Date.now(),
+      bossHitTimestamp: now,
       teamScoreBLG: newBLGScore,
       teamScoreGENG: newGENGScore,
       leaderboard: topLeaderboard,
       activeShockwaves: newShockwaves.slice(-6),
-      floatingDamages: [...state.floatingDamages.slice(-15), newFloat],
-    });
+      floatingDamages: [
+        ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
+        newFloat,
+      ],
+      activeHitImpacts: [
+        ...prev.activeHitImpacts.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_ACTIVE_HIT_IMPACTS - 1)),
+        newImpact,
+      ],
+      comboCount: nextComboCount,
+      comboDamage: nextComboDamage,
+      comboTeam: team,
+      lastComboTimestamp: now,
+    }));
   },
 
   summonMinion: (summonerName: string, championName: string, team: TeamType) => {
-    const state = get();
-    if (state.minions.length >= GAME_CONSTANTS.MINIONS.MAX_INSTANCES) {
-      state.minions.shift();
-    }
-
-    const radiusSpread =
-      GAME_CONSTANTS.MINIONS.ORBIT_RADIUS_MIN +
-      Math.random() * (GAME_CONSTANTS.MINIONS.ORBIT_RADIUS_MAX - GAME_CONSTANTS.MINIONS.ORBIT_RADIUS_MIN);
+    const now = Date.now();
+    const spawnPosition = createWingSpawnPosition(team);
+    const avatarUrl = getChampionAvatarUrl(championName, team);
+    const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
+    const baseDps = GAME_CONSTANTS.MINIONS.BASE_DPS + Math.floor(Math.random() * 100);
+    const isCrit = Math.random() < COMBAT_VFX_CONSTANTS.SUMMON.CRIT_CHANCE;
+    const summonDps = isCrit
+      ? baseDps * COMBAT_VFX_CONSTANTS.SUMMON.CRIT_MULTIPLIER
+      : baseDps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER;
 
     const newMinion: MinionEntity = {
-      id: `minion-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: `minion-${now}-${Math.random().toString(36).substring(2, 6)}`,
       summonerName,
       championName,
+      avatarUrl,
       team,
-      orbitRadius: radiusSpread,
+      spawnPosition,
+      orbitRadius: randomInRange(GAME_CONSTANTS.MINIONS.ORBIT_RADIUS_MIN, GAME_CONSTANTS.MINIONS.ORBIT_RADIUS_MAX),
       orbitSpeed: (0.4 + Math.random() * 0.6) * (team === TEAM_KEY.BLG ? 1 : -1),
       orbitAngle: Math.random() * Math.PI * 2,
       verticalOffset: (Math.random() - 0.5) * 1.8,
-      createdAt: Date.now(),
+      createdAt: now,
       lifetimeMs: GAME_CONSTANTS.MINIONS.LIFETIME_MS,
-      dps: GAME_CONSTANTS.MINIONS.BASE_DPS + Math.floor(Math.random() * 100),
+      dps: baseDps,
     };
 
-    const isCrit = Math.random() < 0.25;
-    const summonDps = isCrit ? newMinion.dps * 4 : newMinion.dps * 2;
-    get().damageBoss(summonDps, team, summonerName, isCrit ? 'CRIT' : 'NORMAL');
+    const newPortal: SummonPortalEntity = {
+      id: `portal-${now}-${Math.random().toString(36).substring(2, 6)}`,
+      summonerName,
+      championName,
+      avatarUrl,
+      team,
+      position: spawnPosition,
+      color: teamPalette.primary,
+      isCrit,
+      dps: summonDps,
+      createdAt: now,
+    };
 
-    // Launch direct champion assault projectile from the team's side
-    const isBLG = team === TEAM_KEY.BLG;
-    const startX = (isBLG ? -3.8 : 3.8) + (Math.random() - 0.5) * 0.4;
-    const startY = -0.8 + (Math.random() - 0.5) * 0.5;
-    const startZ = 2.0 + (Math.random() - 0.5) * 0.4;
-    const teamColor = isBLG ? '#00f2fe' : '#ffa751';
+    get().spawnParticleBurst(
+      spawnPosition,
+      teamPalette.primary,
+      COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_CRIT
+    );
+    get().damageBoss(
+      summonDps,
+      team,
+      summonerName,
+      isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
+    );
+    get().spawnProjectile(spawnPosition, teamPalette.primary, isCrit);
 
-    get().spawnProjectile([startX, startY, startZ], teamColor);
-
-    // If critical hit, launch a second follow-up strike
     if (isCrit) {
       setTimeout(() => {
         get().spawnProjectile(
-          [startX + (Math.random() - 0.5) * 0.3, startY + 0.2, startZ],
-          teamColor
+          [spawnPosition[0] + randomInRange(-0.25, 0.25), spawnPosition[1] + 0.2, spawnPosition[2]],
+          teamPalette.crit,
+          true
         );
-      }, 100);
+      }, COMBAT_VFX_CONSTANTS.SUMMON.CRIT_FOLLOWUP_DELAY_MS);
     }
 
     get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${team} (-${summonDps} HP)`, team);
     get().addChatMessage(summonerName, `Triệu hồi ${championName} chiến đấu!`, team, championName);
-
     audioService.speak(`${summonerName} triệu hồi ${championName}!`);
 
-    set({
-      minions: [...state.minions, newMinion],
-    });
+    set((prev) => ({
+      minions: [
+        ...prev.minions.slice(-(GAME_CONSTANTS.MINIONS.MAX_INSTANCES - 1)),
+        newMinion,
+      ],
+      activeSummonPortals: [
+        ...prev.activeSummonPortals.slice(-(COMBAT_VFX_CONSTANTS.SUMMON.MAX_ACTIVE_PORTALS - 1)),
+        newPortal,
+      ],
+    }));
   },
 
   triggerGiftExplosion: (giftName: string, team: TeamType, donorName: string, coins = 100) => {
@@ -427,8 +541,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeShockwaves: [],
       activeMeteors: [],
       activeSlashes: [],
+      activeSummonPortals: [],
+      activeHitImpacts: [],
       activeGiftBanner: null,
       floatingDamages: [],
+      comboCount: 0,
+      comboDamage: 0,
+      comboTeam: null,
+      lastComboTimestamp: 0,
       leaderboard: [],
     });
   },
@@ -458,24 +578,37 @@ export const useGameStore = create<GameState>((set, get) => ({
   pruneEntities: () => {
     const now = Date.now();
     const state = get();
+    const slashMaxAgeMs = COMBAT_VFX_CONSTANTS.DAMAGE.SLASH_DURATION_S * 1000 + 80;
+    const portalMaxAgeMs = Math.max(
+      COMBAT_VFX_CONSTANTS.SUMMON.PORTAL_DURATION_MS,
+      COMBAT_VFX_CONSTANTS.SUMMON.SPOTLIGHT_DURATION_MS
+    );
 
-    // Prune expired minions
     const activeMinions = state.minions.filter((m) => now - m.createdAt < m.lifetimeMs);
-    // Prune hearts
     const activeHearts = state.activeHearts.filter((h) => now - h.createdAt < 3200);
-    // Prune projectiles
-    const activeProj = state.activeProjectiles.filter((p) => now - p.createdAt < 800);
-    // Prune floating damage
-    const activeFloats = state.floatingDamages.filter((f) => now - f.createdAt < 1350);
-    // Prune slashes
-    const activeSlashes = state.activeSlashes.filter((s) => now - s.createdAt < 300);
-    // Prune shockwaves
+    const activeProj = state.activeProjectiles.filter(
+      (p) => now - p.createdAt < COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_DURATION_MS + 180
+    );
+    const activeFloats = state.floatingDamages.filter(
+      (f) => now - f.createdAt < COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_DURATION_MS
+    );
+    const activeSlashes = state.activeSlashes.filter((s) => now - s.createdAt < slashMaxAgeMs);
     const activeWaves = state.activeShockwaves.filter((w) => now - w.timestamp < 850);
-    // Prune meteors
-    const activeMeteors = state.activeMeteors.filter((m) => now - m.createdAt < m.duration * 1000 + 300);
+    const activeMeteors = state.activeMeteors.filter(
+      (m) => now - m.createdAt < m.duration * 1000 + 300
+    );
+    const activeSummonPortals = state.activeSummonPortals.filter(
+      (p) => now - p.createdAt < portalMaxAgeMs
+    );
+    const activeHitImpacts = state.activeHitImpacts.filter(
+      (impact) => now - impact.createdAt < COMBAT_VFX_CONSTANTS.DAMAGE.HIT_IMPACT_DURATION_MS
+    );
+    const activeBursts = state.activeBursts.filter((b) => now - b.timestamp < 1500);
 
-    // Auto-clear screen flash in store if expired
     const isFlashActive = state.screenFlashColor !== null && now - state.screenFlashTimestamp < 450;
+    const isComboActive =
+      state.lastComboTimestamp > 0 &&
+      now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
 
     set({
       minions: activeMinions,
@@ -485,6 +618,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeSlashes,
       activeShockwaves: activeWaves,
       activeMeteors,
+      activeSummonPortals,
+      activeHitImpacts,
+      activeBursts,
+      comboCount: isComboActive ? state.comboCount : 0,
+      comboDamage: isComboActive ? state.comboDamage : 0,
+      comboTeam: isComboActive ? state.comboTeam : null,
       screenFlashColor: isFlashActive ? state.screenFlashColor : null,
     });
   },

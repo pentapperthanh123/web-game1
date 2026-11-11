@@ -1,10 +1,12 @@
-import { TeamType, BossStatusType } from '../constants/game';
+import { TeamType, BossStatusType, DamageType } from '../constants/game';
 
 export interface MinionEntity {
   id: string;
   summonerName: string;
   championName: string;
+  avatarUrl: string;
   team: TeamType;
+  spawnPosition: [number, number, number];
   orbitRadius: number;
   orbitSpeed: number;
   orbitAngle: number;
@@ -47,6 +49,11 @@ export interface ProjectileEntity {
   startX: number;
   startY: number;
   startZ: number;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
+  arcHeight: number;
+  isCrit: boolean;
   color: string;
   createdAt: number;
 }
@@ -71,8 +78,33 @@ export interface SlashEntity {
   id: string;
   position: [number, number, number];
   rotationZ: number;
+  tiltX: number;
+  tiltY: number;
+  isCrit: boolean;
   color: string;
   scale: number;
+  createdAt: number;
+}
+
+export interface SummonPortalEntity {
+  id: string;
+  summonerName: string;
+  championName: string;
+  avatarUrl: string;
+  team: TeamType;
+  position: [number, number, number];
+  color: string;
+  isCrit: boolean;
+  dps: number;
+  createdAt: number;
+}
+
+export interface HitImpactEntity {
+  id: string;
+  offsetX: number;
+  offsetY: number;
+  color: string;
+  damageType: DamageType;
   createdAt: number;
 }
 
@@ -87,8 +119,9 @@ export interface GiftAnnouncement {
 
 export interface FloatingDamageText {
   id: string;
+  amount: number;
   text: string;
-  damageType: 'NORMAL' | 'CRIT' | 'ULTIMATE';
+  damageType: DamageType;
   x: number;
   y: number;
   color: string;
@@ -137,21 +170,28 @@ export interface GameState {
   activeShockwaves: ShockwaveEntity[];
   activeMeteors: MeteorEntity[];
   activeSlashes: SlashEntity[];
+  activeSummonPortals: SummonPortalEntity[];
+  activeHitImpacts: HitImpactEntity[];
   activeGiftBanner: GiftAnnouncement | null;
   floatingDamages: FloatingDamageText[];
+  comboCount: number;
+  comboDamage: number;
+  comboTeam: TeamType | null;
+  lastComboTimestamp: number;
   chatMessages: LiveChatMessage[];
   eventLogs: AdminEventLog[];
   isSimulationActive: boolean;
   botSpeedMs: number;
 
   // Actions
-  damageBoss: (amount: number, team: TeamType, playerName: string, damageType?: 'NORMAL' | 'CRIT' | 'ULTIMATE') => void;
+  damageBoss: (amount: number, team: TeamType, playerName: string, damageType?: DamageType) => void;
   summonMinion: (summonerName: string, championName: string, team: TeamType) => void;
   triggerGiftExplosion: (giftName: string, team: TeamType, donorName: string, coins?: number) => void;
   addLikes: (count: number, team: TeamType, userName?: string) => void;
   addChatMessage: (userName: string, text: string, team?: TeamType, championName?: string) => void;
-  spawnProjectile: (from: [number, number, number], color: string) => void;
-  spawnSlash: (position: [number, number, number], color: string) => void;
+  spawnProjectile: (from: [number, number, number], color: string, isCrit?: boolean) => void;
+  spawnSlash: (position: [number, number, number], color: string, isCrit?: boolean) => void;
+  spawnParticleBurst: (origin: [number, number, number], color: string, intensity: number) => void;
   triggerScreenShake: (intensity?: number) => void;
   triggerScreenFlash: (color: string) => void;
   triggerBossAttack: (type?: 'ROAR' | 'LIGHTNING') => void;

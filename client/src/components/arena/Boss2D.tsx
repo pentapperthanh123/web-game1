@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { BOSS_STATUS, ASSET_PATHS, UI_CONSTANTS } from '../../constants/game';
+import { BossHitMarks2D } from './BossHitMarks2D';
 
 const getAnimationClass = (
   isDefeated: boolean,
@@ -110,6 +111,9 @@ export const Boss2D = () => {
             draggable={false}
           />
         </picture>
+
+        {/* Crisp Impact Flares aligned directly over Baron */}
+        <BossHitMarks2D />
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import { LikeCounter } from './LikeCounter';
 import { VictoryOverlay } from './VictoryOverlay';
 import { ScreenFlash } from './ScreenFlash';
 import { TeamRosterBar } from './TeamRosterBar';
+import { SummonShowcase } from './SummonShowcase';
 
 export const HUDOverlay = () => {
   const { t } = useTranslation();
@@ -62,7 +63,8 @@ export const HUDOverlay = () => {
       <TeamRosterBar side="left" />
       <TeamRosterBar side="right" />
 
-      {/* Floating 3D Elements */}
+      {/* Floating 3D & Summon Elements */}
+      <SummonShowcase />
       <FloatingDamage />
       <GiftBanner />
       <VictoryOverlay />

@@ -1,10 +1,18 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGameStore } from '../../store/gameStore';
-import { TEAM_KEY } from '../../constants/game';
+import { TEAM_KEY, COMBAT_VFX_CONSTANTS, DAMAGE_TYPE } from '../../constants/game';
+import { MinionEntity } from '../../types/game';
 
-const BLG_WING_ORIGIN: [number, number, number] = [-3.8, -0.9, 2.0];
-const GENG_WING_ORIGIN: [number, number, number] = [3.8, -0.9, 2.0];
+const pickRandomOrigin = (teamMinions: MinionEntity[]): [number, number, number] => {
+  const chosen = teamMinions[Math.floor(Math.random() * teamMinions.length)];
+  const [x, y, z] = chosen.spawnPosition;
+  return [
+    x + (Math.random() - 0.5) * 0.15,
+    y + (Math.random() - 0.5) * 0.15,
+    z + (Math.random() - 0.5) * 0.15,
+  ];
+};
 
 export const ChampionBarrage = () => {
   const minions = useGameStore((state) => state.minions);
@@ -19,14 +27,14 @@ export const ChampionBarrage = () => {
   useFrame((state) => {
     const currentTime = state.clock.getElapsedTime();
 
-    // 1. Periodically prune expired entities every 0.5s
-    if (currentTime - lastPruneTimeRef.current > 0.5) {
+    if (currentTime - lastPruneTimeRef.current > 0.3) {
       lastPruneTimeRef.current = currentTime;
       pruneEntities();
     }
 
-    // 2. Periodic DPS tick every 1.0s
-    if (currentTime - lastDamageTimeRef.current > 1.0 && minions.length > 0) {
+    if (minions.length === 0) return;
+
+    if (currentTime - lastDamageTimeRef.current >= COMBAT_VFX_CONSTANTS.DAMAGE.DPS_TICK_INTERVAL_S) {
       lastDamageTimeRef.current = currentTime;
       let totalTickBLG = 0;
       let totalTickGEN = 0;
@@ -40,37 +48,48 @@ export const ChampionBarrage = () => {
       }
 
       if (totalTickBLG > 0) {
-        damageBoss(totalTickBLG, TEAM_KEY.BLG, 'BLG Chiến Binh');
+        const isCrit = Math.random() < 0.2;
+        damageBoss(
+          isCrit ? Math.round(totalTickBLG * 1.4) : totalTickBLG,
+          TEAM_KEY.BLG,
+          'BLG Chiến Binh',
+          isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
+        );
       }
       if (totalTickGEN > 0) {
-        damageBoss(totalTickGEN, TEAM_KEY.GENG, 'GEN.G Chiến Binh');
+        const isCrit = Math.random() < 0.2;
+        damageBoss(
+          isCrit ? Math.round(totalTickGEN * 1.4) : totalTickGEN,
+          TEAM_KEY.GENG,
+          'GEN.G Chiến Binh',
+          isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
+        );
       }
     }
 
-    // 3. Periodic continuous plasma volleys from Left (BLG) and Right (GEN.G) wings
-    if (currentTime - lastProjectileTimeRef.current > 0.28 && minions.length > 0) {
+    if (currentTime - lastProjectileTimeRef.current >= COMBAT_VFX_CONSTANTS.DAMAGE.BARRAGE_INTERVAL_S) {
       lastProjectileTimeRef.current = currentTime;
 
       const blgMinions = minions.filter((m) => m.team === TEAM_KEY.BLG);
       const gengMinions = minions.filter((m) => m.team === TEAM_KEY.GENG);
 
-      // Fire a shot from BLG wing if BLG has active warriors
       if (blgMinions.length > 0) {
-        const jitterY = (Math.random() - 0.5) * 0.4;
-        const jitterZ = (Math.random() - 0.5) * 0.4;
+        const isCrit = Math.random() < 0.22;
+        const palette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[TEAM_KEY.BLG];
         spawnProjectile(
-          [BLG_WING_ORIGIN[0], BLG_WING_ORIGIN[1] + jitterY, BLG_WING_ORIGIN[2] + jitterZ],
-          '#00f2fe'
+          pickRandomOrigin(blgMinions),
+          isCrit ? palette.crit : palette.primary,
+          isCrit
         );
       }
 
-      // Fire a shot from GEN.G wing if GEN.G has active warriors
       if (gengMinions.length > 0) {
-        const jitterY = (Math.random() - 0.5) * 0.4;
-        const jitterZ = (Math.random() - 0.5) * 0.4;
+        const isCrit = Math.random() < 0.22;
+        const palette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[TEAM_KEY.GENG];
         spawnProjectile(
-          [GENG_WING_ORIGIN[0], GENG_WING_ORIGIN[1] + jitterY, GENG_WING_ORIGIN[2] + jitterZ],
-          '#ffa751'
+          pickRandomOrigin(gengMinions),
+          isCrit ? palette.crit : palette.primary,
+          isCrit
         );
       }
     }

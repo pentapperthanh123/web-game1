@@ -19,6 +19,70 @@ export const OFFICIAL_TEAM_LOGOS: Record<TeamType, string> = {
 
 export const BARON_AVATAR_URL = '/images/boss_baron_2d.png';
 
+export const DDRAGON_CHAMPION_CDN = 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion';
+
+const CHAMPION_KEY_ALIAS_MAP: Record<string, string> = {
+  zed: 'Zed',
+  lux: 'Lux',
+  yasuo: 'Yasuo',
+  ahri: 'Ahri',
+  jax: 'Jax',
+  xinzhao: 'XinZhao',
+  'xin zhao': 'XinZhao',
+  kaisa: 'Kaisa',
+  "kai'sa": 'Kaisa',
+  rakan: 'Rakan',
+  ksante: 'KSante',
+  "k'sante": 'KSante',
+  nidalee: 'Nidalee',
+  yone: 'Yone',
+  ezreal: 'Ezreal',
+  nautilus: 'Nautilus',
+  azir: 'Azir',
+  leesin: 'LeeSin',
+  'lee sin': 'LeeSin',
+  vayne: 'Vayne',
+  jinx: 'Jinx',
+  syndra: 'Syndra',
+  orianna: 'Orianna',
+  aatrox: 'Aatrox',
+  akali: 'Akali',
+  irelia: 'Irelia',
+  caitlyn: 'Caitlyn',
+  faker: 'Azir',
+  chovy: 'Yone',
+  bin: 'Jax',
+  knight: 'Ahri',
+  xun: 'XinZhao',
+  elk: 'Kaisa',
+  on: 'Rakan',
+  kiin: 'KSante',
+  canyon: 'Nidalee',
+  ruler: 'Ezreal',
+  duro: 'Nautilus',
+};
+
+const TEAM_FALLBACK_CHAMPION_KEY: Record<TeamType, string> = {
+  [TEAM_KEY.BLG]: 'Ahri',
+  [TEAM_KEY.GENG]: 'Yone',
+};
+
+export const getChampionAvatarUrl = (championName: string, team: TeamType): string => {
+  const normalized = championName.trim().toLowerCase();
+  if (!normalized) {
+    return `${DDRAGON_CHAMPION_CDN}/${TEAM_FALLBACK_CHAMPION_KEY[team]}.png`;
+  }
+
+  for (const [alias, championKey] of Object.entries(CHAMPION_KEY_ALIAS_MAP)) {
+    if (normalized === alias || normalized.includes(alias)) {
+      return `${DDRAGON_CHAMPION_CDN}/${championKey}.png`;
+    }
+  }
+
+  const fallbackKey = TEAM_FALLBACK_CHAMPION_KEY[team];
+  return `${DDRAGON_CHAMPION_CDN}/${fallbackKey}.png`;
+};
+
 export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
   [TEAM_KEY.BLG]: [
     {

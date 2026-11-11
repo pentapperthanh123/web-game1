@@ -11,6 +11,7 @@ import { CelestialGiftVFX } from './CelestialGiftVFX';
 import { ArenaEnvironment } from './ArenaEnvironment';
 import { AmbientDust } from './AmbientDust';
 import { BossVoidAttack } from './BossVoidAttack';
+import { SummonPortals3D } from './SummonPortals3D';
 import { GAME_CONSTANTS } from '../../constants/game';
 
 export const GameCanvas = () => {
@@ -34,6 +35,7 @@ export const GameCanvas = () => {
         <CameraRig />
         <ArenaEnvironment />
         <BossVoidAttack />
+        <SummonPortals3D />
         <ChampionBarrage />
         <ProjectilesBeam />
         <SlashEffects />

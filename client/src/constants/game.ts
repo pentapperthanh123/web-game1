@@ -107,3 +107,86 @@ export const UI_CONSTANTS = {
   GHOST_HP_DELAY_MS: 350,
 } as const;
 
+export const DAMAGE_TYPE = {
+  NORMAL: 'NORMAL',
+  CRIT: 'CRIT',
+  ULTIMATE: 'ULTIMATE',
+} as const;
+
+export type DamageType = (typeof DAMAGE_TYPE)[keyof typeof DAMAGE_TYPE];
+
+export const COMBAT_VFX_CONSTANTS = {
+  TEAM_COLORS: {
+    [TEAM_KEY.BLG]: {
+      primary: '#00f2fe',
+      secondary: '#38bdf8',
+      accent: '#22d3ee',
+      crit: '#67e8f9',
+    },
+    [TEAM_KEY.GENG]: {
+      primary: '#fbbf24',
+      secondary: '#f59e0b',
+      accent: '#ffa751',
+      crit: '#fde047',
+    },
+  },
+  BOSS_TARGET: [0, 0.45, 0] as readonly [number, number, number],
+  WING_BOUNDS: {
+    [TEAM_KEY.BLG]: {
+      minX: -4.1,
+      maxX: -2.2,
+      minY: -1.4,
+      maxY: -0.2,
+      minZ: 1.0,
+      maxZ: 2.7,
+    },
+    [TEAM_KEY.GENG]: {
+      minX: 2.2,
+      maxX: 4.1,
+      minY: -1.4,
+      maxY: -0.2,
+      minZ: 1.0,
+      maxZ: 2.7,
+    },
+  },
+  SUMMON: {
+    PORTAL_DURATION_MS: 1600,
+    SPOTLIGHT_DURATION_MS: 2600,
+    MAX_ACTIVE_PORTALS: 12,
+    MAX_VISIBLE_ORBS: 16,
+    MAX_VISIBLE_BADGES_PER_TEAM: 4,
+    CRIT_CHANCE: 0.28,
+    CRIT_MULTIPLIER: 4,
+    NORMAL_MULTIPLIER: 2,
+    CRIT_FOLLOWUP_DELAY_MS: 95,
+    PORTAL_BURST_PARTICLES: 48,
+  },
+  DAMAGE: {
+    PROJECTILE_DURATION_MS: 420,
+    PROJECTILE_MAX_ACTIVE: 56,
+    BARRAGE_INTERVAL_S: 0.24,
+    DPS_TICK_INTERVAL_S: 1.0,
+    SLASH_DURATION_S: 0.36,
+    MAX_ACTIVE_SLASHES: 14,
+    HIT_IMPACT_DURATION_MS: 420,
+    MAX_ACTIVE_HIT_IMPACTS: 12,
+    FLOATING_DURATION_MS: 1350,
+    MAX_FLOATING_DAMAGE: 18,
+    COMBO_WINDOW_MS: 2800,
+    CRIT_SHOCKWAVE_RADIUS: 4.5,
+    ULTIMATE_SHOCKWAVE_RADIUS: 6.8,
+  },
+  PARTICLES: {
+    MAX_BURST_QUEUE: 10,
+    BURST_COUNT_NORMAL: 26,
+    BURST_COUNT_CRIT: 64,
+    BURST_COUNT_ULTIMATE: 180,
+    BURST_COUNT_SUMMON: 42,
+    INTENSITY_NORMAL: 1,
+    INTENSITY_CRIT: 2,
+    INTENSITY_ULTIMATE: 4,
+    SPEED_MIN: 2.2,
+    SPEED_MULTIPLIER: 2.1,
+  },
+} as const;
+
