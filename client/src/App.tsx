@@ -1,23 +1,33 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ArenaBackground2D } from './components/arena/ArenaBackground2D';
 import { Boss2D } from './components/arena/Boss2D';
 import { GameCanvas } from './components/canvas/GameCanvas';
 import { HUDOverlay } from './components/ui/HUDOverlay';
 import { useGameStore } from './store/gameStore';
-import { SIMULATION_PRESETS, BOSS_STATUS, APP_TITLE } from './constants/game';
+import {
+  SIMULATION_PRESETS,
+  BOSS_STATUS,
+  APP_TITLE,
+  TEAM_KEY,
+  AUTO_PRO_BATTLE_CONSTANTS,
+} from './constants/game';
+import { TEAM_ROSTERS } from './constants/roster';
 import './services/socket'; // Auto-connects to Socket.io backend on port 4000
 
 export function App() {
   const isSimulationActive = useGameStore((state) => state.isSimulationActive);
   const botSpeedMs = useGameStore((state) => state.botSpeedMs);
+  const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
   const summonMinion = useGameStore((state) => state.summonMinion);
   const triggerGiftExplosion = useGameStore((state) => state.triggerGiftExplosion);
   const addLikes = useGameStore((state) => state.addLikes);
+  const triggerAutoProAttack = useGameStore((state) => state.triggerAutoProAttack);
   const screenShakeTimestamp = useGameStore((state) => state.screenShakeTimestamp);
   const pruneEntities = useGameStore((state) => state.pruneEntities);
   const bossStatus = useGameStore((state) => state.bossStatus);
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
 
+  const proTurnRef = useRef(0);
   const isBossDefeated = bossStatus === BOSS_STATUS.DEFEATED;
 
   // Enforce document title to strictly match user branding
@@ -111,6 +121,34 @@ export function App() {
 
     return () => clearInterval(intervalId);
   }, [isSimulationActive, botSpeedMs, summonMinion, triggerGiftExplosion, addLikes]);
+
+  // Manual-toggled Auto Pro-Player Combat: shoots signature skills from roster portraits when idle
+  useEffect(() => {
+    if (!autoProBattleConfig.enabled || isBossDefeated) return;
+
+    const intervalMs = autoProBattleConfig.intervalMs || AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS;
+    const intervalId = setInterval(() => {
+      const state = useGameStore.getState();
+      if (state.bossStatus === BOSS_STATUS.DEFEATED || state.bossHp <= 0) return;
+      if (autoProBattleConfig.onlyWhenIdle && state.minions.length > 0) return;
+
+      const step = proTurnRef.current;
+      proTurnRef.current += 1;
+
+      const team = step % 2 === 0 ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+      const rosterIndex = Math.floor(step / 2) % TEAM_ROSTERS[team].length;
+
+      triggerAutoProAttack(team, rosterIndex);
+    }, intervalMs);
+
+    return () => clearInterval(intervalId);
+  }, [
+    autoProBattleConfig.enabled,
+    autoProBattleConfig.onlyWhenIdle,
+    autoProBattleConfig.intervalMs,
+    isBossDefeated,
+    triggerAutoProAttack,
+  ]);
 
   return (
     <main className="fixed inset-0 w-full h-full bg-slate-950 overflow-hidden font-sans select-none">

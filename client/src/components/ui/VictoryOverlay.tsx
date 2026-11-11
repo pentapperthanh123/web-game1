@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Crown, Trophy, Sparkles, RotateCcw, ArrowRight } from 'lucide-react';
+import { Crown, Trophy, Sparkles, RotateCcw, ArrowRight, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, GAME_CONSTANTS, TEAM_KEY, TeamType } from '../../constants/game';
+import {
+  BOSS_DEFEAT_CONSTANTS,
+  BOSS_STATUS,
+  GAME_CONSTANTS,
+  TEAM_KEY,
+  TeamType,
+} from '../../constants/game';
 import { audioService } from '../../services/audioService';
 import { BLGLogo, GenGLogo } from '../icons/TeamLogos';
 
@@ -17,12 +23,28 @@ export const VictoryOverlay = () => {
   const roundWinner = useGameStore((state) => state.roundWinner);
   const isSeriesEnded = useGameStore((state) => state.isSeriesEnded);
   const seriesWinner = useGameStore((state) => state.seriesWinner);
+  const finisherPlayerName = useGameStore((state) => state.finisherPlayerName);
+  const finisherTeam = useGameStore((state) => state.finisherTeam);
   const startNextRound = useGameStore((state) => state.startNextRound);
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
 
   const [countdown, setCountdown] = useState<number>(GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS);
+  const [isVictoryVisible, setIsVictoryVisible] = useState<boolean>(false);
 
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED;
+
+  useEffect(() => {
+    if (!isDefeated) {
+      setIsVictoryVisible(false);
+      return;
+    }
+
+    const revealTimer = setTimeout(() => {
+      setIsVictoryVisible(true);
+    }, BOSS_DEFEAT_CONSTANTS.VICTORY_DELAY_MS);
+
+    return () => clearTimeout(revealTimer);
+  }, [isDefeated]);
 
   // Determine active winner
   const effectiveWinner: TeamType = isSeriesEnded
@@ -37,7 +59,7 @@ export const VictoryOverlay = () => {
   const mvpPlayer = leaderboard.length > 0 ? leaderboard[0] : null;
 
   useEffect(() => {
-    if (!isDefeated) {
+    if (!isDefeated || !isVictoryVisible) {
       setCountdown(GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS);
       return;
     }
@@ -63,9 +85,9 @@ export const VictoryOverlay = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isDefeated, isSeriesEnded, startNextRound, resetBO5Match]);
+  }, [isDefeated, isVictoryVisible, isSeriesEnded, startNextRound, resetBO5Match]);
 
-  if (!isDefeated) return null;
+  if (!isDefeated || !isVictoryVisible) return null;
 
   return (
     <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-4 sm:p-6 text-center animate-in fade-in zoom-in-95 duration-500 pointer-events-auto select-none">
@@ -191,6 +213,30 @@ export const VictoryOverlay = () => {
                 {(mvpPlayer?.totalDamage ?? 0).toLocaleString()} {t('Victory.damage', 'SÁT THƯƠNG')}
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Last-Hit Finisher Callout */}
+        {finisherPlayerName && (
+          <div className="inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-full bg-rose-950/75 border border-rose-500/40 text-[11px]">
+            <Swords className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <span className="text-rose-200/90 font-semibold">
+              {t('Victory.finisherLabel', 'Kết liễu bởi')}:
+            </span>
+            <span className="font-black text-white truncate max-w-[140px]">
+              {finisherPlayerName}
+            </span>
+            {finisherTeam && (
+              <span
+                className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                  finisherTeam === TEAM_KEY.BLG
+                    ? 'bg-cyan-950 text-cyan-300 border border-cyan-700/60'
+                    : 'bg-amber-950 text-amber-300 border border-amber-700/60'
+                }`}
+              >
+                {finisherTeam}
+              </span>
+            )}
           </div>
         )}
 

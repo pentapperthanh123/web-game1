@@ -18,11 +18,13 @@ import {
   Zap,
   MapPin,
   Search,
+  ShieldAlert,
 } from 'lucide-react';
 import { adminSocket } from './services/socket';
 import { BLGLogo, GenGLogo } from './components/TeamLogos';
 import { OverlayControls } from './components/OverlayControls';
 import { BossSkillControls } from './components/BossSkillControls';
+import { AutoProControls } from './components/AutoProControls';
 import { ALL_CHAMPIONS, findChampion, getRandomChampion, normalizeQuery } from './constants/champions';
 
 const ADMIN_APP_TITLE = 'LOL CKTG';
@@ -665,6 +667,15 @@ export function App() {
                   <span>+50 Tim GEN</span>
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => handleSendLikes(200, 'BLG')}
+                className="w-full mt-2 py-2 rounded-lg bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-black uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-[0_0_12px_rgba(16,185,129,0.5)] transition active:scale-95"
+                title="Gửi ngay 200 Tim để kích hoạt Mốc Đại Hồi Phục Toàn Bản Đồ (+100 HP cho tướng)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-spin" />
+                <span>💖 +200 Tim (Test Hồi Máu Toàn Bản Đồ)</span>
+              </button>
             </div>
 
             {/* Custom Live Chat */}
@@ -839,6 +850,20 @@ export function App() {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Summon Rule Option B + D Information */}
+              <div className="p-2 rounded-lg bg-slate-950/90 border border-slate-800 text-[10px] space-y-1">
+                <div className="flex items-center space-x-1.5 text-cyan-400 font-bold">
+                  <ShieldAlert className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
+                  <span>Quy Tắc Triệu Hồi (Option B + D):</span>
+                </div>
+                <div className="text-slate-400 leading-relaxed text-[9px] space-y-0.5">
+                  <div>• Mỗi người tối đa <span className="text-white font-bold">1 tướng đang sống</span> trên sàn.</div>
+                  <div>• Khi tướng còn sống, tiếp tục chat sẽ <span className="text-emerald-400 font-bold">Tiếp Sức hồi +50 HP</span> và đánh bồi.</div>
+                  <div>• Khi tướng chết: Được phép triệu hồi tướng mới ngay lập tức!</div>
+                  <div>• <span className="text-amber-400 font-bold">Tặng Quà (Gifts)</span>: Phá giới hạn, triệu hồi Tướng Tinh Anh bổ sung!</div>
                 </div>
               </div>
 
@@ -1262,6 +1287,9 @@ export function App() {
 
         {/* Section 6: Boss Counterattack & 4 Skills Config */}
         <BossSkillControls currentTheme={selectedTheme} />
+
+        {/* Section 6.5: Auto Pro-Player Battle when Idle */}
+        <AutoProControls />
 
         {/* Section 7: Section Visibility Controls (Overlay Controls) */}
         <OverlayControls />

@@ -47,6 +47,7 @@ export const BossAlertBanner: React.FC<BossAlertBannerProps> = React.memo(
     if (!isRoarActive) return null;
 
     const skillId = activeBossSkillBanner?.skillId;
+    const isUltimate = activeBossSkillBanner?.isUltimate ?? false;
     const bannerThemeClass = getBannerThemeClass(isElderDragon, skillId);
 
     const bannerText = activeBossSkillBanner
@@ -55,10 +56,15 @@ export const BossAlertBanner: React.FC<BossAlertBannerProps> = React.memo(
 
     return (
       <div
-        className={`absolute -top-10 sm:-top-12 px-3.5 py-1 rounded-full border-2 text-[10px] sm:text-xs font-black tracking-widest flex items-center space-x-1.5 animate-bounce z-20 shadow-xl ${bannerThemeClass}`}
+        className={`absolute -top-10 sm:-top-12 px-3 py-1 rounded-full border-2 text-[10px] sm:text-xs font-black tracking-wide flex items-center space-x-1.5 z-20 shadow-xl max-w-[90vw] whitespace-nowrap animate-in fade-in zoom-in-95 duration-200 ${bannerThemeClass}`}
       >
         {renderSkillIcon(isElderDragon, skillId)}
-        <span>{bannerText}</span>
+        {isUltimate && (
+          <span className="px-1.5 py-0.5 rounded bg-rose-600 text-[8px] font-black tracking-wider text-white uppercase shrink-0">
+            {t('Combat.ultimateSkill', 'CHIÊU CUỐI!')}
+          </span>
+        )}
+        <span className="truncate">{bannerText}</span>
       </div>
     );
   }

@@ -12,6 +12,7 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
   const team = side === 'left' ? TEAM_KEY.BLG : TEAM_KEY.GENG;
   const roster = TEAM_ROSTERS[team];
   const minions = useGameStore((state) => state.minions);
+  const lastAttackingRosterId = useGameStore((state) => state.lastAttackingRosterId);
   const isLeft = side === 'left';
   // Default to collapsed on mobile/touch screens or narrow viewports to prevent screen cluttering
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -51,6 +52,7 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
         } z-20 pointer-events-auto select-none`}
       >
         <button
+          id={`roster-collapsed-${team}`}
           type="button"
           onClick={() => setIsCollapsed(false)}
           className={`flex items-center space-x-1 px-2 py-1 rounded-full border backdrop-blur-md shadow-lg transition active:scale-95 hover:scale-105 ${
@@ -100,7 +102,8 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
       {/* Players List with Real Pro Player Portraits */}
       {roster.map((player) => {
         const count = getSummonCount(player);
-        const isActive = count > 0;
+        const isAttacking = lastAttackingRosterId === player.id;
+        const isActive = count > 0 || isAttacking;
 
         return (
           <RosterItem
@@ -108,6 +111,7 @@ export const TeamRosterBar = ({ side }: TeamRosterBarProps) => {
             player={player}
             count={count}
             isActive={isActive}
+            isAttacking={isAttacking}
             isLeft={isLeft}
           />
         );
@@ -120,23 +124,29 @@ interface RosterItemProps {
   player: RosterPlayer;
   count: number;
   isActive: boolean;
+  isAttacking: boolean;
   isLeft: boolean;
 }
 
-const RosterItem = ({ player, count, isActive, isLeft }: RosterItemProps) => {
+const getRosterItemCardClass = (isActive: boolean, isAttacking: boolean, isLeft: boolean): string => {
+  if (!isActive) {
+    return 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700';
+  }
+  const scaleClass = isAttacking ? 'scale-110 ring-1 ring-white/60' : 'scale-105';
+  if (isLeft) {
+    return `bg-gradient-to-r from-cyan-950/95 to-slate-950/90 border-cyan-400 shadow-[0_0_14px_rgba(6,182,212,0.7)] ${scaleClass}`;
+  }
+  return `bg-gradient-to-r from-amber-950/95 to-slate-950/90 border-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.7)] ${scaleClass}`;
+};
+
+const RosterItem = ({ player, count, isActive, isAttacking, isLeft }: RosterItemProps) => {
   const [imageError, setImageError] = useState(false);
 
   return (
     <div
-      className={`relative flex items-center space-x-1.5 px-1.5 py-1 rounded-xl border backdrop-blur-md transition-all duration-300 ${
+      className={`relative flex items-center space-x-1.5 px-1.5 py-1 rounded-xl border backdrop-blur-md transition-all duration-200 ${
         isLeft ? 'flex-row' : 'flex-row-reverse space-x-reverse'
-      } ${
-        isActive
-          ? isLeft
-            ? 'bg-gradient-to-r from-cyan-950/95 to-slate-950/90 border-cyan-400 shadow-[0_0_14px_rgba(6,182,212,0.7)] scale-105'
-            : 'bg-gradient-to-r from-amber-950/95 to-slate-950/90 border-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.7)] scale-105'
-          : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700'
-      }`}
+      } ${getRosterItemCardClass(isActive, isAttacking, isLeft)}`}
     >
       {/* Real Pro Player Avatar with Role Badge */}
       <div id={`roster-avatar-${player.id}`} className="relative shrink-0 transition-transform duration-200">

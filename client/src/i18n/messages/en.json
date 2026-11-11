@@ -18,11 +18,16 @@
     "rank": "Rank",
     "damage": "DMG",
     "summonedMinions": "Active Minions",
-    "howToPlay": "Chat: [Champ] BLG or [Champ] GEN to summon warriors!",
-    "giftBonus": "Send any gift to trigger Ultimate & Meteor Shower!"
+    "howToPlay": "Chat: [Champ] BLG or GEN to summon! Chat again to Cheer & Heal (+50 HP). Gifts break limits!",
+    "giftBonus": "Send any gift to trigger Ultimate & Meteor Shower!",
+    "autoProOn": "Auto Pro: ON",
+    "autoProOff": "Auto Pro",
+    "autoProTooltip": "Toggle BLG & GEN.G pro players auto-attacking when no viewers are active"
   },
   "Gift": {
-    "sentLabel": "SENT GIFT"
+    "sentLabel": "SENT GIFT",
+    "patronTag": "VIP {{team}}",
+    "ultimateBonus": "ULTIMATE DMG & METEOR SHOWER!"
   },
   "Controls": {
     "title": "TikTok Live Simulator Panel",
@@ -51,6 +56,8 @@
   },
   "Victory": {
     "bossDefeated": "BARON NASHOR HAS BEEN SLAIN!",
+    "slainBadge": "BOSS SLAIN!",
+    "finisherLabel": "Finishing blow by",
     "roundWin": "{{team}} WINS GAME {{round}}!",
     "seriesChampion": "🏆 {{team}} WORLDS 2026 CHAMPIONS!",
     "seriesScore": "FINAL BO5 SERIES SCORE: {{blg}} - {{geng}}",
@@ -60,5 +67,11 @@
     "nextRoundIn": "Next game starts in:",
     "nextRoundNow": "START NEXT GAME",
     "newSeries": "START NEW BO5 MATCH"
+  },
+  "Milestone": {
+    "healTitle": "GLOBAL DIVINE HEAL!",
+    "healSubtitle": "{{milestone}} HEARTS REACHED",
+    "healNotice": "Restored +{{amount}} HP to all champions (Monsters excluded)",
+    "healProgress": "Divine Heal:"
   }
 }

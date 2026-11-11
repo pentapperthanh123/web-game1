@@ -977,6 +977,64 @@ class AudioSynthesizerService {
     osc.stop(t + 0.7);
   }
 
+  // 10b. Cinematic Boss Execution / Shatter Explosion Sound
+  public playBossDefeatSound(isElderDragon = false): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const vol = Math.min(1.5, this.volume * 1.35);
+
+    // Layer 1: Deep Tectonic Implosion Sub-Boom
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(140, t);
+    subOsc.frequency.exponentialRampToValueAtTime(22, t + 1.25);
+    subGain.gain.setValueAtTime(0.65 * vol, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 1.35);
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(t);
+    subOsc.stop(t + 1.35);
+
+    // Layer 2: Shattering Energy Blast Noise Sweep
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.getNoiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(isElderDragon ? 1800 : 1200, t);
+    filter.frequency.exponentialRampToValueAtTime(140, t + 0.9);
+    filter.Q.value = 1.4;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.42 * vol, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(out);
+    noise.start(t);
+    noise.stop(t + 0.95);
+
+    // Layer 3: Crystal Rupture High Resonance Chime
+    const chimeNotes = isElderDragon ? [587.33, 880, 1174.66] : [440, 659.25, 987.77];
+    chimeNotes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = t + 0.08 + idx * 0.09;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.5, startTime + 0.75);
+      gain.gain.setValueAtTime(0.22 * vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.8);
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(startTime);
+      osc.stop(startTime + 0.85);
+    });
+  }
+
   // 11. Procedural Heart Sparkle Chime
   public playHeartChime(): void {
     if (!this.isAudioEnabled) return;
@@ -998,6 +1056,37 @@ class AudioSynthesizerService {
     gain.connect(out);
     osc.start(t);
     osc.stop(t + 0.18);
+  }
+
+  // 11b. Global Divine Healing Angelic Chime & Chord (Toàn Bản Đồ Hồi Phục)
+  public playGlobalDivineHealSound(): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51]; // C5 - E5 - G5 - C6 - E6
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const noteTime = t + idx * 0.08;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      const maxGain = 0.18 * this.volume;
+      gain.gain.setValueAtTime(0.0001, noteTime);
+      gain.gain.exponentialRampToValueAtTime(maxGain, noteTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 0.9);
+
+      osc.connect(gain);
+      gain.connect(out);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.95);
+    });
   }
 
   // 11. Web Speech API (Vietnamese TTS)

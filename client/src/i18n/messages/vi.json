@@ -18,11 +18,16 @@
     "rank": "Hạng",
     "damage": "ST",
     "summonedMinions": "Linh thú đang tham chiến",
-    "howToPlay": "Chat: [Tên tướng] BLG hoặc [Tên tướng] GEN để triệu hồi chiến binh!",
-    "giftBonus": "Tặng quà bất kỳ kích hoạt Tuyệt Kỹ & Mưa Thiên Thạch!"
+    "howToPlay": "Chat: [Tên tướng] BLG hoặc GEN để triệu hồi! Chat tiếp để Tiếp Sức hồi máu. Tặng quà phá giới hạn!",
+    "giftBonus": "Tặng quà bất kỳ kích hoạt Tuyệt Kỹ & Mưa Thiên Thạch!",
+    "autoProOn": "Tự đánh: BẬT",
+    "autoProOff": "Tự đánh",
+    "autoProTooltip": "Bật/tắt chế độ tuyển thủ BLG & GEN.G tự bắn chiêu khi không có người tham gia"
   },
   "Gift": {
-    "sentLabel": "ĐÃ TẶNG"
+    "sentLabel": "ĐÃ TẶNG",
+    "patronTag": "ĐẠI GIA {{team}}",
+    "ultimateBonus": "ST TUYỆT KỸ & MƯA THIÊN THẠCH!"
   },
   "Controls": {
     "title": "Bảng Giả Lập Tương Tác TikTok Live",
@@ -51,6 +56,8 @@
   },
   "Victory": {
     "bossDefeated": "BARON NASHOR ĐÃ BỊ TIÊU DIỆT!",
+    "slainBadge": "ĐÃ BỊ HẠ GỤC!",
+    "finisherLabel": "Kết liễu bởi",
     "roundWin": "{{team}} CHIẾN THẮNG VÁN {{round}}!",
     "seriesChampion": "🏆 {{team}} VÔ ĐỊCH CKTG 2026 BO5!",
     "seriesScore": "TỈ SỐ CHUNG CUỘC BO5: {{blg}} - {{geng}}",
@@ -60,5 +67,11 @@
     "nextRoundIn": "Ván mới bắt đầu sau:",
     "nextRoundNow": "VÀO VÁN TIẾP THEO",
     "newSeries": "BẮT ĐẦU TRẬN ĐẤU MỚI"
+  },
+  "Milestone": {
+    "healTitle": "ĐẠI HỒI PHỤC TOÀN BẢN ĐỒ!",
+    "healSubtitle": "MỐC {{milestone}} TIM ĐẠT ĐƯỢC",
+    "healNotice": "Hồi phục +{{amount}} HP cho toàn bộ anh hùng (Trừ quái vật)",
+    "healProgress": "Đại Hồi Phục:"
   }
 }

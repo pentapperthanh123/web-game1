@@ -12,6 +12,7 @@ import { ArenaEnvironment } from './ArenaEnvironment';
 import { AmbientDust } from './AmbientDust';
 import { BossVoidAttack } from './BossVoidAttack';
 import { SummonPortals3D } from './SummonPortals3D';
+import { BossDeathVFX3D } from './BossDeathVFX3D';
 import { GAME_CONSTANTS } from '../../constants/game';
 
 export const GameCanvas = () => {
@@ -36,6 +37,7 @@ export const GameCanvas = () => {
         <ArenaEnvironment />
         <BossVoidAttack />
         <SummonPortals3D />
+        <BossDeathVFX3D />
         <ChampionBarrage />
         <ProjectilesBeam />
         <SlashEffects />

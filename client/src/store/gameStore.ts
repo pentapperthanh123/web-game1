@@ -26,6 +26,9 @@ import {
   OverlayVisibility,
   FlyingArrowEntity,
   DefeatedChampionEntity,
+  HeartMilestoneBanner,
+  AutoProBattleConfig,
+  DamageBossOptions,
 } from '../types/game';
 import {
   GAME_CONSTANTS,
@@ -42,6 +45,11 @@ import {
   GAME_THEME,
   GameThemeType,
   THEME_STORAGE_KEY,
+  AUTO_PRO_BATTLE_CONSTANTS,
+  AUTO_PRO_STORAGE_KEY,
+  DEFAULT_AUTO_PRO_BATTLE_CONFIG,
+  getChampionSkillVFX,
+  BOSS_DEFEAT_CONSTANTS,
 } from '../constants/game';
 import { getChampionAvatarUrl, findRosterPlayer, TEAM_ROSTERS } from '../constants/roster';
 import { gameBus } from '../services/eventBus';
@@ -70,17 +78,17 @@ const updateLeaderboardList = (
   const nextList =
     existingIndex >= 0
       ? leaderboard.map((player, index) =>
-          index === existingIndex ? { ...player, totalDamage: player.totalDamage + amount } : player
-        )
+        index === existingIndex ? { ...player, totalDamage: player.totalDamage + amount } : player
+      )
       : [
-          ...leaderboard,
-          {
-            id: `player-${Date.now()}-${Math.random()}`,
-            userName: playerName,
-            team,
-            totalDamage: amount,
-          },
-        ];
+        ...leaderboard,
+        {
+          id: `player-${Date.now()}-${Math.random()}`,
+          userName: playerName,
+          team,
+          totalDamage: amount,
+        },
+      ];
 
   return [...nextList]
     .sort((a, b) => b.totalDamage - a.totalDamage)
@@ -127,6 +135,17 @@ const getStoredOverlayVisibility = (): OverlayVisibility => {
   }
 };
 
+const getStoredAutoProBattleConfig = (): AutoProBattleConfig => {
+  if (typeof window === 'undefined') return DEFAULT_AUTO_PRO_BATTLE_CONFIG;
+  try {
+    const raw = localStorage.getItem(AUTO_PRO_STORAGE_KEY);
+    if (!raw) return DEFAULT_AUTO_PRO_BATTLE_CONFIG;
+    return { ...DEFAULT_AUTO_PRO_BATTLE_CONFIG, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_AUTO_PRO_BATTLE_CONFIG;
+  }
+};
+
 const INITIAL_STATE = {
   bossHp: GAME_CONSTANTS.BOSS.INITIAL_HP,
   bossMaxHp: GAME_CONSTANTS.BOSS.MAX_HP,
@@ -167,10 +186,17 @@ const INITIAL_STATE = {
   gameTheme: getStoredGameTheme(),
   bossSkillConfig: getStoredBossSkillConfig(),
   activeBossSkillBanner: null as ActiveBossSkillBanner | null,
+  activeHeartMilestoneBanner: null as HeartMilestoneBanner | null,
   bossSkillRotationIndex: 0,
   lastHitTeam: null as TeamType | null,
   lastHitDamageType: null as DamageType | null,
   bossAttackTargetTeam: null as 'BLG' | 'GENG' | 'ALL' | null,
+  bossDefeatedTimestamp: 0,
+  finisherPlayerName: null as string | null,
+  finisherTeam: null as TeamType | null,
+  autoProBattleConfig: getStoredAutoProBattleConfig(),
+  lastAttackingRosterId: null as string | null,
+  lastRosterAttackTimestamp: 0,
   bo5Score: {
     [TEAM_KEY.BLG]: 0,
     [TEAM_KEY.GENG]: 0,
@@ -211,9 +237,66 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
+  setAutoProBattleConfig: (config: Partial<AutoProBattleConfig>) => {
+    set((state) => {
+      const next: AutoProBattleConfig = {
+        ...state.autoProBattleConfig,
+        ...config,
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(AUTO_PRO_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // ignore storage error
+        }
+      }
+      return { autoProBattleConfig: next };
+    });
+  },
+
+  triggerAutoProAttack: (team: TeamType, playerIndex: number) => {
+    const state = get();
+    if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
+
+    const roster = TEAM_ROSTERS[team];
+    if (!roster || roster.length === 0) return;
+
+    const player = roster[playerIndex % roster.length];
+    const isCrit = Math.random() < AUTO_PRO_BATTLE_CONSTANTS.CRIT_CHANCE;
+    const baseDamage = randomInRange(
+      AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MIN,
+      AUTO_PRO_BATTLE_CONSTANTS.DAMAGE_MAX
+    );
+    const finalDamage = Math.round(
+      isCrit ? baseDamage * AUTO_PRO_BATTLE_CONSTANTS.CRIT_MULTIPLIER : baseDamage
+    );
+
+    const now = Date.now();
+    get().spawnFlyingArrow(player.signatureChampion, team, isCrit);
+
+    set({
+      lastAttackingRosterId: player.id,
+      lastRosterAttackTimestamp: now,
+    });
+
+    setTimeout(() => {
+      const latest = get();
+      if (latest.bossHp <= 0 || latest.bossStatus === BOSS_STATUS.DEFEATED) return;
+
+      latest.damageBoss(
+        finalDamage,
+        team,
+        `${player.name} (${player.role})`,
+        isCrit ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL,
+        { excludeFromLeaderboard: true }
+      );
+    }, AUTO_PRO_BATTLE_CONSTANTS.FLYING_ARROW_HIT_DELAY_MS);
+  },
+
   spawnFlyingArrow: (championName: string, team: TeamType, isCrit = false) => {
     audioService.playLaserSound();
 
+    const skillVfx = getChampionSkillVFX(championName, isCrit);
     const rosterPlayer = findRosterPlayer(championName, team);
     let startX: number;
     let startY: number;
@@ -225,15 +308,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       typeof document !== 'undefined' && rosterPlayer
         ? document.getElementById(`roster-avatar-${rosterPlayer.id}`)
         : null;
+    const collapsedEl =
+      typeof document !== 'undefined' && !avatarEl
+        ? document.getElementById(`roster-collapsed-${team}`)
+        : null;
+    const anchorEl = avatarEl || collapsedEl;
 
-    if (avatarEl) {
-      const rect = avatarEl.getBoundingClientRect();
+    if (anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
       startX = team === TEAM_KEY.BLG ? rect.right + 2 : rect.left - 2;
       startY = rect.top + rect.height / 2;
 
-      avatarEl.style.transform = 'scale(1.22)';
+      anchorEl.style.transform = 'scale(1.22)';
       setTimeout(() => {
-        avatarEl.style.transform = '';
+        anchorEl.style.transform = '';
       }, 180);
     } else {
       const playerIndex = rosterPlayer
@@ -248,19 +336,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     const targetY = screenH * 0.36 + (Math.random() - 0.5) * 40;
 
     const palette = ARROW_VFX_CONFIG.COLORS;
-    const color =
-      team === TEAM_KEY.BLG
-        ? isCrit
-          ? palette.BLG_CRIT
-          : palette.BLG
-        : isCrit
-        ? palette.GENG_CRIT
-        : palette.GENG;
+    const blgColor = isCrit ? palette.BLG_CRIT : palette.BLG;
+    const gengColor = isCrit ? palette.GENG_CRIT : palette.GENG;
+    const color = team === TEAM_KEY.BLG ? blgColor : gengColor;
 
     const newArrow: FlyingArrowEntity = {
       id: `arrow-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       sourceRosterId: rosterPlayer?.id,
       championName,
+      vfxType: skillVfx.type,
+      skillName: skillVfx.skillName,
       team,
       startX,
       startY,
@@ -427,6 +512,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       totalLikesGENG: newLikesGENG,
       activeHearts: [...state.activeHearts.slice(-GAME_CONSTANTS.HEARTS.MAX_ACTIVE), ...newHearts],
     });
+
+    // Heart Milestone Check: Trigger all-map heal when total combined likes reach milestone
+    const prevTotalLikes = state.totalLikesBLG + state.totalLikesGENG;
+    const newTotalLikes = newLikesBLG + newLikesGENG;
+    const milestoneThreshold = GAME_CONSTANTS.HEART_MILESTONE.THRESHOLD;
+    const prevMilestoneTier = Math.floor(prevTotalLikes / milestoneThreshold);
+    const newMilestoneTier = Math.floor(newTotalLikes / milestoneThreshold);
+
+    if (newMilestoneTier > prevMilestoneTier) {
+      get().triggerHeartMilestoneHeal(newMilestoneTier * milestoneThreshold);
+    }
   },
 
   spawnProjectile: (from: [number, number, number], color: string, isCrit = false) => {
@@ -454,7 +550,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
   },
 
-  damageBoss: (amount: number, team: TeamType, playerName: string, damageType: DamageType = DAMAGE_TYPE.NORMAL) => {
+  damageBoss: (
+    amount: number,
+    team: TeamType,
+    playerName: string,
+    damageType: DamageType = DAMAGE_TYPE.NORMAL,
+    options?: DamageBossOptions
+  ) => {
     const state = get();
     if (state.bossHp <= 0) return;
 
@@ -474,7 +576,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const newBLGScore = team === TEAM_KEY.BLG ? state.teamScoreBLG + amount : state.teamScoreBLG;
     const newGENGScore = team === TEAM_KEY.GENG ? state.teamScoreGENG + amount : state.teamScoreGENG;
-    const topLeaderboard = updateLeaderboardList(state.leaderboard, playerName, team, amount);
+    const topLeaderboard = options?.excludeFromLeaderboard
+      ? state.leaderboard
+      : updateLeaderboardList(state.leaderboard, playerName, team, amount);
 
     let nextBO5Score = { ...state.bo5Score };
     let nextRoundWinner: TeamType | null = state.roundWinner;
@@ -563,16 +667,56 @@ export const useGameStore = create<GameState>((set, get) => ({
     const nextComboCount = isComboActive ? state.comboCount + 1 : 1;
     const nextComboDamage = isComboActive ? state.comboDamage + safeAmount : safeAmount;
 
+    if (isDefeated) {
+      const isElder = state.gameTheme === GAME_THEME.ELDER_DRAGON;
+      const defeatColor = isElder
+        ? BOSS_DEFEAT_CONSTANTS.ELDER_DRAGON_DEFEAT_COLOR
+        : BOSS_DEFEAT_CONSTANTS.BARON_DEFEAT_COLOR;
+
+      audioService.playBossDefeatSound(isElder);
+      get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
+      get().triggerScreenFlash(teamPalette.primary);
+
+      newShockwaves.push(
+        {
+          id: `defeat-wave-1-${now}`,
+          timestamp: now,
+          color: defeatColor,
+          maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_INNER,
+        },
+        {
+          id: `defeat-wave-2-${now}`,
+          timestamp: now + BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS,
+          color: teamPalette.primary,
+          maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_MID,
+        },
+        {
+          id: `defeat-wave-3-${now}`,
+          timestamp: now + BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS * 2,
+          color: '#ffffff',
+          maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_OUTER,
+        }
+      );
+
+      get().spawnParticleBurst([0, 0.5, 0.6], defeatColor, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+      get().spawnParticleBurst([-1.1, 0.9, 0.4], teamPalette.primary, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+      get().spawnParticleBurst([1.1, 0.2, 0.4], '#ffffff', COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+    }
+
     set((prev) => ({
       bossHp: newHp,
       bossStatus: nextStatus,
       bossHitTimestamp: now,
       lastHitTeam: team,
       lastHitDamageType: damageType,
+      bossDefeatedTimestamp: isDefeated ? now : prev.bossDefeatedTimestamp,
+      finisherPlayerName: isDefeated ? playerName : prev.finisherPlayerName,
+      finisherTeam: isDefeated ? team : prev.finisherTeam,
+      activeBossSkillBanner: isDefeated ? null : prev.activeBossSkillBanner,
       teamScoreBLG: newBLGScore,
       teamScoreGENG: newGENGScore,
       leaderboard: topLeaderboard,
-      activeShockwaves: newShockwaves.slice(-6),
+      activeShockwaves: newShockwaves.slice(-8),
       floatingDamages: [
         ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
         newFloat,
@@ -592,8 +736,64 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
   },
 
-  summonMinion: (summonerName: string, championName: string, team: TeamType) => {
+  summonMinion: (summonerName: string, championName: string, team: TeamType, isGiftBypass = false) => {
+    const state = get();
     const now = Date.now();
+
+    // Option B: Limit to 1 active living champion per user
+    // Option D: Gifts (isGiftBypass) break through this cap completely!
+    if (!isGiftBypass) {
+      const activeLivingMinion = state.minions.find((m) => {
+        const isSameUser = m.summonerName.trim().toLowerCase() === summonerName.trim().toLowerCase();
+        const isAlive = (m.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0;
+        const isNotExpired = now - m.createdAt < m.lifetimeMs;
+        return isSameUser && isAlive && isNotExpired;
+      });
+
+      if (activeLivingMinion) {
+        // User already has an active living champion on the field:
+        // Option B dynamic engagement -> Cheer & empower the existing champion!
+        const healAmt = GAME_CONSTANTS.SUMMON_RULES.ALIVE_SUPPORT_HEAL;
+        const bonusDmg = GAME_CONSTANTS.SUMMON_RULES.ALIVE_SUPPORT_DAMAGE;
+        const curHp = activeLivingMinion.hp ?? CHAMPION_DEFAULT_MAX_HP;
+        const maxHp = activeLivingMinion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
+        const nextHp = Math.min(maxHp, curHp + healAmt);
+        const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
+
+        const updatedMinions = state.minions.map((m) => {
+          if (m.id === activeLivingMinion.id) {
+            return {
+              ...m,
+              hp: nextHp,
+              lifetimeMs: m.lifetimeMs + GAME_CONSTANTS.SUMMON_RULES.LIFETIME_EXTENSION_MS,
+            };
+          }
+          return m;
+        });
+
+        // Trigger immediate support strike from champion against Boss
+        get().damageBoss(bonusDmg, team, `${summonerName} (Tiếp sức)`, 'NORMAL');
+        get().spawnProjectile(activeLivingMinion.spawnPosition, teamPalette.primary, false);
+        get().spawnFlyingArrow(activeLivingMinion.championName, team, false);
+        audioService.playHeartChime();
+
+        get().addLog(
+          'SUMMON',
+          `⚡ ${summonerName} tiếp sức [${activeLivingMinion.championName}] (+${healAmt} HP & +${bonusDmg} ST)`,
+          team
+        );
+        get().addChatMessage(
+          summonerName,
+          `Tiếp sức cho ${activeLivingMinion.championName}! (+${healAmt} HP)`,
+          team,
+          activeLivingMinion.championName
+        );
+
+        set({ minions: updatedMinions });
+        return;
+      }
+    }
+
     const spawnPosition = createWingSpawnPosition(team);
     const avatarUrl = getChampionAvatarUrl(championName, team);
     const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
@@ -713,6 +913,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().triggerScreenFlash(team === TEAM_KEY.BLG ? '#38bdf8' : '#fbbf24');
     get().triggerScreenShake(1.3);
 
+    // Option D: Donating gifts breaks through champion limits and summons an Elite Champion for the donor
+    const giftRosterBLG = ['Jax', "Kai'Sa", 'Ahri', 'Aatrox', 'Zed'];
+    const giftRosterGEN = ['Yone', 'Ezreal', 'Nidalee', 'Yasuo', 'Sylas'];
+    const pool = team === TEAM_KEY.BLG ? giftRosterBLG : giftRosterGEN;
+    const eliteChamp = pool[Math.floor(Math.random() * pool.length)];
+    get().summonMinion(`👑 ${donorName}`, eliteChamp, team, true);
+
     const newBanner: GiftAnnouncement = {
       id: `banner-${Date.now()}`,
       donorName,
@@ -800,6 +1007,46 @@ export const useGameStore = create<GameState>((set, get) => ({
       floatingDamages: [...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)), ...newFloats],
     }));
   },
+
+  triggerHeartMilestoneHeal: (milestoneCount: number) => {
+    const healAmount = GAME_CONSTANTS.HEART_MILESTONE.HEAL_AMOUNT;
+    const now = Date.now();
+
+    // 1. Heal all champions on the map (minions), EXCLUDING monsters/boss
+    get().healTeamChampions('ALL', healAmount);
+
+    // 2. Play celestial divine healing sound
+    audioService.playGlobalDivineHealSound();
+
+    // 3. Screen flash emerald green radiance
+    get().triggerScreenFlash('#10b981');
+
+    // 4. Subtle screen shake pulse
+    get().triggerScreenShake(0.6);
+
+    // 5. Spawn celebratory divine emerald & golden particle bursts across the arena
+    get().spawnParticleBurst([-2.5, 0.5, 0], '#10b981', 2.0);
+    get().spawnParticleBurst([2.5, 0.5, 0], '#10b981', 2.0);
+    get().spawnParticleBurst([0, 1.0, 1.5], '#facc15', 2.0);
+
+    // 6. Set milestone banner
+    const banner: HeartMilestoneBanner = {
+      id: `heart-milestone-${now}`,
+      milestoneCount,
+      healAmount,
+      timestamp: now,
+    };
+
+    // 7. Event logs and Chat
+    get().addLog('GIFT', `💖 [ĐẠI HỒI PHỤC] Đạt mốc ${milestoneCount.toLocaleString()} tim: Hồi phục +${healAmount} HP toàn bản đồ!`);
+    get().addChatMessage('Hệ Thống', `💖 Mốc ${milestoneCount.toLocaleString()} TIM đạt được! Mưa hồi phục toàn bản đồ (+${healAmount} HP)`);
+
+    set({
+      activeHeartMilestoneBanner: banner,
+    });
+  },
+
+  clearHeartMilestoneBanner: () => set({ activeHeartMilestoneBanner: null }),
 
   castBossSkill: (skillIndex) => {
     const state = get();
@@ -988,6 +1235,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastHitTeam: null,
       lastHitDamageType: null,
       bossAttackTargetTeam: null,
+      bossDefeatedTimestamp: 0,
+      finisherPlayerName: null,
+      finisherTeam: null,
       leaderboard: [],
     });
   },
@@ -1025,6 +1275,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastHitTeam: null,
       lastHitDamageType: null,
       bossAttackTargetTeam: null,
+      bossDefeatedTimestamp: 0,
+      finisherPlayerName: null,
+      finisherTeam: null,
     });
   },
 
@@ -1080,6 +1333,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastHitTeam: null,
       lastHitDamageType: null,
       bossAttackTargetTeam: null,
+      bossDefeatedTimestamp: 0,
+      finisherPlayerName: null,
+      finisherTeam: null,
       roundWinner: null,
     });
   },
@@ -1089,7 +1345,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     const clampedHp = Math.max(0, Math.min(max, hp));
     const status = clampedHp <= 0 ? BOSS_STATUS.DEFEATED : clampedHp <= max * 0.35 ? BOSS_STATUS.ENRAGED : BOSS_STATUS.IDLE;
     get().addLog('BOSS', `Chỉnh máu Boss về ${clampedHp.toLocaleString()} HP`);
-    set({ bossHp: clampedHp, bossStatus: status });
+    set({
+      bossHp: clampedHp,
+      bossStatus: status,
+      bossDefeatedTimestamp: clampedHp <= 0 ? Date.now() : 0,
+    });
   },
 
   setBossStatus: (status: BossStatusType) => {
@@ -1146,9 +1406,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     const isBannerActive =
       state.activeBossSkillBanner !== null &&
       now - state.activeBossSkillBanner.timestamp <= BOSS_ATTACK_BANNER_DURATION_MS;
+    const isHeartMilestoneBannerActive =
+      state.activeHeartMilestoneBanner !== null &&
+      now - state.activeHeartMilestoneBanner.timestamp <= GAME_CONSTANTS.HEART_MILESTONE.BANNER_DURATION_MS;
     const isComboActive =
       state.lastComboTimestamp > 0 &&
       now - state.lastComboTimestamp <= COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
+    const isRosterAttackGlowActive =
+      state.lastAttackingRosterId !== null &&
+      now - state.lastRosterAttackTimestamp <= AUTO_PRO_BATTLE_CONSTANTS.ROSTER_ATTACK_GLOW_MS;
 
     const hasMinionsChanged = activeMinions.length !== state.minions.length;
     const hasHeartsChanged = activeHearts.length !== state.activeHearts.length;
@@ -1164,7 +1430,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     const hasDefeatedChanged = activeDefeated.length !== state.activeDefeatedChampions.length;
     const hasFlashChanged = (state.screenFlashColor !== null) !== isFlashActive;
     const hasBannerChanged = (state.activeBossSkillBanner !== null) !== isBannerActive;
+    const hasHeartBannerChanged = (state.activeHeartMilestoneBanner !== null) !== isHeartMilestoneBannerActive;
     const hasComboChanged = (state.comboCount > 0) !== isComboActive;
+    const hasRosterAttackChanged = (state.lastAttackingRosterId !== null) !== isRosterAttackGlowActive;
 
     if (
       !hasMinionsChanged &&
@@ -1181,7 +1449,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       !hasDefeatedChanged &&
       !hasFlashChanged &&
       !hasBannerChanged &&
-      !hasComboChanged
+      !hasHeartBannerChanged &&
+      !hasComboChanged &&
+      !hasRosterAttackChanged
     ) {
       return;
     }
@@ -1204,6 +1474,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       comboTeam: isComboActive ? state.comboTeam : null,
       screenFlashColor: isFlashActive ? state.screenFlashColor : null,
       activeBossSkillBanner: isBannerActive ? state.activeBossSkillBanner : null,
+      activeHeartMilestoneBanner: isHeartMilestoneBannerActive ? state.activeHeartMilestoneBanner : null,
+      lastAttackingRosterId: isRosterAttackGlowActive ? state.lastAttackingRosterId : null,
     });
   },
 }));
@@ -1251,6 +1523,9 @@ if (typeof window !== 'undefined') {
         break;
       case 'TOGGLE_BOT':
         store.toggleSimulation(event.payload.isActive, event.payload.speedMs);
+        break;
+      case 'SET_AUTO_PRO_BATTLE':
+        store.setAutoProBattleConfig(event.payload);
         break;
       default:
         break;

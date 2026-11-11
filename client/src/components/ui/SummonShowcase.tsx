@@ -75,7 +75,7 @@ const SummonSpotlightCard = ({
     <div
       key={portal.id}
       style={{ boxShadow: theme.glowStyle }}
-      className={`flex items-center space-x-2 px-2 py-1.5 rounded-2xl border backdrop-blur-md animate-summon-entrance max-w-[146px] sm:max-w-[185px] ${
+      className={`flex items-center space-x-1.5 px-2 py-1 rounded-2xl border backdrop-blur-md animate-summon-entrance max-w-[138px] sm:max-w-[175px] ${
         theme.borderClass
       } ${theme.bgClass} ${isRight ? 'flex-row-reverse space-x-reverse text-right' : ''}`}
     >
@@ -195,14 +195,14 @@ export const SummonShowcase = () => {
 
   return (
     <>
-      {/* Left Wing: BLG Summon Spotlight & Active Warriors */}
-      <div className="absolute top-[22%] left-1.5 sm:left-3 z-20 pointer-events-none flex flex-col space-y-2">
+      {/* Left Wing: BLG Summon Spotlight & Active Warriors (positioned cleanly below TeamRosterBar toggle) */}
+      <div className="absolute top-[206px] sm:top-[216px] left-1.5 sm:left-3 z-20 pointer-events-none flex flex-col space-y-2">
         {latestBLGPortal && <SummonSpotlightCard portal={latestBLGPortal} side="left" />}
         <ActiveSquadRow warriors={blgWarriors} team={TEAM_KEY.BLG} side="left" />
       </div>
 
       {/* Right Wing: GEN.G Summon Spotlight & Active Warriors */}
-      <div className="absolute top-[22%] right-1.5 sm:right-3 z-20 pointer-events-none flex flex-col items-end space-y-2">
+      <div className="absolute top-[206px] sm:top-[216px] right-1.5 sm:right-3 z-20 pointer-events-none flex flex-col items-end space-y-2">
         {latestGENGPortal && <SummonSpotlightCard portal={latestGENGPortal} side="right" />}
         <ActiveSquadRow warriors={gengWarriors} team={TEAM_KEY.GENG} side="right" />
       </div>

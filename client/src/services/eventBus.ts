@@ -1,4 +1,4 @@
-import { GameState, OverlayVisibility } from '../types/game';
+import { AutoProBattleConfig, GameState, OverlayVisibility } from '../types/game';
 
 export type GameBusEvent =
   | { type: 'SUMMON_MINION'; payload: { summonerName: string; championName: string; team: 'BLG' | 'GENG' } }
@@ -13,6 +13,7 @@ export type GameBusEvent =
   | { type: 'SET_BOSS_HP'; payload: { hp: number } }
   | { type: 'SET_ENRAGED'; payload: { isEnraged: boolean } }
   | { type: 'TOGGLE_BOT'; payload: { isActive: boolean; speedMs: number } }
+  | { type: 'SET_AUTO_PRO_BATTLE'; payload: Partial<AutoProBattleConfig> }
   | { type: 'SET_OVERLAY_VISIBILITY'; payload: Partial<OverlayVisibility> }
   | { type: 'SET_GAME_THEME'; payload: { theme: 'BARON' | 'ELDER_DRAGON' } }
   | { type: 'SYNC_STATE_REQUEST' }

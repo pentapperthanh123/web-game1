@@ -36,7 +36,14 @@ class GameSocketClient {
 
       // Listen for game events dispatched by Server or Admin Portal
       this.socket.on('game:summon', (payload) => {
-        useGameStore.getState().summonMinion(payload.summonerName, payload.championName, payload.team);
+        useGameStore
+          .getState()
+          .summonMinion(
+            payload.summonerName,
+            payload.championName,
+            payload.team,
+            payload.isGiftBypass
+          );
       });
 
       this.socket.on('game:gift', (payload) => {
@@ -83,6 +90,10 @@ class GameSocketClient {
 
       this.socket.on('game:heal-team', (payload) => {
         useGameStore.getState().healTeamChampions(payload?.team, payload?.amount);
+      });
+
+      this.socket.on('game:auto-pro-battle', (payload) => {
+        useGameStore.getState().setAutoProBattleConfig(payload);
       });
     } catch (err) {
       console.warn('[Game Socket] Could not connect to Server, using local EventBus fallback', err);

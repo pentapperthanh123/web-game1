@@ -179,6 +179,13 @@ export interface DefeatedChampionEntity {
   durationMs: number;
 }
 
+export interface HeartMilestoneBanner {
+  id: string;
+  milestoneCount: number;
+  healAmount: number;
+  timestamp: number;
+}
+
 export interface AdminEventLog {
   id: string;
   time: string;
@@ -195,6 +202,16 @@ export interface OverlayVisibility {
   teamScores: boolean;
   likeCounter: boolean;
   howToPlay: boolean;
+}
+
+export interface AutoProBattleConfig {
+  enabled: boolean;
+  onlyWhenIdle: boolean;
+  intervalMs: number;
+}
+
+export interface DamageBossOptions {
+  excludeFromLeaderboard?: boolean;
 }
 
 export interface GameState {
@@ -237,10 +254,17 @@ export interface GameState {
   gameTheme: GameThemeType;
   bossSkillConfig: BossSkillConfig;
   activeBossSkillBanner: ActiveBossSkillBanner | null;
+  activeHeartMilestoneBanner: HeartMilestoneBanner | null;
   bossSkillRotationIndex: number;
   lastHitTeam: TeamType | null;
   lastHitDamageType: DamageType | null;
   bossAttackTargetTeam: 'BLG' | 'GENG' | 'ALL' | null;
+  bossDefeatedTimestamp: number;
+  finisherPlayerName: string | null;
+  finisherTeam: TeamType | null;
+  autoProBattleConfig: AutoProBattleConfig;
+  lastAttackingRosterId: string | null;
+  lastRosterAttackTimestamp: number;
 
   // BO5 Match State
   bo5Score: {
@@ -261,8 +285,12 @@ export interface GameState {
   castBossSkill: (skillIndex?: number) => void;
   healTeamChampions: (team: TeamType | 'ALL', amount: number) => void;
   clearBossSkillBanner: () => void;
+  triggerHeartMilestoneHeal: (milestoneCount: number) => void;
+  clearHeartMilestoneBanner: () => void;
   setGameTheme: (theme: GameThemeType) => void;
   setOverlayVisibility: (visibility: Partial<OverlayVisibility>) => void;
+  setAutoProBattleConfig: (config: Partial<AutoProBattleConfig>) => void;
+  triggerAutoProAttack: (team: TeamType, playerIndex: number) => void;
   spawnFlyingArrow: (
     championName: string,
     team: TeamType,
@@ -270,8 +298,19 @@ export interface GameState {
     customStart?: { x: number; y: number },
     customTarget?: { x: number; y: number }
   ) => void;
-  damageBoss: (amount: number, team: TeamType, playerName: string, damageType?: DamageType) => void;
-  summonMinion: (summonerName: string, championName: string, team: TeamType) => void;
+  damageBoss: (
+    amount: number,
+    team: TeamType,
+    playerName: string,
+    damageType?: DamageType,
+    options?: DamageBossOptions
+  ) => void;
+  summonMinion: (
+    summonerName: string,
+    championName: string,
+    team: TeamType,
+    isGiftBypass?: boolean
+  ) => void;
   triggerGiftExplosion: (giftName: string, team: TeamType, donorName: string, coins?: number) => void;
   addLikes: (count: number, team: TeamType, userName?: string) => void;
   addChatMessage: (userName: string, text: string, team?: TeamType, championName?: string) => void;

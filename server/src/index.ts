@@ -57,6 +57,18 @@ let currentBossSkillConfig: BossSkillConfig = {
   mode: 'RANDOM_WEIGHTED',
   randomIntervalEnabled: true,
 };
+
+interface AutoProBattleConfig {
+  enabled: boolean;
+  onlyWhenIdle: boolean;
+  intervalMs: number;
+}
+
+let currentAutoProBattleConfig: AutoProBattleConfig = {
+  enabled: false,
+  onlyWhenIdle: true,
+  intervalMs: 1800,
+};
 let currentTiktokUsername = '';
 let connectionStatus: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR' = 'DISCONNECTED';
 let lastErrorMessage = '';
@@ -231,6 +243,7 @@ io.on('connection', (socket) => {
   socket.emit('game:overlay-visibility', currentOverlayVisibility);
   socket.emit('game:theme', { theme: currentGameTheme });
   socket.emit('game:boss-skill-config', currentBossSkillConfig);
+  socket.emit('game:auto-pro-battle', currentAutoProBattleConfig);
   socket.emit('tiktok:status', {
     status: connectionStatus,
     username: currentTiktokUsername,
@@ -298,6 +311,11 @@ io.on('connection', (socket) => {
 
   socket.on('admin:heal-team', (payload: { team: 'BLG' | 'GEN' | 'GENG' | 'ALL'; amount: number }) => {
     io.emit('game:heal-team', payload);
+  });
+
+  socket.on('admin:auto-pro-battle', (payload: Partial<AutoProBattleConfig>) => {
+    currentAutoProBattleConfig = { ...currentAutoProBattleConfig, ...payload };
+    io.emit('game:auto-pro-battle', currentAutoProBattleConfig);
   });
 
   socket.on('disconnect', () => {

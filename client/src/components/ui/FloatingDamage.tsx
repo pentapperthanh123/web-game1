@@ -85,13 +85,13 @@ export const FloatingDamage = React.memo(() => {
     <>
       <div
         aria-live="polite"
-        className="absolute top-[44%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 pointer-events-none z-30 flex items-center justify-center overflow-visible"
+        className="absolute top-[56%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-56 pointer-events-none z-30 flex items-center justify-center overflow-visible"
       >
         {/* Active Combo Counter Banner */}
         {comboCount >= 2 && (
           <div
             key={comboCount}
-            className={`absolute -top-6 sm:-top-8 flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border backdrop-blur-md animate-in zoom-in-75 duration-150 ${comboBadgeStyle}`}
+            className={`absolute -top-3 sm:-top-4 flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border backdrop-blur-md animate-in zoom-in-75 duration-150 ${comboBadgeStyle}`}
           >
             <span className="text-[10px] sm:text-xs font-black tracking-wider uppercase">
               {t('Combat.comboLabel', 'COMBO')} x{comboCount}

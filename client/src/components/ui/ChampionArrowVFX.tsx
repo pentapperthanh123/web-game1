@@ -66,7 +66,8 @@ const drawSkillGraphic = (
   ctx.shadowBlur = isCrit ? 10 : 5;
 
   switch (vfxType) {
-    case CHAMPION_SKILL_VFX_TYPE.SHURIKEN: {
+    case CHAMPION_SKILL_VFX_TYPE.SHURIKEN:
+    case CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN: {
       const spinAngle = (elapsed * 0.0035 * Math.PI * 2) % (Math.PI * 2);
       ctx.rotate(spinAngle);
 
@@ -172,7 +173,8 @@ const drawSkillGraphic = (
       break;
     }
 
-    case CHAMPION_SKILL_VFX_TYPE.JAVELIN: {
+    case CHAMPION_SKILL_VFX_TYPE.JAVELIN:
+    case CHAMPION_SKILL_VFX_TYPE.WIND_SPEAR: {
       // Shaft
       ctx.strokeStyle = '#ca8a04';
       ctx.lineWidth = isCrit ? 3.5 : 2.5;
@@ -204,7 +206,8 @@ const drawSkillGraphic = (
       break;
     }
 
-    case CHAMPION_SKILL_VFX_TYPE.CRESCENT_ARC: {
+    case CHAMPION_SKILL_VFX_TYPE.CRESCENT_ARC:
+    case CHAMPION_SKILL_VFX_TYPE.GOLDEN_FEATHER: {
       const arcScale = isCrit ? 1.3 : 1.0;
       ctx.scale(arcScale, arcScale);
 
@@ -244,7 +247,9 @@ const drawSkillGraphic = (
     }
 
     case CHAMPION_SKILL_VFX_TYPE.MELEE_LEAP:
-    case CHAMPION_SKILL_VFX_TYPE.BLADE_SLASH: {
+    case CHAMPION_SKILL_VFX_TYPE.BLADE_SLASH:
+    case CHAMPION_SKILL_VFX_TYPE.NTOFO_SLAM:
+    case CHAMPION_SKILL_VFX_TYPE.ANCHOR_DEPTH: {
       // Dual Katana Blade lines
       ctx.strokeStyle = '#ef4444';
       ctx.lineWidth = isCrit ? 3.5 : 2.5;

@@ -67,6 +67,9 @@ class AdminSocketService {
         case 'admin:set-theme':
           mappedType = 'SET_GAME_THEME';
           break;
+        case 'admin:auto-pro-battle':
+          mappedType = 'SET_AUTO_PRO_BATTLE';
+          break;
         case 'admin:chat':
           mappedType = 'SEND_CHAT';
           break;
@@ -128,6 +131,24 @@ class AdminSocketService {
 
   public setBossSkillConfig(payload: Partial<BossSkillConfig>): void {
     this.emit('admin:boss-skill-config', payload);
+  }
+
+  public setAutoProBattleConfig(payload: {
+    enabled?: boolean;
+    onlyWhenIdle?: boolean;
+    intervalMs?: number;
+  }): void {
+    this.emit('admin:auto-pro-battle', payload);
+  }
+
+  public onAutoProBattleConfig(
+    callback: (config: { enabled: boolean; onlyWhenIdle: boolean; intervalMs: number }) => void
+  ): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('game:auto-pro-battle', callback);
+    return () => {
+      this.socket?.off('game:auto-pro-battle', callback);
+    };
   }
 
   public castBossSkill(skillIndex?: number): void {

@@ -43,7 +43,6 @@ export const ProceduralVoidBaron = () => {
 
     const time = state.clock.getElapsedTime();
     const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
-    const isRecentlyHit = Date.now() - bossHitTimestamp < GAME_CONSTANTS.BOSS.HIT_FLASH_DURATION_MS;
 
     const undulateFreq = isEnraged ? 3.4 : 1.9;
     const undulateAmp = isEnraged ? 0.25 : 0.16;
@@ -55,16 +54,27 @@ export const ProceduralVoidBaron = () => {
     headGroupRef.current.rotation.y = Math.sin(time * 0.7) * 0.24;
     headGroupRef.current.rotation.z = Math.cos(time * 1.0) * 0.05;
 
-    // 2. Hit recoil
-    if (isRecentlyHit) {
-      headGroupRef.current.position.z = -0.5;
-      headGroupRef.current.position.y += 0.25;
+    // 2. Visceral hit recoil & dynamic shock tremor
+    const hitElapsed = (Date.now() - bossHitTimestamp) / 1000;
+    const isHitReactionActive = hitElapsed >= 0 && hitElapsed < 0.45;
+
+    if (isHitReactionActive) {
+      const hitProgress = hitElapsed / 0.45;
+      const hitDecay = Math.exp(-hitProgress * 4.5);
+      const shudder = Math.sin(hitElapsed * 38.0) * hitDecay;
+
+      // Jerk back along Z, nod up on rotation X, tremor on X and Z
+      headGroupRef.current.position.z = -0.15 - 0.55 * hitDecay;
+      headGroupRef.current.position.x += shudder * 0.18;
+      headGroupRef.current.position.y += (Math.sin(hitElapsed * 24.0) * 0.12 + 0.22) * hitDecay;
+      headGroupRef.current.rotation.x += 0.35 * hitDecay;
+      headGroupRef.current.rotation.z += shudder * 0.15;
     } else {
       headGroupRef.current.position.z = THREE.MathUtils.lerp(headGroupRef.current.position.z, 0.1, delta * 12);
     }
 
     // 3. Mouth & Mandibles opening
-    const roarAmount = isRecentlyHit || isEnraged ? Math.sin(time * 8) * 0.38 + 0.38 : 0.14;
+    const roarAmount = isHitReactionActive || isEnraged ? Math.sin(time * 8) * 0.38 + 0.38 : 0.14;
     if (lowerJawRef.current) {
       lowerJawRef.current.rotation.x = roarAmount * 0.9;
     }
@@ -84,6 +94,13 @@ export const ProceduralVoidBaron = () => {
       segment.rotation.y = Math.sin(phase) * 0.22;
       segment.rotation.z = Math.cos(phase) * 0.06;
       segment.rotation.x = 0.2 + Math.sin(phase * 0.6) * 0.05;
+
+      // Ripple hit tremor down the spine segments
+      if (isHitReactionActive) {
+        const segDecay = Math.exp(-(hitElapsed + idx * 0.04) * 4.0);
+        segment.position.x += Math.sin(hitElapsed * 30.0 + idx) * 0.14 * segDecay;
+        segment.rotation.z += Math.cos(hitElapsed * 25.0 + idx) * 0.1 * segDecay;
+      }
     });
   });
 

@@ -20,6 +20,7 @@ import { ElementalEmbers } from './ElementalEmbers';
 import { BossSpeechBubble } from './BossSpeechBubble';
 import { BossGlowingEyes } from './BossGlowingEyes';
 import { WingGustVFX } from './WingGustVFX';
+import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { audioService } from '../../services/audioService';
 
 const getAnimationClass = (
@@ -33,10 +34,11 @@ const getAnimationClass = (
   attackTargetTeam: 'BLG' | 'GENG' | 'ALL' | null,
   isUltimateAttack: boolean,
   lastHitTeam: TeamType | null,
-  lastHitDamageType: DamageType | null
+  lastHitDamageType: DamageType | null,
+  hitNonce: number
 ): string => {
   if (isDefeated) {
-    return 'opacity-25 scale-90 blur-sm transition-all duration-1000 grayscale pointer-events-none';
+    return 'animate-boss-defeat pointer-events-none';
   }
 
   // 1. Direct User Poke Reaction (Click / Tap)
@@ -59,18 +61,28 @@ const getAnimationClass = (
     return `animate-boss-slam-center drop-shadow-[0_0_60px_${shadowColor}] cursor-pointer`;
   }
 
-  // 3. Directional Damage Recoil & Stagger
+  // 3. Directional Damage Recoil & Stagger with alternating keyframes to prevent freezing
   if (isRecentlyHit) {
     const isHeavy =
       lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
+    const suffix = hitNonce % 2 === 0 ? '-1' : '-2';
 
     if (lastHitTeam === TEAM_KEY.BLG) {
-      return isHeavy ? 'animate-boss-hit-left-heavy cursor-pointer' : 'animate-boss-hit-left cursor-pointer';
+      if (isHeavy) {
+        return `animate-boss-hit-left-heavy${suffix} cursor-pointer`;
+      }
+      return `animate-boss-hit-left${suffix} cursor-pointer`;
     }
     if (lastHitTeam === TEAM_KEY.GENG) {
-      return isHeavy ? 'animate-boss-hit-right-heavy cursor-pointer' : 'animate-boss-hit-right cursor-pointer';
+      if (isHeavy) {
+        return `animate-boss-hit-right-heavy${suffix} cursor-pointer`;
+      }
+      return `animate-boss-hit-right${suffix} cursor-pointer`;
     }
-    return isHeavy ? 'animate-boss-hit-left-heavy cursor-pointer' : 'animate-boss-hit cursor-pointer';
+    if (isHeavy) {
+      return `animate-boss-hit-center-heavy${suffix} cursor-pointer`;
+    }
+    return `animate-boss-hit-center${suffix} cursor-pointer`;
   }
 
   // 4. Enraged Stance
@@ -166,6 +178,7 @@ export const Boss2D = () => {
 
   // Combat Animation States
   const [isHitActive, setIsHitActive] = useState(false);
+  const [hitNonce, setHitNonce] = useState(0);
   const [isRoarActive, setIsRoarActive] = useState(false);
 
   // Interactive & Ambient Idle States
@@ -192,6 +205,7 @@ export const Boss2D = () => {
   useEffect(() => {
     if (bossHitTimestamp === 0) return;
 
+    setHitNonce((prev) => (prev + 1) % 1000);
     setIsHitActive(true);
     const isHeavy =
       lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
@@ -338,7 +352,8 @@ export const Boss2D = () => {
     bossAttackTargetTeam,
     isUltimateAttack,
     lastHitTeam,
-    lastHitDamageType
+    lastHitDamageType,
+    hitNonce
   );
 
   const auraColorClass = getAuraColorClass(
@@ -416,7 +431,7 @@ export const Boss2D = () => {
       >
         {/* Dynamic Non-Repeating Comic Speech Bubble Anchored directly over monster head */}
         <BossSpeechBubble
-          speech={activeSpeech}
+          speech={isRoarActive || isDefeated ? null : activeSpeech}
           isElderDragon={isElderDragon}
           isRestless={isRestless}
         />
@@ -442,6 +457,9 @@ export const Boss2D = () => {
         {/* Crisp Impact Flares aligned directly over Boss */}
         <BossHitMarks2D />
       </div>
+
+      {/* 10. Cinematic Shatter & Execution Callout outside fading sprite */}
+      {isDefeated && <BossDeathVFX2D />}
     </div>
   );
 };

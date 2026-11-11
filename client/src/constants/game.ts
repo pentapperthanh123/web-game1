@@ -60,6 +60,11 @@ export const GAME_CONSTANTS = {
     FLOAT_SPEED_MAX: 3.2,
     COLORS: ['#f43f5e', '#ec4899', '#f97316', '#38bdf8', '#fbbf24', '#a855f7'],
   },
+  HEART_MILESTONE: {
+    THRESHOLD: 200, // Mỗi khi đạt thêm 200 tim (200, 400, 600...) sẽ kích hoạt hồi máu toàn bản đồ
+    HEAL_AMOUNT: 100, // Lượng máu hồi phục cho toàn bộ tướng
+    BANNER_DURATION_MS: 3200,
+  },
   PROJECTILES: {
     MAX_ACTIVE: 40,
     SPEED: 8.5,
@@ -77,6 +82,12 @@ export const GAME_CONSTANTS = {
     TARGET_WINS: 3,
     MAX_ROUNDS: 5,
     ROUND_TRANSITION_SECONDS: 5,
+  },
+  SUMMON_RULES: {
+    MAX_ACTIVE_PER_USER: 1, // Option B: Mỗi người chỉ có tối đa 1 tướng đang sống trên sàn
+    ALIVE_SUPPORT_HEAL: 50, // Option B: Comment tiếp theo khi tướng còn sống sẽ hồi +50 HP tiếp sức
+    ALIVE_SUPPORT_DAMAGE: 200, // Option B: Đòn đánh tiếp sức gây thêm +200 sát thương vào Boss
+    LIFETIME_EXTENSION_MS: 3000, // Option B: Gia hạn thêm 3s thời gian tham chiến cho tướng
   },
   AUDIO: {
     DEFAULT_ENABLED: true,
@@ -208,6 +219,18 @@ export const BOSS_ANIMATION_CONSTANTS = {
   ATTACK_DURATION_MS: 750,
   ULTIMATE_ATTACK_DURATION_MS: 950,
   GROUND_SHOCKWAVE_DURATION_MS: 700,
+} as const;
+
+export const BOSS_DEFEAT_CONSTANTS = {
+  VICTORY_DELAY_MS: 2100,
+  SHATTER_ANIMATION_MS: 2100,
+  SHOCKWAVE_RADIUS_INNER: 4.5,
+  SHOCKWAVE_RADIUS_MID: 7.0,
+  SHOCKWAVE_RADIUS_OUTER: 9.5,
+  BURST_STAGGER_MS: 160,
+  SCREEN_SHAKE_INTENSITY: 1.6,
+  BARON_DEFEAT_COLOR: '#a855f7',
+  ELDER_DRAGON_DEFEAT_COLOR: '#f59e0b',
 } as const;
 
 export const BOSS_IDLE_CONSTANTS = {
@@ -775,4 +798,24 @@ export const getChampionSkillVFX = (
     glowColor: baseConfig.glowColor,
     coreColor: baseConfig.coreColor,
   };
+};
+
+export const AUTO_PRO_STORAGE_KEY = 'lol_auto_pro_battle_config';
+
+export const AUTO_PRO_BATTLE_CONSTANTS = {
+  DEFAULT_INTERVAL_MS: 1800,
+  MIN_INTERVAL_MS: 900,
+  MAX_INTERVAL_MS: 4000,
+  DAMAGE_MIN: 420,
+  DAMAGE_MAX: 780,
+  CRIT_CHANCE: 0.22,
+  CRIT_MULTIPLIER: 1.65,
+  FLYING_ARROW_HIT_DELAY_MS: 380,
+  ROSTER_ATTACK_GLOW_MS: 450,
+} as const;
+
+export const DEFAULT_AUTO_PRO_BATTLE_CONFIG = {
+  enabled: false,
+  onlyWhenIdle: true,
+  intervalMs: AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS,
 };

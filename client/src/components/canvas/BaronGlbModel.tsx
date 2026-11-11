@@ -73,8 +73,18 @@ export const BaronGlbModel = ({ modelPath = '/models/baron.glb' }: BaronGlbModel
     groupRef.current.rotation.y = baseRotationY + Math.sin(time * 0.8) * 0.15;
     groupRef.current.rotation.x = Math.sin(time * 1.2) * 0.05;
 
-    if (isRecentlyHit) {
-      groupRef.current.position.z = -0.7;
+    const hitElapsed = (Date.now() - bossHitTimestamp) / 1000;
+    const isHitReactionActive = hitElapsed >= 0 && hitElapsed < 0.45;
+
+    if (isHitReactionActive) {
+      const hitProgress = hitElapsed / 0.45;
+      const hitDecay = Math.exp(-hitProgress * 4.5);
+      const shudder = Math.sin(hitElapsed * 36.0) * hitDecay;
+
+      groupRef.current.position.z = -0.3 - 0.45 * hitDecay;
+      groupRef.current.position.x = shudder * 0.16;
+      groupRef.current.rotation.z = shudder * 0.12;
+      groupRef.current.rotation.x = Math.sin(time * 1.2) * 0.05 + 0.22 * hitDecay;
     } else {
       groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, -0.3, delta * 12);
     }

@@ -52,9 +52,19 @@ export const AatroxDarkinBoss = ({ modelPath = '/models/aatrox_boss.glb' }: Aatr
     groupRef.current.rotation.y = baseRotY + Math.sin(time * 0.7) * 0.12;
     groupRef.current.rotation.x = Math.sin(time * 1.1) * 0.04;
 
-    // Hit reaction stagger (knockback)
-    if (isRecentlyHit) {
-      groupRef.current.position.z = -0.6;
+    // Hit reaction stagger (knockback & visceral shudder)
+    const hitElapsed = (Date.now() - bossHitTimestamp) / 1000;
+    const isHitReactionActive = hitElapsed >= 0 && hitElapsed < 0.45;
+
+    if (isHitReactionActive) {
+      const hitProgress = hitElapsed / 0.45;
+      const hitDecay = Math.exp(-hitProgress * 4.5);
+      const shudder = Math.sin(hitElapsed * 36.0) * hitDecay;
+
+      groupRef.current.position.z = -0.2 - 0.45 * hitDecay;
+      groupRef.current.position.x = shudder * 0.16;
+      groupRef.current.rotation.z = shudder * 0.12;
+      groupRef.current.rotation.x = Math.sin(time * 1.1) * 0.04 + 0.22 * hitDecay;
     } else {
       groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, -0.2, delta * 12);
     }
