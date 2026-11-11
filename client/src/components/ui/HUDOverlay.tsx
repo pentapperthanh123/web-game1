@@ -132,18 +132,14 @@ export const HUDOverlay = () => {
               'HUD.guestModeTooltip',
               'Bật/tắt thanh thao tác giả lập cho người xem trên Client'
             )}
-            className={`pointer-events-auto flex items-center space-x-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+            className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
               isGuestModeActive
-                ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.45)]'
+                ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.55)] ring-1 ring-cyan-400/50'
                 : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
             }`}
           >
             <UserCheck className={`w-2.5 h-2.5 ${isGuestModeActive ? 'animate-pulse text-cyan-400' : ''}`} />
-            <span>
-              {isGuestModeActive
-                ? t('HUD.guestModeOn', 'Khách: BẬT')
-                : t('HUD.guestMode', 'Khách')}
-            </span>
+            <span>{t('HUD.guestMode', 'Khách')}</span>
           </button>
 
           <button
@@ -153,18 +149,14 @@ export const HUDOverlay = () => {
               'HUD.adminModeTooltip',
               'Bật/tắt bảng điều khiển trận đấu dành cho Quản trị viên'
             )}
-            className={`pointer-events-auto flex items-center space-x-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+            className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
               isAdminModeActive
-                ? 'bg-amber-950/90 border-amber-400/80 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.45)]'
+                ? 'bg-amber-950/90 border-amber-400/80 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/50'
                 : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
             }`}
           >
             <ShieldAlert className={`w-2.5 h-2.5 ${isAdminModeActive ? 'animate-pulse text-amber-400' : ''}`} />
-            <span>
-              {isAdminModeActive
-                ? t('HUD.adminModeOn', 'Admin: BẬT')
-                : t('HUD.adminMode', 'Admin')}
-            </span>
+            <span>{t('HUD.adminMode', 'Admin')}</span>
           </button>
         </div>
 
