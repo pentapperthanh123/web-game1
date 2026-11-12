@@ -22,7 +22,7 @@ export const BossSkillBanner = () => {
   const IconComponent = SKILL_ICON_MAP[activeBanner.skillId] || Flame;
 
   return (
-    <div className="absolute top-[178px] sm:top-[192px] left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 animate-bounce">
+    <div className="absolute top-[178px] sm:top-[192px] left-1/2 -translate-x-1/2 z-[46] pointer-events-none transition-all duration-300 animate-bounce">
       <div
         className={`px-4 py-1.5 sm:px-5 sm:py-2 rounded-2xl border-2 backdrop-blur-md shadow-2xl flex items-center space-x-2.5 sm:space-x-3 text-white ${
           activeBanner.isUltimate

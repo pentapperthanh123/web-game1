@@ -42,8 +42,8 @@ export const BossSpeechBubble: React.FC<BossSpeechBubbleProps> = React.memo(
       : themeConfig.bubbleTailThemeClass;
 
     return (
-      <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 pointer-events-none z-30 select-none w-max max-w-[185px] sm:max-w-[230px]">
-        <div className="animate-speech-bubble opacity-85">
+      <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 pointer-events-none z-[45] select-none w-max max-w-[185px] sm:max-w-[230px]">
+        <div className="animate-speech-bubble opacity-95">
           {/* Main Comic Dialogue Pill */}
           <div
             className={`px-2.5 py-1 rounded-xl border text-[9px] sm:text-[10px] font-semibold tracking-normal flex items-center space-x-1.5 backdrop-blur-sm ${bubbleThemeClass}`}

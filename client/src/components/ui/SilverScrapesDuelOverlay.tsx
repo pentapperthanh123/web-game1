@@ -12,9 +12,30 @@ export function SilverScrapesDuelOverlay() {
   const activeTeams = useGameStore((state) => state.activeTeams);
 
   const [clashFlash, setClashFlash] = useState<boolean>(false);
+  const [isDismissed, setIsDismissed] = useState<boolean>(false);
+  const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
   const isActive = silverScrapesState.isActive;
   const hasWinner = silverScrapesState.winner !== null;
+
+  // Reset dismissed flag whenever Silver Scrapes becomes active again
+  useEffect(() => {
+    if (isActive) {
+      setIsDismissed(false);
+      setIsFadingOut(false);
+    }
+  }, [isActive]);
+
+  // Auto-dismiss overlay 5 seconds after winner is decided (fade out at 4s)
+  useEffect(() => {
+    if (!hasWinner) return;
+    const fadeTimer = setTimeout(() => setIsFadingOut(true), 4000);
+    const dismissTimer = setTimeout(() => setIsDismissed(true), 5000);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(dismissTimer);
+    };
+  }, [hasWinner]);
 
   // Manage Silver Scrapes BGM loop
   useEffect(() => {
@@ -41,7 +62,7 @@ export function SilverScrapesDuelOverlay() {
     return () => clearTimeout(timer);
   }, [silverScrapesState.lastEvent]);
 
-  if (!isActive && !hasWinner) {
+  if (isDismissed || (!isActive && !hasWinner)) {
     return null;
   }
 
@@ -60,7 +81,7 @@ export function SilverScrapesDuelOverlay() {
       : null;
 
   return (
-    <div className="fixed inset-0 z-50 pointer-events-auto flex flex-col items-center justify-between p-3 sm:p-5 select-none bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-300">
+    <div className={`fixed inset-0 z-50 pointer-events-auto flex flex-col items-center justify-between p-3 sm:p-5 select-none bg-slate-950/85 backdrop-blur-md transition-opacity duration-1000 ${isFadingOut ? 'opacity-0' : 'animate-in fade-in duration-300'}`}>
       {/* 1. Header: Silver Scrapes Title & Countdown Timer */}
       <div className="w-full max-w-xl flex flex-col items-center space-y-1.5 pt-2 sm:pt-4">
         <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.4)]">

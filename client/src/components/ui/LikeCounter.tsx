@@ -31,7 +31,7 @@ export const LikeCounter = () => {
   const isRightBoostActive = rightMultiplier > BOOST_DISPLAY_MIN_MULTIPLIER;
 
   return (
-    <div className="relative z-[5] flex flex-col space-y-1 pointer-events-auto items-end w-full max-w-full">
+    <div className="relative z-[35] flex flex-col space-y-1 pointer-events-auto items-end w-full max-w-full">
       {(isLeftBoostActive || isRightBoostActive) && (
         <div className="flex items-center justify-end flex-wrap gap-1">
           {isLeftBoostActive && (

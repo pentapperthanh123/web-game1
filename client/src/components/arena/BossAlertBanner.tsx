@@ -48,7 +48,7 @@ export const BossAlertBanner: React.FC<BossAlertBannerProps> = React.memo(
           boxShadow: `0 0 24px ${shadowHex}aa`,
           borderColor: bannerColor,
         }}
-        className="absolute -top-10 sm:-top-12 px-3.5 py-1 rounded-full border-2 text-[10px] sm:text-xs font-black tracking-wide flex items-center space-x-1.5 z-20 max-w-[90vw] whitespace-nowrap animate-in fade-in zoom-in-95 duration-200 bg-slate-950/95 text-white backdrop-blur-md"
+        className="absolute -top-10 sm:-top-12 px-3.5 py-1 rounded-full border-2 text-[10px] sm:text-xs font-black tracking-wide flex items-center space-x-1.5 z-[46] max-w-[90vw] whitespace-nowrap animate-in fade-in zoom-in-95 duration-200 bg-slate-950/95 text-white backdrop-blur-md"
       >
         {renderSkillIcon(themeConfig, activeBossSkillBanner)}
         {isUltimate && (

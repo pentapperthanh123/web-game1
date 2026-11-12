@@ -392,6 +392,9 @@ export function App() {
 
         {/* Layer 3: Broadcast HUD Interface */}
         <HUDOverlay />
+
+        {/* Layer 4: Boss Speech Bubbles & Skill Callouts above all 3D particles/VFX */}
+        <div id="boss-notification-layer" className="absolute inset-0 pointer-events-none z-[45]" />
       </div>
     </main>
   );

@@ -153,7 +153,7 @@ export const HUDOverlay = () => {
       {/* Unified Non-Overlapping Center Toast Stack */}
       <div
         style={{ top: `${headerBottomOffset}px` }}
-        className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-40 pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
+        className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-[46] pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
       >
         <BossPhaseShiftBanner themeConfig={getThemeConfig(gameTheme)} />
         <BossEnragedEntranceBanner themeConfig={getThemeConfig(gameTheme)} />

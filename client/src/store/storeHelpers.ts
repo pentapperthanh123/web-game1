@@ -159,11 +159,12 @@ export const getActiveHeartFuryMultiplier = (
   return momentum.multiplier;
 };
 
-/** Returns true when combat actions should be ignored (boss defeated or round intermission). */
+/** Returns true when combat actions should be ignored (boss defeated, round intermission, or Silver Scrapes duel active). */
 export const isBattleHalted = (
-  state: Pick<GameState, 'bossHp' | 'bossStatus' | 'isRoundIntermission' | 'roundWinner'>
+  state: Pick<GameState, 'bossHp' | 'bossStatus' | 'isRoundIntermission' | 'roundWinner' | 'silverScrapesState'>
 ): boolean =>
   state.bossHp <= 0 ||
   state.bossStatus === BOSS_STATUS.DEFEATED ||
   state.isRoundIntermission ||
-  state.roundWinner !== null;
+  state.roundWinner !== null ||
+  state.silverScrapesState?.isActive === true;

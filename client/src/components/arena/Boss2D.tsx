@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
 import {
@@ -23,10 +24,11 @@ import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
 import { audioService } from '../../services/audioService';
 import { playSound } from '../../services/soundManager';
 import { SFX_EVENT } from '../../constants/sfx';
-import { BossSkillVfxType } from '../../types/bossSkill';
+import { BOSS_SKILL_VFX, BossSkillVfxType } from '../../types/bossSkill';
 import { BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
 import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
-import { BossEntranceBreathVFX } from './BossEntranceBreathVFX';
+import { useSkillVfxWindow } from './skillVfx/skillVfxShared';
+import { BossEntranceBreathVFX, isDragonNativeFacingRight } from './BossEntranceBreathVFX';
 
 const getAnimationClass = (
   isDefeated: boolean,
@@ -163,11 +165,22 @@ export const Boss2D = () => {
 
   // Interactive & Ambient Idle States
   const [isPoked, setIsPoked] = useState(false);
-  const [isEyesSurging, setIsEyesSurging] = useState(false);
   const [isRestless, setIsRestless] = useState(false);
   const [isFacingRight, setIsFacingRight] = useState(false);
   const [verticalTierIndex, setVerticalTierIndex] = useState<number>(1);
   const [activeSpeech, setActiveSpeech] = useState<BossSpeechItem | null>(null);
+  const [notificationPortalEl, setNotificationPortalEl] = useState<HTMLElement | null>(null);
+
+  const isSkillVfxWindowOpen = useSkillVfxWindow(activeBossSkillBanner);
+  const isSkillFireBreathActive =
+    !isDefeated &&
+    isSkillVfxWindowOpen &&
+    activeBossSkillBanner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH;
+  const isDragonMouthFireActive = isDragon && !isDefeated && (isEntranceBreathActive || isSkillFireBreathActive);
+
+  useEffect(() => {
+    setNotificationPortalEl(document.getElementById('boss-notification-layer'));
+  }, []);
 
   const verticalTiers = themeConfig.verticalTiersPx;
 
@@ -228,9 +241,9 @@ export const Boss2D = () => {
     [verticalTiers.length]
   );
 
-  const updateFacingSide = useCallback((targetFacingRight: boolean | 'TOGGLE') => {
+  const updateFacingSide = useCallback((targetFacingRight: boolean | 'TOGGLE', bypassCooldown = false) => {
     const now = Date.now();
-    if (now - lastFlipTimestampRef.current < BOSS_IDLE_CONSTANTS.FLIP_COOLDOWN_MS) {
+    if (!bypassCooldown && now - lastFlipTimestampRef.current < BOSS_IDLE_CONSTANTS.FLIP_COOLDOWN_MS) {
       return;
     }
     setIsFacingRight((prev) => {
@@ -282,10 +295,11 @@ export const Boss2D = () => {
   useEffect(() => {
     if (bossAttackTimestamp === 0) return;
 
+    const shouldBypassFlipCooldown = activeBossSkillBanner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH;
     if (bossAttackTargetTeam === TEAM_KEY.BLG) {
-      updateFacingSide(false);
+      updateFacingSide(false, shouldBypassFlipCooldown);
     } else if (bossAttackTargetTeam === TEAM_KEY.GENG) {
-      updateFacingSide(true);
+      updateFacingSide(true, shouldBypassFlipCooldown);
     } else if (bossAttackTargetTeam === 'ALL') {
       updateFacingSide('TOGGLE');
     }
@@ -306,6 +320,7 @@ export const Boss2D = () => {
     bossAttackTimestamp,
     bossAttackTargetTeam,
     activeBossSkillBanner?.isUltimate,
+    activeBossSkillBanner?.vfxType,
     isEnraged,
     updateFacingSide,
     shiftVerticalPatrolTier,
@@ -326,7 +341,6 @@ export const Boss2D = () => {
       // Check Restless Impatient Threshold (> 9.0s with zero active champions)
       if (isNoMinionsOnField && idleDuration >= BOSS_IDLE_CONSTANTS.RESTLESS_THRESHOLD_MS) {
         setIsRestless(true);
-        setIsEyesSurging(true);
         audioService.playBossIdleBreath(themeConfig.audioPitchRate);
 
         if (canSpeak) {
@@ -350,10 +364,8 @@ export const Boss2D = () => {
       const actionRoll = Math.random();
 
       if (actionRoll < 0.4) {
-        // Ambient 1: Glowing Eye Flare Surge + Breath
-        setIsEyesSurging(true);
+        // Ambient 1: Idle Breath
         audioService.playBossIdleBreath(themeConfig.audioPitchRate);
-        setTimeout(() => setIsEyesSurging(false), BOSS_IDLE_CONSTANTS.EYE_SURGE_DURATION_MS);
       } else if (actionRoll < 0.75 || !canSpeak) {
         // Ambient 2: Idle Breath
         audioService.playBossIdleBreath(themeConfig.audioPitchRate);
@@ -401,7 +413,6 @@ export const Boss2D = () => {
           playSound(enragedNow ? SFX_EVENT.BOSS_ENRAGE : SFX_EVENT.BOSS_ROAR, {
             rateScale: themeConfig.audioPitchRate,
           });
-          setIsEyesSurging(true);
           setIsRoarActive(true);
           updateFacingSide('TOGGLE');
           shiftVerticalPatrolTier(0);
@@ -409,7 +420,6 @@ export const Boss2D = () => {
           if (settleTimer) clearTimeout(settleTimer);
           settleTimer = setTimeout(() => {
             setIsRoarActive(false);
-            setIsEyesSurging(false);
           }, BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_DURATION_MS);
         }
         scheduleNextRoar();
@@ -490,7 +500,6 @@ export const Boss2D = () => {
     lastSpeechTimestampRef.current = now;
     setIsRestless(false);
     setIsPoked(true);
-    setIsEyesSurging(true);
 
     audioService.playBossPokeSound(themeConfig.audioPitchRate);
 
@@ -506,7 +515,6 @@ export const Boss2D = () => {
     if (pokeTimerRef.current) clearTimeout(pokeTimerRef.current);
     pokeTimerRef.current = setTimeout(() => {
       setIsPoked(false);
-      setIsEyesSurging(false);
     }, BOSS_IDLE_CONSTANTS.POKE_DURATION_MS);
 
     if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
@@ -554,13 +562,12 @@ export const Boss2D = () => {
   const verticalOffsetPx = isDefeated ? 0 : (verticalTiers[verticalTierIndex] ?? 0);
   const verticalMotionClass = isDefeated ? '' : themeConfig.verticalMotionClass;
   const groundShadowAnimationClass = isDefeated ? '' : themeConfig.groundShadowClass;
+  const shouldMirrorBody = isDragonNativeFacingRight(gameTheme) ? !isFacingRight : isFacingRight;
 
-  return (
+  const bossNotificationOverlay = (
     <div
-      style={{ perspective: '900px' }}
-      className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-10 flex items-center justify-center`}
+      className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none flex items-center justify-center`}
     >
-      {/* 1. Skill Combat Alert Banner */}
       <BossAlertBanner
         isRoarActive={isRoarActive}
         themeConfig={themeConfig}
@@ -569,23 +576,6 @@ export const Boss2D = () => {
         defaultRoarTextVi={themeConfig.roarTextVi}
       />
 
-      {/* 1c. Per-archetype skill VFX overlay (projectiles, beams, spikes…) */}
-      {!isDefeated && <BossSkillVfx2D />}
-
-      {/* 2. Realistic Ground Contact Shadow under Monster */}
-      <div
-        className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 rounded-[50%] blur-md pointer-events-none ${groundShadowAnimationClass}`}
-      />
-
-      {/* 3. Elemental Floating Embers & Sparks */}
-      <ElementalEmbers
-        color={themeConfig.colors.glowHex || themeConfig.colors.primaryHex}
-        enragedColor={themeConfig.colors.enragedHex}
-        isEnraged={isEnraged}
-        isDefeated={isDefeated}
-      />
-
-      {/* 8. Vertical Altitude Patrol + Cave Entrance Swoop + Uninterrupted Hover/Coil Wrapper */}
       <div
         className={`relative pointer-events-none ${isEntranceActive ? 'animate-boss-cave-entrance' : ''}`}
         style={
@@ -598,101 +588,156 @@ export const Boss2D = () => {
         }
       >
         <div className={verticalMotionClass}>
-          <div
-            id="boss-monster-target"
-            onClick={handleBossClick}
-            title={t('BossInteractive.pokeTooltip', 'Click để tương tác với Boss!')}
-            className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-auto group`}
-          >
-            {/* Dynamic Non-Repeating Comic Speech Bubble Anchored directly over monster head */}
+          <div className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-none`}>
             <BossSpeechBubble
               speech={isRoarActive || isDefeated ? null : activeSpeech}
               themeConfig={themeConfig}
               isRestless={isRestless}
             />
-
-            <div
-              className="w-full h-full relative"
-              style={{
-                transform: `perspective(900px) rotateX(${tiltXDeg}deg) rotateY(${tiltYDeg}deg)`,
-                transformStyle: 'preserve-3d',
-                transition: 'transform 160ms ease-out',
-              }}
-            >
-              {/* Body Flip Wrapper: flips artwork, eyes, and armor cracks smoothly without mirroring HUD text */}
-              <div
-                className="w-full h-full relative"
-                style={{
-                  transform: `rotateY(${isFacingRight ? 180 : 0}deg)`,
-                  transformStyle: 'preserve-3d',
-                  transition: `transform ${BOSS_IDLE_CONSTANTS.FLIP_TRANSITION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
-                }}
-              >
-                <picture className="w-full h-full block">
-                  <source srcSet={themeConfig.bossImageWebp} type="image/webp" />
-                  <img
-                    src={themeConfig.bossImagePng}
-                    alt={themeConfig.bossName}
-                    className={`w-full h-full object-contain filter contrast-110 brightness-105 group-hover:scale-105 transition-all duration-300 ${themeConfig.spriteFilterClass} ${themeConfig.bossScale}`}
-                    loading="eager"
-                    draggable={false}
-                  />
-                </picture>
-
-                {isDragon && (
-                  <BossEntranceBreathVFX
-                    isActive={isEntranceBreathActive && !isDefeated}
-                    gameTheme={gameTheme}
-                  />
-                )}
-
-                {/* 8c. Iconic Eye of the Herald on Carapace Back */}
-                {isHerald && !isDefeated && (
-                  <div
-                    className={`absolute top-[28%] left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300 z-20 ${
-                      bossWeakPoint ? 'scale-125 opacity-100' : 'scale-90 opacity-75'
-                    }`}
-                  >
-                    {/* Glowing Eye of the Herald Core */}
-                    <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-fuchsia-600 via-purple-500 to-pink-400 p-0.5 animate-herald-eye shadow-[0_0_20px_#ec4899] border-2 border-white/90 flex items-center justify-center">
-                      <div className="w-2 h-4 sm:w-2.5 sm:h-5 rounded-full bg-slate-950 rotate-12 shadow-inner" />
-                      <div className="absolute inset-0 rounded-full bg-pink-400/40 blur-sm animate-pulse" />
-                    </div>
-                    {/* Herald Eye Open Pulse waves when weak point is exposed */}
-                    {bossWeakPoint && (
-                      <div className="absolute inset-[-8px] rounded-full border-2 border-pink-400 animate-ping opacity-80 pointer-events-none" />
-                    )}
-                  </div>
-                )}
-
-                {/* Phase 2 & 3 Glowing Armor Cracks flipped in sync with Boss body */}
-                <BossArmorCracks
-                  bossHp={bossHp}
-                  bossMaxHp={bossMaxHp}
-                  crackColor={themeConfig.crackStrokeHex}
-                  isDefeated={isDefeated}
-                />
-              </div>
-
-              {/* 8b. Upright Energy Shield HUD Card & Clickable Weak Point Reticle */}
-              <BossPhaseVisuals
-                bossHp={bossHp}
-                bossMaxHp={bossMaxHp}
-                isDefeated={isDefeated}
-              />
-            </div>
-
-            {/* Crisp Impact Flares aligned directly over Boss */}
-            <BossHitMarks2D />
           </div>
         </div>
       </div>
 
-      {/* 10. Cinematic Shatter & Execution Callout outside fading sprite */}
       {isDefeated && <BossDeathVFX2D />}
-
-      {/* 11. Mythical Floating Buff Relic Crest Claimed by Winning Team */}
-      {isDefeated && <BossDefeatedCrest2D themeConfig={themeConfig} />}
     </div>
+  );
+
+  return (
+    <>
+      <div
+        style={{ perspective: '900px' }}
+        className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-10 flex items-center justify-center`}
+      >
+        {/* 1c. Per-archetype skill VFX overlay (projectiles, beams, spikes…) */}
+        {!isDefeated && <BossSkillVfx2D />}
+
+        {/* 2. Realistic Ground Contact Shadow under Monster */}
+        <div
+          className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 rounded-[50%] blur-md pointer-events-none ${groundShadowAnimationClass}`}
+        />
+
+        {/* 3. Elemental Floating Embers & Sparks */}
+        <ElementalEmbers
+          color={themeConfig.colors.glowHex || themeConfig.colors.primaryHex}
+          enragedColor={themeConfig.colors.enragedHex}
+          isEnraged={isEnraged}
+          isDefeated={isDefeated}
+        />
+
+        {/* 8. Vertical Altitude Patrol + Cave Entrance Swoop + Uninterrupted Hover/Coil Wrapper */}
+        <div
+          className={`relative pointer-events-none ${isEntranceActive ? 'animate-boss-cave-entrance' : ''}`}
+          style={
+            isEntranceActive
+              ? undefined
+              : {
+                  transform: `translate3d(0, ${verticalOffsetPx}px, 0)`,
+                  transition: `transform ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms cubic-bezier(0.37, 0, 0.63, 1)`,
+                }
+          }
+        >
+          <div className={verticalMotionClass}>
+            <div
+              id="boss-monster-target"
+              onClick={handleBossClick}
+              title={t('BossInteractive.pokeTooltip', 'Click để tương tác với Boss!')}
+              className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-auto group`}
+            >
+              <div
+                className="w-full h-full relative"
+                style={{
+                  transform: `perspective(900px) rotateX(${tiltXDeg}deg) rotateY(${tiltYDeg}deg)`,
+                  transformStyle: 'preserve-3d',
+                  transition: 'transform 160ms ease-out',
+                }}
+              >
+                {/* Body Flip Wrapper: flips artwork, jaw fire, eyes, and armor cracks smoothly without mirroring HUD text */}
+                <div
+                  className="w-full h-full relative"
+                  style={{
+                    transform: `rotateY(${shouldMirrorBody ? 180 : 0}deg)`,
+                    transformStyle: 'preserve-3d',
+                    transition: `transform ${BOSS_IDLE_CONSTANTS.FLIP_TRANSITION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+                  }}
+                >
+                  {/* Exact Model Scale Wrapper: locks jaw fire & armor cracks directly onto sprite pixels */}
+                  <div
+                    className={`w-full h-full relative ${themeConfig.bossScale} group-hover:scale-105 transition-transform duration-300`}
+                  >
+                    <picture className="w-full h-full block">
+                      <source srcSet={themeConfig.bossImageWebp} type="image/webp" />
+                      <img
+                        src={themeConfig.bossImagePng}
+                        alt={themeConfig.bossName}
+                        className={`w-full h-full object-contain filter contrast-110 brightness-105 ${themeConfig.spriteFilterClass}`}
+                        loading="eager"
+                        draggable={false}
+                      />
+                    </picture>
+
+                    {isDragon && (
+                      <BossEntranceBreathVFX
+                        isActive={isDragonMouthFireActive}
+                        gameTheme={gameTheme}
+                        isSkillCast={isSkillFireBreathActive}
+                        castKey={activeBossSkillBanner?.timestamp}
+                        overrideColor={isSkillFireBreathActive ? activeBossSkillBanner?.color : undefined}
+                        overrideSecondaryColor={
+                          isSkillFireBreathActive
+                            ? activeBossSkillBanner?.vfxParams?.secondaryColor
+                            : undefined
+                        }
+                      />
+                    )}
+
+                    {/* 8c. Iconic Eye of the Herald on Carapace Back */}
+                    {isHerald && !isDefeated && (
+                      <div
+                        className={`absolute top-[28%] left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300 z-20 ${
+                          bossWeakPoint ? 'scale-125 opacity-100' : 'scale-90 opacity-75'
+                        }`}
+                      >
+                        {/* Glowing Eye of the Herald Core */}
+                        <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-fuchsia-600 via-purple-500 to-pink-400 p-0.5 animate-herald-eye shadow-[0_0_20px_#ec4899] border-2 border-white/90 flex items-center justify-center">
+                          <div className="w-2 h-4 sm:w-2.5 sm:h-5 rounded-full bg-slate-950 rotate-12 shadow-inner" />
+                          <div className="absolute inset-0 rounded-full bg-pink-400/40 blur-sm animate-pulse" />
+                        </div>
+                        {/* Herald Eye Open Pulse waves when weak point is exposed */}
+                        {bossWeakPoint && (
+                          <div className="absolute inset-[-8px] rounded-full border-2 border-pink-400 animate-ping opacity-80 pointer-events-none" />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Phase 2 & 3 Glowing Armor Cracks flipped in sync with Boss body */}
+                    <BossArmorCracks
+                      bossHp={bossHp}
+                      bossMaxHp={bossMaxHp}
+                      crackColor={themeConfig.crackStrokeHex}
+                      isDefeated={isDefeated}
+                    />
+                  </div>
+                </div>
+
+                {/* 8b. Upright Energy Shield HUD Card & Clickable Weak Point Reticle */}
+                <BossPhaseVisuals
+                  bossHp={bossHp}
+                  bossMaxHp={bossMaxHp}
+                  isDefeated={isDefeated}
+                />
+              </div>
+
+              {/* Crisp Impact Flares aligned directly over Boss */}
+              <BossHitMarks2D />
+            </div>
+          </div>
+        </div>
+
+        {/* 11. Mythical Floating Buff Relic Crest Claimed by Winning Team */}
+        {isDefeated && <BossDefeatedCrest2D themeConfig={themeConfig} />}
+      </div>
+
+      {notificationPortalEl ? createPortal(bossNotificationOverlay, notificationPortalEl) : bossNotificationOverlay}
+    </>
   );
 };

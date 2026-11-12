@@ -398,7 +398,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     bossScale: 'scale-[1.12] sm:scale-[1.16]',
     avatarIcon: '/images/boss_mountain_dragon_2d.png',
     containerPosition: 'top-[64%] sm:top-[65%]',
-    spriteSize: 'w-[240px] h-[135px] sm:w-[320px] sm:h-[180px] md:w-[420px] md:h-[240px]',
+    spriteSize: 'w-44 h-44 sm:w-60 sm:h-60 md:w-72 md:h-72',
     groundAuraClass: 'top-[80%] w-56 h-12 bg-orange-500/30',
     colors: {
       primaryHex: '#f97316',
@@ -448,7 +448,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     bossScale: 'scale-[1.12] sm:scale-[1.16]',
     avatarIcon: '/images/boss_storm_dragon_2d.png',
     containerPosition: 'top-[64%] sm:top-[65%]',
-    spriteSize: 'w-[240px] h-[135px] sm:w-[320px] sm:h-[180px] md:w-[420px] md:h-[240px]',
+    spriteSize: 'w-44 h-44 sm:w-60 sm:h-60 md:w-72 md:h-72',
     groundAuraClass: 'top-[80%] w-56 h-12 bg-indigo-500/30',
     colors: {
       primaryHex: '#818cf8',
@@ -548,7 +548,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     bossScale: 'scale-[1.12] sm:scale-[1.16]',
     avatarIcon: '/images/boss_elder_dragon_2d.png',
     containerPosition: 'top-[64%] sm:top-[65%]',
-    spriteSize: 'w-[240px] h-[135px] sm:w-[320px] sm:h-[180px] md:w-[420px] md:h-[240px]',
+    spriteSize: 'w-[244px] h-[135px] sm:w-[326px] sm:h-[180px] md:w-[435px] md:h-[240px]',
     groundAuraClass: 'top-[80%] w-56 h-12 bg-cyan-500/30',
     colors: {
       primaryHex: '#06b6d4',
