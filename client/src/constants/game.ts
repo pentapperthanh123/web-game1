@@ -42,7 +42,7 @@ export const GAME_CONSTANTS = {
     COLOR_EYE_VOID: '#ec4899', // Electric Magenta
   },
   MINIONS: {
-    MAX_INSTANCES: 36,
+    MAX_INSTANCES: 10,
     ORBIT_RADIUS_MIN: 2.6,
     ORBIT_RADIUS_MAX: 5.4,
     BASE_DPS: 32,
@@ -104,6 +104,7 @@ export const GAME_CONSTANTS = {
     CLASH_FLASH_MS: 220,
   },
   SUMMON_RULES: {
+    MAX_ACTIVE_PER_TEAM: 5, // Tối đa 5 lượt / tướng cùng lúc mỗi phe trên sàn đấu
     MAX_ACTIVE_PER_USER: 1, // Option B: Mỗi người chỉ có tối đa 1 tướng đang sống trên sàn
     ALIVE_SUPPORT_HEAL: 50, // Option B: Comment tiếp theo khi tướng còn sống sẽ hồi +50 HP tiếp sức
     ALIVE_SUPPORT_DAMAGE: 90, // Option B: Đòn đánh tiếp sức gây thêm +90 sát thương vào Boss
@@ -214,6 +215,8 @@ export interface BossThemeConfig {
   backgroundImagePng: string;
   bossImageWebp: string;
   bossImagePng: string;
+  bossEnragedImageWebp?: string;
+  bossEnragedImagePng?: string;
   spriteFilterClass: string;
   hasVoidOverlay: boolean;
   auraColorClass: {
@@ -341,6 +344,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     backgroundImagePng: '/images/arena_background_2d.png',
     bossImageWebp: '/images/boss_rift_herald_2d.webp',
     bossImagePng: '/images/boss_rift_herald_2d.png',
+    bossEnragedImageWebp: '/images/boss_rift_herald_enraged_2d.webp',
+    bossEnragedImagePng: '/images/boss_rift_herald_enraged_2d.png',
     spriteFilterClass: 'contrast-[1.05] brightness-[1.02] drop-shadow-[0_0_24px_rgba(16,185,129,0.4)]',
     hasVoidOverlay: false,
     auraColorClass: {
@@ -391,6 +396,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     backgroundImagePng: '/images/arena_elder_dragon_2d.png',
     bossImageWebp: '/images/boss_mountain_dragon_2d.webp',
     bossImagePng: '/images/boss_mountain_dragon_2d.png',
+    bossEnragedImageWebp: '/images/boss_mountain_dragon_enraged_2d.webp',
+    bossEnragedImagePng: '/images/boss_mountain_dragon_enraged_2d.png',
     spriteFilterClass: 'drop-shadow-[0_0_28px_rgba(234,88,12,0.65)]',
     hasVoidOverlay: false,
     auraColorClass: {
@@ -441,6 +448,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     backgroundImagePng: '/images/arena_elder_dragon_2d.png',
     bossImageWebp: '/images/boss_storm_dragon_2d.webp',
     bossImagePng: '/images/boss_storm_dragon_2d.png',
+    bossEnragedImageWebp: '/images/boss_storm_dragon_enraged_2d.webp',
+    bossEnragedImagePng: '/images/boss_storm_dragon_enraged_2d.png',
     spriteFilterClass: 'drop-shadow-[0_0_28px_rgba(129,140,248,0.7)]',
     hasVoidOverlay: false,
     auraColorClass: {
@@ -491,6 +500,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     backgroundImagePng: '/images/arena_background_2d.png',
     bossImageWebp: '/images/boss_baron_2d.webp',
     bossImagePng: '/images/boss_baron_2d.png',
+    bossEnragedImageWebp: '/images/boss_baron_enraged_2d.webp',
+    bossEnragedImagePng: '/images/boss_baron_enraged_2d.png',
     spriteFilterClass: '',
     hasVoidOverlay: false,
     auraColorClass: {
@@ -541,6 +552,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     backgroundImagePng: '/images/arena_elder_dragon_2d.png',
     bossImageWebp: '/images/boss_elder_dragon_2d.webp',
     bossImagePng: '/images/boss_elder_dragon_2d.png',
+    bossEnragedImageWebp: '/images/boss_elder_dragon_enraged_2d.webp',
+    bossEnragedImagePng: '/images/boss_elder_dragon_enraged_2d.png',
     spriteFilterClass: '',
     hasVoidOverlay: false,
     auraColorClass: {
@@ -819,14 +832,14 @@ export const COMBAT_VFX_CONSTANTS = {
   WING_BOUNDS: {
     [TEAM_KEY.BLG]: {
       minX: -2.35,
-      maxX: -1.35,
+      maxX: -1.45,
       minY: -0.75,
       maxY: 0.95,
       minZ: 0.5,
       maxZ: 2.1,
     },
     [TEAM_KEY.GENG]: {
-      minX: 1.35,
+      minX: 1.45,
       maxX: 2.35,
       minY: -0.75,
       maxY: 0.95,
@@ -834,7 +847,7 @@ export const COMBAT_VFX_CONSTANTS = {
       maxZ: 2.1,
     },
     GEN: {
-      minX: 1.35,
+      minX: 1.45,
       maxX: 2.35,
       minY: -0.75,
       maxY: 0.95,
@@ -845,11 +858,11 @@ export const COMBAT_VFX_CONSTANTS = {
   CHAMPION_MOVEMENT: {
     TOKEN_SCALE: 0.44,
     MIN_SPEED: 0.35,
-    MAX_SPEED: 0.68,
+    MAX_SPEED: 0.65,
     WANDER_INTERVAL_MIN_S: 3.5,
     WANDER_INTERVAL_MAX_S: 6.5,
-    ATTACK_INTERVAL_MIN_S: 1.2,
-    ATTACK_INTERVAL_MAX_S: 2.0,
+    ATTACK_INTERVAL_MIN_S: 2.6,
+    ATTACK_INTERVAL_MAX_S: 3.6,
     CAST_RECOIL_DISTANCE: 0.06,
     CAST_LIFT_HEIGHT: 0.06,
     ATTACK_DURATION_S: 0.30,
@@ -871,7 +884,7 @@ export const COMBAT_VFX_CONSTANTS = {
     PORTAL_DURATION_MS: 1200,
     SPOTLIGHT_DURATION_MS: 1800,
     MAX_ACTIVE_PORTALS: 8,
-    MAX_VISIBLE_ORBS: 12,
+    MAX_VISIBLE_ORBS: 10,
     MAX_VISIBLE_BADGES_PER_TEAM: 4,
     CRIT_CHANCE: 0.28,
     CRIT_MULTIPLIER: 1.75,

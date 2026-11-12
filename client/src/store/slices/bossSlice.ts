@@ -60,6 +60,7 @@ import {
   createInitialTeamHeartMomentum,
   isBattleHalted,
 } from '../storeHelpers';
+import { deployQueuedMinions } from '../summonQueueHelper';
 
 export type BossSlice = Pick<
   GameState,

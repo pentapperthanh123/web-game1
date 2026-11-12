@@ -655,7 +655,14 @@ export const Boss2D = () => {
                   <div
                     className={`w-full h-full relative ${themeConfig.bossScale} group-hover:scale-105 transition-transform duration-300`}
                   >
-                    <picture className="w-full h-full block">
+                    {/* Normal Form Sprite */}
+                    <picture
+                      className={`w-full h-full block transition-opacity duration-700 ${
+                        isEnraged && themeConfig.bossEnragedImagePng
+                          ? 'opacity-0'
+                          : 'opacity-100'
+                      }`}
+                    >
                       <source srcSet={themeConfig.bossImageWebp} type="image/webp" />
                       <img
                         src={themeConfig.bossImagePng}
@@ -665,6 +672,29 @@ export const Boss2D = () => {
                         draggable={false}
                       />
                     </picture>
+
+                    {/* Enraged / Molten Form Sprite (Triggered when Boss enters Enraged state) */}
+                    {themeConfig.bossEnragedImagePng && (
+                      <picture
+                        className={`w-full h-full absolute inset-0 block transition-opacity duration-700 pointer-events-none ${
+                          isEnraged ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      >
+                        {themeConfig.bossEnragedImageWebp && (
+                          <source
+                            srcSet={themeConfig.bossEnragedImageWebp}
+                            type="image/webp"
+                          />
+                        )}
+                        <img
+                          src={themeConfig.bossEnragedImagePng}
+                          alt={`${themeConfig.bossName} (Nộ)`}
+                          className={`w-full h-full object-contain filter contrast-125 brightness-110 drop-shadow-[0_0_32px_${themeConfig.colors.enragedHex}]`}
+                          loading="eager"
+                          draggable={false}
+                        />
+                      </picture>
+                    )}
 
                     {isDragon && (
                       <BossEntranceBreathVFX
