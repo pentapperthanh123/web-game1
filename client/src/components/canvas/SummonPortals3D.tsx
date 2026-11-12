@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
-import { COMBAT_VFX_CONSTANTS, BOSS_STATUS } from '../../constants/game';
+import { BOSS_STATUS, GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
 import {
   liveMinionPositionMap,
   getLiveMinionPosition,
@@ -12,6 +12,7 @@ import { ChampionAIState, project3DToScreen } from './summon/summonShared';
 import { createInitialChampionAI, stepChampionFrame } from './summon/championFrameLogic';
 import { SummonGroundPortalsInstanced } from './summon/SummonGroundPortalsInstanced';
 import { ChampionToken } from './summon/ChampionToken';
+import { allocSlot } from '../../workers/physicsSharedBuffer';
 import { DefeatedChampionToken } from './summon/DefeatedChampionToken';
 
 export { liveMinionPositionMap, getLiveMinionPosition, project3DToScreen };
@@ -24,10 +25,12 @@ export const SummonPortals3D = () => {
 
   const minions = useGameStore((state) => state.minions);
   const activeDefeatedChampions = useGameStore((state) => state.activeDefeatedChampions);
-  const visibleMinions = useMemo(
-    () => minions.slice(-COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_ORBS),
-    [minions]
-  );
+  const visibleMinions = useMemo(() => {
+    const maxPerSide = GAME_CONSTANTS.SUMMON_RULES.MAX_ACTIVE_PER_TEAM;
+    const blgMinions = minions.filter((m) => m.team === TEAM_KEY.BLG).slice(-maxPerSide);
+    const gengMinions = minions.filter((m) => m.team === TEAM_KEY.GENG).slice(-maxPerSide);
+    return [...blgMinions, ...gengMinions];
+  }, [minions]);
 
   useFrame((state, delta) => {
     const championsGroup = championsGroupRef.current;
@@ -54,6 +57,7 @@ export const SummonPortals3D = () => {
       if (!minion) continue;
 
       activeMinionIdsSet.add(minion.id);
+      allocSlot(minion.id);
 
       let ai = aiStatesRef.current.get(minion.id);
       if (!ai) {
@@ -79,6 +83,7 @@ export const SummonPortals3D = () => {
       if (!activeMinionIdsSet.has(id)) {
         aiStatesRef.current.delete(id);
         removeLiveMinionPositions(id);
+        freeSlot(id);
       }
     }
   });
