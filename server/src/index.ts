@@ -38,10 +38,10 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
 const app = express();
 app.use(cors({ origin: '*' }));
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
+const io = new Server(httpServer, { maxHttpBufferSize: 5e6,
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],

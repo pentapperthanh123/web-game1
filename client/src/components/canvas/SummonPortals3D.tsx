@@ -8,7 +8,7 @@ import {
   COMBAT_VFX_CONSTANTS,
   TEAM_KEY,
   TeamType,
-  DAMAGE_TYPE,
+  DAMAGE_TYPE, DamageType,
   BOSS_STATUS,
 } from '../../constants/game';
 import { MinionEntity, DefeatedChampionEntity } from '../../types/game';
@@ -124,10 +124,12 @@ const nameplateTextureCache = new Map<string, THREE.CanvasTexture>();
 const getNameplateTexture = (
   summonerName: string,
   team: string,
-  primaryColor: string
+  primaryColor: string,
+  signaturePlayerName?: string
 ): THREE.CanvasTexture => {
   const cleanName = (summonerName || 'Viewer').trim().replace(/^@+/, '');
-  const cacheKey = `${team}_${primaryColor}_${cleanName}`;
+  const sigTag = signaturePlayerName ? signaturePlayerName.trim() : '';
+  const cacheKey = `${team}_${primaryColor}_${cleanName}_${sigTag}`;
   const existing = nameplateTextureCache.get(cacheKey);
   if (existing) {
     return existing;
@@ -156,7 +158,7 @@ const getNameplateTexture = (
     return emptyTex;
   }
 
-  const glowColor = primaryColor;
+  const glowColor = sigTag ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor;
 
   const paddingX = 14;
   const paddingY = 14;
@@ -180,10 +182,10 @@ const getNameplateTexture = (
   ctx.fill();
   ctx.restore();
 
-  // Glowing team neon border
+  // Glowing team neon border (gold highlight for Signature Champions)
   ctx.save();
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = primaryColor;
+  ctx.lineWidth = sigTag ? 5 : 4;
+  ctx.strokeStyle = glowColor;
   ctx.beginPath();
   if (typeof ctx.roundRect === 'function') {
     ctx.roundRect(paddingX, paddingY, pillW, pillH, radius);
@@ -193,30 +195,43 @@ const getNameplateTexture = (
   ctx.stroke();
   ctx.restore();
 
-  // Comment Icon (💬)
+  // Comment / Signature Star Icon
   ctx.save();
   ctx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('💬', paddingX + 46, height / 2);
+  ctx.fillText(sigTag ? '⭐' : '💬', paddingX + 46, height / 2);
   ctx.restore();
 
-  // Summoner Name (Commenter)
+  // Summoner Name & Optional Signature Badge
   ctx.save();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
   ctx.shadowBlur = 6;
+  const maxTextW = pillW - 100;
 
   let displayName = `@${cleanName}`;
-  const maxTextW = pillW - 100;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = sigTag
+    ? 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    : 'bold 34px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   while (ctx.measureText(displayName).width > maxTextW && displayName.length > 4) {
     displayName = displayName.slice(0, -2) + '…';
   }
 
-  ctx.fillText(displayName, paddingX + 82, height / 2);
+  if (sigTag) {
+    ctx.fillText(displayName, paddingX + 82, height * 0.36);
+    ctx.fillStyle = '#fde047';
+    ctx.font = '900 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    let badgeText = `${GAME_CONSTANTS.SIGNATURE_SYNERGY.BADGE_PREFIX} · ${sigTag.toUpperCase()} (+${GAME_CONSTANTS.SIGNATURE_SYNERGY.BONUS_PERCENT}%)`;
+    while (ctx.measureText(badgeText).width > maxTextW && badgeText.length > 6) {
+      badgeText = badgeText.slice(0, -2) + '…';
+    }
+    ctx.fillText(badgeText, paddingX + 82, height * 0.69);
+  } else {
+    ctx.fillText(displayName, paddingX + 82, height / 2);
+  }
   ctx.restore();
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -266,9 +281,16 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
     crit: teamTheme.critHex,
   };
   const texture = useMemo(() => getChampionTexture(minion.avatarUrl), [minion.avatarUrl]);
+  const isSignature = Boolean(minion.isSignatureSynergy);
   const nameplateTexture = useMemo(
-    () => getNameplateTexture(minion.summonerName, minion.team, teamPalette.primary),
-    [minion.summonerName, minion.team, teamPalette.primary]
+    () =>
+      getNameplateTexture(
+        minion.summonerName,
+        minion.team,
+        teamPalette.primary,
+        minion.signaturePlayerName
+      ),
+    [minion.summonerName, minion.team, teamPalette.primary, minion.signaturePlayerName]
   );
 
   const maxHp = minion.maxHp || 100;
@@ -474,6 +496,20 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
           side={THREE.DoubleSide}
         />
       </mesh>
+
+      {/* Signature Synergy Persistent Golden Aura */}
+      {isSignature && (
+        <mesh name="signature-synergy-halo" position={[0, 0, -0.025]} geometry={SHARED_CELESTIAL_AURA_GEO}>
+          <meshBasicMaterial
+            color={GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR}
+            transparent
+            opacity={0.78}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
 
       {/* 11. Invulnerability Shield Barrier (Khiên bảo hộ bất tử 1s khi mới hồi sinh/triệu hồi) */}
       <mesh
@@ -808,7 +844,8 @@ export const SummonPortals3D = () => {
               state.size.height
             );
 
-            spawnFlyingArrow(minion.championName, minion.team, isFullFury, screenStart);
+            const isEmpoweredStrike = isFullFury || Boolean(minion.isSignatureSynergy);
+            spawnFlyingArrow(minion.championName, minion.team, isEmpoweredStrike, screenStart);
 
             if (isFullFury) {
               const targetPos: [number, number, number] = ai.targetBossZone || [
@@ -827,11 +864,17 @@ export const SummonPortals3D = () => {
             const damage = isFullFury
               ? Math.round(minion.dps * GAME_CONSTANTS.MINION_FURY.ULTIMATE_DAMAGE_MULTIPLIER)
               : minion.dps;
+            let attackDamageType: DamageType = DAMAGE_TYPE.NORMAL;
+            if (isFullFury) {
+              attackDamageType = DAMAGE_TYPE.ULTIMATE;
+            } else if (minion.isSignatureSynergy) {
+              attackDamageType = DAMAGE_TYPE.CRIT;
+            }
             damageBoss(
               damage,
               minion.team,
               `${minion.summonerName} (${minion.championName})`,
-              isFullFury ? DAMAGE_TYPE.ULTIMATE : DAMAGE_TYPE.NORMAL
+              attackDamageType
             );
           }
         }
@@ -869,6 +912,12 @@ export const SummonPortals3D = () => {
         const tokenSubgroup = champGroup.children[0] as THREE.Group | undefined;
 
         if (tokenSubgroup) {
+          const sigHaloMesh = tokenSubgroup.getObjectByName('signature-synergy-halo') as THREE.Mesh | undefined;
+          if (sigHaloMesh) {
+            sigHaloMesh.rotation.z = -elapsedTime * 2.1;
+            sigHaloMesh.scale.setScalar(1.05 + Math.sin(elapsedTime * 4.5) * 0.08);
+          }
+
           const haloMesh = tokenSubgroup.getObjectByName('celestial-halo') as THREE.Mesh | undefined;
           const beamMesh = tokenSubgroup.getObjectByName('sky-beam') as THREE.Mesh | undefined;
           const landingMesh = tokenSubgroup.getObjectByName('landing-ring') as THREE.Mesh | undefined;

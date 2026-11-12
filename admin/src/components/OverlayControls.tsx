@@ -24,6 +24,8 @@ import {
 
 interface OverlayControlsProps {
   onActiveCountChange?: (count: number) => void;
+  leftTag?: string;
+  rightTag?: string;
 }
 
 interface SectionConfig {
@@ -33,7 +35,7 @@ interface SectionConfig {
   icon: typeof MessageSquare;
 }
 
-const SECTION_CONFIGS: SectionConfig[] = [
+const buildSectionConfigs = (leftTag: string, rightTag: string): SectionConfig[] => [
   {
     key: 'chat',
     label: 'Khung Chat Trực Tiếp',
@@ -48,7 +50,7 @@ const SECTION_CONFIGS: SectionConfig[] = [
   },
   {
     key: 'teamRosters',
-    label: 'Đội Hình 2 Bên (BLG & GEN)',
+    label: `Đội Hình 2 Bên (${leftTag} & ${rightTag})`,
     description: 'Avatar & danh sách 5 tuyển thủ 2 cánh',
     icon: Users,
   },
@@ -78,8 +80,13 @@ const SECTION_CONFIGS: SectionConfig[] = [
   },
 ];
 
-export function OverlayControls({ onActiveCountChange }: OverlayControlsProps) {
+export function OverlayControls({
+  onActiveCountChange,
+  leftTag = 'BLG',
+  rightTag = 'GEN',
+}: OverlayControlsProps) {
   const [visibility, setVisibility] = useState<OverlayVisibility>(loadStoredOverlayVisibility);
+  const sectionConfigs = buildSectionConfigs(leftTag, rightTag);
 
   const activeCount = countVisibleOverlays(visibility);
 
@@ -162,7 +169,7 @@ export function OverlayControls({ onActiveCountChange }: OverlayControlsProps) {
 
       {/* Grid of Toggle Switches */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3 pt-3 sm:pt-4">
-        {SECTION_CONFIGS.map((cfg) => {
+        {sectionConfigs.map((cfg) => {
           const Icon = cfg.icon;
           const isVisible = visibility[cfg.key];
 

@@ -9,6 +9,7 @@ import {
   TeamType,
 } from '../../constants/game';
 import { audioService } from '../../services/audioService';
+import { gameSocket } from '../../services/socket';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
 import { ProDamageRecord } from '../../types/game';
@@ -32,6 +33,8 @@ export const VictoryOverlay = () => {
   const finisherTeam = useGameStore((state) => state.finisherTeam);
   const startNextRound = useGameStore((state) => state.startNextRound);
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
+  const advanceNextMatchQueue = useGameStore((state) => state.advanceNextMatchQueue);
+  const matchQueue = useGameStore((state) => state.matchQueue);
   const activeTeams = useGameStore((state) => state.activeTeams);
 
   const [isVictoryVisible, setIsVictoryVisible] = useState<boolean>(false);
@@ -78,10 +81,29 @@ export const VictoryOverlay = () => {
     startNextRound();
   };
 
+  const nextQueuedMatch = matchQueue.length > 0 ? matchQueue[0] : null;
+
   const handleResetBO5Match = () => {
     if (isAdvancing) return;
     setIsAdvancing(true);
     resetBO5Match();
+  };
+
+  const handleAdvanceQueuedMatch = () => {
+    if (isAdvancing || !nextQueuedMatch) return;
+    setIsAdvancing(true);
+    const didAdvance = advanceNextMatchQueue();
+    if (didAdvance) {
+      const latest = useGameStore.getState();
+      gameSocket.sendTeamConfig(
+        {
+          activeTeams: latest.activeTeams,
+          teamCatalog: latest.teamCatalog,
+          matchQueue: latest.matchQueue,
+        },
+        true
+      );
+    }
   };
 
   if (!isDefeated || !isVictoryVisible) return null;
@@ -292,15 +314,33 @@ export const VictoryOverlay = () => {
           </div>
 
           {isSeriesEnded ? (
-            <button
-              type="button"
-              disabled={isAdvancing}
-              onClick={handleResetBO5Match}
-              className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_15px_rgba(245,158,11,0.5)] flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>{t('Victory.newSeries', 'BẮT ĐẦU TRẬN ĐẤU MỚI')}</span>
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              {nextQueuedMatch && (
+                <button
+                  type="button"
+                  disabled={isAdvancing}
+                  onClick={handleAdvanceQueuedMatch}
+                  className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_18px_rgba(16,185,129,0.55)] flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  <span>
+                    {t('Victory.nextQueuedMatch', 'TRẬN TIẾP THEO: {{label}} ({{remaining}})', {
+                      label: nextQueuedMatch.label,
+                      remaining: matchQueue.length,
+                    })}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={isAdvancing}
+                onClick={handleResetBO5Match}
+                className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_15px_rgba(245,158,11,0.5)] flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>{t('Victory.newSeries', 'BẮT ĐẦU TRẬN ĐẤU MỚI')}</span>
+              </button>
+            </div>
           ) : (
             <button
               type="button"

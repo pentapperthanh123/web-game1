@@ -69,12 +69,16 @@ import { getChampionAvatarUrl, RosterPlayer } from '../constants/roster';
 import {
   TEAM_CONFIG_STORAGE_KEY,
   createDefaultTeamConfig,
+  createDuplicateTeamTemplate,
+  findExactSignaturePlayer,
   findRosterPlayerInRoster,
+  getPresetTeamTemplate,
   getTeamTheme,
   mountTeamToSlot,
+  sanitizeMatchQueue,
   sanitizeTeamConfigState,
 } from '../constants/teams';
-import { ActiveTeamsMap, TeamConfigState, TeamProfile } from '../types/team';
+import { ActiveTeamsMap, QueuedMatchup, TeamConfigState, TeamProfile } from '../types/team';
 import { gameBus } from '../services/eventBus';
 import { audioService } from '../services/audioService';
 import { getLiveMinionScreenPos, getLiveMinionPosition } from '../services/minionPositionRegistry';
@@ -344,6 +348,7 @@ const INITIAL_STATE = {
   autoSummonConfig: getStoredAutoSummonConfig(),
   activeTeams: initialTeamConfig.activeTeams,
   teamCatalog: initialTeamConfig.teamCatalog,
+  matchQueue: initialTeamConfig.matchQueue,
   rosterAttackTimestamps: {} as Record<string, number>,
   rosterPlayerFury: createInitialRosterFury(initialTeamConfig.activeTeams),
   lastFuryUltimatePlayerId: null as string | null,
@@ -391,6 +396,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({
         activeTeams: sanitized.activeTeams,
         teamCatalog: sanitized.teamCatalog,
+        matchQueue: sanitized.matchQueue,
         bossHp: state.bossMaxHp,
         bossStatus: BOSS_STATUS.IDLE,
         bo5Score: { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 },
@@ -443,6 +449,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       activeTeams: sanitized.activeTeams,
       teamCatalog: sanitized.teamCatalog,
+      matchQueue: sanitized.matchQueue,
       rosterPlayerFury: createInitialRosterFury(sanitized.activeTeams, state.rosterPlayerFury),
     });
   },
@@ -462,6 +469,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           [TEAM_KEY.GENG]: mountedRight,
         },
         teamCatalog: Array.from(catalogMap.values()),
+        matchQueue: state.matchQueue,
       },
       resetMatch
     );
@@ -495,6 +503,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           [TEAM_KEY.GENG]: nextRight,
         },
         teamCatalog: nextCatalog,
+        matchQueue: state.matchQueue,
       },
       false
     );
@@ -523,9 +532,169 @@ export const useGameStore = create<GameState>((set, get) => ({
           [TEAM_KEY.GENG]: nextRight,
         },
         teamCatalog: nextCatalog,
+        matchQueue: sanitizeMatchQueue(state.matchQueue, nextCatalog),
       },
       false
     );
+  },
+
+  duplicateTeamInCatalog: (teamId: string, copySuffix = 'Copy') => {
+    const state = get();
+    const source = state.teamCatalog.find((t) => t.id === teamId);
+    if (!source) return null;
+    const duplicated = createDuplicateTeamTemplate(source, copySuffix);
+    const nextCatalog = [...state.teamCatalog, duplicated];
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: state.activeTeams,
+        teamCatalog: nextCatalog,
+        matchQueue: state.matchQueue,
+      },
+      false
+    );
+    return duplicated;
+  },
+
+  restorePresetTeam: (presetId: string) => {
+    const template = getPresetTeamTemplate(presetId);
+    if (!template) return false;
+    const state = get();
+    const exists = state.teamCatalog.some((t) => t.id === template.id);
+    const nextCatalog = exists
+      ? state.teamCatalog.map((item) => (item.id === template.id ? template : item))
+      : [...state.teamCatalog, template];
+
+    const nextLeft =
+      state.activeTeams[TEAM_KEY.BLG].id === template.id
+        ? mountTeamToSlot(template, TEAM_KEY.BLG)
+        : state.activeTeams[TEAM_KEY.BLG];
+    const nextRight =
+      state.activeTeams[TEAM_KEY.GENG].id === template.id
+        ? mountTeamToSlot(template, TEAM_KEY.GENG)
+        : state.activeTeams[TEAM_KEY.GENG];
+
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: {
+          [TEAM_KEY.BLG]: nextLeft,
+          [TEAM_KEY.GENG]: nextRight,
+        },
+        teamCatalog: nextCatalog,
+        matchQueue: state.matchQueue,
+      },
+      false
+    );
+    return true;
+  },
+
+  setMatchQueue: (queue: QueuedMatchup[]) => {
+    const state = get();
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: state.activeTeams,
+        teamCatalog: state.teamCatalog,
+        matchQueue: sanitizeMatchQueue(queue, state.teamCatalog),
+      },
+      false
+    );
+  },
+
+  enqueueMatchup: (leftTeamId: string, rightTeamId: string, customLabel?: string) => {
+    const state = get();
+    const left = state.teamCatalog.find((t) => t.id === leftTeamId);
+    const right = state.teamCatalog.find((t) => t.id === rightTeamId);
+    if (!left || !right) return false;
+    const entry: QueuedMatchup = {
+      id: `match-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+      label: customLabel?.trim() || `${left.shortTag} vs ${right.shortTag}`,
+      leftTeamId: left.id,
+      rightTeamId: right.id,
+    };
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: state.activeTeams,
+        teamCatalog: state.teamCatalog,
+        matchQueue: [...state.matchQueue, entry],
+      },
+      false
+    );
+    return true;
+  },
+
+  removeQueuedMatchup: (queueId: string) => {
+    const state = get();
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: state.activeTeams,
+        teamCatalog: state.teamCatalog,
+        matchQueue: state.matchQueue.filter((item) => item.id !== queueId),
+      },
+      false
+    );
+  },
+
+  advanceNextMatchQueue: () => {
+    const state = get();
+    if (state.matchQueue.length === 0) return false;
+    const [nextMatch, ...restQueue] = state.matchQueue;
+    const leftTeam = state.teamCatalog.find((t) => t.id === nextMatch.leftTeamId);
+    const rightTeam = state.teamCatalog.find((t) => t.id === nextMatch.rightTeamId);
+    if (!leftTeam || !rightTeam) {
+      get().applyTeamConfigSnapshot(
+        {
+          activeTeams: state.activeTeams,
+          teamCatalog: state.teamCatalog,
+          matchQueue: restQueue,
+        },
+        false
+      );
+      return false;
+    }
+
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: {
+          [TEAM_KEY.BLG]: mountTeamToSlot(leftTeam, TEAM_KEY.BLG),
+          [TEAM_KEY.GENG]: mountTeamToSlot(rightTeam, TEAM_KEY.GENG),
+        },
+        teamCatalog: state.teamCatalog,
+        matchQueue: restQueue,
+      },
+      true
+    );
+    return true;
+  },
+
+  importTeamPack: (teams: TeamProfile[], importedQueue: QueuedMatchup[] = []) => {
+    const state = get();
+    const catalogMap = new Map(state.teamCatalog.map((t) => [t.id, t]));
+    let importedCount = 0;
+    for (const item of teams) {
+      catalogMap.set(item.id, mountTeamToSlot(item, TEAM_KEY.BLG));
+      importedCount += 1;
+    }
+    const nextCatalog = Array.from(catalogMap.values());
+    const nextQueue = sanitizeMatchQueue([...state.matchQueue, ...importedQueue], nextCatalog);
+
+    const nextLeft = catalogMap.get(state.activeTeams[TEAM_KEY.BLG].id)
+      ? mountTeamToSlot(catalogMap.get(state.activeTeams[TEAM_KEY.BLG].id)!, TEAM_KEY.BLG)
+      : state.activeTeams[TEAM_KEY.BLG];
+    const nextRight = catalogMap.get(state.activeTeams[TEAM_KEY.GENG].id)
+      ? mountTeamToSlot(catalogMap.get(state.activeTeams[TEAM_KEY.GENG].id)!, TEAM_KEY.GENG)
+      : state.activeTeams[TEAM_KEY.GENG];
+
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: {
+          [TEAM_KEY.BLG]: nextLeft,
+          [TEAM_KEY.GENG]: nextRight,
+        },
+        teamCatalog: nextCatalog,
+        matchQueue: nextQueue,
+      },
+      false
+    );
+    return importedCount;
   },
 
   setGameTheme: (theme: GameThemeType) => {
@@ -1628,7 +1797,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       primary: dynamicTeamTheme.primaryHex,
       secondary: dynamicTeamTheme.secondaryHex,
     };
-    const baseDps = GAME_CONSTANTS.MINIONS.BASE_DPS + Math.floor(Math.random() * 100);
+    const exactSignaturePro = findExactSignaturePlayer(championName, activeTeamProfile?.roster ?? []);
+    const isSignatureSynergy = Boolean(exactSignaturePro);
+    const rawBaseDps = GAME_CONSTANTS.MINIONS.BASE_DPS + Math.floor(Math.random() * 100);
+    const baseDps = isSignatureSynergy
+      ? Math.round(rawBaseDps * GAME_CONSTANTS.SIGNATURE_SYNERGY.DAMAGE_MULTIPLIER)
+      : rawBaseDps;
     // Tướng triệu hồi khởi đầu với 0 Nộ, chỉ tung chiêu đánh thường cho đến khi tích đủ 100% Nộ
     const summonDps = baseDps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER;
 
@@ -1650,6 +1824,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       maxHp: CHAMPION_DEFAULT_MAX_HP,
       fury: 0,
       maxFury: GAME_CONSTANTS.MINION_FURY.MAX_FURY,
+      isSignatureSynergy,
+      signaturePlayerName: exactSignaturePro?.name,
+      signaturePlayerRole: exactSignaturePro?.role,
     };
 
     const newPortal: SummonPortalEntity = {
@@ -1659,10 +1836,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       avatarUrl,
       team,
       position: spawnPosition,
-      color: teamPalette.primary,
-      isCrit: false,
+      color: isSignatureSynergy ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : teamPalette.primary,
+      isCrit: isSignatureSynergy,
       dps: summonDps,
       createdAt: now,
+      isSignatureSynergy,
+      signaturePlayerName: exactSignaturePro?.name,
     };
 
     audioService.playSummonArrivalSound(team, false);
@@ -1685,16 +1864,37 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
 
       get().consumeMinionAttackFury(newMinion.id);
-      get().damageBoss(summonDps, team, summonerName, DAMAGE_TYPE.NORMAL);
-      get().spawnFlyingArrow(championName, team, false);
+      get().damageBoss(
+        summonDps,
+        team,
+        isSignatureSynergy && exactSignaturePro
+          ? `${summonerName} (${exactSignaturePro.name})`
+          : summonerName,
+        isSignatureSynergy ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
+      );
+      get().spawnFlyingArrow(championName, team, isSignatureSynergy);
     }, GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS);
 
     const teamTag = activeTeamProfile?.shortTag || team;
-    get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${teamTag} (Bảo hộ 1s)`, team);
-    get().addChatMessage(summonerName, `Triệu hồi ${championName} chiến đấu!`, team, championName);
+    if (isSignatureSynergy && exactSignaturePro) {
+      get().addLog(
+        'SUMMON',
+        `⭐ TƯỚNG TỦ [${exactSignaturePro.name}]! ${summonerName} triệu hồi ${championName} phe ${teamTag} (+${GAME_CONSTANTS.SIGNATURE_SYNERGY.BONUS_PERCENT}% ST)`,
+        team
+      );
+      get().addChatMessage(
+        summonerName,
+        `⭐ Tướng Tủ ${exactSignaturePro.name}: ${championName} (+${GAME_CONSTANTS.SIGNATURE_SYNERGY.BONUS_PERCENT}% ST)!`,
+        team,
+        championName
+      );
+    } else {
+      get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${teamTag} (Bảo hộ 1s)`, team);
+      get().addChatMessage(summonerName, `Triệu hồi ${championName} chiến đấu!`, team, championName);
+    }
 
     // Boost Fury of matching Pro Player when fans summon their champion!
-    const matchingPro = findRosterPlayerInRoster(championName, activeTeamProfile?.roster ?? []);
+    const matchingPro = exactSignaturePro || findRosterPlayerInRoster(championName, activeTeamProfile?.roster ?? []);
     if (matchingPro) {
       get().addPlayerFury(matchingPro.id, GAME_CONSTANTS.PRO_FURY.FURY_GAIN_SUMMON_MATCH);
     }
@@ -2605,7 +2805,11 @@ if (typeof window !== 'undefined') {
         break;
       case 'SET_TEAM_CONFIG':
         store.applyTeamConfigSnapshot(
-          { activeTeams: event.payload.activeTeams, teamCatalog: event.payload.teamCatalog },
+          {
+            activeTeams: event.payload.activeTeams,
+            teamCatalog: event.payload.teamCatalog,
+            matchQueue: event.payload.matchQueue ?? [],
+          },
           Boolean(event.payload.resetMatch)
         );
         break;

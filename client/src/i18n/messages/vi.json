@@ -23,11 +23,11 @@
     "rank": "Hạng",
     "damage": "ST",
     "summonedMinions": "Linh thú đang tham chiến",
-    "howToPlay": "Chat: [Tên tướng] BLG hoặc GEN để triệu hồi! Chat tiếp để Tiếp Sức hồi máu. Tặng quà phá giới hạn!",
+    "howToPlay": "Chat: [Tên tướng] + [Tên đội/tuyển thủ] để triệu hồi! Chat tiếp để Tiếp Sức hồi máu. Tặng quà phá giới hạn!",
     "giftBonus": "Tặng quà bất kỳ kích hoạt Tuyệt Kỹ & Mưa Thiên Thạch!",
     "autoProOn": "Tự đánh: BẬT",
     "autoProOff": "Tự đánh",
-    "autoProTooltip": "Bật/tắt chế độ tuyển thủ BLG & GEN.G tự bắn chiêu khi không có người tham gia",
+    "autoProTooltip": "Bật/tắt chế độ tuyển thủ 2 đội tự bắn chiêu khi không có người tham gia",
     "guestMode": "Khách",
     "guestModeOn": "Khách: BẬT",
     "guestModeTooltip": "Bật/tắt thanh thao tác giả lập cho người xem trên Client",
@@ -99,7 +99,8 @@
     "summonTag": "TRIỆU HỒI",
     "activeSquad": "ĐANG THAM CHIẾN",
     "defeated": "TỬ TRẬN!",
-    "ultimateSkill": "CHIÊU CUỐI!"
+    "ultimateSkill": "CHIÊU CUỐI!",
+    "signatureTag": "TƯỚNG TỦ · {{player}} (+25%)"
   },
   "BossInteractive": {
     "pokeTooltip": "Click để tương tác với Boss!",
@@ -130,7 +131,8 @@
     "nextRoundNow": "VÀO VÁN TIẾP THEO",
     "newSeries": "BẮT ĐẦU TRẬN ĐẤU MỚI",
     "seriesEndedNotice": "Loạt trận BO5 đã kết thúc!",
-    "roundIntermissionPrompt": "Nghỉ giữa hiệp - Sẵn sàng cho ván tiếp theo"
+    "roundIntermissionPrompt": "Nghỉ giữa hiệp - Sẵn sàng cho ván tiếp theo",
+    "nextQueuedMatch": "TRẬN TIẾP THEO: {{label}} ({{remaining}})"
   },
   "Milestone": {
     "healTitle": "ĐẠI HỒI PHỤC TOÀN BẢN ĐỒ!",
@@ -257,7 +259,32 @@
     "playerNamePlaceholder": "Tên game thủ",
     "avatarPlaceholder": "Link ảnh tuyển thủ (trống = tự dùng ảnh tướng)",
     "cancelBtn": "Hủy",
-    "saveApplyBtn": "Lưu & Áp Dụng"
+    "saveApplyBtn": "Lưu & Áp Dụng",
+    "imageUploadError": "Không thể đọc ảnh (chọn PNG/JPG/WebP dưới 8MB)",
+    "uploadImageTitle": "Tải ảnh từ máy (tự nén Base64)",
+    "uploadBtn": "Tải ảnh",
+    "exportPackTitle": "Xuất file JSON gói đội",
+    "exportBtn": "Xuất",
+    "importPackTitle": "Nhập file JSON gói đội",
+    "importBtn": "Nhập",
+    "catalogSearchPlaceholder": "Tìm đội hoặc tên tuyển thủ...",
+    "duplicateTeamBtn": "Nhân bản đội",
+    "restorePresetBtn": "Khôi phục Preset gốc",
+    "matchQueueTitle": "Hàng Đợi Cặp Đấu ({{count}}):",
+    "advanceQueueBtn": "Đấu Trận Tiếp Theo",
+    "enqueueBtn": "Thêm",
+    "matchQueueEmpty": "Chưa có trận chờ. Thêm sẵn cặp đấu để bấm 1-click chuyển trận khi xong BO5.",
+    "removeQueueItemTitle": "Xóa khỏi hàng đợi",
+    "autoSyncRosterAliasesLabel": "Tự nhận tên 5 tuyển thủ làm từ khóa chat ({{names}})",
+    "copySuffix": "Bản sao",
+    "duplicatedFeedback": "Đã nhân bản đội: {{name}}",
+    "restoredPresetFeedback": "Đã khôi phục preset gốc: {{name}}",
+    "exportedPackFeedback": "Đã xuất file JSON ({{count}} đội)!",
+    "importErrorFeedback": "File JSON gói đội không hợp lệ!",
+    "importedPackFeedback": "Đã nhập {{count}} đội từ JSON!",
+    "aliasConflictWarning": "Cảnh báo trùng từ khóa chat giữa 2 phe: {{keywords}} (chat có thể ưu tiên Phe Trái)!",
+    "enqueuedFeedback": "Đã thêm cặp đấu vào hàng đợi!",
+    "advancedQueueFeedback": "Đã chuyển sang cặp đấu tiếp theo!"
   },
   "SilverScrapes": {
     "title": "⚡ SILVER SCRAPES: ĐẠI CHIẾN ĐỘC TÔN 1V1 ⚡",

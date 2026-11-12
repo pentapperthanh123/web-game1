@@ -1,71 +1,73 @@
 {
   "activeTeams": {
     "BLG": {
-      "id": "preset-blg",
-      "name": "Bilibili Gaming",
-      "shortTag": "BLG",
+      "id": "preset-t1",
+      "name": "T1",
+      "shortTag": "T1",
       "aliases": [
-        "BLG",
-        "BILIBILI"
+        "T1",
+        "SKT",
+        "FAKER"
       ],
-      "colorTheme": "cyan",
-      "logoUrl": "https://am-a.akamaihd.net/image?resize=400:&f=http%3A%2F%2Fstatic.lolesports.com%2Fteams%2F1682322954525_Bilibili_Gaming_logo_20211.png",
+      "autoSyncRosterAliases": true,
+      "colorTheme": "rose",
+      "logoUrl": "/images/teams/t1.svg",
       "isPreset": true,
       "roster": [
         {
-          "id": "blg-preset-blg-top-0",
-          "name": "Bin",
+          "id": "blg-preset-t1-top-0",
+          "name": "Doran",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "Jax",
-          "championKey": "Jax",
+          "signatureChampion": "Ambessa",
+          "championKey": "Ambessa",
           "team": "BLG",
-          "color": "#38bdf8",
-          "avatarUrl": "/images/players/bin.png"
+          "color": "#fb7185",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ambessa.png"
         },
         {
-          "id": "blg-preset-blg-jug-1",
-          "name": "Xun",
+          "id": "blg-preset-t1-jug-1",
+          "name": "Oner",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Xin Zhao",
-          "championKey": "XinZhao",
+          "signatureChampion": "Vi",
+          "championKey": "Vi",
           "team": "BLG",
-          "color": "#06b6d4",
-          "avatarUrl": "/images/players/xun.png"
+          "color": "#f43f5e",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Vi.png"
         },
         {
-          "id": "blg-preset-blg-mid-2",
-          "name": "Knight",
+          "id": "blg-preset-t1-mid-2",
+          "name": "Faker",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "Ahri",
-          "championKey": "Ahri",
+          "signatureChampion": "Azir",
+          "championKey": "Azir",
           "team": "BLG",
-          "color": "#60a5fa",
-          "avatarUrl": "/images/players/knight.png"
+          "color": "#e11d48",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Azir.png"
         },
         {
-          "id": "blg-preset-blg-adc-3",
-          "name": "Viper",
+          "id": "blg-preset-t1-adc-3",
+          "name": "Gumayusi",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Kai'Sa",
-          "championKey": "Kaisa",
+          "signatureChampion": "Jinx",
+          "championKey": "Jinx",
           "team": "BLG",
-          "color": "#22d3ee",
-          "avatarUrl": "/images/players/viper.png"
+          "color": "#fb7185",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jinx.png"
         },
         {
-          "id": "blg-preset-blg-sup-4",
-          "name": "ON",
+          "id": "blg-preset-t1-sup-4",
+          "name": "Keria",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Rakan",
-          "championKey": "Rakan",
+          "signatureChampion": "Thresh",
+          "championKey": "Thresh",
           "team": "BLG",
-          "color": "#34d399",
-          "avatarUrl": "/images/players/on.png"
+          "color": "#fda4af",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Thresh.png"
         }
       ]
     },
@@ -78,6 +80,7 @@
         "GENG",
         "GEN.G"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "amber",
       "logoUrl": "https://am-a.akamaihd.net/image?resize=400:&f=http%3A%2F%2Fstatic.lolesports.com%2Fteams%2F1773829250929_GENGLOGO_GOLD.png",
       "isPreset": true,
@@ -149,6 +152,7 @@
         "BLG",
         "BILIBILI"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "cyan",
       "logoUrl": "https://am-a.akamaihd.net/image?resize=400:&f=http%3A%2F%2Fstatic.lolesports.com%2Fteams%2F1682322954525_Bilibili_Gaming_logo_20211.png",
       "isPreset": true,
@@ -219,6 +223,7 @@
         "GENG",
         "GEN.G"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "amber",
       "logoUrl": "https://am-a.akamaihd.net/image?resize=400:&f=http%3A%2F%2Fstatic.lolesports.com%2Fteams%2F1773829250929_GENGLOGO_GOLD.png",
       "isPreset": true,
@@ -289,6 +294,7 @@
         "SKT",
         "FAKER"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "rose",
       "logoUrl": "/images/teams/t1.svg",
       "isPreset": true,
@@ -358,6 +364,7 @@
         "HLE",
         "HANWHA"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "orange",
       "logoUrl": "/images/teams/hle.svg",
       "isPreset": true,
@@ -427,6 +434,7 @@
         "TES",
         "TOP ESPORTS"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "red",
       "logoUrl": "/images/teams/tes.svg",
       "isPreset": true,
@@ -496,6 +504,7 @@
         "AL",
         "ANYONE"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "violet",
       "logoUrl": "/images/teams/al.svg",
       "isPreset": true,
@@ -566,6 +575,7 @@
         "DPLUS",
         "DAMWON"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "blue",
       "logoUrl": "/images/teams/dk.svg",
       "isPreset": true,
@@ -636,6 +646,7 @@
         "GIGABYTE",
         "VCS"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "amber",
       "logoUrl": "/images/teams/gam.svg",
       "isPreset": true,
@@ -705,6 +716,7 @@
         "G2",
         "SAMURAI"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "rose",
       "logoUrl": "/images/teams/g2.svg",
       "isPreset": true,
@@ -774,6 +786,7 @@
         "FLY",
         "FLYQUEST"
       ],
+      "autoSyncRosterAliases": true,
       "colorTheme": "emerald",
       "logoUrl": "/images/teams/fly.svg",
       "isPreset": true,
@@ -834,6 +847,14 @@
           "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Bard.png"
         }
       ]
+    }
+  ],
+  "matchQueue": [
+    {
+      "id": "match-mwd18pmf-yev",
+      "label": "GAM vs G2",
+      "leftTeamId": "preset-gam",
+      "rightTeamId": "preset-g2"
     }
   ]
 }

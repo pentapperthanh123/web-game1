@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Swords, Zap } from 'lucide-react';
+import { Crown, Swords, Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY, TeamType, COMBAT_VFX_CONSTANTS } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
@@ -47,14 +47,16 @@ const SummonSpotlightCard = ({
   const teamProfile = useGameStore((state) => state.activeTeams[portal.team]);
   const theme = getTeamTheme(teamProfile?.colorTheme);
   const isRight = side === 'right';
+  const isSignature = Boolean(portal.isSignatureSynergy && portal.signaturePlayerName);
+  const cardBorderClass = isSignature ? 'border-amber-400/90 ring-1 ring-amber-400/40' : theme.borderClass;
 
   return (
     <div
       key={portal.id}
-      style={{ boxShadow: theme.glowStyle }}
-      className={`flex items-center space-x-1.5 px-2 py-1 rounded-2xl border backdrop-blur-md animate-summon-entrance max-w-[138px] sm:max-w-[175px] bg-slate-950/85 ${
-        theme.borderClass
-      } ${isRight ? 'flex-row-reverse space-x-reverse text-right' : ''}`}
+      style={{ boxShadow: isSignature ? '0 0 18px rgba(251,191,36,0.55)' : theme.glowStyle }}
+      className={`flex items-center space-x-1.5 px-2 py-1 rounded-2xl border backdrop-blur-md animate-summon-entrance max-w-[152px] sm:max-w-[190px] bg-slate-950/85 ${cardBorderClass} ${
+        isRight ? 'flex-row-reverse space-x-reverse text-right' : ''
+      }`}
     >
       {/* Spinning Magic Summon Ring + Champion Avatar */}
       <div className="relative w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
@@ -77,9 +79,19 @@ const SummonSpotlightCard = ({
             <Zap className="w-3 h-3 text-rose-400 fill-current animate-bounce shrink-0" />
           )}
         </div>
-        <p className={`text-[11px] sm:text-xs font-black truncate mt-0.5 ${theme.textClass}`}>
+        <p className={`text-[11px] sm:text-xs font-black truncate mt-0.5 ${isSignature ? 'text-amber-300' : theme.textClass}`}>
           {portal.championName}
         </p>
+        {isSignature && (
+          <p className="text-[8px] font-black text-amber-300 flex items-center space-x-0.5 truncate">
+            <Crown className="w-2.5 h-2.5 shrink-0 fill-current" />
+            <span className="truncate">
+              {t('Combat.signatureTag', 'TƯỚNG TỦ · {{player}} (+25%)', {
+                player: portal.signaturePlayerName,
+              })}
+            </span>
+          </p>
+        )}
         <p className="text-[9px] text-slate-300 truncate font-semibold flex items-center space-x-0.5">
           <span>💬</span>
           <span className="truncate">@{portal.summonerName.replace(/^@+/, '')}</span>

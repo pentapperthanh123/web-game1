@@ -22,4 +22,28 @@
   scrollbar-width: none;  /* Firefox */
 }
 
+/* Visible, modern horizontal scrollbar for admin tab navigation */
+.admin-tab-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.admin-tab-scroll::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 9999px;
+  margin: 0 4px;
+}
+.admin-tab-scroll::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 9999px;
+  border: 1px solid rgba(30, 41, 59, 0.8);
+}
+.admin-tab-scroll::-webkit-scrollbar-thumb:hover {
+  background: #06b6d4;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
+}
+.admin-tab-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 rgba(15, 23, 42, 0.85);
+}
+
+
 

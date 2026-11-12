@@ -1,4 +1,5 @@
-import { GAME_THEME, GameThemeType } from './game';
+import { GAME_THEME, GameThemeType, TEAM_KEY } from './game';
+import { ActiveTeamsMap } from '../types/team';
 
 export type SpeechCategory = 'RESTLESS' | 'AMBIENT' | 'POKE';
 
@@ -13,15 +14,15 @@ export const BOSS_SPEECHES: Record<GameThemeType, Record<SpeechCategory, readonl
     RESTLESS: [
       { id: 'ed_r_1', text: 'Đấu trường vắng tanh thế này? Tướng đâu hết rồi?!', icon: 'flame' },
       { id: 'ed_r_2', text: 'Ta đang mất kiên nhẫn đấy! Mau comment tên tướng vào cứu giá!', icon: 'flame' },
-      { id: 'ed_r_3', text: 'Fan BLG với GEN.G ngủ hết rồi à? Gáy to lên xem nào!', icon: 'swords' },
+      { id: 'ed_r_3', text: 'Fan {{leftTag}} với {{rightTag}} ngủ hết rồi à? Gáy to lên xem nào!', icon: 'swords' },
       { id: 'ed_r_4', text: 'Không ai dám solo với Rồng Ngàn Tuổi sao? Chán thế!', icon: 'crown' },
       { id: 'ed_r_5', text: 'Thả tim triệu hồi tướng mau! Long Thần đợi hơi lâu rồi đấy!', icon: 'zap' },
-      { id: 'ed_r_6', text: 'Bin Đao Phủ hay Chovy đâu? Mau ra đây tiếp chiêu!', icon: 'swords' },
+      { id: 'ed_r_6', text: '{{leftPlayer}} hay {{rightPlayer}} đâu? Mau ra đây tiếp chiêu!', icon: 'swords' },
       { id: 'ed_r_7', text: 'Cần một con Yasuo hoặc Zed múa lửa gank ta gấp!', icon: 'swords' },
       { id: 'ed_r_8', text: 'Đứng nhìn thôi à các dũng sĩ? Nhào vô kiếm điểm nào!', icon: 'flame' },
       { id: 'ed_r_9', text: 'Ai triệu hồi tướng ta chấp cả lò! Nhào vô kiếm bùa Rồng!', icon: 'crown' },
       { id: 'ed_r_10', text: 'Hơi thở Rồng sắp nguội lạnh rồi... mau đốt nóng đấu trường đi!', icon: 'flame' },
-      { id: 'ed_r_11', text: 'Đấu trường yên ắng quá, gọi Faker vào Phân Chia Thiên Hạ mau!', icon: 'zap' },
+      { id: 'ed_r_11', text: 'Đấu trường yên ắng quá, gọi {{leftMid}} hay {{rightMid}} ra giao tranh mau!', icon: 'zap' },
       { id: 'ed_r_12', text: 'Ngủ quên trên chiến thắng à? Mau gọi chiến binh ra trận!', icon: 'swords' },
     ],
     AMBIENT: [
@@ -30,7 +31,7 @@ export const BOSS_SPEECHES: Record<GameThemeType, Record<SpeechCategory, readonl
       { id: 'ed_a_3', text: 'Ai sẽ là kẻ đoạt được Long Hồn vô địch năm nay?', icon: 'crown' },
       { id: 'ed_a_4', text: 'Lửa rồng nguyên tố sẵn sàng thiêu rụi mọi kẻ cản đường!', icon: 'flame' },
       { id: 'ed_a_5', text: 'Hít thở chút không khí... mùi chiến tranh nồng nặc!', icon: 'zap' },
-      { id: 'ed_a_6', text: 'BLG hay GEN.G sẽ trở thành tro bụi trước móng vuốt của ta?', icon: 'swords' },
+      { id: 'ed_a_6', text: '{{leftTag}} hay {{rightTag}} sẽ trở thành tro bụi trước móng vuốt của ta?', icon: 'swords' },
       { id: 'ed_a_7', text: 'Bùa lợi Rồng Ngàn Tuổi chỉ dành cho đội tuyển mạnh nhất!', icon: 'crown' },
       { id: 'ed_a_8', text: 'Một cú quạt đuôi của ta đủ quét sạch cả dàn tuyển thủ!', icon: 'flame' },
       { id: 'ed_a_9', text: 'Ngọn lửa vĩnh hằng sẽ thanh tẩy đấu trường CKTG!', icon: 'zap' },
@@ -53,13 +54,13 @@ export const BOSS_SPEECHES: Record<GameThemeType, Record<SpeechCategory, readonl
     RESTLESS: [
       { id: 'bn_r_1', text: 'Không ai dám đấu với ta sao?! Mau triệu hồi trợ thủ đi nào!', icon: 'flame' },
       { id: 'bn_r_2', text: 'Hư Không đang đói khát chiến binh... mau cúng nạp tướng!', icon: 'crown' },
-      { id: 'bn_r_3', text: 'Fan BLG đâu rồi? Mau thả tim gọi Bin ra đây!', icon: 'swords' },
-      { id: 'bn_r_4', text: 'Fan GEN.G im ắng thế? Hết linh lực triệu hồi rồi à?!', icon: 'zap' },
+      { id: 'bn_r_3', text: 'Fan {{leftTag}} đâu rồi? Mau thả tim gọi {{leftPlayer}} ra đây!', icon: 'swords' },
+      { id: 'bn_r_4', text: 'Fan {{rightTag}} im ắng thế? Hết linh lực triệu hồi rồi à?!', icon: 'zap' },
       { id: 'bn_r_5', text: 'Đấu trường buồn ngủ quá... Ai đó vào chat tên tướng đánh thức ta đi!', icon: 'flame' },
       { id: 'bn_r_6', text: 'Cần kèo solo 1v1 tại hang Baron! Ai dám nhận kèo không?!', icon: 'swords' },
       { id: 'bn_r_7', text: 'Chỉ biết đứng nhìn thôi à? Nhào vô kiếm Bùa Baron mau!', icon: 'crown' },
       { id: 'bn_r_8', text: 'Nọc độc Hư Không sắp trào ra rồi... tướng đâu hết rồi?!', icon: 'flame' },
-      { id: 'bn_r_9', text: 'Comment [Tên tướng] BLG hoặc GEN để chiến đi nào!', icon: 'zap' },
+      { id: 'bn_r_9', text: 'Comment [Tên tướng] {{leftTag}} hoặc {{rightTag}} để chiến đi nào!', icon: 'zap' },
       { id: 'bn_r_10', text: 'Hang Baron lạnh lẽo quá, cần vài đòn đánh đốt nóng bầu không khí!', icon: 'swords' },
       { id: 'bn_r_11', text: 'Sợ Baron nuốt chửng à? Đừng hèn thế chứ các chiến hữu!', icon: 'crown' },
       { id: 'bn_r_12', text: 'Hư Không đang chờ đợi... đừng để ta phải gọi tên từng người!', icon: 'flame' },
@@ -130,5 +131,29 @@ export class SpeechQueueManager {
     return nextItem;
   }
 }
+
+export const resolveBossSpeechItem = (
+  item: BossSpeechItem,
+  activeTeams: ActiveTeamsMap
+): BossSpeechItem => {
+  const left = activeTeams[TEAM_KEY.BLG];
+  const right = activeTeams[TEAM_KEY.GENG];
+  const leftRoster = left?.roster ?? [];
+  const rightRoster = right?.roster ?? [];
+  const leftPlayer = leftRoster[0]?.name || left?.shortTag || 'TOP';
+  const rightPlayer = rightRoster[2]?.name || rightRoster[0]?.name || right?.shortTag || 'MID';
+  const leftMid = leftRoster[2]?.name || leftPlayer;
+  const rightMid = rightRoster[2]?.name || rightPlayer;
+
+  const text = item.text
+    .replaceAll('{{leftTag}}', left?.shortTag || TEAM_KEY.BLG)
+    .replaceAll('{{rightTag}}', right?.shortTag || 'GEN')
+    .replaceAll('{{leftPlayer}}', leftPlayer)
+    .replaceAll('{{rightPlayer}}', rightPlayer)
+    .replaceAll('{{leftMid}}', leftMid)
+    .replaceAll('{{rightMid}}', rightMid);
+
+  return { ...item, text };
+};
 
 export const bossSpeechManager = new SpeechQueueManager();

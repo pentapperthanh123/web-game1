@@ -2,7 +2,7 @@ import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXTy
 export type { GameThemeType };
 import { RosterPlayer } from '../constants/roster';
 import { BossSkillConfig, ActiveBossSkillBanner } from './bossSkill';
-import { ActiveTeamsMap, TeamConfigState, TeamProfile } from './team';
+import { ActiveTeamsMap, QueuedMatchup, TeamConfigState, TeamProfile } from './team';
 
 export interface MinionEntity {
   id: string;
@@ -22,6 +22,9 @@ export interface MinionEntity {
   maxHp: number;
   fury: number;
   maxFury: number;
+  isSignatureSynergy?: boolean;
+  signaturePlayerName?: string;
+  signaturePlayerRole?: string;
 }
 
 export interface TeamHeartMomentum {
@@ -144,6 +147,8 @@ export interface SummonPortalEntity {
   isCrit: boolean;
   dps: number;
   createdAt: number;
+  isSignatureSynergy?: boolean;
+  signaturePlayerName?: string;
 }
 
 export interface HitImpactEntity {
@@ -389,6 +394,7 @@ export interface GameState {
   // Dynamic Team & Roster Configuration
   activeTeams: ActiveTeamsMap;
   teamCatalog: TeamProfile[];
+  matchQueue: QueuedMatchup[];
 
   // Guest & Admin Simulation Mode State
   isGuestModeActive: boolean;
@@ -411,6 +417,13 @@ export interface GameState {
   setActiveTeams: (leftTeam: TeamProfile, rightTeam: TeamProfile, resetMatch?: boolean) => void;
   saveTeamToCatalog: (team: TeamProfile, mountToSlot?: TeamType) => void;
   deleteCustomTeam: (teamId: string) => void;
+  duplicateTeamInCatalog: (teamId: string, copySuffix?: string) => TeamProfile | null;
+  restorePresetTeam: (presetId: string) => boolean;
+  setMatchQueue: (queue: QueuedMatchup[]) => void;
+  enqueueMatchup: (leftTeamId: string, rightTeamId: string, customLabel?: string) => boolean;
+  removeQueuedMatchup: (queueId: string) => void;
+  advanceNextMatchQueue: () => boolean;
+  importTeamPack: (teams: TeamProfile[], importedQueue?: QueuedMatchup[]) => number;
   applyTeamConfigSnapshot: (config: TeamConfigState, resetMatch?: boolean) => void;
   setGuestMode: (active: boolean) => void;
   setGuestTeam: (team: TeamType) => void;

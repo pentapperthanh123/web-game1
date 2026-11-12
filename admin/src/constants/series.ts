@@ -81,3 +81,4 @@ export const DEFAULT_DUEL_STATE: SilverScrapesDuelState = {
   isLastStandActive: false,
   winningTeamBuff: null,
 };
+

@@ -26,11 +26,26 @@ export interface TeamPlayerProfile {
   avatarUrl: string;
 }
 
+export interface QueuedMatchup {
+  id: string;
+  label: string;
+  leftTeamId: string;
+  rightTeamId: string;
+}
+
+export interface TeamPackExport {
+  version: number;
+  exportedAt: string;
+  teams: TeamProfile[];
+  matchQueue: QueuedMatchup[];
+}
+
 export interface TeamProfile {
   id: string;
   name: string;
   shortTag: string;
   aliases: string[];
+  autoSyncRosterAliases?: boolean;
   colorTheme: TeamColorThemeId;
   logoUrl: string;
   isPreset?: boolean;
@@ -42,6 +57,7 @@ export type ActiveTeamsMap = Record<TeamSlotKey, TeamProfile>;
 export interface TeamConfigState {
   activeTeams: ActiveTeamsMap;
   teamCatalog: TeamProfile[];
+  matchQueue: QueuedMatchup[];
 }
 
 export interface TeamConfigUpdatePayload extends TeamConfigState {

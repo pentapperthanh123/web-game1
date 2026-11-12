@@ -678,6 +678,16 @@ export function App() {
           </div>
         </header>
 
+        {/* Section Navigation Tabs (Top-most & Sticky) */}
+        <div className="sticky top-0 sm:top-2 z-40">
+          <AdminTabBar
+            activeTab={activeTab}
+            activeOverlayCount={activeOverlayCount}
+            logCount={logs.length}
+            onSelectTab={handleSelectTab}
+          />
+        </div>
+
         {/* TikTok Live Connection Widget */}
         <section className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center space-x-2.5 sm:space-x-3 w-full sm:w-auto min-w-0">
@@ -726,25 +736,17 @@ export function App() {
         </section>
 
         {/* Team Configuration Panel */}
-        <div id="section-teams" className={shouldShowTeams ? 'block' : 'hidden'}>
+        <div id="section-teams" className={`scroll-mt-24 ${shouldShowTeams ? 'block' : 'hidden'}`}>
           <TeamConfigPanel teamConfig={teamConfig} onLog={addLog} />
         </div>
 
         {/* Section: Series Format (BO1/BO3/BO5) & Silver Scrapes 1v1 */}
-        <div id="section-series-duel" className={shouldShowSeriesDuel ? 'block' : 'hidden'}>
+        <div id="section-series-duel" className={`scroll-mt-24 ${shouldShowSeriesDuel ? 'block' : 'hidden'}`}>
           <SilverScrapesControls />
         </div>
 
-        {/* Admin Section Tabs */}
-        <AdminTabBar
-          activeTab={activeTab}
-          activeOverlayCount={activeOverlayCount}
-          logCount={logs.length}
-          onSelectTab={handleSelectTab}
-        />
-
         {/* Main Section Grid */}
-        <div id="section-interaction" className={getMainGridClassName(activeTab)}>
+        <div id="section-interaction" className={`scroll-mt-24 ${getMainGridClassName(activeTab)}`}>
           {/* Column 1: Thả Tim & Bình Luận Chat */}
           <div className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 ${shouldShowInteraction ? '' : 'hidden'}`}>
             <div className="flex items-center space-x-2 pb-2 border-b border-slate-800">
@@ -1324,7 +1326,7 @@ export function App() {
           </div>
         </div>
 
-        <div id="section-boss-map" className={shouldShowBossMap ? 'space-y-6' : 'hidden'}>
+        <div id="section-boss-map" className={`scroll-mt-24 ${shouldShowBossMap ? 'space-y-6' : 'hidden'}`}>
         {/* Map / Arena Theme Switcher Section */}
         <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -1418,12 +1420,16 @@ export function App() {
         </div>
 
         {/* Section 7: Section Visibility Controls (Overlay Controls) */}
-        <div id="section-overlays" className={shouldShowOverlays ? 'block' : 'hidden'}>
-          <OverlayControls onActiveCountChange={setActiveOverlayCount} />
+        <div id="section-overlays" className={`scroll-mt-24 ${shouldShowOverlays ? 'block' : 'hidden'}`}>
+          <OverlayControls
+            onActiveCountChange={setActiveOverlayCount}
+            leftTag={leftTeam.shortTag}
+            rightTag={rightTeam.shortTag}
+          />
         </div>
 
         {/* Live Event Logs */}
-        <section id="section-logs" className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 ${shouldShowLogs ? '' : 'hidden'}`}>
+        <section id="section-logs" className={`scroll-mt-24 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 ${shouldShowLogs ? '' : 'hidden'}`}>
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
             <div className="flex items-center space-x-2 text-xs font-bold uppercase text-white">
               <MessageSquare className="w-4 h-4 text-cyan-400" />

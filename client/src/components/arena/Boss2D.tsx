@@ -12,7 +12,7 @@ import {
   TeamType,
   DamageType,
 } from '../../constants/game';
-import { bossSpeechManager, BossSpeechItem } from '../../constants/bossSpeech';
+import { bossSpeechManager, BossSpeechItem, resolveBossSpeechItem } from '../../constants/bossSpeech';
 import { BossHitMarks2D } from './BossHitMarks2D';
 import { BossAlertBanner } from './BossAlertBanner';
 import { GroundShockwaveRing } from './GroundShockwaveRing';
@@ -330,7 +330,10 @@ export const Boss2D = () => {
 
         if (canSpeak) {
           lastSpeechTimestampRef.current = now;
-          const nextRestlessSpeech = bossSpeechManager.getNextSpeech(gameTheme, 'RESTLESS');
+          const nextRestlessSpeech = resolveBossSpeechItem(
+            bossSpeechManager.getNextSpeech(gameTheme, 'RESTLESS'),
+            useGameStore.getState().activeTeams
+          );
           setActiveSpeech(nextRestlessSpeech);
 
           if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
@@ -358,7 +361,10 @@ export const Boss2D = () => {
       } else {
         // Ambient 3: Menacing Non-Repeating Speech Taunt (when cooldown allows)
         lastSpeechTimestampRef.current = now;
-        const nextAmbientSpeech = bossSpeechManager.getNextSpeech(gameTheme, 'AMBIENT');
+        const nextAmbientSpeech = resolveBossSpeechItem(
+          bossSpeechManager.getNextSpeech(gameTheme, 'AMBIENT'),
+          useGameStore.getState().activeTeams
+        );
         setActiveSpeech(nextAmbientSpeech);
 
         if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
@@ -487,7 +493,10 @@ export const Boss2D = () => {
     const burstColor = isElderDragon ? '#f59e0b' : '#c084fc';
     spawnParticleBurst([0, 0.4, 0.5], burstColor, 1.2);
 
-    const nextPokeSpeech = bossSpeechManager.getNextSpeech(gameTheme, 'POKE');
+    const nextPokeSpeech = resolveBossSpeechItem(
+      bossSpeechManager.getNextSpeech(gameTheme, 'POKE'),
+      useGameStore.getState().activeTeams
+    );
     setActiveSpeech(nextPokeSpeech);
 
     if (pokeTimerRef.current) clearTimeout(pokeTimerRef.current);

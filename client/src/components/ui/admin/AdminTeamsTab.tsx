@@ -1,31 +1,45 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeftRight, Check, Swords } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, Check, Swords } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
 import { TEAM_KEY, TeamType } from '../../../constants/game';
 import {
   HOT_MATCHUPS,
+  buildTeamPackExport,
   createCustomTeamTemplate,
+  findTeamAliasConflicts,
   mountTeamToSlot,
+  parseImportedTeamPack,
 } from '../../../constants/teams';
 import { gameSocket } from '../../../services/socket';
 import { TeamProfile } from '../../../types/team';
+import { downloadJsonPayload } from '../../../utils/teamMediaIO';
 import { TeamProfileEditor } from './TeamProfileEditor';
 import { TeamSlotSelectorCard } from './TeamSlotSelectorCard';
 import { TeamCatalogGrid } from './TeamCatalogGrid';
+import { TeamMatchQueuePanel } from './TeamMatchQueuePanel';
 
 interface EditorTarget {
   team: TeamProfile;
   slot?: TeamType;
 }
 
+const FEEDBACK_TIMEOUT_MS = 2200;
+
 export const AdminTeamsTab: React.FC = () => {
   const { t } = useTranslation();
   const activeTeams = useGameStore((s) => s.activeTeams);
   const teamCatalog = useGameStore((s) => s.teamCatalog);
+  const matchQueue = useGameStore((s) => s.matchQueue);
   const setActiveTeams = useGameStore((s) => s.setActiveTeams);
   const saveTeamToCatalog = useGameStore((s) => s.saveTeamToCatalog);
   const deleteCustomTeam = useGameStore((s) => s.deleteCustomTeam);
+  const duplicateTeamInCatalog = useGameStore((s) => s.duplicateTeamInCatalog);
+  const restorePresetTeam = useGameStore((s) => s.restorePresetTeam);
+  const enqueueMatchup = useGameStore((s) => s.enqueueMatchup);
+  const removeQueuedMatchup = useGameStore((s) => s.removeQueuedMatchup);
+  const advanceNextMatchQueue = useGameStore((s) => s.advanceNextMatchQueue);
+  const importTeamPack = useGameStore((s) => s.importTeamPack);
 
   const [resetOnSwitch, setResetOnSwitch] = useState(true);
   const [editorTarget, setEditorTarget] = useState<EditorTarget | null>(null);
@@ -34,17 +48,20 @@ export const AdminTeamsTab: React.FC = () => {
   const leftTeam = activeTeams[TEAM_KEY.BLG];
   const rightTeam = activeTeams[TEAM_KEY.GENG];
 
+  const aliasConflicts = useMemo(
+    () => findTeamAliasConflicts(leftTeam, rightTeam),
+    [leftTeam, rightTeam]
+  );
+
   const showFeedback = (msg: string) => {
     setFeedback(msg);
-    setTimeout(() => {
-      setFeedback((prev) => (prev === msg ? null : prev));
-    }, 1800);
+    setTimeout(() => setFeedback((prev) => (prev === msg ? null : prev)), FEEDBACK_TIMEOUT_MS);
   };
 
   const syncMatchupToServer = (resetMatch: boolean) => {
     const latest = useGameStore.getState();
     gameSocket.sendTeamConfig(
-      { activeTeams: latest.activeTeams, teamCatalog: latest.teamCatalog },
+      { activeTeams: latest.activeTeams, teamCatalog: latest.teamCatalog, matchQueue: latest.matchQueue },
       resetMatch
     );
   };
@@ -56,23 +73,13 @@ export const AdminTeamsTab: React.FC = () => {
     const nextRight = slot === TEAM_KEY.GENG ? chosen : rightTeam;
     setActiveTeams(nextLeft, nextRight, resetOnSwitch);
     syncMatchupToServer(resetOnSwitch);
-    showFeedback(
-      t('AdminTeams.switchedFeedback', 'Đã đổi cặp đấu: {{left}} vs {{right}}', {
-        left: nextLeft.shortTag,
-        right: nextRight.shortTag,
-      })
-    );
+    showFeedback(t('AdminTeams.switchedFeedback', 'Đã đổi cặp đấu: {{left}} vs {{right}}', { left: nextLeft.shortTag, right: nextRight.shortTag }));
   };
 
   const handleSwapSides = () => {
     setActiveTeams(rightTeam, leftTeam, false);
     syncMatchupToServer(false);
-    showFeedback(
-      t('AdminTeams.swappedFeedback', 'Đã đảo bên: {{left}} ↔ {{right}}', {
-        left: rightTeam.shortTag,
-        right: leftTeam.shortTag,
-      })
-    );
+    showFeedback(t('AdminTeams.swappedFeedback', 'Đã đảo bên: {{left}} ↔ {{right}}', { left: rightTeam.shortTag, right: leftTeam.shortTag }));
   };
 
   const handleApplyHotMatchup = (leftId: string, rightId: string, label: string) => {
@@ -88,20 +95,50 @@ export const AdminTeamsTab: React.FC = () => {
     saveTeamToCatalog(updated, editorTarget?.slot);
     syncMatchupToServer(false);
     setEditorTarget(null);
-    showFeedback(
-      t('AdminTeams.savedTeamFeedback', 'Đã lưu & áp dụng đội: {{name}}!', {
-        name: updated.shortTag,
-      })
-    );
+    showFeedback(t('AdminTeams.savedTeamFeedback', 'Đã lưu & áp dụng đội: {{name}}!', { name: updated.shortTag }));
+  };
+
+  const handleDuplicate = (team: TeamProfile) => {
+    const copy = duplicateTeamInCatalog(team.id, t('AdminTeams.copySuffix', 'Bản sao'));
+    if (!copy) return;
+    syncMatchupToServer(false);
+    showFeedback(t('AdminTeams.duplicatedFeedback', 'Đã nhân bản đội: {{name}}', { name: copy.name }));
+  };
+
+  const handleRestorePreset = (team: TeamProfile) => {
+    if (!restorePresetTeam(team.id)) return;
+    syncMatchupToServer(false);
+    showFeedback(t('AdminTeams.restoredPresetFeedback', 'Đã khôi phục preset gốc: {{name}}', { name: team.shortTag }));
   };
 
   const handleDeleteCustom = (team: TeamProfile) => {
     if (team.isPreset) return;
     deleteCustomTeam(team.id);
     syncMatchupToServer(false);
-    showFeedback(
-      t('AdminTeams.deletedFeedback', 'Đã xóa đội tự tạo: {{name}}', { name: team.name })
-    );
+    showFeedback(t('AdminTeams.deletedFeedback', 'Đã xóa đội tự tạo: {{name}}', { name: team.name }));
+  };
+
+  const handleExportPack = () => {
+    const latest = useGameStore.getState();
+    const pack = buildTeamPackExport({
+      activeTeams: latest.activeTeams,
+      teamCatalog: latest.teamCatalog,
+      matchQueue: latest.matchQueue,
+    });
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadJsonPayload(`lol-cktg-team-pack-${stamp}.json`, pack);
+    showFeedback(t('AdminTeams.exportedPackFeedback', 'Đã xuất file JSON ({{count}} đội)!', { count: latest.teamCatalog.length }));
+  };
+
+  const handleImportPackText = (jsonText: string) => {
+    const parsed = parseImportedTeamPack(jsonText, teamCatalog);
+    if (!parsed) {
+      showFeedback(t('AdminTeams.importErrorFeedback', 'File JSON gói đội không hợp lệ!'));
+      return;
+    }
+    const count = importTeamPack(parsed.teams, parsed.matchQueue);
+    syncMatchupToServer(false);
+    showFeedback(t('AdminTeams.importedPackFeedback', 'Đã nhập {{count}} đội từ JSON!', { count }));
   };
 
   const resolveEditorSlotLabel = (slot?: TeamType): string => {
@@ -130,78 +167,49 @@ export const AdminTeamsTab: React.FC = () => {
         </div>
       )}
 
+      {aliasConflicts.length > 0 && (
+        <div className="p-2 rounded-lg bg-rose-950/80 border border-rose-500/60 text-rose-200 text-[11px] flex items-center space-x-2">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>
+            {t('AdminTeams.aliasConflictWarning', 'Cảnh báo trùng từ khóa chat giữa 2 phe: {{keywords}} (chat có thể ưu tiên Phe Trái)!', {
+              keywords: aliasConflicts.join(', '),
+            })}
+          </span>
+        </div>
+      )}
+
       <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold text-amber-300 flex items-center space-x-1.5">
             <Swords className="w-3.5 h-3.5 text-amber-400" />
             <span>{t('AdminTeams.activeMatchupTitle', 'Cặp Đấu Hiện Tại:')}</span>
           </span>
-          <button
-            type="button"
-            onClick={handleSwapSides}
-            className="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 text-[10px] font-bold flex items-center space-x-1 transition active:scale-95"
-          >
+          <button type="button" onClick={handleSwapSides} className="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 text-[10px] font-bold flex items-center space-x-1">
             <ArrowLeftRight className="w-3 h-3 text-cyan-400" />
             <span>{t('AdminTeams.swapSidesBtn', 'Đảo Bên')}</span>
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <TeamSlotSelectorCard
-            slot={TEAM_KEY.BLG}
-            label={t('AdminTeams.leftSlotLabel', 'Phe Trái')}
-            team={leftTeam}
-            catalog={teamCatalog}
-            onAssignSlot={handleAssignSlot}
-            onEditTeam={(team, slot) => setEditorTarget({ team: mountTeamToSlot(team, slot), slot })}
-          />
-          <TeamSlotSelectorCard
-            slot={TEAM_KEY.GENG}
-            label={t('AdminTeams.rightSlotLabel', 'Phe Phải')}
-            team={rightTeam}
-            catalog={teamCatalog}
-            onAssignSlot={handleAssignSlot}
-            onEditTeam={(team, slot) => setEditorTarget({ team: mountTeamToSlot(team, slot), slot })}
-          />
+          <TeamSlotSelectorCard slot={TEAM_KEY.BLG} label={t('AdminTeams.leftSlotLabel', 'Phe Trái')} team={leftTeam} catalog={teamCatalog} onAssignSlot={handleAssignSlot} onEditTeam={(team, slot) => setEditorTarget({ team: mountTeamToSlot(team, slot), slot })} />
+          <TeamSlotSelectorCard slot={TEAM_KEY.GENG} label={t('AdminTeams.rightSlotLabel', 'Phe Phải')} team={rightTeam} catalog={teamCatalog} onAssignSlot={handleAssignSlot} onEditTeam={(team, slot) => setEditorTarget({ team: mountTeamToSlot(team, slot), slot })} />
         </div>
 
-        <button
-          type="button"
-          onClick={() => setResetOnSwitch((prev) => !prev)}
-          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-950/70 border border-slate-800 text-[11px]"
-        >
-          <span className="text-slate-300">
-            {t('AdminTeams.resetOnSwitchLabel', 'Reset điểm ván & BO5 khi đổi đội')}
-          </span>
-          <span
-            className={`px-2 py-0.5 rounded font-bold text-[10px] ${
-              resetOnSwitch ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
-            }`}
-          >
+        <button type="button" onClick={() => setResetOnSwitch((prev) => !prev)} className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-950/70 border border-slate-800 text-[11px]">
+          <span className="text-slate-300">{t('AdminTeams.resetOnSwitchLabel', 'Reset điểm ván & BO5 khi đổi đội')}</span>
+          <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${resetOnSwitch ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>
             {resetOnSwitch ? t('Admin.yes', 'Có') : t('Admin.no', 'Không')}
           </span>
         </button>
       </div>
 
       <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
-        <div className="text-[11px] font-bold text-cyan-300">
-          {t('AdminTeams.hotMatchupsTitle', 'Kèo Đấu Nổi Bật (1 Click Đổi Nhanh):')}
-        </div>
+        <div className="text-[11px] font-bold text-cyan-300">{t('AdminTeams.hotMatchupsTitle', 'Kèo Đấu Nổi Bật (1 Click Đổi Nhanh):')}</div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
           {HOT_MATCHUPS.map((preset) => {
-            const isActive =
-              leftTeam.id === preset.leftTeamId && rightTeam.id === preset.rightTeamId;
+            const isActive = leftTeam.id === preset.leftTeamId && rightTeam.id === preset.rightTeamId;
             return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => handleApplyHotMatchup(preset.leftTeamId, preset.rightTeamId, preset.label)}
-                className={`py-1.5 px-2 rounded-lg border text-[11px] font-black transition active:scale-95 ${
-                  isActive
-                    ? 'bg-amber-500/20 border-amber-400 text-amber-200'
-                    : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:border-slate-600'
-                }`}
-              >
+              <button key={preset.id} type="button" onClick={() => handleApplyHotMatchup(preset.leftTeamId, preset.rightTeamId, preset.label)} className={`py-1.5 px-2 rounded-lg border text-[11px] font-black transition ${isActive ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:border-slate-600'}`}>
                 {preset.label}
               </button>
             );
@@ -209,16 +217,38 @@ export const AdminTeamsTab: React.FC = () => {
         </div>
       </div>
 
+      <TeamMatchQueuePanel
+        catalog={teamCatalog}
+        matchQueue={matchQueue}
+        activeLeftId={leftTeam.id}
+        activeRightId={rightTeam.id}
+        onEnqueueMatch={(lId, rId) => {
+          if (enqueueMatchup(lId, rId)) {
+            syncMatchupToServer(false);
+            showFeedback(t('AdminTeams.enqueuedFeedback', 'Đã thêm cặp đấu vào hàng đợi!'));
+          }
+        }}
+        onRemoveMatch={(qId) => {
+          removeQueuedMatchup(qId);
+          syncMatchupToServer(false);
+        }}
+        onAdvanceNextMatch={() => {
+          if (advanceNextMatchQueue()) {
+            syncMatchupToServer(true);
+            showFeedback(t('AdminTeams.advancedQueueFeedback', 'Đã chuyển sang cặp đấu tiếp theo!'));
+          }
+        }}
+      />
+
       <TeamCatalogGrid
         catalog={teamCatalog}
-        onCreateTeam={() =>
-          setEditorTarget({
-            team: createCustomTeamTemplate(t('AdminTeams.newTeamDefaultName', 'Đội Tuyển Mới')),
-            slot: TEAM_KEY.BLG,
-          })
-        }
+        onCreateTeam={() => setEditorTarget({ team: createCustomTeamTemplate(t('AdminTeams.newTeamDefaultName', 'Đội Tuyển Mới')), slot: TEAM_KEY.BLG })}
         onEditTeam={(item) => setEditorTarget({ team: mountTeamToSlot(item, TEAM_KEY.BLG) })}
+        onDuplicateTeam={handleDuplicate}
+        onRestorePreset={handleRestorePreset}
         onDeleteTeam={handleDeleteCustom}
+        onExportPack={handleExportPack}
+        onImportPackText={handleImportPackText}
       />
     </div>
   );

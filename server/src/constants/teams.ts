@@ -24,11 +24,19 @@ export interface TeamPlayerProfile {
   avatarUrl: string;
 }
 
+export interface QueuedMatchup {
+  id: string;
+  label: string;
+  leftTeamId: string;
+  rightTeamId: string;
+}
+
 export interface TeamProfile {
   id: string;
   name: string;
   shortTag: string;
   aliases: string[];
+  autoSyncRosterAliases?: boolean;
   colorTheme: TeamColorThemeId;
   logoUrl: string;
   isPreset?: boolean;
@@ -40,7 +48,15 @@ export type ActiveTeamsMap = Record<TeamSlotKey, TeamProfile>;
 export interface TeamConfigState {
   activeTeams: ActiveTeamsMap;
   teamCatalog: TeamProfile[];
+  matchQueue: QueuedMatchup[];
 }
+
+export const TEAM_LIMITS = {
+  MAX_BASE64_MEDIA_LENGTH: 400_000,
+  MAX_QUEUE_ITEMS: 24,
+  MAX_CATALOG_ITEMS: 60,
+  MAX_ALIASES: 16,
+} as const;
 
 export const DDRAGON_CHAMPION_CDN =
   'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion';
@@ -739,6 +755,7 @@ export const mountTeamToSlot = (
 ): TeamProfile => ({
   ...team,
   aliases: [...team.aliases],
+  autoSyncRosterAliases: team.autoSyncRosterAliases ?? true,
   roster: team.roster.map((player, index) => ({
     ...player,
     id: `${slot.toLowerCase()}-${team.id}-${player.role.toLowerCase()}-${index}`,
@@ -750,6 +767,7 @@ export const createDefaultTeamConfig = (): TeamConfigState => {
   const catalog = PRESET_TEAMS.map((t) => ({
     ...t,
     aliases: [...t.aliases],
+    autoSyncRosterAliases: true,
     roster: t.roster.map((p) => ({ ...p })),
   }));
   const defaultLeft = mountTeamToSlot(catalog[0], 'BLG');
@@ -760,7 +778,33 @@ export const createDefaultTeamConfig = (): TeamConfigState => {
       GENG: defaultRight,
     },
     teamCatalog: catalog,
+    matchQueue: [],
   };
+};
+
+const DATA_IMAGE_URI_PREFIX_REGEX = /^data:image\/(png|jpeg|jpg|webp|svg\+xml|gif);base64,/i;
+
+export const sanitizeMediaUrl = (rawUrl: unknown, fallbackUrl: string): string => {
+  if (typeof rawUrl !== 'string') return fallbackUrl;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('data:image/')) {
+    if (
+      DATA_IMAGE_URI_PREFIX_REGEX.test(trimmed) &&
+      trimmed.length <= TEAM_LIMITS.MAX_BASE64_MEDIA_LENGTH
+    ) {
+      return trimmed;
+    }
+    return fallbackUrl;
+  }
+  if (
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('http://')
+  ) {
+    return trimmed.slice(0, 2048);
+  }
+  return fallbackUrl;
 };
 
 const sanitizePlayer = (
@@ -789,7 +833,7 @@ const sanitizePlayer = (
       : fallbackPlayer.name;
   const avatarUrl =
     typeof src.avatarUrl === 'string' && src.avatarUrl.trim()
-      ? src.avatarUrl.trim()
+      ? sanitizeMediaUrl(src.avatarUrl, createChampionPortrait(championKey))
       : createChampionPortrait(championKey);
 
   return {
@@ -845,13 +889,16 @@ export const sanitizeTeamProfile = (
           .map((a) => a.trim().toUpperCase()),
       ].filter(Boolean)
     )
-  ).slice(0, 10);
+  ).slice(0, TEAM_LIMITS.MAX_ALIASES);
   const colorTheme: TeamColorThemeId = VALID_COLOR_THEMES.includes(
     src.colorTheme as TeamColorThemeId
   )
     ? (src.colorTheme as TeamColorThemeId)
     : fallbackTeam.colorTheme;
-  const logoUrl = typeof src.logoUrl === 'string' ? src.logoUrl.trim() : fallbackTeam.logoUrl;
+  const logoUrl =
+    typeof src.logoUrl === 'string'
+      ? sanitizeMediaUrl(src.logoUrl, fallbackTeam.logoUrl)
+      : fallbackTeam.logoUrl;
   const rawRoster = Array.isArray(src.roster) ? src.roster : [];
   const roster = fallbackTeam.roster.map((fallbackPlayer, index) =>
     sanitizePlayer(rawRoster[index], fallbackPlayer, slot)
@@ -863,6 +910,10 @@ export const sanitizeTeamProfile = (
       name,
       shortTag,
       aliases,
+      autoSyncRosterAliases:
+        typeof src.autoSyncRosterAliases === 'boolean'
+          ? src.autoSyncRosterAliases
+          : fallbackTeam.autoSyncRosterAliases ?? true,
       colorTheme,
       logoUrl,
       isPreset: typeof src.isPreset === 'boolean' ? src.isPreset : fallbackTeam.isPreset,
@@ -870,6 +921,36 @@ export const sanitizeTeamProfile = (
     },
     slot
   );
+};
+
+export const sanitizeMatchQueue = (
+  rawQueue: unknown,
+  catalog: TeamProfile[]
+): QueuedMatchup[] => {
+  if (!Array.isArray(rawQueue)) return [];
+  const teamById = new Map(catalog.map((team) => [team.id, team]));
+  const result: QueuedMatchup[] = [];
+  for (let i = 0; i < rawQueue.length && result.length < TEAM_LIMITS.MAX_QUEUE_ITEMS; i++) {
+    const item = rawQueue[i] as Record<string, unknown> | null;
+    if (!item || typeof item !== 'object') continue;
+    const leftTeamId = typeof item.leftTeamId === 'string' ? item.leftTeamId.trim() : '';
+    const rightTeamId = typeof item.rightTeamId === 'string' ? item.rightTeamId.trim() : '';
+    const leftTeam = teamById.get(leftTeamId);
+    const rightTeam = teamById.get(rightTeamId);
+    if (!leftTeam || !rightTeam) continue;
+    const rawId = typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `q-${i}-${leftTeamId}-${rightTeamId}`;
+    const rawLabel =
+      typeof item.label === 'string' && item.label.trim()
+        ? item.label.trim().slice(0, 48)
+        : `${leftTeam.shortTag} vs ${rightTeam.shortTag}`;
+    result.push({
+      id: rawId.slice(0, 64),
+      label: rawLabel,
+      leftTeamId,
+      rightTeamId,
+    });
+  }
+  return result;
 };
 
 export const sanitizeTeamConfigState = (raw: unknown): TeamConfigState | null => {
@@ -888,16 +969,19 @@ export const sanitizeTeamConfigState = (raw: unknown): TeamConfigState | null =>
     catalogMap.set(preset.id, preset);
   }
   for (const item of rawCatalog) {
+    if (catalogMap.size >= TEAM_LIMITS.MAX_CATALOG_ITEMS) break;
     const cleanItem = sanitizeTeamProfile(item, defaults.activeTeams.BLG, 'BLG');
     catalogMap.set(cleanItem.id, cleanItem);
   }
 
+  const catalog = Array.from(catalogMap.values());
   return {
     activeTeams: {
       BLG: left,
       GENG: right,
     },
-    teamCatalog: Array.from(catalogMap.values()),
+    teamCatalog: catalog,
+    matchQueue: sanitizeMatchQueue(src.matchQueue, catalog),
   };
 };
 
@@ -945,6 +1029,17 @@ const findKeywordMatchIndex = (normalizedText: string, keywords: string[]): numb
   return bestIndex;
 };
 
+export const getEffectiveTeamKeywords = (team: TeamProfile): string[] => {
+  const baseKeywords = [team.shortTag, ...team.aliases, team.name];
+  if (team.autoSyncRosterAliases === false) {
+    return Array.from(new Set(baseKeywords.map((kw) => kw.trim()).filter(Boolean)));
+  }
+  const rosterNames = team.roster.map((player) => player.name);
+  return Array.from(
+    new Set([...baseKeywords, ...rosterNames].map((kw) => kw.trim()).filter(Boolean))
+  );
+};
+
 export const matchCommentTeam = (
   comment: string,
   activeTeams: ActiveTeamsMap
@@ -954,16 +1049,8 @@ export const matchCommentTeam = (
   }
 
   const normalized = normalizeMatchText(comment);
-  const leftKeywords = [
-    activeTeams.BLG.shortTag,
-    ...activeTeams.BLG.aliases,
-    activeTeams.BLG.name,
-  ];
-  const rightKeywords = [
-    activeTeams.GENG.shortTag,
-    ...activeTeams.GENG.aliases,
-    activeTeams.GENG.name,
-  ];
+  const leftKeywords = getEffectiveTeamKeywords(activeTeams.BLG);
+  const rightKeywords = getEffectiveTeamKeywords(activeTeams.GENG);
 
   const leftIdx = findKeywordMatchIndex(normalized, leftKeywords);
   const rightIdx = findKeywordMatchIndex(normalized, rightKeywords);

@@ -114,6 +114,12 @@ export const GAME_CONSTANTS = {
     FURY_ULTIMATE_DAMAGE_MULTIPLIER: 4.5, // 4.5x sát thương khi tung Đòn Bạo Nộ
     FURY_ULTIMATE_DURATION_MS: 1200,
   },
+  SIGNATURE_SYNERGY: {
+    DAMAGE_MULTIPLIER: 1.25,
+    BONUS_PERCENT: 25,
+    GOLD_COLOR: '#fbbf24',
+    BADGE_PREFIX: 'TƯỚNG TỦ',
+  },
   MINION_FURY: {
     MAX_FURY: 100,
     GAIN_PER_ATTACK: 25, // +25 Nộ mỗi lần tướng triệu hồi tung đòn đánh thường
@@ -364,7 +370,7 @@ export const BOSS_IDLE_SPEECHES = {
       'Đấu trường này là của Rồng Ngàn Tuổi!',
       'Kẻ nào dám nghênh chiến?',
       'Long lực cổ đại đang dâng trào...',
-      'BLG hay GEN.G sẽ trở thành tro bụi?',
+      'Đội nào sẽ trở thành tro bụi trước sức mạnh Long Thần?',
     ],
     RESTLESS: [
       'Đấu trường quá yên tĩnh... Triệu hồi tướng mau!',
