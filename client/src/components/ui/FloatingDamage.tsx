@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Zap, Sparkles, Flame, Crown } from 'lucide-react';
+import { Zap, Flame, Crown } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import {
   DAMAGE_TYPE,
@@ -133,24 +133,23 @@ const TeamComboBadge = ({
 
 const DAMAGE_TEXT_CLASS_MAP: Record<DamageType, string> = {
   [DAMAGE_TYPE.NORMAL]:
-    'text-xs sm:text-sm font-extrabold drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]',
+    'text-[10px] sm:text-xs font-extrabold drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]',
   [DAMAGE_TYPE.CRIT]:
-    'text-xs sm:text-sm font-black px-1.5 py-0.5 rounded-full bg-rose-950/80 border border-rose-400/70 drop-shadow-[0_0_10px_rgba(244,63,94,0.85)]',
+    'text-[10px] sm:text-xs font-black px-1.5 py-0.2 rounded-full bg-rose-950/85 border border-rose-400/60 drop-shadow-[0_0_8px_rgba(244,63,94,0.7)]',
   [DAMAGE_TYPE.ULTIMATE]:
-    'text-sm sm:text-base font-black px-2 py-0.5 rounded-full bg-amber-950/85 border border-amber-300/85 drop-shadow-[0_0_14px_rgba(245,158,11,0.9)]',
+    'text-[11px] sm:text-xs font-black px-1.5 py-0.2 rounded-full bg-amber-950/90 border border-amber-300/75 drop-shadow-[0_0_10px_rgba(245,158,11,0.75)]',
 };
 
 const DamageBadgeIcon = ({ damageType }: { damageType: DamageType }) => {
   if (damageType === DAMAGE_TYPE.ULTIMATE) {
     return (
       <span className="flex items-center gap-0.5 shrink-0">
-        <Flame className="w-3.5 h-3.5 text-orange-400 fill-current animate-pulse" />
-        <Sparkles className="w-3 h-3 text-yellow-300 animate-spin" />
+        <Flame className="w-2.5 h-2.5 text-orange-400 fill-current animate-pulse" />
       </span>
     );
   }
   if (damageType === DAMAGE_TYPE.CRIT) {
-    return <Zap className="w-3 h-3 text-rose-400 fill-current animate-bounce shrink-0" />;
+    return <Zap className="w-2.5 h-2.5 text-rose-400 fill-current shrink-0" />;
   }
   return null;
 };
@@ -200,7 +199,7 @@ export const FloatingDamage = React.memo(() => {
             >
               <DamageBadgeIcon damageType={item.damageType} />
               {tagLabel && (
-                <span className="text-[9px] sm:text-[10px] font-black tracking-wide">
+                <span className="text-[7.5px] sm:text-[8px] font-black tracking-wider uppercase opacity-90">
                   {tagLabel}
                 </span>
               )}
