@@ -1036,7 +1036,7 @@ export const ADMIN_CONSTANTS = {
     { key: 'leaderboard', labelVi: 'Bảng Xếp Hạng Top DPS', labelEn: 'DPS Leaderboard' },
     { key: 'chat', labelVi: 'Khung Bình Luận Trực Tiếp', labelEn: 'Live Chat Stream' },
     { key: 'likeCounter', labelVi: 'Đếm Lượt Tim & Tinh Thần', labelEn: 'Like Counter' },
-    { key: 'howToPlay', labelVi: 'Thanh Hướng Dẫn Chat', labelEn: 'How to Play Hint' },
+    { key: 'howToPlay', labelVi: 'Cách Tham Gia & Quà Tặng', labelEn: 'How to Play & Rewards' },
   ] as const,
 } as const;
 

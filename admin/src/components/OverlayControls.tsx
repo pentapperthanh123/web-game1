@@ -72,8 +72,8 @@ const SECTION_CONFIGS: SectionConfig[] = [
   },
   {
     key: 'howToPlay',
-    label: 'Hướng Dẫn Tham Gia (Góc Phải)',
-    description: 'Bảng hướng dẫn triệu hồi, thả tim & donate góc phải màn hình',
+    label: 'Cách Tham Gia & Quà Tặng (Góc Phải)',
+    description: 'Bảng hướng dẫn cú pháp chat & bảng quy đổi Quà tặng - Sát thương',
     icon: Sparkles,
   },
 ];

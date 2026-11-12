@@ -5,8 +5,11 @@
   "description": "LoL CKTG Live Interactive Game (BLG vs Gen.G) - PNPM Monorepo",
   "scripts": {
     "dev:all": "pnpm --parallel run dev",
+    "dev:all:host": "pnpm --parallel run dev:host",
     "dev:client": "pnpm --filter client dev",
+    "dev:client:host": "pnpm --filter client dev:host",
     "dev:admin": "pnpm --filter admin dev",
+    "dev:admin:host": "pnpm --filter admin dev:host",
     "dev:server": "pnpm --filter server dev",
     "build:all": "pnpm --recursive run build",
     "build:client": "pnpm --filter client build",

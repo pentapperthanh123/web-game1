@@ -5,6 +5,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import { WebcastPushConnection } from 'tiktok-live-connector';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -408,9 +409,29 @@ io.on('connection', (socket) => {
 
 httpServer.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n❌ [Server Error] Cổng ${PORT} đang bị tiến trình khác chiếm dụng (EADDRINUSE).`);
-    console.error(`💡 Hướng dẫn: Khởi động lại bằng 'start.bat' để tự động giải phóng cổng, hoặc chạy PowerShell:`);
-    console.error(`   Get-Process -Id (Get-NetTCPConnection -LocalPort ${PORT}).OwningProcess | Stop-Process -Force\n`);
+    console.warn(`\n⚠️ [Server Error] Cổng ${PORT} đang bị tiến trình khác chiếm dụng (EADDRINUSE). Đang tự động giải phóng...`);
+    try {
+      if (process.platform === 'win32') {
+        execSync(
+          `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${PORT} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"`,
+          { stdio: 'ignore' }
+        );
+      } else {
+        execSync(`fuser -k ${PORT}/tcp || true`, { stdio: 'ignore' });
+      }
+      setTimeout(() => {
+        console.log(`🔄 [Server] Thử kích hoạt lại cổng ${PORT}...`);
+        httpServer.listen(PORT, () => {
+          console.log(`===============================================`);
+          console.log(`🎮 TikTok Live Game Server running on port ${PORT}`);
+          console.log(`📡 WebSocket Gateway ready for Client & Admin`);
+          console.log(`===============================================`);
+        });
+      }, 1000);
+      return;
+    } catch (e) {
+      console.error(`❌ Không thể tự động giải phóng cổng ${PORT}:`, e);
+    }
     process.exit(1);
   } else {
     console.error('[Server Error]', err);

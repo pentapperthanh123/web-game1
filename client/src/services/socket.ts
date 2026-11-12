@@ -21,8 +21,8 @@ function pickOverlayVisibilityPatch(rawPayload: unknown): Partial<OverlayVisibil
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
-  (typeof window !== 'undefined' && window.location.hostname
-    ? `${window.location.protocol}//${window.location.hostname}:4000`
+  (typeof window !== 'undefined'
+    ? window.location.origin
     : 'http://localhost:4000');
 
 const CLIENT_INSTANCE_ID = `client-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
