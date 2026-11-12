@@ -2,11 +2,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Award, Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { TEAM_KEY, TeamType } from '../../constants/game';
+import { TEAM_KEY, TeamType, BossThemeConfig } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 
 interface BossDefeatedCrest2DProps {
-  isElderDragon: boolean;
+  themeConfig: BossThemeConfig;
 }
 
 const COMPASS_CARDINAL_ANGLES = [0, 90, 180, 270] as const;
@@ -29,8 +29,17 @@ const ElderCrestEmblem: React.FC<{ primary: string }> = ({ primary }) => (
   </svg>
 );
 
+const HeraldCrestEmblem: React.FC<{ primary: string }> = ({ primary }) => (
+  <svg viewBox="0 0 64 64" className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_0_12px_rgba(255,255,255,0.85)]">
+    <polygon points="32,12 50,24 44,48 32,56 20,48 14,24" fill={primary} fillOpacity="0.28" stroke="#ffffff" strokeWidth="2.4" strokeLinejoin="round" />
+    <circle cx="32" cy="32" r="8" fill="#0f172a" stroke={primary} strokeWidth="2" />
+    <circle cx="32" cy="32" r="4" fill="#ec4899" />
+    <path d="M22,24 L42,24" stroke={primary} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
 export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.memo(
-  ({ isElderDragon }) => {
+  ({ themeConfig }) => {
     const { t } = useTranslation();
     const finisherPlayerName = useGameStore((state) => state.finisherPlayerName);
     const finisherTeam = useGameStore((state) => state.finisherTeam);
@@ -46,9 +55,19 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
     const teamLabel = winnerProfile?.shortTag || winnerTeam;
     const glowHex = `${teamTheme.primaryHex}80`;
 
-    const buffTitle = isElderDragon
-      ? t('Victory.elderBuffClaimed', 'BÙA LỢI RỒNG NGÀN TUỔI THUỘC VỀ {{team}}', { team: teamLabel })
-      : t('Victory.baronBuffClaimed', 'BÙA LỢI BARON THUỘC VỀ {{team}}', { team: teamLabel });
+    const buffTitle = themeConfig.defeatBuffTitle
+      ? themeConfig.defeatBuffTitle.replace('{{team}}', teamLabel)
+      : t('Victory.genericBuffClaimed', 'BÙA LỢI {{boss}} THUỘC VỀ {{team}}', { boss: themeConfig.bossName, team: teamLabel });
+
+    const renderEmblem = () => {
+      if (themeConfig.archetype === 'HERALD') {
+        return <HeraldCrestEmblem primary={teamTheme.primaryHex} />;
+      }
+      if (themeConfig.archetype === 'DRAGON') {
+        return <ElderCrestEmblem primary={teamTheme.primaryHex} />;
+      }
+      return <BaronCrestEmblem primary={teamTheme.primaryHex} />;
+    };
 
     return (
       <div
@@ -96,11 +115,7 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
                 }}
                 className="absolute inset-1.5 rounded-full opacity-35 animate-pulse"
               />
-              {isElderDragon ? (
-                <ElderCrestEmblem primary={teamTheme.primaryHex} />
-              ) : (
-                <BaronCrestEmblem primary={teamTheme.primaryHex} />
-              )}
+              {renderEmblem()}
             </div>
           </div>
 

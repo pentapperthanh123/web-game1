@@ -21,8 +21,7 @@ import {
 import { adminSocket, GameThemeType } from '../services/socket';
 import { BossSkillConfig, BossSkillDefinition, BossSkillMode } from '../types/bossSkill';
 import {
-  BARON_SKILLS,
-  ELDER_DRAGON_SKILLS,
+  getBossSkillsByTheme,
   DEFAULT_BOSS_SKILL_CONFIG,
   BOSS_SKILL_STORAGE_KEY,
   BOSS_SKILL_MODE_OPTIONS,
@@ -111,11 +110,8 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
     adminSocket.healTeam(team, amount);
   };
 
-  const isDragon =
-    currentTheme === 'ELDER_DRAGON' ||
-    currentTheme === 'RONG_NUI' ||
-    currentTheme === 'RONG_GIA';
-  const activeSkills = isDragon ? ELDER_DRAGON_SKILLS : BARON_SKILLS;
+
+  const activeSkills = getBossSkillsByTheme(currentTheme);
   const bossName = BOSS_NAMES[currentTheme] || 'Baron Nashor';
 
   const getSkillChanceBadge = (index: number) => {

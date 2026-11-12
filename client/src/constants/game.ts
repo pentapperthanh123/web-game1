@@ -183,12 +183,13 @@ export const GAME_THEME = {
 
 export type GameThemeType = (typeof GAME_THEME)[keyof typeof GAME_THEME];
 
-export type BossArchetype = 'BARON' | 'DRAGON';
+export type BossArchetype = 'BARON' | 'DRAGON' | 'HERALD';
 
 export interface BossThemeColors {
   primaryHex: string;
   secondaryHex: string;
   enragedHex: string;
+  glowHex?: string;
   hpBarClass: string;
   hpBarEnragedClass: string;
   borderClass: string;
@@ -222,6 +223,20 @@ export interface BossThemeConfig {
   groundAuraClass: string;
   colors: BossThemeColors;
   i18nKey: string;
+  verticalTiersPx: readonly number[];
+  verticalMotionClass: string;
+  idleAnimationClass: string;
+  groundShadowClass: string;
+  audioPitchRate: number;
+  defeatBuffTitle: string;
+  bubbleThemeClass: string;
+  bubbleTailThemeClass: string;
+  eyeColorHex: string;
+  crackStrokeHex: string;
+  eyePositions: {
+    left: { top: string; left: string };
+    right: { top: string; left: string };
+  };
 }
 
 export interface BossDifficultyConfig {
@@ -296,6 +311,11 @@ export const isDragonArchetype = (theme: GameThemeType): boolean => {
   return cfg ? cfg.archetype === 'DRAGON' : theme === GAME_THEME.ELDER_DRAGON;
 };
 
+export const isHeraldArchetype = (theme: GameThemeType): boolean => {
+  const cfg = THEME_CONFIGS[theme];
+  return cfg ? cfg.archetype === 'HERALD' : theme === GAME_THEME.XU_GIA;
+};
+
 export const getThemeConfig = (theme: GameThemeType): BossThemeConfig => {
   return THEME_CONFIGS[theme] || THEME_CONFIGS[GAME_THEME.BARON];
 };
@@ -305,7 +325,7 @@ export const THEME_STORAGE_KEY = 'lol_game_theme_config';
 export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
   [GAME_THEME.XU_GIA]: {
     id: GAME_THEME.XU_GIA,
-    archetype: 'BARON',
+    archetype: 'HERALD',
     nameVi: 'Hang Sứ Giả Khe Nứt',
     nameEn: 'Rift Herald Cave',
     bossName: 'Sứ Giả Khe Nứt CKTG',
@@ -313,9 +333,9 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     roarTextEn: 'RIFT HERALD CHARGES!',
     backgroundImageWebp: '/images/arena_background_2d.webp',
     backgroundImagePng: '/images/arena_background_2d.png',
-    bossImageWebp: '/images/boss_baron_2d.webp',
-    bossImagePng: '/images/boss_baron_2d.png',
-    spriteFilterClass: 'hue-rotate-[95deg] saturate-[1.35] brightness-[1.05]',
+    bossImageWebp: '/images/boss_rift_herald_2d.webp',
+    bossImagePng: '/images/boss_rift_herald_2d.png',
+    spriteFilterClass: 'contrast-[1.05] brightness-[1.02] drop-shadow-[0_0_24px_rgba(16,185,129,0.4)]',
     hasVoidOverlay: false,
     auraColorClass: {
       idle: 'bg-emerald-600/35 shadow-[0_0_90px_rgba(16,185,129,0.5)]',
@@ -323,9 +343,9 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       roar: 'bg-teal-400/60 shadow-[0_0_140px_rgba(45,212,191,0.85)]',
     },
     ambientMistClass: 'from-transparent via-emerald-950/25 to-slate-950/40',
-    bossScale: 'scale-[0.80]',
-    avatarIcon: '/images/boss_baron_2d.png',
-    containerPosition: 'top-[59.5%] sm:top-[60%]',
+    bossScale: 'scale-[1.0]',
+    avatarIcon: '/images/boss_rift_herald_2d.png',
+    containerPosition: 'top-[60%] sm:top-[60.5%]',
     spriteSize: 'w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96',
     groundAuraClass: 'top-[78%] w-64 h-16 bg-emerald-500/20',
     colors: {
@@ -338,6 +358,20 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60',
     },
     i18nKey: 'BossTheme.xuGia',
+    verticalTiersPx: [0, -4, -8] as const,
+    verticalMotionClass: 'animate-herald-idle',
+    idleAnimationClass: 'animate-herald-idle',
+    groundShadowClass: 'animate-herald-idle scale-x-110 opacity-70',
+    audioPitchRate: 1.25,
+    defeatBuffTitle: 'BÙA LỢI SỨ GIẢ KHE NỨT THUỘC VỀ {{team}}',
+    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/95 via-emerald-950/90 to-slate-950/95 border-emerald-400 text-emerald-50 shadow-[0_0_30px_rgba(16,185,129,0.7)]',
+    bubbleTailThemeClass: 'border-t-emerald-400',
+    eyeColorHex: '#10b981',
+    crackStrokeHex: '#34d399',
+    eyePositions: {
+      left: { top: '38%', left: '46%' },
+      right: { top: '38%', left: '54%' },
+    },
   },
   [GAME_THEME.RONG_NUI]: {
     id: GAME_THEME.RONG_NUI,
@@ -374,6 +408,20 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-orange-950/80 text-orange-300 border-orange-500/60',
     },
     i18nKey: 'BossTheme.rongNui',
+    verticalTiersPx: [0, -18, -36] as const,
+    verticalMotionClass: 'animate-boss-vertical-dragon',
+    idleAnimationClass: 'animate-dragon-hover',
+    groundShadowClass: 'animate-dragon-shadow',
+    audioPitchRate: 0.9,
+    defeatBuffTitle: 'LONG HỒN ĐỊA CHẤN THUỘC VỀ {{team}}',
+    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/95 via-orange-950/90 to-slate-950/95 border-orange-400 text-orange-50 shadow-[0_0_30px_rgba(249,115,22,0.7)]',
+    bubbleTailThemeClass: 'border-t-orange-400',
+    eyeColorHex: '#f97316',
+    crackStrokeHex: '#fb923c',
+    eyePositions: {
+      left: { top: '26%', left: '46%' },
+      right: { top: '26%', left: '54%' },
+    },
   },
   [GAME_THEME.RONG_GIA]: {
     id: GAME_THEME.RONG_GIA,
@@ -410,6 +458,20 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-indigo-950/80 text-indigo-300 border-indigo-500/60',
     },
     i18nKey: 'BossTheme.rongGia',
+    verticalTiersPx: [0, -22, -42] as const,
+    verticalMotionClass: 'animate-boss-vertical-dragon',
+    idleAnimationClass: 'animate-dragon-hover',
+    groundShadowClass: 'animate-dragon-shadow',
+    audioPitchRate: 1.05,
+    defeatBuffTitle: 'LONG HỒN BÃO TỐ THUỘC VỀ {{team}}',
+    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/95 via-indigo-950/90 to-slate-950/95 border-indigo-400 text-indigo-50 shadow-[0_0_30px_rgba(129,140,248,0.7)]',
+    bubbleTailThemeClass: 'border-t-indigo-400',
+    eyeColorHex: '#818cf8',
+    crackStrokeHex: '#a5b4fc',
+    eyePositions: {
+      left: { top: '26%', left: '46%' },
+      right: { top: '26%', left: '54%' },
+    },
   },
   [GAME_THEME.BARON]: {
     id: GAME_THEME.BARON,
@@ -446,6 +508,20 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-purple-950/80 text-purple-300 border-purple-500/60',
     },
     i18nKey: 'BossTheme.baron',
+    verticalTiersPx: [0, -12, -24] as const,
+    verticalMotionClass: 'animate-boss-vertical-baron',
+    idleAnimationClass: 'animate-baron-idle',
+    groundShadowClass: 'animate-baron-shadow',
+    audioPitchRate: 1.0,
+    defeatBuffTitle: 'BÙA LỢI BARON THUỘC VỀ {{team}}',
+    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/95 via-purple-950/90 to-slate-950/95 border-purple-400 text-purple-50 shadow-[0_0_30px_rgba(168,85,247,0.7)]',
+    bubbleTailThemeClass: 'border-t-purple-400',
+    eyeColorHex: '#c084fc',
+    crackStrokeHex: '#c084fc',
+    eyePositions: {
+      left: { top: '22%', left: '46%' },
+      right: { top: '22%', left: '52%' },
+    },
   },
   [GAME_THEME.ELDER_DRAGON]: {
     id: GAME_THEME.ELDER_DRAGON,
@@ -482,6 +558,20 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60',
     },
     i18nKey: 'BossTheme.elderDragon',
+    verticalTiersPx: [0, -28, -50] as const,
+    verticalMotionClass: 'animate-boss-vertical-dragon',
+    idleAnimationClass: 'animate-dragon-hover',
+    groundShadowClass: 'animate-dragon-shadow',
+    audioPitchRate: 1.0,
+    defeatBuffTitle: 'LONG HỒN NGÀN TUỔI THUỘC VỀ {{team}}',
+    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/95 via-amber-950/90 to-slate-950/95 border-amber-400 text-amber-50 shadow-[0_0_30px_rgba(245,158,11,0.7)]',
+    bubbleTailThemeClass: 'border-t-amber-400',
+    eyeColorHex: '#fbbf24',
+    crackStrokeHex: '#fbbf24',
+    eyePositions: {
+      left: { top: '26%', left: '46%' },
+      right: { top: '26%', left: '54%' },
+    },
   },
   [GAME_THEME.VOID_TITAN]: {
     id: GAME_THEME.VOID_TITAN,
@@ -518,6 +608,20 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-purple-950/90 text-fuchsia-300 border-fuchsia-500/70 shadow-[0_0_8px_rgba(192,132,252,0.5)]',
     },
     i18nKey: 'BossTheme.voidTitan',
+    verticalTiersPx: [0, -16, -32] as const,
+    verticalMotionClass: 'animate-boss-vertical-baron',
+    idleAnimationClass: 'animate-baron-idle',
+    groundShadowClass: 'animate-baron-shadow',
+    audioPitchRate: 0.78,
+    defeatBuffTitle: 'CHÂN THÂN HƯ VÔ THUỘC VỀ {{team}}',
+    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/95 via-fuchsia-950/90 to-slate-950/95 border-fuchsia-400 text-fuchsia-50 shadow-[0_0_30px_rgba(217,70,239,0.8)]',
+    bubbleTailThemeClass: 'border-t-fuchsia-400',
+    eyeColorHex: '#e879f9',
+    crackStrokeHex: '#f472b6',
+    eyePositions: {
+      left: { top: '22%', left: '46%' },
+      right: { top: '22%', left: '52%' },
+    },
   },
 };
 

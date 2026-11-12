@@ -9,8 +9,8 @@ import {
   BOSS_IDLE_CONSTANTS,
   TeamType,
   DamageType,
-  isDragonArchetype,
   getThemeConfig,
+  BossThemeConfig,
 } from '../../constants/game';
 import { bossSpeechManager, BossSpeechItem, resolveBossSpeechItem } from '../../constants/bossSpeech';
 import { BossHitMarks2D } from './BossHitMarks2D';
@@ -33,12 +33,13 @@ const getAnimationClass = (
   isRecentlyHit: boolean,
   isEnraged: boolean,
   isRestless: boolean,
-  isElderDragon: boolean,
+  themeConfig: BossThemeConfig,
   attackTargetTeam: 'BLG' | 'GENG' | 'ALL' | null,
   isUltimateAttack: boolean,
   lastHitTeam: TeamType | null,
   lastHitDamageType: DamageType | null,
-  hitNonce: number
+  hitNonce: number,
+  skillId?: string
 ): string => {
   if (isDefeated) {
     return 'animate-boss-defeat pointer-events-none';
@@ -51,7 +52,23 @@ const getAnimationClass = (
 
   // 2. Directional Attack Lunges & Earth-Shattering Slams
   if (isRoarActive) {
-    const shadowColor = isElderDragon ? 'rgba(245,158,11,1)' : 'rgba(168,85,247,1)';
+    if (themeConfig.archetype === 'HERALD') {
+      if (isUltimateAttack || skillId === 'herald_seismic_slam') {
+        return 'animate-boss-slam-center drop-shadow-[0_0_80px_rgba(236,72,153,1)] cursor-pointer';
+      }
+      if (skillId === 'herald_charge') {
+        return 'animate-herald-charge drop-shadow-[0_0_75px_rgba(16,185,129,1)] cursor-pointer';
+      }
+      if (attackTargetTeam === TEAM_KEY.BLG) {
+        return 'animate-boss-lunge-left drop-shadow-[0_0_60px_rgba(16,185,129,1)] cursor-pointer';
+      }
+      if (attackTargetTeam === TEAM_KEY.GENG) {
+        return 'animate-boss-lunge-right drop-shadow-[0_0_60px_rgba(16,185,129,1)] cursor-pointer';
+      }
+      return 'animate-herald-charge drop-shadow-[0_0_65px_rgba(16,185,129,1)] cursor-pointer';
+    }
+
+    const shadowColor = themeConfig.colors.glowHex || themeConfig.colors.primaryHex;
     if (isUltimateAttack || attackTargetTeam === 'ALL') {
       return `animate-boss-slam-center drop-shadow-[0_0_75px_${shadowColor}] cursor-pointer`;
     }
@@ -90,32 +107,32 @@ const getAnimationClass = (
 
   // 4. Enraged Stance with violent fury tremor
   if (isEnraged) {
-    return isElderDragon
-      ? 'animate-boss-enraged-tremor drop-shadow-[0_0_55px_rgba(245,158,11,1)] cursor-pointer'
-      : 'animate-boss-enraged-tremor drop-shadow-[0_0_50px_rgba(239,68,68,1)] cursor-pointer';
+    return `animate-boss-enraged-tremor drop-shadow-[0_0_55px_${themeConfig.colors.enragedHex}] cursor-pointer`;
   }
 
   // 5. Restless Impatient Stance (Prolonged idle with 0 active champions)
   if (isRestless) {
-    return isElderDragon
-      ? 'animate-boss-restless drop-shadow-[0_0_55px_rgba(239,68,68,0.95)] cursor-pointer'
-      : 'animate-boss-restless drop-shadow-[0_0_50px_rgba(239,68,68,0.9)] cursor-pointer';
+    return `animate-boss-restless drop-shadow-[0_0_50px_${themeConfig.colors.enragedHex}] cursor-pointer`;
   }
 
-  // 6. Natural Living Breathing Idle: Hovering Floating Dragon / Void Serpent Slither
-  return isElderDragon
-    ? 'animate-dragon-hover drop-shadow-[0_0_32px_rgba(6,182,212,0.7)] cursor-pointer hover:drop-shadow-[0_0_48px_rgba(245,158,11,0.9)] transition-all'
-    : 'animate-baron-idle drop-shadow-[0_0_28px_rgba(168,85,247,0.6)] cursor-pointer hover:drop-shadow-[0_0_45px_rgba(168,85,247,0.9)] transition-all';
+  // 6. Natural Living Breathing Idle: Hovering / Crouching / Slithering
+  return `${themeConfig.idleAnimationClass} drop-shadow-[0_0_32px_${themeConfig.colors.primaryHex}b3] cursor-pointer hover:drop-shadow-[0_0_48px_${themeConfig.colors.primaryHex}] transition-all`;
 };
 
-const getElderDragonAura = (isRoarActive: boolean, isEnraged: boolean): string => {
-  if (isRoarActive) {
-    return 'bg-gradient-to-tr from-cyan-500/60 via-amber-400/60 to-yellow-300/50 blur-3xl scale-125';
+const getHeraldSkillAura = (skillId?: string): string => {
+  if (skillId === 'herald_charge') {
+    return 'bg-gradient-to-tr from-emerald-500/80 via-teal-400/70 to-lime-300/60 blur-3xl scale-130 drop-shadow-[0_0_40px_#10b981]';
   }
-  if (isEnraged) {
-    return 'bg-gradient-to-tr from-amber-600/55 via-orange-500/45 to-yellow-500/35 blur-3xl';
+  if (skillId === 'herald_void_cleave') {
+    return 'bg-gradient-to-tr from-teal-600/75 via-emerald-500/65 to-green-400/55 blur-3xl scale-125 drop-shadow-[0_0_35px_#059669]';
   }
-  return 'bg-gradient-to-tr from-cyan-500/35 via-blue-600/25 to-indigo-700/25 blur-2xl';
+  if (skillId === 'herald_eye_gaze') {
+    return 'bg-gradient-to-tr from-lime-500/85 via-fuchsia-500/75 to-purple-600/65 blur-3xl scale-135 drop-shadow-[0_0_45px_#84cc16]';
+  }
+  if (skillId === 'herald_seismic_slam') {
+    return 'bg-gradient-to-tr from-pink-600/90 via-purple-600/80 to-rose-500/70 blur-3xl scale-140 drop-shadow-[0_0_55px_#ec4899] animate-pulse';
+  }
+  return 'bg-gradient-to-tr from-emerald-500/60 via-teal-500/50 to-lime-500/40 blur-3xl scale-125';
 };
 
 const getBaronSkillAura = (skillId?: string): string => {
@@ -139,27 +156,28 @@ const getAuraColorClass = (
   isRoarActive: boolean,
   isEnraged: boolean,
   isRestless: boolean,
-  isElderDragon: boolean,
+  themeConfig: BossThemeConfig,
   skillId?: string
 ): string => {
   if (isDefeated) {
     return 'opacity-0';
   }
   if (isRestless) {
-    return isElderDragon
-      ? 'bg-gradient-to-tr from-amber-600/70 via-rose-600/60 to-red-500/50 blur-3xl animate-restless-aura'
-      : 'bg-gradient-to-tr from-purple-700/75 via-rose-600/65 to-red-600/55 blur-3xl animate-restless-aura';
-  }
-  if (isElderDragon) {
-    return getElderDragonAura(isRoarActive, isEnraged);
+    return 'bg-gradient-to-tr from-rose-700/75 via-rose-600/65 to-red-600/55 blur-3xl animate-restless-aura';
   }
   if (isRoarActive) {
-    return getBaronSkillAura(skillId);
+    if (themeConfig.archetype === 'HERALD') {
+      return getHeraldSkillAura(skillId);
+    }
+    if (themeConfig.archetype === 'BARON') {
+      return getBaronSkillAura(skillId);
+    }
+    return themeConfig.auraColorClass.roar;
   }
   if (isEnraged) {
-    return 'bg-gradient-to-tr from-rose-600/50 via-red-500/40 to-amber-500/30 blur-3xl';
+    return themeConfig.auraColorClass.enraged;
   }
-  return 'bg-gradient-to-tr from-purple-600/35 via-fuchsia-500/25 to-cyan-500/25 blur-2xl';
+  return themeConfig.auraColorClass.idle;
 };
 
 export const Boss2D = () => {
@@ -177,8 +195,10 @@ export const Boss2D = () => {
   const bossAttackTargetTeam = useGameStore((state) => state.bossAttackTargetTeam);
   const spawnParticleBurst = useGameStore((state) => state.spawnParticleBurst);
 
+  const bossWeakPoint = useGameStore((state) => state.bossWeakPoint);
+
   const themeConfig = getThemeConfig(gameTheme);
-  const isElderDragon = isDragonArchetype(gameTheme);
+  const isHerald = themeConfig.archetype === 'HERALD';
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED;
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
 
@@ -196,9 +216,7 @@ export const Boss2D = () => {
   const [verticalTierIndex, setVerticalTierIndex] = useState<number>(1);
   const [activeSpeech, setActiveSpeech] = useState<BossSpeechItem | null>(null);
 
-  const verticalTiers = isElderDragon
-    ? BOSS_IDLE_CONSTANTS.VERTICAL_TIERS_DRAGON_PX
-    : BOSS_IDLE_CONSTANTS.VERTICAL_TIERS_BARON_PX;
+  const verticalTiers = themeConfig.verticalTiersPx;
 
   const lastActivityTimestampRef = useRef(Date.now());
   const lastSpeechTimestampRef = useRef<number>(0);
@@ -326,7 +344,7 @@ export const Boss2D = () => {
       if (isNoMinionsOnField && idleDuration >= BOSS_IDLE_CONSTANTS.RESTLESS_THRESHOLD_MS) {
         setIsRestless(true);
         setIsEyesSurging(true);
-        audioService.playBossIdleBreath(isElderDragon);
+        audioService.playBossIdleBreath(themeConfig.audioPitchRate);
 
         if (canSpeak) {
           lastSpeechTimestampRef.current = now;
@@ -351,12 +369,12 @@ export const Boss2D = () => {
       if (actionRoll < 0.4) {
         // Ambient 1: Glowing Eye Flare Surge + Breath
         setIsEyesSurging(true);
-        audioService.playBossIdleBreath(isElderDragon);
+        audioService.playBossIdleBreath(themeConfig.audioPitchRate);
         setTimeout(() => setIsEyesSurging(false), BOSS_IDLE_CONSTANTS.EYE_SURGE_DURATION_MS);
       } else if (actionRoll < 0.75 || !canSpeak) {
-        // Ambient 2: Wing Gust (Dragon) or Acid Sputter (Baron)
+        // Ambient 2: Wing Gust (Dragon) or Acid Sputter (Baron) or Chitin Tremor (Herald)
         setIsWingGustActive(true);
-        audioService.playBossIdleBreath(isElderDragon);
+        audioService.playBossIdleBreath(themeConfig.audioPitchRate);
         setTimeout(() => setIsWingGustActive(false), BOSS_IDLE_CONSTANTS.WING_GUST_DURATION_MS);
       } else {
         // Ambient 3: Menacing Non-Repeating Speech Taunt (when cooldown allows)
@@ -375,7 +393,7 @@ export const Boss2D = () => {
     }, BOSS_IDLE_CONSTANTS.AMBIENT_ACTION_INTERVAL_MS);
 
     return () => clearInterval(idleInterval);
-  }, [bossStatus, bossHp, isHitActive, isRoarActive, isPoked, minions.length, gameTheme, isElderDragon]);
+  }, [bossStatus, bossHp, isHitActive, isRoarActive, isPoked, minions.length, gameTheme, themeConfig.audioPitchRate]);
 
   // Periodic Living Boss Roar Loop (roars every 12-20s even during ongoing pro pokes)
   const isBossAlive = !isDefeated && bossHp > 0;
@@ -394,7 +412,7 @@ export const Boss2D = () => {
         const latestState = useGameStore.getState();
         if (latestState.bossStatus !== BOSS_STATUS.DEFEATED && latestState.bossHp > 0) {
           const enragedNow = latestState.bossStatus === BOSS_STATUS.ENRAGED;
-          audioService.playBossRoarSound(isElderDragon, enragedNow);
+          audioService.playBossRoarSound(themeConfig.audioPitchRate, enragedNow);
           setIsEyesSurging(true);
           setIsWingGustActive(true);
           setIsRoarActive(true);
@@ -418,7 +436,7 @@ export const Boss2D = () => {
       if (roarTimer) clearTimeout(roarTimer);
       if (settleTimer) clearTimeout(settleTimer);
     };
-  }, [isBossAlive, isElderDragon, updateFacingSide, shiftVerticalPatrolTier]);
+  }, [isBossAlive, themeConfig.audioPitchRate, updateFacingSide, shiftVerticalPatrolTier]);
 
   // Periodic Vertical Altitude Patrol (smooth glide across High / Mid / Low tiers)
   useEffect(() => {
@@ -488,9 +506,9 @@ export const Boss2D = () => {
     setIsPoked(true);
     setIsEyesSurging(true);
 
-    audioService.playBossPokeSound(isElderDragon);
+    audioService.playBossPokeSound(themeConfig.audioPitchRate);
 
-    const burstColor = themeConfig.colors.primaryHex || (isElderDragon ? '#f59e0b' : '#c084fc');
+    const burstColor = themeConfig.colors.primaryHex;
     spawnParticleBurst([0, 0.4, 0.5], burstColor, 1.2);
 
     const nextPokeSpeech = resolveBossSpeechItem(
@@ -509,7 +527,7 @@ export const Boss2D = () => {
     speechTimerRef.current = setTimeout(() => {
       setActiveSpeech(null);
     }, BOSS_IDLE_CONSTANTS.SPEECH_BUBBLE_DURATION_MS);
-  }, [bossStatus, bossHp, isElderDragon, gameTheme, spawnParticleBurst]);
+  }, [bossStatus, bossHp, themeConfig.audioPitchRate, themeConfig.colors.primaryHex, gameTheme, spawnParticleBurst]);
 
   const isUltimateAttack = activeBossSkillBanner?.isUltimate ?? false;
 
@@ -520,12 +538,13 @@ export const Boss2D = () => {
     isHitActive,
     isEnraged,
     isRestless,
-    isElderDragon,
+    themeConfig,
     bossAttackTargetTeam,
     isUltimateAttack,
     lastHitTeam,
     lastHitDamageType,
-    hitNonce
+    hitNonce,
+    activeBossSkillBanner?.skillId
   );
 
   const auraColorClass = getAuraColorClass(
@@ -533,7 +552,7 @@ export const Boss2D = () => {
     isRoarActive,
     isEnraged,
     isRestless,
-    isElderDragon,
+    themeConfig,
     activeBossSkillBanner?.skillId
   );
 
@@ -544,11 +563,10 @@ export const Boss2D = () => {
 
   const shockwaveColor =
     themeConfig.colors.enragedHex ||
-    (isElderDragon
-      ? '#f59e0b'
-      : activeBossSkillBanner?.color || (isEnraged ? '#ef4444' : '#a855f7'));
+    activeBossSkillBanner?.color ||
+    (isEnraged ? '#ef4444' : themeConfig.colors.primaryHex);
 
-  const wingGustColor = themeConfig.colors.primaryHex || (isElderDragon ? '#38bdf8' : '#a855f7');
+  const wingGustColor = themeConfig.colors.primaryHex;
 
   // Dynamic 2.5D perspective tilt reacting to hit side & pokes
   let tiltYDeg = 0;
@@ -568,20 +586,8 @@ export const Boss2D = () => {
   }
 
   const verticalOffsetPx = isDefeated ? 0 : (verticalTiers[verticalTierIndex] ?? 0);
-
-  let verticalMotionClass = '';
-  if (!isDefeated) {
-    verticalMotionClass = isElderDragon
-      ? 'animate-boss-vertical-dragon'
-      : 'animate-boss-vertical-baron';
-  }
-
-  let groundShadowAnimationClass = '';
-  if (!isDefeated) {
-    groundShadowAnimationClass = isElderDragon
-      ? 'animate-dragon-shadow'
-      : 'animate-baron-shadow';
-  }
+  const verticalMotionClass = isDefeated ? '' : themeConfig.verticalMotionClass;
+  const groundShadowAnimationClass = isDefeated ? '' : themeConfig.groundShadowClass;
 
   return (
     <div
@@ -591,7 +597,7 @@ export const Boss2D = () => {
       {/* 1. Skill Combat Alert Banner */}
       <BossAlertBanner
         isRoarActive={isRoarActive}
-        isElderDragon={isElderDragon}
+        themeConfig={themeConfig}
         activeBossSkillBanner={activeBossSkillBanner}
         gameTheme={gameTheme}
         defaultRoarTextVi={themeConfig.roarTextVi}
@@ -603,7 +609,7 @@ export const Boss2D = () => {
       />
 
       {/* 2b. Violent Enraged Fiery Void Aura */}
-      {isEnraged && !isDefeated && <BossEnragedAura isElderDragon={isElderDragon} />}
+      {isEnraged && !isDefeated && <BossEnragedAura themeConfig={themeConfig} />}
 
       {/* 3. Runic Ground Reflection */}
       <div
@@ -627,7 +633,8 @@ export const Boss2D = () => {
 
       {/* 7. Elemental Floating Embers & Sparks */}
       <ElementalEmbers
-        isElderDragon={isElderDragon}
+        color={themeConfig.colors.glowHex || themeConfig.colors.primaryHex}
+        enragedColor={themeConfig.colors.enragedHex}
         isEnraged={isEnraged}
         isDefeated={isDefeated}
       />
@@ -650,7 +657,7 @@ export const Boss2D = () => {
             {/* Dynamic Non-Repeating Comic Speech Bubble Anchored directly over monster head */}
             <BossSpeechBubble
               speech={isRoarActive || isDefeated ? null : activeSpeech}
-              isElderDragon={isElderDragon}
+              themeConfig={themeConfig}
               isRestless={isRestless}
             />
 
@@ -689,18 +696,37 @@ export const Boss2D = () => {
                   />
                 )}
 
+                {/* 8c. Iconic Eye of the Herald on Carapace Back */}
+                {isHerald && !isDefeated && (
+                  <div
+                    className={`absolute top-[28%] left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-300 z-20 ${
+                      bossWeakPoint ? 'scale-125 opacity-100' : 'scale-90 opacity-75'
+                    }`}
+                  >
+                    {/* Glowing Eye of the Herald Core */}
+                    <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-fuchsia-600 via-purple-500 to-pink-400 p-0.5 animate-herald-eye shadow-[0_0_20px_#ec4899] border-2 border-white/90 flex items-center justify-center">
+                      <div className="w-2 h-4 sm:w-2.5 sm:h-5 rounded-full bg-slate-950 rotate-12 shadow-inner" />
+                      <div className="absolute inset-0 rounded-full bg-pink-400/40 blur-sm animate-pulse" />
+                    </div>
+                    {/* Herald Eye Open Pulse waves when weak point is exposed */}
+                    {bossWeakPoint && (
+                      <div className="absolute inset-[-8px] rounded-full border-2 border-pink-400 animate-ping opacity-80 pointer-events-none" />
+                    )}
+                  </div>
+                )}
+
                 {/* Phase 2 & 3 Glowing Armor Cracks flipped in sync with Boss body */}
                 <BossArmorCracks
                   bossHp={bossHp}
                   bossMaxHp={bossMaxHp}
-                  isElderDragon={isElderDragon}
+                  crackColor={themeConfig.crackStrokeHex}
                   isDefeated={isDefeated}
                 />
 
                 {/* 9. Glowing Eyes Surge during Idle / Restless / Poke / Enraged */}
                 <BossGlowingEyes
                   isActive={isEyesSurging || isRestless}
-                  isElderDragon={isElderDragon}
+                  themeConfig={themeConfig}
                   isRestless={isRestless}
                   isEnraged={isEnraged}
                 />
@@ -724,7 +750,7 @@ export const Boss2D = () => {
       {isDefeated && <BossDeathVFX2D />}
 
       {/* 11. Mythical Floating Buff Relic Crest Claimed by Winning Team */}
-      {isDefeated && <BossDefeatedCrest2D isElderDragon={isElderDragon} />}
+      {isDefeated && <BossDefeatedCrest2D themeConfig={themeConfig} />}
     </div>
   );
 };

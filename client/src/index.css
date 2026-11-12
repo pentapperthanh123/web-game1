@@ -371,6 +371,58 @@
   animation: baronShadowPulse 3.8s ease-in-out infinite;
 }
 
+@keyframes heraldIdleCrouch {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  35% {
+    transform: translate3d(0, 3px, 0) scale(1.02, 0.98);
+  }
+  70% {
+    transform: translate3d(0, -2px, 0) scale(0.99, 1.01);
+  }
+}
+
+.animate-herald-idle {
+  animation: heraldIdleCrouch 3.2s ease-in-out infinite;
+}
+
+@keyframes heraldChargeLunge {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  25% {
+    transform: translate3d(0, -10px, 0) scale(0.96) rotate(-2deg);
+  }
+  60% {
+    transform: translate3d(0, 18px, 0) scale(1.12, 1.06) rotate(1deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-herald-charge {
+  animation: heraldChargeLunge 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes heraldEyePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px #d946ef);
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+    filter: drop-shadow(0 0 20px #f43f5e);
+  }
+}
+
+.animate-herald-eye {
+  animation: heraldEyePulse 1.2s ease-in-out infinite;
+}
+
 @keyframes bossVerticalDragonFloat {
   0%, 100% {
     transform: translate3d(0, 0, 0);

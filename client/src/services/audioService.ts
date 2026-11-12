@@ -107,8 +107,9 @@ class AudioSynthesizerService {
     return this.noiseBuffer;
   }
 
-  // 1. Procedural Dragon Roar & Elemental Flame/Void Attack (Elder Dragon & Baron)
-  public playBossRoarSound(isElderDragon = true, isEnraged = false): void {
+  // 1. Procedural Dragon Roar & Elemental Flame/Void Attack (Dynamic per Boss Theme)
+  public playBossRoarSound(pitchRateOrElder: number | boolean = 1.0, isEnraged = false): void {
+    const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
     if (!this.isAudioEnabled) return;
     const now = performance.now();
     if (now - this.lastRoarSoundTime < 600) return;
@@ -125,7 +126,7 @@ class AudioSynthesizerService {
     const subOsc = ctx.createOscillator();
     const subGain = ctx.createGain();
     subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(isElderDragon ? (isEnraged ? 115 : 92) : isEnraged ? 96 : 78, t);
+    subOsc.frequency.setValueAtTime((isEnraged ? 105 : 85) * pitch, t);
     subOsc.frequency.exponentialRampToValueAtTime(24, t + 0.9);
 
     subGain.gain.setValueAtTime(0.62 * vol, t);
@@ -147,7 +148,7 @@ class AudioSynthesizerService {
     roarOsc2.type = 'sawtooth';
     growlSubOsc.type = 'sawtooth';
 
-    const basePitch = isElderDragon ? (isEnraged ? 172 : 142) : isEnraged ? 132 : 106;
+    const basePitch = (isEnraged ? 152 : 124) * pitch;
     roarOsc1.frequency.setValueAtTime(basePitch, t);
     roarOsc2.frequency.setValueAtTime(basePitch * 1.032, t);
     growlSubOsc.frequency.setValueAtTime(basePitch * 0.52, t);
@@ -159,7 +160,7 @@ class AudioSynthesizerService {
     growlSubOsc.frequency.exponentialRampToValueAtTime(basePitch * 0.25, t + 0.9);
 
     roarFilter.type = 'lowpass';
-    roarFilter.frequency.setValueAtTime(isElderDragon ? 1150 : 780, t);
+    roarFilter.frequency.setValueAtTime(950 * pitch, t);
     roarFilter.frequency.exponentialRampToValueAtTime(220, t + 0.9);
     roarFilter.Q.value = 3.2;
 
@@ -187,8 +188,8 @@ class AudioSynthesizerService {
     const noiseGain = ctx.createGain();
 
     noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.setValueAtTime(isElderDragon ? 560 : 280, t);
-    noiseFilter.frequency.linearRampToValueAtTime(isElderDragon ? 1500 : 860, t + 0.22);
+    noiseFilter.frequency.setValueAtTime(420 * pitch, t);
+    noiseFilter.frequency.linearRampToValueAtTime(1180 * pitch, t + 0.22);
     noiseFilter.frequency.exponentialRampToValueAtTime(210, t + 0.92);
     noiseFilter.Q.value = 1.3;
 
@@ -204,7 +205,8 @@ class AudioSynthesizerService {
   }
 
   // 1b. Guttural Poke Flinch / Growl (Triggered when user clicks / taps on Boss)
-  public playBossPokeSound(isElderDragon = true): void {
+  public playBossPokeSound(pitchRateOrElder: number | boolean = 1.0): void {
+    const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
@@ -218,11 +220,11 @@ class AudioSynthesizerService {
     const filter = ctx.createBiquadFilter();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(isElderDragon ? 190 : 135, t);
+    osc.frequency.setValueAtTime(160 * pitch, t);
     osc.frequency.exponentialRampToValueAtTime(45, t + 0.32);
 
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(isElderDragon ? 950 : 650, t);
+    filter.frequency.setValueAtTime(800 * pitch, t);
     filter.Q.value = 2.8;
 
     gain.gain.setValueAtTime(0.42 * vol, t);
@@ -237,7 +239,8 @@ class AudioSynthesizerService {
   }
 
   // 1c. Subtle Ambient Breathing Whoosh (Periodic ambient idle sound)
-  public playBossIdleBreath(isElderDragon = true): void {
+  public playBossIdleBreath(pitchRateOrElder: number | boolean = 1.0): void {
+    const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
@@ -252,8 +255,8 @@ class AudioSynthesizerService {
     const gain = ctx.createGain();
 
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(isElderDragon ? 450 : 320, t);
-    filter.frequency.linearRampToValueAtTime(isElderDragon ? 750 : 500, t + 0.4);
+    filter.frequency.setValueAtTime(380 * pitch, t);
+    filter.frequency.linearRampToValueAtTime(620 * pitch, t + 0.4);
     filter.frequency.exponentialRampToValueAtTime(280, t + 0.9);
     filter.Q.value = 1.6;
 
@@ -1111,7 +1114,8 @@ class AudioSynthesizerService {
   }
 
   // 10b. Cinematic Boss Execution / Shatter Explosion Sound
-  public playBossDefeatSound(isElderDragon = false): void {
+  public playBossDefeatSound(pitchRateOrElder: number | boolean = 1.0): void {
+    const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
@@ -1138,7 +1142,7 @@ class AudioSynthesizerService {
     noise.buffer = this.getNoiseBuffer(ctx);
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(isElderDragon ? 1800 : 1200, t);
+    filter.frequency.setValueAtTime(1500 * pitch, t);
     filter.frequency.exponentialRampToValueAtTime(140, t + 0.9);
     filter.Q.value = 1.4;
     const noiseGain = ctx.createGain();
@@ -1151,7 +1155,7 @@ class AudioSynthesizerService {
     noise.stop(t + 0.95);
 
     // Layer 3: Crystal Rupture High Resonance Chime
-    const chimeNotes = isElderDragon ? [587.33, 880, 1174.66] : [440, 659.25, 987.77];
+    const chimeNotes = [440 * pitch, 660 * pitch, 990 * pitch];
     chimeNotes.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -1223,7 +1227,8 @@ class AudioSynthesizerService {
   }
 
   // 11c. Boss Enrage Phase Warning Siren (<= 35% HP)
-  public playBossEnrageSound(isElderDragon = false): void {
+  public playBossEnrageSound(pitchRateOrElder: number | boolean = 1.0): void {
+    const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
@@ -1234,8 +1239,8 @@ class AudioSynthesizerService {
     const sirenOsc = ctx.createOscillator();
     const sirenGain = ctx.createGain();
     sirenOsc.type = 'sawtooth';
-    sirenOsc.frequency.setValueAtTime(isElderDragon ? 130 : 105, t);
-    sirenOsc.frequency.exponentialRampToValueAtTime(isElderDragon ? 390 : 310, t + 0.35);
+    sirenOsc.frequency.setValueAtTime(115 * pitch, t);
+    sirenOsc.frequency.exponentialRampToValueAtTime(350 * pitch, t + 0.35);
     sirenOsc.frequency.exponentialRampToValueAtTime(65, t + 0.72);
 
     sirenGain.gain.setValueAtTime(0.32 * this.volume, t);
@@ -1246,7 +1251,7 @@ class AudioSynthesizerService {
     sirenOsc.start(t);
     sirenOsc.stop(t + 0.75);
 
-    this.playBossRoarSound(isElderDragon, true);
+    this.playBossRoarSound(pitch, true);
   }
 
   // 11d. Esports Match / Round Start Horn Triad

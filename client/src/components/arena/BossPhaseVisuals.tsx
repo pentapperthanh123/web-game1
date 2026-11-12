@@ -7,7 +7,7 @@ import { BOSS_MECHANICS_CONSTANTS } from '../../constants/game';
 interface BossPhaseVisualsProps {
   bossHp: number;
   bossMaxHp: number;
-  isElderDragon: boolean;
+  crackColor?: string;
   isDefeated: boolean;
 }
 
@@ -22,7 +22,7 @@ const resolveBossPhase = (bossHp: number, bossMaxHp: number): 1 | 2 | 3 => {
 export const BossArmorCracks = ({
   bossHp,
   bossMaxHp,
-  isElderDragon,
+  crackColor = '#c084fc',
   isDefeated,
 }: BossPhaseVisualsProps) => {
   if (isDefeated) return null;
@@ -30,7 +30,7 @@ export const BossArmorCracks = ({
   const phase = resolveBossPhase(bossHp, bossMaxHp);
   if (phase < 2) return null;
 
-  const crackStrokeColor = isElderDragon ? '#fbbf24' : '#c084fc';
+  const crackStrokeColor = crackColor;
   const crackSecondaryColor = phase === 3 ? '#f43f5e' : '#38bdf8';
 
   return (
@@ -74,7 +74,7 @@ export const BossPhaseVisuals = ({
   bossHp,
   bossMaxHp,
   isDefeated,
-}: Omit<BossPhaseVisualsProps, 'isElderDragon'>) => {
+}: Omit<BossPhaseVisualsProps, 'crackColor'>) => {
   const { t } = useTranslation();
   const bossShield = useGameStore((state) => state.bossShield);
   const bossShieldBrokenTimestamp = useGameStore((state) => state.bossShieldBrokenTimestamp);

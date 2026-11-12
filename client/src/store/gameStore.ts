@@ -55,7 +55,6 @@ import {
   BOSS_DIFFICULTY_SCALE,
   getBossThemeForRound,
   getThemeConfig,
-  isDragonArchetype,
   AUTO_PRO_BATTLE_CONSTANTS,
   AUTO_PRO_STORAGE_KEY,
   DEFAULT_AUTO_PRO_BATTLE_CONFIG,
@@ -1504,7 +1503,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             expiresAt: now + BOSS_MECHANICS_CONSTANTS.SHIELD.DURATION_MS,
           };
           nextTriggeredShieldThresholds = [...state.triggeredShieldThresholds, threshold];
-          audioService.playBossRoarSound(isDragonArchetype(state.gameTheme), false);
+          audioService.playBossRoarSound(getThemeConfig(state.gameTheme).audioPitchRate, false);
           get().addLog(
             'BOSS',
             `🛡️ [KHIÊN NĂNG LƯỢNG] Boss bật khiên ${BOSS_MECHANICS_CONSTANTS.SHIELD.SHIELD_HP.toLocaleString()} HP! Phá trong 12s kẻo Boss hồi máu!`
@@ -1516,7 +1515,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (isJustEnraged) {
       const themeConfig = getThemeConfig(state.gameTheme);
-      audioService.playBossEnrageSound(isDragonArchetype(state.gameTheme));
+      audioService.playBossEnrageSound(themeConfig.audioPitchRate);
       get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
       get().addLog(
@@ -1663,15 +1662,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     if (isDefeated) {
-      const isDragon = isDragonArchetype(state.gameTheme);
       const themeConfig = getThemeConfig(state.gameTheme);
       const defeatColor =
-        themeConfig.colors.enragedHex ||
-        (isDragon
-          ? BOSS_DEFEAT_CONSTANTS.ELDER_DRAGON_DEFEAT_COLOR
-          : BOSS_DEFEAT_CONSTANTS.BARON_DEFEAT_COLOR);
+        themeConfig.colors.enragedHex || themeConfig.colors.primaryHex;
 
-      audioService.playBossDefeatSound(isDragon);
+      audioService.playBossDefeatSound(themeConfig.audioPitchRate);
       get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(teamPalette.primary);
 
@@ -2184,7 +2179,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? BOSS_STATUS.ENRAGED
           : BOSS_STATUS.IDLE;
 
-      audioService.playBossRoarSound(isDragonArchetype(state.gameTheme), true);
+      audioService.playBossRoarSound(getThemeConfig(state.gameTheme).audioPitchRate, true);
       get().spawnParticleBurst([0, 0.5, 0.5], '#22c55e', 1.6);
       get().addLog(
         'BOSS',
@@ -2329,7 +2324,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const rageBoost = isEnraged ? BOSS_ENRAGED_CONSTANTS.DAMAGE_BOOST_MULTIPLIER : 1.0;
     const actualDamage = Math.max(1, Math.round(skill.baseDamage * baseMultiplier * rageBoost));
     const now = Date.now();
-    const isDragon = isDragonArchetype(state.gameTheme);
     const themeConfig = getThemeConfig(state.gameTheme);
     const bossName = themeConfig.bossName;
 
@@ -2382,7 +2376,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (skill.isUltimate) {
       get().triggerScreenShake(1.6);
       get().triggerScreenFlash(skill.color);
-      audioService.playBossRoarSound(isDragon, true);
+      audioService.playBossRoarSound(themeConfig.audioPitchRate, true);
     } else {
       get().triggerScreenShake(0.5);
       audioService.playDamageImpactSound(DAMAGE_TYPE.CRIT, false);
@@ -2762,7 +2756,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (isJustEnraged) {
       const themeConfig = getThemeConfig(currentTheme);
-      audioService.playBossEnrageSound(isDragonArchetype(currentTheme));
+      audioService.playBossEnrageSound(themeConfig.audioPitchRate);
       get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
       get().addLog(

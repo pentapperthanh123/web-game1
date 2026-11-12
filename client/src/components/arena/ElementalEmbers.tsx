@@ -1,7 +1,8 @@
 import React from 'react';
 
 interface ElementalEmbersProps {
-  isElderDragon: boolean;
+  color?: string;
+  enragedColor?: string;
   isEnraged: boolean;
   isDefeated: boolean;
 }
@@ -27,16 +28,10 @@ const EMBER_CONFIGS: readonly EmberItem[] = [
 ];
 
 export const ElementalEmbers: React.FC<ElementalEmbersProps> = React.memo(
-  ({ isElderDragon, isEnraged, isDefeated }) => {
+  ({ color = '#c084fc', enragedColor = '#ef4444', isEnraged, isDefeated }) => {
     if (isDefeated) return null;
 
-    const emberColor = isElderDragon
-      ? isEnraged
-        ? '#f97316'
-        : '#f59e0b'
-      : isEnraged
-        ? '#ef4444'
-        : '#c084fc';
+    const emberColor = isEnraged ? enragedColor : color;
 
     return (
       <div className="absolute inset-0 pointer-events-none z-10 overflow-visible">

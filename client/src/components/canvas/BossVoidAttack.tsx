@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, isDragonArchetype, getThemeConfig } from '../../constants/game';
+import { BOSS_STATUS, getThemeConfig } from '../../constants/game';
 
 const LIGHTNING_SEGMENTS = 8;
 const BOLT_COUNT = 8;
@@ -61,7 +61,6 @@ export const BossVoidAttack = () => {
   const gameTheme = useGameStore((state) => state.gameTheme);
 
   const themeConfig = getThemeConfig(gameTheme);
-  const isBaron = !isDragonArchetype(gameTheme);
 
   // 1. Pre-generated Lightning Bolts
   const bolts = useMemo<LightningBolt[]>(() => {
@@ -189,7 +188,7 @@ export const BossVoidAttack = () => {
     // 3. Acid Spit Projectiles (Baron Skill 1)
     if (acidGroupRef.current) {
       const acidDuration = 0.85;
-      if (isBaron && isAcidSpit && timeSinceAttack < acidDuration) {
+      if (isAcidSpit && timeSinceAttack < acidDuration) {
         acidGroupRef.current.visible = true;
         const progress = timeSinceAttack / acidDuration;
 
@@ -241,7 +240,7 @@ export const BossVoidAttack = () => {
     // 4. Void Spikes Eruption (Baron Skill 2)
     if (spikesGroupRef.current) {
       const spikeDuration = 0.95;
-      if (isBaron && isVoidSpikes && timeSinceAttack < spikeDuration) {
+      if (isVoidSpikes && timeSinceAttack < spikeDuration) {
         spikesGroupRef.current.visible = true;
         const progress = timeSinceAttack / spikeDuration;
 
@@ -273,7 +272,7 @@ export const BossVoidAttack = () => {
     // 5. Tail Sweep Crescent Slash (Baron Skill 3)
     if (tailSweepRef.current) {
       const sweepDuration = 0.7;
-      if (isBaron && isTailSweep && timeSinceAttack < sweepDuration) {
+      if (isTailSweep && timeSinceAttack < sweepDuration) {
         tailSweepRef.current.visible = true;
         const progress = timeSinceAttack / sweepDuration;
 

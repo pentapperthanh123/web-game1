@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Flame, ShieldAlert, Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_ENRAGED_CONSTANTS, BOSS_STATUS } from '../../constants/game';
+import { BOSS_ENRAGED_CONSTANTS, BOSS_STATUS, BossThemeConfig } from '../../constants/game';
 
 interface BossEnragedEntranceBannerProps {
-  isElderDragon: boolean;
+  themeConfig: BossThemeConfig;
 }
 
 export const BossEnragedEntranceBanner: React.FC<BossEnragedEntranceBannerProps> = React.memo(
-  ({ isElderDragon }) => {
+  ({ themeConfig }) => {
     const { t } = useTranslation();
     const bossEnragedEntranceTimestamp = useGameStore(
       (state) => state.bossEnragedEntranceTimestamp
@@ -40,30 +40,17 @@ export const BossEnragedEntranceBanner: React.FC<BossEnragedEntranceBannerProps>
 
     if (!isVisible) return null;
 
-    const titleText = isElderDragon
-      ? t('Game.rageWarningDragonTitle', 'CẢNH BÁO: RỒNG NGÀN TUỔI CUỒNG NỘ!')
-      : t('Game.rageWarningTitle', 'CẢNH BÁO: BARON CUỒNG NỘ!');
+    const titleText = t(
+      'Game.rageWarningDynamicTitle',
+      `CẢNH BÁO: ${themeConfig.bossName.toUpperCase()} CUỒNG NỘ!`
+    );
 
     const subtitleText = t(
       'Game.rageWarningSubtitle',
       'MÁU DƯỚI 35% — SÁT THƯƠNG & TỐC ĐÁNH TĂNG VỌT!'
     );
 
-    const themeColors = isElderDragon
-      ? {
-          border: 'border-amber-400',
-          bg: 'from-slate-950/95 via-amber-950/90 to-slate-950/95',
-          shadow: 'shadow-[0_0_35px_rgba(245,158,11,0.85)]',
-          badgeText: 'text-amber-300',
-          badgeBg: 'bg-amber-950/90 border-amber-500/70',
-        }
-      : {
-          border: 'border-rose-500',
-          bg: 'from-slate-950/95 via-rose-950/90 to-slate-950/95',
-          shadow: 'shadow-[0_0_35px_rgba(244,63,94,0.9)]',
-          badgeText: 'text-rose-300',
-          badgeBg: 'bg-rose-950/90 border-rose-500/70',
-        };
+    const enragedColor = themeConfig.colors.enragedHex;
 
     return (
       <div
@@ -71,7 +58,11 @@ export const BossEnragedEntranceBanner: React.FC<BossEnragedEntranceBannerProps>
         className="w-full pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300 select-none"
       >
         <div
-          className={`relative overflow-hidden rounded-2xl px-3.5 py-2.5 shadow-2xl border-2 backdrop-blur-xl bg-gradient-to-r flex flex-col items-center text-center ${themeColors.border} ${themeColors.bg} ${themeColors.shadow}`}
+          style={{
+            borderColor: enragedColor,
+            boxShadow: `0 0 35px ${enragedColor}aa`,
+          }}
+          className="relative overflow-hidden rounded-2xl px-3.5 py-2.5 shadow-2xl border-2 backdrop-blur-xl bg-gradient-to-r from-slate-950/95 via-rose-950/90 to-slate-950/95 flex flex-col items-center text-center"
         >
           {/* Shimmer laser highlight */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.8s_infinite] pointer-events-none" />
@@ -94,13 +85,13 @@ export const BossEnragedEntranceBanner: React.FC<BossEnragedEntranceBannerProps>
           {/* Buff Indicators */}
           <div className="flex items-center space-x-2 mt-1.5">
             <span
-              className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] sm:text-[10px] font-black uppercase shadow-sm ${themeColors.badgeBg} ${themeColors.badgeText}`}
+              className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] sm:text-[10px] font-black uppercase shadow-sm ${themeConfig.colors.badgeClass}`}
             >
               <Zap className="w-3 h-3 text-yellow-300 animate-spin shrink-0" />
               <span>+50% SÁT THƯƠNG</span>
             </span>
             <span
-              className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] sm:text-[10px] font-black uppercase shadow-sm ${themeColors.badgeBg} ${themeColors.badgeText}`}
+              className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] sm:text-[10px] font-black uppercase shadow-sm ${themeConfig.colors.badgeClass}`}
             >
               <Flame className="w-3 h-3 text-orange-400 animate-pulse shrink-0" />
               <span>+50% TỐC ĐÁNH</span>
