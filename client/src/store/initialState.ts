@@ -14,6 +14,7 @@ import {
   LiveChatMessage,
   MeteorEntity,
   MinionEntity,
+  QueuedSummon,
   ParticleBurst,
   ProDamageRecord,
   ProjectileEntity,
@@ -64,6 +65,23 @@ export const INITIAL_STATE = {
   totalLikesBLG: 0,
   totalLikesGENG: 0,
   minions: [] as MinionEntity[],
+  minionMap: new Map<string, MinionEntity>(),
+  minionIdsByTeam: {
+    [TEAM_KEY.BLG]: new Set<string>(),
+    [TEAM_KEY.GENG]: new Set<string>(),
+  },
+  livingCountByTeam: {
+    [TEAM_KEY.BLG]: 0,
+    [TEAM_KEY.GENG]: 0,
+  },
+  summonQueue: {
+    [TEAM_KEY.BLG]: [] as QueuedSummon[],
+    [TEAM_KEY.GENG]: [] as QueuedSummon[],
+  },
+  lastSummonTurnTimestamps: {
+    [TEAM_KEY.BLG]: 0,
+    [TEAM_KEY.GENG]: 0,
+  },
   leaderboard: [] as DPSPlayer[],
   proLeaderboard: [] as ProDamageRecord[],
   activeBursts: [] as ParticleBurst[],

@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    worker: {
+      format: 'es',
+    },
     server: {
       port: 8000,
       host: !isPublicDisabled,

@@ -37,7 +37,8 @@ export const deployQueuedMinions = (
   currentQueue: Record<TeamType, QueuedSummon[]> | undefined,
   currentLastTurnTimestamps: Record<TeamType, number> | undefined,
   now: number,
-  activeTeams: Record<TeamType, TeamProfile>
+  activeTeams: Record<TeamType, TeamProfile>,
+  cachedLivingCounts?: Record<TeamType, number>
 ): DeployQueuedResult => {
   const nextMinions = [...currentMinions];
   const nextQueue: Record<TeamType, QueuedSummon[]> = {
@@ -59,12 +60,15 @@ export const deployQueuedMinions = (
     const queue = nextQueue[team];
     if (queue.length === 0) continue;
 
-    const livingCount = nextMinions.filter(
-      (m) =>
-        m.team === team &&
-        (m.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0 &&
-        now - m.createdAt < m.lifetimeMs
-    ).length;
+    const livingCount =
+      cachedLivingCounts && typeof cachedLivingCounts[team] === 'number'
+        ? cachedLivingCounts[team]
+        : nextMinions.filter(
+            (m) =>
+              m.team === team &&
+              (m.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0 &&
+              now - m.createdAt < m.lifetimeMs
+          ).length;
 
     // Check if team has reached maximum 5 active champions
     if (livingCount >= GAME_CONSTANTS.SUMMON_RULES.MAX_ACTIVE_PER_TEAM) {

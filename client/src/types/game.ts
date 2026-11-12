@@ -243,6 +243,17 @@ export interface HeartMilestoneBanner {
   timestamp: number;
 }
 
+export interface QueuedSummon {
+  id: string;
+  summonerName: string;
+  championName: string;
+  team: TeamType;
+  userAvatarUrl?: string;
+  isExplicitChampion?: boolean;
+  isGiftBypass?: boolean;
+  queuedAt: number;
+}
+
 export interface AdminEventLog {
   id: string;
   time: string;
@@ -364,6 +375,11 @@ export interface GameState {
   totalLikesBLG: number;
   totalLikesGENG: number;
   minions: MinionEntity[];
+  minionMap: Map<string, MinionEntity>;
+  minionIdsByTeam: Record<TeamType, Set<string>>;
+  livingCountByTeam: Record<TeamType, number>;
+  summonQueue: Record<TeamType, QueuedSummon[]>;
+  lastSummonTurnTimestamps: Record<TeamType, number>;
   leaderboard: DPSPlayer[];
   proLeaderboard: ProDamageRecord[];
   activeBursts: ParticleBurst[];
@@ -529,6 +545,7 @@ export interface GameState {
       isExplicitChampion?: boolean;
     }>
   ) => void;
+  advanceSummonTurnQueue: () => void;
   triggerGiftExplosion: (
     giftName: string,
     team: TeamType,

@@ -169,7 +169,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
   consumeMinionAttackFury: (minionId: string) => {
     const state = get();
-    const targetMinion = state.minions.find((minion) => minion.id === minionId);
+    const targetMinion = state.minionMap?.get(minionId) || state.minions.find((minion) => minion.id === minionId);
     if (!targetMinion) {
       return { isFullFury: false, nextFury: 0 };
     }
@@ -185,9 +185,12 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       ? 0
       : Math.min(targetMinion.maxFury, targetMinion.fury + furyGain);
 
+    const updatedTarget = { ...targetMinion, fury: nextFury };
+    state.minionMap?.set(minionId, updatedTarget);
+
     set((prev) => ({
       minions: prev.minions.map((minion) =>
-        minion.id === minionId ? { ...minion, fury: nextFury } : minion
+        minion.id === minionId ? updatedTarget : minion
       ),
     }));
 
@@ -591,15 +594,18 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         );
       }
 
+      const nextMinions = prev.minions.map((minion) => {
+        if (minion.team !== team) return minion;
+        const updated = { ...minion, fury: Math.min(minion.maxFury, minion.fury + minionHeartFuryGain) };
+        prev.minionMap?.set(minion.id, updated);
+        return updated;
+      });
+
       return {
         totalLikesBLG: newLikesBLG,
         totalLikesGENG: newLikesGENG,
         activeHearts: [...prev.activeHearts.slice(-GAME_CONSTANTS.HEARTS.MAX_ACTIVE), ...newHearts],
-        minions: prev.minions.map((minion) =>
-          minion.team === team
-            ? { ...minion, fury: Math.min(minion.maxFury, minion.fury + minionHeartFuryGain) }
-            : minion
-        ),
+        minions: nextMinions,
         rosterPlayerFury: nextRosterFury,
         teamHeartMomentum: {
           ...prev.teamHeartMomentum,
@@ -1036,6 +1042,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       teamCombos: isDefeated ? createInitialTeamCombos() : nextTeamCombos,
       teamHeartMomentum: isDefeated ? createInitialTeamHeartMomentum() : prev.teamHeartMomentum,
       minions: isDefeated ? [] : prev.minions,
+      summonQueue: isDefeated
+        ? { [TEAM_KEY.BLG]: [], [TEAM_KEY.GENG]: [] }
+        : prev.summonQueue,
       activeSummonPortals: isDefeated ? [] : prev.activeSummonPortals,
       activeProjectiles: isDefeated ? [] : prev.activeProjectiles,
       activeFlyingArrows: isDefeated ? [] : prev.activeFlyingArrows,

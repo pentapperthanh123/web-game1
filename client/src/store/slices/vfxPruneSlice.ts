@@ -9,6 +9,7 @@ import {
 } from '../../constants/game';
 import { createEmptyTeamCombo, createEmptyTeamHeartMomentum } from '../storeHelpers';
 import { deployQueuedMinions } from '../summonQueueHelper';
+import { rebuildMinionCollections } from '../minionMapHelpers';
 
 export type VfxPruneSlice = Pick<GameState, 'pruneEntities'>;
 
@@ -171,8 +172,19 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
       };
     }
 
+    const collections = hasMinionsChanged || finalMinions.length !== state.minions.length
+      ? rebuildMinionCollections(finalMinions, now)
+      : null;
+
     set({
       minions: finalMinions,
+      ...(collections
+        ? {
+            minionMap: collections.minionMap,
+            minionIdsByTeam: collections.minionIdsByTeam,
+            livingCountByTeam: collections.livingCountByTeam,
+          }
+        : {}),
       summonQueue: nextSummonQueue,
       lastSummonTurnTimestamps: nextLastTurnTimestamps,
       activeHearts: hasHeartsChanged ? activeHearts : state.activeHearts,

@@ -59,6 +59,7 @@ import {
   isBattleHalted,
 } from '../storeHelpers';
 import { deployQueuedMinions } from '../summonQueueHelper';
+import { createEmptyMinionCollections } from '../minionMapHelpers';
 
 export type BossSlice = Pick<
   GameState,
@@ -573,6 +574,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
+      ...createEmptyMinionCollections(),
       summonQueue: {
         [TEAM_KEY.BLG]: [],
         [TEAM_KEY.GENG]: [],

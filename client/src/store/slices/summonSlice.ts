@@ -10,6 +10,7 @@ import {
   SummonPortalEntity,
 } from '../../types/game';
 import { deployQueuedMinions } from '../summonQueueHelper';
+import { rebuildMinionCollections } from '../minionMapHelpers';
 import {
   COMBAT_VFX_CONSTANTS,
   DAMAGE_TYPE,
@@ -340,8 +341,14 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         }
       }
 
+      const slicedMinions = finalMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES);
+      const collections = rebuildMinionCollections(slicedMinions, now);
+
       return {
-        minions: finalMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES),
+        minions: slicedMinions,
+        minionMap: collections.minionMap,
+        minionIdsByTeam: collections.minionIdsByTeam,
+        livingCountByTeam: collections.livingCountByTeam,
         summonQueue: finalQueue,
         lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
         activeSummonPortals: [...prev.activeSummonPortals, ...newPortals].slice(-portalSliceCount),
@@ -414,8 +421,14 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       if (deployed.nextMinions.length === state.minions.length && deployed.newPortals.length === 0) {
         return;
       }
+      const slicedMinions = deployed.nextMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES);
+      const collections = rebuildMinionCollections(slicedMinions, now);
+
       set((prev) => ({
-        minions: deployed.nextMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES),
+        minions: slicedMinions,
+        minionMap: collections.minionMap,
+        minionIdsByTeam: collections.minionIdsByTeam,
+        livingCountByTeam: collections.livingCountByTeam,
         summonQueue: deployed.nextQueue,
         lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
         activeSummonPortals: [
