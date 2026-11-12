@@ -7,12 +7,50 @@ import {
   sanitizeTeamConfigState,
 } from '../constants/teams';
 import {
+  DEFAULT_SERIES_CONFIG,
   SeriesFormat,
   SeriesFormatConfig,
   SilverScrapesDuelState,
   DuelLaneKey,
 } from '../constants/series';
 import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
+
+export interface TikTokPipelineStats {
+  trackedAffinityCount: number;
+  leftAffinityCount: number;
+  rightAffinityCount: number;
+  activeStreakCount: number;
+  followCount: number;
+  shareCount: number;
+  blockedAntiSpamCount: number;
+}
+
+export interface SimulateTikTokRequest {
+  action: 'chat' | 'like' | 'gift' | 'follow' | 'share' | 'resetStats';
+  uniqueId?: string;
+  nickname?: string;
+  comment?: string;
+  likeCount?: number;
+  giftId?: string | number;
+  giftName?: string;
+  diamondCount?: number;
+  giftType?: number;
+  repeatCount?: number;
+  repeatEnd?: boolean;
+  explicitTeam?: 'BLG' | 'GENG';
+}
+
+export interface SimulateTikTokResult {
+  accepted: boolean;
+  action: string;
+  team?: 'BLG' | 'GENG';
+  source?: 'explicit' | 'affinity' | 'balanced_fallback';
+  championName?: string;
+  deltaCoins?: number;
+  streakCount?: number;
+  reason?: string;
+  stats: TikTokPipelineStats;
+}
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
@@ -28,6 +66,18 @@ class AdminSocketService {
   private overlayListeners: ((visibility: Partial<OverlayVisibility>) => void)[] = [];
   private latestTeamConfig: TeamConfigState = createDefaultTeamConfig();
   private teamConfigListeners: ((config: TeamConfigState) => void)[] = [];
+  private latestSeriesConfig: SeriesFormatConfig = DEFAULT_SERIES_CONFIG;
+  private seriesConfigListeners: ((config: SeriesFormatConfig) => void)[] = [];
+  private latestPipelineStats: TikTokPipelineStats = {
+    trackedAffinityCount: 0,
+    leftAffinityCount: 0,
+    rightAffinityCount: 0,
+    activeStreakCount: 0,
+    followCount: 0,
+    shareCount: 0,
+    blockedAntiSpamCount: 0,
+  };
+  private pipelineStatsListeners: ((stats: TikTokPipelineStats) => void)[] = [];
   public isConnected = false;
 
   constructor() {
@@ -72,6 +122,20 @@ class AdminSocketService {
           this.notifyOverlayListeners(cleanPatch);
         }
       });
+
+      this.socket.on('tiktok:pipeline-stats', (payload: TikTokPipelineStats) => {
+        if (payload && typeof payload.trackedAffinityCount === 'number') {
+          this.latestPipelineStats = payload;
+          this.pipelineStatsListeners.forEach((cb) => cb(payload));
+        }
+      });
+
+      this.socket.on('game:series-format', (payload: SeriesFormatConfig) => {
+        if (payload && typeof payload.format === 'string') {
+          this.latestSeriesConfig = payload;
+          this.notifySeriesConfigListeners(payload);
+        }
+      });
     } catch (err) {
       console.warn('[Admin Socket] Could not connect to backend server, falling back to BroadcastChannel', err);
     }
@@ -91,6 +155,16 @@ class AdminSocketService {
         })
         .catch(() => {});
 
+      fetch(`${SERVER_URL}/api/tiktok/pipeline-stats`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: TikTokPipelineStats | null) => {
+          if (data && typeof data.trackedAffinityCount === 'number') {
+            this.latestPipelineStats = data;
+            this.pipelineStatsListeners.forEach((cb) => cb(data));
+          }
+        })
+        .catch(() => {});
+
       fetch(`${SERVER_URL}/api/teams`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
@@ -98,6 +172,16 @@ class AdminSocketService {
           if (cleanConfig) {
             this.latestTeamConfig = cleanConfig;
             this.notifyTeamConfigListeners(cleanConfig);
+          }
+        })
+        .catch(() => {});
+
+      fetch(`${SERVER_URL}/api/series-format`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: SeriesFormatConfig | null) => {
+          if (data && typeof data.format === 'string') {
+            this.latestSeriesConfig = data;
+            this.notifySeriesConfigListeners(data);
           }
         })
         .catch(() => {});
@@ -296,11 +380,21 @@ class AdminSocketService {
   }
 
   public onSeriesFormat(callback: (config: SeriesFormatConfig) => void): () => void {
-    if (!this.socket) return () => {};
-    this.socket.on('game:series-format', callback);
+    callback(this.latestSeriesConfig);
+    this.seriesConfigListeners.push(callback);
     return () => {
-      this.socket?.off('game:series-format', callback);
+      this.seriesConfigListeners = this.seriesConfigListeners.filter((cb) => cb !== callback);
     };
+  }
+
+  private notifySeriesConfigListeners(config: SeriesFormatConfig): void {
+    for (const listener of this.seriesConfigListeners) {
+      try {
+        listener(config);
+      } catch (err) {
+        console.error('[Admin Socket] Error in series format listener:', err);
+      }
+    }
   }
 
   public setSeriesFormat(format: SeriesFormat, resetScore = false): void {
@@ -344,6 +438,33 @@ class AdminSocketService {
       method: 'POST',
     });
     return res.json();
+  }
+
+  public onPipelineStats(callback: (stats: TikTokPipelineStats) => void): () => void {
+    callback(this.latestPipelineStats);
+    this.pipelineStatsListeners.push(callback);
+    return () => {
+      this.pipelineStatsListeners = this.pipelineStatsListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  public async simulateTikTokEvent(payload: SimulateTikTokRequest): Promise<SimulateTikTokResult | null> {
+    try {
+      const res = await fetch(`${SERVER_URL}/api/tiktok/simulate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) return null;
+      const result = (await res.json()) as SimulateTikTokResult;
+      if (result.stats) {
+        this.latestPipelineStats = result.stats;
+        this.pipelineStatsListeners.forEach((cb) => cb(result.stats));
+      }
+      return result;
+    } catch {
+      return null;
+    }
   }
 }
 

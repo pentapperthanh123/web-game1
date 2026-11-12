@@ -103,15 +103,15 @@ const getMinionAttackSpeedFactor = (
   );
 };
 
-const SHARED_PORTAL_RING_1 = new THREE.RingGeometry(0.34, 0.46, 24);
-const SHARED_PORTAL_RING_2 = new THREE.RingGeometry(0.16, 0.28, 6);
-const SHARED_PORTAL_CYLINDER = new THREE.CylinderGeometry(0.12, 0.32, 1.5, 12, 1, true);
+const SHARED_PORTAL_RING_1 = new THREE.RingGeometry(0.22, 0.32, 24);
+const SHARED_PORTAL_RING_2 = new THREE.RingGeometry(0.10, 0.19, 6);
+const SHARED_PORTAL_CYLINDER = new THREE.CylinderGeometry(0.08, 0.20, 0.8, 12, 1, true);
 
-// Celestial Summon Arrival Halo & Light Beam Geometries
-const SHARED_CELESTIAL_AURA_GEO = new THREE.RingGeometry(0.24, 0.38, 32);
-const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.08, 0.35, 3.2, 16, 1, true);
-const SHARED_LANDING_RING_GEO = new THREE.RingGeometry(0.15, 0.48, 28);
-const SHARED_SHIELD_RING_GEO = new THREE.RingGeometry(0.21, 0.28, 32);
+// Celestial Summon Arrival Halo & Light Beam Geometries (Compact, sleek broadcast scale)
+const SHARED_CELESTIAL_AURA_GEO = new THREE.RingGeometry(0.16, 0.26, 24);
+const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.05, 0.18, 1.6, 16, 1, true);
+const SHARED_LANDING_RING_GEO = new THREE.RingGeometry(0.09, 0.24, 24);
+const SHARED_SHIELD_RING_GEO = new THREE.RingGeometry(0.19, 0.25, 24);
 
 // Commenter Summoner Nameplate Geometry
 const SHARED_NAMEPLATE_GEO = new THREE.PlaneGeometry(
@@ -452,7 +452,7 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
       </mesh>
 
       {/* 8. Vertical Sky Light Beam Pillar */}
-      <mesh name="sky-beam" position={[0, 1.4, 0]} geometry={SHARED_LIGHT_BEAM_GEO}>
+      <mesh name="sky-beam" position={[0, 0.75, 0]} geometry={SHARED_LIGHT_BEAM_GEO}>
         <meshBasicMaterial
           color={teamPalette.primary}
           transparent
@@ -610,7 +610,7 @@ export const SummonPortals3D = () => {
 
         const ageMs = now - portal.createdAt;
         const progress = Math.min(1, ageMs / COMBAT_VFX_CONSTANTS.SUMMON.PORTAL_DURATION_MS);
-        const popScale = progress < 0.2 ? (progress / 0.2) * 1.15 : 1.15 - (progress - 0.2) * 0.25;
+        const popScale = progress < 0.2 ? (progress / 0.2) * 1.05 : 1.05 - (progress - 0.2) * 0.15;
         const fade = Math.max(0, 1 - Math.pow(progress, 1.8));
 
         portalGroup.scale.setScalar(Math.max(0.05, popScale));
@@ -763,7 +763,7 @@ export const SummonPortals3D = () => {
           const prog = Math.min(1.0, entranceAgeMs / ENTRANCE_MS);
           const easeOut = 1 - Math.pow(1 - prog, 3);
           swoopY = (1 - easeOut) * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ENTRANCE_SWOOP_Y;
-          entranceScale = prog < 0.65 ? (prog / 0.65) * 1.25 : 1.25 - ((prog - 0.65) * 0.25) / 0.35;
+          entranceScale = prog < 0.6 ? 0.75 + (prog / 0.6) * 0.32 : 1.07 - ((prog - 0.6) * 0.07) / 0.4;
         }
 
         // First opening skill cast right after the 1s spawn shield completes (strictly normal attack at 0% Fury)
@@ -925,9 +925,9 @@ export const SummonPortals3D = () => {
           if (haloMesh && haloMesh.material instanceof THREE.MeshBasicMaterial) {
             if (isAuraActive) {
               const haloPulse = Math.sin(auraProg * Math.PI);
-              haloMesh.scale.setScalar(0.85 + haloPulse * 0.65);
+              haloMesh.scale.setScalar(0.9 + haloPulse * 0.25);
               haloMesh.rotation.z = elapsedTime * (minion.team === TEAM_KEY.BLG ? 3.5 : -3.5);
-              haloMesh.material.opacity = haloPulse * 0.95;
+              haloMesh.material.opacity = haloPulse * 0.65;
               haloMesh.visible = true;
             } else {
               haloMesh.visible = false;
@@ -937,8 +937,8 @@ export const SummonPortals3D = () => {
           if (beamMesh && beamMesh.material instanceof THREE.MeshBasicMaterial) {
             if (isAuraActive) {
               const beamFade = Math.max(0, 1.0 - auraProg);
-              beamMesh.scale.set(1.0 + auraProg * 0.4, 1.0, 1.0 + auraProg * 0.4);
-              beamMesh.material.opacity = beamFade * 0.75;
+              beamMesh.scale.set(0.9 + auraProg * 0.2, 1.0, 0.9 + auraProg * 0.2);
+              beamMesh.material.opacity = beamFade * 0.45;
               beamMesh.visible = true;
             } else {
               beamMesh.visible = false;
@@ -948,10 +948,10 @@ export const SummonPortals3D = () => {
           if (landingMesh && landingMesh.material instanceof THREE.MeshBasicMaterial) {
             if (isAuraActive && entranceAgeMs >= 350) {
               const landProg = (entranceAgeMs - 350) / (AURA_DURATION_MS - 350);
-              const landScale = 0.5 + landProg * 2.0;
+              const landScale = 0.6 + landProg * 0.75;
               const landFade = Math.max(0, 1.0 - landProg);
               landingMesh.scale.setScalar(landScale);
-              landingMesh.material.opacity = landFade * 0.85;
+              landingMesh.material.opacity = landFade * 0.55;
               landingMesh.visible = true;
             } else {
               landingMesh.visible = false;

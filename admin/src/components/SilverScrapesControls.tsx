@@ -39,16 +39,6 @@ export function SilverScrapesControls() {
       setDuelState(st);
     });
 
-    // Hydrate initial REST
-    fetch('/api/series-format')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && typeof data.format === 'string') {
-          setSeriesConfig(data);
-        }
-      })
-      .catch(() => {});
-
     return () => {
       unsubSeries();
       unsubDuel();

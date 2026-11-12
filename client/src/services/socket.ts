@@ -48,8 +48,38 @@ class GameSocketClient {
         timeout: 5000,
       });
 
+      let lastSentLeft = -1;
+      let lastSentRight = -1;
+      let lastScoreSyncAt = 0;
+
+      const syncScoreBalanceToServer = () => {
+        if (!this.socket || !this.isConnected) return;
+        const { teamScoreBLG, teamScoreGENG } = useGameStore.getState();
+        const now = Date.now();
+        if (teamScoreBLG === lastSentLeft && teamScoreGENG === lastSentRight) return;
+        if (now - lastScoreSyncAt < 1500 && teamScoreBLG !== 0 && teamScoreGENG !== 0) return;
+        lastSentLeft = teamScoreBLG;
+        lastSentRight = teamScoreGENG;
+        lastScoreSyncAt = now;
+        this.socket.emit('admin:sync-score-hint', {
+          leftScore: teamScoreBLG,
+          rightScore: teamScoreGENG,
+        });
+      };
+
+      useGameStore.subscribe((state, prevState) => {
+        if (
+          state.teamScoreBLG !== prevState.teamScoreBLG ||
+          state.teamScoreGENG !== prevState.teamScoreGENG
+        ) {
+          syncScoreBalanceToServer();
+        }
+      });
+
       this.socket.on('connect', () => {
         this.isConnected = true;
+        lastScoreSyncAt = 0;
+        syncScoreBalanceToServer();
         console.log('[Game Socket] Connected to Backend Server on port 4000');
         useGameStore.getState().addLog('SYSTEM', 'Đã kết nối Socket.io tới Server trung gian');
       });
@@ -108,7 +138,35 @@ class GameSocketClient {
 
       this.socket.on('game:gift', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
-        useGameStore.getState().triggerGiftExplosion(payload.giftName, payload.team, payload.donorName, payload.coins);
+        useGameStore
+          .getState()
+          .triggerGiftExplosion(
+            payload.giftName,
+            payload.team,
+            payload.donorName,
+            payload.coins,
+            payload.streakCount,
+            payload.totalCoins,
+            payload.isComboFinal
+          );
+      });
+
+      this.socket.on('game:follow', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (payload?.userName && payload?.team && payload?.championName) {
+          useGameStore
+            .getState()
+            .triggerFollowReward(payload.userName, payload.team, payload.championName, payload.furyGain);
+        }
+      });
+
+      this.socket.on('game:share', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (payload?.userName && payload?.team) {
+          useGameStore
+            .getState()
+            .triggerShareReward(payload.userName, payload.team, payload.damageAmount, payload.healAmount);
+        }
       });
 
       this.socket.on('game:like', (payload) => {

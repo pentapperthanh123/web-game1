@@ -816,18 +816,16 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setChatTeam('BLG')}
-                  className={`flex-1 py-1 rounded text-[10px] font-black ${
-                    chatTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
-                  }`}
+                  className={`flex-1 py-1 rounded text-[10px] font-black ${chatTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
+                    }`}
                 >
                   {leftTeam.shortTag}
                 </button>
                 <button
                   type="button"
                   onClick={() => setChatTeam('GENG')}
-                  className={`flex-1 py-1 rounded text-[10px] font-black ${
-                    chatTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
-                  }`}
+                  className={`flex-1 py-1 rounded text-[10px] font-black ${chatTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
+                    }`}
                 >
                   {rightTeam.shortTag}
                 </button>
@@ -881,9 +879,8 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setSelectedTeam('BLG')}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${
-                      selectedTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
-                    }`}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${selectedTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
+                      }`}
                   >
                     <TeamLogo teamProfile={leftTeam} className="w-4 h-4" />
                     <span>{leftTeam.shortTag}</span>
@@ -891,9 +888,8 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setSelectedTeam('GENG')}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${
-                      selectedTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
-                    }`}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${selectedTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
+                      }`}
                   >
                     <TeamLogo teamProfile={rightTeam} className="w-4 h-4" />
                     <span>{rightTeam.shortTag}</span>
@@ -938,11 +934,10 @@ export function App() {
                       key={tab.key}
                       type="button"
                       onClick={() => setSelectedTagFilter(tab.key as any)}
-                      className={`px-1.5 py-0.5 rounded transition whitespace-nowrap ${
-                        selectedTagFilter === tab.key
+                      className={`px-1.5 py-0.5 rounded transition whitespace-nowrap ${selectedTagFilter === tab.key
                           ? 'bg-cyan-500 text-slate-950 shadow'
                           : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
-                      }`}
+                        }`}
                     >
                       {tab.label}
                     </button>
@@ -958,11 +953,10 @@ export function App() {
                         key={c.id}
                         type="button"
                         onClick={() => setSelectedChampion(c.name)}
-                        className={`p-1.5 rounded-lg text-left text-[11px] border flex items-center space-x-2 transition ${
-                          isSelected
+                        className={`p-1.5 rounded-lg text-left text-[11px] border flex items-center space-x-2 transition ${isSelected
                             ? 'bg-cyan-950/90 border-cyan-400 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
                             : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                        }`}
+                          }`}
                       >
                         <img
                           src={c.avatarUrl}
@@ -1059,17 +1053,15 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setIsAutoSummonActive(!isAutoSummonActive)}
-                  className={`w-full py-2.5 px-3 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all duration-200 shadow-md ${
-                    isAutoSummonActive
+                  className={`w-full py-2.5 px-3 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all duration-200 shadow-md ${isAutoSummonActive
                       ? 'bg-rose-950/90 border-rose-500 text-rose-200 shadow-[0_0_16px_rgba(244,63,94,0.5)]'
                       : 'bg-emerald-950/90 border-emerald-500 text-emerald-200 hover:bg-emerald-900/80 shadow-[0_0_16px_rgba(16,185,129,0.4)]'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-2">
                     <span
-                      className={`w-2.5 h-2.5 rounded-full ${
-                        isAutoSummonActive ? 'bg-rose-400 animate-ping' : 'bg-emerald-400'
-                      }`}
+                      className={`w-2.5 h-2.5 rounded-full ${isAutoSummonActive ? 'bg-rose-400 animate-ping' : 'bg-emerald-400'
+                        }`}
                     />
                     <span>{isAutoSummonActive ? 'DỪNG TỰ ĐỘNG TRIỆU HỒI' : 'BẬT TỰ ĐỘNG TRIỆU HỒI'}</span>
                   </div>
@@ -1106,11 +1098,10 @@ export function App() {
                           key={count}
                           type="button"
                           onClick={() => setAutoSummonBatchSize(count)}
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono transition ${
-                            autoSummonBatchSize === count
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono transition ${autoSummonBatchSize === count
                               ? 'bg-cyan-500 text-slate-950 shadow-[0_0_8px_#00f2fe]'
                               : 'bg-slate-800 text-slate-400 hover:text-white'
-                          }`}
+                            }`}
                         >
                           {count}
                         </button>
@@ -1173,9 +1164,8 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setGiftTeam('BLG')}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${
-                      giftTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
-                    }`}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${giftTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
+                      }`}
                   >
                     <TeamLogo teamProfile={leftTeam} className="w-4 h-4" />
                     <span>{leftTeam.shortTag}</span>
@@ -1183,9 +1173,8 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setGiftTeam('GENG')}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${
-                      giftTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
-                    }`}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${giftTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
+                      }`}
                   >
                     <TeamLogo teamProfile={rightTeam} className="w-4 h-4" />
                     <span>{rightTeam.shortTag}</span>
@@ -1201,11 +1190,10 @@ export function App() {
                       key={g.name}
                       type="button"
                       onClick={() => setSelectedGift(g)}
-                      className={`w-full p-1.5 rounded flex items-center justify-between text-[11px] border ${
-                        selectedGift.name === g.name
+                      className={`w-full p-1.5 rounded flex items-center justify-between text-[11px] border ${selectedGift.name === g.name
                           ? 'bg-slate-800 border-amber-400 text-white font-bold'
                           : 'bg-slate-950 border-slate-800 text-slate-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center space-x-1.5">
                         <Crown className="w-3 h-3 text-amber-400" />
@@ -1328,9 +1316,8 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setIsBotActive(!isBotActive)}
-                    className={`py-1 px-3 rounded-lg text-xs font-bold flex items-center space-x-1 ${
-                      isBotActive ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
-                    }`}
+                    className={`py-1 px-3 rounded-lg text-xs font-bold flex items-center space-x-1 ${isBotActive ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
+                      }`}
                   >
                     {isBotActive ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
                     <span>{isBotActive ? 'Dừng Bot' : 'Chạy Bot'}</span>
@@ -1357,96 +1344,94 @@ export function App() {
         </div>
 
         <div id="section-boss-map" className={`scroll-mt-24 ${shouldShowBossMap ? 'space-y-6' : 'hidden'}`}>
-        {/* Map / Arena Theme Switcher Section */}
-        <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div className="flex items-center space-x-2 text-xs font-black uppercase text-white">
-              <MapPin className="w-4 h-4 text-emerald-400" />
-              <span>5. Bản Đồ & Theme Trận Đấu (Map / Arena Theme)</span>
+          {/* Map / Arena Theme Switcher Section */}
+          <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center space-x-2 text-xs font-black uppercase text-white">
+                <MapPin className="w-4 h-4 text-emerald-400" />
+                <span>5. Bản Đồ & Theme Trận Đấu (Map / Arena Theme)</span>
+              </div>
+              <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-2 py-0.5 rounded-full">
+                Đang chọn: {selectedTheme === 'ELDER_DRAGON' ? '🐉 Hang Rồng Ngàn Tuổi' : '🟣 Hang Baron Nashor'}
+              </span>
             </div>
-            <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-2 py-0.5 rounded-full">
-              Đang chọn: {selectedTheme === 'ELDER_DRAGON' ? '🐉 Hang Rồng Ngàn Tuổi' : '🟣 Hang Baron Nashor'}
-            </span>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Card 1: Baron Nashor */}
-            <button
-              type="button"
-              onClick={() => handleSelectTheme('BARON')}
-              className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${
-                selectedTheme === 'BARON'
-                  ? 'bg-purple-950/90 border-purple-400 shadow-[0_0_18px_rgba(168,85,247,0.5)] scale-[1.01]'
-                  : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              <div className="w-12 h-12 rounded-lg bg-purple-900/60 border border-purple-500/60 flex items-center justify-center shrink-0 overflow-hidden">
-                <img
-                  src="/images/boss_baron_2d.png"
-                  alt="Baron Nashor"
-                  className="w-10 h-10 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-white">Hang Baron Hư Không</span>
-                  {selectedTheme === 'BARON' && (
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-600 text-white">
-                      ĐANG DÙNG
-                    </span>
-                  )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Card 1: Baron Nashor */}
+              <button
+                type="button"
+                onClick={() => handleSelectTheme('BARON')}
+                className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${selectedTheme === 'BARON'
+                    ? 'bg-purple-950/90 border-purple-400 shadow-[0_0_18px_rgba(168,85,247,0.5)] scale-[1.01]'
+                    : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+              >
+                <div className="w-12 h-12 rounded-lg bg-purple-900/60 border border-purple-500/60 flex items-center justify-center shrink-0 overflow-hidden">
+                  <img
+                    src="/images/boss_baron_2d.png"
+                    alt="Baron Nashor"
+                    className="w-10 h-10 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  Quái thú Baron Nashor CKTG • Tông tím Hư Không huyền bí
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white">Hang Baron Hư Không</span>
+                    {selectedTheme === 'BARON' && (
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-600 text-white">
+                        ĐANG DÙNG
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Quái thú Baron Nashor CKTG • Tông tím Hư Không huyền bí
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
 
-            {/* Card 2: Elder Dragon */}
-            <button
-              type="button"
-              onClick={() => handleSelectTheme('ELDER_DRAGON')}
-              className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${
-                selectedTheme === 'ELDER_DRAGON'
-                  ? 'bg-gradient-to-r from-amber-950/90 to-cyan-950/90 border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.55)] scale-[1.01]'
-                  : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              <div className="w-12 h-12 rounded-lg bg-amber-900/60 border border-amber-500/60 flex items-center justify-center shrink-0 overflow-hidden">
-                <img
-                  src="/images/elder_dragon_icon_135001.webp"
-                  alt="Elder Dragon"
-                  className="w-10 h-10 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-white">Hang Rồng Ngàn Tuổi (Elder)</span>
-                  {selectedTheme === 'ELDER_DRAGON' && (
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-600 text-slate-950">
-                      ĐANG DÙNG
-                    </span>
-                  )}
+              {/* Card 2: Elder Dragon */}
+              <button
+                type="button"
+                onClick={() => handleSelectTheme('ELDER_DRAGON')}
+                className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${selectedTheme === 'ELDER_DRAGON'
+                    ? 'bg-gradient-to-r from-amber-950/90 to-cyan-950/90 border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.55)] scale-[1.01]'
+                    : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+              >
+                <div className="w-12 h-12 rounded-lg bg-amber-900/60 border border-amber-500/60 flex items-center justify-center shrink-0 overflow-hidden">
+                  <img
+                    src="/images/elder_dragon_icon_135001.webp"
+                    alt="Elder Dragon"
+                    className="w-10 h-10 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  Long Thần Ngàn Tuổi CKTG • Lửa Thiên Thanh & Vàng Kim rực lửa
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white">Hang Rồng Ngàn Tuổi (Elder)</span>
+                    {selectedTheme === 'ELDER_DRAGON' && (
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-600 text-slate-950">
+                        ĐANG DÙNG
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Long Thần Ngàn Tuổi CKTG • Lửa Thiên Thanh & Vàng Kim rực lửa
+                  </div>
                 </div>
-              </div>
-            </button>
-          </div>
-        </section>
+              </button>
+            </div>
+          </section>
 
-        {/* Section 6: Boss Counterattack & 4 Skills Config */}
-        <BossSkillControls currentTheme={selectedTheme} />
+          {/* Section 6: Boss Counterattack & 4 Skills Config */}
+          <BossSkillControls currentTheme={selectedTheme} />
 
-        {/* Section 6.5: Auto Pro-Player Battle when Idle */}
-        <AutoProControls teamConfig={teamConfig} />
+          {/* Section 6.5: Auto Pro-Player Battle when Idle */}
+          <AutoProControls teamConfig={teamConfig} />
         </div>
 
         {/* Section 7: Section Visibility Controls (Overlay Controls) */}
@@ -1487,15 +1472,14 @@ export function App() {
                 >
                   <span className="text-[10px] text-slate-500">{item.time}</span>
                   <span
-                    className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
-                      item.type === 'GIFT'
+                    className={`text-[9px] font-black px-1.5 py-0.5 rounded ${item.type === 'GIFT'
                         ? 'bg-amber-950 text-amber-300 border border-amber-800'
                         : item.type === 'SUMMON'
-                        ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
-                        : item.type === 'LIKE'
-                        ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                        : 'bg-slate-800 text-slate-300'
-                    }`}
+                          ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
+                          : item.type === 'LIKE'
+                            ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                            : 'bg-slate-800 text-slate-300'
+                      }`}
                   >
                     {item.type}
                   </span>

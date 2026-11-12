@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Flame } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
+import { GAME_CONSTANTS } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
 
@@ -24,7 +25,9 @@ export const GiftBanner = () => {
   const teamProfile = activeTeams[activeGiftBanner.team];
   const teamTheme = getTeamTheme(teamProfile?.colorTheme);
   const teamTag = teamProfile?.shortTag || activeGiftBanner.team;
-  const giftDamage = (activeGiftBanner.coins ?? 0) * 120;
+  const streakCount = activeGiftBanner.streakCount ?? 1;
+  const displayCoins = activeGiftBanner.totalCoins ?? activeGiftBanner.coins ?? 0;
+  const giftDamage = displayCoins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN;
 
   return (
     <div className="w-full pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
@@ -60,6 +63,11 @@ export const GiftBanner = () => {
               <span className={`text-xs font-black truncate ${teamTheme.textClass}`}>
                 {activeGiftBanner.giftName}
               </span>
+              {streakCount > 1 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-[9px] shrink-0 animate-bounce">
+                  {t('Gift.comboStreak', 'COMBO x{{count}}', { count: streakCount })}
+                </span>
+              )}
               <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-spin shrink-0" />
             </div>
 

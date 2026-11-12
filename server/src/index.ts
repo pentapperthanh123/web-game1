@@ -35,6 +35,9 @@ const TEAM_CONFIG_DATA_FILE = path.join(DATA_DIR, 'team_config.json');
 const SERIES_FORMAT_DATA_FILE = path.join(DATA_DIR, 'series_format.json');
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
+const PORT_RELEASE_RETRY_DELAY_MS = 1000;
+const SHUTDOWN_FORCE_EXIT_MS = 1500;
+const MAX_PORT_BIND_RETRIES = 2;
 
 const app = express();
 app.use(cors({ origin: '*' }));
@@ -926,41 +929,81 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.on('error', (err: NodeJS.ErrnoException) => {
-  if (err.code === 'EADDRINUSE') {
-    console.warn(`\n⚠️ [Server Error] Cổng ${PORT} đang bị tiến trình khác chiếm dụng (EADDRINUSE). Đang tự động giải phóng...`);
-    try {
-      if (process.platform === 'win32') {
-        execSync(
-          `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${PORT} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"`,
-          { stdio: 'ignore' }
-        );
-      } else {
-        execSync(`fuser -k ${PORT}/tcp || true`, { stdio: 'ignore' });
-      }
-      setTimeout(() => {
-        console.log(`🔄 [Server] Thử kích hoạt lại cổng ${PORT}...`);
-        httpServer.listen(PORT, () => {
-          console.log(`===============================================`);
-          console.log(`🎮 TikTok Live Game Server running on port ${PORT}`);
-          console.log(`📡 WebSocket Gateway ready for Client & Admin`);
-          console.log(`===============================================`);
-        });
-      }, 1000);
-      return;
-    } catch (e) {
-      console.error(`❌ Không thể tự động giải phóng cổng ${PORT}:`, e);
-    }
-    process.exit(1);
-  } else {
-    console.error('[Server Error]', err);
-  }
-});
-
-httpServer.listen(PORT, () => {
+function logServerListeningBanner(): void {
   console.log(`===============================================`);
   console.log(`🎮 TikTok Live Game Server running on port ${PORT}`);
   console.log(`📡 WebSocket Gateway ready for Client & Admin`);
   console.log(`===============================================`);
+}
+
+function releaseBusyPortListener(): void {
+  if (process.platform === 'win32') {
+    execSync(
+      `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${PORT} -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -gt 0 -and $_.OwningProcess -ne ${process.pid} } | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"`,
+      { stdio: 'ignore' }
+    );
+    return;
+  }
+  execSync(`fuser -k ${PORT}/tcp || true`, { stdio: 'ignore' });
+}
+
+let portBindRetryCount = 0;
+let isShuttingDown = false;
+
+function shutdownGracefully(signal: string): void {
+  if (isShuttingDown) {
+    return;
+  }
+  isShuttingDown = true;
+  console.log(`[Server] Received ${signal}, shutting down gracefully...`);
+  if (tiktokConnection) {
+    try {
+      tiktokConnection.disconnect();
+    } catch {
+      // Ignore disconnect errors on shutdown
+    }
+    tiktokConnection = null;
+  }
+  const forceExitTimer = setTimeout(() => {
+    process.exit(0);
+  }, SHUTDOWN_FORCE_EXIT_MS);
+  forceExitTimer.unref();
+
+  io.close(() => {
+    httpServer.closeAllConnections?.();
+    httpServer.close(() => {
+      clearTimeout(forceExitTimer);
+      process.exit(0);
+    });
+  });
+}
+
+process.on('SIGINT', () => shutdownGracefully('SIGINT'));
+process.on('SIGTERM', () => shutdownGracefully('SIGTERM'));
+
+httpServer.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code !== 'EADDRINUSE') {
+    console.error('[Server Error]', err);
+    return;
+  }
+  if (isShuttingDown || portBindRetryCount >= MAX_PORT_BIND_RETRIES) {
+    console.error(`❌ Cổng ${PORT} vẫn đang bận sau ${portBindRetryCount} lần thử lại.`);
+    process.exit(1);
+  }
+  portBindRetryCount += 1;
+  console.warn(
+    `\n⚠️ [Server Error] Cổng ${PORT} đang bị tiến trình khác chiếm dụng (EADDRINUSE). Đang giải phóng (lần ${portBindRetryCount}/${MAX_PORT_BIND_RETRIES})...`
+  );
+  try {
+    releaseBusyPortListener();
+    setTimeout(() => {
+      console.log(`🔄 [Server] Thử kích hoạt lại cổng ${PORT}...`);
+      httpServer.listen(PORT, logServerListeningBanner);
+    }, PORT_RELEASE_RETRY_DELAY_MS);
+  } catch (releaseErr) {
+    console.error(`❌ Không thể tự động giải phóng cổng ${PORT}:`, releaseErr);
+    process.exit(1);
+  }
 });
 
+httpServer.listen(PORT, logServerListeningBanner);

@@ -77,7 +77,8 @@
   "Gift": {
     "sentLabel": "ĐÃ TẶNG",
     "patronTag": "ĐẠI GIA {{team}}",
-    "ultimateBonus": "ST TUYỆT KỸ & MƯA THIÊN THẠCH!"
+    "ultimateBonus": "ST TUYỆT KỸ & MƯA THIÊN THẠCH!",
+    "comboStreak": "COMBO x{{count}}"
   },
   "Controls": {
     "title": "Bảng Giả Lập Tương Tác TikTok Live",

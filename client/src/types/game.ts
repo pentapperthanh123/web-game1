@@ -169,6 +169,9 @@ export interface GiftAnnouncement {
   giftName: string;
   team: TeamType;
   coins: number;
+  streakCount?: number;
+  totalCoins?: number;
+  isComboFinal?: boolean;
   timestamp: number;
 }
 
@@ -467,7 +470,27 @@ export interface GameState {
     team: TeamType,
     isGiftBypass?: boolean
   ) => void;
-  triggerGiftExplosion: (giftName: string, team: TeamType, donorName: string, coins?: number) => void;
+  triggerGiftExplosion: (
+    giftName: string,
+    team: TeamType,
+    donorName: string,
+    coins?: number,
+    streakCount?: number,
+    totalCoins?: number,
+    isComboFinal?: boolean
+  ) => void;
+  triggerFollowReward: (
+    userName: string,
+    team: TeamType,
+    championName: string,
+    furyGain?: number
+  ) => void;
+  triggerShareReward: (
+    userName: string,
+    team: TeamType,
+    damageAmount?: number,
+    healAmount?: number
+  ) => void;
   addLikes: (count: number, team: TeamType, userName?: string) => void;
   addChatMessage: (userName: string, text: string, team?: TeamType, championName?: string) => void;
   spawnProjectile: (

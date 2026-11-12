@@ -1911,14 +1911,27 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
   },
 
-  triggerGiftExplosion: (giftName: string, team: TeamType, donorName: string, coins = 100) => {
+  triggerGiftExplosion: (
+    giftName: string,
+    team: TeamType,
+    donorName: string,
+    coins = 100,
+    streakCount = 1,
+    totalCoins?: number,
+    isComboFinal = false
+  ) => {
     const state = get();
+    const resolvedStreak = Math.max(1, streakCount);
+    const resolvedTotalCoins = totalCoins ?? coins;
     const newBanner: GiftAnnouncement = {
-      id: `banner-${Date.now()}`,
+      id: `banner-${Date.now()}-${resolvedStreak}`,
       donorName,
       giftName,
       team,
       coins,
+      streakCount: resolvedStreak,
+      totalCoins: resolvedTotalCoins,
+      isComboFinal,
       timestamp: Date.now(),
     };
 
@@ -1929,54 +1942,76 @@ export const useGameStore = create<GameState>((set, get) => ({
       state.roundWinner !== null
     ) {
       set({ activeGiftBanner: newBanner });
-      get().addChatMessage(donorName, `Đã tặng ${giftName} (${coins} xu)!`, team);
+      get().addChatMessage(
+        donorName,
+        `Đã tặng ${giftName}${resolvedStreak > 1 ? ` x${resolvedStreak}` : ''} (${resolvedTotalCoins} xu)!`,
+        team
+      );
       return;
     }
 
     const activeGiftTeam = state.activeTeams[team];
     const giftTeamTheme = getTeamTheme(activeGiftTeam?.colorTheme);
     const burstColor = giftTeamTheme.primaryHex;
+    const isRapidStreakTick = resolvedStreak > 1 && coins < 10 && resolvedStreak % 5 !== 0;
 
-    audioService.playGiftFanfare();
+    if (isRapidStreakTick) {
+      audioService.playHeartChime();
+    } else {
+      audioService.playGiftFanfare();
+    }
 
-    // Spawn 8 Blazing Meteors from above!
+    const meteorCount = isRapidStreakTick
+      ? GAME_CONSTANTS.TIKTOK_ENGAGEMENT.STREAK_BURST_METEOR_COUNT
+      : GAME_CONSTANTS.TIKTOK_ENGAGEMENT.DEFAULT_METEOR_COUNT;
     const newMeteors: MeteorEntity[] = [];
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
+    for (let i = 0; i < meteorCount; i++) {
+      const angle = (i / meteorCount) * Math.PI * 2;
       const startX = Math.cos(angle) * (3.5 + Math.random() * 2);
       const startZ = Math.sin(angle) * (3.5 + Math.random() * 2);
       newMeteors.push({
-        id: `meteor-${Date.now()}-${i}`,
+        id: `meteor-${Date.now()}-${resolvedStreak}-${i}`,
         start: [startX, 10 + Math.random() * 3, startZ],
         target: [(Math.random() - 0.5) * 1.5, 0.4, (Math.random() - 0.5) * 1.5],
         color: burstColor,
-        createdAt: Date.now() + i * 90, // staggered impact
+        createdAt: Date.now() + i * 90,
         duration: 0.65,
       });
     }
 
-    get().healTeamChampions(team, 50);
-    const giftDamage = coins * 120;
+    get().healTeamChampions(team, GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_HEAL_AMOUNT);
+    const giftDamage = coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN;
     get().damageBoss(giftDamage, team, `${donorName} (${giftName})`, 'ULTIMATE');
     get().triggerScreenFlash(giftTeamTheme.secondaryHex);
-    get().triggerScreenShake(1.3);
+    get().triggerScreenShake(isRapidStreakTick ? 0.65 : 1.3);
 
-    // Supercharge Fury for all Pro Players on the gifted team!
     const giftTeamRoster = activeGiftTeam?.roster ?? [];
     giftTeamRoster.forEach((pro) => {
       get().addPlayerFury(pro.id, GAME_CONSTANTS.PRO_FURY.FURY_GAIN_GIFT_BOOST);
     });
 
-    // Option D: Donating gifts breaks through champion limits and summons an Elite Champion for the donor
-    const signaturePool = giftTeamRoster.map((p) => p.signatureChampion).filter(Boolean);
-    const pool = signaturePool.length > 0 ? signaturePool : ['Ahri', 'Yone', 'Aatrox', 'Jinx', 'Lee Sin'];
-    const eliteChamp = pool[Math.floor(Math.random() * pool.length)];
-    get().summonMinion(`👑 ${donorName}`, eliteChamp, team, true);
+    if (resolvedStreak === 1 || resolvedStreak % 3 === 0 || coins >= 10) {
+      const signaturePool = giftTeamRoster.map((p) => p.signatureChampion).filter(Boolean);
+      const pool = signaturePool.length > 0 ? signaturePool : ['Ahri', 'Yone', 'Aatrox', 'Jinx', 'Lee Sin'];
+      const eliteChamp = pool[Math.floor(Math.random() * pool.length)];
+      get().summonMinion(`👑 ${donorName}`, eliteChamp, team, true);
+    }
 
     const safeGiftDamage = Number.isFinite(giftDamage) ? giftDamage : 0;
     const giftTeamTag = activeGiftTeam?.shortTag || team;
-    get().addLog('GIFT', `💎 ${donorName} tặng [${giftName}] (${coins} xu) phe ${giftTeamTag} gây ${safeGiftDamage.toLocaleString()} ST!`, team);
-    get().addChatMessage(donorName, `Đã tặng ${giftName} (+${safeGiftDamage.toLocaleString()} DMG)!`, team);
+    const streakLabel = resolvedStreak > 1 ? ` x${resolvedStreak}` : '';
+    get().addLog(
+      'GIFT',
+      `💎 ${donorName} tặng [${giftName}${streakLabel}] (+${coins} xu) phe ${giftTeamTag} gây +${safeGiftDamage.toLocaleString()} ST!`,
+      team
+    );
+    if (!isRapidStreakTick || isComboFinal) {
+      get().addChatMessage(
+        donorName,
+        `Đã tặng ${giftName}${streakLabel} (+${safeGiftDamage.toLocaleString()} DMG)!`,
+        team
+      );
+    }
 
 
     set((prev) => ({
@@ -1987,6 +2022,79 @@ export const useGameStore = create<GameState>((set, get) => ({
       activeMeteors: [...prev.activeMeteors.slice(-12), ...newMeteors],
       activeGiftBanner: newBanner,
     }));
+  },
+
+  triggerFollowReward: (
+    userName: string,
+    team: TeamType,
+    championName: string,
+    furyGain = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.FOLLOW_FURY_GAIN
+  ) => {
+    const state = get();
+    const activeTeamProfile = state.activeTeams[team];
+    const teamTag = activeTeamProfile?.shortTag || team;
+    const roster = activeTeamProfile?.roster ?? [];
+
+    roster.forEach((pro) => {
+      get().addPlayerFury(pro.id, furyGain);
+    });
+
+    if (
+      state.bossStatus !== BOSS_STATUS.DEFEATED &&
+      state.bossHp > 0 &&
+      !state.isRoundIntermission &&
+      state.roundWinner === null
+    ) {
+      get().summonMinion(`💖 ${userName}`, championName, team, true);
+    }
+
+    audioService.playHeartChime();
+    get().addLog(
+      'SYSTEM',
+      `💖 ${userName} vừa Follow! Triệu hồi ${championName} & +${furyGain}% Nộ phe ${teamTag}!`,
+      team
+    );
+    get().addChatMessage(
+      userName,
+      `💖 Vừa Follow kênh! Gọi ${championName} & +${furyGain}% Nộ ${teamTag}!`,
+      team,
+      championName
+    );
+  },
+
+  triggerShareReward: (
+    userName: string,
+    team: TeamType,
+    damageAmount = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.SHARE_BURST_DAMAGE,
+    healAmount = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.SHARE_HEAL_AMOUNT
+  ) => {
+    const state = get();
+    const activeTeamProfile = state.activeTeams[team];
+    const teamTag = activeTeamProfile?.shortTag || team;
+    const theme = getTeamTheme(activeTeamProfile?.colorTheme);
+
+    if (
+      state.bossStatus !== BOSS_STATUS.DEFEATED &&
+      state.bossHp > 0 &&
+      !state.isRoundIntermission &&
+      state.roundWinner === null
+    ) {
+      get().healTeamChampions(team, healAmount);
+      get().damageBoss(damageAmount, team, `${userName} (Share Live)`, DAMAGE_TYPE.CRIT);
+      get().spawnParticleBurst([0, 0.4, 0.5], theme.primaryHex, 1.5);
+    }
+
+    audioService.playHeartChime();
+    get().addLog(
+      'SYSTEM',
+      `🚀 ${userName} Chia sẻ Live! +${damageAmount} ST & hồi +${healAmount} HP phe ${teamTag}!`,
+      team
+    );
+    get().addChatMessage(
+      userName,
+      `🚀 Đã Chia sẻ Live! +${damageAmount} ST & +${healAmount} HP (${teamTag})!`,
+      team
+    );
   },
 
   dismissGiftBanner: () => {

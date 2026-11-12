@@ -85,8 +85,11 @@ export class TikTokLivePipeline {
   }
 
   private shouldSendAffinityReminder(viewerKey: string, now: number): boolean {
-    const lastSent = this.reminderTimestamps.get(viewerKey) ?? 0;
-    if (now - lastSent < TIKTOK_PIPELINE_CONSTANTS.AFFINITY_REMINDER_COOLDOWN_MS) {
+    const lastSent = this.reminderTimestamps.get(viewerKey);
+    if (
+      lastSent !== undefined &&
+      now - lastSent < TIKTOK_PIPELINE_CONSTANTS.AFFINITY_REMINDER_COOLDOWN_MS
+    ) {
       return false;
     }
     trimOldestEntries(this.reminderTimestamps, TIKTOK_PIPELINE_CONSTANTS.MAX_TRACKED_VIEWERS);
@@ -405,9 +408,9 @@ export class TikTokLivePipeline {
     const now = this.now();
     const displayName = input.nickname || input.uniqueId || 'Sharer';
     const viewerKey = this.buildViewerKey(input.uniqueId, input.nickname);
-    const lastShareAt = this.shareTimestamps.get(viewerKey) ?? 0;
+    const lastShareAt = this.shareTimestamps.get(viewerKey);
 
-    if (now - lastShareAt < TIKTOK_PIPELINE_CONSTANTS.SHARE_COOLDOWN_MS) {
+    if (lastShareAt !== undefined && now - lastShareAt < TIKTOK_PIPELINE_CONSTANTS.SHARE_COOLDOWN_MS) {
       this.blockedAntiSpamCount += 1;
       return { accepted: false, reason: 'SHARE_COOLDOWN' };
     }

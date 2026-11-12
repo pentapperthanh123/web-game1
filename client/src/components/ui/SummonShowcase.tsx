@@ -49,51 +49,46 @@ const SummonSpotlightCard = ({
   const isRight = side === 'right';
   const isSignature = Boolean(portal.isSignatureSynergy && portal.signaturePlayerName);
   const cardBorderClass = isSignature ? 'border-amber-400/90 ring-1 ring-amber-400/40' : theme.borderClass;
+  const cardShadowStyle = isSignature ? '0 0 12px rgba(251,191,36,0.45)' : theme.glowStyle;
+  const nameColorClass = isSignature ? 'text-amber-300' : theme.textClass;
 
   return (
     <div
       key={portal.id}
-      style={{ boxShadow: isSignature ? '0 0 18px rgba(251,191,36,0.55)' : theme.glowStyle }}
-      className={`flex items-center space-x-1.5 px-2 py-1 rounded-2xl border backdrop-blur-md animate-summon-entrance max-w-[152px] sm:max-w-[190px] bg-slate-950/85 ${cardBorderClass} ${
-        isRight ? 'flex-row-reverse space-x-reverse text-right' : ''
+      style={{ boxShadow: cardShadowStyle }}
+      className={`flex items-center gap-1.5 px-2 py-1 rounded-xl border backdrop-blur-md animate-summon-entrance max-w-[128px] sm:max-w-[145px] bg-slate-950/90 ${cardBorderClass} ${
+        isRight ? 'flex-row-reverse text-right' : ''
       }`}
     >
       {/* Spinning Magic Summon Ring + Champion Avatar */}
-      <div className="relative w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
+      <div className="relative w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center shrink-0">
         <div
-          className={`absolute inset-0 rounded-full border-2 border-dashed animate-spin-slow ${theme.summonPortalBorderClass}`}
+          className={`absolute inset-0 rounded-full border border-dashed animate-spin-slow ${theme.summonPortalBorderClass}`}
         />
         <ChampionPortrait
           avatarUrl={portal.avatarUrl}
           championName={portal.championName}
-          sizeClass="w-7 h-7 sm:w-9 sm:h-9 relative z-10 border border-white/60"
+          sizeClass="w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 relative z-10 border border-white/60"
         />
       </div>
 
       <div className="min-w-0 flex-1 leading-tight">
-        <div className={`flex items-center space-x-1 ${isRight ? 'justify-end' : ''}`}>
-          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${theme.bgBadgeClass}`}>
+        <div className={`flex items-center gap-1 ${isRight ? 'justify-end' : ''}`}>
+          <span className={`text-[7px] sm:text-[7.5px] font-black px-1 py-0.5 rounded ${theme.bgBadgeClass} leading-none tracking-wider`}>
             {t('Combat.summonTag', 'TRIỆU HỒI')}
           </span>
           {portal.isCrit && (
-            <Zap className="w-3 h-3 text-rose-400 fill-current animate-bounce shrink-0" />
+            <Zap className="w-2.5 h-2.5 text-rose-400 fill-current animate-bounce shrink-0" />
+          )}
+          {isSignature && (
+            <Crown className="w-2.5 h-2.5 text-amber-300 fill-current shrink-0" />
           )}
         </div>
-        <p className={`text-[11px] sm:text-xs font-black truncate mt-0.5 ${isSignature ? 'text-amber-300' : theme.textClass}`}>
+        <p className={`text-[10px] sm:text-[11px] font-black truncate mt-0.5 ${nameColorClass}`}>
           {portal.championName}
         </p>
-        {isSignature && (
-          <p className="text-[8px] font-black text-amber-300 flex items-center space-x-0.5 truncate">
-            <Crown className="w-2.5 h-2.5 shrink-0 fill-current" />
-            <span className="truncate">
-              {t('Combat.signatureTag', 'TƯỚNG TỦ · {{player}} (+25%)', {
-                player: portal.signaturePlayerName,
-              })}
-            </span>
-          </p>
-        )}
-        <p className="text-[9px] text-slate-300 truncate font-semibold flex items-center space-x-0.5">
-          <span>💬</span>
+        <p className="text-[7.5px] sm:text-[8px] text-slate-300/80 truncate font-semibold flex items-center gap-0.5">
+          <span className="opacity-70 text-[7px]">💬</span>
           <span className="truncate">@{portal.summonerName.replace(/^@+/, '')}</span>
         </p>
       </div>
@@ -128,12 +123,12 @@ export const SummonShowcase = () => {
   return (
     <>
       {/* Left Wing: Dynamic Left Team Summon Spotlight */}
-      <div className="absolute top-[206px] sm:top-[216px] left-1.5 sm:left-3 z-[25] pointer-events-none flex flex-col space-y-2">
+      <div className="absolute top-[186px] sm:top-[196px] left-1.5 sm:left-2.5 z-[25] pointer-events-none flex flex-col space-y-1.5">
         {latestLeftPortal && <SummonSpotlightCard portal={latestLeftPortal} side="left" />}
       </div>
 
       {/* Right Wing: Dynamic Right Team Summon Spotlight */}
-      <div className="absolute top-[206px] sm:top-[216px] right-1.5 sm:right-3 z-[25] pointer-events-none flex flex-col items-end space-y-2">
+      <div className="absolute top-[186px] sm:top-[196px] right-1.5 sm:right-2.5 z-[25] pointer-events-none flex flex-col items-end space-y-1.5">
         {latestRightPortal && <SummonSpotlightCard portal={latestRightPortal} side="right" />}
       </div>
     </>

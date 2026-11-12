@@ -263,24 +263,24 @@
 @keyframes summonEntrance {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.82);
+    transform: translateY(6px) scale(0.92);
   }
-  18% {
+  15% {
     opacity: 1;
-    transform: translateY(0px) scale(1.04);
+    transform: translateY(0px) scale(1);
   }
-  82% {
+  85% {
     opacity: 1;
     transform: translateY(0px) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-6px) scale(0.95);
+    transform: translateY(-4px) scale(0.96);
   }
 }
 
 .animate-summon-entrance {
-  animation: summonEntrance 2.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: summonEntrance 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes spinSlow {

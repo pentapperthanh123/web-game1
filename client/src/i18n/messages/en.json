@@ -77,7 +77,8 @@
   "Gift": {
     "sentLabel": "SENT GIFT",
     "patronTag": "VIP {{team}}",
-    "ultimateBonus": "ULTIMATE DMG & METEOR SHOWER!"
+    "ultimateBonus": "ULTIMATE DMG & METEOR SHOWER!",
+    "comboStreak": "COMBO x{{count}}"
   },
   "Controls": {
     "title": "TikTok Live Simulator Panel",
