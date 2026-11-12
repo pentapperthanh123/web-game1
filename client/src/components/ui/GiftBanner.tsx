@@ -64,7 +64,7 @@ export const GiftBanner = () => {
                 {activeGiftBanner.giftName}
               </span>
               {streakCount > 1 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-[9px] shrink-0 animate-bounce">
+                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-slate-950 font-black text-[9px] shrink-0 animate-combo-punch shadow-[0_0_12px_rgba(245,158,11,0.8)] border border-amber-300">
                   {t('Gift.comboStreak', 'COMBO x{{count}}', { count: streakCount })}
                 </span>
               )}

@@ -2410,7 +2410,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           screenY: posY,
           killerName: bossName,
           createdAt: now,
-          durationMs: 450,
+          durationMs: COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.DEFEAT_DURATION_MS,
         });
 
         // Clean sound feedback, no heavy particle burst spam to limit effects

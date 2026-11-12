@@ -113,6 +113,10 @@ const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.05, 0.18, 1.6, 16, 1,
 const SHARED_LANDING_RING_GEO = new THREE.RingGeometry(0.09, 0.24, 24);
 const SHARED_SHIELD_RING_GEO = new THREE.RingGeometry(0.19, 0.25, 24);
 
+// Champion Defeat / Slain Shockwave & Execution Slash Geometries
+const SHARED_DEFEAT_EXPANDING_RING_GEO = new THREE.RingGeometry(0.12, 0.32, 28);
+const SHARED_DEFEAT_CROSS_GEO = new THREE.PlaneGeometry(0.32, 0.04);
+
 // Commenter Summoner Nameplate Geometry
 const SHARED_NAMEPLATE_GEO = new THREE.PlaneGeometry(
   COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.NAMEPLATE_WIDTH,
@@ -536,6 +540,9 @@ interface DefeatedChampionTokenProps {
 
 const DefeatedChampionToken = ({ entity }: DefeatedChampionTokenProps) => {
   const groupRef = useRef<THREE.Group>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const crossSlash1Ref = useRef<THREE.Mesh>(null);
+  const crossSlash2Ref = useRef<THREE.Mesh>(null);
   const texture = useMemo(() => getChampionTexture(entity.avatarUrl), [entity.avatarUrl]);
 
   useFrame((state) => {
@@ -544,31 +551,97 @@ const DefeatedChampionToken = ({ entity }: DefeatedChampionTokenProps) => {
     const ageMs = now - entity.createdAt;
     const prog = Math.min(1.0, Math.max(0.0, ageMs / entity.durationMs));
 
-    // Fast, subtle linear fade on the spot with minimal drift
-    const riseY = entity.position[1] + prog * 0.18;
+    // Soul ascendance drifting upward
+    const riseY = entity.position[1] + prog * 0.32;
     const fade = Math.max(0, 1.0 - prog);
 
     groupRef.current.position.set(entity.position[0], riseY, entity.position[2]);
-    groupRef.current.scale.setScalar(COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE);
+    groupRef.current.scale.setScalar(
+      COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE * (1.0 + prog * 0.12)
+    );
     groupRef.current.quaternion.copy(state.camera.quaternion);
 
+    // 1. Portrait turns crimson-grey and dissolves
     const ghostMesh = groupRef.current.children[0] as THREE.Mesh | undefined;
-    if (ghostMesh) {
-      (ghostMesh.material as THREE.MeshBasicMaterial).opacity = fade * 0.65;
+    if (ghostMesh && ghostMesh.material instanceof THREE.MeshBasicMaterial) {
+      ghostMesh.material.opacity = fade * 0.85;
+      const redVal = 0.65 + (1 - prog) * 0.35;
+      ghostMesh.material.color.setRGB(redVal, 0.2 * fade, 0.2 * fade);
+    }
+
+    // 2. Defeat Shockwave ring expands on ground/air
+    if (ringRef.current && ringRef.current.material instanceof THREE.MeshBasicMaterial) {
+      const ringScale = 0.6 + prog * 1.6;
+      ringRef.current.scale.setScalar(ringScale);
+      ringRef.current.material.opacity = Math.max(0, (1.0 - prog) * 0.85);
+      ringRef.current.rotation.z = prog * 2.2;
+    }
+
+    // 3. Execution red slash flash fades out fast
+    const slashFade = Math.max(0, 1.0 - prog * 1.5);
+    if (crossSlash1Ref.current && crossSlash1Ref.current.material instanceof THREE.MeshBasicMaterial) {
+      crossSlash1Ref.current.material.opacity = slashFade * 0.9;
+    }
+    if (crossSlash2Ref.current && crossSlash2Ref.current.material instanceof THREE.MeshBasicMaterial) {
+      crossSlash2Ref.current.material.opacity = slashFade * 0.9;
     }
   });
 
   return (
     <group ref={groupRef} position={entity.position}>
-      {/* Clean & Lightweight Defeat Dissolve (No heavy particles, shockwave rings or soul orbs) */}
+      {/* 1. Dissolving Ghost Portrait */}
       <mesh geometry={SHARED_PORTRAIT_GEO}>
         <meshBasicMaterial
           map={texture}
-          color="#94a3b8"
+          color="#ef4444"
           transparent
-          opacity={0.65}
+          opacity={0.85}
           side={THREE.DoubleSide}
           toneMapped={false}
+        />
+      </mesh>
+
+      {/* 2. Expanding Crimson Defeat Shockwave */}
+      <mesh ref={ringRef} position={[0, 0, -0.015]} geometry={SHARED_DEFEAT_EXPANDING_RING_GEO}>
+        <meshBasicMaterial
+          color="#ef4444"
+          transparent
+          opacity={0.85}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* 3. Execution Red Cross Marks */}
+      <mesh
+        ref={crossSlash1Ref}
+        position={[0, 0, 0.02]}
+        rotation={[0, 0, Math.PI / 4]}
+        geometry={SHARED_DEFEAT_CROSS_GEO}
+      >
+        <meshBasicMaterial
+          color="#f43f5e"
+          transparent
+          opacity={0.9}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh
+        ref={crossSlash2Ref}
+        position={[0, 0, 0.02]}
+        rotation={[0, 0, -Math.PI / 4]}
+        geometry={SHARED_DEFEAT_CROSS_GEO}
+      >
+        <meshBasicMaterial
+          color="#f43f5e"
+          transparent
+          opacity={0.9}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
         />
       </mesh>
     </group>

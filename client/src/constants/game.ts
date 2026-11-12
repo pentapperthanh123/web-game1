@@ -304,7 +304,7 @@ export const BOSS_ANIMATION_CONSTANTS = {
 } as const;
 
 export const BOSS_DEFEAT_CONSTANTS = {
-  VICTORY_DELAY_MS: 2200,
+  VICTORY_DELAY_MS: 2800,
   SHATTER_ANIMATION_MS: 1350,
   CRACK_PHASE_END_RATIO: 0.22,
   EXPLOSION_END_RATIO: 0.65,
@@ -482,6 +482,7 @@ export const COMBAT_VFX_CONSTANTS = {
     ENTRANCE_DURATION_MS: 750,
     ENTRANCE_SWOOP_Y: 0.32,
     ENTRANCE_SWOOP_X: 0.0,
+    DEFEAT_DURATION_MS: 700,
     VIEWPORT_SAFE_NDC_X: 0.86,
     VIEWPORT_SAFE_NDC_Y_MIN: -0.80,
     VIEWPORT_SAFE_NDC_Y_MAX: 0.65,
@@ -558,6 +559,33 @@ export const CKTG_VFX_CONFIG = {
       glow: '0 0 20px #ffe259, 0 0 40px #ffa751',
       tagBadgeClass: 'bg-amber-950/90 border border-amber-400 text-amber-200',
     },
+  },
+} as const;
+
+export const COMBO_TIER_CONFIG = {
+  NORMAL: {
+    min: 2,
+    max: 9,
+    tagKey: 'Combat.comboNormal',
+    tagFallback: 'COMBO',
+  },
+  GREAT: {
+    min: 10,
+    max: 24,
+    tagKey: 'Combat.comboGreat',
+    tagFallback: 'GREAT COMBO!',
+  },
+  SUPER: {
+    min: 25,
+    max: 49,
+    tagKey: 'Combat.comboSuper',
+    tagFallback: 'SUPER COMBO!!',
+  },
+  HYPER: {
+    min: 50,
+    max: Infinity,
+    tagKey: 'Combat.comboHyper',
+    tagFallback: 'HYPER COMBO 👑',
   },
 } as const;
 
