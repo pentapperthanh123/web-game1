@@ -5,6 +5,7 @@ import {
   AutoSummonConfig,
   GameState,
   LiveChatMessage,
+  ParticipationRuleConfig,
 } from '../../types/game';
 import {
   BOSS_DIFFICULTY_SCALE,
@@ -32,6 +33,8 @@ export type UiAdminSlice = Pick<
   | 'setAutoProBattleConfig'
   | 'setAutoSummonConfig'
   | 'setChampionDamageMultiplier'
+  | 'setUseUserAvatar'
+  | 'setParticipationRuleConfig'
   | 'addLog'
   | 'addChatMessage'
   | 'toggleSimulation'
@@ -71,6 +74,19 @@ export const createUiAdminSlice: StateCreator<GameState, [], [], UiAdminSlice> =
       Math.min(100, Math.round(parsed * 100) / 100)
     );
     set({ championDamageMultiplier: clamped });
+  },
+
+  setUseUserAvatar: (enabled: boolean) => {
+    set({ useUserAvatar: enabled });
+  },
+
+  setParticipationRuleConfig: (patch: Partial<ParticipationRuleConfig>) => {
+    set((state) => ({
+      participationRuleConfig: {
+        ...state.participationRuleConfig,
+        ...patch,
+      },
+    }));
   },
 
   setAutoProBattleConfig: (config: Partial<AutoProBattleConfig>) => {

@@ -14,13 +14,6 @@ interface TeamRosterBarProps {
   isInFlow?: boolean;
 }
 
-const DESKTOP_EXPAND_MIN_WIDTH = 768;
-
-const isCompactViewport = (): boolean => {
-  if (typeof window === 'undefined') return true;
-  return window.innerWidth < DESKTOP_EXPAND_MIN_WIDTH;
-};
-
 const getAvatarBorderClass = (
   isFullFury: boolean,
   isAttacking: boolean,
@@ -67,7 +60,7 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
     bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isLeft = side === 'left';
 
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(isCompactViewport);
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
   const getSummonCount = (player: RosterPlayer) => {
     const playerNameLower = player.name.toLowerCase();
@@ -138,7 +131,7 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
           : `absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
               isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
             } transition-[top] duration-200`
-      } flex flex-col space-y-0.5 pointer-events-auto z-[36] select-none w-[74px] sm:w-[84px]`}
+      } flex flex-col space-y-0.5 pointer-events-auto z-[36] select-none w-[70px] sm:w-[84px]`}
     >
       {/* Symmetrical Compact Header Pill */}
       <button

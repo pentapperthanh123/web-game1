@@ -1,22 +1,56 @@
 import React, { useEffect, useRef } from 'react';
 import { SUMMON_PERF_CONSTANTS } from '../../constants/game';
 import { SWARM_LEGION_CONSTANTS, swarmLegionPool } from '../../services/swarmLegionPool';
+import { useGameStore } from '../../store/gameStore';
 
 const CANVAS_PERF = {
-  MAX_DPR: 1.25,
-  SPRITE_RESOLUTION: 36,
-  BOB_SPEED: 0.004,
-  BOB_AMPLITUDE_PX: 7,
+  MAX_DPR: 1,
+  TARGET_FRAME_INTERVAL_MS: 33,
+  SPRITE_RESOLUTION: 28,
+  RING_PADDING_PX: 2,
+  MAX_BOLTS_PER_FRAME: 16,
+  BOB_SPEED: 0.0038,
+  BOB_AMPLITUDE_PX: 5,
   FALLBACK_CENTER_Y_RATIO: 0.44,
   TWO_PI: Math.PI * 2,
 } as const;
 
 const AVATAR_SPRITE_CACHE = new Map<string, HTMLCanvasElement>();
 const AVATAR_LOADING_SET = new Set<string>();
+const TEAM_RING_SPRITE_CACHE = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Pre-bakes a circular team-colored ring sprite once per team color
+ * so zero ctx.arc()/ctx.fill() path calls happen during the frame loop.
+ */
+const getTeamRingSprite = (colorHex: string): HTMLCanvasElement => {
+  const cached = TEAM_RING_SPRITE_CACHE.get(colorHex);
+  if (cached) return cached;
+
+  const totalSize = SWARM_LEGION_CONSTANTS.AVATAR_SIZE_PX + CANVAS_PERF.RING_PADDING_PX * 2;
+  const offscreen = document.createElement('canvas');
+  offscreen.width = totalSize;
+  offscreen.height = totalSize;
+  const offCtx = offscreen.getContext('2d');
+  if (offCtx) {
+    const half = totalSize / 2;
+    offCtx.fillStyle = colorHex;
+    offCtx.beginPath();
+    offCtx.arc(half, half, half, 0, CANVAS_PERF.TWO_PI);
+    offCtx.fill();
+
+    offCtx.fillStyle = '#0f172a';
+    offCtx.beginPath();
+    offCtx.arc(half, half, half - CANVAS_PERF.RING_PADDING_PX, 0, CANVAS_PERF.TWO_PI);
+    offCtx.fill();
+  }
+  TEAM_RING_SPRITE_CACHE.set(colorHex, offscreen);
+  return offscreen;
+};
 
 /**
  * Loads a champion portrait once and pre-bakes a circular offscreen canvas
- * so 2,000 swarm units can be drawn at 60 FPS without per-unit ctx.clip().
+ * so hundreds/thousands of swarm units draw via fast integer ctx.drawImage().
  */
 const getCircularAvatarSprite = (avatarUrl: string): HTMLCanvasElement | null => {
   if (!avatarUrl) return null;
@@ -37,7 +71,7 @@ const getCircularAvatarSprite = (avatarUrl: string): HTMLCanvasElement | null =>
       if (offCtx) {
         const radius = size / 2;
         offCtx.beginPath();
-        offCtx.arc(radius, radius, radius - 1, 0, CANVAS_PERF.TWO_PI);
+        offCtx.arc(radius, radius, radius - 0.5, 0, CANVAS_PERF.TWO_PI);
         offCtx.closePath();
         offCtx.clip();
         offCtx.drawImage(img, 0, 0, size, size);
@@ -55,8 +89,8 @@ const getCircularAvatarSprite = (avatarUrl: string): HTMLCanvasElement | null =>
 };
 
 /**
- * High-performance 2D overlay canvas rendering 200-2,000+ summoned swarm champions
- * orbiting around the Boss with zero React state updates or WebGL mesh churn.
+ * High-performance 30fps 2D overlay canvas rendering summoned swarm champions
+ * orbiting around the Boss with pre-baked sprites and capped laser bolts.
  */
 export const SwarmLegionCanvas: React.FC = React.memo(() => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -113,7 +147,13 @@ export const SwarmLegionCanvas: React.FC = React.memo(() => {
     let lastFrameTime = performance.now();
 
     const renderFrame = (frameNow: number) => {
-      const dtSeconds = Math.min(0.05, Math.max(0.001, (frameNow - lastFrameTime) / 1000));
+      const elapsedSinceLastDraw = frameNow - lastFrameTime;
+      if (elapsedSinceLastDraw < CANVAS_PERF.TARGET_FRAME_INTERVAL_MS) {
+        rafId = requestAnimationFrame(renderFrame);
+        return;
+      }
+
+      const dtSeconds = Math.min(0.08, Math.max(0.001, elapsedSinceLastDraw / 1000));
       lastFrameTime = frameNow;
       const now = Date.now();
 
@@ -121,9 +161,15 @@ export const SwarmLegionCanvas: React.FC = React.memo(() => {
       resolveBossCenter(now);
 
       const units = swarmLegionPool.getUnits();
+      const useUserAvatar = useGameStore.getState().useUserAvatar;
       const baseDimension = Math.min(width, height);
-      const baseSize = SWARM_LEGION_CONSTANTS.AVATAR_SIZE_PX;
+      const avatarSize = SWARM_LEGION_CONSTANTS.AVATAR_SIZE_PX;
+      const ringSize = avatarSize + CANVAS_PERF.RING_PADDING_PX * 2;
+      const halfRing = ringSize / 2;
+      const halfAvatar = avatarSize / 2;
       let activeCount = 0;
+      let boltsDrawn = 0;
+      let currentAlpha = 1;
 
       for (let i = 0; i < units.length; i += 1) {
         const unit = units[i];
@@ -148,53 +194,66 @@ export const SwarmLegionCanvas: React.FC = React.memo(() => {
           }
         }
 
+        if (Math.abs(alpha - currentAlpha) > 0.04) {
+          currentAlpha = alpha >= 0.99 ? 1 : alpha;
+          ctx.globalAlpha = currentAlpha;
+        }
+
         const orbitPx = unit.orbitRadiusRatio * baseDimension;
         const bobOffset =
           Math.sin(now * CANVAS_PERF.BOB_SPEED + unit.bobPhase) * CANVAS_PERF.BOB_AMPLITUDE_PX;
         const x = cachedBossX + Math.cos(unit.angle) * orbitPx * 1.18;
         const y = cachedBossY + Math.sin(unit.angle) * orbitPx * unit.verticalStretch + bobOffset;
 
-        const drawSize = baseSize * unit.scale;
-        const halfSize = drawSize / 2;
+        // Capped lightweight energy bolt streaks toward Boss
+        if (boltsDrawn < CANVAS_PERF.MAX_BOLTS_PER_FRAME) {
+          const boltPhase = (now + unit.firePhase) % SWARM_LEGION_CONSTANTS.BOLT_INTERVAL_MS;
+          if (boltPhase < SWARM_LEGION_CONSTANTS.BOLT_ACTIVE_WINDOW_MS) {
+            boltsDrawn += 1;
+            const progress = boltPhase / SWARM_LEGION_CONSTANTS.BOLT_ACTIVE_WINDOW_MS;
+            const bx = x + (cachedBossX - x) * progress;
+            const by = y + (cachedBossY - y) * progress;
+            const tailProgress = Math.max(0, progress - 0.25);
+            const tx = x + (cachedBossX - x) * tailProgress;
+            const ty = y + (cachedBossY - y) * tailProgress;
 
-        ctx.globalAlpha = alpha;
+            ctx.strokeStyle = unit.colorHex;
+            ctx.lineWidth = 1.4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(bx, by);
+            ctx.stroke();
 
-        // Periodic lightweight energy bolt streak toward Boss
-        const boltPhase = (now + unit.firePhase) % SWARM_LEGION_CONSTANTS.BOLT_INTERVAL_MS;
-        if (boltPhase < SWARM_LEGION_CONSTANTS.BOLT_ACTIVE_WINDOW_MS) {
-          const progress = boltPhase / SWARM_LEGION_CONSTANTS.BOLT_ACTIVE_WINDOW_MS;
-          const bx = x + (cachedBossX - x) * progress;
-          const by = y + (cachedBossY - y) * progress;
-          const tailProgress = Math.max(0, progress - 0.25);
-          const tx = x + (cachedBossX - x) * tailProgress;
-          const ty = y + (cachedBossY - y) * tailProgress;
-
-          ctx.strokeStyle = unit.colorHex;
-          ctx.lineWidth = 1.6;
-          ctx.beginPath();
-          ctx.moveTo(tx, ty);
-          ctx.lineTo(bx, by);
-          ctx.stroke();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(bx, by, 1.4, 0, CANVAS_PERF.TWO_PI);
+            ctx.fill();
+          }
         }
 
-        // Team-colored outer ring
-        ctx.fillStyle = unit.colorHex;
-        ctx.beginPath();
-        ctx.arc(x, y, halfSize + SWARM_LEGION_CONSTANTS.RING_WIDTH_PX, 0, CANVAS_PERF.TWO_PI);
-        ctx.fill();
+        const ringSprite = getTeamRingSprite(unit.colorHex);
+        ctx.drawImage(ringSprite, (x - halfRing) | 0, (y - halfRing) | 0, ringSize, ringSize);
 
-        const sprite = getCircularAvatarSprite(unit.avatarUrl);
-        if (sprite) {
-          ctx.drawImage(sprite, x - halfSize, y - halfSize, drawSize, drawSize);
-        } else {
-          ctx.fillStyle = '#0f172a';
-          ctx.beginPath();
-          ctx.arc(x, y, halfSize, 0, CANVAS_PERF.TWO_PI);
-          ctx.fill();
+        const targetAvatarUrl =
+          useUserAvatar && unit.userAvatarUrl ? unit.userAvatarUrl : unit.avatarUrl;
+        const avatarSprite =
+          getCircularAvatarSprite(targetAvatarUrl) ||
+          (targetAvatarUrl !== unit.avatarUrl ? getCircularAvatarSprite(unit.avatarUrl) : null);
+        if (avatarSprite) {
+          ctx.drawImage(
+            avatarSprite,
+            (x - halfAvatar) | 0,
+            (y - halfAvatar) | 0,
+            avatarSize,
+            avatarSize
+          );
         }
       }
 
-      ctx.globalAlpha = 1;
+      if (currentAlpha !== 1) {
+        ctx.globalAlpha = 1;
+      }
 
       if (activeCount > 0) {
         rafId = requestAnimationFrame(renderFrame);

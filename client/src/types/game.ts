@@ -27,6 +27,7 @@ export interface MinionEntity {
   summonerName: string;
   championName: string;
   avatarUrl: string;
+  userAvatarUrl?: string;
   team: TeamType;
   spawnPosition: [number, number, number];
   orbitRadius: number;
@@ -66,6 +67,7 @@ export interface ProDamageRecord {
   role: RosterPlayer['role'];
   championName: string;
   avatarUrl: string;
+  userAvatarUrl?: string;
   team: TeamType;
   totalDamage: number;
 }
@@ -160,6 +162,7 @@ export interface SummonPortalEntity {
   summonerName: string;
   championName: string;
   avatarUrl: string;
+  userAvatarUrl?: string;
   team: TeamType;
   position: [number, number, number];
   color: string;
@@ -272,6 +275,13 @@ export interface AutoSummonConfig {
   batchSize: number;
   alternateTeams: boolean;
   randomChampions: boolean;
+}
+
+export interface ParticipationRuleConfig {
+  allowTeamOnlySummon: boolean;
+  autoMatchSignatureTeam: boolean;
+  lockTeamAfterJoin: boolean;
+  allowChampionEvolution: boolean;
 }
 
 export type BossWeakPointSpot = 'left-horn' | 'core-chest' | 'right-claw';
@@ -395,6 +405,8 @@ export interface GameState {
   autoProBattleConfig: AutoProBattleConfig;
   autoSummonConfig: AutoSummonConfig;
   championDamageMultiplier: number;
+  useUserAvatar: boolean;
+  participationRuleConfig: ParticipationRuleConfig;
   rosterAttackTimestamps: Record<string, number>;
   rosterPlayerFury: Record<string, number>;
   lastFuryUltimatePlayerId: string | null;
@@ -430,6 +442,8 @@ export interface GameState {
 
   // Actions
   setChampionDamageMultiplier: (multiplier: number) => void;
+  setUseUserAvatar: (enabled: boolean) => void;
+  setParticipationRuleConfig: (patch: Partial<ParticipationRuleConfig>) => void;
   setSeriesFormat: (format: SeriesFormat, resetScore?: boolean) => void;
   applySeriesFormatSnapshot: (config: {
     format: SeriesFormat;
@@ -499,7 +513,9 @@ export interface GameState {
     summonerName: string,
     championName: string,
     team: TeamType,
-    isGiftBypass?: boolean
+    isGiftBypass?: boolean,
+    userAvatarUrl?: string,
+    isExplicitChampion?: boolean
   ) => void;
   summonMinionsBatch: (
     items: Array<{
@@ -507,6 +523,8 @@ export interface GameState {
       championName: string;
       team: TeamType;
       isGiftBypass?: boolean;
+      userAvatarUrl?: string;
+      isExplicitChampion?: boolean;
     }>
   ) => void;
   triggerGiftExplosion: (

@@ -41,6 +41,7 @@ import {
 import { SFX_EVENT } from '../../constants/sfx';
 import { audioService } from '../../services/audioService';
 import { soundManager, playSound } from '../../services/soundManager';
+import { unprojectScreenToWorld } from '../../components/canvas/summon/summonShared';
 import {
   createEmptyTeamHeartMomentum,
   createInitialTeamCombos,
@@ -102,12 +103,53 @@ const getCachedBossRect = (): { left: number; top: number; width: number; height
   if (cachedBossRect && now - cachedBossRectAt < SUMMON_PERF_CONSTANTS.BOSS_RECT_CACHE_MS) {
     return cachedBossRect;
   }
-  const bossEl = document.getElementById('boss-monster-target');
+  const bossEl =
+    document.getElementById('boss-monster-target') ||
+    document.querySelector('[data-boss-hitbox="true"]');
   if (!bossEl) return null;
   const rect = bossEl.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
   cachedBossRect = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
   cachedBossRectAt = now;
   return cachedBossRect;
+};
+
+const resolveRosterAnchorScreenPos = (
+  playerId: string | undefined,
+  team: TeamType,
+  activeRoster: { id: string }[]
+): { x: number; y: number } => {
+  const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
+  const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
+
+  const cardEl =
+    typeof document !== 'undefined' && playerId
+      ? document.getElementById(`roster-card-${playerId}`)
+      : null;
+  const avatarEl =
+    typeof document !== 'undefined' && !cardEl && playerId
+      ? document.getElementById(`roster-avatar-${playerId}`)
+      : null;
+  const collapsedEl =
+    typeof document !== 'undefined' && !cardEl && !avatarEl
+      ? document.getElementById(`roster-collapsed-${team}`)
+      : null;
+  const anchorEl = cardEl || avatarEl || collapsedEl;
+
+  if (anchorEl) {
+    const rect = anchorEl.getBoundingClientRect();
+    return {
+      x: team === TEAM_KEY.BLG ? rect.right + 4 : rect.left - 4,
+      y: rect.top + rect.height / 2,
+    };
+  }
+
+  const playerIndex = playerId ? activeRoster.findIndex((p) => p.id === playerId) : 2;
+  const idx = playerIndex >= 0 ? playerIndex : 2;
+  return {
+    x: team === TEAM_KEY.BLG ? 52 : screenW - 52,
+    y: Math.min(screenH * 0.48, 185 + idx * 42),
+  };
 };
 
 /** Creates the combat damage, fury, projectiles, likes, and screen VFX slice. */
@@ -219,11 +261,23 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const nextFury = isFullFury ? 0 : Math.min(furyCap, prevFury + furyGain);
 
     const proLaneY = 1.65 - (playerIndex % 5) * 0.55;
-    const proStart3D: [number, number, number] = [
-      team === TEAM_KEY.BLG ? -2.9 : 2.9,
-      proLaneY,
-      0.7,
-    ];
+    const activeRoster = state.activeTeams[team]?.roster ?? [];
+    const playerScreenStart = resolveRosterAnchorScreenPos(player.id, team, activeRoster);
+    const bossRect = getCachedBossRect();
+    const proStart3D: [number, number, number] =
+      unprojectScreenToWorld(playerScreenStart.x, playerScreenStart.y, 0.65) ?? [
+        team === TEAM_KEY.BLG ? -2.9 : 2.9,
+        proLaneY,
+        0.7,
+      ];
+    const bossTarget3D: [number, number, number] | undefined = bossRect
+      ? unprojectScreenToWorld(
+          bossRect.left + bossRect.width * 0.5,
+          bossRect.top + bossRect.height * 0.48,
+          COMBAT_VFX_CONSTANTS.BOSS_TARGET[2]
+        ) ?? undefined
+      : undefined;
+
     const activeTeamTheme = getTeamTheme(state.activeTeams[team]?.colorTheme);
     const proBeamColor = isFullFury ? '#fbbf24' : activeTeamTheme.primaryHex;
 
@@ -231,11 +285,11 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       player.signatureChampion,
       team,
       isFullFury,
-      undefined,
+      playerScreenStart,
       undefined,
       player.id
     );
-    get().spawnProjectile(proStart3D, proBeamColor, isFullFury);
+    get().spawnProjectile(proStart3D, proBeamColor, isFullFury, bossTarget3D);
 
     set((prev) => ({
       rosterAttackTimestamps: {
@@ -294,41 +348,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const rosterPlayer =
       (sourcePlayerId ? activeRoster.find((p) => p.id === sourcePlayerId) : undefined) ||
       findRosterPlayerInRoster(resolvedChampion, activeRoster);
-    let startX: number;
-    let startY: number;
-
-    const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
-    const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
-
-    const cardEl =
-      typeof document !== 'undefined' && rosterPlayer
-        ? document.getElementById(`roster-card-${rosterPlayer.id}`)
-        : null;
-    const avatarEl =
-      typeof document !== 'undefined' && !cardEl && rosterPlayer
-        ? document.getElementById(`roster-avatar-${rosterPlayer.id}`)
-        : null;
-    const collapsedEl =
-      typeof document !== 'undefined' && !cardEl && !avatarEl
-        ? document.getElementById(`roster-collapsed-${team}`)
-        : null;
-    const anchorEl = cardEl || avatarEl || collapsedEl;
-
-    if (customStart) {
-      startX = customStart.x;
-      startY = customStart.y;
-    } else if (anchorEl) {
-      const rect = anchorEl.getBoundingClientRect();
-      startX = team === TEAM_KEY.BLG ? rect.right + 4 : rect.left - 4;
-      startY = rect.top + rect.height / 2;
-    } else {
-      const playerIndex = rosterPlayer
-        ? activeRoster.findIndex((p) => p.id === rosterPlayer.id)
-        : 2;
-      const idx = playerIndex >= 0 ? playerIndex : 2;
-      startX = team === TEAM_KEY.BLG ? 52 : screenW - 52;
-      startY = Math.min(screenH * 0.48, 185 + idx * 42);
-    }
+    const fallbackStart = resolveRosterAnchorScreenPos(rosterPlayer?.id, team, activeRoster);
+    const startX = customStart ? customStart.x : fallbackStart.x;
+    const startY = customStart ? customStart.y : fallbackStart.y;
 
     const bossRect = !customTarget ? getCachedBossRect() : null;
 
@@ -342,8 +364,10 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       targetX = bossRect.left + bossRect.width * 0.5 + (Math.random() - 0.5) * 44;
       targetY = bossRect.top + bossRect.height * 0.48 + (Math.random() - 0.5) * 36;
     } else {
-      targetX = screenW * 0.5 + (Math.random() - 0.5) * 50;
-      targetY = screenH * 0.59 + (Math.random() - 0.5) * 40;
+      const fallbackW = typeof window !== 'undefined' ? window.innerWidth : 720;
+      const fallbackH = typeof window !== 'undefined' ? window.innerHeight : 1280;
+      targetX = fallbackW * 0.5 + (Math.random() - 0.5) * 50;
+      targetY = fallbackH * 0.59 + (Math.random() - 0.5) * 40;
     }
 
     const teamTheme = getTeamTheme(currentState.activeTeams[team]?.colorTheme);
@@ -615,10 +639,10 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       startX: from[0],
       startY: from[1],
       startZ: from[2],
-      targetX: baseTargetX + randomInRange(-0.45, 0.45),
-      targetY: baseTargetY + randomInRange(-0.3, 0.4),
-      targetZ: baseTargetZ + randomInRange(-0.2, 0.3),
-      arcHeight: isCrit ? randomInRange(1.2, 1.9) : randomInRange(0.4, 1.15),
+      targetX: baseTargetX + randomInRange(-0.18, 0.18),
+      targetY: baseTargetY + randomInRange(-0.15, 0.18),
+      targetZ: baseTargetZ + randomInRange(-0.1, 0.1),
+      arcHeight: isCrit ? randomInRange(0.35, 0.65) : randomInRange(0.1, 0.28),
       isCrit,
       color,
       glowColor: color,

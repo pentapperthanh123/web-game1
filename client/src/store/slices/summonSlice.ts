@@ -45,6 +45,8 @@ interface PendingSummonRequest {
   championName: string;
   team: TeamType;
   isGiftBypass: boolean;
+  userAvatarUrl?: string;
+  isExplicitChampion?: boolean;
 }
 
 const pendingSummonQueue: PendingSummonRequest[] = [];
@@ -128,6 +130,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
           team: slotTeam,
           colorHex: teamColorCache[slotTeam],
           avatarUrl: getChampionAvatarUrl(item.championName, slotTeam),
+          userAvatarUrl: item.userAvatarUrl,
         });
       }
     }
@@ -144,6 +147,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
           team: slotTeam,
           colorHex: teamColorCache[slotTeam],
           avatarUrl: getChampionAvatarUrl(item.championName, slotTeam),
+          userAvatarUrl: item.userAvatarUrl,
         });
       }
     }
@@ -170,13 +174,43 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
           const bonusDmg = GAME_CONSTANTS.SUMMON_RULES.ALIVE_SUPPORT_DAMAGE;
           const curHp = targetMinion.hp ?? CHAMPION_DEFAULT_MAX_HP;
           const maxHp = targetMinion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
+          const shouldEvolve =
+            state.participationRuleConfig.allowChampionEvolution &&
+            Boolean(req.isExplicitChampion) &&
+            targetMinion.championName.trim().toLowerCase() !== req.championName.trim().toLowerCase();
 
-          nextMinions[livingIdx] = {
-            ...targetMinion,
-            hp: Math.min(maxHp, curHp + healAmt),
-            lifetimeMs: targetMinion.lifetimeMs + GAME_CONSTANTS.SUMMON_RULES.LIFETIME_EXTENSION_MS,
-          };
-          teamAggregatedSupportDmg[req.team] += bonusDmg;
+          if (shouldEvolve) {
+            const activeTeamProfile = state.activeTeams[targetMinion.team];
+            const exactSignaturePro = findExactSignaturePlayer(
+              req.championName,
+              activeTeamProfile?.roster ?? []
+            );
+            const isSignatureSynergy = Boolean(exactSignaturePro);
+            const evolvedDps = isSignatureSynergy
+              ? Math.round(targetMinion.dps * GAME_CONSTANTS.SIGNATURE_SYNERGY.DAMAGE_MULTIPLIER)
+              : targetMinion.dps;
+
+            nextMinions[livingIdx] = {
+              ...targetMinion,
+              championName: req.championName,
+              avatarUrl: getChampionAvatarUrl(req.championName, targetMinion.team),
+              userAvatarUrl: req.userAvatarUrl ?? targetMinion.userAvatarUrl,
+              dps: evolvedDps,
+              hp: Math.min(maxHp, curHp + healAmt),
+              lifetimeMs: targetMinion.lifetimeMs + GAME_CONSTANTS.SUMMON_RULES.LIFETIME_EXTENSION_MS,
+              isSignatureSynergy,
+              signaturePlayerName: exactSignaturePro?.name,
+              signaturePlayerRole: exactSignaturePro?.role,
+            };
+          } else {
+            nextMinions[livingIdx] = {
+              ...targetMinion,
+              hp: Math.min(maxHp, curHp + healAmt),
+              lifetimeMs: targetMinion.lifetimeMs + GAME_CONSTANTS.SUMMON_RULES.LIFETIME_EXTENSION_MS,
+            };
+          }
+
+          teamAggregatedSupportDmg[targetMinion.team] += bonusDmg;
           if (!hasPlayedSupportChime) {
             hasPlayedSupportChime = true;
             audioService.playHeartChime();
@@ -186,17 +220,21 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
               id: `log-${now}-${i}-${Math.random().toString(36).substring(2, 5)}`,
               time: new Date(now).toLocaleTimeString('vi-VN', { hour12: false }),
               type: 'SUMMON',
-              message: `⚡ ${req.summonerName} tiếp sức [${targetMinion.championName}] (+${healAmt} HP & +${bonusDmg} ST)`,
-              team: req.team,
+              message: shouldEvolve
+                ? `🌟 TIẾN HÓA! ${req.summonerName}: [${targetMinion.championName} → ${req.championName}] (+${healAmt} HP)`
+                : `⚡ ${req.summonerName} tiếp sức [${targetMinion.championName}] (+${healAmt} HP & +${bonusDmg} ST)`,
+              team: targetMinion.team,
             });
           }
           if (newChats.length < SUMMON_PERF_CONSTANTS.MAX_CHATS_PER_BATCH) {
             newChats.push({
               id: `chat-${now}-${i}-${Math.random().toString(36).substring(2, 5)}`,
               userName: req.summonerName,
-              text: `Tiếp sức cho ${targetMinion.championName}! (+${healAmt} HP)`,
-              team: req.team,
-              championName: targetMinion.championName,
+              text: shouldEvolve
+                ? `🌟 Tiến hóa thành ${req.championName}!`
+                : `Tiếp sức cho ${targetMinion.championName}! (+${healAmt} HP)`,
+              team: targetMinion.team,
+              championName: shouldEvolve ? req.championName : targetMinion.championName,
               timestamp: new Date(now).toLocaleTimeString('vi-VN', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -230,6 +268,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         summonerName: req.summonerName,
         championName: req.championName,
         avatarUrl,
+        userAvatarUrl: req.userAvatarUrl,
         team: req.team,
         spawnPosition,
         orbitRadius: randomInRange(
@@ -252,28 +291,32 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       };
       nextMinions.push(newMinion);
 
-      newPortals.push({
-        id: `portal-${now}-${i}-${Math.random().toString(36).substring(2, 6)}`,
-        summonerName: req.summonerName,
-        championName: req.championName,
-        avatarUrl,
-        team: req.team,
-        position: spawnPosition,
-        color: isSignatureSynergy ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor,
-        isCrit: isSignatureSynergy,
-        dps: summonDps,
-        createdAt: now,
-        isSignatureSynergy,
-        signaturePlayerName: exactSignaturePro?.name,
-      });
+      if (newPortals.length < SUMMON_PERF_CONSTANTS.MAX_PORTALS_PER_BATCH) {
+        newPortals.push({
+          id: `portal-${now}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+          summonerName: req.summonerName,
+          championName: req.championName,
+          avatarUrl,
+          team: req.team,
+          position: spawnPosition,
+          color: isSignatureSynergy ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor,
+          isCrit: isSignatureSynergy,
+          dps: summonDps,
+          createdAt: now,
+          isSignatureSynergy,
+          signaturePlayerName: exactSignaturePro?.name,
+        });
+      }
 
-      newBursts.push({
-        id: `burst-${now}-${i}-${Math.random().toString(36).substring(2, 6)}`,
-        origin: spawnPosition,
-        color: primaryColor,
-        intensity: COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_NORMAL,
-        timestamp: now,
-      });
+      if (newBursts.length < SUMMON_PERF_CONSTANTS.MAX_BURSTS_PER_BATCH) {
+        newBursts.push({
+          id: `burst-${now}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+          origin: spawnPosition,
+          color: primaryColor,
+          intensity: COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_NORMAL,
+          timestamp: now,
+        });
+      }
 
       const matchingPro =
         exactSignaturePro ||
@@ -388,8 +431,17 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
   };
 
   return {
-    summonMinion: (summonerName: string, championName: string, team: TeamType, isGiftBypass = false) => {
-      enqueueSummons([{ summonerName, championName, team, isGiftBypass }]);
+    summonMinion: (
+      summonerName: string,
+      championName: string,
+      team: TeamType,
+      isGiftBypass = false,
+      userAvatarUrl?: string,
+      isExplicitChampion?: boolean
+    ) => {
+      enqueueSummons([
+        { summonerName, championName, team, isGiftBypass, userAvatarUrl, isExplicitChampion },
+      ]);
     },
 
     summonMinionsBatch: (items) => {
@@ -398,6 +450,8 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         championName: item.championName,
         team: item.team,
         isGiftBypass: Boolean(item.isGiftBypass),
+        userAvatarUrl: item.userAvatarUrl,
+        isExplicitChampion: item.isExplicitChampion,
       }));
       enqueueSummons(normalized);
     },
@@ -426,8 +480,14 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       timestamp: Date.now(),
     };
 
+    const isMajorGift =
+      coins >= GAME_CONSTANTS.TIKTOK_ENGAGEMENT.VIP_VFX_MIN_COINS ||
+      resolvedTotalCoins >= GAME_CONSTANTS.TIKTOK_ENGAGEMENT.VIP_VFX_MIN_COINS;
+
     if (isBattleHalted(state)) {
-      set({ activeGiftBanner: newBanner });
+      if (isMajorGift) {
+        set({ activeGiftBanner: newBanner });
+      }
       get().addChatMessage(
         donorName,
         `Đã tặng ${giftName}${resolvedStreak > 1 ? ` x${resolvedStreak}` : ''} (${resolvedTotalCoins} xu)!`,
@@ -441,35 +501,44 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     const burstColor = giftTeamTheme.primaryHex;
     const isRapidStreakTick = resolvedStreak > 1 && coins < 10 && resolvedStreak % 5 !== 0;
 
-    if (isRapidStreakTick) {
+    if (!isMajorGift || isRapidStreakTick) {
       audioService.playHeartChime();
     } else {
       audioService.playGiftFanfare();
     }
 
-    const meteorCount = isRapidStreakTick
-      ? GAME_CONSTANTS.TIKTOK_ENGAGEMENT.STREAK_BURST_METEOR_COUNT
-      : GAME_CONSTANTS.TIKTOK_ENGAGEMENT.DEFAULT_METEOR_COUNT;
     const newMeteors: MeteorEntity[] = [];
-    for (let i = 0; i < meteorCount; i++) {
-      const angle = (i / meteorCount) * Math.PI * 2;
-      const startX = Math.cos(angle) * (3.5 + Math.random() * 2);
-      const startZ = Math.sin(angle) * (3.5 + Math.random() * 2);
-      newMeteors.push({
-        id: `meteor-${Date.now()}-${resolvedStreak}-${i}`,
-        start: [startX, 10 + Math.random() * 3, startZ],
-        target: [(Math.random() - 0.5) * 1.5, 0.4, (Math.random() - 0.5) * 1.5],
-        color: burstColor,
-        createdAt: Date.now() + i * 90,
-        duration: 0.65,
-      });
+    if (isMajorGift) {
+      const meteorCount = isRapidStreakTick
+        ? GAME_CONSTANTS.TIKTOK_ENGAGEMENT.STREAK_BURST_METEOR_COUNT
+        : GAME_CONSTANTS.TIKTOK_ENGAGEMENT.DEFAULT_METEOR_COUNT;
+      for (let i = 0; i < meteorCount; i++) {
+        const angle = (i / meteorCount) * Math.PI * 2;
+        const startX = Math.cos(angle) * (3.5 + Math.random() * 2);
+        const startZ = Math.sin(angle) * (3.5 + Math.random() * 2);
+        newMeteors.push({
+          id: `meteor-${Date.now()}-${resolvedStreak}-${i}`,
+          start: [startX, 10 + Math.random() * 3, startZ],
+          target: [(Math.random() - 0.5) * 1.5, 0.4, (Math.random() - 0.5) * 1.5],
+          color: burstColor,
+          createdAt: Date.now() + i * 90,
+          duration: 0.65,
+        });
+      }
     }
 
     get().healTeamChampions(team, GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_HEAL_AMOUNT);
     const giftDamage = coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN;
-    get().damageBoss(giftDamage, team, `${donorName} (${giftName})`, 'ULTIMATE');
-    get().triggerScreenFlash(giftTeamTheme.secondaryHex);
-    get().triggerScreenShake(isRapidStreakTick ? 0.65 : 1.3);
+    get().damageBoss(
+      giftDamage,
+      team,
+      `${donorName} (${giftName})`,
+      isMajorGift ? 'ULTIMATE' : 'NORMAL'
+    );
+    if (isMajorGift) {
+      get().triggerScreenFlash(giftTeamTheme.secondaryHex);
+      get().triggerScreenShake(isRapidStreakTick ? 0.65 : 1.3);
+    }
 
     const giftTeamRoster = activeGiftTeam?.roster ?? [];
     giftTeamRoster.forEach((pro) => {
@@ -499,14 +568,16 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       );
     }
 
-    set((prev) => ({
-      activeBursts: [
-        ...prev.activeBursts.slice(-4),
-        { id: `burst-${Date.now()}`, timestamp: Date.now(), origin: [0, 0, 0], color: burstColor, intensity: 4 },
-      ],
-      activeMeteors: [...prev.activeMeteors.slice(-12), ...newMeteors],
-      activeGiftBanner: newBanner,
-    }));
+    if (isMajorGift) {
+      set((prev) => ({
+        activeBursts: [
+          ...prev.activeBursts.slice(-4),
+          { id: `burst-${Date.now()}`, timestamp: Date.now(), origin: [0, 0, 0], color: burstColor, intensity: 4 },
+        ],
+        activeMeteors: [...prev.activeMeteors.slice(-12), ...newMeteors],
+        activeGiftBanner: newBanner,
+      }));
+    }
   },
 
   triggerFollowReward: (

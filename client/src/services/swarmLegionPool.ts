@@ -3,16 +3,16 @@ import { TEAM_KEY, TeamType } from '../constants/game';
 export const SWARM_LEGION_CONSTANTS = {
   INITIAL_CAPACITY: 2200,
   UNIT_LIFETIME_MS: 14000,
-  MIN_ORBIT_RATIO: 0.14,
-  MAX_ORBIT_RATIO: 0.45,
-  BASE_ANGULAR_SPEED: 0.55,
-  ANGULAR_SPEED_VARIANCE: 0.55,
-  FADE_IN_MS: 280,
-  FADE_OUT_MS: 900,
-  AVATAR_SIZE_PX: 26,
+  MIN_ORBIT_RATIO: 0.21,
+  MAX_ORBIT_RATIO: 0.46,
+  BASE_ANGULAR_SPEED: 0.52,
+  ANGULAR_SPEED_VARIANCE: 0.48,
+  FADE_IN_MS: 240,
+  FADE_OUT_MS: 750,
+  AVATAR_SIZE_PX: 22,
   RING_WIDTH_PX: 2,
-  BOLT_INTERVAL_MS: 950,
-  BOLT_ACTIVE_WINDOW_MS: 160,
+  BOLT_INTERVAL_MS: 1100,
+  BOLT_ACTIVE_WINDOW_MS: 140,
 } as const;
 
 export interface SwarmLegionUnit {
@@ -20,6 +20,7 @@ export interface SwarmLegionUnit {
   team: TeamType;
   colorHex: string;
   avatarUrl: string;
+  userAvatarUrl?: string;
   angle: number;
   orbitRadiusRatio: number;
   angularSpeed: number;
@@ -35,6 +36,7 @@ export interface SwarmSpawnInput {
   team: TeamType;
   colorHex: string;
   avatarUrl: string;
+  userAvatarUrl?: string;
   isSignatureSynergy?: boolean;
 }
 
@@ -45,6 +47,7 @@ const createEmptyUnit = (): SwarmLegionUnit => ({
   team: TEAM_KEY.BLG,
   colorHex: '#06b6d4',
   avatarUrl: '',
+  userAvatarUrl: undefined,
   angle: 0,
   orbitRadiusRatio: 0.25,
   angularSpeed: 0.6,
@@ -117,6 +120,7 @@ class SwarmLegionPool {
       unit.team = item.team;
       unit.colorHex = item.colorHex;
       unit.avatarUrl = item.avatarUrl;
+      unit.userAvatarUrl = item.userAvatarUrl;
       unit.angle = baseAngle + (Math.random() - 0.5) * Math.PI * 1.85;
       unit.orbitRadiusRatio = SWARM_LEGION_CONSTANTS.MIN_ORBIT_RATIO + Math.random() * orbitSpan;
       unit.angularSpeed =

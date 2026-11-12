@@ -23,6 +23,13 @@ export type GameThemeType =
   | 'RONG_GIA'
   | 'VOID_TITAN';
 
+export interface ParticipationRuleConfig {
+  allowTeamOnlySummon: boolean;
+  autoMatchSignatureTeam: boolean;
+  lockTeamAfterJoin: boolean;
+  allowChampionEvolution: boolean;
+}
+
 export interface TikTokPipelineStats {
   trackedAffinityCount: number;
   leftAffinityCount: number;
@@ -445,6 +452,43 @@ class AdminSocketService {
     this.socket?.on('game:champion-damage-config', handler);
     return () => {
       this.socket?.off('game:champion-damage-config', handler);
+    };
+  }
+
+  public emitUserAvatarConfig(enabled: boolean): void {
+    this.emit('admin:user-avatar-config', { enabled });
+  }
+
+  public onUserAvatarConfig(callback: (enabled: boolean) => void): () => void {
+    const handler = (payload: { enabled?: boolean }) => {
+      if (typeof payload?.enabled === 'boolean') {
+        callback(payload.enabled);
+      }
+    };
+    this.socket?.on('game:user-avatar-config', handler);
+    return () => {
+      this.socket?.off('game:user-avatar-config', handler);
+    };
+  }
+
+  public emitParticipationRules(patch: Partial<ParticipationRuleConfig>): void {
+    this.emit('admin:participation-rules', patch);
+  }
+
+  public onParticipationRules(callback: (rules: ParticipationRuleConfig) => void): () => void {
+    const handler = (payload: Partial<ParticipationRuleConfig>) => {
+      if (payload && typeof payload.allowTeamOnlySummon === 'boolean') {
+        callback({
+          allowTeamOnlySummon: payload.allowTeamOnlySummon,
+          autoMatchSignatureTeam: Boolean(payload.autoMatchSignatureTeam),
+          lockTeamAfterJoin: Boolean(payload.lockTeamAfterJoin),
+          allowChampionEvolution: Boolean(payload.allowChampionEvolution),
+        });
+      }
+    };
+    this.socket?.on('game:participation-rules', handler);
+    return () => {
+      this.socket?.off('game:participation-rules', handler);
     };
   }
 

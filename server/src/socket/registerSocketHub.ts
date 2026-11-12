@@ -24,6 +24,10 @@ export function registerSocketHub(
     socket.emit('game:champion-damage-config', {
       multiplier: ctx.state.championDamageMultiplier,
     });
+    socket.emit('game:user-avatar-config', {
+      enabled: ctx.state.useUserAvatar,
+    });
+    socket.emit('game:participation-rules', ctx.state.participationRuleConfig);
     socket.emit('game:series-format', ctx.state.seriesConfig);
     socket.emit('game:silver-scrapes-state', ctx.state.silverScrapesDuelState);
     socket.emit('tiktok:pipeline-stats', tiktokService.getStats());

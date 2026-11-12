@@ -7,6 +7,7 @@ import {
   BossSkillConfig,
   GameThemeType,
   OverlayVisibility,
+  ParticipationRuleConfig,
   ServerContext,
   VALID_GAME_THEMES,
 } from '../types/serverState.js';
@@ -177,6 +178,42 @@ export function registerAdminHandlers(
       ctx.state.championDamageMultiplier = clamped;
       ctx.io.emit('game:champion-damage-config', {
         multiplier: clamped,
+        senderId: extractSenderId(payload),
+      });
+    }
+  );
+
+  socket.on(
+    'admin:user-avatar-config',
+    (payload: { enabled?: boolean; senderId?: string }) => {
+      if (typeof payload?.enabled !== 'boolean') return;
+      ctx.state.useUserAvatar = payload.enabled;
+      ctx.io.emit('game:user-avatar-config', {
+        enabled: payload.enabled,
+        senderId: extractSenderId(payload),
+      });
+    }
+  );
+
+  socket.on(
+    'admin:participation-rules',
+    (payload: Partial<ParticipationRuleConfig> & { senderId?: string }) => {
+      const next: ParticipationRuleConfig = { ...ctx.state.participationRuleConfig };
+      if (typeof payload?.allowTeamOnlySummon === 'boolean') {
+        next.allowTeamOnlySummon = payload.allowTeamOnlySummon;
+      }
+      if (typeof payload?.autoMatchSignatureTeam === 'boolean') {
+        next.autoMatchSignatureTeam = payload.autoMatchSignatureTeam;
+      }
+      if (typeof payload?.lockTeamAfterJoin === 'boolean') {
+        next.lockTeamAfterJoin = payload.lockTeamAfterJoin;
+      }
+      if (typeof payload?.allowChampionEvolution === 'boolean') {
+        next.allowChampionEvolution = payload.allowChampionEvolution;
+      }
+      ctx.state.participationRuleConfig = next;
+      ctx.io.emit('game:participation-rules', {
+        ...next,
         senderId: extractSenderId(payload),
       });
     }

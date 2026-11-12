@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
-import { OverlayVisibility } from '../types/game';
+import { OverlayVisibility, ParticipationRuleConfig } from '../types/game';
 import { TeamConfigState } from '../types/team';
 import { OVERLAY_SECTION, GameThemeType } from '../constants/game';
 import { sanitizeTeamConfigState } from '../constants/teams';
@@ -132,7 +132,9 @@ class GameSocketClient {
             payload.summonerName,
             payload.championName,
             payload.team,
-            payload.isGiftBypass
+            payload.isGiftBypass,
+            payload.userAvatarUrl,
+            payload.isExplicitChampion
           );
       });
 
@@ -249,6 +251,20 @@ class GameSocketClient {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         if (typeof payload?.multiplier === 'number') {
           useGameStore.getState().setChampionDamageMultiplier(payload.multiplier);
+        }
+      });
+
+      this.socket.on('game:user-avatar-config', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (typeof payload?.enabled === 'boolean') {
+          useGameStore.getState().setUseUserAvatar(payload.enabled);
+        }
+      });
+
+      this.socket.on('game:participation-rules', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (payload && typeof payload === 'object') {
+          useGameStore.getState().setParticipationRuleConfig(payload);
         }
       });
 
@@ -370,6 +386,24 @@ class GameSocketClient {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:champion-damage-config', {
         multiplier,
+        senderId: CLIENT_INSTANCE_ID,
+      });
+    }
+  }
+
+  public sendUserAvatarConfig(enabled: boolean): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:user-avatar-config', {
+        enabled,
+        senderId: CLIENT_INSTANCE_ID,
+      });
+    }
+  }
+
+  public sendParticipationRuleConfig(patch: Partial<ParticipationRuleConfig>): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:participation-rules', {
+        ...patch,
         senderId: CLIENT_INSTANCE_ID,
       });
     }

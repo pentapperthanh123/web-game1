@@ -106,6 +106,13 @@ export const INITIAL_STATE = {
   autoProBattleConfig: getStoredAutoProBattleConfig(),
   autoSummonConfig: getStoredAutoSummonConfig(),
   championDamageMultiplier: CHAMPION_DAMAGE_CONSTANTS.DEFAULT_MULTIPLIER,
+  useUserAvatar: true,
+  participationRuleConfig: {
+    allowTeamOnlySummon: true,
+    autoMatchSignatureTeam: true,
+    lockTeamAfterJoin: true,
+    allowChampionEvolution: true,
+  },
   activeTeams: initialTeamConfig.activeTeams,
   teamCatalog: initialTeamConfig.teamCatalog,
   matchQueue: initialTeamConfig.matchQueue,

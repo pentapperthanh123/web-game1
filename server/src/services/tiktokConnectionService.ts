@@ -38,6 +38,7 @@ export function createTikTokConnectionService(
 ): TikTokConnectionService {
   const tiktokPipeline = new TikTokLivePipeline({
     getActiveTeams: () => ctx.state.teamConfig.activeTeams,
+    getParticipationRules: () => ctx.state.participationRuleConfig,
     parseComment: (comment) => parseCommentCommand(comment, ctx.state.teamConfig.activeTeams),
     getRandomChampionName: () => getRandomChampion().name,
     onDuelContribution: (team, deltaPercent, event) =>
@@ -77,7 +78,9 @@ export function createTikTokConnectionService(
     switch (action) {
       case 'chat': {
         const comment = typeof src.comment === 'string' ? src.comment : '';
-        const res = tiktokPipeline.handleChat({ uniqueId, nickname, comment });
+        const userAvatarUrl =
+          typeof src.userAvatarUrl === 'string' ? src.userAvatarUrl : undefined;
+        const res = tiktokPipeline.handleChat({ uniqueId, nickname, userAvatarUrl, comment });
         outcome = {
           accepted: true,
           action,
@@ -169,6 +172,7 @@ export function createTikTokConnectionService(
       tiktokPipeline.handleChat({
         uniqueId: data.uniqueId,
         nickname: data.nickname,
+        userAvatarUrl: data.profilePictureUrl,
         comment: data.comment || '',
       });
       ctx.io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());

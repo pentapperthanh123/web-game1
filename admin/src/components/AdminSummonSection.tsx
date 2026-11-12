@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Flame, Play, Search, ShieldAlert, Sparkles, Square, Swords } from 'lucide-react';
 import {
   CHAMPION_TAG_FILTERS,
@@ -7,7 +7,16 @@ import {
 } from '../constants/adminPortal';
 import { ALL_CHAMPIONS, findChampion, normalizeQuery } from '../constants/champions';
 import { TeamColorPalette, TeamProfile } from '../constants/teams';
+import { adminSocket, ParticipationRuleConfig } from '../services/socket';
 import { TeamLogo } from './TeamLogos';
+
+const CHAMPION_DAMAGE_UI = {
+  DEFAULT_MULTIPLIER: 1,
+  MIN_MULTIPLIER: 0.1,
+  MAX_MULTIPLIER: 20,
+  STEP_MULTIPLIER: 0.1,
+  PRESET_MULTIPLIERS: [0.2, 0.5, 1, 2, 5, 10] as readonly number[],
+} as const;
 
 interface AdminSummonSectionProps {
   visible: boolean;
@@ -89,6 +98,59 @@ export function AdminSummonSection({
     () => findChampion(selectedChampion),
     [selectedChampion]
   );
+
+  const [customSwarmCount, setCustomSwarmCount] = useState('3000');
+  const [championDamageMultiplier, setChampionDamageMultiplier] = useState<number>(
+    CHAMPION_DAMAGE_UI.DEFAULT_MULTIPLIER
+  );
+  const [useUserAvatar, setUseUserAvatar] = useState(true);
+  const [participationRules, setParticipationRules] = useState<ParticipationRuleConfig>({
+    allowTeamOnlySummon: true,
+    autoMatchSignatureTeam: true,
+    lockTeamAfterJoin: true,
+    allowChampionEvolution: true,
+  });
+
+  useEffect(() => {
+    const unsubDamage = adminSocket.onChampionDamageConfig((multiplier) => {
+      setChampionDamageMultiplier(multiplier);
+    });
+    const unsubAvatar = adminSocket.onUserAvatarConfig((enabled) => {
+      setUseUserAvatar(enabled);
+    });
+    const unsubRules = adminSocket.onParticipationRules((rules) => {
+      setParticipationRules(rules);
+    });
+    return () => {
+      unsubDamage();
+      unsubAvatar();
+      unsubRules();
+    };
+  }, []);
+
+  const handleToggleRule = (key: keyof ParticipationRuleConfig) => {
+    const nextPatch = { [key]: !participationRules[key] };
+    setParticipationRules((prev) => ({ ...prev, ...nextPatch }));
+    adminSocket.emitParticipationRules(nextPatch);
+  };
+
+  const handleToggleUserAvatar = () => {
+    const nextEnabled = !useUserAvatar;
+    setUseUserAvatar(nextEnabled);
+    adminSocket.emitUserAvatarConfig(nextEnabled);
+  };
+
+  const handleDamageMultiplierChange = (nextMultiplier: number) => {
+    const parsed = Number(nextMultiplier);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    setChampionDamageMultiplier(parsed);
+    adminSocket.emitChampionDamageConfig(parsed);
+  };
+
+  const handleCustomSwarm = () => {
+    const parsed = Math.max(1, Math.floor(Number(customSwarmCount) || 1));
+    onSwarmSummon(parsed);
+  };
 
   return (
     <div
@@ -310,6 +372,104 @@ export function AdminSummonSection({
           ))}
         </div>
 
+        {/* Unlimited Custom Swarm Input */}
+        <div className="flex items-center gap-1.5">
+          <input
+            type="number"
+            min={1}
+            value={customSwarmCount}
+            onChange={(e) => setCustomSwarmCount(e.target.value)}
+            placeholder="Nhập số tướng (không giới hạn)..."
+            className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
+          />
+          <button
+            type="button"
+            onClick={handleCustomSwarm}
+            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-600 hover:brightness-110 text-white font-black text-xs shrink-0 active:scale-95 transition"
+          >
+            Tung Tự Do
+          </button>
+        </div>
+
+        {/* Champion Damage Multiplier Config */}
+        <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-amber-300">⚡ Hệ Số Sát Thương Tướng:</span>
+            <span className="font-mono text-amber-400">
+              {championDamageMultiplier.toFixed(1)}x ({Math.round(championDamageMultiplier * 100)}%)
+            </span>
+          </div>
+          <input
+            type="range"
+            min={CHAMPION_DAMAGE_UI.MIN_MULTIPLIER}
+            max={CHAMPION_DAMAGE_UI.MAX_MULTIPLIER}
+            step={CHAMPION_DAMAGE_UI.STEP_MULTIPLIER}
+            value={Math.min(CHAMPION_DAMAGE_UI.MAX_MULTIPLIER, championDamageMultiplier)}
+            onChange={(e) => handleDamageMultiplierChange(Number(e.target.value))}
+            className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
+          />
+          <div className="flex flex-wrap gap-1">
+            {CHAMPION_DAMAGE_UI.PRESET_MULTIPLIERS.map((preset) => {
+              const isSelected = Math.abs(championDamageMultiplier - preset) < 0.01;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => handleDamageMultiplierChange(preset)}
+                  className={`px-2 py-1 rounded border text-[11px] font-bold transition ${
+                    isSelected
+                      ? 'bg-amber-500 text-slate-950 border-amber-400'
+                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  {preset}x
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleToggleUserAvatar}
+            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs mt-1"
+          >
+            <span className="text-slate-300 font-bold">Avatar Triệu Hồi:</span>
+            <span className={`font-black ${useUserAvatar ? 'text-cyan-400' : 'text-amber-400'}`}>
+              {useUserAvatar ? 'BẬT (Avatar Người Dùng)' : 'TẮT (Avatar Tướng)'}
+            </span>
+          </button>
+
+          {/* Dynamic Participation Rules (Option C) */}
+          <div className="pt-2 border-t border-slate-800 space-y-1.5">
+            <span className="text-[11px] font-bold text-slate-300 block">
+              📜 Luật Tham Gia (Option C):
+            </span>
+            {(
+              [
+                { key: 'allowTeamOnlySummon', label: 'Gõ Team (T1/GenG) ra quân ngay' },
+                { key: 'autoMatchSignatureTeam', label: 'Gõ Tướng tự khớp Team Tủ' },
+                { key: 'lockTeamAfterJoin', label: 'Khóa Team sau khi chọn' },
+                { key: 'allowChampionEvolution', label: 'Gõ Tướng khác để Tiến Hóa' },
+              ] as const
+            ).map((rule) => {
+              const isEnabled = participationRules[rule.key];
+              return (
+                <button
+                  key={rule.key}
+                  type="button"
+                  onClick={() => handleToggleRule(rule.key)}
+                  className="w-full flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-[11px]"
+                >
+                  <span className="text-slate-300 font-semibold">{rule.label}</span>
+                  <span className={`font-black ${isEnabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {isEnabled ? 'BẬT' : 'TẮT'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Auto Summon Continuous Controls */}
         <div className="pt-2.5 border-t border-slate-800 space-y-2.5">
           <button
@@ -380,7 +540,7 @@ export function AdminSummonSection({
                   min={1}
                   value={autoSummonBatchSize}
                   onChange={(e) =>
-                    setAutoSummonBatchSize(Math.max(1, Math.floor(Number(e.target.value) || 1)))
+                    onAutoSummonBatchSizeChange(Math.max(1, Math.floor(Number(e.target.value) || 1)))
                   }
                   aria-label="Số tướng mỗi đợt tùy chỉnh"
                   className="w-20 px-2 py-1 rounded bg-slate-950 border border-slate-700 text-[11px] font-bold text-cyan-300 focus:outline-none focus:border-cyan-400"

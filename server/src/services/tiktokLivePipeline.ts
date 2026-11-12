@@ -1,4 +1,5 @@
 import { ActiveTeamsMap, TeamSlotKey } from '../constants/teams.js';
+import type { ParticipationRuleConfig } from '../types/serverState.js';
 import {
   AffinityResolutionSource,
   PipelineStatsSummary,
@@ -30,6 +31,7 @@ export interface DuelContributionPayload {
 
 export interface TikTokPipelineDeps {
   getActiveTeams: () => ActiveTeamsMap;
+  getParticipationRules?: () => ParticipationRuleConfig;
   parseComment: (comment: string) => { team?: TeamSlotKey; champion?: string };
   getRandomChampionName: () => string;
   onDuelContribution: (team: TeamSlotKey, deltaPercent: number, event: DuelContributionPayload) => void;
@@ -97,11 +99,36 @@ export class TikTokLivePipeline {
     return true;
   }
 
+  private resolveSignatureTeamForChampion(championName: string): TeamSlotKey | undefined {
+    const normChamp = championName.trim().toLowerCase();
+    if (!normChamp) return undefined;
+    const teams = this.deps.getActiveTeams();
+    const blgMatch = (teams.BLG?.roster ?? []).some(
+      (p) => p.signatureChampion.trim().toLowerCase() === normChamp
+    );
+    const gengMatch = (teams.GENG?.roster ?? []).some(
+      (p) => p.signatureChampion.trim().toLowerCase() === normChamp
+    );
+    if (blgMatch && !gengMatch) return 'BLG';
+    if (gengMatch && !blgMatch) return 'GENG';
+    return undefined;
+  }
+
   private resolveViewerTeam(
     viewerKey: string,
     explicitTeam?: TeamSlotKey
   ): { team: TeamSlotKey; source: AffinityResolutionSource; shouldRemind: boolean } {
     const now = this.now();
+    const rules = this.deps.getParticipationRules?.();
+    const lockTeam = rules?.lockTeamAfterJoin ?? true;
+    const existing = this.viewerAffinity.get(viewerKey);
+    const hasActiveLock =
+      Boolean(existing) && now - (existing?.updatedAt ?? 0) < TIKTOK_PIPELINE_CONSTANTS.AFFINITY_TTL_MS;
+
+    if (lockTeam && hasActiveLock && existing) {
+      existing.updatedAt = now;
+      return { team: existing.team, source: 'affinity', shouldRemind: false };
+    }
 
     if (explicitTeam) {
       trimOldestEntries(this.viewerAffinity, TIKTOK_PIPELINE_CONSTANTS.MAX_TRACKED_VIEWERS);
@@ -109,8 +136,7 @@ export class TikTokLivePipeline {
       return { team: explicitTeam, source: 'explicit', shouldRemind: false };
     }
 
-    const existing = this.viewerAffinity.get(viewerKey);
-    if (existing && now - existing.updatedAt < TIKTOK_PIPELINE_CONSTANTS.AFFINITY_TTL_MS) {
+    if (hasActiveLock && existing) {
       existing.updatedAt = now;
       return { team: existing.team, source: 'affinity', shouldRemind: false };
     }
@@ -201,6 +227,9 @@ export class TikTokLivePipeline {
     const displayName = input.nickname || input.uniqueId || 'Viewer';
     const viewerKey = this.buildViewerKey(input.uniqueId, input.nickname);
     const parsed = this.deps.parseComment(comment);
+    const rules = this.deps.getParticipationRules?.();
+    const allowTeamOnly = rules?.allowTeamOnlySummon ?? true;
+    const autoMatchSig = rules?.autoMatchSignatureTeam ?? true;
 
     let effectiveTeam = parsed.team;
     let source: AffinityResolutionSource | undefined;
@@ -210,34 +239,40 @@ export class TikTokLivePipeline {
       effectiveTeam = locked.team;
       source = locked.source;
     } else if (parsed.champion) {
-      const resolved = this.resolveViewerTeam(viewerKey);
+      const sigTeam = autoMatchSig ? this.resolveSignatureTeamForChampion(parsed.champion) : undefined;
+      const resolved = this.resolveViewerTeam(viewerKey, sigTeam);
       effectiveTeam = resolved.team;
       source = resolved.source;
     }
+
+    const summonChampion =
+      parsed.champion || (parsed.team && allowTeamOnly ? this.deps.getRandomChampionName() : undefined);
 
     this.deps.emit('game:chat', {
       userName: displayName,
       text: comment,
       team: effectiveTeam,
-      championName: parsed.champion,
+      championName: summonChampion,
     });
 
-    if (parsed.champion && effectiveTeam) {
+    if (summonChampion && effectiveTeam) {
       this.deps.emit('game:summon', {
         summonerName: displayName,
-        championName: parsed.champion,
+        championName: summonChampion,
         team: effectiveTeam,
+        userAvatarUrl: input.userAvatarUrl,
+        isExplicitChampion: Boolean(parsed.champion),
       });
       this.deps.onDuelContribution(effectiveTeam, TIKTOK_PIPELINE_CONSTANTS.DUEL_CHAT_DELTA, {
         type: 'SKILL',
         donorName: displayName,
         team: effectiveTeam,
         deltaPercent: TIKTOK_PIPELINE_CONSTANTS.DUEL_CHAT_DELTA,
-        description: `${displayName} gọi ${parsed.champion} xuất chiêu! (+${TIKTOK_PIPELINE_CONSTANTS.DUEL_CHAT_DELTA}%)`,
+        description: `${displayName} gọi ${summonChampion} xuất chiêu! (+${TIKTOK_PIPELINE_CONSTANTS.DUEL_CHAT_DELTA}%)`,
       });
     }
 
-    return { team: effectiveTeam, championName: parsed.champion, source };
+    return { team: effectiveTeam, championName: summonChampion, source };
   }
 
   public handleGift(input: TikTokGiftInput): {

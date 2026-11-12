@@ -78,6 +78,20 @@ export const DEFAULT_AUTO_PRO_BATTLE_CONFIG: AutoProBattleConfig = {
   intervalMs: 1800,
 };
 
+export interface ParticipationRuleConfig {
+  allowTeamOnlySummon: boolean;
+  autoMatchSignatureTeam: boolean;
+  lockTeamAfterJoin: boolean;
+  allowChampionEvolution: boolean;
+}
+
+export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
+  allowTeamOnlySummon: true,
+  autoMatchSignatureTeam: true,
+  lockTeamAfterJoin: true,
+  allowChampionEvolution: true,
+};
+
 export type TikTokConnectionStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR';
 
 export interface ServerState {
@@ -89,6 +103,8 @@ export interface ServerState {
   bossSkillConfig: BossSkillConfig;
   autoProBattleConfig: AutoProBattleConfig;
   championDamageMultiplier: number;
+  useUserAvatar: boolean;
+  participationRuleConfig: ParticipationRuleConfig;
   tiktokUsername: string;
   connectionStatus: TikTokConnectionStatus;
   lastErrorMessage: string;

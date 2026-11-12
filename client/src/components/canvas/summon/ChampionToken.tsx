@@ -53,6 +53,7 @@ const areChampionTokenPropsEqual = (
     a.fury === b.fury &&
     a.maxFury === b.maxFury &&
     a.avatarUrl === b.avatarUrl &&
+    a.userAvatarUrl === b.userAvatarUrl &&
     a.team === b.team &&
     a.summonerName === b.summonerName &&
     a.signaturePlayerName === b.signaturePlayerName &&
@@ -63,12 +64,15 @@ const areChampionTokenPropsEqual = (
 
 export const ChampionToken = React.memo(({ minion }: ChampionTokenProps) => {
   const teamProfile = useGameStore((state) => state.activeTeams[minion.team]);
+  const useUserAvatar = useGameStore((state) => state.useUserAvatar);
   const teamTheme = getTeamTheme(teamProfile?.colorTheme);
   const primaryColor = teamTheme.primaryHex;
   const secondaryColor = teamTheme.secondaryHex;
   const critColor = teamTheme.critHex;
 
-  const texture = useMemo(() => getChampionTexture(minion.avatarUrl), [minion.avatarUrl]);
+  const displayAvatarUrl =
+    useUserAvatar && minion.userAvatarUrl ? minion.userAvatarUrl : minion.avatarUrl;
+  const texture = useMemo(() => getChampionTexture(displayAvatarUrl), [displayAvatarUrl]);
   const isSignature = Boolean(minion.isSignatureSynergy);
   const nameplateTexture = useMemo(
     () =>

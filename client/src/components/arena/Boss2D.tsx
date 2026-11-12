@@ -630,7 +630,7 @@ export const Boss2D = () => {
 
       {/* 2. Living Elemental Portal Aura Glow */}
       <div
-        className={`absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full transition-all duration-300 pointer-events-none animate-aura-pulse ${auraColorClass}`}
+        className={`absolute w-52 h-52 sm:w-72 sm:h-72 rounded-full transition-all duration-300 pointer-events-none animate-aura-pulse ${auraColorClass}`}
       />
 
       {/* 2b. Violent Enraged Fiery Void Aura */}
@@ -643,7 +643,7 @@ export const Boss2D = () => {
 
       {/* 4. Realistic Ground Contact Shadow under Monster */}
       <div
-        className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-52 sm:w-68 h-9 sm:h-12 bg-black/60 rounded-[50%] blur-md pointer-events-none ${groundShadowAnimationClass}`}
+        className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 rounded-[50%] blur-md pointer-events-none ${groundShadowAnimationClass}`}
       />
 
       {/* 5. Dynamic Ground Shockwave Ripples during Slam & Heavy Hit */}

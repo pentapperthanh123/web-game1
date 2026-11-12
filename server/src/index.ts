@@ -16,6 +16,7 @@ import {
 import {
   DEFAULT_AUTO_PRO_BATTLE_CONFIG,
   DEFAULT_BOSS_SKILL_CONFIG,
+  DEFAULT_PARTICIPATION_RULE_CONFIG,
   ServerContext,
   ServerState,
 } from './types/serverState.js';
@@ -45,6 +46,8 @@ const state: ServerState = {
   bossSkillConfig: { ...DEFAULT_BOSS_SKILL_CONFIG },
   autoProBattleConfig: { ...DEFAULT_AUTO_PRO_BATTLE_CONFIG },
   championDamageMultiplier: 1,
+  useUserAvatar: true,
+  participationRuleConfig: { ...DEFAULT_PARTICIPATION_RULE_CONFIG },
   tiktokUsername: '',
   connectionStatus: 'DISCONNECTED',
   lastErrorMessage: '',

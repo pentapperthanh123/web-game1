@@ -2,6 +2,42 @@ import * as THREE from 'three';
 import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, TEAM_KEY, TeamType } from '../../../constants/game';
 
 export const tempProjVec = new THREE.Vector3();
+const tempRayOrigin = new THREE.Vector3();
+const tempRayDir = new THREE.Vector3();
+let activeSceneCamera: THREE.Camera | null = null;
+
+export const setActiveSceneCamera = (camera: THREE.Camera): void => {
+  activeSceneCamera = camera;
+};
+
+/**
+ * Converts a 2D viewport pixel coordinate onto the 3D combat plane at `targetZ`
+ * so 3D projectiles start and land on exact DOM element positions (roster cards, Boss hitbox).
+ */
+export const unprojectScreenToWorld = (
+  screenX: number,
+  screenY: number,
+  targetZ = 0.5
+): [number, number, number] | null => {
+  if (!activeSceneCamera || typeof window === 'undefined') return null;
+  const width = window.innerWidth || 1;
+  const height = window.innerHeight || 1;
+  const ndcX = (screenX / width) * 2 - 1;
+  const ndcY = -(screenY / height) * 2 + 1;
+
+  tempRayOrigin.copy(activeSceneCamera.position);
+  tempRayDir.set(ndcX, ndcY, 0.5).unproject(activeSceneCamera).sub(tempRayOrigin).normalize();
+
+  if (Math.abs(tempRayDir.z) < 0.0001) return null;
+  const t = (targetZ - tempRayOrigin.z) / tempRayDir.z;
+  if (t <= 0) return null;
+
+  return [
+    tempRayOrigin.x + tempRayDir.x * t,
+    tempRayOrigin.y + tempRayDir.y * t,
+    targetZ,
+  ];
+};
 
 export const project3DToScreen = (
   worldX: number,

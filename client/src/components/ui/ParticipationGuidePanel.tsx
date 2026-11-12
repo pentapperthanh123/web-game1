@@ -172,6 +172,11 @@ const REWARD_ITEMS: readonly RewardItemConfig[] = [
   },
 ];
 
+const isCompactViewport = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+};
+
 export const ParticipationGuidePanel = () => {
   const { t } = useTranslation();
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
@@ -179,7 +184,7 @@ export const ParticipationGuidePanel = () => {
   const leftChamp = leftTeam.roster[2]?.signatureChampion || leftTeam.roster[0]?.signatureChampion || 'Ahri';
   const rightChamp = rightTeam.roster[2]?.signatureChampion || rightTeam.roster[0]?.signatureChampion || 'Yone';
   const [activeTab, setActiveTab] = useState<GuidePanelTab>('RULES');
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(isCompactViewport);
   const isUserInteractingRef = useRef<boolean>(false);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

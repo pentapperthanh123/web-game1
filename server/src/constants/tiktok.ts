@@ -37,6 +37,7 @@ export interface TeamScoreBalance {
 export interface TikTokChatInput {
   uniqueId?: string;
   nickname?: string;
+  userAvatarUrl?: string;
   comment: string;
 }
 

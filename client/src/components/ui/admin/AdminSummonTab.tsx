@@ -30,6 +30,10 @@ export const AdminSummonTab: React.FC = () => {
   const setAutoSummonConfig = useGameStore((s) => s.setAutoSummonConfig);
   const championDamageMultiplier = useGameStore((s) => s.championDamageMultiplier);
   const setChampionDamageMultiplier = useGameStore((s) => s.setChampionDamageMultiplier);
+  const useUserAvatar = useGameStore((s) => s.useUserAvatar);
+  const setUseUserAvatar = useGameStore((s) => s.setUseUserAvatar);
+  const participationRuleConfig = useGameStore((s) => s.participationRuleConfig);
+  const setParticipationRuleConfig = useGameStore((s) => s.setParticipationRuleConfig);
   const summonMinion = useGameStore((s) => s.summonMinion);
   const summonMinionsBatch = useGameStore((s) => s.summonMinionsBatch);
   const activeMinionCount = useGameStore((s) => s.minions.length);
@@ -142,6 +146,20 @@ export const AdminSummonTab: React.FC = () => {
   const handleCustomSwarmSummon = () => {
     const parsed = Math.max(1, Math.floor(Number(customSwarmCount) || 1));
     handleSwarmSummon(parsed);
+  };
+
+  const handleToggleUserAvatar = () => {
+    const nextEnabled = !useUserAvatar;
+    setUseUserAvatar(nextEnabled);
+    gameSocket.sendUserAvatarConfig(nextEnabled);
+  };
+
+  const handleToggleRule = (
+    key: keyof typeof participationRuleConfig
+  ) => {
+    const nextPatch = { [key]: !participationRuleConfig[key] };
+    setParticipationRuleConfig(nextPatch);
+    gameSocket.sendParticipationRuleConfig(nextPatch);
   };
 
   return (
@@ -314,6 +332,68 @@ export const AdminSummonTab: React.FC = () => {
                 }`}
               >
                 {preset}x
+              </button>
+            );
+          })}
+        </div>
+
+        {/* User Avatar vs Champion Avatar Toggle */}
+        <button
+          type="button"
+          onClick={handleToggleUserAvatar}
+          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] mt-1"
+        >
+          <span className="text-slate-300 font-bold">
+            {t('Admin.userAvatarModeLabel', 'Avatar Triệu Hồi:')}
+          </span>
+          <span
+            className={`font-black ${
+              useUserAvatar ? 'text-cyan-300' : 'text-amber-300'
+            }`}
+          >
+            {useUserAvatar
+              ? t('Admin.userAvatarModeOn', 'BẬT (Avatar Người Dùng)')
+              : t('Admin.userAvatarModeOff', 'TẮT (Avatar Tướng)')}
+          </span>
+        </button>
+
+        {/* Dynamic Participation Rules (Option C) */}
+        <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+          <span className="text-[11px] font-bold text-slate-300 block">
+            {t('Admin.participationRulesTitle', 'Luật Tham Gia (Option C):')}
+          </span>
+          {(
+            [
+              {
+                key: 'allowTeamOnlySummon',
+                label: t('Admin.ruleTeamOnlyLabel', 'Gõ Team (T1/GenG) ra quân ngay'),
+              },
+              {
+                key: 'autoMatchSignatureTeam',
+                label: t('Admin.ruleAutoSigLabel', 'Gõ Tướng tự khớp Team Tủ'),
+              },
+              {
+                key: 'lockTeamAfterJoin',
+                label: t('Admin.ruleLockTeamLabel', 'Khóa Team sau khi chọn'),
+              },
+              {
+                key: 'allowChampionEvolution',
+                label: t('Admin.ruleEvolveLabel', 'Gõ Tướng khác để Tiến Hóa'),
+              },
+            ] as const
+          ).map((rule) => {
+            const isEnabled = participationRuleConfig[rule.key];
+            return (
+              <button
+                key={rule.key}
+                type="button"
+                onClick={() => handleToggleRule(rule.key)}
+                className="w-full flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800 text-[10px]"
+              >
+                <span className="text-slate-300 font-semibold">{rule.label}</span>
+                <span className={`font-black ${isEnabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {isEnabled ? t('Admin.toggleOn', 'BẬT') : t('Admin.toggleOff', 'TẮT')}
+                </span>
               </button>
             );
           })}

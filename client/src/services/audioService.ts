@@ -838,7 +838,7 @@ class AudioSynthesizerService {
   public playDamageImpactSound(damageType: DamageType = DAMAGE_TYPE.NORMAL, isCrit = false): void {
     if (!this.isAudioEnabled || this.isCombatMuted) return;
     const now = performance.now();
-    if (now - this.lastHitSoundTime < 32) return;
+    if (now - this.lastHitSoundTime < 90) return;
     this.lastHitSoundTime = now;
 
     const ctx = this.getAudioContext();
