@@ -1007,12 +1007,24 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
     resize();
     window.addEventListener('resize', resize);
 
+    let isCanvasDirty = false;
+
     const renderLoop = () => {
+      const activeFlyingArrows = useGameStore.getState().activeFlyingArrows;
+      if (activeFlyingArrows.length === 0) {
+        if (isCanvasDirty) {
+          ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+          isCanvasDirty = false;
+        }
+        animFrameId = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      isCanvasDirty = true;
       const width = window.innerWidth;
       const height = window.innerHeight;
       ctx.clearRect(0, 0, width, height);
 
-      const activeFlyingArrows = useGameStore.getState().activeFlyingArrows;
       const now = Date.now();
 
       for (let i = 0; i < activeFlyingArrows.length; i++) {

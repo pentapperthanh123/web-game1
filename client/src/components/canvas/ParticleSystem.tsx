@@ -11,6 +11,9 @@ interface ParticlePool {
   lifetimes: Float32Array;
 }
 
+const tempBaseColor = new THREE.Color();
+const tempWhiteColor = new THREE.Color('#ffffff');
+
 const getBurstParticleCount = (intensity: number): number => {
   if (intensity >= COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE) {
     return COMBAT_VFX_CONSTANTS.PARTICLES.BURST_COUNT_ULTIMATE;
@@ -25,7 +28,7 @@ export const ParticleSystem = () => {
   const pointsRef = useRef<THREE.Points>(null);
   const processedBurstIdsRef = useRef<Set<string>>(new Set());
   const ringCursorRef = useRef(0);
-  const activeBursts = useGameStore((state) => state.activeBursts);
+  const hasAnyActiveRef = useRef(false);
 
   const particleCount = GAME_CONSTANTS.PARTICLES.COUNT;
 
@@ -46,19 +49,30 @@ export const ParticleSystem = () => {
   }, [particleCount]);
 
   useEffect(() => {
-    if (activeBursts.length === 0) return;
+    const pts = pointsRef.current;
+    return () => {
+      pts?.geometry?.dispose();
+    };
+  }, []);
 
-    let hasEmitted = false;
+  useFrame((_, rawDelta) => {
+    const pts = pointsRef.current;
+    if (!pts) return;
+
+    const activeBursts = useGameStore.getState().activeBursts;
     const processed = processedBurstIdsRef.current;
+    let hasEmitted = false;
 
-    for (const burst of activeBursts) {
+    for (let b = 0; b < activeBursts.length; b++) {
+      const burst = activeBursts[b];
       if (processed.has(burst.id)) continue;
+
       processed.add(burst.id);
       hasEmitted = true;
+      hasAnyActiveRef.current = true;
 
       const emitCount = getBurstParticleCount(burst.intensity);
-      const baseColor = new THREE.Color(burst.color);
-      const whiteTint = new THREE.Color('#ffffff');
+      tempBaseColor.set(burst.color);
 
       for (let j = 0; j < emitCount; j++) {
         const slot = ringCursorRef.current;
@@ -82,40 +96,35 @@ export const ParticleSystem = () => {
         pool.velocities[i3 + 2] = Math.sin(phi) * Math.sin(theta) * speed;
 
         const mixRatio = Math.random() * 0.45;
-        pool.colors[i3] = THREE.MathUtils.lerp(baseColor.r, whiteTint.r, mixRatio);
-        pool.colors[i3 + 1] = THREE.MathUtils.lerp(baseColor.g, whiteTint.g, mixRatio);
-        pool.colors[i3 + 2] = THREE.MathUtils.lerp(baseColor.b, whiteTint.b, mixRatio);
+        pool.colors[i3] = THREE.MathUtils.lerp(tempBaseColor.r, tempWhiteColor.r, mixRatio);
+        pool.colors[i3 + 1] = THREE.MathUtils.lerp(tempBaseColor.g, tempWhiteColor.g, mixRatio);
+        pool.colors[i3 + 2] = THREE.MathUtils.lerp(tempBaseColor.b, tempWhiteColor.b, mixRatio);
 
         pool.lifetimes[slot] = 0.75 + Math.random() * 0.45;
       }
     }
 
-    if (processed.size > 120) {
-      const activeIds = new Set(activeBursts.map((b) => b.id));
-      for (const id of processed) {
-        if (!activeIds.has(id)) {
-          processed.delete(id);
-        }
+    if (processed.size > 160) {
+      processed.clear();
+      for (let b = 0; b < activeBursts.length; b++) {
+        processed.add(activeBursts[b].id);
       }
     }
 
-    if (hasEmitted && pointsRef.current) {
-      pointsRef.current.geometry.attributes.position.needsUpdate = true;
-      pointsRef.current.geometry.attributes.color.needsUpdate = true;
+    if (hasEmitted) {
+      pts.geometry.attributes.color.needsUpdate = true;
     }
-  }, [activeBursts, pool, particleCount]);
 
-  useFrame((_, rawDelta) => {
-    if (!pointsRef.current) return;
+    if (!hasAnyActiveRef.current) return;
 
     const delta = Math.min(rawDelta, 0.05);
     const drag = Math.max(0.85, 1 - delta * 2.2);
-    let hasActiveParticles = false;
+    let stillActive = false;
 
     for (let i = 0; i < particleCount; i++) {
       if (pool.lifetimes[i] <= 0) continue;
 
-      hasActiveParticles = true;
+      stillActive = true;
       const i3 = i * 3;
 
       pool.positions[i3] += pool.velocities[i3] * delta;
@@ -133,8 +142,9 @@ export const ParticleSystem = () => {
       }
     }
 
-    if (hasActiveParticles) {
-      pointsRef.current.geometry.attributes.position.needsUpdate = true;
+    hasAnyActiveRef.current = stillActive;
+    if (stillActive || hasEmitted) {
+      pts.geometry.attributes.position.needsUpdate = true;
     }
   });
 

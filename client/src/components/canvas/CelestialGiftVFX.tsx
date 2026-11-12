@@ -4,34 +4,59 @@ import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY } from '../../constants/game';
 
+const GIFT_VFX_DURATION_MS = 3200;
+const LEFT_THEME_COLOR = '#00f2fe';
+const RIGHT_THEME_COLOR = '#ffa751';
+const GIFT_LIGHT_INTENSITY = 8.0;
+
 export const CelestialGiftVFX = () => {
-  const activeGiftBanner = useGameStore((state) => state.activeGiftBanner);
   const containerRef = useRef<THREE.Group>(null);
   const beamRef = useRef<THREE.Mesh>(null);
   const novaRingRef1 = useRef<THREE.Mesh>(null);
   const novaRingRef2 = useRef<THREE.Mesh>(null);
   const coreOrbRef = useRef<THREE.Mesh>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
+  const lastBannerIdRef = useRef<string | null>(null);
 
   useFrame(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
+    const activeGiftBanner = useGameStore.getState().activeGiftBanner;
     if (!activeGiftBanner) {
-      containerRef.current.visible = false;
+      if (container.visible) {
+        container.visible = false;
+        if (lightRef.current) lightRef.current.intensity = 0;
+      }
       return;
     }
 
     const elapsed = Date.now() - activeGiftBanner.timestamp;
-    const duration = 3200;
-
-    if (elapsed > duration) {
-      containerRef.current.visible = false;
+    if (elapsed > GIFT_VFX_DURATION_MS) {
+      if (container.visible) {
+        container.visible = false;
+        if (lightRef.current) lightRef.current.intensity = 0;
+      }
       return;
     }
 
-    containerRef.current.visible = true;
-    const progress = Math.min(1.0, elapsed / duration);
+    if (lastBannerIdRef.current !== activeGiftBanner.id) {
+      lastBannerIdRef.current = activeGiftBanner.id;
+      const themeColor = activeGiftBanner.team === TEAM_KEY.BLG ? LEFT_THEME_COLOR : RIGHT_THEME_COLOR;
+      if (beamRef.current?.material instanceof THREE.MeshBasicMaterial) {
+        beamRef.current.material.color.set(themeColor);
+      }
+      if (novaRingRef1.current?.material instanceof THREE.MeshBasicMaterial) {
+        novaRingRef1.current.material.color.set(themeColor);
+      }
+      if (lightRef.current) {
+        lightRef.current.color.set(themeColor);
+      }
+    }
 
-    // Impact timing: 0 to 0.25 is descent, 0.25 to 1.0 is detonation
+    container.visible = true;
+    const progress = Math.min(1.0, elapsed / GIFT_VFX_DURATION_MS);
+
     if (progress < 0.25) {
       const dropProgress = progress / 0.25;
       const currentY = THREE.MathUtils.lerp(18, 0.4, dropProgress);
@@ -42,108 +67,69 @@ export const CelestialGiftVFX = () => {
       if (beamRef.current) {
         beamRef.current.visible = true;
         beamRef.current.scale.set(0.6 + dropProgress * 0.8, 1, 0.6 + dropProgress * 0.8);
+        if (beamRef.current.material instanceof THREE.MeshBasicMaterial) {
+          beamRef.current.material.opacity = 0.8;
+        }
       }
       if (novaRingRef1.current) novaRingRef1.current.visible = false;
       if (novaRingRef2.current) novaRingRef2.current.visible = false;
-    } else {
-      // Detonation phase
-      const boomProgress = (progress - 0.25) / 0.75;
+      if (lightRef.current) lightRef.current.intensity = GIFT_LIGHT_INTENSITY * dropProgress;
+      return;
+    }
 
-      if (coreOrbRef.current) {
-        coreOrbRef.current.position.set(0, 0.4, 0);
-        const orbScale = Math.max(0, (1 - boomProgress) * 3.5);
-        coreOrbRef.current.scale.setScalar(orbScale);
+    const boomProgress = (progress - 0.25) / 0.75;
+    if (coreOrbRef.current) {
+      coreOrbRef.current.position.set(0, 0.4, 0);
+      coreOrbRef.current.scale.setScalar(Math.max(0, (1 - boomProgress) * 3.5));
+    }
+
+    if (beamRef.current?.material instanceof THREE.MeshBasicMaterial) {
+      beamRef.current.material.opacity = Math.max(0, (1 - boomProgress) * 0.85);
+    }
+
+    if (novaRingRef1.current && novaRingRef2.current) {
+      novaRingRef1.current.visible = true;
+      novaRingRef2.current.visible = true;
+      novaRingRef1.current.scale.set(1 + boomProgress * 8.5, 1 + boomProgress * 8.5, 1);
+      novaRingRef2.current.scale.set(1 + boomProgress * 6.2, 1 + boomProgress * 6.2, 1);
+
+      if (novaRingRef1.current.material instanceof THREE.MeshBasicMaterial) {
+        novaRingRef1.current.material.opacity = Math.max(0, (1 - boomProgress) * 0.9);
       }
-
-      if (beamRef.current) {
-        const beamMat = beamRef.current.material as THREE.MeshBasicMaterial;
-        if (beamMat) {
-          beamMat.opacity = Math.max(0, (1 - boomProgress) * 0.85);
-        }
+      if (novaRingRef2.current.material instanceof THREE.MeshBasicMaterial) {
+        novaRingRef2.current.material.opacity = Math.max(0, (1 - boomProgress) * 0.8);
       }
+    }
 
-      // Expanding dual nova shockwaves
-      if (novaRingRef1.current && novaRingRef2.current) {
-        novaRingRef1.current.visible = true;
-        novaRingRef2.current.visible = true;
-
-        const ringScale1 = 1 + boomProgress * 8.5;
-        const ringScale2 = 1 + boomProgress * 6.2;
-        novaRingRef1.current.scale.set(ringScale1, ringScale1, 1);
-        novaRingRef2.current.scale.set(ringScale2, ringScale2, 1);
-
-        const mat1 = novaRingRef1.current.material as THREE.MeshBasicMaterial;
-        const mat2 = novaRingRef2.current.material as THREE.MeshBasicMaterial;
-        if (mat1) mat1.opacity = Math.max(0, (1 - boomProgress) * 0.9);
-        if (mat2) mat2.opacity = Math.max(0, (1 - boomProgress) * 0.8);
-      }
+    if (lightRef.current) {
+      lightRef.current.intensity = Math.max(0, (1 - boomProgress) * GIFT_LIGHT_INTENSITY);
     }
   });
 
-  if (!activeGiftBanner) return null;
-
-  const isBLG = activeGiftBanner.team === TEAM_KEY.BLG;
-  const themeColor = isBLG ? '#00f2fe' : '#ffa751';
-
+  // Always kept mounted (toggled via visible / intensity=0) so WebGL never recompiles shaders on gift burst
   return (
-    <group ref={containerRef} position={[0, -0.6, 0]}>
-      {/* 1. Celestial Core Orb (Blazing Hot Sun / Dragon Core) */}
+    <group ref={containerRef} position={[0, -0.6, 0]} visible={false}>
       <mesh ref={coreOrbRef} position={[0, 18, 0]}>
-        <sphereGeometry args={[0.9, 24, 24]} />
-        <meshBasicMaterial
-          color="#ffffff"
-          toneMapped={false}
-        />
+        <sphereGeometry args={[0.9, 20, 20]} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </mesh>
 
-      {/* 2. Super High-Energy Pillar of Light */}
       <mesh ref={beamRef} position={[0, 9, 0]}>
-        <cylinderGeometry args={[0.5, 0.85, 20, 20]} />
-        <meshBasicMaterial
-          color={themeColor}
-          transparent
-          opacity={0.8}
-          toneMapped={false}
-          side={THREE.DoubleSide}
-        />
+        <cylinderGeometry args={[0.5, 0.85, 20, 16]} />
+        <meshBasicMaterial color={LEFT_THEME_COLOR} transparent opacity={0.8} toneMapped={false} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* 3. Expanding Ground Nova Shockwave 1 */}
-      <mesh
-        ref={novaRingRef1}
-        position={[0, 0.2, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <ringGeometry args={[0.6, 1.2, 36]} />
-        <meshBasicMaterial
-          color={themeColor}
-          transparent
-          opacity={0.9}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          side={THREE.DoubleSide}
-        />
+      <mesh ref={novaRingRef1} position={[0, 0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.6, 1.2, 32]} />
+        <meshBasicMaterial color={LEFT_THEME_COLOR} transparent opacity={0.9} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* 4. Expanding Ground Nova Shockwave 2 */}
-      <mesh
-        ref={novaRingRef2}
-        position={[0, 0.22, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <ringGeometry args={[0.9, 1.5, 36]} />
-        <meshBasicMaterial
-          color="#ffffff"
-          transparent
-          opacity={0.85}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          side={THREE.DoubleSide}
-        />
+      <mesh ref={novaRingRef2} position={[0, 0.22, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.9, 1.5, 32]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.85} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Impact Point Dynamic Omni Light */}
-      <pointLight position={[0, 1.5, 0]} intensity={8.0} color={themeColor} distance={12} />
+      <pointLight ref={lightRef} position={[0, 1.5, 0]} intensity={0} color={LEFT_THEME_COLOR} distance={12} />
     </group>
   );
 };

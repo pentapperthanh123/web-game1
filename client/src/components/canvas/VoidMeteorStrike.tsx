@@ -4,89 +4,73 @@ import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY } from '../../constants/game';
 
+const STRIKE_DURATION_MS = 2200;
+const LEFT_STRIKE_COLOR = '#06b6d4';
+const RIGHT_STRIKE_COLOR = '#eab308';
+
 export const VoidMeteorStrike = () => {
-  const activeGiftBanner = useGameStore((state) => state.activeGiftBanner);
   const beamGroupRef = useRef<THREE.Group>(null);
   const shockwaveRef = useRef<THREE.Mesh>(null);
   const coreBeamRef = useRef<THREE.Mesh>(null);
+  const sheathRef = useRef<THREE.Mesh>(null);
+  const lastBannerIdRef = useRef<string | null>(null);
 
   useFrame(() => {
-    if (!beamGroupRef.current || !shockwaveRef.current || !coreBeamRef.current) return;
+    const beamGroup = beamGroupRef.current;
+    if (!beamGroup || !shockwaveRef.current || !coreBeamRef.current) return;
 
+    const activeGiftBanner = useGameStore.getState().activeGiftBanner;
     if (!activeGiftBanner) {
-      beamGroupRef.current.visible = false;
+      if (beamGroup.visible) beamGroup.visible = false;
       return;
     }
 
     const elapsed = Date.now() - activeGiftBanner.timestamp;
-    const duration = 2200;
-
-    if (elapsed > duration) {
-      beamGroupRef.current.visible = false;
+    if (elapsed > STRIKE_DURATION_MS) {
+      if (beamGroup.visible) beamGroup.visible = false;
       return;
     }
 
-    beamGroupRef.current.visible = true;
-    const progress = elapsed / duration;
-
-    // Shockwave expands outwards along ground
-    const waveScale = 1.0 + progress * 6.5;
-    shockwaveRef.current.scale.set(waveScale, waveScale, waveScale);
-    const waveMat = shockwaveRef.current.material as THREE.MeshBasicMaterial;
-    if (waveMat) {
-      waveMat.opacity = Math.max(0, (1 - progress) * 0.85);
+    if (lastBannerIdRef.current !== activeGiftBanner.id) {
+      lastBannerIdRef.current = activeGiftBanner.id;
+      const strikeColor = activeGiftBanner.team === TEAM_KEY.BLG ? LEFT_STRIKE_COLOR : RIGHT_STRIKE_COLOR;
+      if (sheathRef.current?.material instanceof THREE.MeshBasicMaterial) {
+        sheathRef.current.material.color.set(strikeColor);
+      }
+      if (shockwaveRef.current.material instanceof THREE.MeshBasicMaterial) {
+        shockwaveRef.current.material.color.set(strikeColor);
+      }
     }
 
-    // Core beam fades out towards the end
-    const beamMat = coreBeamRef.current.material as THREE.MeshBasicMaterial;
-    if (beamMat) {
-      beamMat.opacity = Math.max(0, (1 - progress * 1.2) * 0.95);
+    beamGroup.visible = true;
+    const progress = elapsed / STRIKE_DURATION_MS;
+
+    const waveScale = 1.0 + progress * 6.5;
+    shockwaveRef.current.scale.set(waveScale, waveScale, waveScale);
+    if (shockwaveRef.current.material instanceof THREE.MeshBasicMaterial) {
+      shockwaveRef.current.material.opacity = Math.max(0, (1 - progress) * 0.85);
+    }
+
+    if (coreBeamRef.current.material instanceof THREE.MeshBasicMaterial) {
+      coreBeamRef.current.material.opacity = Math.max(0, (1 - progress * 1.2) * 0.95);
     }
   });
 
-  if (!activeGiftBanner) return null;
-
-  const isBLG = activeGiftBanner.team === TEAM_KEY.BLG;
-  const strikeColor = isBLG ? '#06b6d4' : '#eab308';
-  const coreColor = '#ffffff';
-
   return (
-    <group ref={beamGroupRef} position={[0, 0, 0]}>
-      {/* 1. Super Giant Core Light Beam */}
+    <group ref={beamGroupRef} position={[0, 0, 0]} visible={false}>
       <mesh ref={coreBeamRef} position={[0, 6, 0]}>
         <cylinderGeometry args={[0.45, 0.65, 14, 16]} />
-        <meshBasicMaterial
-          color={coreColor}
-          transparent
-          opacity={0.9}
-          toneMapped={false}
-        />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.9} toneMapped={false} />
       </mesh>
 
-      {/* 2. Outer Energy Sheath */}
-      <mesh position={[0, 6, 0]}>
+      <mesh ref={sheathRef} position={[0, 6, 0]}>
         <cylinderGeometry args={[0.9, 1.2, 14, 16]} />
-        <meshBasicMaterial
-          color={strikeColor}
-          transparent
-          opacity={0.5}
-          wireframe
-        />
+        <meshBasicMaterial color={LEFT_STRIKE_COLOR} transparent opacity={0.5} wireframe />
       </mesh>
 
-      {/* 3. Expanding Ground Shockwave Ring */}
-      <mesh
-        ref={shockwaveRef}
-        position={[0, -0.6, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
+      <mesh ref={shockwaveRef} position={[0, -0.6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.8, 1.4, 32]} />
-        <meshBasicMaterial
-          color={strikeColor}
-          transparent
-          opacity={0.8}
-          side={THREE.DoubleSide}
-        />
+        <meshBasicMaterial color={LEFT_STRIKE_COLOR} transparent opacity={0.8} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );

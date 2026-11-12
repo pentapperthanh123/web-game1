@@ -1872,7 +1872,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           : summonerName,
         isSignatureSynergy ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL
       );
-      get().spawnFlyingArrow(championName, team, isSignatureSynergy);
+      get().spawnFlyingArrow(championName, team, false);
     }, GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS);
 
     const teamTag = activeTeamProfile?.shortTag || team;

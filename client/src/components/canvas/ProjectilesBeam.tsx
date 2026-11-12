@@ -18,16 +18,25 @@ const computeArcPoint = (
 export const ProjectilesBeam = () => {
   const coreMeshRef = useRef<THREE.InstancedMesh>(null);
   const auraMeshRef = useRef<THREE.InstancedMesh>(null);
-  const activeProjectiles = useGameStore((state) => state.activeProjectiles);
 
   useFrame(() => {
     const coreMesh = coreMeshRef.current;
     const auraMesh = auraMeshRef.current;
     if (!coreMesh || !auraMesh) return;
 
+    const activeProjectiles = useGameStore.getState().activeProjectiles;
+    const count = Math.min(activeProjectiles.length, COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_MAX_ACTIVE);
+
+    if (count === 0) {
+      if (coreMesh.count !== 0) {
+        coreMesh.count = 0;
+        auraMesh.count = 0;
+      }
+      return;
+    }
+
     const now = Date.now();
     const duration = COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_DURATION_MS;
-    const count = Math.min(activeProjectiles.length, COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_MAX_ACTIVE);
     coreMesh.count = count;
     auraMesh.count = count;
 

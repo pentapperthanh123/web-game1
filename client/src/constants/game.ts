@@ -1084,12 +1084,25 @@ export const getChampionSkillVFX = (
 ): { type: ChampionSkillVFXType; skillName: string; glowColor: string; coreColor: string } => {
   const normalized = championName.trim().toLowerCase();
 
-  // 1. Check custom pro player & team specific overrides first
+  // If not full fury / not crit -> Always standard clean auto-attack ("bắn thường")
+  if (!isCrit) {
+    const master = findMasterChampion(championName);
+    const baseConfig = CHAMPION_VFX_MAP[normalized];
+    const themeColor = master?.skill?.glowColor || baseConfig?.glowColor || '#38bdf8';
+    return {
+      type: CHAMPION_SKILL_VFX_TYPE.ARROW,
+      skillName: 'Đòn Đánh Thường',
+      glowColor: themeColor,
+      coreColor: '#ffffff',
+    };
+  }
+
+  // 1. Full Fury / Bạo Nộ: Check custom pro player & team specific overrides first
   if (CHAMPION_VFX_MAP[normalized]) {
     const baseConfig = CHAMPION_VFX_MAP[normalized];
     return {
-      type: isCrit ? baseConfig.ultimateType : baseConfig.type,
-      skillName: isCrit ? baseConfig.ultimateSkillName : baseConfig.skillName,
+      type: baseConfig.ultimateType,
+      skillName: baseConfig.ultimateSkillName,
       glowColor: baseConfig.glowColor,
       coreColor: baseConfig.coreColor,
     };
@@ -1098,20 +1111,20 @@ export const getChampionSkillVFX = (
   for (const [key, config] of Object.entries(CHAMPION_VFX_MAP)) {
     if (normalized.includes(key)) {
       return {
-        type: isCrit ? config.ultimateType : config.type,
-        skillName: isCrit ? config.ultimateSkillName : config.skillName,
+        type: config.ultimateType,
+        skillName: config.ultimateSkillName,
         glowColor: config.glowColor,
         coreColor: config.coreColor,
       };
     }
   }
 
-  // 2. Comprehensive 169 Champion Master Registry match
+  // 2. Full Fury / Bạo Nộ: Comprehensive 173 Champion Master Registry match
   const master = findMasterChampion(championName);
   if (master) {
     return {
-      type: (isCrit ? master.skill.ultimateVfxType : master.skill.normalVfxType) as ChampionSkillVFXType,
-      skillName: isCrit ? master.skill.ultimateSkillName : master.skill.normalSkillName,
+      type: master.skill.ultimateVfxType as ChampionSkillVFXType,
+      skillName: master.skill.ultimateSkillName,
       glowColor: master.skill.glowColor,
       coreColor: master.skill.coreColor,
     };
@@ -1119,8 +1132,8 @@ export const getChampionSkillVFX = (
 
   // 3. Fallback
   return {
-    type: isCrit ? DEFAULT_CHAMPION_VFX.ultimateType : DEFAULT_CHAMPION_VFX.type,
-    skillName: isCrit ? DEFAULT_CHAMPION_VFX.ultimateSkillName : DEFAULT_CHAMPION_VFX.skillName,
+    type: DEFAULT_CHAMPION_VFX.ultimateType,
+    skillName: DEFAULT_CHAMPION_VFX.ultimateSkillName,
     glowColor: DEFAULT_CHAMPION_VFX.glowColor,
     coreColor: DEFAULT_CHAMPION_VFX.coreColor,
   };
