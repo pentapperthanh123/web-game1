@@ -205,7 +205,13 @@ const getStoredAutoProBattleConfig = (): AutoProBattleConfig => {
   try {
     const raw = localStorage.getItem(AUTO_PRO_STORAGE_KEY);
     if (!raw) return DEFAULT_AUTO_PRO_BATTLE_CONFIG;
-    return { ...DEFAULT_AUTO_PRO_BATTLE_CONFIG, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_AUTO_PRO_BATTLE_CONFIG,
+      ...parsed,
+      enabled: parsed.enabled ?? DEFAULT_AUTO_PRO_BATTLE_CONFIG.enabled,
+      onlyWhenIdle: parsed.onlyWhenIdle ?? DEFAULT_AUTO_PRO_BATTLE_CONFIG.onlyWhenIdle,
+    };
   } catch {
     return DEFAULT_AUTO_PRO_BATTLE_CONFIG;
   }
@@ -877,10 +883,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     const activeTeamTheme = getTeamTheme(state.activeTeams[team]?.colorTheme);
     const proBeamColor = isFullFury ? '#fbbf24' : activeTeamTheme.primaryHex;
 
-    get().spawnFlyingArrow(player.signatureChampion, team, isFullFury);
-    if (isFullFury) {
-      get().spawnProjectile(proStart3D, proBeamColor, true);
-    }
+    get().spawnFlyingArrow(
+      player.signatureChampion,
+      team,
+      isFullFury,
+      undefined,
+      undefined,
+      player.id
+    );
+    get().spawnProjectile(proStart3D, proBeamColor, isFullFury);
 
     set((prev) => ({
       rosterAttackTimestamps: {
@@ -925,7 +936,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     team: TeamType,
     isCrit = false,
     customStart?: { x: number; y: number },
-    customTarget?: { x: number; y: number }
+    customTarget?: { x: number; y: number },
+    sourcePlayerId?: string
   ) => {
     const currentState = get();
     if (currentState.bossStatus === BOSS_STATUS.DEFEATED || currentState.bossHp <= 0) {
@@ -940,7 +952,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       team
     );
     const activeRoster = currentState.activeTeams[team]?.roster ?? [];
-    const rosterPlayer = findRosterPlayerInRoster(resolvedChampion, activeRoster);
+    const rosterPlayer =
+      (sourcePlayerId ? activeRoster.find((p) => p.id === sourcePlayerId) : undefined) ||
+      findRosterPlayerInRoster(resolvedChampion, activeRoster);
     let startX: number;
     let startY: number;
 
@@ -968,12 +982,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const rect = anchorEl.getBoundingClientRect();
       startX = team === TEAM_KEY.BLG ? rect.right + 4 : rect.left - 4;
       startY = rect.top + rect.height / 2;
-
-      const popTarget = avatarEl || anchorEl;
-      popTarget.style.transform = 'scale(1.18)';
-      setTimeout(() => {
-        popTarget.style.transform = '';
-      }, 180);
+      // Visual feedback handled by glowing border in TeamRosterBar (no zoom scale)
     } else {
       const playerIndex = rosterPlayer
         ? activeRoster.findIndex((p) => p.id === rosterPlayer.id)

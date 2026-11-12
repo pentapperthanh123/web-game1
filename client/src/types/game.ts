@@ -455,7 +455,8 @@ export interface GameState {
     team: TeamType,
     isCrit?: boolean,
     customStart?: { x: number; y: number },
-    customTarget?: { x: number; y: number }
+    customTarget?: { x: number; y: number },
+    sourcePlayerId?: string
   ) => void;
   damageBoss: (
     amount: number,

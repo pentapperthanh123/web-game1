@@ -22,11 +22,15 @@ const isCompactViewport = (): boolean => {
 
 const getAvatarBorderClass = (
   isFullFury: boolean,
+  isAttacking: boolean,
   isActive: boolean,
   teamTheme: TeamColorPalette
 ): string => {
+  if (isAttacking) {
+    return 'border-white ring-2 ring-white shadow-[0_0_8px_rgba(255,255,255,0.9)]';
+  }
   if (isFullFury) {
-    return 'border-amber-300 ring-1 ring-amber-400/80 shadow-[0_0_8px_rgba(245,158,11,0.7)]';
+    return 'border-amber-300 ring-1.5 ring-amber-400/90 shadow-[0_0_8px_rgba(245,158,11,0.8)]';
   }
   if (isActive) {
     return teamTheme.borderClass;
@@ -53,6 +57,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   const minions = useGameStore((state) => state.minions);
   const rosterAttackTimestamps = useGameStore((state) => state.rosterAttackTimestamps);
   const rosterPlayerFury = useGameStore((state) => state.rosterPlayerFury);
+  const triggerAutoProAttack = useGameStore((state) => state.triggerAutoProAttack);
   const isLeft = side === 'left';
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(isCompactViewport);
@@ -146,7 +151,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
       </button>
 
       {/* Sleek Ultra-Compact Pro Player Cards */}
-      {roster.map((player) => {
+      {roster.map((player, playerIndex) => {
         const count = getSummonCount(player);
         const isAttacking = Boolean(rosterAttackTimestamps[player.id]);
         const fury = rosterPlayerFury[player.id] ?? 0;
@@ -165,6 +170,8 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
             isLeft={isLeft}
             teamTheme={teamTheme}
             furyReadyLabel={t('HUD.furyReady', 'NỘ')}
+            clickToAttackLabel={t('HUD.clickToAttack', 'Nhấn để xuất chiêu!')}
+            onAttack={() => triggerAutoProAttack(team, playerIndex)}
           />
         );
       })}
@@ -182,6 +189,8 @@ interface RosterItemProps {
   isLeft: boolean;
   teamTheme: TeamColorPalette;
   furyReadyLabel: string;
+  clickToAttackLabel: string;
+  onAttack: () => void;
 }
 
 const getRosterItemCardClass = (
@@ -190,14 +199,16 @@ const getRosterItemCardClass = (
   isFullFury: boolean,
   teamTheme: TeamColorPalette
 ): string => {
+  if (isAttacking) {
+    return `${teamTheme.rosterCardActiveClass} ring-2 ring-white/95 shadow-[0_0_12px_rgba(255,255,255,0.85)] brightness-125`;
+  }
   if (isFullFury) {
-    return 'bg-gradient-to-r from-rose-950/90 via-amber-950/85 to-slate-950/85 border-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.65)] scale-[1.02]';
+    return 'bg-gradient-to-r from-rose-950/90 via-amber-950/85 to-slate-950/85 border-amber-300 ring-1.5 ring-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.7)]';
   }
   if (!isActive) {
     return 'bg-slate-950/65 border-slate-800/65 opacity-85 hover:opacity-100 hover:border-slate-700';
   }
-  const scaleClass = isAttacking ? 'scale-[1.02] ring-1 ring-white/40' : '';
-  return `${teamTheme.rosterCardActiveClass} ${scaleClass}`;
+  return teamTheme.rosterCardActiveClass;
 };
 
 const RosterItem = ({
@@ -210,6 +221,8 @@ const RosterItem = ({
   isLeft,
   teamTheme,
   furyReadyLabel,
+  clickToAttackLabel,
+  onAttack,
 }: RosterItemProps) => {
   const [imageError, setImageError] = useState(false);
 
@@ -220,8 +233,17 @@ const RosterItem = ({
   return (
     <div
       id={`roster-card-${player.id}`}
-      title={`${player.name} (${player.role}) • Tướng tủ: ${player.signatureChampion}`}
-      className={`relative flex items-center space-x-1 px-1 py-0.5 rounded-md border backdrop-blur-sm transition-all duration-150 select-none ${
+      onClick={onAttack}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onAttack();
+        }
+      }}
+      title={`${player.name} (${player.role}) • Tướng tủ: ${player.signatureChampion} • ${clickToAttackLabel}`}
+      className={`relative flex items-center space-x-1 px-1 py-0.5 rounded-md border backdrop-blur-sm transition-all duration-150 select-none cursor-pointer hover:brightness-110 active:brightness-125 ${
         isLeft ? 'flex-row' : 'flex-row-reverse space-x-reverse'
       } ${getRosterItemCardClass(isActive, isAttacking, isFullFury, teamTheme)}`}
     >
@@ -230,6 +252,7 @@ const RosterItem = ({
         <div
           className={`w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full overflow-hidden border ${getAvatarBorderClass(
             isFullFury,
+            isAttacking,
             isActive,
             teamTheme
           )}`}

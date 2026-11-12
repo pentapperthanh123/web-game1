@@ -1035,8 +1035,8 @@ export const AUDIO_SFX_CONSTANTS = {
 } as const;
 
 export const DEFAULT_AUTO_PRO_BATTLE_CONFIG = {
-  enabled: false,
-  onlyWhenIdle: true,
+  enabled: true,
+  onlyWhenIdle: false,
   intervalMs: AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS,
 };
 
