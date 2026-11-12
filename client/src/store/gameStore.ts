@@ -1654,29 +1654,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     // 2. Expire old Weak Point
-    if (state.bossWeakPoint && now >= state.bossWeakPoint.expiresAt) {
+    if (state.bossWeakPoint) {
       set({ bossWeakPoint: null });
       return;
     }
 
-    // 3. Periodically spawn a Weak Point if no shield is active
-    const elapsedSinceSpawn = now - state.lastWeakPointSpawnTimestamp;
-    const isInitialDelayDone =
-      state.lastWeakPointSpawnTimestamp === 0 ||
-      elapsedSinceSpawn >= BOSS_MECHANICS_CONSTANTS.WEAK_POINT.SPAWN_INTERVAL_MS;
-    if (!state.bossShield && !state.bossWeakPoint && isInitialDelayDone) {
-      const spots = BOSS_MECHANICS_CONSTANTS.WEAK_POINT.SPOTS;
-      const spot = spots[Math.floor(Math.random() * spots.length)];
-      set({
-        bossWeakPoint: {
-          id: `wp-${now}`,
-          spot,
-          createdAt: now,
-          expiresAt: now + BOSS_MECHANICS_CONSTANTS.WEAK_POINT.DURATION_MS,
-        },
-        lastWeakPointSpawnTimestamp: now,
-      });
-    }
+    // 3. Weak Point disabled per user request (removed yellow ring / weak point)
   },
 
   healTeamChampions: (targetTeam, amount) => {

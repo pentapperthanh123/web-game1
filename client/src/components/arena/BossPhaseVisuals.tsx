@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Crosshair, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { BOSS_MECHANICS_CONSTANTS } from '../../constants/game';
-import { BossWeakPointSpot } from '../../types/game';
 
 interface BossPhaseVisualsProps {
   bossHp: number;
@@ -11,12 +10,6 @@ interface BossPhaseVisualsProps {
   isElderDragon: boolean;
   isDefeated: boolean;
 }
-
-const WEAK_POINT_POS_MAP: Record<BossWeakPointSpot, string> = {
-  'left-horn': 'top-[18%] left-[24%]',
-  'core-chest': 'top-[48%] left-[50%]',
-  'right-claw': 'top-[42%] left-[74%]',
-};
 
 const resolveBossPhase = (bossHp: number, bossMaxHp: number): 1 | 2 | 3 => {
   if (bossMaxHp <= 0) return 1;
@@ -85,17 +78,15 @@ export const BossPhaseVisuals = ({
   const { t } = useTranslation();
   const bossShield = useGameStore((state) => state.bossShield);
   const bossShieldBrokenTimestamp = useGameStore((state) => state.bossShieldBrokenTimestamp);
-  const bossWeakPoint = useGameStore((state) => state.bossWeakPoint);
-  const hitWeakPoint = useGameStore((state) => state.hitWeakPoint);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!bossShield && !bossWeakPoint && bossShieldBrokenTimestamp === 0) {
+    if (!bossShield && bossShieldBrokenTimestamp === 0) {
       return;
     }
     const timer = setInterval(() => setNow(Date.now()), 200);
     return () => clearInterval(timer);
-  }, [bossShield, bossWeakPoint, bossShieldBrokenTimestamp]);
+  }, [bossShield, bossShieldBrokenTimestamp]);
 
   if (isDefeated || bossHp <= 0 || bossMaxHp <= 0) return null;
 
@@ -112,7 +103,6 @@ export const BossPhaseVisuals = ({
 
   return (
     <>
-
       {/* Active Energy Shield HUD Card (Positioned safely above Boss head, avoiding bottom leaderboard) */}
       {bossShield && (
         <div className="absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 w-52 sm:w-60 z-20 pointer-events-none">
@@ -151,28 +141,6 @@ export const BossPhaseVisuals = ({
             {t('BossInteractive.shieldBroken', '💥 VỠ KHIÊN! +4,000 ST CHOÁNG!')}
           </span>
         </div>
-      )}
-
-      {/* Clickable Interactive Weak Point Target */}
-      {bossWeakPoint && now < bossWeakPoint.expiresAt && !bossShield && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            hitWeakPoint();
-          }}
-          title={t('BossInteractive.weakPointTooltip', 'Chạm vào Điểm Yếu để gây 200% Sát Thương Bạo Kích!')}
-          className={`absolute ${
-            WEAK_POINT_POS_MAP[bossWeakPoint.spot]
-          } -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-auto group flex flex-col items-center cursor-crosshair`}
-        >
-          <span className="relative flex items-center justify-center w-9 h-9 rounded-full border-2 border-amber-300 bg-rose-600/45 shadow-[0_0_18px_#f59e0b] animate-pulse group-hover:scale-125 transition-transform">
-            <Crosshair className="w-5 h-5 text-yellow-200" />
-          </span>
-          <span className="mt-0.5 px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 text-[8px] font-black uppercase shadow whitespace-nowrap">
-            {t('BossInteractive.weakPointBadge', 'ĐIỂM YẾU x2')}
-          </span>
-        </button>
       )}
     </>
   );

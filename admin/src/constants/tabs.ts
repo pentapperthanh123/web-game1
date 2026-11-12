@@ -8,7 +8,7 @@ export const ADMIN_PORTAL_TAB = {
 
 export type AdminPortalTabId = (typeof ADMIN_PORTAL_TAB)[keyof typeof ADMIN_PORTAL_TAB];
 
-export const DEFAULT_ADMIN_PORTAL_TAB: AdminPortalTabId = ADMIN_PORTAL_TAB.INTERACTION;
+export const DEFAULT_ADMIN_PORTAL_TAB: AdminPortalTabId = ADMIN_PORTAL_TAB.ALL;
 export const ADMIN_TAB_STORAGE_KEY = 'lol_admin_portal_active_tab';
 
 export interface AdminPortalTabMeta {
@@ -17,11 +17,11 @@ export interface AdminPortalTabMeta {
 }
 
 export const ADMIN_PORTAL_TABS: readonly AdminPortalTabMeta[] = [
+  { id: ADMIN_PORTAL_TAB.ALL, label: 'Xem Tất Cả' },
+  { id: ADMIN_PORTAL_TAB.OVERLAYS, label: 'Ẩn/Hiện Section (Overlay)' },
   { id: ADMIN_PORTAL_TAB.INTERACTION, label: 'Tương Tác & Quà' },
   { id: ADMIN_PORTAL_TAB.BOSS_MAP, label: 'Boss & Bản Đồ' },
-  { id: ADMIN_PORTAL_TAB.OVERLAYS, label: 'Ẩn/Hiện Section' },
   { id: ADMIN_PORTAL_TAB.LOGS, label: 'Nhật Ký Live' },
-  { id: ADMIN_PORTAL_TAB.ALL, label: 'Xem Tất Cả' },
 ];
 
 export function isAdminPortalTabId(value: string): value is AdminPortalTabId {
@@ -34,7 +34,8 @@ export function loadStoredAdminTab(): AdminPortalTabId {
   }
   try {
     const raw = localStorage.getItem(ADMIN_TAB_STORAGE_KEY);
-    if (raw && isAdminPortalTabId(raw)) {
+    // If the browser previously stored INTERACTION from legacy session, migrate to ALL so all sections are visible
+    if (raw && isAdminPortalTabId(raw) && raw !== ADMIN_PORTAL_TAB.INTERACTION) {
       return raw;
     }
     return DEFAULT_ADMIN_PORTAL_TAB;

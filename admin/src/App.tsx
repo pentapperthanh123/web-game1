@@ -173,12 +173,32 @@ export function App() {
   const handleSelectTab = (tabId: AdminPortalTabId) => {
     setActiveTab(tabId);
     saveStoredAdminTab(tabId);
+    if (tabId === ADMIN_PORTAL_TAB.OVERLAYS) {
+      setTimeout(() => {
+        document.getElementById('section-overlays')?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } else if (tabId === ADMIN_PORTAL_TAB.BOSS_MAP) {
+      setTimeout(() => {
+        document.getElementById('section-boss-map')?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } else if (tabId === ADMIN_PORTAL_TAB.LOGS) {
+      setTimeout(() => {
+        document.getElementById('section-logs')?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } else if (tabId === ADMIN_PORTAL_TAB.INTERACTION) {
+      setTimeout(() => {
+        document.getElementById('section-interaction')?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }
   };
 
   const isAllTab = activeTab === ADMIN_PORTAL_TAB.ALL;
   const shouldShowInteraction = isAllTab || activeTab === ADMIN_PORTAL_TAB.INTERACTION;
   const shouldShowBossMap = isAllTab || activeTab === ADMIN_PORTAL_TAB.BOSS_MAP;
-  const shouldShowOverlays = isAllTab || activeTab === ADMIN_PORTAL_TAB.OVERLAYS;
+  const shouldShowOverlays =
+    isAllTab ||
+    activeTab === ADMIN_PORTAL_TAB.OVERLAYS ||
+    activeTab === ADMIN_PORTAL_TAB.INTERACTION;
   const shouldShowLogs = isAllTab || activeTab === ADMIN_PORTAL_TAB.LOGS;
 
   const [championSearchFilter, setChampionSearchFilter] = useState('');
@@ -667,7 +687,7 @@ export function App() {
         />
 
         {/* Main Section Grid */}
-        <div className={getMainGridClassName(activeTab)}>
+        <div id="section-interaction" className={getMainGridClassName(activeTab)}>
           {/* Column 1: Thả Tim & Bình Luận Chat */}
           <div className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 ${shouldShowInteraction ? '' : 'hidden'}`}>
             <div className="flex items-center space-x-2 pb-2 border-b border-slate-800">
@@ -1247,7 +1267,7 @@ export function App() {
           </div>
         </div>
 
-        <div className={shouldShowBossMap ? 'space-y-6' : 'hidden'}>
+        <div id="section-boss-map" className={shouldShowBossMap ? 'space-y-6' : 'hidden'}>
         {/* Map / Arena Theme Switcher Section */}
         <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -1341,12 +1361,12 @@ export function App() {
         </div>
 
         {/* Section 7: Section Visibility Controls (Overlay Controls) */}
-        <div className={shouldShowOverlays ? 'block' : 'hidden'}>
+        <div id="section-overlays" className={shouldShowOverlays ? 'block' : 'hidden'}>
           <OverlayControls onActiveCountChange={setActiveOverlayCount} />
         </div>
 
         {/* Live Event Logs */}
-        <section className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 ${shouldShowLogs ? '' : 'hidden'}`}>
+        <section id="section-logs" className={`p-4 rounded-2xl bg-slate-900/90 border border-slate-800 ${shouldShowLogs ? '' : 'hidden'}`}>
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
             <div className="flex items-center space-x-2 text-xs font-bold uppercase text-white">
               <MessageSquare className="w-4 h-4 text-cyan-400" />
