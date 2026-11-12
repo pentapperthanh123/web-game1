@@ -17,7 +17,7 @@ import { GuestSimulationDock } from './GuestSimulationDock';
 import { AdminControlModal } from './AdminControlModal';
 import { ScreenFlash } from './ScreenFlash';
 import { TeamRosterBar } from './TeamRosterBar';
-import { SummonShowcase } from './SummonShowcase';
+import { SummonSpotlight } from './SummonShowcase';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
@@ -44,8 +44,9 @@ export const HUDOverlay = () => {
   useEffect(() => {
     const updateHeaderOffset = () => {
       if (!headerRef.current) return;
-      const rect = headerRef.current.getBoundingClientRect();
-      setHeaderBottomOffset(Math.round(rect.bottom + 8));
+      const top = headerRef.current.offsetTop;
+      const height = headerRef.current.offsetHeight;
+      setHeaderBottomOffset(Math.round(top + height + 8));
     };
 
     updateHeaderOffset();
@@ -170,16 +171,24 @@ export const HUDOverlay = () => {
         {overlayVisibility.teamScores && <TeamScoreBoard />}
       </header>
 
-      {/* Roster Bars on Left & Right Sides */}
-      {overlayVisibility.teamRosters && (
-        <>
-          <TeamRosterBar side="left" topOffset={headerBottomOffset} />
-          <TeamRosterBar side="right" topOffset={headerBottomOffset} />
-        </>
-      )}
+      {/* Dynamic Non-Overlapping Left & Right Team Side Wings */}
+      <div
+        style={{ top: `${headerBottomOffset}px` }}
+        className="absolute left-1 sm:left-1.5 z-[36] pointer-events-none flex flex-col items-start gap-1.5 transition-[top] duration-200"
+      >
+        {overlayVisibility.teamRosters && <TeamRosterBar side="left" isInFlow />}
+        <SummonSpotlight side="left" />
+      </div>
 
-      {/* Floating 3D & Summon Elements */}
-      <SummonShowcase />
+      <div
+        style={{ top: `${headerBottomOffset}px` }}
+        className="absolute right-1 sm:right-1.5 z-[36] pointer-events-none flex flex-col items-end gap-1.5 transition-[top] duration-200"
+      >
+        {overlayVisibility.teamRosters && <TeamRosterBar side="right" isInFlow />}
+        <SummonSpotlight side="right" />
+      </div>
+
+      {/* Floating 3D & Combat Elements */}
       <FloatingDamage />
       <VictoryOverlay />
       <SilverScrapesDuelOverlay />

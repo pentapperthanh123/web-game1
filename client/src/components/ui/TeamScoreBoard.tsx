@@ -168,7 +168,7 @@ export const TeamScoreBoard = () => {
 
       {/* Top Team Combo Counters */}
       {hasActiveCombo && (
-        <div className="flex items-center justify-between w-full mt-1 px-1 pointer-events-none min-h-[24px]">
+        <div className="flex items-center justify-between w-full max-w-sm sm:max-w-md mx-auto mt-1 px-1 sm:px-2 pointer-events-none min-h-[22px] sm:min-h-[24px]">
           <div className="flex-1 flex justify-start">
             <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
           </div>

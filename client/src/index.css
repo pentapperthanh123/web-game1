@@ -1246,3 +1246,207 @@
   animation: buffSoulBeams 2.6s ease-in-out infinite;
 }
 
+
+/* ───────────────────────────── Boss Skill Archetype Animations ───────────────────────────── */
+
+/* Boss sprite poses per archetype */
+@keyframes bossSpit {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  30% { transform: translate3d(0, -18px, 0) scale(1.06, 0.96); }
+  48% { transform: translate3d(0, 14px, 0) scale(0.96, 1.08); filter: brightness(1.5); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+.animate-boss-spit { animation: bossSpit 0.7s cubic-bezier(0.3, 0.9, 0.3, 1) forwards; }
+
+@keyframes bossStomp {
+  0% { transform: translate3d(0, 0, 0); }
+  35% { transform: translate3d(0, -34px, 0) scale(1.05); }
+  55% { transform: translate3d(0, 26px, 0) scale(1.12, 0.92); filter: brightness(1.7); }
+  75% { transform: translate3d(0, 6px, 0) scale(1.02); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+.animate-boss-stomp { animation: bossStomp 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards; }
+
+@keyframes bossSweep {
+  0% { transform: rotate(0deg) scale(1); }
+  30% { transform: rotate(-9deg) scale(1.05); }
+  60% { transform: rotate(11deg) scale(1.1); filter: brightness(1.6); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.animate-boss-sweep { animation: bossSweep 0.75s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+
+@keyframes bossSkyCall {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  40% { transform: translate3d(0, -46px, 0) scale(1.08); filter: brightness(1.8) drop-shadow(0 0 60px currentColor); }
+  70% { transform: translate3d(0, -30px, 0) scale(1.05); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+.animate-boss-sky-call { animation: bossSkyCall 1.1s cubic-bezier(0.2, 0.8, 0.3, 1) forwards; }
+
+@keyframes bossBeamRise {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(0, -22px, 0) scale(1.04); }
+  45% { transform: translate3d(0, -26px, 0) scale(1.1); filter: brightness(2) contrast(1.2); }
+  85% { transform: translate3d(0, -20px, 0) scale(1.06); filter: brightness(1.5); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+.animate-boss-beam-rise { animation: bossBeamRise 1.3s cubic-bezier(0.3, 0.7, 0.3, 1) forwards; }
+
+@keyframes bossVortexHover {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  30% { transform: translate3d(0, -28px, 0) rotate(-6deg); }
+  60% { transform: translate3d(0, -30px, 0) rotate(6deg); filter: brightness(1.6); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+.animate-boss-vortex-hover { animation: bossVortexHover 1.4s ease-in-out forwards; }
+
+/* Projectile arc from mouth to ground (x target via --arc-x) */
+@keyframes skillProjectileArc {
+  0% { transform: translate3d(0, 0, 0) scale(0.4); opacity: 0; }
+  10% { opacity: 1; }
+  50% { transform: translate3d(calc(var(--arc-x) * 0.5), -70px, 0) scale(1.1); }
+  85% { transform: translate3d(var(--arc-x), 150px, 0) scale(1); opacity: 1; }
+  100% { transform: translate3d(var(--arc-x), 150px, 0) scale(0.6); opacity: 0; }
+}
+.animate-skill-projectile-arc { animation: skillProjectileArc 0.95s cubic-bezier(0.4, 0, 0.6, 1) both; }
+
+@keyframes skillSplash {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  15% { opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+.animate-skill-splash { animation: skillSplash 0.5s ease-out both; }
+
+@keyframes skillSpikeRise {
+  0% { transform: scaleY(0); opacity: 0; }
+  25% { transform: scaleY(1.15); opacity: 1; }
+  55% { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(0); opacity: 0; }
+}
+.animate-skill-spike-rise { animation: skillSpikeRise 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+
+@keyframes skillCrescent {
+  0% { transform: translate(-50%, -50%) rotate(-70deg) scale(0.5); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(60deg) scale(1.3); opacity: 0; }
+}
+.animate-skill-crescent { animation: skillCrescent 0.6s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+
+@keyframes skillFlash {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.animate-skill-flash { animation: skillFlash 0.7s ease-out both; }
+
+@keyframes skillLightning {
+  0% { opacity: 0; transform: scaleY(0); }
+  8% { opacity: 1; transform: scaleY(1); }
+  20% { opacity: 0.4; }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: scaleY(1); }
+}
+.animate-skill-lightning { animation: skillLightning 0.55s ease-out both; transform-origin: top; }
+
+@keyframes skillMeteorFall {
+  0% { transform: translate3d(140px, -520px, 0) scale(0.6); opacity: 0; }
+  12% { opacity: 1; }
+  75% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  100% { transform: translate3d(0, 0, 0) scale(0.4); opacity: 0; }
+}
+.animate-skill-meteor-fall { animation: skillMeteorFall 0.85s cubic-bezier(0.5, 0, 0.9, 0.6) both; }
+
+@keyframes skillBeam {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  12% { opacity: 1; clip-path: inset(0 0 0 0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; clip-path: inset(0 0 0 100%); }
+}
+.animate-skill-beam { animation: skillBeam 1.3s cubic-bezier(0.2, 0.8, 0.4, 1) both; }
+
+@keyframes skillBeamCore {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  15% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+  70% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+}
+.animate-skill-beam-core { animation: skillBeamCore 1.3s ease-out both; }
+
+@keyframes skillVortex {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.3); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(540deg) scale(0.2); opacity: 0; }
+}
+.animate-skill-vortex { animation: skillVortex 1.7s cubic-bezier(0.4, 0, 0.7, 1) both; }
+
+@keyframes skillVortexReverse {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.3); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-540deg) scale(0.2); opacity: 0; }
+}
+.animate-skill-vortex-reverse { animation: skillVortexReverse 1.7s cubic-bezier(0.4, 0, 0.7, 1) both; }
+
+@keyframes skillVortexDebris {
+  0% { transform: rotate(var(--angle)) translateX(var(--orbit)) scale(1); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: rotate(calc(var(--angle) + 480deg)) translateX(0px) scale(0.2); opacity: 0; }
+}
+.animate-skill-vortex-debris { animation: skillVortexDebris 1.6s cubic-bezier(0.4, 0, 0.7, 1) both; }
+
+@keyframes skillDashPuff {
+  0% { transform: translate3d(0, 0, 0) scale(0.4); opacity: 0; }
+  25% { opacity: 0.9; }
+  100% { transform: translate3d(var(--puff-x), -24px, 0) scale(1.6); opacity: 0; }
+}
+.animate-skill-dash-puff { animation: skillDashPuff 0.8s ease-out both; }
+
+@keyframes skillSpeedLines {
+  0% { opacity: 0; transform: scaleX(0.3); }
+  30% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1.4); }
+}
+.animate-skill-speed-lines { animation: skillSpeedLines 0.7s ease-out both; transform-origin: center; }
+
+@keyframes skillSeismicRing {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+}
+.animate-skill-seismic-ring { animation: skillSeismicRing 1.1s cubic-bezier(0.2, 0.8, 0.3, 1) both; border-style: solid; }
+
+@keyframes skillCrackGlow {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  70% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+}
+.animate-skill-crack-glow { animation: skillCrackGlow 1.3s ease-out both; }
+
+@keyframes skillNovaCore {
+  0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
+  12% { transform: translate(-50%, -50%) scale(1.4); opacity: 1; }
+  40% { transform: translate(-50%, -50%) scale(1); opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+.animate-skill-nova-core { animation: skillNovaCore 1.6s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+
+@keyframes skillNovaRays {
+  0% { transform: rotate(0deg) scale(0.2); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: rotate(140deg) scale(1.4); opacity: 0; }
+}
+.animate-skill-nova-rays { animation: skillNovaRays 1.8s cubic-bezier(0.3, 0.7, 0.3, 1) both; }
+
+@keyframes skillNovaRing {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(4.5); opacity: 0; }
+}
+.animate-skill-nova-ring { animation: skillNovaRing 1.5s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+
+@keyframes phaseShiftBanner {
+  0% { opacity: 0; transform: translate(-50%, -30px) scale(0.6); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
+  20% { transform: translate(-50%, 0) scale(1); }
+  85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
+}
+.animate-phase-shift-banner { animation: phaseShiftBanner 2.8s cubic-bezier(0.2, 0.9, 0.3, 1) both; }

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { RosterPlayer } from '../../constants/roster';
-import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
+import { BOSS_STATUS, GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamColorPalette } from '../../types/team';
 import { audioService } from '../../services/audioService';
@@ -11,6 +11,7 @@ import { audioService } from '../../services/audioService';
 interface TeamRosterBarProps {
   side: 'left' | 'right';
   topOffset?: number;
+  isInFlow?: boolean;
 }
 
 const DESKTOP_EXPAND_MIN_WIDTH = 768;
@@ -48,7 +49,7 @@ const getFuryBarFillClass = (isFullFury: boolean, fury: number): string => {
   return 'bg-gradient-to-r from-cyan-500/80 to-amber-400/80';
 };
 
-export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
+export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps) => {
   const { t } = useTranslation();
   const team = side === 'left' ? TEAM_KEY.BLG : TEAM_KEY.GENG;
   const teamProfile = useGameStore((state) => state.activeTeams[team]);
@@ -58,6 +59,12 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   const rosterAttackTimestamps = useGameStore((state) => state.rosterAttackTimestamps);
   const rosterPlayerFury = useGameStore((state) => state.rosterPlayerFury);
   const triggerAutoProAttack = useGameStore((state) => state.triggerAutoProAttack);
+  const bossStatus = useGameStore((state) => state.bossStatus);
+  const bossHp = useGameStore((state) => state.bossHp);
+  const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
+  const roundWinner = useGameStore((state) => state.roundWinner);
+  const isBattlePaused =
+    bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isLeft = side === 'left';
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(isCompactViewport);
@@ -75,16 +82,22 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   const totalTeamSummons = minions.filter((m) => m.team === team).length;
   const shortTeamLabel = teamProfile.shortTag;
 
+  const isFlowLayout = Boolean(isInFlow || topOffset === undefined);
+
   if (isCollapsed) {
     const collapsedLabel =
       totalTeamSummons > 0 ? `${shortTeamLabel} (${totalTeamSummons})` : shortTeamLabel;
     return (
       <div
         id={`roster-container-${team}`}
-        style={topOffset ? { top: `${topOffset}px` } : undefined}
-        className={`absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
-          isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
-        } z-[36] pointer-events-auto select-none transition-[top] duration-200`}
+        style={!isFlowLayout && topOffset ? { top: `${topOffset}px` } : undefined}
+        className={`${
+          isFlowLayout
+            ? 'relative'
+            : `absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
+                isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
+              } transition-[top] duration-200`
+        } z-[36] pointer-events-auto select-none`}
       >
         <button
           id={`roster-collapsed-${team}`}
@@ -118,10 +131,14 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
     <aside
       id={`roster-container-${team}`}
       aria-label={`${teamProfile.name} Team Roster`}
-      style={topOffset ? { top: `${topOffset}px` } : undefined}
-      className={`absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
-        isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
-      } flex flex-col space-y-0.5 pointer-events-auto z-[36] select-none w-[74px] sm:w-[84px] transition-[top] duration-200`}
+      style={!isFlowLayout && topOffset ? { top: `${topOffset}px` } : undefined}
+      className={`${
+        isFlowLayout
+          ? 'relative'
+          : `absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
+              isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
+            } transition-[top] duration-200`
+      } flex flex-col space-y-0.5 pointer-events-auto z-[36] select-none w-[74px] sm:w-[84px]`}
     >
       {/* Symmetrical Compact Header Pill */}
       <button
@@ -169,9 +186,13 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
             isAttacking={isAttacking}
             isLeft={isLeft}
             teamTheme={teamTheme}
+            isBattlePaused={isBattlePaused}
             furyReadyLabel={t('HUD.furyReady', 'NỘ')}
             clickToAttackLabel={t('HUD.clickToAttack', 'Nhấn để xuất chiêu!')}
-            onAttack={() => triggerAutoProAttack(team, playerIndex)}
+            onAttack={() => {
+              if (isBattlePaused) return;
+              triggerAutoProAttack(team, playerIndex);
+            }}
           />
         );
       })}
@@ -188,6 +209,7 @@ interface RosterItemProps {
   isAttacking: boolean;
   isLeft: boolean;
   teamTheme: TeamColorPalette;
+  isBattlePaused: boolean;
   furyReadyLabel: string;
   clickToAttackLabel: string;
   onAttack: () => void;
@@ -220,6 +242,7 @@ const RosterItem = ({
   isAttacking,
   isLeft,
   teamTheme,
+  isBattlePaused,
   furyReadyLabel,
   clickToAttackLabel,
   onAttack,
@@ -233,17 +256,22 @@ const RosterItem = ({
   return (
     <div
       id={`roster-card-${player.id}`}
-      onClick={onAttack}
+      onClick={isBattlePaused ? undefined : onAttack}
       role="button"
-      tabIndex={0}
+      tabIndex={isBattlePaused ? -1 : 0}
       onKeyDown={(e) => {
+        if (isBattlePaused) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onAttack();
         }
       }}
       title={`${player.name} (${player.role}) • Tướng tủ: ${player.signatureChampion} • ${clickToAttackLabel}`}
-      className={`relative flex items-center space-x-1 px-1 py-0.5 rounded-md border backdrop-blur-sm transition-all duration-150 select-none cursor-pointer hover:brightness-110 active:brightness-125 ${
+      className={`relative flex items-center space-x-1 px-1 py-0.5 rounded-md border backdrop-blur-sm transition-all duration-150 select-none ${
+        isBattlePaused
+          ? 'cursor-not-allowed opacity-70 brightness-75'
+          : 'cursor-pointer hover:brightness-110 active:brightness-125'
+      } ${
         isLeft ? 'flex-row' : 'flex-row-reverse space-x-reverse'
       } ${getRosterItemCardClass(isActive, isAttacking, isFullFury, teamTheme)}`}
     >

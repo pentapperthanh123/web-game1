@@ -255,7 +255,9 @@
     "no": "No",
     "tabTeams": "Teams & Roster",
     "healTeamDynamic": "+50 HP for {{team}}",
-    "summonAlternateDynamicLabel": "Alternate both teams ({{left}} ↔ {{right}})"
+    "summonAlternateDynamicLabel": "Alternate both teams ({{left}} ↔ {{right}})",
+    "roundEndedNotice": "Round ended! Intermission in progress.",
+    "chatSentIntermission": "Comment sent! (Summons paused during intermission)"
   },
   "AdminTeams": {
     "activeMatchupTitle": "Current Matchup:",
@@ -323,5 +325,22 @@
     "winnerTitle": "🏆 {{winner}} WINS 1V1 SILVER SCRAPES!",
     "winnerBuffDesc": "First Blood Claimed! Team {{winner}} receives +20% Damage for 90s in the Decider Game!",
     "idleHint": "All Likes, Summon Chats & Gifts immediately fuel the energy beam to push back opponents!"
+  },
+  "BossPhase": {
+    "shiftTitle": "BOSS AWAKENS",
+    "label": {
+      "1": "Phase 1",
+      "2": "Phase 2 · Awakened",
+      "3": "Phase 3 · Cataclysm"
+    },
+    "hintPhase2": "Ultimate unlocked!",
+    "hintPhase3": "+20% damage · Faster casts · Longer debuffs"
+  },
+  "StatusEffect": {
+    "BURN": "Burning",
+    "POISON": "Poisoned",
+    "STUN": "Stunned",
+    "WEAKEN": "Weakened",
+    "LIFESTEAL": "Lifesteal"
   }
 }

@@ -113,6 +113,21 @@ const getLatestTeamPortal = (
   return null;
 };
 
+export const SummonSpotlight = ({ side }: { side: 'left' | 'right' }) => {
+  const activeSummonPortals = useGameStore((state) => state.activeSummonPortals);
+  const team = side === 'left' ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+  const now = Date.now();
+  const latestPortal = getLatestTeamPortal(activeSummonPortals, team, now);
+
+  if (!latestPortal) return null;
+
+  return (
+    <div className={`pointer-events-none flex flex-col ${side === 'right' ? 'items-end' : 'items-start'}`}>
+      <SummonSpotlightCard portal={latestPortal} side={side} />
+    </div>
+  );
+};
+
 export const SummonShowcase = () => {
   const activeSummonPortals = useGameStore((state) => state.activeSummonPortals);
   const now = Date.now();

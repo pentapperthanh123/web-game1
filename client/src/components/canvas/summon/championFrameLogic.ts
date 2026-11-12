@@ -8,6 +8,7 @@ import {
   DamageType,
 } from '../../../constants/game';
 import { MinionEntity } from '../../../types/game';
+import { getMinionDamageMultiplier, isMinionStunned } from '../../../utils/statusEffects';
 import {
   setLiveMinionPositions,
 } from '../../../services/minionPositionRegistry';
@@ -212,7 +213,8 @@ export const stepChampionFrame = (
     posZ = tempProjVec.z;
   }
 
-  if (isBossAlive && ai.isAttacking && !ai.hasFiredInThisAttack && !isGraceActive) {
+  const isStunned = isMinionStunned(minion, Date.now());
+  if (isBossAlive && ai.isAttacking && !ai.hasFiredInThisAttack && !isGraceActive && !isStunned) {
     const attackProgress =
       (elapsedTime - ai.attackStartTime) / COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_DURATION_S;
     if (attackProgress >= 0.18) {
@@ -233,9 +235,10 @@ export const stepChampionFrame = (
         store.spawnProjectile([posX, posY, posZ], FURY_COLOR_FULL, true, targetPos);
       }
 
-      const damage = isFullFury
-        ? Math.round(minion.dps * GAME_CONSTANTS.MINION_FURY.ULTIMATE_DAMAGE_MULTIPLIER)
+      const baseDamage = isFullFury
+        ? minion.dps * GAME_CONSTANTS.MINION_FURY.ULTIMATE_DAMAGE_MULTIPLIER
         : minion.dps;
+      const damage = Math.round(baseDamage * getMinionDamageMultiplier(minion, Date.now()));
       let attackDamageType: DamageType = DAMAGE_TYPE.NORMAL;
       if (isFullFury) {
         attackDamageType = DAMAGE_TYPE.ULTIMATE;

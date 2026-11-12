@@ -255,6 +255,16 @@ class GameSocketClient {
     }
   }
 
+  /** Adds an extra listener (e.g. sound effects) without touching game logic. Returns an unsubscribe fn. */
+  public onEvent(eventName: string, handler: (payload: unknown) => void): () => void {
+    const socket = this.socket;
+    if (!socket) return () => undefined;
+    socket.on(eventName, handler);
+    return () => {
+      socket.off(eventName, handler);
+    };
+  }
+
   public sendLike(count: number, team: string, userName: string): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:like', { count, team, userName, senderId: CLIENT_INSTANCE_ID });

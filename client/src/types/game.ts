@@ -1,7 +1,25 @@
 import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXType } from '../constants/game';
 export type { GameThemeType };
 import { RosterPlayer } from '../constants/roster';
-import { BossSkillConfig, ActiveBossSkillBanner } from './bossSkill';
+import {
+  BossSkillConfig,
+  BossSkillDefinition,
+  ActiveBossSkillBanner,
+  BossPhase,
+  BossStatusEffectType,
+} from './bossSkill';
+
+/** A debuff currently applied to a champion by a boss skill. */
+export interface ActiveStatusEffect {
+  type: BossStatusEffectType;
+  sourceSkillId: string;
+  color: string;
+  appliedAt: number;
+  expiresAt: number;
+  /** Damage-over-time per tick (BURN / POISON). */
+  tickDamage?: number;
+  lastTickAt: number;
+}
 import { ActiveTeamsMap, QueuedMatchup, TeamConfigState, TeamProfile } from './team';
 
 export interface MinionEntity {
@@ -25,6 +43,7 @@ export interface MinionEntity {
   isSignatureSynergy?: boolean;
   signaturePlayerName?: string;
   signaturePlayerRole?: string;
+  statusEffects?: ActiveStatusEffect[];
 }
 
 export interface TeamHeartMomentum {
@@ -366,6 +385,9 @@ export interface GameState {
   bossShield: BossShieldState | null;
   triggeredShieldThresholds: number[];
   bossShieldBrokenTimestamp: number;
+  bossPhase: BossPhase;
+  /** 0 until the first phase shift of the current round. */
+  bossPhaseChangedAt: number;
   bossWeakPoint: BossWeakPointState | null;
   lastWeakPointSpawnTimestamp: number;
   finisherPlayerName: string | null;
@@ -437,7 +459,13 @@ export interface GameState {
   setBO5Score: (blg: number, geng: number, currentRound?: number) => void;
   setBossSkillConfig: (config: Partial<BossSkillConfig>) => void;
   castBossSkill: (skillIndex?: number) => void;
-  healTeamChampions: (team: TeamType | 'ALL', amount: number) => void;
+  /** Applies damage-over-time ticks, expires debuffs; called on a fixed interval. */
+  tickStatusEffects: () => void;
+  /** Re-derives the boss phase from HP and fires the phase-shift presentation on change. */
+  syncBossPhase: () => void;
+  healBoss: (amount: number, sourceLabel: string) => void;
+  spawnBossMeteorRain: (skill: BossSkillDefinition, now: number) => void;
+  healTeamChampions: (team: TeamType | 'GEN' | 'ALL', amount: number) => void;
   clearBossSkillBanner: () => void;
   hitWeakPoint: (playerName?: string) => void;
   tickBossMechanics: () => void;

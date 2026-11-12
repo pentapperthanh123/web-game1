@@ -367,7 +367,7 @@ class AdminSocketService {
     this.emit('admin:boss-cast-skill', { skillIndex });
   }
 
-  public healTeam(team: 'BLG' | 'GEN' | 'ALL', amount: number): void {
+  public healTeam(team: 'BLG' | 'GEN' | 'GENG' | 'ALL', amount: number): void {
     this.emit('admin:heal-team', { team, amount });
   }
 

@@ -6,7 +6,9 @@ import {
   BOSS_STATUS,
   TEAM_KEY,
 } from '../../constants/game';
+import { soundManager, playSound } from '../../services/soundManager';
 import { audioService } from '../../services/audioService';
+import { SFX_EVENT } from '../../constants/sfx';
 import { gameSocket } from '../../services/socket';
 import { getTeamTheme } from '../../constants/teams';
 import { VictoryHeaderStage } from './victory/VictoryHeaderStage';
@@ -51,15 +53,23 @@ export const VictoryOverlay = () => {
     if (!isDefeated) {
       setIsVictoryVisible(false);
       setIsAdvancing(false);
+      audioService.setCombatMuted(false);
       return;
     }
 
+    // Immediately silence any ongoing combat sounds, battle loops, and speech
+    audioService.setCombatMuted(true);
+    soundManager.stopAll();
+
     const revealTimer = setTimeout(() => {
       setIsVictoryVisible(true);
-      audioService.playVictoryFanfare();
+      playSound(SFX_EVENT.VICTORY);
     }, BOSS_DEFEAT_CONSTANTS.VICTORY_DELAY_MS);
 
-    return () => clearTimeout(revealTimer);
+    return () => {
+      clearTimeout(revealTimer);
+      audioService.setCombatMuted(false);
+    };
   }, [isDefeated]);
 
   if (!isDefeated || !isVictoryVisible) return null;

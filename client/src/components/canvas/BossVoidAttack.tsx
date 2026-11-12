@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
 import { BOSS_STATUS, getThemeConfig } from '../../constants/game';
+import { BOSS_SKILL_VFX_DURATION_MS } from '../../constants/bossSkillVfx';
 
 const LIGHTNING_SEGMENTS = 8;
 const BOLT_COUNT = 8;
@@ -110,6 +111,17 @@ export const BossVoidAttack = () => {
 
   useFrame(() => {
     if (bossStatus === BOSS_STATUS.DEFEATED) return;
+
+    // Skill casts are rendered by BossSkillVfx3D; this component only covers the generic roar.
+    const isSkillVfxActive =
+      activeBossSkillBanner !== null &&
+      Date.now() - activeBossSkillBanner.timestamp < BOSS_SKILL_VFX_DURATION_MS[activeBossSkillBanner.vfxType];
+    if (isSkillVfxActive) {
+      [shockRingRef, lightningGroupRef, acidGroupRef, spikesGroupRef, tailSweepRef].forEach((ref) => {
+        if (ref.current) ref.current.visible = false;
+      });
+      return;
+    }
 
     const timeSinceAttack = (Date.now() - bossAttackTimestamp) / 1000;
     const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;

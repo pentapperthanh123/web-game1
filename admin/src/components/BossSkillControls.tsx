@@ -19,7 +19,15 @@ import {
   Check,
 } from 'lucide-react';
 import { adminSocket, GameThemeType } from '../services/socket';
-import { BossSkillConfig, BossSkillDefinition, BossSkillMode } from '../types/bossSkill';
+import {
+  BOSS_SKILL_VFX,
+  BOSS_STATUS_EFFECT,
+  BossSkillConfig,
+  BossSkillDefinition,
+  BossSkillMode,
+  BossSkillVfxType,
+  BossStatusEffectType,
+} from '../types/bossSkill';
 import {
   getBossSkillsByTheme,
   DEFAULT_BOSS_SKILL_CONFIG,
@@ -27,9 +35,11 @@ import {
   BOSS_SKILL_MODE_OPTIONS,
   BOSS_SKILL_MODES,
 } from '../constants/bossSkills';
+import { TeamConfigState, getTeamTheme } from '../constants/teams';
 
 interface BossSkillControlsProps {
   currentTheme: GameThemeType;
+  teamConfig?: TeamConfigState;
 }
 
 const BOSS_NAMES: Record<GameThemeType, string> = {
@@ -42,6 +52,27 @@ const BOSS_NAMES: Record<GameThemeType, string> = {
 };
 
 const DAMAGE_MULTIPLIER_OPTIONS = [0.5, 1.0, 1.5, 2.0] as const;
+
+const SKILL_VFX_LABELS: Record<BossSkillVfxType, string> = {
+  [BOSS_SKILL_VFX.PROJECTILE_ARC]: '🟢 Phun đạn',
+  [BOSS_SKILL_VFX.GROUND_SPIKES]: '🗡️ Gai đất',
+  [BOSS_SKILL_VFX.CRESCENT_SWEEP]: '🌙 Quét chém',
+  [BOSS_SKILL_VFX.LIGHTNING_STRIKE]: '⚡ Sét đánh',
+  [BOSS_SKILL_VFX.METEOR_RAIN]: '☄️ Mưa thiên thạch',
+  [BOSS_SKILL_VFX.BEAM]: '🔦 Tia năng lượng',
+  [BOSS_SKILL_VFX.VORTEX]: '🌀 Lốc xoáy',
+  [BOSS_SKILL_VFX.CHARGE_DASH]: '🐗 Húc lao',
+  [BOSS_SKILL_VFX.SEISMIC_SLAM]: '💥 Địa chấn',
+  [BOSS_SKILL_VFX.NOVA]: '🌟 Nova hủy diệt',
+};
+
+const STATUS_EFFECT_LABELS: Record<BossStatusEffectType, { label: string; color: string }> = {
+  [BOSS_STATUS_EFFECT.BURN]: { label: '🔥 Thiêu đốt', color: '#f97316' },
+  [BOSS_STATUS_EFFECT.POISON]: { label: '☠️ Trúng độc', color: '#22c55e' },
+  [BOSS_STATUS_EFFECT.STUN]: { label: '💫 Choáng', color: '#facc15' },
+  [BOSS_STATUS_EFFECT.WEAKEN]: { label: '🌀 Suy yếu -50% ST', color: '#a78bfa' },
+  [BOSS_STATUS_EFFECT.LIFESTEAL]: { label: '🩸 Boss hút máu', color: '#e11d48' },
+};
 
 const loadInitialConfig = (): BossSkillConfig => {
   if (typeof window === 'undefined') return DEFAULT_BOSS_SKILL_CONFIG;
@@ -69,9 +100,16 @@ const MODE_ICONS: Record<string, typeof Dices> = {
   [BOSS_SKILL_MODES.ROTATION]: RefreshCw,
 };
 
-export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
+export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: BossSkillControlsProps) {
   const [config, setConfig] = useState<BossSkillConfig>(loadInitialConfig);
   const [lastCastSkill, setLastCastSkill] = useState<string | null>(null);
+  const [teamConfig, setTeamConfig] = useState<TeamConfigState | null>(propTeamConfig || null);
+
+  useEffect(() => {
+    if (propTeamConfig) {
+      setTeamConfig(propTeamConfig);
+    }
+  }, [propTeamConfig]);
 
   useEffect(() => {
     const unsubscribe = adminSocket.onBossSkillConfig((remoteConfig) => {
@@ -86,7 +124,14 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
       });
     });
 
-    return () => unsubscribe();
+    const unsubscribeTeams = adminSocket.onTeamConfig((cfg) => {
+      setTeamConfig(cfg);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeTeams();
+    };
   }, []);
 
   const updateConfig = (patch: Partial<BossSkillConfig>) => {
@@ -106,7 +151,14 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
     setTimeout(() => setLastCastSkill(null), 1500);
   };
 
-  const handleHeal = (team: 'BLG' | 'GEN' | 'ALL', amount: number) => {
+  const leftTeam = teamConfig?.activeTeams.BLG;
+  const rightTeam = teamConfig?.activeTeams.GENG;
+  const leftTag = leftTeam?.shortTag || 'BLG';
+  const rightTag = rightTeam?.shortTag || 'GEN';
+  const leftTheme = getTeamTheme(leftTeam?.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam?.colorTheme);
+
+  const handleHeal = (team: 'BLG' | 'GENG' | 'ALL', amount: number) => {
     adminSocket.healTeam(team, amount);
   };
 
@@ -152,11 +204,10 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
         <button
           type="button"
           onClick={() => updateConfig({ autoAttackEnabled: !config.autoAttackEnabled })}
-          className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center space-x-2 transition-all duration-200 active:scale-95 shadow-md ${
-            config.autoAttackEnabled
+          className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center space-x-2 transition-all duration-200 active:scale-95 shadow-md ${config.autoAttackEnabled
               ? 'bg-rose-950/90 border-rose-400 text-rose-200 shadow-[0_0_16px_rgba(244,63,94,0.5)]'
               : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
-          }`}
+            }`}
         >
           {config.autoAttackEnabled ? (
             <>
@@ -187,8 +238,8 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
               {config.mode === BOSS_SKILL_MODES.RANDOM_WEIGHTED
                 ? 'Ngẫu nhiên theo tỉ lệ'
                 : config.mode === BOSS_SKILL_MODES.RANDOM_EQUAL
-                ? 'Ngẫu nhiên đồng đều (25%)'
-                : 'Tuần hoàn thứ tự'}
+                  ? 'Ngẫu nhiên đồng đều (25%)'
+                  : 'Tuần hoàn thứ tự'}
             </span>
           </span>
         </div>
@@ -202,11 +253,10 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
                 key={opt.mode}
                 type="button"
                 onClick={() => updateConfig({ mode: opt.mode as BossSkillMode })}
-                className={`p-3 rounded-xl border text-left transition-all duration-200 relative group flex flex-col justify-between ${
-                  isSelected
+                className={`p-3 rounded-xl border text-left transition-all duration-200 relative group flex flex-col justify-between ${isSelected
                     ? 'bg-gradient-to-b from-cyan-950/80 to-slate-900 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.35)] ring-1 ring-cyan-400/50'
                     : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90'
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between w-full mb-1.5">
                   <span className={`text-xs font-bold flex items-center space-x-1.5 ${isSelected ? 'text-cyan-200' : 'text-slate-300'}`}>
@@ -217,11 +267,10 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
                     <span>{opt.label}</span>
                   </span>
                   <span
-                    className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                      isSelected
+                    className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${isSelected
                         ? 'bg-cyan-400 text-slate-950 font-black'
                         : 'bg-slate-800 text-slate-400 group-hover:text-slate-200'
-                    }`}
+                      }`}
                   >
                     {opt.badge}
                   </span>
@@ -293,6 +342,23 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
               ? `⚡ Cooldown sẽ dao động ngẫu nhiên từ ${(config.intervalMs * 0.7 / 1000).toFixed(1)}s ~ ${(config.intervalMs * 1.3 / 1000).toFixed(1)}s`
               : '🔒 Cố định chính xác theo giây'}
           </p>
+
+          <label className="flex items-center space-x-2 cursor-pointer mt-3">
+            <input
+              type="checkbox"
+              checked={config.phaseLockEnabled}
+              onChange={(e) => updateConfig({ phaseLockEnabled: e.target.checked })}
+              className="w-4 h-4 rounded accent-rose-500"
+            />
+            <span className="text-xs font-bold text-slate-200">
+              Khóa chiêu cuối tới Giai đoạn 2 (Boss ≤ 65% máu)
+            </span>
+          </label>
+          <p className="text-[10px] text-slate-400 mt-1">
+            {config.phaseLockEnabled
+              ? '🔒 Boss leo thang theo 3 giai đoạn: Ult mở ở GĐ2, GĐ3 (≤ 35% máu) tăng 20% sát thương & ra chiêu nhanh hơn'
+              : '🔓 Chiêu cuối luôn khả dụng, phase chỉ thay đổi sát thương/tốc độ ở GĐ3'}
+          </p>
         </div>
 
         {/* C. Damage Multiplier */}
@@ -307,11 +373,10 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
                 key={mul}
                 type="button"
                 onClick={() => updateConfig({ damageMultiplier: mul })}
-                className={`py-1.5 rounded-lg text-xs font-bold transition border ${
-                  config.damageMultiplier === mul
+                className={`py-1.5 rounded-lg text-xs font-bold transition border ${config.damageMultiplier === mul
                     ? 'bg-rose-950 border-rose-400 text-rose-200 shadow-sm'
                     : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                }`}
+                  }`}
               >
                 {mul}x
               </button>
@@ -348,11 +413,10 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
                 key={skill.id}
                 type="button"
                 onClick={() => handleCastSkill(skill, index)}
-                className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between group active:scale-95 ${
-                  skill.isUltimate
+                className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between group active:scale-95 ${skill.isUltimate
                     ? 'bg-rose-950/40 border-rose-600/80 hover:bg-rose-950/80 hover:border-rose-400 hover:shadow-[0_0_15px_rgba(244,63,94,0.4)]'
                     : 'bg-slate-950/60 border-slate-800 hover:border-slate-600 hover:bg-slate-900/80'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between w-full mb-1.5">
                   <div
@@ -369,11 +433,10 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
                       {chanceBadge}
                     </span>
                     <span
-                      className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                        skill.isUltimate
+                      className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${skill.isUltimate
                           ? 'bg-rose-600 text-white animate-pulse'
                           : 'bg-slate-800 text-slate-300'
-                      }`}
+                        }`}
                     >
                       {skill.isUltimate ? 'CHIÊU CUỐI' : `SKILL ${index + 1}`}
                     </span>
@@ -386,6 +449,29 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
 
                 <div className="text-[10px] text-slate-400 line-clamp-2 my-1">
                   {skill.description}
+                </div>
+
+                <div className="flex flex-wrap gap-1 mb-1">
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                    {SKILL_VFX_LABELS[skill.vfxType]}
+                  </span>
+                  {skill.statusEffect && (
+                    <span
+                      className="text-[9px] font-mono px-1.5 py-0.5 rounded border"
+                      style={{
+                        color: STATUS_EFFECT_LABELS[skill.statusEffect.type].color,
+                        borderColor: `${STATUS_EFFECT_LABELS[skill.statusEffect.type].color}80`,
+                        backgroundColor: `${STATUS_EFFECT_LABELS[skill.statusEffect.type].color}1a`,
+                      }}
+                    >
+                      {STATUS_EFFECT_LABELS[skill.statusEffect.type].label}
+                    </span>
+                  )}
+                  {config.phaseLockEnabled && (skill.minPhase ?? 1) > 1 && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
+                      🔒 Mở ở GĐ{skill.minPhase}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 mt-1">
@@ -418,16 +504,16 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
           <button
             type="button"
             onClick={() => handleHeal('BLG', 50)}
-            className="px-2.5 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700 text-xs font-bold text-cyan-300 transition active:scale-95 flex items-center space-x-1"
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition active:scale-95 flex items-center space-x-1 ${leftTheme.pillButtonClass}`}
           >
-            <span>💚 Hồi BLG (+50 HP)</span>
+            <span>💚 Hồi {leftTag} (+50 HP)</span>
           </button>
           <button
             type="button"
-            onClick={() => handleHeal('GEN', 50)}
-            className="px-2.5 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-700 text-xs font-bold text-amber-300 transition active:scale-95 flex items-center space-x-1"
+            onClick={() => handleHeal('GENG', 50)}
+            className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition active:scale-95 flex items-center space-x-1 ${rightTheme.pillButtonClass}`}
           >
-            <span>💛 Hồi GEN (+50 HP)</span>
+            <span>💛 Hồi {rightTag} (+50 HP)</span>
           </button>
           <button
             type="button"
@@ -435,7 +521,7 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
             className="px-2.5 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600 text-xs font-bold text-emerald-300 transition active:scale-95 flex items-center space-x-1 shadow-sm"
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>Hồi Đầy Máu (100%)</span>
+            <span>Hồi Cả 2 Đội (100%)</span>
           </button>
         </div>
       </div>

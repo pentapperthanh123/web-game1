@@ -11,6 +11,7 @@ import { CelestialGiftVFX } from './CelestialGiftVFX';
 import { ArenaEnvironment } from './ArenaEnvironment';
 import { AmbientDust } from './AmbientDust';
 import { BossVoidAttack } from './BossVoidAttack';
+import { BossSkillVfx3D } from './bossSkill/BossSkillVfx3D';
 import { SummonPortals3D } from './SummonPortals3D';
 import { BossDeathVFX3D } from './BossDeathVFX3D';
 import { Boss3DPresence } from './Boss3DPresence';
@@ -38,6 +39,7 @@ export const GameCanvas = () => {
         <ArenaEnvironment />
         <Boss3DPresence />
         <BossVoidAttack />
+        <BossSkillVfx3D />
         <SummonPortals3D />
         <BossDeathVFX3D />
         <ChampionBarrage />

@@ -37,8 +37,8 @@ const ORIGIN_Y = 0.35;
 const ORIGIN_Z = 0.3;
 const SHARD_GRAVITY = 4.8;
 const PILLAR_EXTRA_HOLD_MS = 250;
-const CRYSTAL_SHARD_GEO = new THREE.OctahedronGeometry(0.22, 0);
-const SOUL_ORB_GEO = new THREE.IcosahedronGeometry(0.14, 1);
+const CRYSTAL_SHARD_GEO = new THREE.OctahedronGeometry(0.32, 0);
+const SOUL_ORB_GEO = new THREE.IcosahedronGeometry(0.20, 1);
 
 const createDeterministicNoise = (seed: number): number => {
   const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
@@ -60,9 +60,9 @@ const buildShardData = (count: number): ShardKinematics[] => {
       spinX: (createDeterministicNoise(i + 40) - 0.5) * 14,
       spinY: (createDeterministicNoise(i + 80) - 0.5) * 14,
       spinZ: (createDeterministicNoise(i + 120) - 0.5) * 14,
-      scaleX: 0.45 + createDeterministicNoise(i + 160) * 0.55,
-      scaleY: 1.2 + createDeterministicNoise(i + 200) * 1.15,
-      scaleZ: 0.22 + createDeterministicNoise(i + 240) * 0.3,
+      scaleX: 0.55 + createDeterministicNoise(i + 160) * 0.65,
+      scaleY: 1.4 + createDeterministicNoise(i + 200) * 1.35,
+      scaleZ: 0.35 + createDeterministicNoise(i + 240) * 0.45,
       colorIndex: i % 3,
     });
   }
@@ -105,12 +105,28 @@ export const BossDeathVFX3D = () => {
   );
 
   const bossStatus = useGameStore((state) => state.bossStatus);
+  const bossHp = useGameStore((state) => state.bossHp);
+  const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
+  const roundWinner = useGameStore((state) => state.roundWinner);
   const bossDefeatedTimestamp = useGameStore((state) => state.bossDefeatedTimestamp);
   const finisherTeam = useGameStore((state) => state.finisherTeam);
-  const roundWinner = useGameStore((state) => state.roundWinner);
   const gameTheme = useGameStore((state) => state.gameTheme);
 
-  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED && bossDefeatedTimestamp > 0;
+  const rawIsDefeated =
+    bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
+
+  const localDefeatTimestampRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (rawIsDefeated && localDefeatTimestampRef.current === 0) {
+      localDefeatTimestampRef.current = bossDefeatedTimestamp > 0 ? bossDefeatedTimestamp : Date.now();
+    } else if (!rawIsDefeated) {
+      localDefeatTimestampRef.current = 0;
+    }
+  }, [rawIsDefeated, bossDefeatedTimestamp]);
+
+  const activeTimestamp = bossDefeatedTimestamp > 0 ? bossDefeatedTimestamp : localDefeatTimestampRef.current;
+  const isDefeated = rawIsDefeated && activeTimestamp > 0;
   const themeConfig = getThemeConfig(gameTheme);
   const winningTeam: TeamType = (finisherTeam || roundWinner || TEAM_KEY.BLG) as TeamType;
   const bossColor = themeConfig.colors.primaryHex;
@@ -138,12 +154,12 @@ export const BossDeathVFX3D = () => {
   useFrame(() => {
     if (!groupRef.current) return;
 
-    if (!isDefeated) {
+    if (!isDefeated || activeTimestamp <= 0) {
       groupRef.current.visible = false;
       return;
     }
 
-    const elapsedMs = Date.now() - bossDefeatedTimestamp;
+    const elapsedMs = Date.now() - activeTimestamp;
     const totalMs = BOSS_DEFEAT_CONSTANTS.VICTORY_DELAY_MS + PILLAR_EXTRA_HOLD_MS;
 
     if (elapsedMs < 0 || elapsedMs > totalMs) {
@@ -313,11 +329,11 @@ export const BossDeathVFX3D = () => {
     <group ref={groupRef} position={[0, ORIGIN_Y, ORIGIN_Z]}>
       {/* Core Supernova Flash Sphere */}
       <mesh ref={coreSphereRef}>
-        <sphereGeometry args={[0.72, 20, 20]} />
+        <sphereGeometry args={[0.85, 24, 24]} />
         <meshBasicMaterial
           color="#ffffff"
           transparent
-          opacity={0.95}
+          opacity={0.98}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
@@ -325,24 +341,24 @@ export const BossDeathVFX3D = () => {
       </mesh>
 
       {/* Execution Sky Pillar (Outer Team Color + Inner White Beam) */}
-      <mesh ref={skyPillarRef} position={[0, 3.6, 0]}>
-        <cylinderGeometry args={[0.42, 1.15, 9.6, 20, 1, true]} />
+      <mesh ref={skyPillarRef} position={[0, 4.2, 0]}>
+        <cylinderGeometry args={[0.55, 1.45, 11.2, 24, 1, true]} />
         <meshBasicMaterial
           color={teamColor}
           transparent
-          opacity={0.8}
+          opacity={0.85}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
       </mesh>
 
-      <mesh ref={skyBeamCoreRef} position={[0, 3.6, 0]}>
-        <cylinderGeometry args={[0.16, 0.35, 9.6, 14, 1, true]} />
+      <mesh ref={skyBeamCoreRef} position={[0, 4.2, 0]}>
+        <cylinderGeometry args={[0.22, 0.48, 11.2, 16, 1, true]} />
         <meshBasicMaterial
           color="#ffffff"
           transparent
-          opacity={0.95}
+          opacity={0.98}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.DoubleSide}

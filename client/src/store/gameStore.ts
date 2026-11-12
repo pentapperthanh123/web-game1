@@ -1,4 +1,5 @@
 import { BossSkillConfig, ActiveBossSkillBanner } from '../types/bossSkill';
+import { ActiveStatusEffect } from '../types/game';
 import {
   DEFAULT_BOSS_SKILL_CONFIG,
   BOSS_SKILL_STORAGE_KEY,
@@ -85,6 +86,28 @@ import {
 import { ActiveTeamsMap, QueuedMatchup, TeamConfigState, TeamProfile } from '../types/team';
 import { gameBus } from '../services/eventBus';
 import { audioService } from '../services/audioService';
+import { soundManager, playSound } from '../services/soundManager';
+import { SFX_EVENT } from '../constants/sfx';
+import { BOSS_PHASE, BOSS_PHASE_RULES, getBossPhaseRule, resolveBossPhase } from '../constants/bossPhases';
+import { BOSS_STATUS_EFFECT, BOSS_SKILL_VFX } from '../types/bossSkill';
+import {
+  BOSS_METEOR_RAIN_CONSTANTS,
+  BOSS_PHASE_SHIFT_SHAKE_INTENSITY,
+} from '../constants/bossSkillVfx';
+import { BOSS_SKILL_VFX_SFX } from '../constants/sfx';
+import {
+  DAMAGE_OVER_TIME_EFFECTS,
+  STATUS_EFFECT_CONSTANTS,
+  STATUS_EFFECT_PRESENTATION,
+} from '../constants/bossStatusEffects';
+import { upsertStatusEffect } from '../utils/statusEffects';
+import {
+  buildChampionStatusEffect,
+  buildDefeatedChampion,
+  pickBossSkillIndex,
+  pickSkillTargets,
+  resolveSkillTargetTeam,
+} from './bossSkillResolver';
 import { getLiveMinionScreenPos, getLiveMinionPosition } from '../services/minionPositionRegistry';
 
 const randomInRange = (min: number, max: number): number =>
@@ -352,6 +375,8 @@ const INITIAL_STATE = {
   bossShield: null as BossShieldState | null,
   triggeredShieldThresholds: [] as number[],
   bossShieldBrokenTimestamp: 0,
+  bossPhase: BOSS_PHASE.ONE,
+  bossPhaseChangedAt: 0,
   bossWeakPoint: null as BossWeakPointState | null,
   lastWeakPointSpawnTimestamp: 0,
   finisherPlayerName: null as string | null,
@@ -403,7 +428,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const rightTag = sanitized.activeTeams[TEAM_KEY.GENG].shortTag;
 
     if (resetMatch) {
-      audioService.playRoundStartSound();
+      playSound(SFX_EVENT.ROUND_START);
       get().addLog('SYSTEM', `⚔️ Đổi cặp đấu mới: ${leftTag} vs ${rightTag} (Reset BO5)!`);
       set({
         activeTeams: sanitized.activeTeams,
@@ -446,6 +471,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         bossShield: null,
         triggeredShieldThresholds: [],
         bossShieldBrokenTimestamp: 0,
+        bossPhase: BOSS_PHASE.ONE,
+        bossPhaseChangedAt: 0,
         bossWeakPoint: null,
         lastWeakPointSpawnTimestamp: 0,
         finisherPlayerName: null,
@@ -951,7 +978,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     sourcePlayerId?: string
   ) => {
     const currentState = get();
-    if (currentState.bossStatus === BOSS_STATUS.DEFEATED || currentState.bossHp <= 0) {
+    if (
+      currentState.bossStatus === BOSS_STATUS.DEFEATED ||
+      currentState.bossHp <= 0 ||
+      currentState.isRoundIntermission ||
+      currentState.roundWinner !== null
+    ) {
       return;
     }
 
@@ -1316,7 +1348,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     customTarget?: [number, number, number]
   ) => {
     const currentState = get();
-    if (currentState.bossStatus === BOSS_STATUS.DEFEATED || currentState.bossHp <= 0) {
+    if (
+      currentState.bossStatus === BOSS_STATUS.DEFEATED ||
+      currentState.bossHp <= 0 ||
+      currentState.isRoundIntermission ||
+      currentState.roundWinner !== null
+    ) {
       return;
     }
 
@@ -1503,7 +1540,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             expiresAt: now + BOSS_MECHANICS_CONSTANTS.SHIELD.DURATION_MS,
           };
           nextTriggeredShieldThresholds = [...state.triggeredShieldThresholds, threshold];
-          audioService.playBossRoarSound(getThemeConfig(state.gameTheme).audioPitchRate, false);
+          playSound(SFX_EVENT.BOSS_SHIELD, { rateScale: getThemeConfig(state.gameTheme).audioPitchRate });
           get().addLog(
             'BOSS',
             `🛡️ [KHIÊN NĂNG LƯỢNG] Boss bật khiên ${BOSS_MECHANICS_CONSTANTS.SHIELD.SHIELD_HP.toLocaleString()} HP! Phá trong 12s kẻo Boss hồi máu!`
@@ -1515,7 +1552,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (isJustEnraged) {
       const themeConfig = getThemeConfig(state.gameTheme);
-      audioService.playBossEnrageSound(themeConfig.audioPitchRate);
+      playSound(SFX_EVENT.BOSS_ENRAGE, { rateScale: themeConfig.audioPitchRate });
       get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
       get().addLog(
@@ -1657,16 +1694,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
 
       if (isComboMilestoneReached(nextCount)) {
-        audioService.playComboMilestoneSound(nextCount);
+        playSound(SFX_EVENT.COMBO_LEVEL_UP);
       }
     }
 
     if (isDefeated) {
+      audioService.setCombatMuted(true);
+      soundManager.stopAll();
       const themeConfig = getThemeConfig(state.gameTheme);
       const defeatColor =
         themeConfig.colors.enragedHex || themeConfig.colors.primaryHex;
 
-      audioService.playBossDefeatSound(themeConfig.audioPitchRate);
+      playSound(SFX_EVENT.BOSS_DEFEAT, { rateScale: themeConfig.audioPitchRate });
       get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(teamPalette.primary);
 
@@ -1871,7 +1910,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       signaturePlayerName: exactSignaturePro?.name,
     };
 
-    audioService.playSummonArrivalSound(team, false);
+    playSound(SFX_EVENT.CHAMPION_SUMMON);
 
     get().spawnParticleBurst(
       spawnPosition,
@@ -2066,16 +2105,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().addPlayerFury(pro.id, furyGain);
     });
 
-    if (
+    const isBattleActive =
       state.bossStatus !== BOSS_STATUS.DEFEATED &&
       state.bossHp > 0 &&
       !state.isRoundIntermission &&
-      state.roundWinner === null
-    ) {
+      state.roundWinner === null;
+
+    if (isBattleActive) {
       get().summonMinion(`💖 ${userName}`, championName, team, true);
+      audioService.playHeartChime();
     }
 
-    audioService.playHeartChime();
     get().addLog(
       'SYSTEM',
       `💖 ${userName} vừa Follow! Triệu hồi ${championName} & +${furyGain}% Nộ phe ${teamTag}!`,
@@ -2100,18 +2140,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     const teamTag = activeTeamProfile?.shortTag || team;
     const theme = getTeamTheme(activeTeamProfile?.colorTheme);
 
-    if (
+    const isBattleActive =
       state.bossStatus !== BOSS_STATUS.DEFEATED &&
       state.bossHp > 0 &&
       !state.isRoundIntermission &&
-      state.roundWinner === null
-    ) {
+      state.roundWinner === null;
+
+    if (isBattleActive) {
       get().healTeamChampions(team, healAmount);
       get().damageBoss(damageAmount, team, `${userName} (Share Live)`, DAMAGE_TYPE.CRIT);
       get().spawnParticleBurst([0, 0.4, 0.5], theme.primaryHex, 1.5);
+      audioService.playHeartChime();
     }
 
-    audioService.playHeartChime();
     get().addLog(
       'SYSTEM',
       `🚀 ${userName} Chia sẻ Live! +${damageAmount} ST & hồi +${healAmount} HP phe ${teamTag}!`,
@@ -2179,7 +2220,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? BOSS_STATUS.ENRAGED
           : BOSS_STATUS.IDLE;
 
-      audioService.playBossRoarSound(getThemeConfig(state.gameTheme).audioPitchRate, true);
+      playSound(SFX_EVENT.BOSS_ROAR, { rateScale: getThemeConfig(state.gameTheme).audioPitchRate });
       get().spawnParticleBurst([0, 0.5, 0.5], '#22c55e', 1.6);
       get().addLog(
         'BOSS',
@@ -2205,15 +2246,24 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   healTeamChampions: (targetTeam, amount) => {
     const state = get();
-    if (state.minions.length === 0) return;
+    if (
+      state.minions.length === 0 ||
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.bossHp <= 0 ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null
+    ) {
+      return;
+    }
 
+    const normalizedTarget = targetTeam === 'GEN' ? TEAM_KEY.GENG : targetTeam;
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
     const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
     const now = Date.now();
     const newFloats: FloatingDamageText[] = [];
 
     const updatedMinions = state.minions.map((minion) => {
-      if (targetTeam !== 'ALL' && minion.team !== targetTeam) {
+      if (normalizedTarget !== 'ALL' && minion.team !== normalizedTarget) {
         return minion;
       }
       const curHp = minion.hp ?? CHAMPION_DEFAULT_MAX_HP;
@@ -2248,6 +2298,16 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   triggerHeartMilestoneHeal: (milestoneCount: number) => {
+    const state = get();
+    if (
+      state.bossStatus === BOSS_STATUS.DEFEATED ||
+      state.bossHp <= 0 ||
+      state.isRoundIntermission ||
+      state.roundWinner !== null
+    ) {
+      return;
+    }
+
     const healAmount = GAME_CONSTANTS.HEART_MILESTONE.HEAL_AMOUNT;
     const now = Date.now();
 
@@ -2255,7 +2315,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().healTeamChampions('ALL', healAmount);
 
     // 2. Play celestial divine healing sound
-    audioService.playGlobalDivineHealSound();
+    playSound(SFX_EVENT.TEAM_HEAL);
 
     // 3. Screen flash emerald green radiance
     get().triggerScreenFlash('#10b981');
@@ -2301,28 +2361,25 @@ export const useGameStore = create<GameState>((set, get) => ({
     const skills = getBossSkillsByTheme(state.gameTheme);
     if (!skills || skills.length === 0) return;
 
-    let nextIndex = 0;
-    if (skillIndex !== undefined && skillIndex >= 0 && skillIndex < skills.length) {
-      nextIndex = skillIndex;
-    } else if (state.bossSkillConfig.mode === 'ROTATION') {
-      nextIndex = state.bossSkillRotationIndex % skills.length;
-    } else if (state.bossSkillConfig.mode === 'RANDOM_EQUAL') {
-      nextIndex = Math.floor(Math.random() * skills.length);
-    } else {
-      // RANDOM_WEIGHTED (40% Skill 1, 30% Skill 2, 20% Skill 3, 10% Ultimate)
-      const roll = Math.random();
-      if (roll < 0.40) nextIndex = 0;
-      else if (roll < 0.70) nextIndex = 1;
-      else if (roll < 0.90) nextIndex = 2;
-      else nextIndex = 3;
-    }
+    const phase = resolveBossPhase(state.bossHp, state.bossMaxHp);
+    const phaseRule = getBossPhaseRule(phase);
+    const nextIndex = pickBossSkillIndex({
+      skills,
+      config: state.bossSkillConfig,
+      phase,
+      rotationIndex: state.bossSkillRotationIndex,
+      requestedIndex: skillIndex,
+    });
 
     const skill = skills[nextIndex];
     const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
     const difficulty = BOSS_DIFFICULTY_SCALE[state.gameTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
     const baseMultiplier = (state.bossSkillConfig.damageMultiplier || 1.0) * (difficulty.skillDamageMultiplier || 1.0);
     const rageBoost = isEnraged ? BOSS_ENRAGED_CONSTANTS.DAMAGE_BOOST_MULTIPLIER : 1.0;
-    const actualDamage = Math.max(1, Math.round(skill.baseDamage * baseMultiplier * rageBoost));
+    const actualDamage = Math.max(
+      1,
+      Math.round(skill.baseDamage * baseMultiplier * rageBoost * phaseRule.skillDamageMultiplier)
+    );
     const now = Date.now();
     const themeConfig = getThemeConfig(state.gameTheme);
     const bossName = themeConfig.bossName;
@@ -2336,30 +2393,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     const vulnerableMinions = currentMinions.filter(
       (m) => now - (m.createdAt || 0) >= gracePeriodMs
     );
-
-    const targetedMinionIds = new Set<string>();
-    if (skill.targetCount >= 999) {
-      vulnerableMinions.forEach((m) => targetedMinionIds.add(m.id));
-    } else {
-      const shuffled = [...vulnerableMinions].sort(() => Math.random() - 0.5);
-      shuffled.slice(0, skill.targetCount).forEach((m) => targetedMinionIds.add(m.id));
-    }
-
-    let targetTeam: 'BLG' | 'GENG' | 'ALL' = 'ALL';
-    if (!skill.isUltimate && targetedMinionIds.size > 0) {
-      const targetedMinions = currentMinions.filter((m) => targetedMinionIds.has(m.id));
-      const blgCount = targetedMinions.filter((m) => m.team === TEAM_KEY.BLG).length;
-      const gengCount = targetedMinions.filter((m) => m.team === TEAM_KEY.GENG).length;
-      if (blgCount > 0 && gengCount === 0) {
-        targetTeam = 'BLG';
-      } else if (gengCount > 0 && blgCount === 0) {
-        targetTeam = 'GENG';
-      } else if (blgCount > gengCount) {
-        targetTeam = 'BLG';
-      } else if (gengCount > blgCount) {
-        targetTeam = 'GENG';
-      }
-    }
+    const targetedMinionIds = pickSkillTargets(vulnerableMinions, skill.targetCount);
+    const targetTeam = resolveSkillTargetTeam(currentMinions, targetedMinionIds, skill.isUltimate);
+    const championDebuff = buildChampionStatusEffect(skill.statusEffect, skill.id, phase, now);
+    const isLifesteal = skill.statusEffect?.type === BOSS_STATUS_EFFECT.LIFESTEAL;
 
     const banner: ActiveBossSkillBanner = {
       skillId: skill.id,
@@ -2371,20 +2408,32 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossName,
       timestamp: now,
       targetTeam,
+      vfxType: skill.vfxType,
+      vfxParams: skill.vfxParams,
+      statusEffectType: skill.statusEffect?.type,
     };
 
     if (skill.isUltimate) {
       get().triggerScreenShake(1.6);
       get().triggerScreenFlash(skill.color);
-      audioService.playBossRoarSound(themeConfig.audioPitchRate, true);
+      playSound(SFX_EVENT.BOSS_ULTIMATE, { rateScale: themeConfig.audioPitchRate });
     } else {
       get().triggerScreenShake(0.5);
-      audioService.playDamageImpactSound(DAMAGE_TYPE.CRIT, false);
+      playSound(SFX_EVENT.BOSS_SKILL, { rateScale: themeConfig.audioPitchRate });
+    }
+    const archetypeSound = BOSS_SKILL_VFX_SFX[skill.vfxType];
+    if (archetypeSound) {
+      playSound(archetypeSound, { rateScale: themeConfig.audioPitchRate });
+    }
+
+    if (skill.vfxType === BOSS_SKILL_VFX.METEOR_RAIN) {
+      get().spawnBossMeteorRain(skill, now);
     }
 
     const remainingMinions: MinionEntity[] = [];
     const newFloats: FloatingDamageText[] = [];
     const newDefeatedChampions: DefeatedChampionEntity[] = [];
+    let totalDamageDealt = 0;
 
     currentMinions.forEach((minion) => {
       // 1. Invulnerability grace check: Immune to damage for the first 1s after summon/revival
@@ -2400,6 +2449,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       const curHp = minion.hp ?? minion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
       const nextHp = curHp - actualDamage;
+      totalDamageDealt += Math.min(curHp, actualDamage);
 
       const livePos = getLiveMinionScreenPos(minion.id) || getLiveMinionScreenPos(minion.championName);
       const posX = livePos ? livePos.x : (minion.team === TEAM_KEY.BLG ? screenW * 0.25 : screenW * 0.75);
@@ -2425,28 +2475,25 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().spawnParticleBurst(liveWorldPos, skill.color, skill.isUltimate ? 2.0 : 1.0);
 
       if (nextHp > 0) {
-        remainingMinions.push({ ...minion, hp: nextHp });
-      } else {
-        newDefeatedChampions.push({
-          id: `defeat-${now}-${Math.random().toString(36).substring(2, 6)}`,
-          championName: minion.championName,
-          summonerName: minion.summonerName,
-          avatarUrl: minion.avatarUrl,
-          team: minion.team,
-          position: liveWorldPos,
-          screenX: posX,
-          screenY: posY,
-          killerName: bossName,
-          createdAt: now,
-          durationMs: COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.DEFEAT_DURATION_MS,
-        });
-
-        // Clean sound feedback, no heavy particle burst spam to limit effects
-        audioService.playChampionDeathSound();
-
-        get().addLog('BOSS', `💀 [${bossName}] dùng [${skill.vietnameseName}] hạ gục ${minion.championName} của ${minion.summonerName}!`, minion.team);
+        const statusEffects = championDebuff
+          ? upsertStatusEffect(minion.statusEffects, championDebuff)
+          : minion.statusEffects;
+        remainingMinions.push({ ...minion, hp: nextHp, statusEffects });
+        return;
       }
+
+      newDefeatedChampions.push(
+        buildDefeatedChampion(minion, liveWorldPos, posX, posY, bossName, now)
+      );
+      // Clean sound feedback, no heavy particle burst spam to limit effects
+      playSound(SFX_EVENT.CHAMPION_DEATH);
+      get().addLog('BOSS', `💀 [${bossName}] dùng [${skill.vietnameseName}] hạ gục ${minion.championName} của ${minion.summonerName}!`, minion.team);
     });
+
+    if (championDebuff && targetedMinionIds.size > 0) {
+      const presentation = STATUS_EFFECT_PRESENTATION[championDebuff.type];
+      get().addLog('BOSS', `${presentation.icon} [${skill.vietnameseName}] gây ${presentation.labelVi} lên ${targetedMinionIds.size} tướng!`);
+    }
 
     set((prev) => ({
       bossAttackTimestamp: now,
@@ -2459,6 +2506,158 @@ export const useGameStore = create<GameState>((set, get) => ({
         ...newDefeatedChampions,
       ],
       floatingDamages: [...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)), ...newFloats],
+    }));
+
+    if (isLifesteal && totalDamageDealt > 0) {
+      const healAmount = Math.round(totalDamageDealt * (skill.statusEffect?.ratio ?? 0));
+      get().healBoss(healAmount, skill.vietnameseName);
+    }
+  },
+
+  spawnBossMeteorRain: (skill, now) => {
+    const count = skill.vfxParams?.count ?? BOSS_METEOR_RAIN_CONSTANTS.DEFAULT_COUNT;
+    const newMeteors: MeteorEntity[] = Array.from({ length: count }, (_, index) => {
+      const targetX = (Math.random() - 0.5) * BOSS_METEOR_RAIN_CONSTANTS.SPREAD_X;
+      const targetZ = (Math.random() - 0.5) * BOSS_METEOR_RAIN_CONSTANTS.SPREAD_Z;
+      return {
+        id: `boss-meteor-${now}-${index}`,
+        start: [targetX + (Math.random() - 0.5) * 2, BOSS_METEOR_RAIN_CONSTANTS.START_HEIGHT, targetZ - 2],
+        target: [targetX, BOSS_METEOR_RAIN_CONSTANTS.GROUND_Y, targetZ],
+        color: skill.color,
+        glowColor: skill.vfxParams?.secondaryColor,
+        coreColor: '#ffffff',
+        createdAt: now + index * BOSS_METEOR_RAIN_CONSTANTS.STAGGER_MS,
+        duration: BOSS_METEOR_RAIN_CONSTANTS.FALL_DURATION_S,
+      };
+    });
+    set((prev) => ({
+      activeMeteors: [...prev.activeMeteors.slice(-BOSS_METEOR_RAIN_CONSTANTS.POOL_KEEP), ...newMeteors],
+    }));
+  },
+
+  healBoss: (amount, sourceLabel) => {
+    const state = get();
+    if (amount <= 0 || state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
+    const healedHp = Math.min(state.bossMaxHp, state.bossHp + amount);
+    if (healedHp === state.bossHp) return;
+
+    const presentation = STATUS_EFFECT_PRESENTATION[BOSS_STATUS_EFFECT.LIFESTEAL];
+    get().spawnParticleBurst([0, 0.6, 0.5], presentation.color, 1.4);
+    get().addLog('BOSS', `${presentation.icon} [${sourceLabel}] hút máu: Boss hồi +${amount.toLocaleString()} HP!`);
+    // Mirror the shield-heal path: leaving the enrage threshold calms the boss down.
+    const isStillEnraged = healedHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+    const nextStatus = isStillEnraged ? state.bossStatus : BOSS_STATUS.IDLE;
+    set({ bossHp: healedHp, bossStatus: nextStatus });
+  },
+
+  syncBossPhase: () => {
+    const state = get();
+    if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
+    const nextPhase = resolveBossPhase(state.bossHp, state.bossMaxHp);
+    if (nextPhase === state.bossPhase) return;
+
+    const isEscalating = nextPhase > state.bossPhase;
+    set({ bossPhase: nextPhase, bossPhaseChangedAt: Date.now() });
+    if (!isEscalating) return;
+
+    const themeConfig = getThemeConfig(state.gameTheme);
+    playSound(SFX_EVENT.BOSS_PHASE_SHIFT, { rateScale: themeConfig.audioPitchRate });
+    get().triggerScreenShake(BOSS_PHASE_SHIFT_SHAKE_INTENSITY);
+    get().triggerScreenFlash(nextPhase === BOSS_PHASE.THREE ? themeConfig.colors.enragedHex : themeConfig.colors.secondaryHex);
+    get().addLog('BOSS', `⚠️ [${themeConfig.bossName}] bước vào ${BOSS_PHASE_RULES[nextPhase].labelVi}!`);
+  },
+
+  tickStatusEffects: () => {
+    const state = get();
+    if (state.minions.length === 0) return;
+    const now = Date.now();
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
+    const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
+    const bossName = getThemeConfig(state.gameTheme).bossName;
+
+    const remainingMinions: MinionEntity[] = [];
+    const newFloats: FloatingDamageText[] = [];
+    const newDefeatedChampions: DefeatedChampionEntity[] = [];
+    let hasChanges = false;
+
+    state.minions.forEach((minion) => {
+      const effects = minion.statusEffects;
+      if (!effects || effects.length === 0) {
+        remainingMinions.push(minion);
+        return;
+      }
+
+      let nextHp = minion.hp ?? minion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
+      const nextEffects: ActiveStatusEffect[] = [];
+
+      effects.forEach((effect) => {
+        if (effect.expiresAt <= now) {
+          hasChanges = true;
+          return;
+        }
+        const isDot = DAMAGE_OVER_TIME_EFFECTS.includes(effect.type) && (effect.tickDamage ?? 0) > 0;
+        const isTickDue = now - effect.lastTickAt >= STATUS_EFFECT_CONSTANTS.DOT_TICK_INTERVAL_MS;
+        if (!isDot || !isTickDue) {
+          nextEffects.push(effect);
+          return;
+        }
+
+        hasChanges = true;
+        const tickDamage = effect.tickDamage ?? 0;
+        nextHp -= tickDamage;
+        nextEffects.push({ ...effect, lastTickAt: now });
+
+        const livePos = getLiveMinionScreenPos(minion.id);
+        const posX = livePos ? livePos.x : screenW * 0.5;
+        const posY = livePos ? livePos.y : screenH * 0.65;
+        const presentation = STATUS_EFFECT_PRESENTATION[effect.type];
+        newFloats.push({
+          id: `dot-${now}-${minion.id}-${effect.type}`,
+          amount: tickDamage,
+          text: `${presentation.icon} -${tickDamage}`,
+          damageType: DAMAGE_TYPE.NORMAL,
+          team: minion.team,
+          playerName: minion.championName,
+          x: posX - screenW * 0.5,
+          y: posY - screenH * 0.5,
+          color: presentation.color,
+          scale: STATUS_EFFECT_CONSTANTS.FLOATING_TEXT_SCALE,
+          createdAt: now,
+        });
+      });
+
+      if (nextHp > 0) {
+        remainingMinions.push({ ...minion, hp: nextHp, statusEffects: nextEffects });
+        return;
+      }
+
+      hasChanges = true;
+      const livePos = getLiveMinionScreenPos(minion.id);
+      const worldPos = getLiveMinionPosition(minion.id) || minion.spawnPosition;
+      newDefeatedChampions.push(
+        buildDefeatedChampion(
+          minion,
+          worldPos,
+          livePos ? livePos.x : screenW * 0.5,
+          livePos ? livePos.y : screenH * 0.65,
+          bossName,
+          now
+        )
+      );
+      playSound(SFX_EVENT.CHAMPION_DEATH);
+      get().addLog('BOSS', `💀 ${minion.championName} của ${minion.summonerName} gục ngã vì hiệu ứng của [${bossName}]!`, minion.team);
+    });
+
+    if (!hasChanges) return;
+
+    const keepFloatingCount = Math.max(0, COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - newFloats.length);
+    set((prev) => ({
+      minions: remainingMinions,
+      activeDefeatedChampions: [...prev.activeDefeatedChampions.slice(-8), ...newDefeatedChampions],
+      floatingDamages: [
+        ...(keepFloatingCount > 0 ? prev.floatingDamages.slice(-keepFloatingCount) : []),
+        ...newFloats,
+      ],
     }));
   },
 
@@ -2479,7 +2678,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
 
-    audioService.playRoundStartSound();
+    audioService.setCombatMuted(false);
+    playSound(SFX_EVENT.ROUND_START);
     get().addLog(
       'SYSTEM',
       `⚔️ Bắt đầu Ván ${nextRound} / ${state.seriesFormat} • Đối đầu ${themeConfig.bossName} (${nextMaxHp.toLocaleString()} HP)!`
@@ -2515,6 +2715,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossShield: null,
       triggeredShieldThresholds: [],
       bossShieldBrokenTimestamp: 0,
+      bossPhase: BOSS_PHASE.ONE,
+      bossPhaseChangedAt: 0,
       bossWeakPoint: null,
       lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
@@ -2542,7 +2744,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
 
-    audioService.playRoundStartSound();
+    audioService.setCombatMuted(false);
+    playSound(SFX_EVENT.ROUND_START);
     get().addLog('SYSTEM', `🔄 Bắt đầu Trận đấu ${state.seriesFormat} Mới (0 - 0) • Ván 1: ${themeConfig.bossName}!`);
     set({
       gameTheme: round1Theme,
@@ -2582,6 +2785,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossShield: null,
       triggeredShieldThresholds: [],
       bossShieldBrokenTimestamp: 0,
+      bossPhase: BOSS_PHASE.ONE,
+      bossPhaseChangedAt: 0,
       bossWeakPoint: null,
       lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
@@ -2689,7 +2894,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().resetBO5Match();
       return;
     }
-    audioService.playRoundStartSound();
+    audioService.setCombatMuted(false);
+    playSound(SFX_EVENT.ROUND_START);
     get().addLog('BOSS', '🔄 Hồi sinh Boss về trạng thái ban đầu');
     set({
       bossHp: state.bossMaxHp,
@@ -2722,6 +2928,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       bossShield: null,
       triggeredShieldThresholds: [],
       bossShieldBrokenTimestamp: 0,
+      bossPhase: BOSS_PHASE.ONE,
+      bossPhaseChangedAt: 0,
       bossWeakPoint: null,
       lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
@@ -2746,6 +2954,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       clampedHp <= max * enrageThreshold;
     const isJustEnraged = !wasEnraged && isEnraged;
     const isDefeated = clampedHp <= 0;
+    if (isDefeated) {
+      audioService.setCombatMuted(true);
+      soundManager.stopAll();
+    }
     const status = isDefeated
       ? BOSS_STATUS.DEFEATED
       : isEnraged
@@ -2756,7 +2968,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (isJustEnraged) {
       const themeConfig = getThemeConfig(currentTheme);
-      audioService.playBossEnrageSound(themeConfig.audioPitchRate);
+      playSound(SFX_EVENT.BOSS_ENRAGE, { rateScale: themeConfig.audioPitchRate });
       get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
       get().addLog(
@@ -2768,6 +2980,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       bossHp: clampedHp,
       bossStatus: status,
+      isRoundIntermission: isDefeated ? true : get().isRoundIntermission,
+      minions: isDefeated ? [] : get().minions,
+      activeProjectiles: isDefeated ? [] : get().activeProjectiles,
+      activeFlyingArrows: isDefeated ? [] : get().activeFlyingArrows,
+      activeSlashes: isDefeated ? [] : get().activeSlashes,
+      activeMeteors: isDefeated ? [] : get().activeMeteors,
       bossDefeatedTimestamp: isDefeated ? Date.now() : 0,
       bossEnragedEntranceTimestamp: isJustEnraged
         ? Date.now()

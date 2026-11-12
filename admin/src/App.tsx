@@ -84,7 +84,7 @@ const THEME_OPTIONS: BossThemeOption[] = [
     name: 'Sứ Giả Khe Nứt',
     sub: 'Ván 1 (0.5x HP)',
     desc: 'Cua Kỳ Cục đột biến • Tông xanh lục bảo',
-    icon: '/images/boss_baron_2d.png',
+    icon: '/images/boss_rift_herald_2d.png',
     bgActive: 'bg-emerald-950/90',
     borderActive: 'border-emerald-400',
     badgeBg: 'bg-emerald-600',
@@ -95,7 +95,7 @@ const THEME_OPTIONS: BossThemeOption[] = [
     name: 'Rồng Núi Nham Thạch',
     sub: 'Ván 2 (0.7x HP)',
     desc: 'Địa Long Núi Lửa • Tông đỏ cam dung nham',
-    icon: '/images/elder_dragon_icon_135001.webp',
+    icon: '/images/boss_mountain_dragon_2d.png',
     bgActive: 'bg-orange-950/90',
     borderActive: 'border-orange-400',
     badgeBg: 'bg-orange-600',
@@ -106,7 +106,7 @@ const THEME_OPTIONS: BossThemeOption[] = [
     name: 'Rồng Già Bão Tố',
     sub: 'Ván 3 (0.85x HP)',
     desc: 'Lôi Long Cổ Đại • Tông tím sấm sét',
-    icon: '/images/elder_dragon_icon_135001.webp',
+    icon: '/images/boss_storm_dragon_2d.png',
     bgActive: 'bg-indigo-950/90',
     borderActive: 'border-indigo-400',
     badgeBg: 'bg-indigo-600',
@@ -117,7 +117,7 @@ const THEME_OPTIONS: BossThemeOption[] = [
     name: 'Rồng Ngàn Tuổi',
     sub: 'Kinh Điển (1.0x HP)',
     desc: 'Long Thần CKTG • Lửa Thiên Thanh & Vàng Kim',
-    icon: '/images/elder_dragon_icon_135001.webp',
+    icon: '/images/boss_elder_dragon_2d.png',
     bgActive: 'bg-gradient-to-r from-amber-950/90 to-cyan-950/90',
     borderActive: 'border-amber-400',
     badgeBg: 'bg-amber-600',
@@ -139,7 +139,7 @@ const THEME_OPTIONS: BossThemeOption[] = [
     name: 'Thần Hư Vô Nguyên Thủy',
     sub: 'Ván 5 Quyết Đấu (1.3x HP)',
     desc: 'Đại Cổ Thần Hư Không • Void Aura tối thượng',
-    icon: '/images/boss_baron_2d.png',
+    icon: '/images/boss_void_titan_2d.png',
     bgActive: 'bg-violet-950/95',
     borderActive: 'border-fuchsia-400',
     badgeBg: 'bg-fuchsia-600',
@@ -1491,7 +1491,7 @@ export function App() {
           </section>
 
           {/* Section 6: Boss Counterattack & 4 Skills Config */}
-          <BossSkillControls currentTheme={selectedTheme} />
+          <BossSkillControls currentTheme={selectedTheme} teamConfig={teamConfig} />
 
           {/* Section 6.5: Auto Pro-Player Battle when Idle */}
           <AutoProControls teamConfig={teamConfig} />

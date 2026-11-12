@@ -36,8 +36,12 @@ export const SummonPortals3D = () => {
     const now = Date.now();
     const elapsedTime = state.clock.getElapsedTime();
     const clampedDelta = Math.min(0.1, delta);
-    const { bossStatus, bossHp } = useGameStore.getState();
-    const isBossAlive = bossStatus !== BOSS_STATUS.DEFEATED && bossHp > 0;
+    const { bossStatus, bossHp, isRoundIntermission, roundWinner } = useGameStore.getState();
+    const isBossAlive =
+      bossStatus !== BOSS_STATUS.DEFEATED &&
+      bossHp > 0 &&
+      !isRoundIntermission &&
+      roundWinner === null;
 
     activeMinionIdsSet.clear();
 

@@ -17,6 +17,15 @@ class AudioSynthesizerService {
   public isAudioEnabled: boolean = GAME_CONSTANTS.AUDIO.DEFAULT_ENABLED;
   public isTtsEnabled: boolean = GAME_CONSTANTS.AUDIO.DEFAULT_TTS_ENABLED;
   public volume: number = GAME_CONSTANTS.AUDIO.DEFAULT_VOLUME;
+  public isCombatMuted: boolean = false;
+
+  public setCombatMuted(muted: boolean): void {
+    this.isCombatMuted = muted;
+    if (muted) {
+      this.stopSilverScrapesBgm();
+      this.cancelSpeech();
+    }
+  }
 
   private isSpeaking = false;
   private ttsQueue: string[] = [];
@@ -110,7 +119,7 @@ class AudioSynthesizerService {
   // 1. Procedural Dragon Roar & Elemental Flame/Void Attack (Dynamic per Boss Theme)
   public playBossRoarSound(pitchRateOrElder: number | boolean = 1.0, isEnraged = false): void {
     const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const now = performance.now();
     if (now - this.lastRoarSoundTime < 600) return;
     this.lastRoarSoundTime = now;
@@ -207,7 +216,7 @@ class AudioSynthesizerService {
   // 1b. Guttural Poke Flinch / Growl (Triggered when user clicks / taps on Boss)
   public playBossPokeSound(pitchRateOrElder: number | boolean = 1.0): void {
     const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -241,7 +250,7 @@ class AudioSynthesizerService {
   // 1c. Subtle Ambient Breathing Whoosh (Periodic ambient idle sound)
   public playBossIdleBreath(pitchRateOrElder: number | boolean = 1.0): void {
     const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -274,7 +283,7 @@ class AudioSynthesizerService {
 
   // 2. Heroic Champion Summon Arrival SFX ("Bay ra ngẫu nhiên & tiếp đất")
   public playSummonArrivalSound(team: TeamType = TEAM_KEY.BLG, isCrit = false): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -341,7 +350,7 @@ class AudioSynthesizerService {
     isCrit = false,
     team?: TeamType
   ): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const now = performance.now();
     if (!isCrit && now - this.lastSkillSoundTime < AUDIO_SFX_CONSTANTS.SKILL_THROTTLE_MS) {
       return;
@@ -827,7 +836,7 @@ class AudioSynthesizerService {
 
   // 4. Visceral Multi-Layer Damage Impact Sound (Hit feeling on Baron / Elder Dragon)
   public playDamageImpactSound(damageType: DamageType = DAMAGE_TYPE.NORMAL, isCrit = false): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const now = performance.now();
     if (now - this.lastHitSoundTime < 32) return;
     this.lastHitSoundTime = now;
@@ -918,7 +927,7 @@ class AudioSynthesizerService {
 
   // 5. Procedural Blade Slash Strike (Jax, Xin Zhao, Yone, K'Sante)
   public playSlashSound(isCrit = false): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -951,7 +960,7 @@ class AudioSynthesizerService {
 
   // 6. Combo Milestone Hype Fanfare (Combo x10, x25, x50, x100)
   public playComboMilestoneSound(comboCount: number): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const now = performance.now();
     if (now - this.lastComboSoundTime < AUDIO_SFX_CONSTANTS.COMBO_MILESTONE_THROTTLE_MS) {
       return;
@@ -986,7 +995,7 @@ class AudioSynthesizerService {
 
   // 7. Procedural Attack Whoosh
   public playAttackWhoosh(isCrit = false, isMelee = false): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const now = performance.now();
     if (now - this.lastWhooshSoundTime < 40) return;
     this.lastWhooshSoundTime = now;
@@ -1030,7 +1039,7 @@ class AudioSynthesizerService {
 
   // 8. Procedural Gift / Fanfare Sound
   public playGiftFanfare(): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1089,7 +1098,7 @@ class AudioSynthesizerService {
 
   // 10. Procedural Champion Defeat / Death Sound
   public playChampionDeathSound(): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1174,7 +1183,7 @@ class AudioSynthesizerService {
 
   // 11. Procedural Heart Sparkle Chime
   public playHeartChime(): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1197,7 +1206,7 @@ class AudioSynthesizerService {
 
   // 11b. Global Divine Healing Angelic Chime & Chord (Toàn Bản Đồ Hồi Phục)
   public playGlobalDivineHealSound(): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1229,7 +1238,7 @@ class AudioSynthesizerService {
   // 11c. Boss Enrage Phase Warning Siren (<= 35% HP)
   public playBossEnrageSound(pitchRateOrElder: number | boolean = 1.0): void {
     const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1256,6 +1265,7 @@ class AudioSynthesizerService {
 
   // 11d. Esports Match / Round Start Horn Triad
   public playRoundStartSound(): void {
+    this.setCombatMuted(false);
     if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
@@ -1316,7 +1326,7 @@ class AudioSynthesizerService {
   private silverScrapesBgmTimer: number | null = null;
 
   public startSilverScrapesBgm(): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     this.stopSilverScrapesBgm();
 
     const ctx = this.getAudioContext();
@@ -1327,7 +1337,7 @@ class AudioSynthesizerService {
     const intervalMs = 280;
 
     const tick = () => {
-      if (!this.isAudioEnabled || !this.ctx) return;
+      if (!this.isAudioEnabled || this.isCombatMuted || !this.ctx) return;
       const t = this.ctx.currentTime;
       const out = this.getOutputNode(0);
       const osc = this.ctx.createOscillator();
@@ -1361,7 +1371,7 @@ class AudioSynthesizerService {
   }
 
   public playBeamBurstSound(isUltimate = false): void {
-    if (!this.isAudioEnabled) return;
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 

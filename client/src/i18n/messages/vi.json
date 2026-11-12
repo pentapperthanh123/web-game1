@@ -255,7 +255,9 @@
     "no": "Không",
     "tabTeams": "Đội & Tuyển Thủ",
     "healTeamDynamic": "+50 HP cho {{team}}",
-    "summonAlternateDynamicLabel": "Luân phiên 2 phe ({{left}} ↔ {{right}})"
+    "summonAlternateDynamicLabel": "Luân phiên 2 phe ({{left}} ↔ {{right}})",
+    "roundEndedNotice": "Ván đấu đã kết thúc, đang nghỉ giữa hiệp!",
+    "chatSentIntermission": "Đã gửi bình luận! (Không triệu hồi trong lúc nghỉ giữa hiệp)"
   },
   "AdminTeams": {
     "activeMatchupTitle": "Cặp Đấu Hiện Tại:",
@@ -323,5 +325,22 @@
     "winnerTitle": "🏆 {{winner}} CHIẾN THẮNG 1V1 SILVER SCRAPES!",
     "winnerBuffDesc": "Đoạt Chiến Công Đầu! Toàn đội {{winner}} nhận bùa lợi +20% Sát Thương trong 90s đầu Ván quyết định!",
     "idleHint": "Mọi tương tác Thả Tim, Chat gọi tướng & Tặng Quà đều lập tức nạp năng lượng đẩy lùi đối thủ!"
+  },
+  "BossPhase": {
+    "shiftTitle": "BOSS THỨC TỈNH",
+    "label": {
+      "1": "Giai đoạn 1",
+      "2": "Giai đoạn 2 · Thức tỉnh",
+      "3": "Giai đoạn 3 · Tận thế"
+    },
+    "hintPhase2": "Chiêu cuối đã được mở khóa!",
+    "hintPhase3": "Sát thương +20% · Ra chiêu nhanh hơn · Hiệu ứng kéo dài"
+  },
+  "StatusEffect": {
+    "BURN": "Thiêu đốt",
+    "POISON": "Trúng độc",
+    "STUN": "Choáng",
+    "WEAKEN": "Suy yếu",
+    "LIFESTEAL": "Hút máu"
   }
 }

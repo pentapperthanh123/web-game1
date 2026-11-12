@@ -1,5 +1,6 @@
-import { BossSkillDefinition, BossSkillConfig } from '../types/bossSkill';
+import { BossSkillBase, BossSkillDefinition, BossSkillConfig } from '../types/bossSkill';
 import { GAME_THEME, GameThemeType } from './game';
+import { getBossSkillEffect } from './bossSkillEffects';
 
 export const DEFAULT_BOSS_SKILL_CONFIG: BossSkillConfig = {
   autoAttackEnabled: true,
@@ -7,9 +8,10 @@ export const DEFAULT_BOSS_SKILL_CONFIG: BossSkillConfig = {
   damageMultiplier: 1.0,
   mode: 'RANDOM_WEIGHTED',
   randomIntervalEnabled: true,
+  phaseLockEnabled: true,
 };
 
-export const BARON_SKILLS: BossSkillDefinition[] = [
+export const BARON_SKILLS: BossSkillBase[] = [
   {
     id: 'baron_acid_spit',
     name: 'Acid Spit',
@@ -56,7 +58,7 @@ export const BARON_SKILLS: BossSkillDefinition[] = [
   },
 ];
 
-export const ELDER_DRAGON_SKILLS: BossSkillDefinition[] = [
+export const ELDER_DRAGON_SKILLS: BossSkillBase[] = [
   {
     id: 'elder_dragon_breath',
     name: 'Dragon Breath',
@@ -103,7 +105,7 @@ export const ELDER_DRAGON_SKILLS: BossSkillDefinition[] = [
   },
 ];
 
-export const RIFT_HERALD_SKILLS: BossSkillDefinition[] = [
+export const RIFT_HERALD_SKILLS: BossSkillBase[] = [
   {
     id: 'herald_charge',
     name: 'Herald Charge',
@@ -150,7 +152,7 @@ export const RIFT_HERALD_SKILLS: BossSkillDefinition[] = [
   },
 ];
 
-export const MOUNTAIN_DRAGON_SKILLS: BossSkillDefinition[] = [
+export const MOUNTAIN_DRAGON_SKILLS: BossSkillBase[] = [
   {
     id: 'mountain_magma_spit',
     name: 'Magma Spit',
@@ -197,7 +199,7 @@ export const MOUNTAIN_DRAGON_SKILLS: BossSkillDefinition[] = [
   },
 ];
 
-export const STORM_DRAGON_SKILLS: BossSkillDefinition[] = [
+export const STORM_DRAGON_SKILLS: BossSkillBase[] = [
   {
     id: 'storm_lightning_spark',
     name: 'Lightning Spark',
@@ -244,7 +246,7 @@ export const STORM_DRAGON_SKILLS: BossSkillDefinition[] = [
   },
 ];
 
-export const VOID_TITAN_SKILLS: BossSkillDefinition[] = [
+export const VOID_TITAN_SKILLS: BossSkillBase[] = [
   {
     id: 'void_annihilation_beam',
     name: 'Annihilation Beam',
@@ -291,18 +293,27 @@ export const VOID_TITAN_SKILLS: BossSkillDefinition[] = [
   },
 ];
 
+const withEffects = (skills: BossSkillBase[]): BossSkillDefinition[] =>
+  skills.map((skill) => ({ ...skill, ...getBossSkillEffect(skill.id) }));
+
+/** Raw data merged once with the VFX / status / phase layer from `bossSkillEffects.ts`. */
 export const BOSS_SKILLS_MAP: Record<GameThemeType, BossSkillDefinition[]> = {
-  [GAME_THEME.XU_GIA]: RIFT_HERALD_SKILLS,
-  [GAME_THEME.RONG_NUI]: MOUNTAIN_DRAGON_SKILLS,
-  [GAME_THEME.RONG_GIA]: STORM_DRAGON_SKILLS,
-  [GAME_THEME.ELDER_DRAGON]: ELDER_DRAGON_SKILLS,
-  [GAME_THEME.BARON]: BARON_SKILLS,
-  [GAME_THEME.VOID_TITAN]: VOID_TITAN_SKILLS,
+  [GAME_THEME.XU_GIA]: withEffects(RIFT_HERALD_SKILLS),
+  [GAME_THEME.RONG_NUI]: withEffects(MOUNTAIN_DRAGON_SKILLS),
+  [GAME_THEME.RONG_GIA]: withEffects(STORM_DRAGON_SKILLS),
+  [GAME_THEME.ELDER_DRAGON]: withEffects(ELDER_DRAGON_SKILLS),
+  [GAME_THEME.BARON]: withEffects(BARON_SKILLS),
+  [GAME_THEME.VOID_TITAN]: withEffects(VOID_TITAN_SKILLS),
 };
 
 export const getBossSkillsByTheme = (theme: GameThemeType): BossSkillDefinition[] => {
-  return BOSS_SKILLS_MAP[theme] || BARON_SKILLS;
+  return BOSS_SKILLS_MAP[theme] || BOSS_SKILLS_MAP[GAME_THEME.BARON];
 };
+
+export const getBossSkillById = (
+  theme: GameThemeType,
+  skillId: string
+): BossSkillDefinition | undefined => getBossSkillsByTheme(theme).find((skill) => skill.id === skillId);
 
 export const BOSS_SKILL_STORAGE_KEY = 'lol_boss_skill_config_v1';
 export const CHAMPION_DEFAULT_MAX_HP = 100;

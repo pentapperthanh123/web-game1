@@ -25,6 +25,12 @@ import { BossEnragedAura } from './BossEnragedAura';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
 import { audioService } from '../../services/audioService';
+import { playSound } from '../../services/soundManager';
+import { SFX_EVENT } from '../../constants/sfx';
+import { BossSkillVfxType } from '../../types/bossSkill';
+import { BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
+import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
+import { BossPhaseShiftBanner } from './BossPhaseShiftBanner';
 
 const getAnimationClass = (
   isDefeated: boolean,
@@ -39,11 +45,13 @@ const getAnimationClass = (
   lastHitTeam: TeamType | null,
   lastHitDamageType: DamageType | null,
   hitNonce: number,
-  skillId?: string
+  skillId?: string,
+  vfxType?: BossSkillVfxType
 ): string => {
   if (isDefeated) {
     return 'animate-boss-defeat pointer-events-none';
   }
+  const archetypeClass = vfxType ? BOSS_SKILL_VFX_ANIMATION_CLASS[vfxType] : null;
 
   // 1. Direct User Poke Reaction (Click / Tap)
   if (isPoked) {
@@ -59,6 +67,9 @@ const getAnimationClass = (
       if (skillId === 'herald_charge') {
         return 'animate-herald-charge drop-shadow-[0_0_75px_rgba(16,185,129,1)] cursor-pointer';
       }
+      if (archetypeClass) {
+        return `${archetypeClass} drop-shadow-[0_0_70px_rgba(16,185,129,1)] cursor-pointer`;
+      }
       if (attackTargetTeam === TEAM_KEY.BLG) {
         return 'animate-boss-lunge-left drop-shadow-[0_0_60px_rgba(16,185,129,1)] cursor-pointer';
       }
@@ -69,6 +80,9 @@ const getAnimationClass = (
     }
 
     const shadowColor = themeConfig.colors.glowHex || themeConfig.colors.primaryHex;
+    if (archetypeClass) {
+      return `${archetypeClass} drop-shadow-[0_0_70px_${shadowColor}] cursor-pointer`;
+    }
     if (isUltimateAttack || attackTargetTeam === 'ALL') {
       return `animate-boss-slam-center drop-shadow-[0_0_75px_${shadowColor}] cursor-pointer`;
     }
@@ -196,10 +210,12 @@ export const Boss2D = () => {
   const spawnParticleBurst = useGameStore((state) => state.spawnParticleBurst);
 
   const bossWeakPoint = useGameStore((state) => state.bossWeakPoint);
+  const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
+  const roundWinner = useGameStore((state) => state.roundWinner);
 
   const themeConfig = getThemeConfig(gameTheme);
   const isHerald = themeConfig.archetype === 'HERALD';
-  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED;
+  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
 
   // Combat Animation States
@@ -330,8 +346,7 @@ export const Boss2D = () => {
   // Periodic Ambient Idle Lifecycle Loop with non-repeating speech queue and cooldown
   useEffect(() => {
     const idleInterval = setInterval(() => {
-      const isDefeatedState = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0;
-      if (isDefeatedState || isHitActive || isRoarActive || isPoked) {
+      if (isDefeated || isHitActive || isRoarActive || isPoked) {
         return;
       }
 
@@ -393,7 +408,7 @@ export const Boss2D = () => {
     }, BOSS_IDLE_CONSTANTS.AMBIENT_ACTION_INTERVAL_MS);
 
     return () => clearInterval(idleInterval);
-  }, [bossStatus, bossHp, isHitActive, isRoarActive, isPoked, minions.length, gameTheme, themeConfig.audioPitchRate]);
+  }, [isDefeated, isHitActive, isRoarActive, isPoked, minions.length, gameTheme, themeConfig.audioPitchRate]);
 
   // Periodic Living Boss Roar Loop (roars every 12-20s even during ongoing pro pokes)
   const isBossAlive = !isDefeated && bossHp > 0;
@@ -410,9 +425,16 @@ export const Boss2D = () => {
 
       roarTimer = setTimeout(() => {
         const latestState = useGameStore.getState();
-        if (latestState.bossStatus !== BOSS_STATUS.DEFEATED && latestState.bossHp > 0) {
+        if (
+          latestState.bossStatus !== BOSS_STATUS.DEFEATED &&
+          latestState.bossHp > 0 &&
+          !latestState.isRoundIntermission &&
+          latestState.roundWinner === null
+        ) {
           const enragedNow = latestState.bossStatus === BOSS_STATUS.ENRAGED;
-          audioService.playBossRoarSound(themeConfig.audioPitchRate, enragedNow);
+          playSound(enragedNow ? SFX_EVENT.BOSS_ENRAGE : SFX_EVENT.BOSS_ROAR, {
+            rateScale: themeConfig.audioPitchRate,
+          });
           setIsEyesSurging(true);
           setIsWingGustActive(true);
           setIsRoarActive(true);
@@ -497,7 +519,7 @@ export const Boss2D = () => {
 
   // Direct User Tap / Click Interaction (Poke & Roar with non-repeating poke quotes)
   const handleBossClick = useCallback(() => {
-    if (bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0) return;
+    if (isDefeated) return;
 
     const now = Date.now();
     lastActivityTimestampRef.current = now;
@@ -527,7 +549,7 @@ export const Boss2D = () => {
     speechTimerRef.current = setTimeout(() => {
       setActiveSpeech(null);
     }, BOSS_IDLE_CONSTANTS.SPEECH_BUBBLE_DURATION_MS);
-  }, [bossStatus, bossHp, themeConfig.audioPitchRate, themeConfig.colors.primaryHex, gameTheme, spawnParticleBurst]);
+  }, [isDefeated, themeConfig.audioPitchRate, themeConfig.colors.primaryHex, gameTheme, spawnParticleBurst]);
 
   const isUltimateAttack = activeBossSkillBanner?.isUltimate ?? false;
 
@@ -544,7 +566,8 @@ export const Boss2D = () => {
     lastHitTeam,
     lastHitDamageType,
     hitNonce,
-    activeBossSkillBanner?.skillId
+    activeBossSkillBanner?.skillId,
+    activeBossSkillBanner?.vfxType
   );
 
   const auraColorClass = getAuraColorClass(
@@ -602,6 +625,12 @@ export const Boss2D = () => {
         gameTheme={gameTheme}
         defaultRoarTextVi={themeConfig.roarTextVi}
       />
+
+      {/* 1b. Phase escalation callout */}
+      <BossPhaseShiftBanner themeConfig={themeConfig} />
+
+      {/* 1c. Per-archetype skill VFX overlay (projectiles, beams, spikes…) */}
+      {!isDefeated && <BossSkillVfx2D />}
 
       {/* 2. Living Elemental Portal Aura Glow */}
       <div

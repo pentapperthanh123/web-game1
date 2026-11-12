@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import {
+  BOSS_STATUS,
   GUEST_SIMULATION_CONSTANTS,
   TEAM_KEY,
 } from '../../constants/game';
@@ -54,6 +55,12 @@ export const GuestSimulationDock: React.FC = () => {
   const summonMinion = useGameStore((state) => state.summonMinion);
   const triggerGiftExplosion = useGameStore((state) => state.triggerGiftExplosion);
   const addChatMessage = useGameStore((state) => state.addChatMessage);
+  const bossStatus = useGameStore((state) => state.bossStatus);
+  const bossHp = useGameStore((state) => state.bossHp);
+  const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
+  const roundWinner = useGameStore((state) => state.roundWinner);
+  const isBattlePaused =
+    bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
 
   const [activeTab, setActiveTab] = useState<GuestDockTab>('HEART');
   const [tapStreak, setTapStreak] = useState<number>(0);
@@ -95,6 +102,10 @@ export const GuestSimulationDock: React.FC = () => {
 
   // 1. Thao tác Thả tim (Tap Heart)
   const handleTapHeart = (count = 1) => {
+    if (isBattlePaused) {
+      showToastSuccess(t('HUD.roundEndedNotice', 'Ván đấu đã kết thúc, đang nghỉ giữa hiệp!'));
+      return;
+    }
     const now = Date.now();
     addLikes(count, guestTeam, guestName);
     gameSocket.sendLike(count, guestTeam, guestName);
@@ -112,6 +123,10 @@ export const GuestSimulationDock: React.FC = () => {
 
   // 2. Thao tác Triệu hồi tướng (Quick Summon)
   const handleSummonChampion = (champName: string) => {
+    if (isBattlePaused) {
+      showToastSuccess(t('HUD.roundEndedNotice', 'Ván đấu đã kết thúc, đang nghỉ giữa hiệp!'));
+      return;
+    }
     const cleanName = champName.trim();
     if (!cleanName) return;
 
@@ -127,6 +142,10 @@ export const GuestSimulationDock: React.FC = () => {
 
   // 3. Thao tác Gửi quà (Gift)
   const handleSendGift = (gift: { name: string; coins: number }) => {
+    if (isBattlePaused) {
+      showToastSuccess(t('HUD.roundEndedNotice', 'Ván đấu đã kết thúc, đang nghỉ giữa hiệp!'));
+      return;
+    }
     triggerGiftExplosion(gift.name, guestTeam, guestName, gift.coins);
     gameSocket.sendGift(gift.name, guestTeam, guestName, gift.coins);
     showToastSuccess(`Đã tặng [${gift.name}] (+${(gift.coins * 120).toLocaleString()} ST)!`);
@@ -145,9 +164,13 @@ export const GuestSimulationDock: React.FC = () => {
     gameSocket.sendChat(guestName, msg, guestTeam, champName);
 
     if (champName) {
-      summonMinion(guestName, champName, guestTeam);
-      gameSocket.sendSummon(guestName, champName, guestTeam);
-      showToastSuccess(`Nhận diện tướng [${champName}], đã triệu hồi!`);
+      if (isBattlePaused) {
+        showToastSuccess(t('HUD.chatSentIntermission', 'Đã gửi bình luận! (Không triệu hồi trong lúc nghỉ giữa hiệp)'));
+      } else {
+        summonMinion(guestName, champName, guestTeam);
+        gameSocket.sendSummon(guestName, champName, guestTeam);
+        showToastSuccess(`Nhận diện tướng [${champName}], đã triệu hồi!`);
+      }
     } else {
       showToastSuccess('Đã gửi bình luận!');
     }

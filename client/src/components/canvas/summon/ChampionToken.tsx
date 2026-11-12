@@ -4,6 +4,9 @@ import { useGameStore } from '../../../store/gameStore';
 import { getTeamTheme } from '../../../constants/teams';
 import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS } from '../../../constants/game';
 import { MinionEntity } from '../../../types/game';
+import { getActiveStatusEffects } from '../../../utils/statusEffects';
+
+const STATUS_RING_OPACITY = 0.92;
 import {
   FURY_COLOR_FULL,
   SHARED_BACKING_DISC_GEO,
@@ -56,6 +59,8 @@ export const ChampionToken = React.memo(({ minion }: ChampionTokenProps) => {
       ),
     [minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName]
   );
+
+  const activeStatusEffect = getActiveStatusEffects(minion, Date.now())[0] ?? null;
 
   const maxHp = minion.maxHp || 100;
   const currentHp = Math.max(0, minion.hp !== undefined ? minion.hp : maxHp);
@@ -147,6 +152,19 @@ export const ChampionToken = React.memo(({ minion }: ChampionTokenProps) => {
             color={GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR}
             transparent
             opacity={0.78}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
+
+      {activeStatusEffect && (
+        <mesh position={[0, 0, 0.034]} name="status-ring" geometry={SHARED_SHIELD_RING_GEO}>
+          <meshBasicMaterial
+            color={activeStatusEffect.color}
+            transparent
+            opacity={STATUS_RING_OPACITY}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
             side={THREE.DoubleSide}

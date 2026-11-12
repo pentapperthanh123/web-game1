@@ -17,6 +17,8 @@ import {
 
 import { getRandomChampion } from './constants/champions';
 import { gameSocket } from './services/socket'; // Auto-connects to Socket.io backend on port 4000
+import { getBossPhaseRule } from './constants/bossPhases';
+import { STATUS_EFFECT_CONSTANTS } from './constants/bossStatusEffects';
 
 export function App() {
   const isSimulationActive = useGameStore((state) => state.isSimulationActive);
@@ -30,6 +32,8 @@ export function App() {
   const screenShakeTimestamp = useGameStore((state) => state.screenShakeTimestamp);
   const pruneEntities = useGameStore((state) => state.pruneEntities);
   const tickBossMechanics = useGameStore((state) => state.tickBossMechanics);
+  const tickStatusEffects = useGameStore((state) => state.tickStatusEffects);
+  const syncBossPhase = useGameStore((state) => state.syncBossPhase);
   const bossStatus = useGameStore((state) => state.bossStatus);
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const roundWinner = useGameStore((state) => state.roundWinner);
@@ -92,8 +96,10 @@ export function App() {
       const speedMultiplier = isEnraged
         ? BOSS_ENRAGED_CONSTANTS.ATTACK_INTERVAL_MULTIPLIER
         : 1.0;
+      const phaseIntervalMultiplier = getBossPhaseRule(state.bossPhase).intervalMultiplier;
       const baseInterval =
-        ((bossSkillConfig.intervalMs || 4000) * speedMultiplier) / phaseSpeedMultiplier;
+        ((bossSkillConfig.intervalMs || 4000) * speedMultiplier * phaseIntervalMultiplier) /
+        phaseSpeedMultiplier;
       const nextDelay = bossSkillConfig.randomIntervalEnabled
         ? Math.round(baseInterval * (0.7 + Math.random() * 0.6))
         : Math.round(baseInterval);
@@ -138,9 +144,11 @@ export function App() {
     const pruneInterval = setInterval(() => {
       pruneEntities();
       tickBossMechanics();
-    }, 250);
+      tickStatusEffects();
+      syncBossPhase();
+    }, STATUS_EFFECT_CONSTANTS.LOOP_INTERVAL_MS);
     return () => clearInterval(pruneInterval);
-  }, [pruneEntities, tickBossMechanics]);
+  }, [pruneEntities, tickBossMechanics, tickStatusEffects, syncBossPhase]);
 
   // Background bot simulation runner (pauses automatically when Boss is defeated or during round intermission)
   useEffect(() => {
