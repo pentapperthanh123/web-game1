@@ -37,16 +37,22 @@ const DAMAGE_TAG_CONFIG_MAP: Partial<
   [DAMAGE_TYPE.ULTIMATE]: { i18nKey: 'Combat.ultimateTag', fallback: 'TUYỆT KỸ!' },
 };
 
+const MAX_RENDERED_FLOATING_DAMAGES = 16;
+
 export const FloatingDamage = React.memo(() => {
   const { t } = useTranslation();
   const floatingDamages = useGameStore((state) => state.floatingDamages);
+  const visibleDamages =
+    floatingDamages.length > MAX_RENDERED_FLOATING_DAMAGES
+      ? floatingDamages.slice(-MAX_RENDERED_FLOATING_DAMAGES)
+      : floatingDamages;
 
   return (
     <div
       aria-live="polite"
       className="absolute top-[56%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-88 h-56 pointer-events-none z-30 flex items-center justify-center overflow-visible"
     >
-      {floatingDamages.map((item) => {
+      {visibleDamages.map((item) => {
         const typeClass = DAMAGE_TEXT_CLASS_MAP[item.damageType];
         const tagConfig = DAMAGE_TAG_CONFIG_MAP[item.damageType];
         const tagLabel = tagConfig ? t(tagConfig.i18nKey, tagConfig.fallback) : '';

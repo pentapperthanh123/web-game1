@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_PHASE, BOSS_PHASE_RULES, BOSS_PHASE_SHIFT_BANNER_MS } from '../../constants/bossPhases';
+import { BOSS_PHASE, BOSS_PHASE_SHIFT_BANNER_MS } from '../../constants/bossPhases';
 import { BossThemeConfig } from '../../constants/game';
 
 interface BossPhaseShiftBannerProps {
   themeConfig: BossThemeConfig;
 }
 
-/** Short cinematic callout when the boss escalates to phase 2 / 3. */
+/** Clean esports callout when the boss escalates to phase 2 / 3 without blocking lineups. */
 export const BossPhaseShiftBanner: React.FC<BossPhaseShiftBannerProps> = React.memo(({ themeConfig }) => {
   const { t } = useTranslation();
   const bossPhase = useGameStore((state) => state.bossPhase);
@@ -32,27 +32,41 @@ export const BossPhaseShiftBanner: React.FC<BossPhaseShiftBannerProps> = React.m
 
   if (!isVisible) return null;
 
-  const rule = BOSS_PHASE_RULES[bossPhase];
-  const accentColor = bossPhase === BOSS_PHASE.THREE ? themeConfig.colors.enragedHex : themeConfig.colors.secondaryHex;
-  const phaseLabel = t(`BossPhase.label.${bossPhase}`, rule.labelVi);
+  const accentColor =
+    bossPhase === BOSS_PHASE.THREE ? themeConfig.colors.enragedHex : themeConfig.colors.secondaryHex;
+  const isPhase3 = bossPhase === BOSS_PHASE.THREE;
 
   return (
     <div
       key={bossPhaseChangedAt}
-      className="absolute top-[-14%] left-1/2 -translate-x-1/2 pointer-events-none z-40 animate-phase-shift-banner whitespace-nowrap"
+      className="w-full max-w-xs sm:max-w-sm pointer-events-none select-none animate-phase-shift-banner px-2"
     >
       <div
-        className="px-6 py-2 rounded-2xl border-2 bg-slate-950/85 backdrop-blur-sm text-center shadow-2xl"
-        style={{ borderColor: accentColor, boxShadow: `0 0 40px ${accentColor}` }}
+        className="px-4 py-2 rounded-xl border bg-slate-950/92 backdrop-blur-md text-center shadow-2xl transition-all"
+        style={{
+          borderColor: accentColor,
+          boxShadow: `0 0 24px ${accentColor}55`,
+        }}
       >
-        <div className="text-[10px] sm:text-xs font-black uppercase tracking-[0.35em]" style={{ color: accentColor }}>
-          {t('BossPhase.shiftTitle', 'BOSS THỨC TỈNH')}
+        <div className="flex items-center justify-center space-x-1.5 mb-0.5">
+          <span
+            className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-900/90 border tracking-wider"
+            style={{ borderColor: `${accentColor}88`, color: accentColor }}
+          >
+            {isPhase3
+              ? t('BossPhase.phase3Badge', 'GIAI ĐOẠN 3')
+              : t('BossPhase.phase2Badge', 'GIAI ĐOẠN 2')}
+          </span>
         </div>
-        <div className="text-lg sm:text-2xl font-black text-white uppercase tracking-wide drop-shadow-lg">
-          {phaseLabel}
+
+        <div className="text-sm sm:text-base font-black text-white uppercase tracking-wider drop-shadow-md">
+          {isPhase3
+            ? t('BossPhase.titlePhase3', '🔥 QUÁI VẬT TẬN THẾ 🔥')
+            : t('BossPhase.titlePhase2', '⚡ QUÁI VẬT THỨC TỈNH ⚡')}
         </div>
-        <div className="text-[10px] sm:text-xs font-bold text-slate-300">
-          {bossPhase === BOSS_PHASE.THREE
+
+        <div className="text-[10px] sm:text-xs font-semibold text-slate-300 mt-0.5">
+          {isPhase3
             ? t('BossPhase.hintPhase3', 'Sát thương +20% · Ra chiêu nhanh hơn · Hiệu ứng kéo dài')
             : t('BossPhase.hintPhase2', 'Chiêu cuối đã được mở khóa!')}
         </div>

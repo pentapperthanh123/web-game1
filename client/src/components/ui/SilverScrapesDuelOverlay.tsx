@@ -121,7 +121,7 @@ export function SilverScrapesDuelOverlay() {
             <Swords className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
           </div>
 
-          {/* Right Fighter (GEN.G / Gold) */}
+          {/* Right Fighter (Right Slot) */}
           <div className="flex items-center space-x-2.5 sm:space-x-3 flex-row-reverse space-x-reverse text-right">
             <div
               style={{ boxShadow: rightTheme.glowStyle }}

@@ -40,6 +40,27 @@ const getHpFillColor = (hpRatio: number): string => {
   return '#ef4444';
 };
 
+const areChampionTokenPropsEqual = (
+  prev: ChampionTokenProps,
+  next: ChampionTokenProps
+): boolean => {
+  const a = prev.minion;
+  const b = next.minion;
+  return (
+    a.id === b.id &&
+    a.hp === b.hp &&
+    a.maxHp === b.maxHp &&
+    a.fury === b.fury &&
+    a.maxFury === b.maxFury &&
+    a.avatarUrl === b.avatarUrl &&
+    a.team === b.team &&
+    a.summonerName === b.summonerName &&
+    a.signaturePlayerName === b.signaturePlayerName &&
+    a.isSignatureSynergy === b.isSignatureSynergy &&
+    (a.statusEffects?.length ?? 0) === (b.statusEffects?.length ?? 0)
+  );
+};
+
 export const ChampionToken = React.memo(({ minion }: ChampionTokenProps) => {
   const teamProfile = useGameStore((state) => state.activeTeams[minion.team]);
   const teamTheme = getTeamTheme(teamProfile?.colorTheme);
@@ -177,6 +198,6 @@ export const ChampionToken = React.memo(({ minion }: ChampionTokenProps) => {
       </mesh>
     </group>
   );
-});
+}, areChampionTokenPropsEqual);
 
 ChampionToken.displayName = 'ChampionToken';

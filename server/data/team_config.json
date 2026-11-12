@@ -1,72 +1,73 @@
 {
   "activeTeams": {
     "BLG": {
-      "id": "preset-blg",
-      "name": "Bilibili Gaming",
-      "shortTag": "BLG",
+      "id": "preset-t1",
+      "name": "T1",
+      "shortTag": "T1",
       "aliases": [
-        "BLG",
-        "BILIBILI"
+        "T1",
+        "SKT",
+        "FAKER"
       ],
       "autoSyncRosterAliases": true,
-      "colorTheme": "cyan",
-      "logoUrl": "/images/teams/blg.png",
+      "colorTheme": "rose",
+      "logoUrl": "/images/teams/t1.svg",
       "isPreset": true,
       "roster": [
         {
-          "id": "blg-preset-blg-top-0",
-          "name": "Bin",
+          "id": "blg-preset-t1-top-0",
+          "name": "Doran",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "Jax",
-          "championKey": "Jax",
+          "signatureChampion": "Ambessa",
+          "championKey": "Ambessa",
           "team": "BLG",
-          "color": "#38bdf8",
-          "avatarUrl": "/images/players/bin.png"
+          "color": "#fb7185",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ambessa.png"
         },
         {
-          "id": "blg-preset-blg-jug-1",
-          "name": "Xun",
+          "id": "blg-preset-t1-jug-1",
+          "name": "Oner",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Xin Zhao",
-          "championKey": "XinZhao",
+          "signatureChampion": "Vi",
+          "championKey": "Vi",
           "team": "BLG",
-          "color": "#06b6d4",
-          "avatarUrl": "/images/players/xun.png"
+          "color": "#f43f5e",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Vi.png"
         },
         {
-          "id": "blg-preset-blg-mid-2",
-          "name": "Knight",
+          "id": "blg-preset-t1-mid-2",
+          "name": "Faker",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "Ahri",
-          "championKey": "Ahri",
+          "signatureChampion": "Azir",
+          "championKey": "Azir",
           "team": "BLG",
-          "color": "#60a5fa",
-          "avatarUrl": "/images/players/knight.png"
+          "color": "#e11d48",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Azir.png"
         },
         {
-          "id": "blg-preset-blg-adc-3",
-          "name": "Elk",
+          "id": "blg-preset-t1-adc-3",
+          "name": "Gumayusi",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Kalista",
-          "championKey": "Kalista",
+          "signatureChampion": "Jinx",
+          "championKey": "Jinx",
           "team": "BLG",
-          "color": "#22d3ee",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kalista.png"
+          "color": "#fb7185",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jinx.png"
         },
         {
-          "id": "blg-preset-blg-sup-4",
-          "name": "ON",
+          "id": "blg-preset-t1-sup-4",
+          "name": "Keria",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Rakan",
-          "championKey": "Rakan",
+          "signatureChampion": "Thresh",
+          "championKey": "Thresh",
           "team": "BLG",
-          "color": "#34d399",
-          "avatarUrl": "/images/players/on.png"
+          "color": "#fda4af",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Thresh.png"
         }
       ]
     },

@@ -9,6 +9,8 @@ import {
   BOSS_STATUS,
   APP_TITLE,
   TEAM_KEY,
+  TeamType,
+  GAME_CONSTANTS,
   AUTO_PRO_BATTLE_CONSTANTS,
   AUTO_SUMMON_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
@@ -26,6 +28,7 @@ export function App() {
   const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
   const autoSummonConfig = useGameStore((state) => state.autoSummonConfig);
   const summonMinion = useGameStore((state) => state.summonMinion);
+  const summonMinionsBatch = useGameStore((state) => state.summonMinionsBatch);
   const triggerGiftExplosion = useGameStore((state) => state.triggerGiftExplosion);
   const addLikes = useGameStore((state) => state.addLikes);
   const triggerAutoProAttack = useGameStore((state) => state.triggerAutoProAttack);
@@ -40,17 +43,21 @@ export function App() {
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
   const activeTeams = useGameStore((state) => state.activeTeams);
   const gameTheme = useGameStore((state) => state.gameTheme);
+  const rosterPlayerFury = useGameStore((state) => state.rosterPlayerFury);
 
   const nextFireAtRef = useRef<Record<string, number>>({});
+  const autoUltQueuedRef = useRef<Set<string>>(new Set());
   const autoSummonTickRef = useRef(0);
   const isBossDefeated = bossStatus === BOSS_STATUS.DEFEATED;
   const isBossEnraged = bossStatus === BOSS_STATUS.ENRAGED;
   const isBattlePaused = isBossDefeated || isRoundIntermission || roundWinner !== null;
 
-  // Enforce document title to strictly match user branding
+  // Enforce dynamic document title matching active teams
   useEffect(() => {
-    document.title = APP_TITLE;
-  }, []);
+    const leftTag = activeTeams[TEAM_KEY.BLG]?.shortTag;
+    const rightTag = activeTeams[TEAM_KEY.GENG]?.shortTag;
+    document.title = leftTag && rightTag ? `${APP_TITLE} | ${leftTag} vs ${rightTag}` : APP_TITLE;
+  }, [activeTeams]);
 
   // Periodic Boss Retaliation Loop (Roar shockwave & lightning arcs)
   useEffect(() => {
@@ -253,6 +260,44 @@ export function App() {
     triggerAutoProAttack,
   ]);
 
+  // Auto-cast ultimate skill whenever any pro player's power (fury) reaches 100%
+  useEffect(() => {
+    if (isBattlePaused) {
+      autoUltQueuedRef.current.clear();
+      return;
+    }
+
+    const state = useGameStore.getState();
+    const teams: TeamType[] = [TEAM_KEY.BLG, TEAM_KEY.GENG];
+    let staggerDelay = 0;
+
+    for (const team of teams) {
+      const roster = state.activeTeams[team]?.roster ?? [];
+      roster.forEach((player, playerIndex) => {
+        const fury = state.rosterPlayerFury[player.id] ?? 0;
+        if (fury >= GAME_CONSTANTS.PRO_FURY.MAX_FURY && !autoUltQueuedRef.current.has(player.id)) {
+          autoUltQueuedRef.current.add(player.id);
+          const currentDelay = staggerDelay;
+          staggerDelay += 350;
+
+          setTimeout(() => {
+            autoUltQueuedRef.current.delete(player.id);
+            const currentState = useGameStore.getState();
+            if (
+              currentState.bossStatus === BOSS_STATUS.DEFEATED ||
+              currentState.bossHp <= 0 ||
+              currentState.isRoundIntermission ||
+              currentState.roundWinner !== null
+            ) {
+              return;
+            }
+            triggerAutoProAttack(team, playerIndex);
+          }, 250 + currentDelay);
+        }
+      });
+    }
+  }, [rosterPlayerFury, isBattlePaused, triggerAutoProAttack]);
+
   // Continuous Auto-Summon Loop configured from Admin Panel
   useEffect(() => {
     if (!autoSummonConfig.enabled || isBattlePaused) return;
@@ -274,6 +319,13 @@ export function App() {
       }
 
       const batchSize = Math.max(1, autoSummonConfig.batchSize || AUTO_SUMMON_CONSTANTS.DEFAULT_BATCH_SIZE);
+      const batchItems: Array<{
+        summonerName: string;
+        championName: string;
+        team: typeof autoSummonConfig.team;
+        isGiftBypass: boolean;
+      }> = [];
+
       for (let i = 0; i < batchSize; i += 1) {
         const tickIdx = autoSummonTickRef.current;
         autoSummonTickRef.current += 1;
@@ -296,9 +348,16 @@ export function App() {
           Math.floor(Math.random() * AUTO_SUMMON_CONSTANTS.VIEWER_SUFFIX_MOD);
         const viewerName = `${baseName}_${suffix}`;
 
-        summonMinion(viewerName, championName, targetTeam);
-        gameSocket.sendSummon(viewerName, championName, targetTeam, false);
+        batchItems.push({
+          summonerName: viewerName,
+          championName,
+          team: targetTeam,
+          isGiftBypass: false,
+        });
       }
+
+      summonMinionsBatch(batchItems);
+      gameSocket.sendSummonBatch(batchItems);
     }, clampedSpeed);
 
     return () => clearInterval(intervalId);
@@ -311,7 +370,7 @@ export function App() {
     autoSummonConfig.selectedChampion,
     autoSummonConfig.team,
     isBattlePaused,
-    summonMinion,
+    summonMinionsBatch,
   ]);
 
   return (

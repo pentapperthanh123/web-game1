@@ -26,20 +26,17 @@ type GuestDockTab = 'HEART' | 'SUMMON' | 'GIFT' | 'CHAT';
 
 const RANDOM_NAMES = [
   'Gamer_Pro_99',
-  'Fan_Faker_VIP',
-  'Bin_WarLord',
-  'Chovy_God',
-  'Knight_Super',
-  'Viper_Sniper',
-  'On_God',
-  'Kiin_TopGod',
-  'Canyon_Apex',
-  'Ruler_Legend',
-  'Duro_Shield',
-  'SofM_ChienThan',
+  'Esports_VIP_88',
+  'Mid_Diff_VN',
+  'Jungle_Carry',
+  'ADC_Crit_99',
+  'Support_God',
   'Top1_ThachDau',
   'Khach_VIP_68',
   'ThanhLong_CKTG',
+  'Baron_Stealer',
+  'Pentakill_Pro',
+  'Worlds_Legend',
 ];
 
 export const GuestSimulationDock: React.FC = () => {

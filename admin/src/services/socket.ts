@@ -432,6 +432,22 @@ class AdminSocketService {
     this.emit('admin:silver-scrapes-duel', { action, lane, duration });
   }
 
+  public emitChampionDamageConfig(multiplier: number): void {
+    this.emit('admin:champion-damage-config', { multiplier });
+  }
+
+  public onChampionDamageConfig(callback: (multiplier: number) => void): () => void {
+    const handler = (payload: { multiplier?: number }) => {
+      if (typeof payload?.multiplier === 'number') {
+        callback(payload.multiplier);
+      }
+    };
+    this.socket?.on('game:champion-damage-config', handler);
+    return () => {
+      this.socket?.off('game:champion-damage-config', handler);
+    };
+  }
+
   public async connectTiktokRoom(username: string): Promise<any> {
     const res = await fetch(`${SERVER_URL}/api/tiktok/connect`, {
       method: 'POST',

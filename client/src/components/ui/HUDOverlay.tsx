@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Volume2, VolumeX, UserCheck, ShieldAlert } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -16,23 +16,59 @@ import { SilverScrapesDuelOverlay } from './SilverScrapesDuelOverlay';
 import { GuestSimulationDock } from './GuestSimulationDock';
 import { AdminControlModal } from './AdminControlModal';
 import { ScreenFlash } from './ScreenFlash';
+import { SwarmLegionCanvas } from './SwarmLegionCanvas';
 import { TeamRosterBar } from './TeamRosterBar';
 import { SummonSpotlight } from './SummonShowcase';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
+import { BossPhaseShiftBanner } from '../arena/BossPhaseShiftBanner';
 import { AUTO_PRO_BATTLE_CONSTANTS, getThemeConfig, TEAM_KEY } from '../../constants/game';
+
+const ClutchStatusBadge = React.memo(() => {
+  const { t } = useTranslation();
+  const isAutoProEnabled = useGameStore((state) => state.autoProBattleConfig.enabled);
+  const hasMinions = useGameStore((state) => state.minions.length > 0);
+  const bossHp = useGameStore((state) => state.bossHp);
+  const bossMaxHp = useGameStore((state) => state.bossMaxHp);
+
+  const isSoloAutoHolding = isAutoProEnabled && !hasMinions && bossHp > 0;
+  const isBossClutchZone =
+    bossHp > 0 && bossHp <= Math.ceil(bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT);
+
+  if (!isSoloAutoHolding && !isBossClutchZone) return null;
+
+  return (
+    <div className="pointer-events-none flex justify-center mt-1">
+      <div
+        className={`px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black tracking-wide uppercase border backdrop-blur-sm shadow-md ${
+          isBossClutchZone
+            ? 'bg-rose-950/85 border-rose-400/70 text-rose-200 animate-pulse'
+            : 'bg-cyan-950/80 border-cyan-400/60 text-cyan-200'
+        }`}
+      >
+        {isBossClutchZone
+          ? t(
+              'HUD.clutchKillCta',
+              '⚡ Boss ở ngưỡng kết liễu (15% HP) — Chat hoặc Tặng quà để dứt điểm & giành MVP!'
+            )
+          : t(
+              'HUD.soloHoldingCta',
+              '🛡️ Tuyển thủ đang giữ nhịp — Chat tên tướng hoặc Tặng quà để gánh team!'
+            )}
+      </div>
+    </div>
+  );
+});
+
+ClutchStatusBadge.displayName = 'ClutchStatusBadge';
 
 export const HUDOverlay = () => {
   const { t } = useTranslation();
   const overlayVisibility = useGameStore((state) => state.overlayVisibility);
-  const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
   const gameTheme = useGameStore((state) => state.gameTheme);
   const leftTeamTag = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG].shortTag);
   const rightTeamTag = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG].shortTag);
-  const minionsLength = useGameStore((state) => state.minions.length);
-  const bossHp = useGameStore((state) => state.bossHp);
-  const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const isGuestModeActive = useGameStore((state) => state.isGuestModeActive);
   const setGuestMode = useGameStore((state) => state.setGuestMode);
   const isAdminModeActive = useGameStore((state) => state.isAdminModeActive);
@@ -66,10 +102,6 @@ export const HUDOverlay = () => {
     };
   }, []);
 
-  const isSoloAutoHolding = autoProBattleConfig.enabled && minionsLength === 0 && bossHp > 0;
-  const isBossClutchZone =
-    bossHp > 0 && bossHp <= Math.ceil(bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT);
-
   const toggleAudio = () => {
     const next = !isAudioOn;
     setIsAudioOn(next);
@@ -95,6 +127,7 @@ export const HUDOverlay = () => {
     <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none overflow-hidden select-none">
       {/* Incandescent Flash on Ultimates */}
       <ScreenFlash />
+      <SwarmLegionCanvas />
       <ChampionArrowVFX />
 
       {/* Unified Non-Overlapping Center Toast Stack */}
@@ -102,6 +135,7 @@ export const HUDOverlay = () => {
         style={{ top: `${headerBottomOffset}px` }}
         className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-40 pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
       >
+        <BossPhaseShiftBanner themeConfig={getThemeConfig(gameTheme)} />
         <BossEnragedEntranceBanner themeConfig={getThemeConfig(gameTheme)} />
         <GiftBanner />
         <HeartMilestoneBanner />
@@ -212,27 +246,7 @@ export const HUDOverlay = () => {
         </div>
 
         {/* Viewer Call-to-Action when Auto-Pro is holding without viewers */}
-        {isSoloAutoHolding && (
-          <div className="relative z-[5] max-w-md mx-auto px-2 text-center pointer-events-none">
-            <div
-              className={`text-[10px] font-black rounded-full py-1 px-3 backdrop-blur-md shadow-lg border ${
-                isBossClutchZone
-                  ? 'text-amber-200 bg-rose-950/85 border-amber-400/80 animate-pulse'
-                  : 'text-emerald-200 bg-slate-950/80 border-emerald-500/50'
-              }`}
-            >
-              {isBossClutchZone
-                ? t(
-                    'HUD.clutchKillCta',
-                    '⚡ Boss ở ngưỡng kết liễu (15% HP) — Chat hoặc Tặng quà để dứt điểm & giành MVP!'
-                  )
-                : t(
-                    'HUD.soloHoldingCta',
-                    '🛡️ Tuyển thủ đang giữ nhịp — Chat tên tướng hoặc Tặng quà để gánh team!'
-                  )}
-            </div>
-          </div>
-        )}
+        <ClutchStatusBadge />
       </footer>
     </div>
   );

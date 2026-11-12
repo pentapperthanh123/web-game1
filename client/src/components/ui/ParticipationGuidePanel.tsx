@@ -25,8 +25,7 @@ interface GuideItemConfig {
   badgeKey: string;
   badgeFallback: string;
   badgeParams: Record<string, number | string>;
-  commandKey?: string;
-  commandFallback?: string;
+  hasDynamicCommand?: boolean;
   descKey: string;
   descFallback: string;
   descParams: Record<string, number | string>;
@@ -61,8 +60,7 @@ const GUIDE_ITEMS: readonly GuideItemConfig[] = [
     badgeKey: 'HUD.guideSummonBadge',
     badgeFallback: '+{{fury}}% Nộ',
     badgeParams: { fury: GAME_CONSTANTS.PRO_FURY.FURY_GAIN_SUMMON_MATCH },
-    commandKey: 'HUD.guideSummonCmd',
-    commandFallback: 'Ahri BLG • Yone GEN • Random BLG',
+    hasDynamicCommand: true,
     descKey: 'HUD.guideSummonDesc',
     descFallback: 'Chat trùng tướng tuyển thủ cộng +{{fury}}% Nộ; chat tiếp để hồi máu & kéo dài!',
     descParams: { fury: GAME_CONSTANTS.PRO_FURY.FURY_GAIN_SUMMON_MATCH },
@@ -281,7 +279,7 @@ export const ParticipationGuidePanel = () => {
                       </span>
                     </div>
 
-                    {item.commandKey && item.commandFallback && (
+                    {item.hasDynamicCommand && (
                       <div className="mt-0.5 px-1 py-0.5 rounded bg-slate-950/25 border border-cyan-500/20 font-mono text-[7.5px] sm:text-[8px] font-bold text-cyan-200 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                         {t('HUD.guideSummonCmdDynamic', '{{leftChamp}} {{leftTag}} • {{rightChamp}} {{rightTag}} • Random {{leftTag}}', {
                           leftChamp,

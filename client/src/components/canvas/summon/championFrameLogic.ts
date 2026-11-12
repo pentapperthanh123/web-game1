@@ -172,6 +172,13 @@ export const stepChampionFrame = (
   if (isBossAlive && !isGraceActive && !ai.hasLanded) {
     ai.hasLanded = true;
     const scrStart = project3DToScreen(ai.currentX, ai.currentY, ai.currentZ, camera, viewportW, viewportH);
+    const openingDamage = Math.round(minion.dps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER);
+    const openingActor = minion.signaturePlayerName
+      ? `${minion.summonerName} (${minion.signaturePlayerName})`
+      : minion.summonerName;
+    const openingDamageType = minion.isSignatureSynergy ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL;
+    store.consumeMinionAttackFury(minion.id);
+    store.damageBoss(openingDamage, minion.team, openingActor, openingDamageType);
     store.spawnFlyingArrow(minion.championName, minion.team, false, scrStart);
   }
 

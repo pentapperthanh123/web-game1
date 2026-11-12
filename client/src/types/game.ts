@@ -394,6 +394,7 @@ export interface GameState {
   finisherTeam: TeamType | null;
   autoProBattleConfig: AutoProBattleConfig;
   autoSummonConfig: AutoSummonConfig;
+  championDamageMultiplier: number;
   rosterAttackTimestamps: Record<string, number>;
   rosterPlayerFury: Record<string, number>;
   lastFuryUltimatePlayerId: string | null;
@@ -428,6 +429,7 @@ export interface GameState {
   isAdminModeActive: boolean;
 
   // Actions
+  setChampionDamageMultiplier: (multiplier: number) => void;
   setSeriesFormat: (format: SeriesFormat, resetScore?: boolean) => void;
   applySeriesFormatSnapshot: (config: {
     format: SeriesFormat;
@@ -498,6 +500,14 @@ export interface GameState {
     championName: string,
     team: TeamType,
     isGiftBypass?: boolean
+  ) => void;
+  summonMinionsBatch: (
+    items: Array<{
+      summonerName: string;
+      championName: string;
+      team: TeamType;
+      isGiftBypass?: boolean;
+    }>
   ) => void;
   triggerGiftExplosion: (
     giftName: string,

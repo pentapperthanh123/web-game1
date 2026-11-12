@@ -48,21 +48,28 @@ const VFX_STYLE = {
 const computeLerp = (start: number, end: number, t: number): number =>
   start + (end - start) * t;
 
+const HEX_RGB_CACHE = new Map<string, string>();
+
 const hexToRgba = (hex: string, alpha: number): string => {
-  const cleanHex = hex.replace('#', '');
-  if (cleanHex.length === 3) {
-    const r = parseInt(cleanHex[0] + cleanHex[0], 16);
-    const g = parseInt(cleanHex[1] + cleanHex[1], 16);
-    const b = parseInt(cleanHex[2] + cleanHex[2], 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  let rgb = HEX_RGB_CACHE.get(hex);
+  if (!rgb) {
+    const cleanHex = hex.replace('#', '');
+    if (cleanHex.length === 3) {
+      const r = parseInt(cleanHex[0] + cleanHex[0], 16);
+      const g = parseInt(cleanHex[1] + cleanHex[1], 16);
+      const b = parseInt(cleanHex[2] + cleanHex[2], 16);
+      rgb = `${r}, ${g}, ${b}`;
+    } else if (cleanHex.length === 6) {
+      const r = parseInt(cleanHex.substring(0, 2), 16);
+      const g = parseInt(cleanHex.substring(2, 4), 16);
+      const b = parseInt(cleanHex.substring(4, 6), 16);
+      rgb = `${r}, ${g}, ${b}`;
+    } else {
+      rgb = '255, 255, 255';
+    }
+    HEX_RGB_CACHE.set(hex, rgb);
   }
-  if (cleanHex.length === 6) {
-    const r = parseInt(cleanHex.substring(0, 2), 16);
-    const g = parseInt(cleanHex.substring(2, 4), 16);
-    const b = parseInt(cleanHex.substring(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  return `rgba(255, 255, 255, ${alpha})`;
+  return `rgba(${rgb}, ${alpha})`;
 };
 
 // -----------------------------------------------------------------------------
@@ -92,8 +99,6 @@ const drawCometEnergyBody = (
   bodyGrad.addColorStop(0.75, hexToRgba(glowColor, isCrit ? 0.9 : 0.75));
   bodyGrad.addColorStop(1, '#ffffff');
 
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = isCrit ? VFX_STYLE.GLOW.BLUR_CRIT : VFX_STYLE.GLOW.BLUR_NORMAL;
   ctx.fillStyle = bodyGrad;
 
   ctx.beginPath();
@@ -153,8 +158,6 @@ const drawCometEnergyBody = (
     const sparkWave = Math.sin(elapsed * 0.02 + i * 1.5) * (waveAmp * (1 - distRatio));
     const sparkRadius = Math.max(0.6, (1 - distRatio) * (isCrit ? 2.5 : 1.5));
 
-    ctx.shadowColor = ribbonColor1;
-    ctx.shadowBlur = isCrit ? 8 : 4;
     ctx.beginPath();
     ctx.arc(sparkX, sparkWave, sparkRadius, 0, Math.PI * 2);
     ctx.fill();
@@ -176,8 +179,6 @@ const drawSkillGraphic = (
   elapsed: number
 ) => {
   ctx.save();
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = isCrit ? VFX_STYLE.GLOW.BLUR_CRIT : VFX_STYLE.GLOW.BLUR_NORMAL;
 
   switch (vfxType) {
     // -------------------------------------------------------------------------
@@ -869,11 +870,16 @@ const drawImpactBurst = (
   const currentRadius = maxRadius * Math.sin(impactProgress * Math.PI * 0.5);
   const fade = Math.max(0, 1 - impactProgress);
 
-  // 1. Expanding Shockwave Ring
+  // 1. Expanding Shockwave Ring (layered glow without slow shadowBlur)
+  ctx.strokeStyle = glowColor;
+  ctx.lineWidth = Math.max(2.0, (1 - impactProgress) * (isCrit ? 8.0 : 5.0));
+  ctx.globalAlpha = fade * 0.3;
+  ctx.beginPath();
+  ctx.ellipse(14, 0, currentRadius, currentRadius * 0.65, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
   ctx.strokeStyle = color;
   ctx.lineWidth = Math.max(1.0, (1 - impactProgress) * (isCrit ? 4.5 : 2.6));
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = isCrit ? 20 : 10;
   ctx.globalAlpha = fade * 0.9;
   ctx.beginPath();
   ctx.ellipse(14, 0, currentRadius, currentRadius * 0.65, 0, 0, Math.PI * 2);
@@ -916,8 +922,6 @@ const drawImpactBurst = (
     ? VFX_STYLE.IMPACT.SPARK_COUNT_CRIT
     : VFX_STYLE.IMPACT.SPARK_COUNT_NORMAL;
   ctx.fillStyle = isCrit ? '#fef08a' : color;
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = isCrit ? 10 : 6;
   for (let s = 0; s < sparkCount; s++) {
     const angle = (s / sparkCount) * Math.PI * 2 + impactProgress * 0.8;
     const sparkDist = (currentRadius + 6) * (0.4 + (s % 3) * 0.3);
@@ -954,8 +958,6 @@ const drawMuzzleLaunchFlash = (
   ctx.translate(startX, startY);
   ctx.rotate(aimAngleRad);
   ctx.globalAlpha = fade * 0.9;
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = isCrit ? 18 : 10;
 
   // Expanding muzzle ring
   ctx.strokeStyle = glowColor;
@@ -990,11 +992,11 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    let animFrameId: number;
+    let animFrameId: number | null = null;
 
     const resize = () => {
       if (!canvas) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       const width = window.innerWidth;
       const height = window.innerHeight;
       canvas.width = Math.round(width * dpr);
@@ -1016,7 +1018,7 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
           ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
           isCanvasDirty = false;
         }
-        animFrameId = requestAnimationFrame(renderLoop);
+        animFrameId = null;
         return;
       }
 
@@ -1129,10 +1131,24 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
       animFrameId = requestAnimationFrame(renderLoop);
     };
 
-    animFrameId = requestAnimationFrame(renderLoop);
+    const startLoopIfNeeded = () => {
+      if (animFrameId === null && useGameStore.getState().activeFlyingArrows.length > 0) {
+        animFrameId = requestAnimationFrame(renderLoop);
+      }
+    };
+
+    startLoopIfNeeded();
+    const unsubscribeArrows = useGameStore.subscribe((state, prevState) => {
+      if (state.activeFlyingArrows !== prevState.activeFlyingArrows && state.activeFlyingArrows.length > 0) {
+        startLoopIfNeeded();
+      }
+    });
 
     return () => {
-      cancelAnimationFrame(animFrameId);
+      if (animFrameId !== null) {
+        cancelAnimationFrame(animFrameId);
+      }
+      unsubscribeArrows();
       window.removeEventListener('resize', resize);
     };
   }, []);

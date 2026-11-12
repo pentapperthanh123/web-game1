@@ -396,7 +396,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
         championKey: 'Ambessa',
         team: 'BLG',
         color: '#fb7185',
-        avatarUrl: createChampionPortrait('Ambessa'),
+        avatarUrl: '/images/players/doran.png',
       },
       {
         id: 't1-oner',
@@ -407,7 +407,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
         championKey: 'Vi',
         team: 'BLG',
         color: '#f43f5e',
-        avatarUrl: createChampionPortrait('Vi'),
+        avatarUrl: '/images/players/oner.png',
       },
       {
         id: 't1-faker',
@@ -418,7 +418,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
         championKey: 'Azir',
         team: 'BLG',
         color: '#e11d48',
-        avatarUrl: createChampionPortrait('Azir'),
+        avatarUrl: '/images/players/faker.png',
       },
       {
         id: 't1-gumayusi',
@@ -429,7 +429,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
         championKey: 'Jinx',
         team: 'BLG',
         color: '#fb7185',
-        avatarUrl: createChampionPortrait('Jinx'),
+        avatarUrl: '/images/players/gumayusi.png',
       },
       {
         id: 't1-keria',
@@ -440,7 +440,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
         championKey: 'Thresh',
         team: 'BLG',
         color: '#fda4af',
-        avatarUrl: createChampionPortrait('Thresh'),
+        avatarUrl: '/images/players/keria.png',
       },
     ],
   },
@@ -1041,10 +1041,15 @@ const sanitizePlayer = (
     typeof src.name === 'string' && src.name.trim()
       ? src.name.trim().slice(0, 32)
       : fallback.name;
-  const avatarUrl =
+  const fallbackAvatar = fallback.avatarUrl || createChampionPortraitUrl(championKey);
+  let avatarUrl =
     typeof src.avatarUrl === 'string' && src.avatarUrl.trim()
-      ? sanitizeMediaUrl(src.avatarUrl, createChampionPortraitUrl(championKey))
-      : createChampionPortraitUrl(championKey);
+      ? sanitizeMediaUrl(src.avatarUrl, fallbackAvatar)
+      : fallbackAvatar;
+
+  if (fallbackAvatar.startsWith('/images/players/') && avatarUrl.includes('ddragon.leagueoflegends.com')) {
+    avatarUrl = fallbackAvatar;
+  }
 
   return {
     id: typeof src.id === 'string' && src.id.trim() ? src.id.trim().slice(0, 64) : fallback.id,

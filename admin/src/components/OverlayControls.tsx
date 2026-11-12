@@ -82,8 +82,8 @@ const buildSectionConfigs = (leftTag: string, rightTag: string): SectionConfig[]
 
 export function OverlayControls({
   onActiveCountChange,
-  leftTag = 'BLG',
-  rightTag = 'GEN',
+  leftTag = 'Team A',
+  rightTag = 'Team B',
 }: OverlayControlsProps) {
   const [visibility, setVisibility] = useState<OverlayVisibility>(loadStoredOverlayVisibility);
   const sectionConfigs = buildSectionConfigs(leftTag, rightTag);

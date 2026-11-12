@@ -42,10 +42,11 @@ export const GAME_CONSTANTS = {
     COLOR_EYE_VOID: '#ec4899', // Electric Magenta
   },
   MINIONS: {
-    MAX_INSTANCES: 120,
+    MAX_INSTANCES: 36,
     ORBIT_RADIUS_MIN: 2.6,
     ORBIT_RADIUS_MAX: 5.4,
-    BASE_DPS: 350,
+    BASE_DPS: 95,
+    DPS_VARIANCE: 35,
     LIFETIME_MS: 16000,
     SPAWN_GRACE_PERIOD_MS: 1000, // 1s grace period: only after 1s do newly summoned champions deal and receive damage
     BLG_COLOR: '#06b6d4',
@@ -102,12 +103,12 @@ export const GAME_CONSTANTS = {
   SUMMON_RULES: {
     MAX_ACTIVE_PER_USER: 1, // Option B: Mỗi người chỉ có tối đa 1 tướng đang sống trên sàn
     ALIVE_SUPPORT_HEAL: 50, // Option B: Comment tiếp theo khi tướng còn sống sẽ hồi +50 HP tiếp sức
-    ALIVE_SUPPORT_DAMAGE: 200, // Option B: Đòn đánh tiếp sức gây thêm +200 sát thương vào Boss
+    ALIVE_SUPPORT_DAMAGE: 90, // Option B: Đòn đánh tiếp sức gây thêm +90 sát thương vào Boss
     LIFETIME_EXTENSION_MS: 3000, // Option B: Gia hạn thêm 3s thời gian tham chiến cho tướng
   },
   PRO_FURY: {
     MAX_FURY: 100,
-    FURY_AUTO_CAP: 90, // Tuyển thủ tự đánh tối đa 90% Nộ — cần người xem chat/donate/tap tim để kích hoạt Bạo Nộ 100%
+    FURY_AUTO_CAP: 100, // Tuyển thủ tự đánh tích đầy 100% Nộ — tự động kích hoạt Bạo Nộ khi đầy
     FURY_GAIN_AUTO_ATTACK: 10, // +10 Nộ mỗi đòn giữ nhịp
     FURY_GAIN_HEART_TAP: 4, // +4 Nộ cho tuyển thủ khi người xem thả tim (nhân thêm theo tốc độ tap)
     FURY_GAIN_SUMMON_MATCH: 35, // +35 Nộ khi người xem chat gọi tướng trùng với tuyển thủ
@@ -133,7 +134,7 @@ export const GAME_CONSTANTS = {
   MINION_FURY: {
     MAX_FURY: 100,
     GAIN_PER_ATTACK: 25, // +25 Nộ mỗi lần tướng triệu hồi tung đòn đánh thường
-    ULTIMATE_DAMAGE_MULTIPLIER: 2.2, // 2.2x sát thương khi tướng triệu hồi đầy 100% Nộ
+    ULTIMATE_DAMAGE_MULTIPLIER: 1.85, // 1.85x sát thương khi tướng triệu hồi đầy 100% Nộ
     HEART_TAP_GAIN_BASE: 6, // +6 Nộ cơ bản cho tướng triệu hồi mỗi nhịp thả tim
     HEART_TAP_RAPID_WINDOW_MS: 900, // Khoảng cách giữa các lần tap được tính là tap nhanh liên tục
     HEART_TAP_SPEED_WINDOW_MS: 2500, // Thời gian duy trì bội số tăng tốc Nộ sau cú tap gần nhất
@@ -156,20 +157,20 @@ export const GAME_CONSTANTS = {
 } as const;
 
 export const SIMULATION_PRESETS = [
-  { champion: 'Jax', team: TEAM_KEY.BLG, damage: 2200, comment: 'Jax BLG Nhảy Nện gõ Boss!' },
-  { champion: 'Xin Zhao', team: TEAM_KEY.BLG, damage: 1800, comment: 'Phong Lôi Thương BLG càn quét!' },
-  { champion: 'Ahri', team: TEAM_KEY.BLG, damage: 2400, comment: 'Quả Cầu Ma Thuật BLG dồn dame!' },
-  { champion: "Kai'Sa", team: TEAM_KEY.BLG, damage: 3200, comment: 'Cơn Mưa Icathia BLG bắn phá Baron!' },
-  { champion: 'Rakan', team: TEAM_KEY.BLG, damage: 1600, comment: 'Xuất Hiện Hoành Tráng BLG!' },
-  { champion: "K'Sante", team: TEAM_KEY.GENG, damage: 2100, comment: "K'Sante Gen.G Chơi Khô Máu!" },
-  { champion: 'Nidalee', team: TEAM_KEY.GENG, damage: 2600, comment: 'Phóng Lao Cực Đại Gen.G xuyên tim Boss!' },
-  { champion: 'Yone', team: TEAM_KEY.GENG, damage: 3400, comment: 'Đoạt Mệnh & Trảm Hồn Gen.G lướt chém!' },
-  { champion: 'Ezreal', team: TEAM_KEY.GENG, damage: 2800, comment: 'Cung Ánh Sáng Gen.G bắn tỉa!' },
-  { champion: 'Nautilus', team: TEAM_KEY.GENG, damage: 1500, comment: 'Thủy Lôi Tầm Nhiệt Gen.G giữ chân!' },
-  { champion: 'Zed', team: TEAM_KEY.BLG, damage: 2500, comment: 'Dấu Ấn Tử Thần BLG sát thương bùng nổ!' },
-  { champion: 'Yasuo', team: TEAM_KEY.GENG, damage: 2700, comment: 'Hasagi Trăn Trối Gen.G lướt kiếm!' },
-  { champion: 'Aatrox', team: TEAM_KEY.BLG, damage: 3100, comment: 'Đường Kiếm Darkin BLG chém sập Baron!' },
-  { champion: 'Sylas', team: TEAM_KEY.GENG, damage: 2900, comment: 'Tước Đoạt Tuyệt Kỹ Gen.G phản kích!' },
+  { champion: 'Jax', team: TEAM_KEY.BLG, damage: 2200, comment: 'Jax Nhảy Nện gõ Boss!' },
+  { champion: 'Xin Zhao', team: TEAM_KEY.BLG, damage: 1800, comment: 'Phong Lôi Thương càn quét!' },
+  { champion: 'Ahri', team: TEAM_KEY.BLG, damage: 2400, comment: 'Quả Cầu Ma Thuật dồn dame!' },
+  { champion: "Kai'Sa", team: TEAM_KEY.BLG, damage: 3200, comment: 'Cơn Mưa Icathia bắn phá Boss!' },
+  { champion: 'Rakan', team: TEAM_KEY.BLG, damage: 1600, comment: 'Xuất Hiện Hoành Tráng!' },
+  { champion: "K'Sante", team: TEAM_KEY.GENG, damage: 2100, comment: "K'Sante Chơi Khô Máu!" },
+  { champion: 'Nidalee', team: TEAM_KEY.GENG, damage: 2600, comment: 'Phóng Lao Cực Đại xuyên tim Boss!' },
+  { champion: 'Yone', team: TEAM_KEY.GENG, damage: 3400, comment: 'Đoạt Mệnh & Trảm Hồn lướt chém!' },
+  { champion: 'Ezreal', team: TEAM_KEY.GENG, damage: 2800, comment: 'Cung Ánh Sáng bắn tỉa!' },
+  { champion: 'Nautilus', team: TEAM_KEY.GENG, damage: 1500, comment: 'Thủy Lôi Tầm Nhiệt giữ chân!' },
+  { champion: 'Zed', team: TEAM_KEY.BLG, damage: 2500, comment: 'Dấu Ấn Tử Thần sát thương bùng nổ!' },
+  { champion: 'Yasuo', team: TEAM_KEY.GENG, damage: 2700, comment: 'Hasagi Trăn Trối lướt kiếm!' },
+  { champion: 'Aatrox', team: TEAM_KEY.BLG, damage: 3100, comment: 'Đường Kiếm Darkin chém sập Boss!' },
+  { champion: 'Sylas', team: TEAM_KEY.GENG, damage: 2900, comment: 'Tước Đoạt Tuyệt Kỹ phản kích!' },
 ] as const;
 
 export const GAME_THEME = {
@@ -655,20 +656,12 @@ export const GUEST_SIMULATION_CONSTANTS = {
     [TEAM_KEY.BLG]: ['Jax', 'Nidalee', 'Ahri', "Kai'Sa", 'Rakan', 'Aatrox', 'Zed'],
     [TEAM_KEY.GENG]: ["K'Sante", 'Lee Sin', 'Yone', 'Ezreal', 'Leona', 'Yasuo', 'Sylas'],
   },
-  PRESET_CHATS: {
-    [TEAM_KEY.BLG]: [
-      'BLG Vô Địch! 🔥',
-      'Bin gánh team!',
-      'Knight xuất chiêu!',
-      'Viper bắn cháy máy!',
-    ],
-    [TEAM_KEY.GENG]: [
-      'GEN.G Cố Lên! ⚡',
-      'Chovy out trình!',
-      'Canyon bắt lẻ đỉnh!',
-      'Ruler xả sát thương!',
-    ],
-  },
+  PRESET_CHAT_TEMPLATES: [
+    '{{tag}} Vô Địch! 🔥',
+    '{{player}} gánh team!',
+    '{{player}} xuất chiêu đỉnh quá!',
+    '{{tag}} Cố Lên! ⚡',
+  ],
 } as const;
 
 export const BOSS_ANIMATION_CONSTANTS = {
@@ -680,7 +673,7 @@ export const BOSS_ANIMATION_CONSTANTS = {
 } as const;
 
 export const BOSS_DEFEAT_CONSTANTS = {
-  VICTORY_DELAY_MS: 2800,
+  VICTORY_DELAY_MS: 4200,
   SHATTER_ANIMATION_MS: 1350,
   CRACK_PHASE_END_RATIO: 0.22,
   EXPLOSION_END_RATIO: 0.65,
@@ -874,8 +867,8 @@ export const COMBAT_VFX_CONSTANTS = {
     MAX_VISIBLE_ORBS: 16,
     MAX_VISIBLE_BADGES_PER_TEAM: 4,
     CRIT_CHANCE: 0.28,
-    CRIT_MULTIPLIER: 4,
-    NORMAL_MULTIPLIER: 2,
+    CRIT_MULTIPLIER: 3,
+    NORMAL_MULTIPLIER: 1.2,
     CRIT_FOLLOWUP_DELAY_MS: 95,
     PORTAL_BURST_PARTICLES: 20,
   },
@@ -920,16 +913,16 @@ export const CKTG_VFX_CONFIG = {
   },
   TEAM_BRANDING: {
     [TEAM_KEY.BLG]: {
-      name: 'Bilibili Gaming',
-      tag: 'BLG',
+      name: 'Team A',
+      tag: 'Team A',
       primaryNeon: '#00f2fe',
       secondaryNeon: '#ff6699',
       glow: '0 0 20px #00f2fe, 0 0 40px #ff6699',
       tagBadgeClass: 'bg-cyan-950/90 border border-cyan-400 text-cyan-200',
     },
     [TEAM_KEY.GENG]: {
-      name: 'Gen.G Esports',
-      tag: 'GEN',
+      name: 'Team B',
+      tag: 'Team B',
       primaryNeon: '#ffe259',
       secondaryNeon: '#ffa751',
       glow: '0 0 20px #ffe259, 0 0 40px #ffa751',
@@ -1421,15 +1414,16 @@ export const AUTO_SUMMON_STORAGE_KEY = 'lol_auto_summon_config';
 export const AUTO_SUMMON_CONSTANTS = {
   DEFAULT_CHAMPION: 'Ahri',
   DEFAULT_SPEED_MS: 800,
-  MIN_SPEED_MS: 200,
+  MIN_SPEED_MS: 100,
   MAX_SPEED_MS: 2000,
   SPEED_STEP_MS: 100,
   DEFAULT_BATCH_SIZE: 1,
-  BATCH_SIZE_OPTIONS: [1, 2, 3, 4, 6, 8] as readonly number[],
+  BATCH_SIZE_OPTIONS: [1, 5, 10, 25, 50, 100, 200, 500, 1000, 2000] as readonly number[],
+  SWARM_OPTIONS: [10, 50, 100, 200, 500, 1000, 2000] as readonly number[],
   SPEED_PRESETS: [
-    { speedMs: 400, labelVi: 'Siêu tốc (400ms)', labelEn: 'Turbo (400ms)' },
-    { speedMs: 800, labelVi: 'Nhanh (800ms)', labelEn: 'Fast (800ms)' },
-    { speedMs: 1500, labelVi: 'Vừa (1500ms)', labelEn: 'Normal (1500ms)' },
+    { speedMs: 200, labelVi: 'Siêu bão (200ms)', labelEn: 'Hyper (200ms)' },
+    { speedMs: 500, labelVi: 'Nhanh (500ms)', labelEn: 'Fast (500ms)' },
+    { speedMs: 1200, labelVi: 'Vừa (1200ms)', labelEn: 'Normal (1200ms)' },
   ] as const,
   SWARM_COUNT: 10,
   CHAMPION_GRID_LIMIT: 60,
@@ -1463,6 +1457,27 @@ export const DEFAULT_AUTO_SUMMON_CONFIG = {
   alternateTeams: true,
   randomChampions: true,
 };
+
+export const CHAMPION_DAMAGE_CONSTANTS = {
+  DEFAULT_MULTIPLIER: 1,
+  MIN_MULTIPLIER: 0.1,
+  MAX_MULTIPLIER: 20,
+  STEP_MULTIPLIER: 0.1,
+  PRESET_MULTIPLIERS: [0.2, 0.5, 1, 2, 5, 10] as readonly number[],
+} as const;
+
+export const SUMMON_PERF_CONSTANTS = {
+  SFX_THROTTLE_MS: 120,
+  COALESCE_FALLBACK_MS: 16,
+  BURST_COALESCE_MS: 140,
+  MAX_BATCH_BUILD_COUNT: 36,
+  MAX_VISUAL_SWAPS_PER_WAVE: 4,
+  MIN_VISUAL_STAY_MS: 2200,
+  OVERFLOW_SUPPORT_DPS_FACTOR: 0.45,
+  MAX_LOGS_PER_BATCH: 12,
+  MAX_CHATS_PER_BATCH: 7,
+  BOSS_RECT_CACHE_MS: 150,
+} as const;
 
 export const ADMIN_CONSTANTS = {
   HP_PRESETS: [
@@ -1505,15 +1520,15 @@ export const DEFAULT_DUEL_STATE: SilverScrapesDuelState = {
   tugOfWarPercent: 50,
   selectedLane: 'MID',
   leftFighter: {
-    id: 'blg_mid',
-    name: 'Knight',
+    id: 'left_mid',
+    name: 'Fighter A',
     champion: 'Ahri',
     avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.20.1/img/champion/Ahri.png',
     team: 'BLG',
   },
   rightFighter: {
-    id: 'gen_mid',
-    name: 'Chovy',
+    id: 'right_mid',
+    name: 'Fighter B',
     champion: 'Yone',
     avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.20.1/img/champion/Yone.png',
     team: 'GENG',

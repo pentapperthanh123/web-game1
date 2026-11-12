@@ -25,7 +25,7 @@ export const GameCanvas = () => {
           position: [0, GAME_CONSTANTS.RENDER.CAMERA_POS_Y, GAME_CONSTANTS.RENDER.CAMERA_POS_Z],
           fov: GAME_CONSTANTS.RENDER.CAMERA_FOV,
         }}
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',

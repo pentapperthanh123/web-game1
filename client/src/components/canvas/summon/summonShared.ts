@@ -152,8 +152,6 @@ export const getNameplateTexture = (
 
   ctx.clearRect(0, 0, width, height);
   ctx.save();
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = 14;
   ctx.fillStyle = 'rgba(2, 6, 23, 0.94)';
   ctx.beginPath();
   if (typeof ctx.roundRect === 'function') {
@@ -162,6 +160,10 @@ export const getNameplateTexture = (
     ctx.rect(paddingX, paddingY, pillW, pillH);
   }
   ctx.fill();
+  ctx.lineWidth = 10;
+  ctx.globalAlpha = 0.28;
+  ctx.strokeStyle = glowColor;
+  ctx.stroke();
   ctx.restore();
 
   ctx.save();

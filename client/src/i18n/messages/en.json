@@ -1,6 +1,5 @@
 {
   "Game": {
-    "title": "WORLDS 2026: BLG VS GEN.G CLASH",
     "subtitle": "TikTok Live Interactive 3D Game",
     "bossName": "BARON NASHOR WORLDS",
     "hpLabel": "BOSS HP",
@@ -10,8 +9,6 @@
     "rageWarningDragonTitle": "WARNING: ELDER DRAGON ENRAGED!",
     "rageWarningSubtitle": "HP BELOW 35% — DAMAGE & ATTACK SPEED SURGED!",
     "defeated": "DEFEATED!",
-    "teamBLG": "Bilibili Gaming",
-    "teamGENG": "Gen.G Esports",
     "damageContribution": "Damage Contribution",
     "vs": "VS",
     "voidRoar": "BARON VOID ROAR!",
@@ -44,7 +41,6 @@
     "guideToggleLabel": "Toggle participation guide",
     "guideSummonTitle": "Summon & Pro Fury",
     "guideSummonBadge": "+{{fury}}% Fury",
-    "guideSummonCmd": "Ahri BLG • Yone GEN • Random BLG",
     "guideSummonDesc": "Match a Pro's champ to boost +{{fury}}% Fury; chat again to heal & extend!",
     "guideHeartTitle": "Tap Heart Power Buff",
     "guideHeartBadge": "Up to x{{mult}}",
@@ -86,10 +82,6 @@
     "autoSimulation": "Auto Simulate (Chat bots)",
     "autoSimulationOn": "Running Bot",
     "autoSimulationOff": "Stop Bot",
-    "testSummonBLG": "Chat 'Zed BLG'",
-    "testSummonGEN": "Chat 'Yasuo GEN'",
-    "testGiftBLG": "Gift Dragon BLG",
-    "testGiftGEN": "Gift Phoenix GEN",
     "resetBoss": "Respawn Boss",
     "minimize": "Minimize test panel",
     "expand": "Open test panel"
@@ -207,8 +199,6 @@
     "elderTheme": "Elder Dragon Pit",
     "castSkillTitle": "Force Cast Boss Skill:",
     "healTitle": "Divine Team Healing:",
-    "healBLG": "+50 HP for BLG",
-    "healGEN": "+50 HP for GEN",
     "healAll": "+50 HP for Both Teams",
     "botTitle": "Bot Simulation Mode:",
     "botRunning": "Bot Running",
@@ -244,7 +234,6 @@
     "summonSpeedLabel": "Spawn interval:",
     "summonSpeedUnit": "{{ms}} ms / wave",
     "summonBatchLabel": "Champions per wave:",
-    "summonAlternateLabel": "Alternate both teams (BLG ↔ GEN)",
     "summonRandomPoolLabel": "Randomize across 169 champions",
     "summonRulesTitle": "Summon Rules (Option B + D):",
     "summonRuleMaxPerUser": "Max {{max}} alive champion per viewer; chat again to Heal (+{{heal}} HP).",
@@ -328,6 +317,10 @@
   },
   "BossPhase": {
     "shiftTitle": "BOSS AWAKENS",
+    "phase2Badge": "PHASE 2",
+    "phase3Badge": "PHASE 3",
+    "titlePhase2": "⚡ BOSS AWAKENED ⚡",
+    "titlePhase3": "🔥 APOCALYPTIC ENRAGE 🔥",
     "label": {
       "1": "Phase 1",
       "2": "Phase 2 · Awakened",

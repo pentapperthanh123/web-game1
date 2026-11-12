@@ -153,8 +153,8 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
 
   const leftTeam = teamConfig?.activeTeams.BLG;
   const rightTeam = teamConfig?.activeTeams.GENG;
-  const leftTag = leftTeam?.shortTag || 'BLG';
-  const rightTag = rightTeam?.shortTag || 'GEN';
+  const leftTag = leftTeam?.shortTag || 'Team A';
+  const rightTag = rightTeam?.shortTag || 'Team B';
   const leftTheme = getTeamTheme(leftTeam?.colorTheme);
   const rightTheme = getTeamTheme(rightTeam?.colorTheme);
 

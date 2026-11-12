@@ -131,8 +131,8 @@ export class TikTokLivePipeline {
     if (!shouldRemind) return;
     const teams = this.deps.getActiveTeams();
     const assignedTag = teams[team]?.shortTag || team;
-    const leftTag = teams.BLG?.shortTag || 'BLG';
-    const rightTag = teams.GENG?.shortTag || 'GEN';
+    const leftTag = teams.BLG?.shortTag || 'Team A';
+    const rightTag = teams.GENG?.shortTag || 'Team B';
     this.deps.emit('game:chat', {
       userName: 'Hệ Thống',
       text: `💡 ${displayName} tạm tiếp sức ${assignedTag} — Comment [${leftTag}] hoặc [${rightTag}] để khóa phe nhé!`,

@@ -72,8 +72,8 @@ export function AutoProControls({ teamConfig }: AutoProControlsProps) {
         <div className="flex items-center space-x-2 text-xs font-black uppercase text-white">
           <Swords className="w-4 h-4 text-emerald-400" />
           <span>
-            Tuyển Thủ Tự Chiến Đấu ({teamConfig?.activeTeams.BLG.shortTag || 'BLG'} vs{' '}
-            {teamConfig?.activeTeams.GENG.shortTag || 'GEN'} Auto Battle)
+            Tuyển Thủ Tự Chiến Đấu ({teamConfig?.activeTeams.BLG.shortTag || 'Team A'} vs{' '}
+            {teamConfig?.activeTeams.GENG.shortTag || 'Team B'} Auto Battle)
           </span>
         </div>
 
@@ -99,7 +99,7 @@ export function AutoProControls({ teamConfig }: AutoProControlsProps) {
         Khi bật, cả 10 tuyển thủ ở hai cánh (
         {teamConfig
           ? `${teamConfig.activeTeams.BLG.roster.map((p) => p.name).join(', ')} & ${teamConfig.activeTeams.GENG.roster.map((p) => p.name).join(', ')}`
-          : 'Bin, Xun, Knight, Viper, ON & Kiin, Canyon, Chovy, Ruler, Duro'}
+          : '5 tuyển thủ phe trái & 5 tuyển thủ phe phải'}
         ) sẽ tự động bắn chiêu liên tục từ avatar vào Boss, không chiếm Top 5 MVP người xem.
       </p>
 

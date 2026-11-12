@@ -136,6 +136,13 @@ class GameSocketClient {
           );
       });
 
+      this.socket.on('game:summon-batch', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (Array.isArray(payload?.items) && payload.items.length > 0) {
+          useGameStore.getState().summonMinionsBatch(payload.items);
+        }
+      });
+
       this.socket.on('game:gift', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore
@@ -238,6 +245,13 @@ class GameSocketClient {
         useGameStore.getState().setAutoProBattleConfig(payload);
       });
 
+      this.socket.on('game:champion-damage-config', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (typeof payload?.multiplier === 'number') {
+          useGameStore.getState().setChampionDamageMultiplier(payload.multiplier);
+        }
+      });
+
       this.socket.on('game:series-format', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         if (payload && typeof payload.format === 'string') {
@@ -278,6 +292,22 @@ class GameSocketClient {
         championName,
         team,
         isGiftBypass,
+        senderId: CLIENT_INSTANCE_ID,
+      });
+    }
+  }
+
+  public sendSummonBatch(
+    items: Array<{
+      summonerName: string;
+      championName: string;
+      team: string;
+      isGiftBypass?: boolean;
+    }>
+  ): void {
+    if (this.socket && this.isConnected && items.length > 0) {
+      this.socket.emit('admin:summon-batch', {
+        items,
         senderId: CLIENT_INSTANCE_ID,
       });
     }
@@ -333,6 +363,15 @@ class GameSocketClient {
   public sendCastBossSkill(skillIndex?: number): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:boss-cast-skill', { skillIndex, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public sendChampionDamageConfig(multiplier: number): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:champion-damage-config', {
+        multiplier,
+        senderId: CLIENT_INSTANCE_ID,
+      });
     }
   }
 

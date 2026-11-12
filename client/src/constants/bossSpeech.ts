@@ -242,8 +242,8 @@ export const resolveBossSpeechItem = (
   const rightMid = rightRoster[2]?.name || rightPlayer;
 
   const text = item.text
-    .replaceAll('{{leftTag}}', left?.shortTag || TEAM_KEY.BLG)
-    .replaceAll('{{rightTag}}', right?.shortTag || 'GEN')
+    .replaceAll('{{leftTag}}', left?.shortTag || 'Team A')
+    .replaceAll('{{rightTag}}', right?.shortTag || 'Team B')
     .replaceAll('{{leftPlayer}}', leftPlayer)
     .replaceAll('{{rightPlayer}}', rightPlayer)
     .replaceAll('{{leftMid}}', leftMid)

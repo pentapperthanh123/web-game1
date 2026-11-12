@@ -30,7 +30,6 @@ import { SFX_EVENT } from '../../constants/sfx';
 import { BossSkillVfxType } from '../../types/bossSkill';
 import { BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
 import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
-import { BossPhaseShiftBanner } from './BossPhaseShiftBanner';
 
 const getAnimationClass = (
   isDefeated: boolean,
@@ -625,9 +624,6 @@ export const Boss2D = () => {
         gameTheme={gameTheme}
         defaultRoarTextVi={themeConfig.roarTextVi}
       />
-
-      {/* 1b. Phase escalation callout */}
-      <BossPhaseShiftBanner themeConfig={themeConfig} />
 
       {/* 1c. Per-archetype skill VFX overlay (projectiles, beams, spikes…) */}
       {!isDefeated && <BossSkillVfx2D />}

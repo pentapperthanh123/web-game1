@@ -4,6 +4,8 @@ import { Sparkles, Swords, Flame, Play, Square, ShieldAlert, Search } from 'luci
 import { useGameStore } from '../../../store/gameStore';
 import {
   AUTO_SUMMON_CONSTANTS,
+  CHAMPION_DAMAGE_CONSTANTS,
+  COMBAT_VFX_CONSTANTS,
   GAME_CONSTANTS,
   TEAM_KEY,
   TeamType,
@@ -14,6 +16,7 @@ import {
   normalizeQuery,
 } from '../../../constants/champions';
 import { gameSocket } from '../../../services/socket';
+import { swarmLegionPool } from '../../../services/swarmLegionPool';
 import { getTeamTheme } from '../../../constants/teams';
 
 /**
@@ -25,18 +28,31 @@ export const AdminSummonTab: React.FC = () => {
 
   const autoSummonConfig = useGameStore((s) => s.autoSummonConfig);
   const setAutoSummonConfig = useGameStore((s) => s.setAutoSummonConfig);
+  const championDamageMultiplier = useGameStore((s) => s.championDamageMultiplier);
+  const setChampionDamageMultiplier = useGameStore((s) => s.setChampionDamageMultiplier);
   const summonMinion = useGameStore((s) => s.summonMinion);
+  const summonMinionsBatch = useGameStore((s) => s.summonMinionsBatch);
   const activeMinionCount = useGameStore((s) => s.minions.length);
   const activeTeams = useGameStore((s) => s.activeTeams);
   const leftTeam = activeTeams[TEAM_KEY.BLG];
   const rightTeam = activeTeams[TEAM_KEY.GENG];
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [customSwarmCount, setCustomSwarmCount] = useState('3000');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [activeSwarmCount, setActiveSwarmCount] = useState(() => swarmLegionPool.getActiveCount());
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const refreshSwarmCount = () => {
+      setActiveSwarmCount(swarmLegionPool.getActiveCount());
+    };
+    const unsubscribe = swarmLegionPool.subscribe(refreshSwarmCount);
+    const interval = setInterval(refreshSwarmCount, 1000);
+
     return () => {
+      unsubscribe();
+      clearInterval(interval);
       if (feedbackTimerRef.current) {
         clearTimeout(feedbackTimerRef.current);
       }
@@ -97,20 +113,35 @@ export const AdminSummonTab: React.FC = () => {
     );
   };
 
-  const handleSwarmSummon = () => {
+  const handleSwarmSummon = (count: number = AUTO_SUMMON_CONSTANTS.SWARM_COUNT) => {
     const baseSeed = Date.now() % 10000;
-    for (let i = 0; i < AUTO_SUMMON_CONSTANTS.SWARM_COUNT; i += 1) {
-      const champ = getRandomChampion();
-      const summonerTag = `${AUTO_SUMMON_CONSTANTS.DEFAULT_VIEWER_PREFIX}_${baseSeed + i}`;
-      spawnForTeam(champ.name, autoSummonConfig.team, summonerTag);
-    }
+    const items = Array.from({ length: count }, (_, i) => ({
+      summonerName: `${AUTO_SUMMON_CONSTANTS.DEFAULT_VIEWER_PREFIX}_${baseSeed + i}`,
+      championName: getRandomChampion().name,
+      team: autoSummonConfig.team,
+      isGiftBypass: false,
+    }));
+    summonMinionsBatch(items);
+    gameSocket.sendSummonBatch(items);
     showFeedback(
       t('Admin.summonFeedbackSwarm', {
         defaultValue: 'Đã tung Bão Quân Đoàn {{count}} tướng cho {{team}}!',
-        count: AUTO_SUMMON_CONSTANTS.SWARM_COUNT,
+        count,
         team: activeTeams[autoSummonConfig.team]?.shortTag || autoSummonConfig.team,
       })
     );
+  };
+
+  const handleDamageMultiplierChange = (nextMultiplier: number) => {
+    const parsed = Number(nextMultiplier);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    setChampionDamageMultiplier(parsed);
+    gameSocket.sendChampionDamageConfig(parsed);
+  };
+
+  const handleCustomSwarmSummon = () => {
+    const parsed = Math.max(1, Math.floor(Number(customSwarmCount) || 1));
+    handleSwarmSummon(parsed);
   };
 
   return (
@@ -120,7 +151,7 @@ export const AdminSummonTab: React.FC = () => {
         <span className="px-2 py-0.5 rounded bg-slate-950/90 border border-slate-800 text-cyan-300 font-bold">
           {t('Admin.summonActiveCount', {
             defaultValue: 'Đang chiến đấu: {{count}}',
-            count: activeMinionCount,
+            count: Math.min(activeMinionCount, COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_ORBS) + activeSwarmCount,
           })}
         </span>
         {feedback && (
@@ -215,14 +246,78 @@ export const AdminSummonTab: React.FC = () => {
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSwarmSummon}
-          className="w-full py-2 px-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white font-black text-[11px] flex items-center justify-center gap-1.5 active:scale-95 transition"
-        >
-          <Flame className="w-3.5 h-3.5 shrink-0 text-yellow-200" />
-          <span>{t('Admin.summonSwarmBtn', 'Bão Quân Đoàn (+10 Tướng)')}</span>
-        </button>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          {AUTO_SUMMON_CONSTANTS.SWARM_OPTIONS.map((swarmCount) => (
+            <button
+              key={swarmCount}
+              type="button"
+              onClick={() => handleSwarmSummon(swarmCount)}
+              className="py-1.5 px-2 rounded-lg bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white font-black text-[10px] flex items-center justify-center gap-1 active:scale-95 transition"
+            >
+              <Flame className="w-3 h-3 shrink-0 text-yellow-200" />
+              <span>+{swarmCount}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Unlimited Custom Swarm Input */}
+        <div className="flex items-center gap-1.5 pt-1">
+          <input
+            type="number"
+            min={1}
+            value={customSwarmCount}
+            onChange={(e) => setCustomSwarmCount(e.target.value)}
+            placeholder={t('Admin.summonCustomPlaceholder', 'Nhập số tướng (không giới hạn)...')}
+            className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-white focus:outline-none focus:border-amber-500"
+          />
+          <button
+            type="button"
+            onClick={handleCustomSwarmSummon}
+            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-600 text-white font-black text-[11px] shrink-0 active:scale-95 transition"
+          >
+            {t('Admin.summonCustomBtn', 'Tung Tự Do')}
+          </button>
+        </div>
+      </div>
+
+      {/* Champion Damage Multiplier Config */}
+      <div className="p-2.5 rounded-xl bg-slate-950/75 border border-slate-800 space-y-2">
+        <div className="flex items-center justify-between gap-2 text-[11px]">
+          <span className="font-bold text-slate-200">
+            {t('Admin.championDamageLabel', 'Hệ Số Sát Thương Tướng:')}
+          </span>
+          <span className="font-mono font-black text-amber-300">
+            {championDamageMultiplier.toFixed(1)}x ({Math.round(championDamageMultiplier * 100)}%)
+          </span>
+        </div>
+        <input
+          type="range"
+          min={CHAMPION_DAMAGE_CONSTANTS.MIN_MULTIPLIER}
+          max={CHAMPION_DAMAGE_CONSTANTS.MAX_MULTIPLIER}
+          step={CHAMPION_DAMAGE_CONSTANTS.STEP_MULTIPLIER}
+          value={Math.min(CHAMPION_DAMAGE_CONSTANTS.MAX_MULTIPLIER, championDamageMultiplier)}
+          onChange={(e) => handleDamageMultiplierChange(Number(e.target.value))}
+          className="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
+        />
+        <div className="flex flex-wrap gap-1">
+          {CHAMPION_DAMAGE_CONSTANTS.PRESET_MULTIPLIERS.map((preset) => {
+            const isSelected = Math.abs(championDamageMultiplier - preset) < 0.01;
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => handleDamageMultiplierChange(preset)}
+                className={`px-2 h-6 rounded border text-[10px] font-bold transition ${
+                  isSelected
+                    ? 'bg-amber-500/20 border-amber-400 text-amber-200'
+                    : 'bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                {preset}x
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Continuous Auto-Summon Config */}
@@ -295,11 +390,11 @@ export const AdminSummonTab: React.FC = () => {
         </div>
 
         {/* Batch size selector */}
-        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+        <div className="flex flex-col gap-1.5 pt-1 border-t border-slate-800/80">
           <span className="text-[11px] text-slate-400">
             {t('Admin.summonBatchLabel', 'Số tướng mỗi đợt:')}
           </span>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             {AUTO_SUMMON_CONSTANTS.BATCH_SIZE_OPTIONS.map((count) => {
               const isSelected = autoSummonConfig.batchSize === count;
               return (
@@ -307,7 +402,7 @@ export const AdminSummonTab: React.FC = () => {
                   key={count}
                   type="button"
                   onClick={() => setAutoSummonConfig({ batchSize: count })}
-                  className={`w-6 h-6 rounded border text-[10px] font-bold transition ${
+                  className={`min-w-7 px-1.5 h-6 rounded border text-[10px] font-bold transition ${
                     isSelected
                       ? 'bg-amber-500/20 border-amber-400 text-amber-200'
                       : 'bg-slate-900 border-slate-800 text-slate-400'
@@ -317,6 +412,18 @@ export const AdminSummonTab: React.FC = () => {
                 </button>
               );
             })}
+            <input
+              type="number"
+              min={1}
+              value={autoSummonConfig.batchSize}
+              onChange={(e) =>
+                setAutoSummonConfig({
+                  batchSize: Math.max(1, Math.floor(Number(e.target.value) || 1)),
+                })
+              }
+              aria-label={t('Admin.summonBatchCustomLabel', 'Số tướng mỗi đợt tùy chỉnh')}
+              className="w-20 px-2 h-6 rounded border border-slate-700 bg-slate-900 text-[10px] font-bold text-amber-200 focus:outline-none focus:border-amber-400"
+            />
           </div>
         </div>
 

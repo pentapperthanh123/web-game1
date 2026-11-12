@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
@@ -24,7 +24,10 @@ export const SummonPortals3D = () => {
 
   const minions = useGameStore((state) => state.minions);
   const activeDefeatedChampions = useGameStore((state) => state.activeDefeatedChampions);
-  const visibleMinions = minions.slice(-COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_ORBS);
+  const visibleMinions = useMemo(
+    () => minions.slice(-COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_ORBS),
+    [minions]
+  );
 
   useFrame((state, delta) => {
     const championsGroup = championsGroupRef.current;
