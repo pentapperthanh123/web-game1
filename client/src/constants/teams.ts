@@ -1408,6 +1408,22 @@ export const findRosterPlayerInRoster = (
   return roster[Math.floor(Math.random() * roster.length)];
 };
 
+export const findSignatureChampionByPlayer = (input: string): string | undefined => {
+  if (!input || !input.trim()) return undefined;
+  const norm = input.trim().toLowerCase();
+
+  for (const team of PRESET_TEAMS) {
+    const matched = team.roster.find(
+      (p) => p.name.toLowerCase() === norm || norm.includes(p.name.toLowerCase())
+    );
+    if (matched?.signatureChampion) {
+      return matched.signatureChampion;
+    }
+  }
+
+  return undefined;
+};
+
 const normalizeMatchText = (text: string): string =>
   text
     .normalize('NFD')

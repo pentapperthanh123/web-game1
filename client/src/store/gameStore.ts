@@ -72,6 +72,7 @@ import {
   createDuplicateTeamTemplate,
   findExactSignaturePlayer,
   findRosterPlayerInRoster,
+  findSignatureChampionByPlayer,
   getPresetTeamTemplate,
   getTeamTheme,
   mountTeamToSlot,
@@ -931,14 +932,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    const skillVfx = getChampionSkillVFX(championName, isCrit);
+    const resolvedChampion = findSignatureChampionByPlayer(championName) || championName;
+    const skillVfx = getChampionSkillVFX(resolvedChampion, isCrit);
     audioService.playChampionSkillSound(
       isCrit ? skillVfx.type : CHAMPION_SKILL_VFX_TYPE.ARROW,
       isCrit,
       team
     );
     const activeRoster = currentState.activeTeams[team]?.roster ?? [];
-    const rosterPlayer = findRosterPlayerInRoster(championName, activeRoster);
+    const rosterPlayer = findRosterPlayerInRoster(resolvedChampion, activeRoster);
     let startX: number;
     let startY: number;
 

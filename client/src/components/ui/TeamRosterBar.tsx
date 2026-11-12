@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -17,8 +17,7 @@ const DESKTOP_EXPAND_MIN_WIDTH = 768;
 
 const isCompactViewport = (): boolean => {
   if (typeof window === 'undefined') return true;
-  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  return isTouch || window.innerWidth < DESKTOP_EXPAND_MIN_WIDTH;
+  return window.innerWidth < DESKTOP_EXPAND_MIN_WIDTH;
 };
 
 const getAvatarBorderClass = (
@@ -57,38 +56,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   const isLeft = side === 'left';
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(isCompactViewport);
-  const isCollapsedRef = useRef(isCollapsed);
-  isCollapsedRef.current = isCollapsed;
-  const wasAutoCollapsedRef = useRef(false);
-  const prevHasViewersRef = useRef(minions.length > 0);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (isCompactViewport()) {
-        setIsCollapsed(true);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Auto-yield side wings to Viewer SummonShowcase whenever any viewer champion enters
-  const hasActiveViewers = minions.length > 0;
-  useEffect(() => {
-    const hadViewers = prevHasViewersRef.current;
-    prevHasViewersRef.current = hasActiveViewers;
-
-    if (!hadViewers && hasActiveViewers && !isCollapsedRef.current) {
-      wasAutoCollapsedRef.current = true;
-      setIsCollapsed(true);
-      return;
-    }
-
-    if (hadViewers && !hasActiveViewers && wasAutoCollapsedRef.current && !isCompactViewport()) {
-      wasAutoCollapsedRef.current = false;
-      setIsCollapsed(false);
-    }
-  }, [hasActiveViewers]);
+  // User manual toggle is sovereign - no auto-collapse overrides
 
   const getSummonCount = (player: RosterPlayer) => {
     const playerNameLower = player.name.toLowerCase();
@@ -112,22 +80,21 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
         style={topOffset ? { top: `${topOffset}px` } : undefined}
         className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
           isLeft ? 'left-1' : 'right-1'
-        } z-[5] pointer-events-auto select-none transition-[top] duration-200`}
+        } z-[36] pointer-events-auto select-none transition-[top] duration-200`}
       >
         <button
           id={`roster-collapsed-${team}`}
           type="button"
           onClick={() => {
-            wasAutoCollapsedRef.current = false;
             audioService.playUiToggleSound(true);
             setIsCollapsed(false);
           }}
-          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full border backdrop-blur-md shadow-md transition active:scale-95 hover:scale-105 opacity-85 hover:opacity-100 ${teamTheme.pillButtonClass}`}
+          className={`cursor-pointer flex items-center space-x-1 px-2.5 py-1 rounded-full border backdrop-blur-md shadow-lg transition active:scale-95 hover:scale-105 opacity-90 hover:opacity-100 ${teamTheme.pillButtonClass}`}
           title={t('HUD.lineupExpand', 'Mở đội hình {{team}}', { team: shortTeamLabel })}
         >
-          {isLeft ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-          <Users className="w-2.5 h-2.5" />
-          <span className="text-[9px] font-black">{collapsedLabel}</span>
+          {isLeft ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          <Users className="w-3 h-3" />
+          <span className="text-[10px] font-black">{collapsedLabel}</span>
         </button>
       </div>
     );
@@ -140,26 +107,23 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
       style={topOffset ? { top: `${topOffset}px` } : undefined}
       className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
         isLeft ? 'left-1' : 'right-1'
-      } flex flex-col space-y-1 pointer-events-auto z-[5] select-none max-w-[90px] sm:max-w-[104px] transition-[top] duration-200`}
+      } flex flex-col space-y-1 pointer-events-auto z-[36] select-none max-w-[96px] sm:max-w-[108px] transition-[top] duration-200`}
     >
-      {/* Compact Roster Header with Collapse Button */}
-      <div
-        className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border backdrop-blur-md flex items-center justify-between shadow-sm opacity-90 ${teamTheme.pillButtonClass}`}
+      {/* Clickable Header Pill to collapse */}
+      <button
+        type="button"
+        onClick={() => {
+          audioService.playUiToggleSound(false);
+          setIsCollapsed(true);
+        }}
+        className={`cursor-pointer text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full border backdrop-blur-md flex items-center justify-between shadow-md transition active:scale-95 hover:brightness-110 ${teamTheme.pillButtonClass}`}
+        title={t('HUD.lineupCollapse', 'Thu gọn đội hình {{team}}', { team: shortTeamLabel })}
       >
         <span className="truncate">{shortTeamLabel}</span>
-        <button
-          type="button"
-          onClick={() => {
-            wasAutoCollapsedRef.current = false;
-            audioService.playUiToggleSound(false);
-            setIsCollapsed(true);
-          }}
-          className="p-0.5 hover:bg-white/10 rounded transition"
-          aria-label={t('HUD.lineupCollapse', 'Thu gọn đội hình')}
-        >
-          {isLeft ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-        </button>
-      </div>
+        <span className="p-0.5 hover:bg-white/20 rounded transition flex items-center justify-center">
+          {isLeft ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        </span>
+      </button>
 
       {/* Compact Pro Player Strip (Supporting Role, Viewer Remains Spotlight) */}
       {roster.map((player) => {

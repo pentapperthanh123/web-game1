@@ -4,6 +4,7 @@ import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
+import { TeamComboBadge, MIN_COMBO_DISPLAY_COUNT } from './TeamComboBadge';
 
 export const TeamScoreBoard = () => {
   const { t } = useTranslation();
@@ -15,6 +16,13 @@ export const TeamScoreBoard = () => {
   const bo5TargetWins = useGameStore((state) => state.bo5TargetWins);
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
   const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+  const teamCombos = useGameStore((state) => state.teamCombos);
+
+  const blgCombo = teamCombos[TEAM_KEY.BLG];
+  const gengCombo = teamCombos[TEAM_KEY.GENG];
+  const hasActiveCombo =
+    Boolean(blgCombo && blgCombo.count >= MIN_COMBO_DISPLAY_COUNT) ||
+    Boolean(gengCombo && gengCombo.count >= MIN_COMBO_DISPLAY_COUNT);
 
   const leftTheme = getTeamTheme(leftTeam.colorTheme);
   const rightTheme = getTeamTheme(rightTeam.colorTheme);
@@ -157,6 +165,18 @@ export const TeamScoreBoard = () => {
         {/* Center Tension Divider */}
         <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-white shadow-[0_0_6px_#ffffff] z-10" />
       </div>
+
+      {/* Top Team Combo Counters */}
+      {hasActiveCombo && (
+        <div className="flex items-center justify-between w-full mt-1 px-1 pointer-events-none min-h-[24px]">
+          <div className="flex-1 flex justify-start">
+            <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
+          </div>
+          <div className="flex-1 flex justify-end">
+            <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
