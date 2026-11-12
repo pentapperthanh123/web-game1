@@ -13,26 +13,32 @@ import {
 // -----------------------------------------------------------------------------
 const VFX_STYLE = {
   TRAIL: {
-    LENGTH_NORMAL: 64,
-    LENGTH_CRIT: 96,
-    WIDTH_HEAD_NORMAL: 14,
-    WIDTH_HEAD_CRIT: 20,
-    RIBBON_WAVE_SPEED: 0.024,
-    RIBBON_WAVE_AMP_NORMAL: 3.5,
-    RIBBON_WAVE_AMP_CRIT: 6.0,
-    STARDUST_COUNT: 5,
+    LENGTH_NORMAL: 58,
+    LENGTH_CRIT: 104,
+    WIDTH_HEAD_NORMAL: 12,
+    WIDTH_HEAD_CRIT: 22,
+    RIBBON_WAVE_SPEED: 0.026,
+    RIBBON_WAVE_AMP_NORMAL: 3.2,
+    RIBBON_WAVE_AMP_CRIT: 6.5,
+    STARDUST_COUNT_NORMAL: 4,
+    STARDUST_COUNT_CRIT: 8,
   },
   IMPACT: {
-    START_PROGRESS: 0.76,
-    RING_MAX_RADIUS_NORMAL: 32,
-    RING_MAX_RADIUS_CRIT: 52,
-    STAR_RAY_LENGTH_NORMAL: 24,
-    STAR_RAY_LENGTH_CRIT: 42,
-    SPARK_COUNT: 8,
+    START_PROGRESS: 0.74,
+    RING_MAX_RADIUS_NORMAL: 28,
+    RING_MAX_RADIUS_CRIT: 54,
+    STAR_RAY_LENGTH_NORMAL: 22,
+    STAR_RAY_LENGTH_CRIT: 44,
+    SPARK_COUNT_NORMAL: 6,
+    SPARK_COUNT_CRIT: 12,
   },
   GLOW: {
-    BLUR_NORMAL: 14,
+    BLUR_NORMAL: 10,
     BLUR_CRIT: 24,
+  },
+  SCALE: {
+    NORMAL: 0.92,
+    CRIT: 1.48,
   },
 } as const;
 
@@ -82,8 +88,8 @@ const drawCometEnergyBody = (
   // A. Luminous Energy Flame Polygon (Thân sao chổi hình nêm phát quang)
   const bodyGrad = ctx.createLinearGradient(-tailLength, 0, 10, 0);
   bodyGrad.addColorStop(0, hexToRgba(color, 0));
-  bodyGrad.addColorStop(0.35, hexToRgba(color, 0.35));
-  bodyGrad.addColorStop(0.75, hexToRgba(glowColor, 0.85));
+  bodyGrad.addColorStop(0.35, hexToRgba(color, isCrit ? 0.4 : 0.28));
+  bodyGrad.addColorStop(0.75, hexToRgba(glowColor, isCrit ? 0.9 : 0.75));
   bodyGrad.addColorStop(1, '#ffffff');
 
   ctx.shadowColor = glowColor;
@@ -104,14 +110,14 @@ const drawCometEnergyBody = (
   coreGrad.addColorStop(1, '#ffffff');
 
   ctx.strokeStyle = coreGrad;
-  ctx.lineWidth = isCrit ? 3.6 : 2.2;
+  ctx.lineWidth = isCrit ? 3.6 : 2.0;
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-tailLength * 0.7, 0);
   ctx.lineTo(10, 0);
   ctx.stroke();
 
-  // C. Worlds Esports Twin Ribbons (2 dải năng lượng lượn sóng đối xứng BLG / GEN.G)
+  // C. Worlds Esports Twin Ribbons (2 dải năng lượng lượn sóng đối xứng theo đội)
   const teamTheme = getTeamTheme(useGameStore.getState().activeTeams[team]?.colorTheme);
   const ribbonColor1 = teamTheme.primaryHex;
   const ribbonColor2 = teamTheme.accentHex;
@@ -122,7 +128,7 @@ const drawCometEnergyBody = (
 
   // Ribbon 1 (Upper Wave)
   ctx.strokeStyle = ribbonColor1;
-  ctx.lineWidth = isCrit ? 2.4 : 1.5;
+  ctx.lineWidth = isCrit ? 2.4 : 1.4;
   ctx.beginPath();
   ctx.moveTo(-tailLength * 0.65, 0);
   ctx.quadraticCurveTo(-tailLength * 0.3, wave, 6, 0);
@@ -130,23 +136,25 @@ const drawCometEnergyBody = (
 
   // Ribbon 2 (Lower Wave)
   ctx.strokeStyle = ribbonColor2;
-  ctx.lineWidth = isCrit ? 2.0 : 1.2;
+  ctx.lineWidth = isCrit ? 2.0 : 1.1;
   ctx.beginPath();
   ctx.moveTo(-tailLength * 0.55, 0);
   ctx.quadraticCurveTo(-tailLength * 0.25, -wave, 6, 0);
   ctx.stroke();
 
   // D. Stardust Sparkles Trailing Backwards (Hạt bụi sao phát sáng rơi rụng lại phía sau)
-  const sparkCount = VFX_STYLE.TRAIL.STARDUST_COUNT;
+  const sparkCount = isCrit
+    ? VFX_STYLE.TRAIL.STARDUST_COUNT_CRIT
+    : VFX_STYLE.TRAIL.STARDUST_COUNT_NORMAL;
   ctx.fillStyle = '#ffffff';
   for (let i = 1; i <= sparkCount; i++) {
     const distRatio = i / (sparkCount + 1);
     const sparkX = -tailLength * distRatio;
     const sparkWave = Math.sin(elapsed * 0.02 + i * 1.5) * (waveAmp * (1 - distRatio));
-    const sparkRadius = Math.max(0.7, (1 - distRatio) * (isCrit ? 2.4 : 1.6));
+    const sparkRadius = Math.max(0.6, (1 - distRatio) * (isCrit ? 2.5 : 1.5));
 
     ctx.shadowColor = ribbonColor1;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = isCrit ? 8 : 4;
     ctx.beginPath();
     ctx.arc(sparkX, sparkWave, sparkRadius, 0, Math.PI * 2);
     ctx.fill();
@@ -177,19 +185,19 @@ const drawSkillGraphic = (
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.SHURIKEN:
     case CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN: {
-      const spinAngle = (elapsed * 0.005 * Math.PI * 2) % (Math.PI * 2);
+      const spinAngle = (elapsed * 0.006 * Math.PI * 2) % (Math.PI * 2);
       ctx.rotate(spinAngle);
 
       // Motion Blur Swirl Ring
       ctx.strokeStyle = hexToRgba(glowColor, 0.45);
-      ctx.lineWidth = 1.8;
+      ctx.lineWidth = isCrit ? 2.0 : 1.4;
       ctx.beginPath();
       ctx.arc(0, 0, isCrit ? 18 : 13, 0, Math.PI * 2);
       ctx.stroke();
 
       // 4-Point Razor Blade Shuriken
-      const bladeLen = isCrit ? 20 : 15;
-      const bladeHalf = isCrit ? 5.5 : 4.0;
+      const bladeLen = isCrit ? 20 : 14;
+      const bladeHalf = isCrit ? 5.5 : 3.8;
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.moveTo(0, -bladeLen);
@@ -211,18 +219,268 @@ const drawSkillGraphic = (
       // Luminous Power Gem Core
       ctx.fillStyle = coreColor;
       ctx.beginPath();
-      ctx.arc(0, 0, isCrit ? 4.5 : 3.2, 0, Math.PI * 2);
+      ctx.arc(0, 0, isCrit ? 4.5 : 3.0, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
 
     // -------------------------------------------------------------------------
-    // B. LASER (Tia Chùm Photon Cực Đại - Viktor / Lux)
+    // B. SPINNING AXE (Rìu Xoay Cuồng Bạo - Draven / Hans Sama)
+    // -------------------------------------------------------------------------
+    case CHAMPION_SKILL_VFX_TYPE.SPINNING_AXE: {
+      const spinAngle = (elapsed * 0.007 * Math.PI * 2) % (Math.PI * 2);
+      ctx.rotate(spinAngle);
+
+      // Motion Blur Crimson Swirl Ring
+      ctx.strokeStyle = hexToRgba(glowColor, 0.45);
+      ctx.lineWidth = isCrit ? 2.4 : 1.6;
+      ctx.beginPath();
+      ctx.arc(0, 0, isCrit ? 20 : 14, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Dual-Headed Heavy Crescent Executioner Axe
+      const bladeR = isCrit ? 19 : 13;
+      const axeGrad = ctx.createLinearGradient(-bladeR, 0, bladeR, 0);
+      axeGrad.addColorStop(0, color);
+      axeGrad.addColorStop(0.5, '#ffffff');
+      axeGrad.addColorStop(1, color);
+
+      ctx.fillStyle = axeGrad;
+      // Head 1 (Top Blade)
+      ctx.beginPath();
+      ctx.moveTo(0, -bladeR);
+      ctx.quadraticCurveTo(8, -bladeR * 0.6, 5, 0);
+      ctx.lineTo(-5, 0);
+      ctx.quadraticCurveTo(-8, -bladeR * 0.6, 0, -bladeR);
+      ctx.closePath();
+      ctx.fill();
+
+      // Head 2 (Bottom Blade)
+      ctx.beginPath();
+      ctx.moveTo(0, bladeR);
+      ctx.quadraticCurveTo(8, bladeR * 0.6, 5, 0);
+      ctx.lineTo(-5, 0);
+      ctx.quadraticCurveTo(-8, bladeR * 0.6, 0, bladeR);
+      ctx.closePath();
+      ctx.fill();
+
+      // Center Grip Boss & Stud
+      ctx.fillStyle = coreColor;
+      ctx.beginPath();
+      ctx.arc(0, 0, isCrit ? 4.5 : 3.0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+
+    // -------------------------------------------------------------------------
+    // C. SAND SOLDIER (Ngọn Giáo Hoàng Kim Shurima - Azir / Faker)
+    // -------------------------------------------------------------------------
+    case CHAMPION_SKILL_VFX_TYPE.SAND_SOLDIER: {
+      const scale = isCrit ? 1.3 : 1.0;
+      ctx.scale(scale, scale);
+
+      // Shuriman Golden Shaft
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = isCrit ? 4.2 : 2.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-42, 0);
+      ctx.lineTo(12, 0);
+      ctx.stroke();
+
+      // White-Gold Inner Core
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = isCrit ? 2.0 : 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-32, 0);
+      ctx.lineTo(14, 0);
+      ctx.stroke();
+
+      // Winged Sun Blade Head
+      const spearGrad = ctx.createLinearGradient(10, 0, 32, 0);
+      spearGrad.addColorStop(0, '#f59e0b');
+      spearGrad.addColorStop(0.6, '#fbbf24');
+      spearGrad.addColorStop(1, '#ffffff');
+
+      ctx.fillStyle = spearGrad;
+      ctx.beginPath();
+      ctx.moveTo(32, 0);
+      ctx.lineTo(14, -8);
+      ctx.lineTo(18, -3);
+      ctx.lineTo(6, -9);
+      ctx.lineTo(10, 0);
+      ctx.lineTo(6, 9);
+      ctx.lineTo(18, 3);
+      ctx.lineTo(14, 8);
+      ctx.closePath();
+      ctx.fill();
+
+      // Sun Disk Emblem Core
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(10, 0, isCrit ? 4.0 : 2.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Solar Sand Embers
+      for (let s = 0; s < 3; s++) {
+        const sandAngle = elapsed * 0.01 + (s * Math.PI * 2) / 3;
+        const sandX = -12 + Math.cos(sandAngle) * 8;
+        const sandY = Math.sin(sandAngle) * 6;
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(sandX, sandY, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+
+    // -------------------------------------------------------------------------
+    // D. ROCKET MISSILE (Tên Lửa Siêu Khủng Khiếp - Jinx / Gumayusi)
+    // -------------------------------------------------------------------------
+    case CHAMPION_SKILL_VFX_TYPE.ROCKET_MISSILE: {
+      const scale = isCrit ? 1.35 : 1.0;
+      ctx.scale(scale, scale);
+
+      // Rocket Fuselage Body
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(22, 0);
+      ctx.lineTo(12, -7);
+      ctx.lineTo(-18, -6);
+      ctx.lineTo(-24, 0);
+      ctx.lineTo(-18, 6);
+      ctx.lineTo(12, 7);
+      ctx.closePath();
+      ctx.fill();
+
+      // Sharp Silver Nose Cone
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(24, 0);
+      ctx.lineTo(13, -4);
+      ctx.lineTo(13, 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Tail Stabilizer Fins
+      ctx.fillStyle = coreColor;
+      ctx.beginPath();
+      ctx.moveTo(-12, -6);
+      ctx.lineTo(-20, -12);
+      ctx.lineTo(-16, -5);
+      ctx.moveTo(-12, 6);
+      ctx.lineTo(-20, 12);
+      ctx.lineTo(-16, 5);
+      ctx.fill();
+
+      // Thruster Flame Exhaust
+      const flameGrad = ctx.createLinearGradient(-24, 0, -38, 0);
+      flameGrad.addColorStop(0, '#ffffff');
+      flameGrad.addColorStop(0.3, '#f59e0b');
+      flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
+      ctx.fillStyle = flameGrad;
+      ctx.beginPath();
+      ctx.moveTo(-24, -3.5);
+      ctx.lineTo(-38, 0);
+      ctx.lineTo(-24, 3.5);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+
+    // -------------------------------------------------------------------------
+    // E. SHOCK ORB (Cầu Sấm Gia Tốc Siêu Nạp - Jayce / Knight)
+    // -------------------------------------------------------------------------
+    case CHAMPION_SKILL_VFX_TYPE.SHOCK_ORB: {
+      const pulse = 1 + Math.sin(elapsed * 0.03) * 0.15;
+      const radius = (isCrit ? 13 : 9.5) * pulse;
+
+      // Outer Ionized Plasma Sheath
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isCrit ? 3.0 : 2.0;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Core Plasma Sphere
+      const sphereGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+      sphereGrad.addColorStop(0, '#ffffff');
+      sphereGrad.addColorStop(0.5, glowColor);
+      sphereGrad.addColorStop(1, color);
+
+      ctx.fillStyle = sphereGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rotating Electric Spark Ring
+      const rot = (elapsed * 0.008) % (Math.PI * 2);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 1.5, radius * 0.6, rot, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+
+    // -------------------------------------------------------------------------
+    // F. SPIRIT SPEAR (Mũi Giáo Linh Hồn - Kalista / Elk)
+    // -------------------------------------------------------------------------
+    case CHAMPION_SKILL_VFX_TYPE.SPIRIT_SPEAR: {
+      const scale = isCrit ? 1.3 : 1.0;
+      ctx.scale(scale, scale);
+
+      // Spectral Jade Shaft
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = isCrit ? 4.0 : 2.6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-45, 0);
+      ctx.lineTo(14, 0);
+      ctx.stroke();
+
+      // Core Luminous Soul Beam
+      ctx.strokeStyle = '#6ee7b7';
+      ctx.lineWidth = isCrit ? 2.0 : 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-35, 0);
+      ctx.lineTo(16, 0);
+      ctx.stroke();
+
+      // Barbed Ethereal Spearhead
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.moveTo(30, 0);
+      ctx.lineTo(14, -7);
+      ctx.lineTo(18, -2);
+      ctx.lineTo(8, -8);
+      ctx.lineTo(12, 0);
+      ctx.lineTo(8, 8);
+      ctx.lineTo(18, 2);
+      ctx.lineTo(14, 7);
+      ctx.closePath();
+      ctx.fill();
+
+      // Incandescent Soul Tip
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(30, 0);
+      ctx.lineTo(16, -3);
+      ctx.lineTo(18, 0);
+      ctx.lineTo(16, 3);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+
+    // -------------------------------------------------------------------------
+    // G. LASER (Tia Chùm Photon Cực Đại - Viktor / Lux)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.LASER: {
       // Outer Neon Plasma Sheath
       ctx.strokeStyle = color;
-      ctx.lineWidth = isCrit ? 7.5 : 5.0;
+      ctx.lineWidth = isCrit ? 7.5 : 4.8;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(-45, 0);
@@ -231,7 +489,7 @@ const drawSkillGraphic = (
 
       // Inner High-Energy Laser Beam
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = isCrit ? 3.5 : 2.2;
+      ctx.lineWidth = isCrit ? 3.5 : 2.0;
       ctx.beginPath();
       ctx.moveTo(-35, 0);
       ctx.lineTo(24, 0);
@@ -258,11 +516,11 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // C. CRESCENT ARC & GOLDEN FEATHER (Trăng Khuyết / Lông Vũ Xayah & Chovy)
+    // H. CRESCENT ARC & GOLDEN FEATHER (Trăng Khuyết / Lông Vũ Xayah & Chovy)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.CRESCENT_ARC:
     case CHAMPION_SKILL_VFX_TYPE.GOLDEN_FEATHER: {
-      const arcScale = isCrit ? 1.35 : 1.05;
+      const arcScale = isCrit ? 1.35 : 1.0;
       ctx.scale(arcScale, arcScale);
 
       // Radial Glowing Scythe Blade Wave
@@ -300,11 +558,11 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // D. SPIRIT ORB (Hồ Ly Ma Cầu - Ahri)
+    // I. SPIRIT ORB (Hồ Ly Ma Cầu - Ahri / Syndra / Orianna)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.SPIRIT_ORB: {
       const pulse = 1 + Math.sin(elapsed * 0.025) * 0.14;
-      const radius = (isCrit ? 12 : 9.0) * pulse;
+      const radius = (isCrit ? 12 : 8.5) * pulse;
 
       // Outer Mystic Mist Halo
       const haloGrad = ctx.createRadialGradient(0, 0, radius * 0.3, 0, 0, radius * 1.6);
@@ -343,13 +601,13 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // E. JAVELIN & WIND SPEAR (Ngọn Giáo Hoàng Kim / Thần Phong - Nidalee / Xin Zhao)
+    // J. JAVELIN & WIND SPEAR (Ngọn Giáo Hoàng Kim / Thần Phong - Nidalee / Xin Zhao)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.JAVELIN:
     case CHAMPION_SKILL_VFX_TYPE.WIND_SPEAR: {
       // Shaft
       ctx.strokeStyle = color;
-      ctx.lineWidth = isCrit ? 4.2 : 3.0;
+      ctx.lineWidth = isCrit ? 4.2 : 2.8;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(-45, 0);
@@ -358,7 +616,7 @@ const drawSkillGraphic = (
 
       // Core Highlight
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = isCrit ? 2.0 : 1.3;
+      ctx.lineWidth = isCrit ? 2.0 : 1.2;
       ctx.beginPath();
       ctx.moveTo(-35, 0);
       ctx.lineTo(14, 0);
@@ -397,7 +655,7 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // F. VOID MISSILE (Phi Đạn Hư Không - Kai'Sa)
+    // K. VOID MISSILE (Phi Đạn Hư Không - Kai'Sa)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.VOID_MISSILE: {
       ctx.fillStyle = color;
@@ -423,7 +681,7 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // G. TORNADO (Lốc Xoáy Bão Tố - Janna / Yasuo)
+    // L. TORNADO (Lốc Xoáy Bão Tố - Janna / Yasuo)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.TORNADO: {
       const pulse = 1 + Math.sin(elapsed * 0.02) * 0.12;
@@ -444,7 +702,7 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // H. SONIC WAVE (Sóng Âm Hộ Thể - Lee Sin)
+    // M. SONIC WAVE (Sóng Âm Hộ Thể - Lee Sin)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.SONIC_WAVE: {
       const pulse = 1 + Math.sin(elapsed * 0.03) * 0.18;
@@ -465,16 +723,15 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // I. BLADE SLASH & DARKIN BLADE (Song Đao / Trảm Kích Yone & Aatrox)
+    // N. BLADE SLASH & DARKIN BLADE (Song Đao / Trảm Kích Yone & Aatrox)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.MELEE_LEAP:
     case CHAMPION_SKILL_VFX_TYPE.BLADE_SLASH:
     case CHAMPION_SKILL_VFX_TYPE.DARKIN_BLADE:
-    case CHAMPION_SKILL_VFX_TYPE.NTOFO_SLAM:
-    case CHAMPION_SKILL_VFX_TYPE.ANCHOR_DEPTH: {
+    case CHAMPION_SKILL_VFX_TYPE.NTOFO_SLAM: {
       // Dual Katana Blade lines
       ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = isCrit ? 4.0 : 2.8;
+      ctx.lineWidth = isCrit ? 4.0 : 2.6;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(-28, -7);
@@ -482,7 +739,7 @@ const drawSkillGraphic = (
       ctx.stroke();
 
       ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = isCrit ? 4.0 : 2.8;
+      ctx.lineWidth = isCrit ? 4.0 : 2.6;
       ctx.beginPath();
       ctx.moveTo(-28, 7);
       ctx.lineTo(20, 2);
@@ -497,7 +754,43 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // J. ARROW (Mũi Tên Tinh Thể Ánh Sáng - Ashe / Varus / ADC Mặc Định)
+    // O. ANCHOR DEPTH (Mỏ Neo Khổng Lồ / Án Tử - Nautilus / Thresh / Keria)
+    // -------------------------------------------------------------------------
+    case CHAMPION_SKILL_VFX_TYPE.ANCHOR_DEPTH: {
+      const scale = isCrit ? 1.3 : 1.0;
+      ctx.scale(scale, scale);
+
+      // Heavy Iron Shank
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isCrit ? 4.5 : 3.0;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-32, 0);
+      ctx.lineTo(12, 0);
+      ctx.stroke();
+
+      // Curved Anchor Flukes
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = isCrit ? 3.0 : 2.0;
+      ctx.beginPath();
+      ctx.arc(6, 0, isCrit ? 15 : 11, -Math.PI * 0.55, Math.PI * 0.55);
+      ctx.stroke();
+
+      // Sharp Barbed Fluke Tips
+      ctx.fillStyle = coreColor;
+      ctx.beginPath();
+      ctx.moveTo(10, -14);
+      ctx.lineTo(18, -10);
+      ctx.lineTo(13, -7);
+      ctx.moveTo(10, 14);
+      ctx.lineTo(18, 10);
+      ctx.lineTo(13, 7);
+      ctx.fill();
+      break;
+    }
+
+    // -------------------------------------------------------------------------
+    // P. ARROW (Mũi Tên Tinh Thể Ánh Sáng - Ashe / Varus / ADC Mặc Định)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.ARROW:
     default: {
@@ -578,26 +871,28 @@ const drawImpactBurst = (
 
   // 1. Expanding Shockwave Ring
   ctx.strokeStyle = color;
-  ctx.lineWidth = Math.max(1.0, (1 - impactProgress) * (isCrit ? 4.5 : 3.0));
+  ctx.lineWidth = Math.max(1.0, (1 - impactProgress) * (isCrit ? 4.5 : 2.6));
   ctx.shadowColor = glowColor;
-  ctx.shadowBlur = isCrit ? 20 : 12;
+  ctx.shadowBlur = isCrit ? 20 : 10;
   ctx.globalAlpha = fade * 0.9;
   ctx.beginPath();
   ctx.ellipse(14, 0, currentRadius, currentRadius * 0.65, 0, 0, Math.PI * 2);
   ctx.stroke();
 
   // 2. White-Hot Expanding Secondary Core Ring
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = Math.max(1.0, (1 - impactProgress) * 2.0);
-  ctx.globalAlpha = fade * 0.95;
-  ctx.beginPath();
-  ctx.ellipse(14, 0, currentRadius * 0.55, currentRadius * 0.35, 0, 0, Math.PI * 2);
-  ctx.stroke();
+  if (isCrit) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.0, (1 - impactProgress) * 2.2);
+    ctx.globalAlpha = fade * 0.95;
+    ctx.beginPath();
+    ctx.ellipse(14, 0, currentRadius * 0.55, currentRadius * 0.35, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
   // 3. Eight-Point Impact Star Burst
   const rayLen = rayMaxLen * (1 - Math.pow(impactProgress, 2));
   ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = isCrit ? 2.5 : 1.8;
+  ctx.lineWidth = isCrit ? 2.5 : 1.6;
   ctx.globalAlpha = fade;
   ctx.beginPath();
   // Horizontal & Vertical principal rays
@@ -605,25 +900,30 @@ const drawImpactBurst = (
   ctx.lineTo(14 + rayLen, 0);
   ctx.moveTo(14, -rayLen * 0.7);
   ctx.lineTo(14, rayLen * 0.7);
-  // Diagonal secondary rays
-  const diagLen = rayLen * 0.5;
-  ctx.moveTo(14 - diagLen, -diagLen * 0.5);
-  ctx.lineTo(14 + diagLen, diagLen * 0.5);
-  ctx.moveTo(14 - diagLen, diagLen * 0.5);
-  ctx.lineTo(14 + diagLen, -diagLen * 0.5);
+
+  if (isCrit) {
+    // Diagonal secondary rays for Crits
+    const diagLen = rayLen * 0.5;
+    ctx.moveTo(14 - diagLen, -diagLen * 0.5);
+    ctx.lineTo(14 + diagLen, diagLen * 0.5);
+    ctx.moveTo(14 - diagLen, diagLen * 0.5);
+    ctx.lineTo(14 + diagLen, -diagLen * 0.5);
+  }
   ctx.stroke();
 
   // 4. Directional Spark Particles (Tia lửa văng ra từ điểm va chạm)
-  const sparkCount = VFX_STYLE.IMPACT.SPARK_COUNT;
+  const sparkCount = isCrit
+    ? VFX_STYLE.IMPACT.SPARK_COUNT_CRIT
+    : VFX_STYLE.IMPACT.SPARK_COUNT_NORMAL;
   ctx.fillStyle = isCrit ? '#fef08a' : color;
   ctx.shadowColor = glowColor;
-  ctx.shadowBlur = 10;
+  ctx.shadowBlur = isCrit ? 10 : 6;
   for (let s = 0; s < sparkCount; s++) {
     const angle = (s / sparkCount) * Math.PI * 2 + impactProgress * 0.8;
     const sparkDist = (currentRadius + 6) * (0.4 + (s % 3) * 0.3);
     const sx = 14 + Math.cos(angle) * sparkDist;
     const sy = Math.sin(angle) * (sparkDist * 0.7);
-    const sparkSize = Math.max(0.6, (1 - impactProgress) * (isCrit ? 3.0 : 2.0));
+    const sparkSize = Math.max(0.6, (1 - impactProgress) * (isCrit ? 3.0 : 1.8));
 
     ctx.beginPath();
     ctx.arc(sx, sy, sparkSize, 0, Math.PI * 2);
@@ -643,23 +943,23 @@ const drawMuzzleLaunchFlash = (
   isCrit: boolean,
   progress: number
 ) => {
-  const launchWindow = 0.28;
+  const launchWindow = 0.25;
   if (progress > launchWindow) return;
 
   const p = progress / launchWindow;
   const fade = 1 - p;
-  const ringRadius = (isCrit ? 20 : 14) * (0.35 + p * 0.9);
+  const ringRadius = (isCrit ? 22 : 14) * (0.35 + p * 0.9);
 
   ctx.save();
   ctx.translate(startX, startY);
   ctx.rotate(aimAngleRad);
   ctx.globalAlpha = fade * 0.9;
   ctx.shadowColor = glowColor;
-  ctx.shadowBlur = isCrit ? 18 : 12;
+  ctx.shadowBlur = isCrit ? 18 : 10;
 
   // Expanding muzzle ring
   ctx.strokeStyle = glowColor;
-  ctx.lineWidth = isCrit ? 2.8 : 2.0;
+  ctx.lineWidth = isCrit ? 2.8 : 1.8;
   ctx.beginPath();
   ctx.arc(0, 0, ringRadius, -Math.PI * 0.55, Math.PI * 0.55);
   ctx.stroke();
@@ -674,64 +974,6 @@ const drawMuzzleLaunchFlash = (
   ctx.closePath();
   ctx.fill();
 
-  ctx.restore();
-};
-
-const drawBasicAttackBolt = (
-  ctx: CanvasRenderingContext2D,
-  color: string,
-  glowColor: string
-) => {
-  ctx.save();
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = 6;
-
-  // Compact basic attack trail
-  const tailGrad = ctx.createLinearGradient(-24, 0, 8, 0);
-  tailGrad.addColorStop(0, hexToRgba(color, 0));
-  tailGrad.addColorStop(0.65, hexToRgba(color, 0.55));
-  tailGrad.addColorStop(1, '#ffffff');
-
-  ctx.strokeStyle = tailGrad;
-  ctx.lineWidth = 2.4;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(-24, 0);
-  ctx.lineTo(8, 0);
-  ctx.stroke();
-
-  // Small crisp basic bolt head
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(13, 0);
-  ctx.lineTo(3, -3.5);
-  ctx.lineTo(5, 0);
-  ctx.lineTo(3, 3.5);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(7, 0, 1.8, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-};
-
-const drawBasicImpactFlash = (
-  ctx: CanvasRenderingContext2D,
-  color: string,
-  impactProgress: number
-) => {
-  ctx.save();
-  const radius = 10 * Math.sin(impactProgress * Math.PI * 0.5);
-  const fade = Math.max(0, 1 - impactProgress);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.6;
-  ctx.globalAlpha = fade * 0.7;
-  ctx.beginPath();
-  ctx.arc(8, 0, radius, 0, Math.PI * 2);
-  ctx.stroke();
   ctx.restore();
 };
 
@@ -807,18 +1049,17 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         const glowColor = arrow.glowColor || arrow.color;
         const coreColor = arrow.coreColor || '#ffffff';
 
-        if (arrow.isCrit) {
-          drawMuzzleLaunchFlash(
-            ctx,
-            arrow.startX,
-            arrow.startY,
-            baseAimAngleRad,
-            arrow.color,
-            glowColor,
-            true,
-            progress
-          );
-        }
+        // Muzzle launch flash at source for both Normal and Crit
+        drawMuzzleLaunchFlash(
+          ctx,
+          arrow.startX,
+          arrow.startY,
+          baseAimAngleRad,
+          arrow.color,
+          glowColor,
+          arrow.isCrit,
+          progress
+        );
 
         let opacity = 1.0;
         if (progress < 0.04) {
@@ -826,7 +1067,7 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         } else if (progress > 0.9) {
           opacity = (1.0 - progress) / 0.1;
         }
-        const scale = arrow.isCrit ? 1.35 : 0.95;
+        const scale = arrow.isCrit ? VFX_STYLE.SCALE.CRIT : VFX_STYLE.SCALE.NORMAL;
         const clampedOpacity = Math.max(0, Math.min(1, opacity));
 
         ctx.save();
@@ -835,49 +1076,39 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         ctx.scale(scale, scale);
         ctx.globalAlpha = clampedOpacity;
 
-        if (arrow.isCrit) {
-          // Full Ultimate Skill VFX (only when Fury/Power reaches 100%)
-          drawCometEnergyBody(
+        // 1. Dynamic Energy Ribbon Comet Trail Body
+        drawCometEnergyBody(
+          ctx,
+          arrow.color,
+          glowColor,
+          arrow.team,
+          arrow.isCrit,
+          elapsed
+        );
+
+        // 2. Champion Signature Weapon Graphic
+        drawSkillGraphic(
+          ctx,
+          arrow.vfxType || CHAMPION_SKILL_VFX_TYPE.ARROW,
+          arrow.color,
+          glowColor,
+          coreColor,
+          arrow.isCrit,
+          elapsed
+        );
+
+        // 3. Multi-layer Impact Burst upon hitting the Boss Monster
+        if (progress >= VFX_STYLE.IMPACT.START_PROGRESS) {
+          const impactProgress =
+            (progress - VFX_STYLE.IMPACT.START_PROGRESS) /
+            (1.0 - VFX_STYLE.IMPACT.START_PROGRESS);
+          drawImpactBurst(
             ctx,
             arrow.color,
             glowColor,
-            arrow.team,
-            true,
-            elapsed
+            arrow.isCrit,
+            impactProgress
           );
-
-          drawSkillGraphic(
-            ctx,
-            arrow.vfxType || CHAMPION_SKILL_VFX_TYPE.ARROW,
-            arrow.color,
-            glowColor,
-            coreColor,
-            true,
-            elapsed
-          );
-
-          if (progress >= VFX_STYLE.IMPACT.START_PROGRESS) {
-            const impactProgress =
-              (progress - VFX_STYLE.IMPACT.START_PROGRESS) /
-              (1.0 - VFX_STYLE.IMPACT.START_PROGRESS);
-            drawImpactBurst(
-              ctx,
-              arrow.color,
-              glowColor,
-              true,
-              impactProgress
-            );
-          }
-        } else {
-          // Normal Basic Attack Bolt (before 100% Fury/Power)
-          drawBasicAttackBolt(ctx, arrow.color, glowColor);
-
-          if (progress >= VFX_STYLE.IMPACT.START_PROGRESS) {
-            const impactProgress =
-              (progress - VFX_STYLE.IMPACT.START_PROGRESS) /
-              (1.0 - VFX_STYLE.IMPACT.START_PROGRESS);
-            drawBasicImpactFlash(ctx, arrow.color, impactProgress);
-          }
         }
 
         ctx.restore();
