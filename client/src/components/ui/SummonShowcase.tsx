@@ -3,32 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Swords, Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY, TeamType, COMBAT_VFX_CONSTANTS } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
 import { SummonPortalEntity } from '../../types/game';
-
-interface TeamThemeStyle {
-  borderClass: string;
-  bgClass: string;
-  badgeClass: string;
-  textClass: string;
-  glowStyle: string;
-}
-
-const TEAM_THEME_MAP: Record<TeamType, TeamThemeStyle> = {
-  [TEAM_KEY.BLG]: {
-    borderClass: 'border-cyan-400/80',
-    bgClass: 'bg-slate-950/85',
-    badgeClass: 'bg-cyan-400 text-slate-950',
-    textClass: 'text-cyan-300',
-    glowStyle: '0 0 18px rgba(0, 242, 254, 0.55)',
-  },
-  [TEAM_KEY.GENG]: {
-    borderClass: 'border-amber-400/80',
-    bgClass: 'bg-slate-950/85',
-    badgeClass: 'bg-amber-400 text-slate-950',
-    textClass: 'text-amber-300',
-    glowStyle: '0 0 18px rgba(251, 191, 36, 0.55)',
-  },
-};
 
 const ChampionPortrait = ({
   avatarUrl,
@@ -68,21 +44,22 @@ const SummonSpotlightCard = ({
   side: 'left' | 'right';
 }) => {
   const { t } = useTranslation();
-  const theme = TEAM_THEME_MAP[portal.team];
+  const teamProfile = useGameStore((state) => state.activeTeams[portal.team]);
+  const theme = getTeamTheme(teamProfile?.colorTheme);
   const isRight = side === 'right';
 
   return (
     <div
       key={portal.id}
       style={{ boxShadow: theme.glowStyle }}
-      className={`flex items-center space-x-1.5 px-2 py-1 rounded-2xl border backdrop-blur-md animate-summon-entrance max-w-[138px] sm:max-w-[175px] ${
+      className={`flex items-center space-x-1.5 px-2 py-1 rounded-2xl border backdrop-blur-md animate-summon-entrance max-w-[138px] sm:max-w-[175px] bg-slate-950/85 ${
         theme.borderClass
-      } ${theme.bgClass} ${isRight ? 'flex-row-reverse space-x-reverse text-right' : ''}`}
+      } ${isRight ? 'flex-row-reverse space-x-reverse text-right' : ''}`}
     >
       {/* Spinning Magic Summon Ring + Champion Avatar */}
       <div className="relative w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
         <div
-          className={`absolute inset-0 rounded-full border-2 border-dashed animate-spin-slow ${theme.borderClass}`}
+          className={`absolute inset-0 rounded-full border-2 border-dashed animate-spin-slow ${theme.summonPortalBorderClass}`}
         />
         <ChampionPortrait
           avatarUrl={portal.avatarUrl}
@@ -93,7 +70,7 @@ const SummonSpotlightCard = ({
 
       <div className="min-w-0 flex-1 leading-tight">
         <div className={`flex items-center space-x-1 ${isRight ? 'justify-end' : ''}`}>
-          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${theme.badgeClass}`}>
+          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${theme.bgBadgeClass}`}>
             {t('Combat.summonTag', 'TRIỆU HỒI')}
           </span>
           {portal.isCrit && (
@@ -133,19 +110,19 @@ export const SummonShowcase = () => {
   const activeSummonPortals = useGameStore((state) => state.activeSummonPortals);
   const now = Date.now();
 
-  const latestBLGPortal = getLatestTeamPortal(activeSummonPortals, TEAM_KEY.BLG, now);
-  const latestGENGPortal = getLatestTeamPortal(activeSummonPortals, TEAM_KEY.GENG, now);
+  const latestLeftPortal = getLatestTeamPortal(activeSummonPortals, TEAM_KEY.BLG, now);
+  const latestRightPortal = getLatestTeamPortal(activeSummonPortals, TEAM_KEY.GENG, now);
 
   return (
     <>
-      {/* Left Wing: BLG Summon Spotlight (positioned cleanly below TeamRosterBar toggle) */}
+      {/* Left Wing: Dynamic Left Team Summon Spotlight */}
       <div className="absolute top-[206px] sm:top-[216px] left-1.5 sm:left-3 z-[25] pointer-events-none flex flex-col space-y-2">
-        {latestBLGPortal && <SummonSpotlightCard portal={latestBLGPortal} side="left" />}
+        {latestLeftPortal && <SummonSpotlightCard portal={latestLeftPortal} side="left" />}
       </div>
 
-      {/* Right Wing: GEN.G Summon Spotlight */}
+      {/* Right Wing: Dynamic Right Team Summon Spotlight */}
       <div className="absolute top-[206px] sm:top-[216px] right-1.5 sm:right-3 z-[25] pointer-events-none flex flex-col items-end space-y-2">
-        {latestGENGPortal && <SummonSpotlightCard portal={latestGENGPortal} side="right" />}
+        {latestRightPortal && <SummonSpotlightCard portal={latestRightPortal} side="right" />}
       </div>
     </>
   );

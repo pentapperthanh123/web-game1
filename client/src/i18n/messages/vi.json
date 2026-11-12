@@ -14,7 +14,8 @@
     "teamGENG": "Gen.G Esports",
     "damageContribution": "Đóng góp sát thương",
     "vs": "ĐỐI ĐẦU",
-    "voidRoar": "BARON GẦM RÚ HƯ KHÔNG!"
+    "voidRoar": "BARON GẦM RÚ HƯ KHÔNG!",
+    "dynamicTitle": "CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}"
   },
   "HUD": {
     "leaderboardTitle": "TOP 5 SÁT THƯƠNG (DPS)",
@@ -70,7 +71,8 @@
     "guideGiftWorldHeartDesc": "Hồi +50 HP toàn đội & gây +23,880 Sát Thương",
     "guideGiftDragonTitle": "Rồng Thần (1,000 xu)",
     "guideGiftDragonBadge": "+120,000 ST",
-    "guideGiftDragonDesc": "Siêu Thiên Thạch chấn động toàn bản đồ +120,000 ST"
+    "guideGiftDragonDesc": "Siêu Thiên Thạch chấn động toàn bản đồ +120,000 ST",
+    "guideSummonCmdDynamic": "{{leftChamp}} {{leftTag}} • {{rightChamp}} {{rightTag}} • Random {{leftTag}}"
   },
   "Gift": {
     "sentLabel": "ĐÃ TẶNG",
@@ -220,6 +222,40 @@
     "summonFeedbackSingle": "Đã triệu hồi {{champ}} ({{team}})!",
     "summonFeedbackSwarm": "Đã tung Bão Quân Đoàn {{count}} tướng cho {{team}}!",
     "yes": "Có",
-    "no": "Không"
+    "no": "Không",
+    "tabTeams": "Đội & Tuyển Thủ",
+    "healTeamDynamic": "+50 HP cho {{team}}",
+    "summonAlternateDynamicLabel": "Luân phiên 2 phe ({{left}} ↔ {{right}})"
+  },
+  "AdminTeams": {
+    "activeMatchupTitle": "Cặp Đấu Hiện Tại:",
+    "swapSidesBtn": "Đảo Bên",
+    "leftSlotLabel": "Phe Trái",
+    "rightSlotLabel": "Phe Phải",
+    "customTeamLabel": "Đội Tùy Chỉnh",
+    "editTeamBtn": "Sửa",
+    "deleteTeamBtn": "Xóa đội tùy chỉnh",
+    "resetOnSwitchLabel": "Reset điểm ván & BO5 khi đổi đội",
+    "hotMatchupsTitle": "Kèo Đấu Nổi Bật (1 Click Đổi Nhanh):",
+    "catalogTitle": "Kho Đội Tuyển ({{count}} đội):",
+    "newTeamDefaultName": "Đội Tuyển Mới",
+    "createTeamBtn": "Tạo Đội Mới",
+    "switchedFeedback": "Đã đổi cặp đấu: {{left}} vs {{right}}",
+    "swappedFeedback": "Đã đảo bên: {{left}} ↔ {{right}}",
+    "presetAppliedFeedback": "Đã bật kèo đấu: {{label}}!",
+    "savedTeamFeedback": "Đã lưu & áp dụng đội: {{name}}!",
+    "deletedFeedback": "Đã xóa đội tự tạo: {{name}}",
+    "editorTitle": "Chỉnh Sửa Đội ({{slot}})",
+    "editorSubtitle": "Cấu hình tên, từ khóa chat & 5 tuyển thủ",
+    "teamNameLabel": "Tên đội tuyển:",
+    "shortTagLabel": "Tag hiển thị (tối đa 8 ký tự):",
+    "aliasesLabel": "Từ khóa Chat TikTok (cách bằng dấu phẩy):",
+    "logoUrlLabel": "Link Logo (trống = huy hiệu tự động):",
+    "colorThemeLabel": "Màu chủ đạo & Hiệu ứng 3D:",
+    "rosterTitle": "Đội hình 5 Tuyển Thủ (TOP / JUG / MID / ADC / SUP):",
+    "playerNamePlaceholder": "Tên game thủ",
+    "avatarPlaceholder": "Link ảnh tuyển thủ (trống = tự dùng ảnh tướng)",
+    "cancelBtn": "Hủy",
+    "saveApplyBtn": "Lưu & Áp Dụng"
   }
 }

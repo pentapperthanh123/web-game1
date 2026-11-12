@@ -13,7 +13,7 @@ import {
   AUTO_SUMMON_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
 } from './constants/game';
-import { TEAM_ROSTERS } from './constants/roster';
+
 import { getRandomChampion } from './constants/champions';
 import { gameSocket } from './services/socket'; // Auto-connects to Socket.io backend on port 4000
 
@@ -33,6 +33,7 @@ export function App() {
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const roundWinner = useGameStore((state) => state.roundWinner);
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
+  const activeTeams = useGameStore((state) => state.activeTeams);
 
   const nextFireAtRef = useRef<Record<string, number>>({});
   const autoSummonTickRef = useRef(0);
@@ -149,19 +150,23 @@ export function App() {
         return;
       }
 
-      const randomPreset =
-        SIMULATION_PRESETS[Math.floor(Math.random() * SIMULATION_PRESETS.length)];
+      const botSlot = Math.random() < 0.5 ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+      const slotRoster = currentState.activeTeams[botSlot]?.roster ?? [];
+      const randomProChamp =
+        slotRoster.length > 0 && Math.random() < 0.65
+          ? slotRoster[Math.floor(Math.random() * slotRoster.length)].signatureChampion
+          : SIMULATION_PRESETS[Math.floor(Math.random() * SIMULATION_PRESETS.length)].champion;
       const randomViewerNumber = Math.floor(Math.random() * 900) + 100;
       const viewerName = `Viewer_${randomViewerNumber}`;
 
-      summonMinion(viewerName, randomPreset.champion, randomPreset.team);
+      summonMinion(viewerName, randomProChamp, botSlot);
 
       // Random Likes
-      addLikes(Math.floor(Math.random() * 3) + 1, randomPreset.team, viewerName);
+      addLikes(Math.floor(Math.random() * 3) + 1, botSlot, viewerName);
 
       // 15% chance to send gift
       if (Math.random() < 0.15) {
-        triggerGiftExplosion('Rồng Thần CKTG 🐉', randomPreset.team, viewerName, 1000);
+        triggerGiftExplosion('Rồng Thần CKTG 🐉', botSlot, viewerName, 1000);
       }
     }, botSpeedMs);
 
@@ -175,14 +180,17 @@ export function App() {
       return;
     }
 
-    const allPlayers = [...TEAM_ROSTERS[TEAM_KEY.BLG], ...TEAM_ROSTERS[TEAM_KEY.GENG]];
+    const leftRoster = activeTeams[TEAM_KEY.BLG]?.roster ?? [];
+    const rightRoster = activeTeams[TEAM_KEY.GENG]?.roster ?? [];
+    const allPlayers = [...leftRoster, ...rightRoster];
     const baseIntervalMs =
       autoProBattleConfig.intervalMs || AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS;
     const startNow = Date.now();
 
     allPlayers.forEach((player, idx) => {
+      const slotRoster = activeTeams[player.team]?.roster ?? [];
       const teamOffset = player.team === TEAM_KEY.BLG ? 0 : Math.round(AUTO_PRO_BATTLE_CONSTANTS.INITIAL_STAGGER_MS / 2);
-      const laneIndex = idx % TEAM_ROSTERS[player.team].length;
+      const laneIndex = idx % Math.max(1, slotRoster.length);
       nextFireAtRef.current[player.id] =
         startNow + laneIndex * AUTO_PRO_BATTLE_CONSTANTS.INITIAL_STAGGER_MS + teamOffset;
     });
@@ -204,7 +212,7 @@ export function App() {
 
       const now = Date.now();
       for (const team of [TEAM_KEY.BLG, TEAM_KEY.GENG]) {
-        const roster = TEAM_ROSTERS[team];
+        const roster = state.activeTeams[team]?.roster ?? [];
         for (let playerIndex = 0; playerIndex < roster.length; playerIndex++) {
           const player = roster[playerIndex];
           const scheduledAt = nextFireAtRef.current[player.id] ?? now;
@@ -225,6 +233,7 @@ export function App() {
     autoProBattleConfig.enabled,
     autoProBattleConfig.onlyWhenIdle,
     autoProBattleConfig.intervalMs,
+    activeTeams,
     isBattlePaused,
     triggerAutoProAttack,
   ]);

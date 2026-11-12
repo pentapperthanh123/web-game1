@@ -1,10 +1,11 @@
 import { useRef, useEffect } from 'react';
 import { MessageSquare, Sparkles, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { TEAM_KEY } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
 
 export const LiveChatStream = () => {
   const chatMessages = useGameStore((state) => state.chatMessages);
+  const activeTeams = useGameStore((state) => state.activeTeams);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat box internally without ever hijacking window scroll
@@ -28,8 +29,8 @@ export const LiveChatStream = () => {
           </div>
         ) : (
           chatMessages.map((msg) => {
-            const isBLG = msg.team === TEAM_KEY.BLG;
-            const isGENG = msg.team === TEAM_KEY.GENG;
+            const teamProfile = msg.team ? activeTeams[msg.team] : undefined;
+            const teamTheme = teamProfile ? getTeamTheme(teamProfile.colorTheme) : null;
 
             return (
               <div
@@ -39,11 +40,7 @@ export const LiveChatStream = () => {
                 {/* Avatar Initial */}
                 <div
                   className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${
-                    isBLG
-                      ? 'bg-cyan-500 text-slate-950'
-                      : isGENG
-                      ? 'bg-amber-500 text-slate-950'
-                      : 'bg-slate-700 text-slate-200'
+                    teamTheme ? teamTheme.chatAvatarClass : 'bg-slate-700 text-slate-200'
                   }`}
                 >
                   {msg.userName.charAt(0).toUpperCase()}
@@ -56,13 +53,9 @@ export const LiveChatStream = () => {
                       {msg.userName}
                     </span>
 
-                    {msg.team && (
-                      <span
-                        className={`text-[8px] font-black px-1 rounded ${
-                          isBLG ? 'bg-cyan-950 text-cyan-300' : 'bg-amber-950 text-amber-300'
-                        }`}
-                      >
-                        {msg.team}
+                    {msg.team && teamTheme && (
+                      <span className={`text-[8px] font-black px-1 rounded ${teamTheme.badgePillClass}`}>
+                        {teamProfile?.shortTag || msg.team}
                       </span>
                     )}
 
@@ -91,4 +84,3 @@ export const LiveChatStream = () => {
     </aside>
   );
 };
-

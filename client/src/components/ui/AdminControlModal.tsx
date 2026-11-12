@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, X, Trophy, Compass, Bot, Layout, Swords } from 'lucide-react';
+import { ShieldAlert, X, Trophy, Compass, Bot, Layout, Swords, Users } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { ADMIN_CONSTANTS } from '../../constants/game';
 import { OverlayVisibility } from '../../types/game';
 import { AdminMatchTab } from './admin/AdminMatchTab';
+import { AdminTeamsTab } from './admin/AdminTeamsTab';
 import { AdminMapSkillsTab } from './admin/AdminMapSkillsTab';
 import { AdminSummonTab } from './admin/AdminSummonTab';
 import { AdminSimulationTab } from './admin/AdminSimulationTab';
 import { AdminOverlaysTab } from './admin/AdminOverlaysTab';
 
-type AdminTab = 'MATCH' | 'MAP_SKILLS' | 'SUMMON' | 'SIMULATION' | 'OVERLAYS';
+type AdminTab = 'MATCH' | 'TEAMS' | 'MAP_SKILLS' | 'SUMMON' | 'SIMULATION' | 'OVERLAYS';
 
 export const AdminControlModal: React.FC = () => {
   const { t } = useTranslation();
@@ -88,6 +89,11 @@ export const AdminControlModal: React.FC = () => {
                 label: t('Admin.tabMatch', 'Trận Đấu'),
               },
               {
+                id: 'TEAMS' as AdminTab,
+                icon: Users,
+                label: t('Admin.tabTeams', 'Đội & Tuyển Thủ'),
+              },
+              {
                 id: 'SUMMON' as AdminTab,
                 icon: Swords,
                 label: t('Admin.tabSummon', 'Triệu Hồi'),
@@ -145,6 +151,7 @@ export const AdminControlModal: React.FC = () => {
         {/* Tab Content Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {activeTab === 'MATCH' && <AdminMatchTab />}
+          {activeTab === 'TEAMS' && <AdminTeamsTab />}
           {activeTab === 'SUMMON' && <AdminSummonTab />}
           {activeTab === 'MAP_SKILLS' && <AdminMapSkillsTab />}
           {activeTab === 'SIMULATION' && <AdminSimulationTab />}

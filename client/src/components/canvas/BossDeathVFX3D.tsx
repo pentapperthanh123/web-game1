@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
+import { getTeamTheme } from '../../constants/teams';
 import {
   BOSS_DEFEAT_CONSTANTS,
   BOSS_STATUS,
-  COMBAT_VFX_CONSTANTS,
   GAME_THEME,
   TEAM_KEY,
   TeamType,
@@ -119,7 +119,8 @@ export const BossDeathVFX3D = () => {
   const secondaryColor = isElder
     ? BOSS_DEFEAT_CONSTANTS.ELDER_SECONDARY_COLOR
     : BOSS_DEFEAT_CONSTANTS.BARON_SECONDARY_COLOR;
-  const teamColor = COMBAT_VFX_CONSTANTS.TEAM_COLORS[winningTeam].primary;
+  const winningProfile = useGameStore((state) => state.activeTeams[winningTeam]);
+  const teamColor = getTeamTheme(winningProfile?.colorTheme).primaryHex;
 
   useEffect(() => {
     const shardsMesh = shardsMeshRef.current;

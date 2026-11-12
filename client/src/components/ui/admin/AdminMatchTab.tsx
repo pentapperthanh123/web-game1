@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Heart, RefreshCw, FastForward, RotateCcw, Check, Trophy } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
-import { ADMIN_CONSTANTS } from '../../../constants/game';
+import { ADMIN_CONSTANTS, TEAM_KEY } from '../../../constants/game';
+import { getTeamTheme } from '../../../constants/teams';
 import { gameSocket } from '../../../services/socket';
 
 export const AdminMatchTab: React.FC = () => {
@@ -16,6 +17,10 @@ export const AdminMatchTab: React.FC = () => {
   const startNextRound = useGameStore((state) => state.startNextRound);
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
   const setBO5Score = useGameStore((state) => state.setBO5Score);
+  const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
+  const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+  const leftTheme = getTeamTheme(leftTeam.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam.colorTheme);
 
   const [inputHp, setInputHp] = useState<number>(bossHp);
   const [blgScore, setBlgScore] = useState<number>(bo5Score.BLG);
@@ -63,7 +68,7 @@ export const AdminMatchTab: React.FC = () => {
   const handleSaveScore = () => {
     setBO5Score(blgScore, gengScore, roundNum);
     gameSocket.sendBO5Control('setScore', blgScore, gengScore, roundNum);
-    showFeedback(`Đã cập nhật tỉ số BO5: BLG ${blgScore} - ${gengScore} GEN (Ván ${roundNum})`);
+    showFeedback(`Đã cập nhật tỉ số BO5: ${leftTeam.shortTag} ${blgScore} - ${gengScore} ${rightTeam.shortTag} (Ván ${roundNum})`);
   };
 
   return (
@@ -165,9 +170,9 @@ export const AdminMatchTab: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center">
-          {/* BLG Score */}
-          <div className="p-2 rounded-lg bg-slate-950/60 border border-cyan-900/60">
-            <div className="text-[10px] text-cyan-400 font-bold mb-1">BLG</div>
+          {/* Left Team Score */}
+          <div className={`p-2 rounded-lg bg-slate-950/60 border ${leftTheme.borderSoftClass}`}>
+            <div className={`text-[10px] font-bold mb-1 ${leftTheme.textStrongClass}`}>{leftTeam.shortTag}</div>
             <div className="flex items-center justify-center space-x-2">
               <button
                 type="button"
@@ -209,9 +214,9 @@ export const AdminMatchTab: React.FC = () => {
             </div>
           </div>
 
-          {/* GEN.G Score */}
-          <div className="p-2 rounded-lg bg-slate-950/60 border border-amber-900/60">
-            <div className="text-[10px] text-amber-400 font-bold mb-1">GEN.G</div>
+          {/* Right Team Score */}
+          <div className={`p-2 rounded-lg bg-slate-950/60 border ${rightTheme.borderSoftClass}`}>
+            <div className={`text-[10px] font-bold mb-1 ${rightTheme.textStrongClass}`}>{rightTeam.shortTag}</div>
             <div className="flex items-center justify-center space-x-2">
               <button
                 type="button"

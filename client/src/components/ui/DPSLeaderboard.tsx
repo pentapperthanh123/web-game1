@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Trophy, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { TEAM_KEY } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
 
 export const DPSLeaderboard = () => {
   const { t } = useTranslation();
   const leaderboard = useGameStore((state) => state.leaderboard);
   const minions = useGameStore((state) => state.minions);
+  const activeTeams = useGameStore((state) => state.activeTeams);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -45,7 +46,8 @@ export const DPSLeaderboard = () => {
             </p>
           ) : (
             leaderboard.slice(0, 3).map((player, index) => {
-              const isBLG = player.team === TEAM_KEY.BLG;
+              const teamProfile = activeTeams[player.team];
+              const teamTheme = getTeamTheme(teamProfile?.colorTheme);
               return (
                 <div
                   key={player.id}
@@ -66,14 +68,8 @@ export const DPSLeaderboard = () => {
                     <span className="font-bold truncate max-w-[70px] text-slate-200 text-[10px]">
                       {player.userName}
                     </span>
-                    <span
-                      className={`text-[7px] px-1 rounded font-black shrink-0 ${
-                        isBLG
-                          ? 'bg-cyan-950 text-cyan-300 border border-cyan-800/60'
-                          : 'bg-amber-950 text-amber-300 border border-amber-800/60'
-                      }`}
-                    >
-                      {isBLG ? 'BLG' : 'GEN'}
+                    <span className={`text-[7px] px-1 rounded font-black shrink-0 ${teamTheme.badgePillClass}`}>
+                      {teamProfile?.shortTag || player.team}
                     </span>
                   </div>
                   <span className="font-mono font-bold text-emerald-400 text-[9px] shrink-0">

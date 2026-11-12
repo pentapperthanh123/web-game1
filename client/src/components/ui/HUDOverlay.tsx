@@ -20,13 +20,15 @@ import { SummonShowcase } from './SummonShowcase';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
-import { AUTO_PRO_BATTLE_CONSTANTS, GAME_THEME } from '../../constants/game';
+import { AUTO_PRO_BATTLE_CONSTANTS, GAME_THEME, TEAM_KEY } from '../../constants/game';
 
 export const HUDOverlay = () => {
   const { t } = useTranslation();
   const overlayVisibility = useGameStore((state) => state.overlayVisibility);
   const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
   const gameTheme = useGameStore((state) => state.gameTheme);
+  const leftTeamTag = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG].shortTag);
+  const rightTeamTag = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG].shortTag);
   const minionsLength = useGameStore((state) => state.minions.length);
   const bossHp = useGameStore((state) => state.bossHp);
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
@@ -108,7 +110,10 @@ export const HUDOverlay = () => {
         <div className="flex items-center justify-center space-x-1.5 pt-0.5">
           <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 backdrop-blur-[1px] mb-1 shadow-md">
             <span className="text-[10px] font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-amber-400">
-              {t('Game.title', 'CKTG 2026: ĐẠI CHIẾN BLG VS GEN.G')}
+              {t('Game.dynamicTitle', 'CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}', {
+                left: leftTeamTag,
+                right: rightTeamTag,
+              })}
             </span>
           </div>
 

@@ -2,6 +2,7 @@ import { Heart, Sparkles, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
 import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
 
 const BOOST_DISPLAY_MIN_MULTIPLIER = 1.05;
 
@@ -10,39 +11,48 @@ export const LikeCounter = () => {
   const totalLikesBLG = useGameStore((state) => state.totalLikesBLG);
   const totalLikesGENG = useGameStore((state) => state.totalLikesGENG);
   const teamHeartMomentum = useGameStore((state) => state.teamHeartMomentum);
+  const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
+  const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+
+  const leftTheme = getTeamTheme(leftTeam.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam.colorTheme);
 
   const totalCombinedLikes = (totalLikesBLG ?? 0) + (totalLikesGENG ?? 0);
   const threshold = GAME_CONSTANTS.HEART_MILESTONE.THRESHOLD;
   const currentProgress = totalCombinedLikes % threshold;
   const progressPercent = Math.min(100, Math.round((currentProgress / threshold) * 100));
 
-  const blgMultiplier = teamHeartMomentum?.[TEAM_KEY.BLG]?.multiplier ?? 1;
-  const gengMultiplier = teamHeartMomentum?.[TEAM_KEY.GENG]?.multiplier ?? 1;
-  const isBlgBoostActive = blgMultiplier > BOOST_DISPLAY_MIN_MULTIPLIER;
-  const isGengBoostActive = gengMultiplier > BOOST_DISPLAY_MIN_MULTIPLIER;
+  const leftMultiplier = teamHeartMomentum?.[TEAM_KEY.BLG]?.multiplier ?? 1;
+  const rightMultiplier = teamHeartMomentum?.[TEAM_KEY.GENG]?.multiplier ?? 1;
+  const isLeftBoostActive = leftMultiplier > BOOST_DISPLAY_MIN_MULTIPLIER;
+  const isRightBoostActive = rightMultiplier > BOOST_DISPLAY_MIN_MULTIPLIER;
 
   return (
     <div className="relative z-[5] flex flex-col space-y-1 pointer-events-auto items-end w-full max-w-full">
-      {(isBlgBoostActive || isGengBoostActive) && (
+      {(isLeftBoostActive || isRightBoostActive) && (
         <div className="flex items-center justify-end flex-wrap gap-1">
-          {isBlgBoostActive && (
-            <div className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded-full bg-cyan-950/55 border border-cyan-400/60 text-[8px] font-black text-cyan-200 shadow-md animate-pulse">
+          {isLeftBoostActive && (
+            <div
+              className={`flex items-center space-x-0.5 px-1.5 py-0.5 rounded-full border text-[8px] font-black shadow-md animate-pulse ${leftTheme.pillButtonClass}`}
+            >
               <Zap className="w-2.5 h-2.5 text-yellow-300 fill-current" />
               <span>
                 {t('Milestone.furySpeedBoost', 'Nộ {{team}} x{{multiplier}}', {
-                  team: 'BLG',
-                  multiplier: blgMultiplier.toFixed(1),
+                  team: leftTeam.shortTag,
+                  multiplier: leftMultiplier.toFixed(1),
                 })}
               </span>
             </div>
           )}
-          {isGengBoostActive && (
-            <div className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded-full bg-amber-950/55 border border-amber-400/60 text-[8px] font-black text-amber-200 shadow-md animate-pulse">
+          {isRightBoostActive && (
+            <div
+              className={`flex items-center space-x-0.5 px-1.5 py-0.5 rounded-full border text-[8px] font-black shadow-md animate-pulse ${rightTheme.pillButtonClass}`}
+            >
               <Zap className="w-2.5 h-2.5 text-yellow-300 fill-current" />
               <span>
                 {t('Milestone.furySpeedBoost', 'Nộ {{team}} x{{multiplier}}', {
-                  team: 'GEN',
-                  multiplier: gengMultiplier.toFixed(1),
+                  team: rightTeam.shortTag,
+                  multiplier: rightMultiplier.toFixed(1),
                 })}
               </span>
             </div>
@@ -72,22 +82,34 @@ export const LikeCounter = () => {
       </div>
 
       <div className="flex items-center justify-end flex-wrap gap-1">
-        {/* BLG Likes */}
-        <div className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-950/35 border border-cyan-500/45 backdrop-blur-[1px] shadow-md">
-          <Heart className="w-3 h-3 fill-current text-cyan-400 animate-pulse" />
-          <span className="text-[9px] font-mono font-black text-cyan-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+        {/* Left Team Likes */}
+        <div
+          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-950/35 border backdrop-blur-[1px] shadow-md ${leftTheme.likeBadgeBorderClass}`}
+        >
+          <Heart className={`w-3 h-3 fill-current animate-pulse ${leftTheme.textStrongClass}`} />
+          <span
+            className={`text-[9px] font-mono font-black drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] ${leftTheme.textClass}`}
+          >
             {(totalLikesBLG ?? 0).toLocaleString()}
           </span>
-          <span className="text-[7px] font-bold text-cyan-300/90 uppercase">BLG</span>
+          <span className={`text-[7px] font-bold uppercase ${leftTheme.textClass}`}>
+            {leftTeam.shortTag}
+          </span>
         </div>
 
-        {/* Gen.G Likes */}
-        <div className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-950/35 border border-amber-500/45 backdrop-blur-[1px] shadow-md">
-          <Heart className="w-3 h-3 fill-current text-amber-400 animate-pulse" />
-          <span className="text-[9px] font-mono font-black text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+        {/* Right Team Likes */}
+        <div
+          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-950/35 border backdrop-blur-[1px] shadow-md ${rightTheme.likeBadgeBorderClass}`}
+        >
+          <Heart className={`w-3 h-3 fill-current animate-pulse ${rightTheme.textStrongClass}`} />
+          <span
+            className={`text-[9px] font-mono font-black drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] ${rightTheme.textClass}`}
+          >
             {(totalLikesGENG ?? 0).toLocaleString()}
           </span>
-          <span className="text-[7px] font-bold text-amber-300/90 uppercase">GEN</span>
+          <span className={`text-[7px] font-bold uppercase ${rightTheme.textClass}`}>
+            {rightTeam.shortTag}
+          </span>
         </div>
       </div>
     </div>

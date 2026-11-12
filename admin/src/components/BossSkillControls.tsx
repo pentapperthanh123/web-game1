@@ -121,17 +121,19 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
       {/* 1. Header with Status & Auto-Attack Master Switch */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800/80 gap-3">
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-800/80 text-rose-400">
+          <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-800/80 text-rose-400 shrink-0">
             <Swords className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="text-base font-bold text-white flex items-center space-x-2">
-              <span>6. Quái Vật Phản Công & Cấu Hình Ngẫu Nhiên Tung Chiêu</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold">
+          <div className="min-w-0">
+            <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
+              <h2 className="text-xs sm:text-base font-bold text-white leading-tight">
+                6. Quái Vật Phản Công & Cấu Hình Ngẫu Nhiên Tung Chiêu
+              </h2>
+              <span className="shrink-0 whitespace-nowrap text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold">
                 {bossName}
               </span>
-            </h2>
-            <p className="text-xs text-slate-400">
+            </div>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
               Cấu hình Baron / Rồng tự động xuất chiêu theo quy luật hoặc ngẫu nhiên, tỉ lệ xuất hiện & sát thương
             </p>
           </div>

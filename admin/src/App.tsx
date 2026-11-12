@@ -21,7 +21,9 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { adminSocket } from './services/socket';
-import { BLGLogo, GenGLogo } from './components/TeamLogos';
+import { TeamLogo } from './components/TeamLogos';
+import { TeamConfigPanel } from './components/TeamConfigPanel';
+import { createDefaultTeamConfig, getTeamTheme, matchCommentTeam, TeamConfigState, ActiveTeamsMap } from './constants/teams';
 import { OverlayControls } from './components/OverlayControls';
 import { BossSkillControls } from './components/BossSkillControls';
 import { AutoProControls } from './components/AutoProControls';
@@ -83,6 +85,25 @@ const GIFT_PRESETS = [
   { name: 'Tàu Vũ Trụ TikTok 🚀', coins: 10000, label: 'Huyền Thoại' },
 ];
 
+const TIKTOK_STATUS_STYLE_MAP: Record<string, { dotClass: string; textClass: string }> = {
+  CONNECTED: {
+    dotClass: 'bg-emerald-400 shadow-[0_0_10px_#10b981]',
+    textClass: 'text-emerald-400 font-bold',
+  },
+  CONNECTING: {
+    dotClass: 'bg-yellow-400 animate-ping',
+    textClass: 'text-yellow-400 font-bold',
+  },
+  DISCONNECTED: {
+    dotClass: 'bg-rose-500',
+    textClass: 'text-slate-400',
+  },
+};
+
+const getTiktokStatusStyle = (status: string) => {
+  return TIKTOK_STATUS_STYLE_MAP[status] || TIKTOK_STATUS_STYLE_MAP.DISCONNECTED;
+};
+
 interface LogItem {
   id: string;
   time: string;
@@ -93,17 +114,22 @@ interface LogItem {
 
 export const detectSummonCommand = (
   text: string,
-  defaultTeam: 'BLG' | 'GENG' = 'BLG'
+  defaultTeam: 'BLG' | 'GENG' = 'BLG',
+  activeTeams?: ActiveTeamsMap
 ): { championName: string; team: 'BLG' | 'GENG' } | null => {
   if (!text || !text.trim()) return null;
 
   const upper = text.toUpperCase().trim();
 
-  let team: 'BLG' | 'GENG' | undefined = undefined;
-  if (upper.includes('BLG')) {
-    team = 'BLG';
-  } else if (upper.includes('GENG') || upper.includes('GEN.G') || upper.includes('GEN')) {
-    team = 'GENG';
+  let team: 'BLG' | 'GENG' | undefined = activeTeams
+    ? matchCommentTeam(text, activeTeams)
+    : undefined;
+  if (!team && !activeTeams) {
+    if (upper.includes('BLG')) {
+      team = 'BLG';
+    } else if (upper.includes('GENG') || upper.includes('GEN.G') || upper.includes('GEN')) {
+      team = 'GENG';
+    }
   }
 
   // 1. Check random summon commands
@@ -145,7 +171,8 @@ export function App() {
   const [selectedGift, setSelectedGift] = useState(GIFT_PRESETS[4]);
   const [giftTeam, setGiftTeam] = useState<'BLG' | 'GENG'>('BLG');
 
-  const [customComment, setCustomComment] = useState('BLG vô địch CKTG 2026!');
+  const [teamConfig, setTeamConfig] = useState<TeamConfigState>(() => createDefaultTeamConfig());
+  const [customComment, setCustomComment] = useState('Vô địch CKTG 2026!');
   const [chatTeam, setChatTeam] = useState<'BLG' | 'GENG'>('BLG');
 
   const [selectedTheme, setSelectedTheme] = useState<'BARON' | 'ELDER_DRAGON'>(() => {
@@ -185,6 +212,10 @@ export function App() {
       setTimeout(() => {
         document.getElementById('section-logs')?.scrollIntoView({ behavior: 'smooth' });
       }, 50);
+    } else if (tabId === ADMIN_PORTAL_TAB.TEAMS) {
+      setTimeout(() => {
+        document.getElementById('section-teams')?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     } else if (tabId === ADMIN_PORTAL_TAB.INTERACTION) {
       setTimeout(() => {
         document.getElementById('section-interaction')?.scrollIntoView({ behavior: 'smooth' });
@@ -192,7 +223,13 @@ export function App() {
     }
   };
 
+  const leftTeam = teamConfig.activeTeams.BLG;
+  const rightTeam = teamConfig.activeTeams.GENG;
+  const leftTheme = getTeamTheme(leftTeam.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam.colorTheme);
+
   const isAllTab = activeTab === ADMIN_PORTAL_TAB.ALL;
+  const shouldShowTeams = isAllTab || activeTab === ADMIN_PORTAL_TAB.TEAMS;
   const shouldShowInteraction = isAllTab || activeTab === ADMIN_PORTAL_TAB.INTERACTION;
   const shouldShowBossMap = isAllTab || activeTab === ADMIN_PORTAL_TAB.BOSS_MAP;
   const shouldShowOverlays =
@@ -269,7 +306,7 @@ export function App() {
         geng: nextGeng,
         currentRound: nextRound,
       });
-      addLog('SYSTEM', `⚙️ Cập nhật điểm BO5: BLG ${nextBlg} - ${nextGeng} GEN.G (Ván ${nextRound})`);
+      addLog('SYSTEM', `⚙️ Cập nhật điểm BO5: ${leftTeam.shortTag} ${nextBlg} - ${nextGeng} ${rightTeam.shortTag} (Ván ${nextRound})`);
     }
   };
 
@@ -293,6 +330,10 @@ export function App() {
     // Set document title strictly to LOL CKTG
     document.title = ADMIN_APP_TITLE;
 
+    const unsubscribeTeams = adminSocket.onTeamConfig((cfg) => {
+      setTeamConfig(cfg);
+    });
+
     const unsubscribeTheme = adminSocket.onGameTheme((data) => {
       if (data?.theme) {
         setSelectedTheme(data.theme);
@@ -311,6 +352,7 @@ export function App() {
     return () => {
       unsubscribe();
       unsubscribeTheme();
+      unsubscribeTeams();
     };
   }, []);
 
@@ -360,9 +402,12 @@ export function App() {
       const championsPerWave = Math.max(1, Math.min(4, autoSummonBatchSize));
 
       for (let i = 0; i < championsPerWave; i++) {
-        const champTeam = autoSummonAlternateTeams
-          ? (i % 2 === 0 ? currentTeam : (currentTeam === 'BLG' ? 'GENG' : 'BLG'))
-          : selectedTeam;
+        let champTeam: 'BLG' | 'GENG' = selectedTeam;
+        if (autoSummonAlternateTeams) {
+          const isEven = i % 2 === 0;
+          const alternateTeam = currentTeam === 'BLG' ? 'GENG' : 'BLG';
+          champTeam = isEven ? currentTeam : alternateTeam;
+        }
 
         let targetChampName = selectedChampion;
         if (autoSummonRandomChampions || selectedChampion.includes('Ngẫu Nhiên')) {
@@ -521,7 +566,7 @@ export function App() {
     if (!trimmed) return;
 
     const user = summonerName.trim() || 'Viewer';
-    const summonResult = detectSummonCommand(trimmed, chatTeam);
+    const summonResult = detectSummonCommand(trimmed, chatTeam, teamConfig.activeTeams);
 
     if (summonResult) {
       // 1. Emit summon minion event directly
@@ -569,79 +614,63 @@ export function App() {
     addLog('BOSS', '🔄 Hồi sinh Boss Baron Nashor về 100,000 HP');
   };
 
+  const tiktokStyle = getTiktokStatusStyle(tiktokStatus);
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-2.5 sm:p-4 md:p-8 font-sans">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b border-slate-800 gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-purple-950/80 text-purple-400 border border-purple-800/80 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-              <Radio className="w-6 h-6 animate-pulse" />
+        <header className="flex flex-col md:flex-row md:items-center justify-between pb-3.5 sm:pb-5 border-b border-slate-800 gap-3 sm:gap-4">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-purple-950/80 text-purple-400 border border-purple-800/80 shadow-[0_0_15px_rgba(168,85,247,0.3)] shrink-0">
+              <Radio className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
             </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-wide text-white flex items-center space-x-2">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-2xl font-black tracking-wide text-white flex items-center flex-wrap gap-2">
                 <span>TIKTOK LIVE ADMIN PORTAL</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800">
+                <span className="shrink-0 text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono font-semibold">
                   PORT 8001
                 </span>
               </h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-400 leading-snug mt-0.5 truncate">
                 Bảng điều khiển độc lập kết nối WebSocket tới Server (Port 4000) & Game View (Port 8000)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full md:w-auto">
             <a
               href="http://localhost:8000"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-xs font-bold text-cyan-300 flex items-center space-x-2 shadow-lg transition"
+              className="flex-1 sm:flex-initial justify-center px-3 sm:px-4 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-xs font-bold text-cyan-300 flex items-center space-x-1.5 sm:space-x-2 shadow-lg transition text-center"
             >
               <span>Mở Màn Hình Game OBS (Port 8000)</span>
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
             </a>
 
             <button
               type="button"
               onClick={handleResetBoss}
-              className="px-4 py-2 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-xs font-bold text-rose-300 flex items-center space-x-1.5 transition shadow"
+              className="shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-xs font-bold text-rose-300 flex items-center space-x-1.5 transition shadow"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
               <span>Hồi Sinh Boss</span>
             </button>
           </div>
         </header>
 
         {/* TikTok Live Connection Widget */}
-        <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-3 w-full sm:w-auto">
-            <div
-              className={`w-3.5 h-3.5 rounded-full ${
-                tiktokStatus === 'CONNECTED'
-                  ? 'bg-emerald-400 shadow-[0_0_10px_#10b981]'
-                  : tiktokStatus === 'CONNECTING'
-                  ? 'bg-yellow-400 animate-ping'
-                  : 'bg-rose-500'
-              }`}
-            />
-            <div>
-              <div className="text-xs font-black uppercase text-white flex items-center space-x-1.5">
+        <section className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 w-full sm:w-auto min-w-0">
+            <div className={`w-3.5 h-3.5 rounded-full shrink-0 ${tiktokStyle.dotClass}`} />
+            <div className="min-w-0">
+              <div className="text-xs font-black uppercase text-white flex items-center flex-wrap gap-1.5">
                 <span>Trạng thái TikTok Live:</span>
-                <span
-                  className={
-                    tiktokStatus === 'CONNECTED'
-                      ? 'text-emerald-400 font-bold'
-                      : tiktokStatus === 'CONNECTING'
-                      ? 'text-yellow-400'
-                      : 'text-slate-400'
-                  }
-                >
-                  {tiktokStatus}
-                </span>
+                <span className={tiktokStyle.textClass}>{tiktokStatus}</span>
                 {tiktokRoomId && <span className="text-slate-500 text-[10px]">(Room ID: {tiktokRoomId})</span>}
               </div>
-              <p className="text-[10px] text-slate-400">Kết nối trực tiếp tới phòng livestream để bắt chat, gift, like thật</p>
+              <p className="text-[10px] text-slate-400 truncate">Kết nối trực tiếp tới phòng livestream để bắt chat, gift, like thật</p>
             </div>
           </div>
 
@@ -661,7 +690,7 @@ export function App() {
               <button
                 type="button"
                 onClick={handleDisconnectTiktok}
-                className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition"
+                className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shrink-0"
               >
                 Ngắt Kết Nối
               </button>
@@ -670,13 +699,18 @@ export function App() {
                 type="button"
                 onClick={handleConnectTiktok}
                 disabled={isConnecting}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition disabled:opacity-50"
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition disabled:opacity-50 shrink-0"
               >
                 {isConnecting ? 'Đang nối...' : 'Kết Nối Live'}
               </button>
             )}
           </div>
         </section>
+
+        {/* Team Configuration Panel */}
+        <div id="section-teams" className={shouldShowTeams ? 'block' : 'hidden'}>
+          <TeamConfigPanel teamConfig={teamConfig} onLog={addLog} />
+        </div>
 
         {/* Admin Section Tabs */}
         <AdminTabBar
@@ -702,36 +736,36 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => handleSendLikes(10, 'BLG')}
-                  className="py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/80 text-xs font-bold flex items-center justify-center space-x-1"
+                  className={`py-1.5 rounded-lg text-xs font-bold flex items-center justify-center space-x-1 ${leftTheme.likeBtnClass}`}
                 >
-                  <Heart className="w-3.5 h-3.5 fill-current text-cyan-400" />
-                  <span>+10 Tim BLG</span>
+                  <Heart className={`w-3.5 h-3.5 fill-current ${leftTheme.textStrongClass}`} />
+                  <span>+10 Tim {leftTeam.shortTag}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSendLikes(10, 'GENG')}
-                  className="py-1.5 rounded-lg bg-amber-950 hover:bg-amber-900 text-amber-300 border border-amber-800/80 text-xs font-bold flex items-center justify-center space-x-1"
+                  className={`py-1.5 rounded-lg text-xs font-bold flex items-center justify-center space-x-1 ${rightTheme.likeBtnClass}`}
                 >
-                  <Heart className="w-3.5 h-3.5 fill-current text-amber-400" />
-                  <span>+10 Tim GEN</span>
+                  <Heart className={`w-3.5 h-3.5 fill-current ${rightTheme.textStrongClass}`} />
+                  <span>+10 Tim {rightTeam.shortTag}</span>
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => handleSendLikes(50, 'BLG')}
-                  className="py-1.5 rounded-lg bg-cyan-900/40 hover:bg-cyan-800/60 text-cyan-200 border border-cyan-700/60 text-xs font-bold flex items-center justify-center space-x-1"
+                  className={`py-1.5 rounded-lg text-xs font-bold flex items-center justify-center space-x-1 ${leftTheme.likeBurstBtnClass}`}
                 >
-                  <Zap className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>+50 Tim BLG</span>
+                  <Zap className={`w-3.5 h-3.5 ${leftTheme.textStrongClass}`} />
+                  <span>+50 Tim {leftTeam.shortTag}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSendLikes(50, 'GENG')}
-                  className="py-1.5 rounded-lg bg-amber-900/40 hover:bg-amber-800/60 text-amber-200 border border-amber-700/60 text-xs font-bold flex items-center justify-center space-x-1"
+                  className={`py-1.5 rounded-lg text-xs font-bold flex items-center justify-center space-x-1 ${rightTheme.likeBurstBtnClass}`}
                 >
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  <span>+50 Tim GEN</span>
+                  <Zap className={`w-3.5 h-3.5 ${rightTheme.textStrongClass}`} />
+                  <span>+50 Tim {rightTeam.shortTag}</span>
                 </button>
               </div>
               <button
@@ -753,19 +787,19 @@ export function App() {
                   type="button"
                   onClick={() => setChatTeam('BLG')}
                   className={`flex-1 py-1 rounded text-[10px] font-black ${
-                    chatTeam === 'BLG' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                    chatTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
                   }`}
                 >
-                  BLG
+                  {leftTeam.shortTag}
                 </button>
                 <button
                   type="button"
                   onClick={() => setChatTeam('GENG')}
                   className={`flex-1 py-1 rounded text-[10px] font-black ${
-                    chatTeam === 'GENG' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                    chatTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
                   }`}
                 >
-                  GEN.G
+                  {rightTeam.shortTag}
                 </button>
               </div>
 
@@ -818,21 +852,21 @@ export function App() {
                     type="button"
                     onClick={() => setSelectedTeam('BLG')}
                     className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${
-                      selectedTeam === 'BLG' ? 'bg-cyan-500 text-slate-950 shadow-[0_0_8px_#06b6d4]' : 'bg-slate-800 text-slate-400'
+                      selectedTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
                     }`}
                   >
-                    <BLGLogo className="w-4 h-4" />
-                    <span>BLG</span>
+                    <TeamLogo teamProfile={leftTeam} className="w-4 h-4" />
+                    <span>{leftTeam.shortTag}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedTeam('GENG')}
                     className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${
-                      selectedTeam === 'GENG' ? 'bg-amber-500 text-slate-950 shadow-[0_0_8px_#f59e0b]' : 'bg-slate-800 text-slate-400'
+                      selectedTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
                     }`}
                   >
-                    <GenGLogo className="w-4 h-4" />
-                    <span>GEN.G</span>
+                    <TeamLogo teamProfile={rightTeam} className="w-4 h-4" />
+                    <span>{rightTeam.shortTag}</span>
                   </button>
                 </div>
               </div>
@@ -1037,7 +1071,7 @@ export function App() {
                         onChange={(e) => setAutoSummonAlternateTeams(e.target.checked)}
                         className="rounded accent-cyan-500 w-3.5 h-3.5"
                       />
-                      <span>Luân phiên 2 phe (BLG ⚔️ GEN)</span>
+                      <span>Luân phiên 2 phe ({leftTeam.shortTag} ⚔️ {rightTeam.shortTag})</span>
                     </label>
                     <span className="text-slate-500 font-mono">
                       {autoSummonAlternateTeams ? 'Cả 2 phe' : `Phe ${selectedTeam}`}
@@ -1085,21 +1119,21 @@ export function App() {
                     type="button"
                     onClick={() => setGiftTeam('BLG')}
                     className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${
-                      giftTeam === 'BLG' ? 'bg-cyan-500 text-slate-950 shadow-[0_0_8px_#06b6d4]' : 'bg-slate-800 text-slate-400'
+                      giftTeam === 'BLG' ? leftTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
                     }`}
                   >
-                    <BLGLogo className="w-4 h-4" />
-                    <span>BLG</span>
+                    <TeamLogo teamProfile={leftTeam} className="w-4 h-4" />
+                    <span>{leftTeam.shortTag}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setGiftTeam('GENG')}
                     className={`py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition ${
-                      giftTeam === 'GENG' ? 'bg-amber-500 text-slate-950 shadow-[0_0_8px_#f59e0b]' : 'bg-slate-800 text-slate-400'
+                      giftTeam === 'GENG' ? rightTheme.adminActiveBtnClass : 'bg-slate-800 text-slate-400'
                     }`}
                   >
-                    <GenGLogo className="w-4 h-4" />
-                    <span>GEN.G</span>
+                    <TeamLogo teamProfile={rightTeam} className="w-4 h-4" />
+                    <span>{rightTeam.shortTag}</span>
                   </button>
                 </div>
               </div>
@@ -1194,7 +1228,7 @@ export function App() {
                     <span>Trận Đấu BO5 (Ván {currentRound}/5)</span>
                   </span>
                   <span className="font-mono text-xs font-black text-cyan-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-                    BLG {bo5Score.BLG} - {bo5Score.GENG} GEN
+                    {leftTeam.shortTag} {bo5Score.BLG} - {bo5Score.GENG} {rightTeam.shortTag}
                   </span>
                 </div>
 
@@ -1202,16 +1236,16 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => handleBo5Control('setScore', bo5Score.BLG + 1, bo5Score.GENG)}
-                    className="py-1 px-2 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[10px] font-bold transition active:scale-95"
+                    className={`py-1 px-2 rounded text-[10px] font-bold transition active:scale-95 ${leftTheme.likeBtnClass}`}
                   >
-                    +1 Ván BLG
+                    +1 Ván {leftTeam.shortTag}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleBo5Control('setScore', bo5Score.BLG, bo5Score.GENG + 1)}
-                    className="py-1 px-2 rounded bg-amber-950 hover:bg-amber-900 border border-amber-800 text-amber-300 text-[10px] font-bold transition active:scale-95"
+                    className={`py-1 px-2 rounded text-[10px] font-bold transition active:scale-95 ${rightTheme.likeBtnClass}`}
                   >
-                    +1 Ván GEN.G
+                    +1 Ván {rightTeam.shortTag}
                   </button>
                 </div>
 
@@ -1357,7 +1391,7 @@ export function App() {
         <BossSkillControls currentTheme={selectedTheme} />
 
         {/* Section 6.5: Auto Pro-Player Battle when Idle */}
-        <AutoProControls />
+        <AutoProControls teamConfig={teamConfig} />
         </div>
 
         {/* Section 7: Section Visibility Controls (Overlay Controls) */}
@@ -1407,8 +1441,8 @@ export function App() {
                     {item.type}
                   </span>
                   {item.team && (
-                    <span className={`text-[9px] font-black ${item.team === 'BLG' ? 'text-cyan-400' : 'text-amber-400'}`}>
-                      [{item.team}]
+                    <span className={`text-[9px] font-black ${item.team === 'BLG' ? leftTheme.textStrongClass : rightTheme.textStrongClass}`}>
+                      [{item.team === 'BLG' ? leftTeam.shortTag : rightTeam.shortTag}]
                     </span>
                   )}
                   <span className="text-slate-200 truncate">{item.message}</span>

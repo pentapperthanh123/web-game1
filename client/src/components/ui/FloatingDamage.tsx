@@ -3,25 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Zap, Sparkles, Flame } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { DAMAGE_TYPE, DamageType, TEAM_KEY, TeamType } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
 import { TeamComboState } from '../../types/game';
-
-interface TeamComboStyleConfig {
-  teamLabel: string;
-  badgeClass: string;
-}
-
-const TEAM_COMBO_STYLE_MAP: Record<TeamType, TeamComboStyleConfig> = {
-  [TEAM_KEY.BLG]: {
-    teamLabel: 'BLG',
-    badgeClass:
-      'border-cyan-400/80 bg-cyan-950/85 text-cyan-200 shadow-[0_0_18px_rgba(6,182,212,0.55)]',
-  },
-  [TEAM_KEY.GENG]: {
-    teamLabel: 'GEN',
-    badgeClass:
-      'border-amber-400/80 bg-amber-950/85 text-amber-200 shadow-[0_0_18px_rgba(245,158,11,0.55)]',
-  },
-};
 
 const MIN_COMBO_DISPLAY_COUNT = 2;
 
@@ -34,19 +17,21 @@ const TeamComboBadge = ({
   combo: TeamComboState;
   comboLabel: string;
 }) => {
+  const teamProfile = useGameStore((state) => state.activeTeams[team]);
   if (combo.count < MIN_COMBO_DISPLAY_COUNT) {
     return null;
   }
 
-  const style = TEAM_COMBO_STYLE_MAP[team];
+  const theme = getTeamTheme(teamProfile?.colorTheme);
 
   return (
     <div
       key={`${team}-${combo.count}`}
-      className={`flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border backdrop-blur-md animate-in zoom-in-75 duration-150 ${style.badgeClass}`}
+      style={{ boxShadow: theme.glowStyle }}
+      className={`flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border backdrop-blur-md animate-in zoom-in-75 duration-150 ${theme.pillButtonClass}`}
     >
       <span className="text-[10px] sm:text-xs font-black tracking-wider uppercase whitespace-nowrap">
-        {style.teamLabel} {comboLabel} x{combo.count}
+        {teamProfile?.shortTag || team} {comboLabel} x{combo.count}
       </span>
       <span className="text-[10px] sm:text-xs font-mono font-black text-white whitespace-nowrap">
         -{combo.damage.toLocaleString()}
@@ -100,7 +85,7 @@ export const FloatingDamage = React.memo(() => {
       aria-live="polite"
       className="absolute top-[56%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-88 h-56 pointer-events-none z-30 flex items-center justify-center overflow-visible"
     >
-      {/* Separate Per-Team Combo Counters (BLG Left Cyan / GEN.G Right Amber) */}
+      {/* Separate Per-Team Combo Counters */}
       <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 pointer-events-none">
         <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} comboLabel={comboLabel} />
         <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} comboLabel={comboLabel} />
@@ -139,3 +124,5 @@ export const FloatingDamage = React.memo(() => {
     </div>
   );
 });
+
+FloatingDamage.displayName = 'FloatingDamage';

@@ -1,6 +1,11 @@
 import { io, Socket } from 'socket.io-client';
 import { OverlayVisibility } from '../types/overlay';
 import { BossSkillConfig } from '../types/bossSkill';
+import {
+  TeamConfigState,
+  createDefaultTeamConfig,
+  sanitizeTeamConfigState,
+} from '../constants/teams';
 import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
 
 const SERVER_URL =
@@ -15,6 +20,8 @@ class AdminSocketService {
   private broadcastChannel: BroadcastChannel | null = null;
   private lastOverlayPatch: Partial<OverlayVisibility> | null = null;
   private overlayListeners: ((visibility: Partial<OverlayVisibility>) => void)[] = [];
+  private latestTeamConfig: TeamConfigState = createDefaultTeamConfig();
+  private teamConfigListeners: ((config: TeamConfigState) => void)[] = [];
   public isConnected = false;
 
   constructor() {
@@ -44,6 +51,14 @@ class AdminSocketService {
         console.log('[Admin Socket] Disconnected from Backend Server');
       });
 
+      this.socket.on('game:team-config', (payload: unknown) => {
+        const cleanConfig = sanitizeTeamConfigState(payload);
+        if (cleanConfig) {
+          this.latestTeamConfig = cleanConfig;
+          this.notifyTeamConfigListeners(cleanConfig);
+        }
+      });
+
       this.socket.on('game:overlay-visibility', (payload: unknown) => {
         const cleanPatch = pickOverlayVisibilityPatch(payload);
         if (Object.keys(cleanPatch).length > 0) {
@@ -66,6 +81,17 @@ class AdminSocketService {
               this.lastOverlayPatch = { ...this.lastOverlayPatch, ...cleanPatch };
               this.notifyOverlayListeners(cleanPatch);
             }
+          }
+        })
+        .catch(() => {});
+
+      fetch(`${SERVER_URL}/api/teams`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          const cleanConfig = sanitizeTeamConfigState(data);
+          if (cleanConfig) {
+            this.latestTeamConfig = cleanConfig;
+            this.notifyTeamConfigListeners(cleanConfig);
           }
         })
         .catch(() => {});
@@ -110,6 +136,9 @@ class AdminSocketService {
           break;
         case 'admin:auto-pro-battle':
           mappedType = 'SET_AUTO_PRO_BATTLE';
+          break;
+        case 'admin:set-team-config':
+          mappedType = 'SET_TEAM_CONFIG';
           break;
         case 'admin:chat':
           mappedType = 'SEND_CHAT';
@@ -178,6 +207,38 @@ class AdminSocketService {
         listener(patch);
       } catch (err) {
         console.error('[Admin Socket] Error in overlay listener:', err);
+      }
+    }
+  }
+
+  public setTeamConfig(config: TeamConfigState, resetMatch = false): void {
+    this.latestTeamConfig = config;
+    this.notifyTeamConfigListeners(config);
+    const payload = { ...config, resetMatch };
+    this.emit('admin:set-team-config', payload);
+    if (typeof window !== 'undefined') {
+      fetch(`${SERVER_URL}/api/teams`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    }
+  }
+
+  public onTeamConfig(callback: (config: TeamConfigState) => void): () => void {
+    callback(this.latestTeamConfig);
+    this.teamConfigListeners.push(callback);
+    return () => {
+      this.teamConfigListeners = this.teamConfigListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  private notifyTeamConfigListeners(config: TeamConfigState): void {
+    for (const listener of this.teamConfigListeners) {
+      try {
+        listener(config);
+      } catch (err) {
+        console.error('[Admin Socket] Error in team config listener:', err);
       }
     }
   }

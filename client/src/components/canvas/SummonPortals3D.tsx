@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
+import { getTeamTheme } from '../../constants/teams';
 import {
   GAME_CONSTANTS,
   COMBAT_VFX_CONSTANTS,
@@ -122,10 +123,11 @@ const nameplateTextureCache = new Map<string, THREE.CanvasTexture>();
 
 const getNameplateTexture = (
   summonerName: string,
-  team: string
+  team: string,
+  primaryColor: string
 ): THREE.CanvasTexture => {
   const cleanName = (summonerName || 'Viewer').trim().replace(/^@+/, '');
-  const cacheKey = `${team}_${cleanName}`;
+  const cacheKey = `${team}_${primaryColor}_${cleanName}`;
   const existing = nameplateTextureCache.get(cacheKey);
   if (existing) {
     return existing;
@@ -154,9 +156,7 @@ const getNameplateTexture = (
     return emptyTex;
   }
 
-  const isBLG = team === TEAM_KEY.BLG;
-  const primaryColor = isBLG ? '#00f2fe' : '#fbbf24';
-  const glowColor = isBLG ? 'rgba(0, 242, 254, 0.65)' : 'rgba(251, 191, 36, 0.65)';
+  const glowColor = primaryColor;
 
   const paddingX = 14;
   const paddingY = 14;
@@ -258,12 +258,18 @@ interface ChampionTokenProps {
 }
 
 const ChampionToken = ({ minion }: ChampionTokenProps) => {
+  const teamProfile = useGameStore((state) => state.activeTeams[minion.team]);
+  const teamTheme = getTeamTheme(teamProfile?.colorTheme);
+  const teamPalette = {
+    primary: teamTheme.primaryHex,
+    secondary: teamTheme.secondaryHex,
+    crit: teamTheme.critHex,
+  };
   const texture = useMemo(() => getChampionTexture(minion.avatarUrl), [minion.avatarUrl]);
   const nameplateTexture = useMemo(
-    () => getNameplateTexture(minion.summonerName, minion.team),
-    [minion.summonerName, minion.team]
+    () => getNameplateTexture(minion.summonerName, minion.team, teamPalette.primary),
+    [minion.summonerName, minion.team, teamPalette.primary]
   );
-  const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[minion.team as keyof typeof COMBAT_VFX_CONSTANTS.TEAM_COLORS] || COMBAT_VFX_CONSTANTS.TEAM_COLORS[TEAM_KEY.GENG];
 
   const maxHp = minion.maxHp || 100;
   const currentHp = Math.max(0, minion.hp !== undefined ? minion.hp : maxHp);

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Compass, Flame, Shield, Check, Zap } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
-import { ADMIN_CONSTANTS } from '../../../constants/game';
+import { ADMIN_CONSTANTS, TEAM_KEY } from '../../../constants/game';
+import { getTeamTheme } from '../../../constants/teams';
 import { GameThemeType } from '../../../types/game';
 import { gameSocket } from '../../../services/socket';
 
@@ -14,6 +15,10 @@ export const AdminMapSkillsTab: React.FC = () => {
   const setGameTheme = useGameStore((state) => state.setGameTheme);
   const castBossSkill = useGameStore((state) => state.castBossSkill);
   const healTeamChampions = useGameStore((state) => state.healTeamChampions);
+  const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
+  const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+  const leftTheme = getTeamTheme(leftTeam.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam.colorTheme);
 
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
@@ -135,18 +140,28 @@ export const AdminMapSkillsTab: React.FC = () => {
         <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
-            onClick={() => handleHealTeam('BLG', t('Admin.healBLG', '+50 HP cho BLG'))}
-            className="py-2 px-2 rounded-lg bg-cyan-950/60 border border-cyan-500/50 text-cyan-300 font-bold hover:bg-cyan-900/80 transition active:scale-95 text-center"
+            onClick={() =>
+              handleHealTeam(
+                'BLG',
+                t('Admin.healTeamDynamic', '+50 HP cho {{team}}', { team: leftTeam.shortTag })
+              )
+            }
+            className={`py-2 px-2 rounded-lg border font-bold transition active:scale-95 text-center ${leftTheme.pillButtonClass}`}
           >
-            {t('Admin.healBLG', '+50 HP cho BLG')}
+            {t('Admin.healTeamDynamic', '+50 HP cho {{team}}', { team: leftTeam.shortTag })}
           </button>
 
           <button
             type="button"
-            onClick={() => handleHealTeam('GENG', t('Admin.healGEN', '+50 HP cho GEN'))}
-            className="py-2 px-2 rounded-lg bg-amber-950/60 border border-amber-500/50 text-amber-300 font-bold hover:bg-amber-900/80 transition active:scale-95 text-center"
+            onClick={() =>
+              handleHealTeam(
+                'GENG',
+                t('Admin.healTeamDynamic', '+50 HP cho {{team}}', { team: rightTeam.shortTag })
+              )
+            }
+            className={`py-2 px-2 rounded-lg border font-bold transition active:scale-95 text-center ${rightTheme.pillButtonClass}`}
           >
-            {t('Admin.healGEN', '+50 HP cho GEN')}
+            {t('Admin.healTeamDynamic', '+50 HP cho {{team}}', { team: rightTeam.shortTag })}
           </button>
 
           <button

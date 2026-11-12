@@ -9,7 +9,8 @@ import {
   Swords,
   LucideIcon,
 } from 'lucide-react';
-import { GAME_CONSTANTS } from '../../constants/game';
+import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
+import { useGameStore } from '../../store/gameStore';
 
 type GuidePanelTab = 'RULES' | 'REWARDS';
 
@@ -175,6 +176,10 @@ const REWARD_ITEMS: readonly RewardItemConfig[] = [
 
 export const ParticipationGuidePanel = () => {
   const { t } = useTranslation();
+  const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
+  const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+  const leftChamp = leftTeam.roster[2]?.signatureChampion || leftTeam.roster[0]?.signatureChampion || 'Ahri';
+  const rightChamp = rightTeam.roster[2]?.signatureChampion || rightTeam.roster[0]?.signatureChampion || 'Yone';
   const [activeTab, setActiveTab] = useState<GuidePanelTab>('RULES');
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const isUserInteractingRef = useRef<boolean>(false);
@@ -278,7 +283,12 @@ export const ParticipationGuidePanel = () => {
 
                     {item.commandKey && item.commandFallback && (
                       <div className="mt-0.5 px-1 py-0.5 rounded bg-slate-950/25 border border-cyan-500/20 font-mono text-[7.5px] sm:text-[8px] font-bold text-cyan-200 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                        {t(item.commandKey, item.commandFallback)}
+                        {t('HUD.guideSummonCmdDynamic', '{{leftChamp}} {{leftTag}} • {{rightChamp}} {{rightTag}} • Random {{leftTag}}', {
+                          leftChamp,
+                          leftTag: leftTeam.shortTag,
+                          rightChamp,
+                          rightTag: rightTeam.shortTag,
+                        })}
                       </div>
                     )}
 

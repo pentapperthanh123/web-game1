@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { getTeamTheme } from '../../constants/teams';
 import {
   TEAM_KEY,
   TeamType,
@@ -111,9 +112,9 @@ const drawCometEnergyBody = (
   ctx.stroke();
 
   // C. Worlds Esports Twin Ribbons (2 dải năng lượng lượn sóng đối xứng BLG / GEN.G)
-  const isBLG = team === TEAM_KEY.BLG;
-  const ribbonColor1 = isBLG ? '#00f2fe' : '#fbbf24';
-  const ribbonColor2 = isBLG ? '#f43f5e' : '#f97316';
+  const teamTheme = getTeamTheme(useGameStore.getState().activeTeams[team]?.colorTheme);
+  const ribbonColor1 = teamTheme.primaryHex;
+  const ribbonColor2 = teamTheme.accentHex;
   const waveAmp = isCrit
     ? VFX_STYLE.TRAIL.RIBBON_WAVE_AMP_CRIT
     : VFX_STYLE.TRAIL.RIBBON_WAVE_AMP_NORMAL;

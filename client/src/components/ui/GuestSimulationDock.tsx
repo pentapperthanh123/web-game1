@@ -18,7 +18,8 @@ import {
 } from '../../constants/game';
 import { gameSocket } from '../../services/socket';
 import { findChampion } from '../../constants/champions';
-import { BLGLogo, GenGLogo } from '../icons/TeamLogos';
+import { getTeamTheme } from '../../constants/teams';
+import { TeamLogo } from '../icons/TeamLogos';
 
 type GuestDockTab = 'HEART' | 'SUMMON' | 'GIFT' | 'CHAT';
 
@@ -63,7 +64,21 @@ export const GuestSimulationDock: React.FC = () => {
 
   const streakResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const activeTeams = useGameStore((state) => state.activeTeams);
+  const leftTeam = activeTeams[TEAM_KEY.BLG];
+  const rightTeam = activeTeams[TEAM_KEY.GENG];
+  const currentTeamProfile = activeTeams[guestTeam] || leftTeam;
+  const currentTeamTheme = getTeamTheme(currentTeamProfile.colorTheme);
+  const leftTheme = getTeamTheme(leftTeam.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam.colorTheme);
   const isBLG = guestTeam === TEAM_KEY.BLG;
+  const quickChampions = currentTeamProfile.roster.map((p) => p.signatureChampion).slice(0, 6);
+  const dynamicPresetChats = [
+    `${currentTeamProfile.shortTag} vô địch CKTG 2026! 🔥`,
+    `${currentTeamProfile.roster[2]?.signatureChampion || 'Ahri'} ${currentTeamProfile.shortTag}`,
+    `${currentTeamProfile.roster[0]?.name || 'Pro'} gánh team!`,
+    `Random ${currentTeamProfile.shortTag}`,
+  ];
 
   const showToastSuccess = useCallback((text: string) => {
     setActionSuccessText(text);
@@ -106,7 +121,7 @@ export const GuestSimulationDock: React.FC = () => {
     summonMinion(guestName, finalChampName, guestTeam);
     gameSocket.sendSummon(guestName, finalChampName, guestTeam);
 
-    showToastSuccess(`Đã gọi [${finalChampName}] cho ${guestTeam}!`);
+    showToastSuccess(`Đã gọi [${finalChampName}] cho ${currentTeamProfile.shortTag}!`);
     setChampionInput('');
   };
 
@@ -179,25 +194,21 @@ export const GuestSimulationDock: React.FC = () => {
                 type="button"
                 onClick={() => setGuestTeam(TEAM_KEY.BLG)}
                 className={`flex items-center space-x-1 px-2 py-0.5 rounded-md transition ${
-                  isBLG
-                    ? 'bg-cyan-950 text-cyan-300 border border-cyan-700 shadow-[0_0_8px_rgba(6,182,212,0.4)]'
-                    : 'text-slate-400 hover:text-slate-200'
+                  isBLG ? `${leftTheme.pillButtonClass} border` : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <BLGLogo className="w-3 h-3" />
-                <span>BLG</span>
+                <TeamLogo teamProfile={leftTeam} className="w-3 h-3" />
+                <span>{leftTeam.shortTag}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setGuestTeam(TEAM_KEY.GENG)}
                 className={`flex items-center space-x-1 px-2 py-0.5 rounded-md transition ${
-                  !isBLG
-                    ? 'bg-amber-950 text-amber-300 border border-amber-700 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
-                    : 'text-slate-400 hover:text-slate-200'
+                  !isBLG ? `${rightTheme.pillButtonClass} border` : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <GenGLogo className="w-3 h-3" />
-                <span>GEN</span>
+                <TeamLogo teamProfile={rightTeam} className="w-3 h-3" />
+                <span>{rightTeam.shortTag}</span>
               </button>
             </div>
 
@@ -291,8 +302,8 @@ export const GuestSimulationDock: React.FC = () => {
               <div className="flex-1 text-left">
                 <div className="text-[11px] font-black text-white flex items-center space-x-1">
                   <span>{t('Guest.tapToLike', 'Thả Tim cổ vũ')}</span>
-                  <span className={isBLG ? 'text-cyan-400' : 'text-amber-400'}>
-                    {guestTeam}
+                  <span className={currentTeamTheme.textStrongClass}>
+                    {currentTeamProfile.shortTag}
                   </span>
                 </div>
                 <div className="text-[9px] text-slate-400 mt-0.5 flex items-center space-x-1">
@@ -354,16 +365,12 @@ export const GuestSimulationDock: React.FC = () => {
                 <span className="text-[9px] font-black uppercase text-slate-400 shrink-0">
                   Gợi ý:
                 </span>
-                {GUEST_SIMULATION_CONSTANTS.QUICK_CHAMPIONS[guestTeam].map((champ) => (
+                {quickChampions.map((champ) => (
                   <button
                     key={champ}
                     type="button"
                     onClick={() => handleSummonChampion(champ)}
-                    className={`px-2 py-0.5 rounded-full border text-[9px] font-bold shrink-0 transition active:scale-95 ${
-                      isBLG
-                        ? 'bg-cyan-950/80 border-cyan-800 text-cyan-200 hover:bg-cyan-900'
-                        : 'bg-amber-950/80 border-amber-800 text-amber-200 hover:bg-amber-900'
-                    }`}
+                    className={`px-2 py-0.5 rounded-full border text-[9px] font-bold shrink-0 transition active:scale-95 ${currentTeamTheme.pillButtonClass}`}
                   >
                     {champ}
                   </button>
@@ -436,7 +443,7 @@ export const GuestSimulationDock: React.FC = () => {
                 <span className="text-[9px] font-black uppercase text-slate-400 shrink-0">
                   Mẫu:
                 </span>
-                {GUEST_SIMULATION_CONSTANTS.PRESET_CHATS[guestTeam].map((preset) => (
+                {dynamicPresetChats.map((preset) => (
                   <button
                     key={preset}
                     type="button"

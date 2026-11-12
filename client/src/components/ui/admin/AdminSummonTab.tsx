@@ -14,6 +14,7 @@ import {
   normalizeQuery,
 } from '../../../constants/champions';
 import { gameSocket } from '../../../services/socket';
+import { getTeamTheme } from '../../../constants/teams';
 
 /**
  * Admin tab for manual champion summoning, swarm bursts, and continuous auto-summon configuration.
@@ -26,6 +27,9 @@ export const AdminSummonTab: React.FC = () => {
   const setAutoSummonConfig = useGameStore((s) => s.setAutoSummonConfig);
   const summonMinion = useGameStore((s) => s.summonMinion);
   const activeMinionCount = useGameStore((s) => s.minions.length);
+  const activeTeams = useGameStore((s) => s.activeTeams);
+  const leftTeam = activeTeams[TEAM_KEY.BLG];
+  const rightTeam = activeTeams[TEAM_KEY.GENG];
 
   const [searchQuery, setSearchQuery] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -74,7 +78,7 @@ export const AdminSummonTab: React.FC = () => {
       t('Admin.summonFeedbackSingle', {
         defaultValue: 'Đã triệu hồi {{champ}} ({{team}})!',
         champ: champName,
-        team: autoSummonConfig.team,
+        team: activeTeams[autoSummonConfig.team]?.shortTag || autoSummonConfig.team,
       })
     );
   };
@@ -88,7 +92,7 @@ export const AdminSummonTab: React.FC = () => {
       t('Admin.summonFeedbackSingle', {
         defaultValue: 'Đã triệu hồi {{champ}} ({{team}})!',
         champ: randomChamp.name,
-        team: autoSummonConfig.team,
+        team: activeTeams[autoSummonConfig.team]?.shortTag || autoSummonConfig.team,
       })
     );
   };
@@ -104,7 +108,7 @@ export const AdminSummonTab: React.FC = () => {
       t('Admin.summonFeedbackSwarm', {
         defaultValue: 'Đã tung Bão Quân Đoàn {{count}} tướng cho {{team}}!',
         count: AUTO_SUMMON_CONSTANTS.SWARM_COUNT,
-        team: autoSummonConfig.team,
+        team: activeTeams[autoSummonConfig.team]?.shortTag || autoSummonConfig.team,
       })
     );
   };
@@ -132,21 +136,19 @@ export const AdminSummonTab: React.FC = () => {
           </span>
           <div className="flex gap-1.5">
             {[TEAM_KEY.BLG, TEAM_KEY.GENG].map((teamKey) => {
+              const profile = activeTeams[teamKey];
+              const theme = getTeamTheme(profile?.colorTheme);
               const isSelected = autoSummonConfig.team === teamKey;
-              const activeClass =
-                teamKey === TEAM_KEY.BLG
-                  ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200'
-                  : 'bg-amber-500/20 border-amber-400 text-amber-200';
               return (
                 <button
                   key={teamKey}
                   type="button"
                   onClick={() => setAutoSummonConfig({ team: teamKey })}
                   className={`px-2.5 py-1 rounded-lg border text-[11px] font-extrabold transition ${
-                    isSelected ? activeClass : 'bg-slate-900 border-slate-800 text-slate-400'
+                    isSelected ? theme.pillButtonClass : 'bg-slate-900 border-slate-800 text-slate-400'
                   }`}
                 >
-                  {teamKey}
+                  {profile?.shortTag || teamKey}
                 </button>
               );
             })}
@@ -326,7 +328,10 @@ export const AdminSummonTab: React.FC = () => {
             className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px]"
           >
             <span className="text-slate-300">
-              {t('Admin.summonAlternateLabel', 'Luân phiên 2 phe (BLG ↔ GEN)')}
+              {t('Admin.summonAlternateDynamicLabel', 'Luân phiên 2 phe ({{left}} ↔ {{right}})', {
+                left: leftTeam.shortTag,
+                right: rightTeam.shortTag,
+              })}
             </span>
             <span
               className={`px-2 py-0.5 rounded font-bold text-[10px] ${

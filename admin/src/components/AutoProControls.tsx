@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Swords, Play, Square, Clock, Users } from 'lucide-react';
 import { adminSocket } from '../services/socket';
+import { TeamConfigState } from '../constants/teams';
 
 export interface AutoProBattleConfig {
   enabled: boolean;
@@ -31,7 +32,11 @@ const loadInitialConfig = (): AutoProBattleConfig => {
   }
 };
 
-export function AutoProControls() {
+interface AutoProControlsProps {
+  teamConfig?: TeamConfigState;
+}
+
+export function AutoProControls({ teamConfig }: AutoProControlsProps) {
   const [config, setConfig] = useState<AutoProBattleConfig>(loadInitialConfig);
 
   useEffect(() => {
@@ -66,7 +71,10 @@ export function AutoProControls() {
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
         <div className="flex items-center space-x-2 text-xs font-black uppercase text-white">
           <Swords className="w-4 h-4 text-emerald-400" />
-          <span>Tuyển Thủ Tự Chiến Đấu (BLG vs GEN.G Auto Battle)</span>
+          <span>
+            Tuyển Thủ Tự Chiến Đấu ({teamConfig?.activeTeams.BLG.shortTag || 'BLG'} vs{' '}
+            {teamConfig?.activeTeams.GENG.shortTag || 'GEN'} Auto Battle)
+          </span>
         </div>
 
         <button
@@ -88,7 +96,11 @@ export function AutoProControls() {
       </div>
 
       <p className="text-[11px] text-slate-400">
-        Khi bật, cả 10 tuyển thủ ở hai cánh (Bin, Xun, Knight, Viper, ON &amp; Kiin, Canyon, Chovy, Ruler, Duro) sẽ tự động bắn chiêu liên tục từ avatar vào Boss, không chiếm Top 5 MVP người xem.
+        Khi bật, cả 10 tuyển thủ ở hai cánh (
+        {teamConfig
+          ? `${teamConfig.activeTeams.BLG.roster.map((p) => p.name).join(', ')} & ${teamConfig.activeTeams.GENG.roster.map((p) => p.name).join(', ')}`
+          : 'Bin, Xun, Knight, Viper, ON & Kiin, Canyon, Chovy, Ruler, Duro'}
+        ) sẽ tự động bắn chiêu liên tục từ avatar vào Boss, không chiếm Top 5 MVP người xem.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

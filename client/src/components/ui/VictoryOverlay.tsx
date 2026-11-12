@@ -9,15 +9,9 @@ import {
   TeamType,
 } from '../../constants/game';
 import { audioService } from '../../services/audioService';
-import { BLGLogo, GenGLogo } from '../icons/TeamLogos';
+import { getTeamTheme } from '../../constants/teams';
+import { TeamLogo } from '../icons/TeamLogos';
 import { ProDamageRecord } from '../../types/game';
-
-const getTeamBadgeClass = (team: TeamType): string => {
-  if (team === TEAM_KEY.BLG) {
-    return 'bg-cyan-950 text-cyan-300 border border-cyan-800';
-  }
-  return 'bg-amber-950 text-amber-300 border border-amber-800';
-};
 
 export const VictoryOverlay = () => {
   const { t } = useTranslation();
@@ -36,6 +30,7 @@ export const VictoryOverlay = () => {
   const finisherTeam = useGameStore((state) => state.finisherTeam);
   const startNextRound = useGameStore((state) => state.startNextRound);
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
+  const activeTeams = useGameStore((state) => state.activeTeams);
 
   const [isVictoryVisible, setIsVictoryVisible] = useState<boolean>(false);
   const [proAvatarFailed, setProAvatarFailed] = useState<boolean>(false);
@@ -64,10 +59,13 @@ export const VictoryOverlay = () => {
     ? seriesWinner || (bo5Score.BLG >= bo5Score.GENG ? TEAM_KEY.BLG : TEAM_KEY.GENG)
     : roundWinner || (teamScoreBLG >= teamScoreGENG ? TEAM_KEY.BLG : TEAM_KEY.GENG);
 
-  const isBLGWinner = effectiveWinner === TEAM_KEY.BLG;
-  const winnerName = isBLGWinner
-    ? t('Game.teamBLG', 'BILIBILI GAMING')
-    : t('Game.teamGENG', 'GEN.G ESPORTS');
+  const leftTeam = activeTeams[TEAM_KEY.BLG];
+  const rightTeam = activeTeams[TEAM_KEY.GENG];
+  const leftTheme = getTeamTheme(leftTeam.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam.colorTheme);
+  const winnerProfile = activeTeams[effectiveWinner];
+  const winnerTheme = getTeamTheme(winnerProfile?.colorTheme);
+  const winnerName = winnerProfile?.name || effectiveWinner;
 
   const viewerMvp = leaderboard.length > 0 ? leaderboard[0] : null;
   const proMvp: ProDamageRecord | null = proLeaderboard.length > 0 ? proLeaderboard[0] : null;
@@ -89,22 +87,18 @@ export const VictoryOverlay = () => {
   return (
     <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-4 sm:p-6 text-center animate-in fade-in zoom-in-95 duration-500 pointer-events-auto select-none">
       {/* Radiant Glow Orb */}
-      <div
-        className={`absolute w-80 h-80 rounded-full blur-3xl opacity-35 ${
-          isBLGWinner ? 'bg-cyan-500' : 'bg-amber-500'
-        }`}
-      />
+      <div className={`absolute w-80 h-80 rounded-full blur-3xl opacity-35 ${winnerTheme.glowOrbClass}`} />
 
       {/* Main Victory Card */}
       <div className="relative z-10 max-w-sm w-full space-y-3 sm:space-y-4">
         {/* Large Winning Team Logo */}
         <div className="flex justify-center items-center">
           <div className="relative p-2 rounded-3xl bg-slate-900/90 border-2 border-slate-700/80 shadow-2xl">
-            {isBLGWinner ? (
-              <BLGLogo className="w-16 h-16 sm:w-20 sm:h-20 animate-bounce" />
-            ) : (
-              <GenGLogo className="w-16 h-16 sm:w-20 sm:h-20 animate-bounce" />
-            )}
+            <TeamLogo
+              teamProfile={winnerProfile}
+              teamSlot={effectiveWinner}
+              className="w-16 h-16 sm:w-20 sm:h-20 animate-bounce"
+            />
             <div className="absolute -top-3 -right-3 p-1.5 rounded-full bg-amber-400 text-slate-950 shadow-lg">
               <Trophy className="w-5 h-5 fill-current" />
             </div>
@@ -122,9 +116,7 @@ export const VictoryOverlay = () => {
               : t('Victory.bossDefeated', 'BARON NASHOR ĐÃ BỊ TIÊU DIỆT!')}
           </div>
           <h1
-            className={`text-xl sm:text-2xl font-black uppercase tracking-wider drop-shadow-lg ${
-              isBLGWinner ? 'text-cyan-400' : 'text-amber-400'
-            }`}
+            className={`text-xl sm:text-2xl font-black uppercase tracking-wider drop-shadow-lg ${winnerTheme.textStrongClass}`}
           >
             {isSeriesEnded
               ? t('Victory.seriesChampion', '🏆 {{team}} VÔ ĐỊCH CKTG 2026 BO5!', { team: winnerName })
@@ -142,16 +134,16 @@ export const VictoryOverlay = () => {
           </div>
 
           <div className="flex items-center justify-center space-x-3">
-            {/* BLG Block */}
+            {/* Left Team Block */}
             <div className="flex items-center space-x-1.5">
-              <span className="text-xs font-black text-cyan-400">BLG</span>
+              <span className={`text-xs font-black ${leftTheme.textStrongClass}`}>{leftTeam.shortTag}</span>
               <div className="flex space-x-0.5">
                 {[0, 1, 2].map((i) => (
                   <span
-                    key={`win-blg-${i}`}
+                    key={`win-left-${i}`}
                     className={`w-2.5 h-2.5 rotate-45 border transition-all ${
                       i < bo5Score.BLG
-                        ? 'bg-cyan-400 border-cyan-200 shadow-[0_0_8px_#06b6d4]'
+                        ? leftTheme.winPipActiveClass
                         : 'bg-slate-900 border-slate-700'
                     }`}
                   />
@@ -164,21 +156,21 @@ export const VictoryOverlay = () => {
               {bo5Score.BLG} - {bo5Score.GENG}
             </div>
 
-            {/* GEN.G Block */}
+            {/* Right Team Block */}
             <div className="flex items-center space-x-1.5">
               <div className="flex space-x-0.5">
                 {[0, 1, 2].map((i) => (
                   <span
-                    key={`win-gen-${i}`}
+                    key={`win-right-${i}`}
                     className={`w-2.5 h-2.5 rotate-45 border transition-all ${
                       i < bo5Score.GENG
-                        ? 'bg-amber-400 border-amber-200 shadow-[0_0_8px_#f59e0b]'
+                        ? rightTheme.winPipActiveClass
                         : 'bg-slate-900 border-slate-700'
                     }`}
                   />
                 ))}
               </div>
-              <span className="text-xs font-black text-amber-400">GEN</span>
+              <span className={`text-xs font-black ${rightTheme.textStrongClass}`}>{rightTeam.shortTag}</span>
             </div>
           </div>
         </div>
@@ -197,8 +189,8 @@ export const VictoryOverlay = () => {
             </div>
 
             <div className="flex justify-center items-center space-x-2 text-xs">
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${getTeamBadgeClass(viewerMvp.team)}`}>
-                {viewerMvp.team}
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${getTeamTheme(activeTeams[viewerMvp.team]?.colorTheme).badgePillClass}`}>
+                {activeTeams[viewerMvp.team]?.shortTag || viewerMvp.team}
               </span>
               <span className="font-mono text-emerald-400 font-bold text-[11px]">
                 {(viewerMvp.totalDamage ?? 0).toLocaleString()} {t('Victory.damage', 'SÁT THƯƠNG')}
@@ -245,8 +237,8 @@ export const VictoryOverlay = () => {
             </div>
 
             <div className="flex justify-center items-center space-x-2 text-xs">
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${getTeamBadgeClass(proMvp.team)}`}>
-                {proMvp.team}
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${getTeamTheme(activeTeams[proMvp.team]?.colorTheme).badgePillClass}`}>
+                {activeTeams[proMvp.team]?.shortTag || proMvp.team}
               </span>
               <span className="font-mono text-emerald-400 font-bold text-[11px]">
                 {(proMvp.totalDamage ?? 0).toLocaleString()} {t('Victory.damage', 'SÁT THƯƠNG')}
@@ -267,13 +259,9 @@ export const VictoryOverlay = () => {
             </span>
             {finisherTeam && (
               <span
-                className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
-                  finisherTeam === TEAM_KEY.BLG
-                    ? 'bg-cyan-950 text-cyan-300 border border-cyan-700/60'
-                    : 'bg-amber-950 text-amber-300 border border-amber-700/60'
-                }`}
+                className={`text-[9px] font-black px-1.5 py-0.5 rounded ${getTeamTheme(activeTeams[finisherTeam]?.colorTheme).badgePillClass}`}
               >
-                {finisherTeam}
+                {activeTeams[finisherTeam]?.shortTag || finisherTeam}
               </span>
             )}
           </div>
@@ -281,8 +269,12 @@ export const VictoryOverlay = () => {
 
         {/* Total Score Tug-of-War of this game */}
         <div className="flex justify-between text-xs font-mono px-3">
-          <span className="text-cyan-400 font-bold">BLG: {(teamScoreBLG ?? 0).toLocaleString()} DMG</span>
-          <span className="text-amber-400 font-bold">GEN: {(teamScoreGENG ?? 0).toLocaleString()} DMG</span>
+          <span className={`${leftTheme.textStrongClass} font-bold`}>
+            {leftTeam.shortTag}: {(teamScoreBLG ?? 0).toLocaleString()} DMG
+          </span>
+          <span className={`${rightTheme.textStrongClass} font-bold`}>
+            {rightTeam.shortTag}: {(teamScoreGENG ?? 0).toLocaleString()} DMG
+          </span>
         </div>
 
         {/* Manual Advance / Match Control */}

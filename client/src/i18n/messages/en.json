@@ -14,7 +14,8 @@
     "teamGENG": "Gen.G Esports",
     "damageContribution": "Damage Contribution",
     "vs": "VS",
-    "voidRoar": "BARON VOID ROAR!"
+    "voidRoar": "BARON VOID ROAR!",
+    "dynamicTitle": "WORLDS 2026: {{left}} VS {{right}} CLASH"
   },
   "HUD": {
     "leaderboardTitle": "TOP 5 DAMAGE (DPS)",
@@ -70,7 +71,8 @@
     "guideGiftWorldHeartDesc": "Heal +50 HP to all team champions & deal +23,880 DMG",
     "guideGiftDragonTitle": "Elder Dragon (1,000 Coins)",
     "guideGiftDragonBadge": "+120,000 DMG",
-    "guideGiftDragonDesc": "Massive Cosmic Earthquake dealing +120,000 DMG"
+    "guideGiftDragonDesc": "Massive Cosmic Earthquake dealing +120,000 DMG",
+    "guideSummonCmdDynamic": "{{leftChamp}} {{leftTag}} • {{rightChamp}} {{rightTag}} • Random {{leftTag}}"
   },
   "Gift": {
     "sentLabel": "SENT GIFT",
@@ -220,6 +222,40 @@
     "summonFeedbackSingle": "Summoned {{champ}} ({{team}})!",
     "summonFeedbackSwarm": "Unleashed Legion Swarm ({{count}}) for {{team}}!",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "tabTeams": "Teams & Roster",
+    "healTeamDynamic": "+50 HP for {{team}}",
+    "summonAlternateDynamicLabel": "Alternate both teams ({{left}} ↔ {{right}})"
+  },
+  "AdminTeams": {
+    "activeMatchupTitle": "Current Matchup:",
+    "swapSidesBtn": "Swap Sides",
+    "leftSlotLabel": "Left Side",
+    "rightSlotLabel": "Right Side",
+    "customTeamLabel": "Custom Team",
+    "editTeamBtn": "Edit",
+    "deleteTeamBtn": "Delete custom team",
+    "resetOnSwitchLabel": "Reset match & BO5 score when switching teams",
+    "hotMatchupsTitle": "Hot Matchups (1-Click Quick Switch):",
+    "catalogTitle": "Team Catalog ({{count}} teams):",
+    "newTeamDefaultName": "New Custom Team",
+    "createTeamBtn": "Create Team",
+    "switchedFeedback": "Switched matchup: {{left}} vs {{right}}",
+    "swappedFeedback": "Swapped sides: {{left}} ↔ {{right}}",
+    "presetAppliedFeedback": "Activated matchup: {{label}}!",
+    "savedTeamFeedback": "Saved & applied team: {{name}}!",
+    "deletedFeedback": "Deleted custom team: {{name}}",
+    "editorTitle": "Edit Team ({{slot}})",
+    "editorSubtitle": "Configure name, TikTok chat keywords & 5 players",
+    "teamNameLabel": "Team Name:",
+    "shortTagLabel": "Display Tag (max 8 chars):",
+    "aliasesLabel": "TikTok Chat Keywords (comma-separated):",
+    "logoUrlLabel": "Logo URL (empty = auto crest):",
+    "colorThemeLabel": "Primary Color & 3D VFX Theme:",
+    "rosterTitle": "5-Player Roster (TOP / JUG / MID / ADC / SUP):",
+    "playerNamePlaceholder": "Player name",
+    "avatarPlaceholder": "Player portrait URL (empty = champion icon)",
+    "cancelBtn": "Cancel",
+    "saveApplyBtn": "Save & Apply"
   }
 }
