@@ -211,6 +211,12 @@ export function registerAdminHandlers(
       if (typeof payload?.allowChampionEvolution === 'boolean') {
         next.allowChampionEvolution = payload.allowChampionEvolution;
       }
+      if (typeof payload?.maxActivePerTeam === 'number' && Number.isFinite(payload.maxActivePerTeam)) {
+        next.maxActivePerTeam = Math.max(1, Math.min(30, Math.round(payload.maxActivePerTeam)));
+      }
+      if (typeof payload?.summonTurnDelayMs === 'number' && Number.isFinite(payload.summonTurnDelayMs)) {
+        next.summonTurnDelayMs = Math.max(100, Math.min(10000, Math.round(payload.summonTurnDelayMs)));
+      }
       ctx.state.participationRuleConfig = next;
       ctx.io.emit('game:participation-rules', {
         ...next,

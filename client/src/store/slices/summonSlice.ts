@@ -312,12 +312,18 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     const burstSliceCount = COMBAT_VFX_CONSTANTS.PARTICLES.MAX_BURST_QUEUE;
 
     // Tự động kiểm tra và xuất trận lượt tướng theo tuần tự (delay giữa các lượt xuất hiện)
+    const activeRules = state.participationRuleConfig;
     const deployed = deployQueuedMinions(
       nextMinions,
       nextQueue,
       state.lastSummonTurnTimestamps,
       now,
-      state.activeTeams
+      state.activeTeams,
+      state.livingCountByTeam,
+      {
+        maxActivePerTeam: activeRules?.maxActivePerTeam,
+        summonTurnDelayMs: activeRules?.summonTurnDelayMs,
+      }
     );
     const finalMinions = deployed.nextMinions;
     const finalQueue = deployed.nextQueue;
@@ -325,7 +331,10 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     newLogs.push(...deployed.newLogs);
 
     if (deployed.hasPendingTurns) {
-      scheduleTurnAdvance(get, GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS);
+      scheduleTurnAdvance(
+        get,
+        activeRules?.summonTurnDelayMs ?? GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS
+      );
     }
 
     set((prev) => {
@@ -411,12 +420,18 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       const state = get();
       if (isBattleHalted(state)) return;
       const now = Date.now();
+      const activeRules = state.participationRuleConfig;
       const deployed = deployQueuedMinions(
         state.minions,
         state.summonQueue,
         state.lastSummonTurnTimestamps,
         now,
-        state.activeTeams
+        state.activeTeams,
+        state.livingCountByTeam,
+        {
+          maxActivePerTeam: activeRules?.maxActivePerTeam,
+          summonTurnDelayMs: activeRules?.summonTurnDelayMs,
+        }
       );
       if (deployed.nextMinions.length === state.minions.length && deployed.newPortals.length === 0) {
         return;
@@ -438,7 +453,10 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         eventLogs: [...deployed.newLogs.reverse(), ...prev.eventLogs].slice(0, 100),
       }));
       if (deployed.hasPendingTurns) {
-        scheduleTurnAdvance(get, GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS);
+        scheduleTurnAdvance(
+          get,
+          activeRules?.summonTurnDelayMs ?? GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS
+        );
       }
     },
 

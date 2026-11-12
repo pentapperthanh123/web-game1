@@ -28,6 +28,8 @@ export interface ParticipationRuleConfig {
   autoMatchSignatureTeam: boolean;
   lockTeamAfterJoin: boolean;
   allowChampionEvolution: boolean;
+  maxActivePerTeam?: number;
+  summonTurnDelayMs?: number;
 }
 
 export interface TikTokPipelineStats {
@@ -483,6 +485,8 @@ class AdminSocketService {
           autoMatchSignatureTeam: Boolean(payload.autoMatchSignatureTeam),
           lockTeamAfterJoin: Boolean(payload.lockTeamAfterJoin),
           allowChampionEvolution: Boolean(payload.allowChampionEvolution),
+          maxActivePerTeam: typeof payload.maxActivePerTeam === 'number' ? payload.maxActivePerTeam : 5,
+          summonTurnDelayMs: typeof payload.summonTurnDelayMs === 'number' ? payload.summonTurnDelayMs : 1300,
         });
       }
     };

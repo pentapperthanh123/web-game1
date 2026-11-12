@@ -295,6 +295,8 @@ export interface ParticipationRuleConfig {
   autoMatchSignatureTeam: boolean;
   lockTeamAfterJoin: boolean;
   allowChampionEvolution: boolean;
+  maxActivePerTeam?: number;
+  summonTurnDelayMs?: number;
 }
 
 export type BossWeakPointSpot = 'left-horn' | 'core-chest' | 'right-claw';

@@ -38,8 +38,11 @@ export const deployQueuedMinions = (
   currentLastTurnTimestamps: Record<TeamType, number> | undefined,
   now: number,
   activeTeams: Record<TeamType, TeamProfile>,
-  cachedLivingCounts?: Record<TeamType, number>
+  cachedLivingCounts?: Record<TeamType, number>,
+  customLimits?: { maxActivePerTeam?: number; summonTurnDelayMs?: number }
 ): DeployQueuedResult => {
+  const maxActivePerTeam = customLimits?.maxActivePerTeam ?? GAME_CONSTANTS.SUMMON_RULES.MAX_ACTIVE_PER_TEAM;
+  const summonTurnDelayMs = customLimits?.summonTurnDelayMs ?? GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS;
   const nextMinions = [...currentMinions];
   const nextQueue: Record<TeamType, QueuedSummon[]> = {
     [TEAM_KEY.BLG]: [...(currentQueue?.[TEAM_KEY.BLG] || [])],
@@ -70,8 +73,8 @@ export const deployQueuedMinions = (
               now - m.createdAt < m.lifetimeMs
           ).length;
 
-    // Check if team has reached maximum 5 active champions
-    if (livingCount >= GAME_CONSTANTS.SUMMON_RULES.MAX_ACTIVE_PER_TEAM) {
+    // Check if team has reached maximum active champions
+    if (livingCount >= maxActivePerTeam) {
       continue;
     }
 
@@ -79,7 +82,7 @@ export const deployQueuedMinions = (
     const lastTurnAt = nextLastTurnTimestamps[team] || 0;
     const timeSinceLastTurn = now - lastTurnAt;
 
-    if (timeSinceLastTurn < GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS) {
+    if (timeSinceLastTurn < summonTurnDelayMs) {
       // Previous champion is still in their entrance turn! Wait for delay.
       hasPendingTurns = true;
       continue;
@@ -90,7 +93,7 @@ export const deployQueuedMinions = (
     if (!req) continue;
 
     nextLastTurnTimestamps[team] = now;
-    if (queue.length > 0 && livingCount + 1 < GAME_CONSTANTS.SUMMON_RULES.MAX_ACTIVE_PER_TEAM) {
+    if (queue.length > 0 && livingCount + 1 < maxActivePerTeam) {
       hasPendingTurns = true;
     }
 

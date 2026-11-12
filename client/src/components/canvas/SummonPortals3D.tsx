@@ -12,7 +12,7 @@ import { ChampionAIState, project3DToScreen } from './summon/summonShared';
 import { createInitialChampionAI, stepChampionFrame } from './summon/championFrameLogic';
 import { SummonGroundPortalsInstanced } from './summon/SummonGroundPortalsInstanced';
 import { ChampionToken } from './summon/ChampionToken';
-import { allocSlot } from '../../workers/physicsSharedBuffer';
+import { allocSlot, freeSlot } from '../../workers/physicsSharedBuffer';
 import { DefeatedChampionToken } from './summon/DefeatedChampionToken';
 
 export { liveMinionPositionMap, getLiveMinionPosition, project3DToScreen };
@@ -24,13 +24,16 @@ export const SummonPortals3D = () => {
   const aiStatesRef = useRef<Map<string, ChampionAIState>>(new Map());
 
   const minions = useGameStore((state) => state.minions);
+  const maxActivePerTeam = useGameStore(
+    (state) => state.participationRuleConfig?.maxActivePerTeam ?? GAME_CONSTANTS.SUMMON_RULES.MAX_ACTIVE_PER_TEAM
+  );
   const activeDefeatedChampions = useGameStore((state) => state.activeDefeatedChampions);
   const visibleMinions = useMemo(() => {
-    const maxPerSide = GAME_CONSTANTS.SUMMON_RULES.MAX_ACTIVE_PER_TEAM;
+    const maxPerSide = maxActivePerTeam;
     const blgMinions = minions.filter((m) => m.team === TEAM_KEY.BLG).slice(-maxPerSide);
     const gengMinions = minions.filter((m) => m.team === TEAM_KEY.GENG).slice(-maxPerSide);
     return [...blgMinions, ...gengMinions];
-  }, [minions]);
+  }, [minions, maxActivePerTeam]);
 
   useFrame((state, delta) => {
     const championsGroup = championsGroupRef.current;

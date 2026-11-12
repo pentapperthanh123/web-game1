@@ -130,6 +130,8 @@ export const INITIAL_STATE = {
     autoMatchSignatureTeam: true,
     lockTeamAfterJoin: true,
     allowChampionEvolution: true,
+    maxActivePerTeam: 5,
+    summonTurnDelayMs: 1300,
   },
   activeTeams: initialTeamConfig.activeTeams,
   teamCatalog: initialTeamConfig.teamCatalog,

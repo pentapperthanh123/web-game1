@@ -89,6 +89,8 @@ export interface ParticipationRuleConfig {
   autoMatchSignatureTeam: boolean;
   lockTeamAfterJoin: boolean;
   allowChampionEvolution: boolean;
+  maxActivePerTeam?: number;
+  summonTurnDelayMs?: number;
 }
 
 export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
@@ -96,6 +98,8 @@ export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
   autoMatchSignatureTeam: true,
   lockTeamAfterJoin: true,
   allowChampionEvolution: true,
+  maxActivePerTeam: 5,
+  summonTurnDelayMs: 1300,
 };
 
 export type TikTokConnectionStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR';
