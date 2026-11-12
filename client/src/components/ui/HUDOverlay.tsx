@@ -123,6 +123,26 @@ export const HUDOverlay = () => {
     audioService.playUiToggleSound(nextActive);
   };
 
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === 'a' || e.key === 'A') {
+        toggleAdminMode();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isAdminModeActive]);
+
   return (
     <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none overflow-hidden select-none">
       {/* Incandescent Flash on Ultimates */}
@@ -143,63 +163,88 @@ export const HUDOverlay = () => {
 
       {/* Top Section: Esports Broadcast Header & Scores */}
       <header ref={headerRef} className="relative z-[35] space-y-0.5 sm:space-y-1 shrink-0 pt-0.5">
-        <div className="flex items-center justify-center space-x-1.5 pt-0.5">
-          <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 backdrop-blur-[1px] mb-1 shadow-md">
-            <span className="text-[10px] font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-amber-400">
-              {t('Game.dynamicTitle', 'CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}', {
-                left: leftTeamTag,
-                right: rightTeamTag,
-              })}
-            </span>
+        {overlayVisibility.matchTitleBar ? (
+          <div className="flex items-center justify-center space-x-1.5 pt-0.5">
+            <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 backdrop-blur-[1px] mb-1 shadow-md">
+              <span className="text-[10px] font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-amber-400">
+                {t('Game.dynamicTitle', 'CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}', {
+                  left: leftTeamTag,
+                  right: rightTeamTag,
+                })}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleAudio}
+              className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
+              title={isAudioOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
+            >
+              {isAudioOn ? (
+                <Volume2 className="w-3 h-3 text-emerald-400" />
+              ) : (
+                <VolumeX className="w-3 h-3 text-slate-500" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleGuestMode}
+              title={t(
+                'HUD.guestModeTooltip',
+                'Bật/tắt thanh thao tác giả lập cho người xem trên Client'
+              )}
+              className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+                isGuestModeActive
+                  ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.55)] ring-1 ring-cyan-400/50'
+                  : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+              }`}
+            >
+              <UserCheck className={`w-2.5 h-2.5 ${isGuestModeActive ? 'animate-pulse text-cyan-400' : ''}`} />
+              <span>{t('HUD.guestMode', 'Khách')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleAdminMode}
+              title={t(
+                'HUD.adminModeTooltip',
+                'Bật/tắt bảng điều khiển trận đấu dành cho Quản trị viên'
+              )}
+              className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+                isAdminModeActive
+                  ? 'bg-amber-950/90 border-amber-400/80 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/50'
+                  : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+              }`}
+            >
+              <ShieldAlert className={`w-2.5 h-2.5 ${isAdminModeActive ? 'animate-pulse text-amber-400' : ''}`} />
+              <span>{t('HUD.adminMode', 'Admin')}</span>
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={toggleAudio}
-            className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
-            title={isAudioOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
-          >
-            {isAudioOn ? (
-              <Volume2 className="w-3 h-3 text-emerald-400" />
-            ) : (
-              <VolumeX className="w-3 h-3 text-slate-500" />
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleGuestMode}
-            title={t(
-              'HUD.guestModeTooltip',
-              'Bật/tắt thanh thao tác giả lập cho người xem trên Client'
-            )}
-            className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
-              isGuestModeActive
-                ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.55)] ring-1 ring-cyan-400/50'
-                : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
-            }`}
-          >
-            <UserCheck className={`w-2.5 h-2.5 ${isGuestModeActive ? 'animate-pulse text-cyan-400' : ''}`} />
-            <span>{t('HUD.guestMode', 'Khách')}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleAdminMode}
-            title={t(
-              'HUD.adminModeTooltip',
-              'Bật/tắt bảng điều khiển trận đấu dành cho Quản trị viên'
-            )}
-            className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
-              isAdminModeActive
-                ? 'bg-amber-950/90 border-amber-400/80 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/50'
-                : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
-            }`}
-          >
-            <ShieldAlert className={`w-2.5 h-2.5 ${isAdminModeActive ? 'animate-pulse text-amber-400' : ''}`} />
-            <span>{t('HUD.adminMode', 'Admin')}</span>
-          </button>
-        </div>
+        ) : (
+          <div className="absolute top-0 right-0 flex items-center space-x-1 z-50 pointer-events-auto">
+            <button
+              type="button"
+              onClick={toggleAudio}
+              className="p-1 rounded-full bg-slate-950/70 border border-slate-700/60 text-slate-400 hover:text-white transition active:scale-95 shadow"
+              title={isAudioOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
+            >
+              {isAudioOn ? (
+                <Volume2 className="w-2.5 h-2.5 text-emerald-400" />
+              ) : (
+                <VolumeX className="w-2.5 h-2.5 text-slate-500" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={toggleAdminMode}
+              className="p-1 rounded-full bg-slate-950/70 border border-slate-700/60 text-slate-400 hover:text-amber-300 transition active:scale-95 shadow"
+              title={t('HUD.adminModeTooltip', 'Bật/tắt bảng điều khiển Quản trị viên (Phím tắt: A)')}
+            >
+              <ShieldAlert className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        )}
 
         {overlayVisibility.bossHealth && <BossHealthBar />}
         {overlayVisibility.teamScores && <TeamScoreBoard />}

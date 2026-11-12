@@ -12,6 +12,7 @@ export interface OverlayVisibility {
   likeCounter: boolean;
   howToPlay: boolean;
   heartMilestone: boolean;
+  matchTitleBar: boolean;
 }
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -23,9 +24,11 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   likeCounter: true,
   howToPlay: true,
   heartMilestone: true,
+  matchTitleBar: true,
 };
 
 export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
+  'matchTitleBar',
   'chat',
   'leaderboard',
   'teamRosters',

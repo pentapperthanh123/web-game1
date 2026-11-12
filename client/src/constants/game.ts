@@ -970,6 +970,7 @@ export const OVERLAY_SECTION = {
   LIKE_COUNTER: 'likeCounter',
   HOW_TO_PLAY: 'howToPlay',
   HEART_MILESTONE: 'heartMilestone',
+  MATCH_TITLE_BAR: 'matchTitleBar',
 } as const;
 
 export type OverlaySectionKey = (typeof OVERLAY_SECTION)[keyof typeof OVERLAY_SECTION];
@@ -983,6 +984,7 @@ export const DEFAULT_OVERLAY_VISIBILITY = {
   likeCounter: true,
   howToPlay: true,
   heartMilestone: true,
+  matchTitleBar: true,
 } as const;
 
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';
@@ -1510,6 +1512,7 @@ export const ADMIN_CONSTANTS = {
     { intervalMs: 4000, label: '4.0s' },
   ] as const,
   OVERLAYS: [
+    { key: 'matchTitleBar', labelVi: 'Thanh Tiêu Đề Đỉnh (CKTG / Khách / Admin)', labelEn: 'Top Broadcast Title & Controls' },
     { key: 'bossHealth', labelVi: 'Thanh Máu Quái Vật', labelEn: 'Boss Health Bar' },
     { key: 'teamScores', labelVi: 'Tỉ Số & Sát Thương BO5', labelEn: 'BO5 Scores & DPS' },
     { key: 'teamRosters', labelVi: 'Danh Sách Tuyển Thủ 2 Bên', labelEn: 'Team Roster Bars' },

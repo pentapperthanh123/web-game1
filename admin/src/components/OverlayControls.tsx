@@ -11,6 +11,7 @@ import {
   EyeOff,
   Sliders,
   Check,
+  Layout,
 } from 'lucide-react';
 import { adminSocket } from '../services/socket';
 import { OverlayVisibility } from '../types/overlay';
@@ -36,6 +37,12 @@ interface SectionConfig {
 }
 
 const buildSectionConfigs = (leftTag: string, rightTag: string): SectionConfig[] => [
+  {
+    key: 'matchTitleBar',
+    label: 'Thanh Tiêu Đề Đỉnh (CKTG, Âm Thanh, Khách, Admin)',
+    description: 'Thanh đỉnh chứa tiêu đề trận đấu giải đấu, nút bật âm thanh, nút Khách và Admin',
+    icon: Layout,
+  },
   {
     key: 'chat',
     label: 'Khung Chat Trực Tiếp',

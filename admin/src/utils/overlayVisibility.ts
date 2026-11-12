@@ -5,6 +5,7 @@ import {
 } from '../types/overlay';
 
 export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
+  'matchTitleBar',
   'chat',
   'leaderboard',
   'teamRosters',

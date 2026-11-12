@@ -17,7 +17,6 @@ import { BossHitMarks2D } from './BossHitMarks2D';
 import { BossAlertBanner } from './BossAlertBanner';
 import { ElementalEmbers } from './ElementalEmbers';
 import { BossSpeechBubble } from './BossSpeechBubble';
-import { BossGlowingEyes } from './BossGlowingEyes';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
@@ -672,14 +671,6 @@ export const Boss2D = () => {
                   bossMaxHp={bossMaxHp}
                   crackColor={themeConfig.crackStrokeHex}
                   isDefeated={isDefeated}
-                />
-
-                {/* 9. Glowing Eyes Surge during Idle / Restless / Poke / Enraged */}
-                <BossGlowingEyes
-                  isActive={isEyesSurging || isRestless}
-                  themeConfig={themeConfig}
-                  isRestless={isRestless}
-                  isEnraged={isEnraged}
                 />
               </div>
 

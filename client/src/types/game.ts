@@ -260,6 +260,7 @@ export interface OverlayVisibility {
   likeCounter: boolean;
   howToPlay: boolean;
   heartMilestone: boolean;
+  matchTitleBar: boolean;
 }
 
 export interface AutoProBattleConfig {
