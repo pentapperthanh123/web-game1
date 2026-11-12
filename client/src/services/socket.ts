@@ -1,7 +1,9 @@
 import { io, Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
 import { OverlayVisibility } from '../types/game';
+import { TeamConfigState } from '../types/team';
 import { OVERLAY_SECTION } from '../constants/game';
+import { sanitizeTeamConfigState } from '../constants/teams';
 
 const OVERLAY_KEYS = Object.values(OVERLAY_SECTION) as (keyof OverlayVisibility)[];
 
@@ -70,6 +72,16 @@ class GameSocketClient {
             }
           })
           .catch(() => {});
+
+        fetch(`${SERVER_URL}/api/teams`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            const cleanConfig = sanitizeTeamConfigState(data);
+            if (cleanConfig) {
+              useGameStore.getState().applyTeamConfigSnapshot(cleanConfig, false);
+            }
+          })
+          .catch(() => {});
       }
 
       // Listen for game events dispatched by Server or Admin Portal
@@ -98,6 +110,16 @@ class GameSocketClient {
       this.socket.on('game:chat', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().addChatMessage(payload.userName, payload.text, payload.team, payload.championName);
+      });
+
+      this.socket.on('game:team-config', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        const cleanConfig = sanitizeTeamConfigState(payload);
+        if (cleanConfig) {
+          useGameStore
+            .getState()
+            .applyTeamConfigSnapshot(cleanConfig, Boolean(payload?.resetMatch));
+        }
       });
 
       this.socket.on('game:overlay-visibility', (payload) => {
@@ -248,6 +270,24 @@ class GameSocketClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...visibility, senderId: CLIENT_INSTANCE_ID }),
+      }).catch(() => {});
+    }
+  }
+
+  public sendTeamConfig(config: TeamConfigState, resetMatch = false): void {
+    const payload = {
+      ...config,
+      resetMatch,
+      senderId: CLIENT_INSTANCE_ID,
+    };
+    if (this.socket) {
+      this.socket.emit('admin:set-team-config', payload);
+    }
+    if (typeof window !== 'undefined') {
+      fetch(`${SERVER_URL}/api/teams`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       }).catch(() => {});
     }
   }

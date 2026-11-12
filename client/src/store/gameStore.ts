@@ -63,7 +63,16 @@ import {
   BOSS_ENRAGED_CONSTANTS,
   BOSS_MECHANICS_CONSTANTS,
 } from '../constants/game';
-import { getChampionAvatarUrl, findRosterPlayer, TEAM_ROSTERS, RosterPlayer } from '../constants/roster';
+import { getChampionAvatarUrl, RosterPlayer } from '../constants/roster';
+import {
+  TEAM_CONFIG_STORAGE_KEY,
+  createDefaultTeamConfig,
+  findRosterPlayerInRoster,
+  getTeamTheme,
+  mountTeamToSlot,
+  sanitizeTeamConfigState,
+} from '../constants/teams';
+import { ActiveTeamsMap, TeamConfigState, TeamProfile } from '../types/team';
 import { gameBus } from '../services/eventBus';
 import { audioService } from '../services/audioService';
 import { getLiveMinionScreenPos, getLiveMinionPosition } from '../services/minionPositionRegistry';
@@ -230,18 +239,41 @@ const createInitialTeamHeartMomentum = (): Record<TeamType, TeamHeartMomentum> =
   [TEAM_KEY.GENG]: createEmptyTeamHeartMomentum(),
 });
 
-const createInitialRosterFury = (): Record<string, number> => ({
-  'blg-bin': 0,
-  'blg-xun': 0,
-  'blg-knight': 0,
-  'blg-viper': 0,
-  'blg-on': 0,
-  'gen-kiin': 0,
-  'gen-canyon': 0,
-  'gen-chovy': 0,
-  'gen-ruler': 0,
-  'gen-duro': 0,
-});
+const getStoredTeamConfig = (): TeamConfigState => {
+  if (typeof window === 'undefined') return createDefaultTeamConfig();
+  try {
+    const raw = localStorage.getItem(TEAM_CONFIG_STORAGE_KEY);
+    if (!raw) return createDefaultTeamConfig();
+    return sanitizeTeamConfigState(JSON.parse(raw)) ?? createDefaultTeamConfig();
+  } catch {
+    return createDefaultTeamConfig();
+  }
+};
+
+const persistTeamConfig = (config: TeamConfigState): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(TEAM_CONFIG_STORAGE_KEY, JSON.stringify(config));
+  } catch {
+    // ignore storage quota errors
+  }
+};
+
+const createInitialRosterFury = (
+  activeTeams: ActiveTeamsMap,
+  previousFury?: Record<string, number>
+): Record<string, number> => {
+  const nextFury: Record<string, number> = {};
+  for (const slot of [TEAM_KEY.BLG, TEAM_KEY.GENG] as TeamType[]) {
+    const roster = activeTeams[slot]?.roster ?? [];
+    for (const player of roster) {
+      nextFury[player.id] = previousFury?.[player.id] ?? 0;
+    }
+  }
+  return nextFury;
+};
+
+const initialTeamConfig = getStoredTeamConfig();
 
 const getActiveHeartFuryMultiplier = (
   momentum: TeamHeartMomentum | undefined,
@@ -308,8 +340,10 @@ const INITIAL_STATE = {
   finisherTeam: null as TeamType | null,
   autoProBattleConfig: getStoredAutoProBattleConfig(),
   autoSummonConfig: getStoredAutoSummonConfig(),
+  activeTeams: initialTeamConfig.activeTeams,
+  teamCatalog: initialTeamConfig.teamCatalog,
   rosterAttackTimestamps: {} as Record<string, number>,
-  rosterPlayerFury: createInitialRosterFury(),
+  rosterPlayerFury: createInitialRosterFury(initialTeamConfig.activeTeams),
   lastFuryUltimatePlayerId: null as string | null,
   teamHeartMomentum: createInitialTeamHeartMomentum(),
   bo5Score: {
@@ -336,6 +370,158 @@ export const useGameStore = create<GameState>((set, get) => ({
   setGuestTeam: (team: TeamType) => set({ guestTeam: team }),
   setGuestName: (name: string) => set({ guestName: name.trim() || 'Khách_VIP_88' }),
   setAdminMode: (active: boolean) => set({ isAdminModeActive: active }),
+
+  applyTeamConfigSnapshot: (config: TeamConfigState, resetMatch = false) => {
+    const sanitized = sanitizeTeamConfigState(config);
+    if (!sanitized) return;
+
+    persistTeamConfig(sanitized);
+    const state = get();
+    const leftTag = sanitized.activeTeams[TEAM_KEY.BLG].shortTag;
+    const rightTag = sanitized.activeTeams[TEAM_KEY.GENG].shortTag;
+
+    if (resetMatch) {
+      audioService.playRoundStartSound();
+      get().addLog('SYSTEM', `⚔️ Đổi cặp đấu mới: ${leftTag} vs ${rightTag} (Reset BO5)!`);
+      set({
+        activeTeams: sanitized.activeTeams,
+        teamCatalog: sanitized.teamCatalog,
+        bossHp: state.bossMaxHp,
+        bossStatus: BOSS_STATUS.IDLE,
+        bo5Score: { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 },
+        currentRound: 1,
+        roundWinner: null,
+        isRoundIntermission: false,
+        isSeriesEnded: false,
+        seriesWinner: null,
+        teamScoreBLG: 0,
+        teamScoreGENG: 0,
+        totalLikesBLG: 0,
+        totalLikesGENG: 0,
+        minions: [],
+        activeBursts: [],
+        activeHearts: [],
+        activeProjectiles: [],
+        activeFlyingArrows: [],
+        activeShockwaves: [],
+        activeMeteors: [],
+        activeSlashes: [],
+        activeSummonPortals: [],
+        activeHitImpacts: [],
+        activeGiftBanner: null,
+        floatingDamages: [],
+        activeDefeatedChampions: [],
+        teamCombos: createInitialTeamCombos(),
+        teamHeartMomentum: createInitialTeamHeartMomentum(),
+        leaderboard: [],
+        proLeaderboard: [],
+        lastHitTeam: null,
+        lastHitDamageType: null,
+        bossAttackTargetTeam: null,
+        bossDefeatedTimestamp: 0,
+        bossEnragedEntranceTimestamp: 0,
+        bossShield: null,
+        triggeredShieldThresholds: [],
+        bossShieldBrokenTimestamp: 0,
+        bossWeakPoint: null,
+        lastWeakPointSpawnTimestamp: 0,
+        finisherPlayerName: null,
+        finisherTeam: null,
+        rosterAttackTimestamps: {},
+        rosterPlayerFury: createInitialRosterFury(sanitized.activeTeams),
+        lastFuryUltimatePlayerId: null,
+      });
+      return;
+    }
+
+    get().addLog('SYSTEM', `🛡️ Cập nhật đội hình: ${leftTag} vs ${rightTag}`);
+    set({
+      activeTeams: sanitized.activeTeams,
+      teamCatalog: sanitized.teamCatalog,
+      rosterPlayerFury: createInitialRosterFury(sanitized.activeTeams, state.rosterPlayerFury),
+    });
+  },
+
+  setActiveTeams: (leftTeam: TeamProfile, rightTeam: TeamProfile, resetMatch = false) => {
+    const state = get();
+    const mountedLeft = mountTeamToSlot(leftTeam, TEAM_KEY.BLG);
+    const mountedRight = mountTeamToSlot(rightTeam, TEAM_KEY.GENG);
+    const catalogMap = new Map(state.teamCatalog.map((t) => [t.id, t]));
+    catalogMap.set(mountedLeft.id, mountedLeft);
+    catalogMap.set(mountedRight.id, mountedRight);
+
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: {
+          [TEAM_KEY.BLG]: mountedLeft,
+          [TEAM_KEY.GENG]: mountedRight,
+        },
+        teamCatalog: Array.from(catalogMap.values()),
+      },
+      resetMatch
+    );
+  },
+
+  saveTeamToCatalog: (team: TeamProfile, mountSlot?: TeamType) => {
+    const state = get();
+    const cleanTemplate = mountTeamToSlot(team, mountSlot ?? TEAM_KEY.BLG);
+    const existsIndex = state.teamCatalog.findIndex((t) => t.id === cleanTemplate.id);
+    const nextCatalog =
+      existsIndex >= 0
+        ? state.teamCatalog.map((item, idx) => (idx === existsIndex ? cleanTemplate : item))
+        : [...state.teamCatalog, cleanTemplate];
+
+    const currentLeft = state.activeTeams[TEAM_KEY.BLG];
+    const currentRight = state.activeTeams[TEAM_KEY.GENG];
+
+    const nextLeft =
+      mountSlot === TEAM_KEY.BLG || currentLeft.id === cleanTemplate.id
+        ? mountTeamToSlot(cleanTemplate, TEAM_KEY.BLG)
+        : currentLeft;
+    const nextRight =
+      mountSlot === TEAM_KEY.GENG || currentRight.id === cleanTemplate.id
+        ? mountTeamToSlot(cleanTemplate, TEAM_KEY.GENG)
+        : currentRight;
+
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: {
+          [TEAM_KEY.BLG]: nextLeft,
+          [TEAM_KEY.GENG]: nextRight,
+        },
+        teamCatalog: nextCatalog,
+      },
+      false
+    );
+  },
+
+  deleteCustomTeam: (teamId: string) => {
+    const state = get();
+    const target = state.teamCatalog.find((t) => t.id === teamId);
+    if (!target || target.isPreset) return;
+
+    const nextCatalog = state.teamCatalog.filter((t) => t.id !== teamId);
+    const defaults = createDefaultTeamConfig();
+    const nextLeft =
+      state.activeTeams[TEAM_KEY.BLG].id === teamId
+        ? defaults.activeTeams[TEAM_KEY.BLG]
+        : state.activeTeams[TEAM_KEY.BLG];
+    const nextRight =
+      state.activeTeams[TEAM_KEY.GENG].id === teamId
+        ? defaults.activeTeams[TEAM_KEY.GENG]
+        : state.activeTeams[TEAM_KEY.GENG];
+
+    get().applyTeamConfigSnapshot(
+      {
+        activeTeams: {
+          [TEAM_KEY.BLG]: nextLeft,
+          [TEAM_KEY.GENG]: nextRight,
+        },
+        teamCatalog: nextCatalog,
+      },
+      false
+    );
+  },
 
   setGameTheme: (theme: GameThemeType) => {
     if (typeof window !== 'undefined') {
@@ -450,7 +636,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const bossFloorHp = Math.ceil(state.bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT);
     if (state.bossHp <= bossFloorHp) return;
 
-    const roster = TEAM_ROSTERS[team];
+    const roster = state.activeTeams[team]?.roster;
     if (!roster || roster.length === 0) return;
 
     const player = roster[playerIndex % roster.length];
@@ -513,9 +699,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       proLaneY,
       0.7,
     ];
-    const proBeamColor = isFullFury
-      ? '#fbbf24'
-      : COMBAT_VFX_CONSTANTS.TEAM_COLORS[team].primary;
+    const activeTeamTheme = getTeamTheme(state.activeTeams[team]?.colorTheme);
+    const proBeamColor = isFullFury ? '#fbbf24' : activeTeamTheme.primaryHex;
 
     get().spawnFlyingArrow(player.signatureChampion, team, isFullFury);
     if (isFullFury) {
@@ -578,7 +763,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       isCrit,
       team
     );
-    const rosterPlayer = findRosterPlayer(championName, team);
+    const activeRoster = currentState.activeTeams[team]?.roster ?? [];
+    const rosterPlayer = findRosterPlayerInRoster(championName, activeRoster);
     let startX: number;
     let startY: number;
 
@@ -614,7 +800,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       }, 180);
     } else {
       const playerIndex = rosterPlayer
-        ? TEAM_ROSTERS[team].findIndex((p) => p.id === rosterPlayer.id)
+        ? activeRoster.findIndex((p) => p.id === rosterPlayer.id)
         : 2;
       const idx = playerIndex >= 0 ? playerIndex : 2;
       startX = team === TEAM_KEY.BLG ? 52 : screenW - 52;
@@ -641,10 +827,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       targetY = screenH * 0.59 + (Math.random() - 0.5) * 40;
     }
 
-    const palette = ARROW_VFX_CONFIG.COLORS;
-    const blgColor = isCrit ? palette.BLG_CRIT : palette.BLG;
-    const gengColor = isCrit ? palette.GENG_CRIT : palette.GENG;
-    const color = team === TEAM_KEY.BLG ? blgColor : gengColor;
+    const teamTheme = getTeamTheme(currentState.activeTeams[team]?.colorTheme);
+    const color = isCrit ? teamTheme.critHex : teamTheme.primaryHex;
 
     const newArrow: FlyingArrowEntity = {
       id: `arrow-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -867,7 +1051,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const colors = GAME_CONSTANTS.HEARTS.COLORS;
 
     for (let i = 0; i < heartsToSpawn; i++) {
-      const targetColor = team === TEAM_KEY.BLG ? '#38bdf8' : '#facc15';
+      const teamTheme = getTeamTheme(state.activeTeams[team]?.colorTheme);
+      const targetColor = teamTheme.secondaryHex;
       const randomColor = Math.random() < 0.6 ? targetColor : colors[Math.floor(Math.random() * colors.length)];
       newHearts.push({
         id: `heart-${now}-${Math.random()}`,
@@ -887,7 +1072,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set((prev) => {
       const nextRosterFury = { ...prev.rosterPlayerFury };
-      for (const rosterPlayer of TEAM_ROSTERS[team]) {
+      for (const rosterPlayer of state.activeTeams[team]?.roster ?? []) {
         const curFury = nextRosterFury[rosterPlayer.id] ?? 0;
         nextRosterFury[rosterPlayer.id] = Math.min(
           GAME_CONSTANTS.PRO_FURY.MAX_FURY,
@@ -1166,22 +1351,29 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (isDefeated && !state.roundWinner && !state.isSeriesEnded) {
       nextRoundWinner = newBLGScore >= newGENGScore ? TEAM_KEY.BLG : TEAM_KEY.GENG;
       nextBO5Score[nextRoundWinner] = (nextBO5Score[nextRoundWinner] || 0) + 1;
+      const winnerTag = state.activeTeams[nextRoundWinner].shortTag;
+      const leftTag = state.activeTeams[TEAM_KEY.BLG].shortTag;
+      const rightTag = state.activeTeams[TEAM_KEY.GENG].shortTag;
       if (nextBO5Score[nextRoundWinner] >= state.bo5TargetWins) {
         nextIsSeriesEnded = true;
         nextSeriesWinner = nextRoundWinner;
         get().addLog(
           'SYSTEM',
-          `🏆 ${nextRoundWinner} VÔ ĐỊCH CKTG 2026 BO5 (${nextBO5Score.BLG} - ${nextBO5Score.GENG})!`
+          `🏆 ${winnerTag} VÔ ĐỊCH CKTG 2026 BO5 (${nextBO5Score.BLG} - ${nextBO5Score.GENG})!`
         );
       } else {
         get().addLog(
           'SYSTEM',
-          `🚩 ${nextRoundWinner} THẮNG VÁN ${state.currentRound}! (BO5: BLG ${nextBO5Score.BLG} - ${nextBO5Score.GENG} GEN.G)`
+          `🚩 ${winnerTag} THẮNG VÁN ${state.currentRound}! (BO5: ${leftTag} ${nextBO5Score.BLG} - ${nextBO5Score.GENG} ${rightTag})`
         );
       }
     }
 
-    const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
+    const dynamicTeamTheme = getTeamTheme(state.activeTeams[team]?.colorTheme);
+    const teamPalette = {
+      primary: dynamicTeamTheme.primaryHex,
+      secondary: dynamicTeamTheme.secondaryHex,
+    };
     const isCritOrUlt =
       effectiveDamageType === DAMAGE_TYPE.CRIT || effectiveDamageType === DAMAGE_TYPE.ULTIMATE;
     const hitPoint: [number, number, number] = [
@@ -1425,7 +1617,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const spawnPosition = createWingSpawnPosition(team);
     const avatarUrl = getChampionAvatarUrl(championName, team);
-    const teamPalette = COMBAT_VFX_CONSTANTS.TEAM_COLORS[team];
+    const activeTeamProfile = state.activeTeams[team];
+    const dynamicTeamTheme = getTeamTheme(activeTeamProfile?.colorTheme);
+    const teamPalette = {
+      primary: dynamicTeamTheme.primaryHex,
+      secondary: dynamicTeamTheme.secondaryHex,
+    };
     const baseDps = GAME_CONSTANTS.MINIONS.BASE_DPS + Math.floor(Math.random() * 100);
     // Tướng triệu hồi khởi đầu với 0 Nộ, chỉ tung chiêu đánh thường cho đến khi tích đủ 100% Nộ
     const summonDps = baseDps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER;
@@ -1487,11 +1684,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().spawnFlyingArrow(championName, team, false);
     }, GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS);
 
-    get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${team} (Bảo hộ 1s)`, team);
+    const teamTag = activeTeamProfile?.shortTag || team;
+    get().addLog('SUMMON', `${summonerName} triệu hồi [${championName}] phe ${teamTag} (Bảo hộ 1s)`, team);
     get().addChatMessage(summonerName, `Triệu hồi ${championName} chiến đấu!`, team, championName);
 
     // Boost Fury of matching Pro Player when fans summon their champion!
-    const matchingPro = findRosterPlayer(championName, team);
+    const matchingPro = findRosterPlayerInRoster(championName, activeTeamProfile?.roster ?? []);
     if (matchingPro) {
       get().addPlayerFury(matchingPro.id, GAME_CONSTANTS.PRO_FURY.FURY_GAIN_SUMMON_MATCH);
     }
@@ -1530,7 +1728,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    const burstColor = team === TEAM_KEY.BLG ? GAME_CONSTANTS.MINIONS.BLG_COLOR : GAME_CONSTANTS.MINIONS.GENG_COLOR;
+    const activeGiftTeam = state.activeTeams[team];
+    const giftTeamTheme = getTeamTheme(activeGiftTeam?.colorTheme);
+    const burstColor = giftTeamTheme.primaryHex;
 
     audioService.playGiftFanfare();
 
@@ -1553,23 +1753,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().healTeamChampions(team, 50);
     const giftDamage = coins * 120;
     get().damageBoss(giftDamage, team, `${donorName} (${giftName})`, 'ULTIMATE');
-    get().triggerScreenFlash(team === TEAM_KEY.BLG ? '#38bdf8' : '#fbbf24');
+    get().triggerScreenFlash(giftTeamTheme.secondaryHex);
     get().triggerScreenShake(1.3);
 
     // Supercharge Fury for all Pro Players on the gifted team!
-    TEAM_ROSTERS[team].forEach((pro) => {
+    const giftTeamRoster = activeGiftTeam?.roster ?? [];
+    giftTeamRoster.forEach((pro) => {
       get().addPlayerFury(pro.id, GAME_CONSTANTS.PRO_FURY.FURY_GAIN_GIFT_BOOST);
     });
 
     // Option D: Donating gifts breaks through champion limits and summons an Elite Champion for the donor
-    const giftRosterBLG = ['Jax', "Kai'Sa", 'Ahri', 'Aatrox', 'Zed'];
-    const giftRosterGEN = ['Yone', 'Ezreal', 'Nidalee', 'Yasuo', 'Sylas'];
-    const pool = team === TEAM_KEY.BLG ? giftRosterBLG : giftRosterGEN;
+    const signaturePool = giftTeamRoster.map((p) => p.signatureChampion).filter(Boolean);
+    const pool = signaturePool.length > 0 ? signaturePool : ['Ahri', 'Yone', 'Aatrox', 'Jinx', 'Lee Sin'];
     const eliteChamp = pool[Math.floor(Math.random() * pool.length)];
     get().summonMinion(`👑 ${donorName}`, eliteChamp, team, true);
 
     const safeGiftDamage = Number.isFinite(giftDamage) ? giftDamage : 0;
-    get().addLog('GIFT', `💎 ${donorName} tặng [${giftName}] (${coins} xu) phe ${team} gây ${safeGiftDamage.toLocaleString()} ST!`, team);
+    const giftTeamTag = activeGiftTeam?.shortTag || team;
+    get().addLog('GIFT', `💎 ${donorName} tặng [${giftName}] (${coins} xu) phe ${giftTeamTag} gây ${safeGiftDamage.toLocaleString()} ST!`, team);
     get().addChatMessage(donorName, `Đã tặng ${giftName} (+${safeGiftDamage.toLocaleString()} DMG)!`, team);
 
 
@@ -1962,7 +2163,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       leaderboard: [],
       proLeaderboard: [],
       rosterAttackTimestamps: {},
-      rosterPlayerFury: createInitialRosterFury(),
+      rosterPlayerFury: createInitialRosterFury(state.activeTeams),
       lastFuryUltimatePlayerId: null,
     });
   },
@@ -2012,20 +2213,23 @@ export const useGameStore = create<GameState>((set, get) => ({
       finisherPlayerName: null,
       finisherTeam: null,
       rosterAttackTimestamps: {},
-      rosterPlayerFury: createInitialRosterFury(),
+      rosterPlayerFury: createInitialRosterFury(get().activeTeams),
       lastFuryUltimatePlayerId: null,
     });
   },
 
   setBO5Score: (blg: number, geng: number, currentRound?: number) => {
-    const targetWins = get().bo5TargetWins;
+    const state = get();
+    const targetWins = state.bo5TargetWins;
     const clampedBlg = Math.max(0, Math.min(targetWins, blg));
     const clampedGeng = Math.max(0, Math.min(targetWins, geng));
     const isEnded = clampedBlg >= targetWins || clampedGeng >= targetWins;
     const seriesWinner = isEnded ? (clampedBlg >= targetWins ? TEAM_KEY.BLG : TEAM_KEY.GENG) : null;
     const nextRound = currentRound ?? Math.min(GAME_CONSTANTS.BO5.MAX_ROUNDS, clampedBlg + clampedGeng + 1);
+    const leftTag = state.activeTeams[TEAM_KEY.BLG].shortTag;
+    const rightTag = state.activeTeams[TEAM_KEY.GENG].shortTag;
 
-    get().addLog('SYSTEM', `⚙️ Cập nhật điểm BO5: BLG ${clampedBlg} - ${clampedGeng} GEN.G (Ván ${nextRound})`);
+    get().addLog('SYSTEM', `⚙️ Cập nhật điểm BO5: ${leftTag} ${clampedBlg} - ${clampedGeng} ${rightTag} (Ván ${nextRound})`);
     set({
       bo5Score: {
         [TEAM_KEY.BLG]: clampedBlg,
@@ -2081,7 +2285,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       finisherPlayerName: null,
       finisherTeam: null,
       rosterAttackTimestamps: {},
-      rosterPlayerFury: createInitialRosterFury(),
+      rosterPlayerFury: createInitialRosterFury(state.activeTeams),
       lastFuryUltimatePlayerId: null,
     });
   },
@@ -2340,6 +2544,12 @@ if (typeof window !== 'undefined') {
         break;
       case 'SET_AUTO_PRO_BATTLE':
         store.setAutoProBattleConfig(event.payload);
+        break;
+      case 'SET_TEAM_CONFIG':
+        store.applyTeamConfigSnapshot(
+          { activeTeams: event.payload.activeTeams, teamCatalog: event.payload.teamCatalog },
+          Boolean(event.payload.resetMatch)
+        );
         break;
       default:
         break;

@@ -2,6 +2,7 @@ import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXTy
 export type { GameThemeType };
 import { RosterPlayer } from '../constants/roster';
 import { BossSkillConfig, ActiveBossSkillBanner } from './bossSkill';
+import { ActiveTeamsMap, TeamConfigState, TeamProfile } from './team';
 
 export interface MinionEntity {
   id: string;
@@ -346,6 +347,10 @@ export interface GameState {
   seriesWinner: TeamType | null;
   roundCountdownSeconds: number;
 
+  // Dynamic Team & Roster Configuration
+  activeTeams: ActiveTeamsMap;
+  teamCatalog: TeamProfile[];
+
   // Guest & Admin Simulation Mode State
   isGuestModeActive: boolean;
   guestTeam: TeamType;
@@ -353,6 +358,10 @@ export interface GameState {
   isAdminModeActive: boolean;
 
   // Actions
+  setActiveTeams: (leftTeam: TeamProfile, rightTeam: TeamProfile, resetMatch?: boolean) => void;
+  saveTeamToCatalog: (team: TeamProfile, mountToSlot?: TeamType) => void;
+  deleteCustomTeam: (teamId: string) => void;
+  applyTeamConfigSnapshot: (config: TeamConfigState, resetMatch?: boolean) => void;
   setGuestMode: (active: boolean) => void;
   setGuestTeam: (team: TeamType) => void;
   setGuestName: (name: string) => void;

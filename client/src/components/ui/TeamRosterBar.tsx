@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { TEAM_ROSTERS, RosterPlayer } from '../../constants/roster';
+import { RosterPlayer } from '../../constants/roster';
 import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
+import { TeamColorPalette } from '../../types/team';
 import { audioService } from '../../services/audioService';
 
 interface TeamRosterBarProps {
@@ -19,16 +21,18 @@ const isCompactViewport = (): boolean => {
   return isTouch || window.innerWidth < DESKTOP_EXPAND_MIN_WIDTH;
 };
 
-const getAvatarBorderClass = (isFullFury: boolean, isActive: boolean, isLeft: boolean): string => {
+const getAvatarBorderClass = (
+  isFullFury: boolean,
+  isActive: boolean,
+  teamTheme: TeamColorPalette
+): string => {
   if (isFullFury) {
     return 'border-amber-300 ring-1 ring-amber-400/70 shadow-[0_0_10px_rgba(245,158,11,0.7)]';
   }
   if (isActive) {
-    return isLeft
-      ? 'border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.5)]'
-      : 'border-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]';
+    return teamTheme.borderClass;
   }
-  return isLeft ? 'border-cyan-800/50 bg-slate-900' : 'border-amber-800/50 bg-slate-900';
+  return `${teamTheme.borderSubtleClass} bg-slate-900`;
 };
 
 const getFuryBarFillClass = (isFullFury: boolean, fury: number): string => {
@@ -44,7 +48,9 @@ const getFuryBarFillClass = (isFullFury: boolean, fury: number): string => {
 export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   const { t } = useTranslation();
   const team = side === 'left' ? TEAM_KEY.BLG : TEAM_KEY.GENG;
-  const roster = TEAM_ROSTERS[team];
+  const teamProfile = useGameStore((state) => state.activeTeams[team]);
+  const roster = teamProfile.roster;
+  const teamTheme = getTeamTheme(teamProfile.colorTheme);
   const minions = useGameStore((state) => state.minions);
   const rosterAttackTimestamps = useGameStore((state) => state.rosterAttackTimestamps);
   const rosterPlayerFury = useGameStore((state) => state.rosterPlayerFury);
@@ -85,13 +91,17 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   }, [hasActiveViewers]);
 
   const getSummonCount = (player: RosterPlayer) => {
-    return minions.filter(
-      (m) => m.team === team && m.championName.toLowerCase().includes(player.name.toLowerCase())
-    ).length;
+    const playerNameLower = player.name.toLowerCase();
+    const champLower = player.signatureChampion.toLowerCase();
+    return minions.filter((m) => {
+      if (m.team !== team) return false;
+      const mChampLower = m.championName.toLowerCase();
+      return mChampLower.includes(playerNameLower) || mChampLower === champLower;
+    }).length;
   };
 
   const totalTeamSummons = minions.filter((m) => m.team === team).length;
-  const shortTeamLabel = isLeft ? 'BLG' : 'GEN';
+  const shortTeamLabel = teamProfile.shortTag;
 
   if (isCollapsed) {
     const collapsedLabel =
@@ -112,11 +122,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
             audioService.playUiToggleSound(true);
             setIsCollapsed(false);
           }}
-          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full border backdrop-blur-md shadow-md transition active:scale-95 hover:scale-105 opacity-85 hover:opacity-100 ${
-            isLeft
-              ? 'bg-cyan-950/80 border-cyan-500/60 text-cyan-300'
-              : 'bg-amber-950/80 border-amber-500/60 text-amber-300'
-          }`}
+          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full border backdrop-blur-md shadow-md transition active:scale-95 hover:scale-105 opacity-85 hover:opacity-100 ${teamTheme.pillButtonClass}`}
           title={t('HUD.lineupExpand', 'Mở đội hình {{team}}', { team: shortTeamLabel })}
         >
           {isLeft ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
@@ -130,7 +136,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   return (
     <aside
       id={`roster-container-${team}`}
-      aria-label={isLeft ? 'BLG Team Roster' : 'Gen.G Team Roster'}
+      aria-label={`${teamProfile.name} Team Roster`}
       style={topOffset ? { top: `${topOffset}px` } : undefined}
       className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
         isLeft ? 'left-1' : 'right-1'
@@ -138,11 +144,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
     >
       {/* Compact Roster Header with Collapse Button */}
       <div
-        className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border backdrop-blur-md flex items-center justify-between shadow-sm opacity-90 ${
-          isLeft
-            ? 'bg-cyan-950/75 border-cyan-500/60 text-cyan-300'
-            : 'bg-amber-950/75 border-amber-500/60 text-amber-300'
-        }`}
+        className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border backdrop-blur-md flex items-center justify-between shadow-sm opacity-90 ${teamTheme.pillButtonClass}`}
       >
         <span className="truncate">{shortTeamLabel}</span>
         <button
@@ -177,6 +179,7 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
             isActive={isActive}
             isAttacking={isAttacking}
             isLeft={isLeft}
+            teamTheme={teamTheme}
             furyReadyLabel={t('HUD.furyReady', 'NỘ')}
           />
         );
@@ -193,6 +196,7 @@ interface RosterItemProps {
   isActive: boolean;
   isAttacking: boolean;
   isLeft: boolean;
+  teamTheme: TeamColorPalette;
   furyReadyLabel: string;
 }
 
@@ -200,7 +204,7 @@ const getRosterItemCardClass = (
   isActive: boolean,
   isAttacking: boolean,
   isFullFury: boolean,
-  isLeft: boolean
+  teamTheme: TeamColorPalette
 ): string => {
   if (isFullFury) {
     return 'bg-gradient-to-r from-rose-950/85 via-amber-950/80 to-slate-950/80 border-amber-300/90 shadow-[0_0_12px_rgba(245,158,11,0.65)] scale-105';
@@ -209,10 +213,7 @@ const getRosterItemCardClass = (
     return 'bg-slate-950/50 border-slate-800/55 opacity-80 hover:opacity-100';
   }
   const scaleClass = isAttacking ? 'scale-105 ring-1 ring-white/40' : '';
-  if (isLeft) {
-    return `bg-gradient-to-r from-cyan-950/80 to-slate-950/75 border-cyan-400/80 shadow-[0_0_10px_rgba(6,182,212,0.4)] ${scaleClass}`;
-  }
-  return `bg-gradient-to-r from-amber-950/80 to-slate-950/75 border-amber-400/80 shadow-[0_0_10px_rgba(245,158,11,0.4)] ${scaleClass}`;
+  return `${teamTheme.rosterCardActiveClass} ${scaleClass}`;
 };
 
 const RosterItem = ({
@@ -223,16 +224,22 @@ const RosterItem = ({
   isActive,
   isAttacking,
   isLeft,
+  teamTheme,
   furyReadyLabel,
 }: RosterItemProps) => {
   const [imageError, setImageError] = useState(false);
 
+  useEffect(() => {
+    setImageError(false);
+  }, [player.avatarUrl]);
+
   return (
     <div
       id={`roster-card-${player.id}`}
+      title={`${player.name} (${player.role}) • Tướng tủ: ${player.signatureChampion}`}
       className={`relative flex items-center space-x-1.5 px-1.5 py-0.5 rounded-lg border backdrop-blur-sm transition-all duration-200 ${
         isLeft ? 'flex-row' : 'flex-row-reverse space-x-reverse'
-      } ${getRosterItemCardClass(isActive, isAttacking, isFullFury, isLeft)}`}
+      } ${getRosterItemCardClass(isActive, isAttacking, isFullFury, teamTheme)}`}
     >
       {/* Compact Pro Avatar with Mini Role Tag */}
       <div id={`roster-avatar-${player.id}`} className="relative shrink-0 transition-transform duration-200">
@@ -240,10 +247,10 @@ const RosterItem = ({
           className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden border ${getAvatarBorderClass(
             isFullFury,
             isActive,
-            isLeft
+            teamTheme
           )}`}
         >
-          {!imageError ? (
+          {player.avatarUrl && !imageError ? (
             <img
               src={player.avatarUrl}
               alt={player.name}
@@ -253,9 +260,7 @@ const RosterItem = ({
             />
           ) : (
             <div
-              className={`w-full h-full flex items-center justify-center text-[8px] font-black ${
-                isLeft ? 'bg-cyan-900 text-cyan-200' : 'bg-amber-900 text-amber-200'
-              }`}
+              className={`w-full h-full flex items-center justify-center text-[8px] font-black ${teamTheme.avatarInitialsBgClass}`}
             >
               {player.name.slice(0, 2).toUpperCase()}
             </div>
@@ -263,9 +268,7 @@ const RosterItem = ({
         </div>
 
         <span
-          className={`absolute -bottom-0.5 -right-0.5 text-[6px] font-mono font-black px-0.5 rounded leading-none shadow ${
-            isLeft ? 'bg-cyan-400 text-slate-950' : 'bg-amber-400 text-slate-950'
-          }`}
+          className={`absolute -bottom-0.5 -right-0.5 text-[6px] font-mono font-black px-0.5 rounded leading-none shadow ${teamTheme.bgBadgeClass}`}
         >
           {player.role}
         </span>
@@ -281,9 +284,7 @@ const RosterItem = ({
           <span className="truncate">{player.name}</span>
           {count > 0 && (
             <span
-              className={`text-[7px] px-1 rounded-full font-mono font-black shrink-0 ${
-                isLeft ? 'bg-cyan-400 text-slate-950' : 'bg-amber-400 text-slate-950'
-              }`}
+              className={`text-[7px] px-1 rounded-full font-mono font-black shrink-0 ${teamTheme.bgBadgeClass}`}
             >
               x{count}
             </span>

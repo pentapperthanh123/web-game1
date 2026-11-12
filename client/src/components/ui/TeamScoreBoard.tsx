@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { BLGLogo, GenGLogo } from '../icons/TeamLogos';
+import { TEAM_KEY } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
+import { TeamLogo } from '../icons/TeamLogos';
 
 export const TeamScoreBoard = () => {
   const { t } = useTranslation();
@@ -9,34 +11,46 @@ export const TeamScoreBoard = () => {
   const teamScoreGENG = useGameStore((state) => state.teamScoreGENG);
   const bo5Score = useGameStore((state) => state.bo5Score);
   const currentRound = useGameStore((state) => state.currentRound);
+  const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
+  const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+
+  const leftTheme = getTeamTheme(leftTeam.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam.colorTheme);
 
   const totalScore = teamScoreBLG + teamScoreGENG;
-  let blgRatio = 50;
-  let gengRatio = 50;
+  let leftRatio = 50;
+  let rightRatio = 50;
   if (totalScore > 0) {
-    blgRatio = (teamScoreBLG / totalScore) * 100;
-    gengRatio = (teamScoreGENG / totalScore) * 100;
+    leftRatio = (teamScoreBLG / totalScore) * 100;
+    rightRatio = (teamScoreGENG / totalScore) * 100;
   }
 
   return (
     <div className="w-full max-w-lg mx-auto px-2 sm:px-3 mt-1 pointer-events-auto select-none">
-      {/* Team Headers: BLG (Left) vs GEN.G (Right) */}
+      {/* Dynamic Team Headers */}
       <div className="flex items-center justify-between mb-1">
-        {/* BLG Team Block */}
-        <div className="flex items-center space-x-2 text-cyan-400 min-w-0">
-          <div className="relative shrink-0 p-0.5 rounded-md bg-cyan-950/80 border border-cyan-500/60 shadow-[0_0_10px_rgba(6,182,212,0.4)]">
-            <BLGLogo className="w-6 h-6 sm:w-7 sm:h-7" />
+        {/* Left Team Block */}
+        <div className={`flex items-center space-x-2 min-w-0 ${leftTheme.textStrongClass}`}>
+          <div
+            style={{ boxShadow: leftTheme.glowStyle }}
+            className={`relative shrink-0 p-0.5 rounded-md border ${leftTheme.bgSoftClass} ${leftTheme.borderSoftClass}`}
+          >
+            <TeamLogo teamProfile={leftTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center space-x-1.5">
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.7)] truncate">
-                {t('Game.teamBLG', 'BILIBILI GAMING')}
+              <span
+                className={`text-[10px] sm:text-xs font-black uppercase tracking-wider truncate ${leftTheme.textClass}`}
+              >
+                {leftTeam.name}
               </span>
-              <span className="text-[9px] sm:text-[10px] font-mono font-extrabold text-cyan-200 bg-cyan-950/80 px-1 rounded border border-cyan-500/40 shrink-0">
-                {blgRatio.toFixed(0)}%
+              <span
+                className={`text-[9px] sm:text-[10px] font-mono font-extrabold px-1 rounded border shrink-0 ${leftTheme.textMutedClass} ${leftTheme.bgSoftClass} ${leftTheme.borderSoftClass}`}
+              >
+                {leftRatio.toFixed(0)}%
               </span>
             </div>
-            <div className="text-[9px] sm:text-[10px] font-mono text-cyan-400 font-extrabold tracking-tight">
+            <div className={`text-[9px] sm:text-[10px] font-mono font-extrabold tracking-tight ${leftTheme.textStrongClass}`}>
               {(teamScoreBLG ?? 0).toLocaleString()} DMG
             </div>
           </div>
@@ -51,14 +65,17 @@ export const TeamScoreBoard = () => {
 
           {/* Win Pips + Score */}
           <div className="flex items-center space-x-1.5 bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-md shadow-inner">
-            {/* BLG Win Pips */}
-            <div className="flex items-center space-x-1" title={`BLG thắng ${bo5Score.BLG} ván`}>
+            {/* Left Win Pips */}
+            <div
+              className="flex items-center space-x-1"
+              title={`${leftTeam.shortTag} thắng ${bo5Score.BLG} ván`}
+            >
               {[0, 1, 2].map((i) => (
                 <span
-                  key={`blg-pip-${i}`}
+                  key={`left-pip-${i}`}
                   className={`w-2 h-2 rotate-45 border transition-all ${
                     i < bo5Score.BLG
-                      ? 'bg-cyan-400 border-cyan-300 shadow-[0_0_6px_#06b6d4]'
+                      ? leftTheme.winPipActiveClass
                       : 'bg-slate-900 border-slate-700'
                   }`}
                 />
@@ -70,14 +87,17 @@ export const TeamScoreBoard = () => {
               {bo5Score.BLG} - {bo5Score.GENG}
             </span>
 
-            {/* GEN.G Win Pips */}
-            <div className="flex items-center space-x-1" title={`GEN.G thắng ${bo5Score.GENG} ván`}>
+            {/* Right Win Pips */}
+            <div
+              className="flex items-center space-x-1"
+              title={`${rightTeam.shortTag} thắng ${bo5Score.GENG} ván`}
+            >
               {[0, 1, 2].map((i) => (
                 <span
-                  key={`gen-pip-${i}`}
+                  key={`right-pip-${i}`}
                   className={`w-2 h-2 rotate-45 border transition-all ${
                     i < bo5Score.GENG
-                      ? 'bg-amber-400 border-amber-300 shadow-[0_0_6px_#f59e0b]'
+                      ? rightTheme.winPipActiveClass
                       : 'bg-slate-900 border-slate-700'
                   }`}
                 />
@@ -86,21 +106,28 @@ export const TeamScoreBoard = () => {
           </div>
         </div>
 
-        {/* GEN.G Team Block */}
-        <div className="flex items-center space-x-2 text-amber-400 text-right flex-row-reverse space-x-reverse min-w-0">
-          <div className="relative shrink-0 p-0.5 rounded-md bg-amber-950/80 border border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.4)]">
-            <GenGLogo className="w-6 h-6 sm:w-7 sm:h-7" />
+        {/* Right Team Block */}
+        <div className={`flex items-center space-x-2 text-right flex-row-reverse space-x-reverse min-w-0 ${rightTheme.textStrongClass}`}>
+          <div
+            style={{ boxShadow: rightTheme.glowStyle }}
+            className={`relative shrink-0 p-0.5 rounded-md border ${rightTheme.bgSoftClass} ${rightTheme.borderSoftClass}`}
+          >
+            <TeamLogo teamProfile={rightTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center space-x-1.5 justify-end">
-              <span className="text-[9px] sm:text-[10px] font-mono font-extrabold text-amber-200 bg-amber-950/80 px-1 rounded border border-amber-500/40 shrink-0">
-                {gengRatio.toFixed(0)}%
+              <span
+                className={`text-[9px] sm:text-[10px] font-mono font-extrabold px-1 rounded border shrink-0 ${rightTheme.textMutedClass} ${rightTheme.bgSoftClass} ${rightTheme.borderSoftClass}`}
+              >
+                {rightRatio.toFixed(0)}%
               </span>
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.7)] truncate">
-                {t('Game.teamGENG', 'GEN.G ESPORTS')}
+              <span
+                className={`text-[10px] sm:text-xs font-black uppercase tracking-wider truncate ${rightTheme.textClass}`}
+              >
+                {rightTeam.name}
               </span>
             </div>
-            <div className="text-[9px] sm:text-[10px] font-mono text-amber-400 font-extrabold tracking-tight">
+            <div className={`text-[9px] sm:text-[10px] font-mono font-extrabold tracking-tight ${rightTheme.textStrongClass}`}>
               {(teamScoreGENG ?? 0).toLocaleString()} DMG
             </div>
           </div>
@@ -109,18 +136,18 @@ export const TeamScoreBoard = () => {
 
       {/* Cyberpunk Battle Tug-of-War Bar */}
       <div className="relative w-full h-3.5 sm:h-4 bg-slate-950/95 rounded-lg border border-slate-700/90 p-0.5 shadow-[0_0_16px_rgba(0,0,0,0.9)] overflow-hidden flex">
-        {/* BLG Territory Bar */}
+        {/* Left Territory Bar */}
         <div
-          className="h-full bg-gradient-to-r from-blue-700 via-cyan-500 to-cyan-300 transition-all duration-300 shadow-[0_0_14px_#06b6d4] relative"
-          style={{ width: `${blgRatio}%` }}
+          className={`h-full transition-all duration-300 relative ${leftTheme.tugBarLeftClass}`}
+          style={{ width: `${leftRatio}%` }}
         >
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#ffffff]" />
         </div>
 
-        {/* GEN.G Territory Bar */}
+        {/* Right Territory Bar */}
         <div
-          className="h-full bg-gradient-to-r from-amber-300 via-amber-500 to-yellow-600 transition-all duration-300 shadow-[0_0_14px_#f59e0b] relative"
-          style={{ width: `${gengRatio}%` }}
+          className={`h-full transition-all duration-300 relative ${rightTheme.tugBarRightClass}`}
+          style={{ width: `${rightRatio}%` }}
         >
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#ffffff]" />
         </div>

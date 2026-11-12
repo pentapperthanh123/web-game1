@@ -1,26 +1,21 @@
 import { TEAM_KEY, TeamType } from './game';
 import { findChampion } from './champions';
+import { TeamPlayerProfile } from '../types/team';
+import {
+  DDRAGON_CHAMPION_CDN,
+  PRESET_TEAMS,
+  findRosterPlayerInRoster,
+} from './teams';
 
-export interface RosterPlayer {
-  id: string;
-  name: string;
-  role: 'TOP' | 'JUG' | 'MID' | 'ADC' | 'SUP';
-  roleName: string;
-  signatureChampion: string;
-  championKey: string;
-  team: TeamType;
-  color: string;
-  avatarUrl: string;
-}
+export type RosterPlayer = TeamPlayerProfile;
+export { DDRAGON_CHAMPION_CDN };
 
 export const OFFICIAL_TEAM_LOGOS: Record<TeamType, string> = {
-  [TEAM_KEY.BLG]: 'https://am-a.akamaihd.net/image?resize=400:&f=http%3A%2F%2Fstatic.lolesports.com%2Fteams%2F1682322954525_Bilibili_Gaming_logo_20211.png',
-  [TEAM_KEY.GENG]: 'https://am-a.akamaihd.net/image?resize=400:&f=http%3A%2F%2Fstatic.lolesports.com%2Fteams%2F1773829250929_GENGLOGO_GOLD.png',
+  [TEAM_KEY.BLG]: PRESET_TEAMS[0].logoUrl,
+  [TEAM_KEY.GENG]: PRESET_TEAMS[1].logoUrl,
 };
 
 export const BARON_AVATAR_URL = '/images/boss_baron_2d.png';
-
-export const DDRAGON_CHAMPION_CDN = 'https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion';
 
 const TEAM_FALLBACK_CHAMPION_KEY: Record<TeamType, string> = {
   [TEAM_KEY.BLG]: 'Ahri',
@@ -38,131 +33,15 @@ export const getChampionAvatarUrl = (championName: string, team: TeamType): stri
 };
 
 export const TEAM_ROSTERS: Record<TeamType, RosterPlayer[]> = {
-  [TEAM_KEY.BLG]: [
-    {
-      id: 'blg-bin',
-      name: 'Bin',
-      role: 'TOP',
-      roleName: 'Đường Trên',
-      signatureChampion: 'Jax',
-      championKey: 'Jax',
-      team: TEAM_KEY.BLG,
-      color: '#38bdf8',
-      avatarUrl: '/images/players/bin.png',
-    },
-    {
-      id: 'blg-xun',
-      name: 'Xun',
-      role: 'JUG',
-      roleName: 'Đi Rừng',
-      signatureChampion: 'Xin Zhao',
-      championKey: 'XinZhao',
-      team: TEAM_KEY.BLG,
-      color: '#06b6d4',
-      avatarUrl: '/images/players/xun.png',
-    },
-    {
-      id: 'blg-knight',
-      name: 'Knight',
-      role: 'MID',
-      roleName: 'Đường Giữa',
-      signatureChampion: 'Ahri',
-      championKey: 'Ahri',
-      team: TEAM_KEY.BLG,
-      color: '#60a5fa',
-      avatarUrl: '/images/players/knight.png',
-    },
-    {
-      id: 'blg-viper',
-      name: 'Viper',
-      role: 'ADC',
-      roleName: 'Xạ Thủ',
-      signatureChampion: "Kai'Sa",
-      championKey: 'Kaisa',
-      team: TEAM_KEY.BLG,
-      color: '#22d3ee',
-      avatarUrl: '/images/players/viper.png',
-    },
-    {
-      id: 'blg-on',
-      name: 'ON',
-      role: 'SUP',
-      roleName: 'Hỗ Trợ',
-      signatureChampion: 'Rakan',
-      championKey: 'Rakan',
-      team: TEAM_KEY.BLG,
-      color: '#34d399',
-      avatarUrl: '/images/players/on.png',
-    },
-  ],
-  [TEAM_KEY.GENG]: [
-    {
-      id: 'gen-kiin',
-      name: 'Kiin',
-      role: 'TOP',
-      roleName: 'Đường Trên',
-      signatureChampion: "K'Sante",
-      championKey: 'KSante',
-      team: TEAM_KEY.GENG,
-      color: '#f59e0b',
-      avatarUrl: '/images/players/kiin.png',
-    },
-    {
-      id: 'gen-canyon',
-      name: 'Canyon',
-      role: 'JUG',
-      roleName: 'Đi Rừng',
-      signatureChampion: 'Nidalee',
-      championKey: 'Nidalee',
-      team: TEAM_KEY.GENG,
-      color: '#fbbf24',
-      avatarUrl: '/images/players/canyon.png',
-    },
-    {
-      id: 'gen-chovy',
-      name: 'Chovy',
-      role: 'MID',
-      roleName: 'Đường Giữa',
-      signatureChampion: 'Yone',
-      championKey: 'Yone',
-      team: TEAM_KEY.GENG,
-      color: '#eab308',
-      avatarUrl: '/images/players/chovy.png',
-    },
-    {
-      id: 'gen-ruler',
-      name: 'Ruler',
-      role: 'ADC',
-      roleName: 'Xạ Thủ',
-      signatureChampion: 'Ezreal',
-      championKey: 'Ezreal',
-      team: TEAM_KEY.GENG,
-      color: '#f97316',
-      avatarUrl: '/images/players/ruler.png',
-    },
-    {
-      id: 'gen-duro',
-      name: 'Duro',
-      role: 'SUP',
-      roleName: 'Hỗ Trợ',
-      signatureChampion: 'Nautilus',
-      championKey: 'Nautilus',
-      team: TEAM_KEY.GENG,
-      color: '#d97706',
-      avatarUrl: '/images/players/duro.png',
-    },
-  ],
+  [TEAM_KEY.BLG]: PRESET_TEAMS[0].roster,
+  [TEAM_KEY.GENG]: PRESET_TEAMS[1].roster,
 };
 
-export const findRosterPlayer = (championName: string, team: TeamType): RosterPlayer => {
-  const norm = championName.trim().toLowerCase();
-  const list = TEAM_ROSTERS[team];
-  const matched = list.find(
-    (p) =>
-      norm.includes(p.name.toLowerCase()) ||
-      norm.includes(p.signatureChampion.toLowerCase()) ||
-      p.signatureChampion.toLowerCase().includes(norm)
-  );
-  if (matched) return matched;
-  return list[Math.floor(Math.random() * list.length)];
+export const findRosterPlayer = (
+  championName: string,
+  team: TeamType,
+  dynamicRoster?: RosterPlayer[]
+): RosterPlayer => {
+  const list = dynamicRoster && dynamicRoster.length > 0 ? dynamicRoster : TEAM_ROSTERS[team];
+  return findRosterPlayerInRoster(championName, list) || list[0];
 };
