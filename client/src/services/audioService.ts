@@ -729,6 +729,91 @@ class AudioSynthesizerService {
         break;
       }
 
+      case CHAMPION_SKILL_VFX_TYPE.SPINNING_AXE: {
+        // Draven: Heavy spinning axe whirr + metallic thrum
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(isCrit ? 380 : 280, t);
+        osc.frequency.exponentialRampToValueAtTime(140, t + 0.16);
+
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(32, t);
+        lfoGain.gain.setValueAtTime(0.18 * vol, t);
+        lfo.connect(lfoGain.gain);
+
+        gain.gain.setValueAtTime(0.3 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+
+        osc.connect(gain);
+        gain.connect(out);
+        lfo.start(t);
+        osc.start(t);
+        lfo.stop(t + 0.16);
+        osc.stop(t + 0.16);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.ROCKET_MISSILE: {
+        // Jinx: Rocket launch propellant whoosh + punchy blast
+        const noise = ctx.createBufferSource();
+        noise.buffer = this.getNoiseBuffer(ctx);
+        const filter = ctx.createBiquadFilter();
+        const noiseGain = ctx.createGain();
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(450, t);
+        filter.frequency.exponentialRampToValueAtTime(1200, t + 0.18);
+        filter.Q.value = 2.0;
+
+        noiseGain.gain.setValueAtTime(0.35 * vol, t);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(out);
+        noise.start(t);
+        noise.stop(t + 0.18);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.SHOCK_ORB: {
+        // Jayce: High-voltage electric arc hum + ionization zap
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(isCrit ? 920 : 680, t);
+        osc.frequency.exponentialRampToValueAtTime(220, t + 0.14);
+
+        gain.gain.setValueAtTime(0.24 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        osc.stop(t + 0.14);
+        break;
+      }
+
+      case CHAMPION_SKILL_VFX_TYPE.SPIRIT_SPEAR: {
+        // Kalista: Ghostly ethereal soul whisper + piercing thrust
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(isCrit ? 1100 : 840, t);
+        osc.frequency.exponentialRampToValueAtTime(320, t + 0.15);
+
+        gain.gain.setValueAtTime(0.26 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+        osc.connect(gain);
+        gain.connect(out);
+        osc.start(t);
+        osc.stop(t + 0.15);
+        break;
+      }
+
       default: {
         // High-tension bowstring snap & aerodynamic arrow whoosh
         this.playAttackWhoosh(isCrit, false);

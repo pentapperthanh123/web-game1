@@ -1,15 +1,14 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import championsRaw from './championsMaster.json' with { type: 'json' };
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const jsonPath = fs.existsSync(path.join(__dirname, 'champions.json'))
-  ? path.join(__dirname, 'champions.json')
-  : path.resolve(__dirname, '../../src/constants/champions.json');
-
-const championsRaw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+export interface ChampionSkillMeta {
+  readonly normalSkillName: string;
+  readonly normalVfxType: string;
+  readonly ultimateSkillName: string;
+  readonly ultimateVfxType: string;
+  readonly glowColor: string;
+  readonly coreColor: string;
+  readonly attackRangeType: 'MELEE' | 'RANGED';
+}
 
 export interface ChampionInfo {
   id: string;
@@ -21,9 +20,10 @@ export interface ChampionInfo {
   tags: string[];
   roleNameVi: string;
   aliases: string[];
+  skill?: ChampionSkillMeta;
 }
 
-export const ALL_CHAMPIONS: ChampionInfo[] = championsRaw as ChampionInfo[];
+export const ALL_CHAMPIONS: ChampionInfo[] = championsRaw as unknown as ChampionInfo[];
 
 const CHAMPION_BY_ID_MAP = new Map<string, ChampionInfo>();
 

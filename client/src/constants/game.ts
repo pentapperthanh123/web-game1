@@ -1,4 +1,5 @@
 import { SilverScrapesDuelState } from '../types/game';
+import { findMasterChampion } from './championsMaster';
 
 export const APP_TITLE = 'LOL CKTG';
 
@@ -1045,24 +1046,46 @@ export const getChampionSkillVFX = (
   isCrit = false
 ): { type: ChampionSkillVFXType; skillName: string; glowColor: string; coreColor: string } => {
   const normalized = championName.trim().toLowerCase();
-  let baseConfig = DEFAULT_CHAMPION_VFX;
 
+  // 1. Check custom pro player & team specific overrides first
   if (CHAMPION_VFX_MAP[normalized]) {
-    baseConfig = CHAMPION_VFX_MAP[normalized];
-  } else {
-    for (const [key, config] of Object.entries(CHAMPION_VFX_MAP)) {
-      if (normalized.includes(key)) {
-        baseConfig = config;
-        break;
-      }
+    const baseConfig = CHAMPION_VFX_MAP[normalized];
+    return {
+      type: isCrit ? baseConfig.ultimateType : baseConfig.type,
+      skillName: isCrit ? baseConfig.ultimateSkillName : baseConfig.skillName,
+      glowColor: baseConfig.glowColor,
+      coreColor: baseConfig.coreColor,
+    };
+  }
+
+  for (const [key, config] of Object.entries(CHAMPION_VFX_MAP)) {
+    if (normalized.includes(key)) {
+      return {
+        type: isCrit ? config.ultimateType : config.type,
+        skillName: isCrit ? config.ultimateSkillName : config.skillName,
+        glowColor: config.glowColor,
+        coreColor: config.coreColor,
+      };
     }
   }
 
+  // 2. Comprehensive 169 Champion Master Registry match
+  const master = findMasterChampion(championName);
+  if (master) {
+    return {
+      type: (isCrit ? master.skill.ultimateVfxType : master.skill.normalVfxType) as ChampionSkillVFXType,
+      skillName: isCrit ? master.skill.ultimateSkillName : master.skill.normalSkillName,
+      glowColor: master.skill.glowColor,
+      coreColor: master.skill.coreColor,
+    };
+  }
+
+  // 3. Fallback
   return {
-    type: isCrit ? baseConfig.ultimateType : baseConfig.type,
-    skillName: isCrit ? baseConfig.ultimateSkillName : baseConfig.skillName,
-    glowColor: baseConfig.glowColor,
-    coreColor: baseConfig.coreColor,
+    type: isCrit ? DEFAULT_CHAMPION_VFX.ultimateType : DEFAULT_CHAMPION_VFX.type,
+    skillName: isCrit ? DEFAULT_CHAMPION_VFX.ultimateSkillName : DEFAULT_CHAMPION_VFX.skillName,
+    glowColor: DEFAULT_CHAMPION_VFX.glowColor,
+    coreColor: DEFAULT_CHAMPION_VFX.coreColor,
   };
 };
 

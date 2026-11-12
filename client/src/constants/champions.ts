@@ -1,4 +1,15 @@
-import championsRaw from './champions.json';
+import championsRaw from './championsMaster.json';
+import { ChampionSkillVFXType } from './game';
+
+export interface ChampionSkillMeta {
+  readonly normalSkillName: string;
+  readonly normalVfxType: ChampionSkillVFXType;
+  readonly ultimateSkillName: string;
+  readonly ultimateVfxType: ChampionSkillVFXType;
+  readonly glowColor: string;
+  readonly coreColor: string;
+  readonly attackRangeType: 'MELEE' | 'RANGED';
+}
 
 export interface ChampionInfo {
   id: string;
@@ -10,9 +21,10 @@ export interface ChampionInfo {
   tags: string[];
   roleNameVi: string;
   aliases: string[];
+  skill?: ChampionSkillMeta;
 }
 
-export const ALL_CHAMPIONS: ChampionInfo[] = championsRaw as ChampionInfo[];
+export const ALL_CHAMPIONS: ChampionInfo[] = championsRaw as unknown as ChampionInfo[];
 
 const CHAMPION_BY_ID_MAP = new Map<string, ChampionInfo>();
 
@@ -80,4 +92,3 @@ export const getChampionAvatar = (championName: string, fallbackId = 'Ahri'): st
 export const getRandomChampion = (): ChampionInfo => {
   return ALL_CHAMPIONS[Math.floor(Math.random() * ALL_CHAMPIONS.length)];
 };
-

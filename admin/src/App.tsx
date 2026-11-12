@@ -277,6 +277,11 @@ export function App() {
     );
   }, [championSearchFilter, selectedTagFilter]);
 
+  const selectedChampDetail = useMemo(
+    () => findChampion(selectedChampion),
+    [selectedChampion]
+  );
+
   const [logs, setLogs] = useState<LogItem[]>([]);
 
   const addLog = (type: string, message: string, team?: string) => {
@@ -977,6 +982,31 @@ export function App() {
                     );
                   })}
                 </div>
+
+                {/* Selected Champion Detail Preview Card */}
+                {selectedChampDetail && (
+                  <div className="mt-2 p-2 rounded-xl bg-slate-950 border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.15)] flex items-center justify-between text-[10px]">
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <img
+                        src={selectedChampDetail.avatarUrl}
+                        alt={selectedChampDetail.name}
+                        className="w-8 h-8 rounded-lg object-cover border border-cyan-400 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="font-extrabold text-white text-xs truncate flex items-center space-x-1.5">
+                          <span>{selectedChampDetail.name}</span>
+                          <span className="text-cyan-400 font-medium text-[10px]">({selectedChampDetail.title})</span>
+                        </div>
+                        <div className="text-[9px] text-slate-300 truncate mt-0.5">
+                          <span className="text-amber-400 font-bold">Q:</span> {selectedChampDetail.skill?.normalSkillName || 'Tấn Công'} • <span className="text-rose-400 font-bold">R:</span> {selectedChampDetail.skill?.ultimateSkillName || 'Tuyệt Kỹ'}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-500/50 text-cyan-300 font-mono shrink-0 ml-2">
+                      {selectedChampDetail.skill?.attackRangeType === 'RANGED' ? '🏹 Đánh Xa' : '🗡️ Cận Chiến'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Summon Rule Option B + D Information */}
