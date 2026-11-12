@@ -276,6 +276,40 @@ export interface TeamComboState {
   lastTimestamp: number;
 }
 
+export type SeriesFormat = 'BO1' | 'BO3' | 'BO5';
+export type DuelLaneKey = 'MID' | 'TOP' | 'JUG' | 'ADC' | 'SUP';
+
+export interface DuelFighter {
+  id: string;
+  name: string;
+  champion: string;
+  avatarUrl: string;
+  team: TeamType;
+}
+
+export interface SilverScrapesDuelEvent {
+  type: 'TAP' | 'SKILL' | 'ULTIMATE' | 'MYTHIC';
+  donorName: string;
+  team: TeamType;
+  deltaPercent: number;
+  description: string;
+}
+
+export interface SilverScrapesDuelState {
+  isActive: boolean;
+  timeRemaining: number;
+  totalDuration: number;
+  tugOfWarPercent: number;
+  selectedLane: DuelLaneKey;
+  leftFighter: DuelFighter;
+  rightFighter: DuelFighter;
+  winner: TeamType | 'DRAW' | null;
+  isLastStandActive: boolean;
+  lastEvent?: SilverScrapesDuelEvent;
+  buffActiveUntil?: number;
+  winningTeamBuff?: TeamType | null;
+}
+
 export interface GameState {
   bossHp: number;
   bossMaxHp: number;
@@ -335,7 +369,9 @@ export interface GameState {
   lastFuryUltimatePlayerId: string | null;
   teamHeartMomentum: Record<TeamType, TeamHeartMomentum>;
 
-  // BO5 Match State
+  // Series Match State (BO1, BO3, BO5)
+  seriesFormat: SeriesFormat;
+  seriesMaxRounds: number;
   bo5Score: {
     [key in TeamType]: number;
   };
@@ -346,6 +382,9 @@ export interface GameState {
   isSeriesEnded: boolean;
   seriesWinner: TeamType | null;
   roundCountdownSeconds: number;
+
+  // Silver Scrapes 1v1 State
+  silverScrapesState: SilverScrapesDuelState;
 
   // Dynamic Team & Roster Configuration
   activeTeams: ActiveTeamsMap;
@@ -358,6 +397,17 @@ export interface GameState {
   isAdminModeActive: boolean;
 
   // Actions
+  setSeriesFormat: (format: SeriesFormat, resetScore?: boolean) => void;
+  applySeriesFormatSnapshot: (config: {
+    format: SeriesFormat;
+    targetWins: number;
+    maxRounds: number;
+    blgScore: number;
+    gengScore: number;
+    currentRound: number;
+  }) => void;
+  setSilverScrapesState: (state: Partial<SilverScrapesDuelState>) => void;
+  isSilverScrapesBuffActive: (team: TeamType) => boolean;
   setActiveTeams: (leftTeam: TeamProfile, rightTeam: TeamProfile, resetMatch?: boolean) => void;
   saveTeamToCatalog: (team: TeamProfile, mountToSlot?: TeamType) => void;
   deleteCustomTeam: (teamId: string) => void;

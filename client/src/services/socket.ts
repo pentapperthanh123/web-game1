@@ -82,6 +82,15 @@ class GameSocketClient {
             }
           })
           .catch(() => {});
+
+        fetch(`${SERVER_URL}/api/series-format`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data && typeof data.format === 'string') {
+              useGameStore.getState().applySeriesFormatSnapshot(data);
+            }
+          })
+          .catch(() => {});
       }
 
       // Listen for game events dispatched by Server or Admin Portal
@@ -169,6 +178,19 @@ class GameSocketClient {
       this.socket.on('game:auto-pro-battle', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().setAutoProBattleConfig(payload);
+      });
+
+      this.socket.on('game:series-format', (payload) => {
+        if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (payload && typeof payload.format === 'string') {
+          useGameStore.getState().applySeriesFormatSnapshot(payload);
+        }
+      });
+
+      this.socket.on('game:silver-scrapes-state', (payload) => {
+        if (payload) {
+          useGameStore.getState().setSilverScrapesState(payload);
+        }
       });
     } catch (err) {
       console.warn('[Game Socket] Could not connect to Server, using local EventBus fallback', err);
@@ -289,6 +311,29 @@ class GameSocketClient {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       }).catch(() => {});
+    }
+  }
+
+  public sendSeriesFormat(format: 'BO1' | 'BO3' | 'BO5', resetScore = false): void {
+    if (this.socket) {
+      this.socket.emit('admin:set-series-format', { format, resetScore, senderId: CLIENT_INSTANCE_ID });
+    }
+    if (typeof window !== 'undefined') {
+      fetch(`${SERVER_URL}/api/series-format`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format, resetScore }),
+      }).catch(() => {});
+    }
+  }
+
+  public sendSilverScrapesControl(
+    action: 'start' | 'stop' | 'extend' | 'setLane',
+    lane?: string,
+    duration?: number
+  ): void {
+    if (this.socket) {
+      this.socket.emit('admin:silver-scrapes-duel', { action, lane, duration, senderId: CLIENT_INSTANCE_ID });
     }
   }
 

@@ -6,6 +6,12 @@ import {
   createDefaultTeamConfig,
   sanitizeTeamConfigState,
 } from '../constants/teams';
+import {
+  SeriesFormat,
+  SeriesFormatConfig,
+  SilverScrapesDuelState,
+  DuelLaneKey,
+} from '../constants/series';
 import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
 
 const SERVER_URL =
@@ -287,6 +293,41 @@ class AdminSocketService {
     return () => {
       this.socket?.off('tiktok:status', callback);
     };
+  }
+
+  public onSeriesFormat(callback: (config: SeriesFormatConfig) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('game:series-format', callback);
+    return () => {
+      this.socket?.off('game:series-format', callback);
+    };
+  }
+
+  public setSeriesFormat(format: SeriesFormat, resetScore = false): void {
+    this.emit('admin:set-series-format', { format, resetScore });
+    if (typeof window !== 'undefined') {
+      fetch(`${SERVER_URL}/api/series-format`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format, resetScore }),
+      }).catch(() => {});
+    }
+  }
+
+  public onSilverScrapesState(callback: (state: SilverScrapesDuelState) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('game:silver-scrapes-state', callback);
+    return () => {
+      this.socket?.off('game:silver-scrapes-state', callback);
+    };
+  }
+
+  public setSilverScrapesControl(
+    action: 'start' | 'stop' | 'extend' | 'setLane',
+    lane?: DuelLaneKey,
+    duration?: number
+  ): void {
+    this.emit('admin:silver-scrapes-duel', { action, lane, duration });
   }
 
   public async connectTiktokRoom(username: string): Promise<any> {

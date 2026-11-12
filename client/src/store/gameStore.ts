@@ -35,6 +35,7 @@ import {
   BossWeakPointState,
   TeamComboState,
   TeamHeartMomentum,
+  SeriesFormat,
 } from '../types/game';
 import {
   GAME_CONSTANTS,
@@ -58,6 +59,7 @@ import {
   DEFAULT_AUTO_SUMMON_CONFIG,
   AUDIO_SFX_CONSTANTS,
   CHAMPION_SKILL_VFX_TYPE,
+  DEFAULT_DUEL_STATE,
   getChampionSkillVFX,
   BOSS_DEFEAT_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
@@ -346,12 +348,15 @@ const INITIAL_STATE = {
   rosterPlayerFury: createInitialRosterFury(initialTeamConfig.activeTeams),
   lastFuryUltimatePlayerId: null as string | null,
   teamHeartMomentum: createInitialTeamHeartMomentum(),
+  seriesFormat: 'BO5' as SeriesFormat,
+  seriesMaxRounds: GAME_CONSTANTS.BO5.MAX_ROUNDS,
   bo5Score: {
     [TEAM_KEY.BLG]: 0,
     [TEAM_KEY.GENG]: 0,
   },
   currentRound: 1,
   bo5TargetWins: GAME_CONSTANTS.BO5.TARGET_WINS,
+  silverScrapesState: DEFAULT_DUEL_STATE,
   roundWinner: null as TeamType | null,
   isRoundIntermission: false,
   isSeriesEnded: false,
@@ -2218,6 +2223,59 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
+  setSeriesFormat: (format: SeriesFormat, resetScore = false) => {
+    const specs = GAME_CONSTANTS.SERIES_FORMATS[format] ?? GAME_CONSTANTS.SERIES_FORMATS.BO5;
+    set((state) => {
+      const nextBlg = resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score.BLG);
+      const nextGeng = resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score.GENG);
+      const isEnded = nextBlg >= specs.TARGET_WINS || nextGeng >= specs.TARGET_WINS;
+      return {
+        seriesFormat: format,
+        bo5TargetWins: specs.TARGET_WINS,
+        seriesMaxRounds: specs.MAX_ROUNDS,
+        bo5Score: {
+          [TEAM_KEY.BLG]: nextBlg,
+          [TEAM_KEY.GENG]: nextGeng,
+        },
+        currentRound: resetScore ? 1 : Math.min(specs.MAX_ROUNDS, state.currentRound),
+        isSeriesEnded: isEnded,
+        seriesWinner: isEnded ? (nextBlg >= specs.TARGET_WINS ? TEAM_KEY.BLG : TEAM_KEY.GENG) : null,
+      };
+    });
+    get().addLog('SYSTEM', `⚙️ Thể thức thi đấu chuyển sang ${format} (Chạm ${specs.TARGET_WINS} thắng)`);
+  },
+
+  applySeriesFormatSnapshot: (config) => {
+    const isEnded = config.blgScore >= config.targetWins || config.gengScore >= config.targetWins;
+    set({
+      seriesFormat: config.format,
+      bo5TargetWins: config.targetWins,
+      seriesMaxRounds: config.maxRounds,
+      bo5Score: {
+        [TEAM_KEY.BLG]: config.blgScore,
+        [TEAM_KEY.GENG]: config.gengScore,
+      },
+      currentRound: config.currentRound,
+      isSeriesEnded: isEnded,
+      seriesWinner: isEnded ? (config.blgScore >= config.targetWins ? TEAM_KEY.BLG : TEAM_KEY.GENG) : null,
+    });
+  },
+
+  setSilverScrapesState: (patch) => {
+    set((state) => ({
+      silverScrapesState: {
+        ...state.silverScrapesState,
+        ...patch,
+      },
+    }));
+  },
+
+  isSilverScrapesBuffActive: (team: TeamType) => {
+    const duel = get().silverScrapesState;
+    if (!duel.buffActiveUntil || !duel.winningTeamBuff) return false;
+    return duel.winningTeamBuff === team && Date.now() <= duel.buffActiveUntil;
+  },
+
   setBO5Score: (blg: number, geng: number, currentRound?: number) => {
     const state = get();
     const targetWins = state.bo5TargetWins;
@@ -2225,11 +2283,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     const clampedGeng = Math.max(0, Math.min(targetWins, geng));
     const isEnded = clampedBlg >= targetWins || clampedGeng >= targetWins;
     const seriesWinner = isEnded ? (clampedBlg >= targetWins ? TEAM_KEY.BLG : TEAM_KEY.GENG) : null;
-    const nextRound = currentRound ?? Math.min(GAME_CONSTANTS.BO5.MAX_ROUNDS, clampedBlg + clampedGeng + 1);
+    const nextRound = currentRound ?? Math.min(state.seriesMaxRounds, clampedBlg + clampedGeng + 1);
     const leftTag = state.activeTeams[TEAM_KEY.BLG].shortTag;
     const rightTag = state.activeTeams[TEAM_KEY.GENG].shortTag;
 
-    get().addLog('SYSTEM', `⚙️ Cập nhật điểm BO5: ${leftTag} ${clampedBlg} - ${clampedGeng} ${rightTag} (Ván ${nextRound})`);
+    get().addLog('SYSTEM', `⚙️ Cập nhật điểm ${state.seriesFormat}: ${leftTag} ${clampedBlg} - ${clampedGeng} ${rightTag} (Ván ${nextRound})`);
     set({
       bo5Score: {
         [TEAM_KEY.BLG]: clampedBlg,

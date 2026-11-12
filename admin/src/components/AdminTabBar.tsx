@@ -1,5 +1,5 @@
 import React from 'react';
-import { Swords, Compass, Sliders, MessageSquare, LayoutGrid, Users } from 'lucide-react';
+import { Swords, Compass, Sliders, MessageSquare, LayoutGrid, Users, Flame } from 'lucide-react';
 import {
   ADMIN_PORTAL_TAB,
   ADMIN_PORTAL_TABS,
@@ -16,6 +16,7 @@ interface AdminTabBarProps {
 
 const TAB_ICON_MAP: Record<AdminPortalTabId, typeof Swords> = {
   [ADMIN_PORTAL_TAB.TEAMS]: Users,
+  [ADMIN_PORTAL_TAB.SERIES_DUEL]: Flame,
   [ADMIN_PORTAL_TAB.INTERACTION]: Swords,
   [ADMIN_PORTAL_TAB.BOSS_MAP]: Compass,
   [ADMIN_PORTAL_TAB.OVERLAYS]: Sliders,

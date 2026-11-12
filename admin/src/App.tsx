@@ -23,7 +23,9 @@ import {
 import { adminSocket } from './services/socket';
 import { TeamLogo } from './components/TeamLogos';
 import { TeamConfigPanel } from './components/TeamConfigPanel';
+import { SilverScrapesControls } from './components/SilverScrapesControls';
 import { createDefaultTeamConfig, getTeamTheme, matchCommentTeam, TeamConfigState, ActiveTeamsMap } from './constants/teams';
+import { SeriesFormatConfig, DEFAULT_SERIES_CONFIG } from './constants/series';
 import { OverlayControls } from './components/OverlayControls';
 import { BossSkillControls } from './components/BossSkillControls';
 import { AutoProControls } from './components/AutoProControls';
@@ -216,12 +218,27 @@ export function App() {
       setTimeout(() => {
         document.getElementById('section-teams')?.scrollIntoView({ behavior: 'smooth' });
       }, 50);
+    } else if (tabId === ADMIN_PORTAL_TAB.SERIES_DUEL) {
+      setTimeout(() => {
+        document.getElementById('section-series-duel')?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     } else if (tabId === ADMIN_PORTAL_TAB.INTERACTION) {
       setTimeout(() => {
         document.getElementById('section-interaction')?.scrollIntoView({ behavior: 'smooth' });
       }, 50);
     }
   };
+
+  const [seriesConfig, setSeriesConfig] = useState<SeriesFormatConfig>(DEFAULT_SERIES_CONFIG);
+
+  useEffect(() => {
+    const unsub = adminSocket.onSeriesFormat((cfg) => {
+      setSeriesConfig(cfg);
+      setBo5Score({ BLG: cfg.blgScore, GENG: cfg.gengScore });
+      setCurrentRound(cfg.currentRound);
+    });
+    return () => unsub();
+  }, []);
 
   const leftTeam = teamConfig.activeTeams.BLG;
   const rightTeam = teamConfig.activeTeams.GENG;
@@ -230,6 +247,7 @@ export function App() {
 
   const isAllTab = activeTab === ADMIN_PORTAL_TAB.ALL;
   const shouldShowTeams = isAllTab || activeTab === ADMIN_PORTAL_TAB.TEAMS;
+  const shouldShowSeriesDuel = isAllTab || activeTab === ADMIN_PORTAL_TAB.SERIES_DUEL;
   const shouldShowInteraction = isAllTab || activeTab === ADMIN_PORTAL_TAB.INTERACTION;
   const shouldShowBossMap = isAllTab || activeTab === ADMIN_PORTAL_TAB.BOSS_MAP;
   const shouldShowOverlays =
@@ -282,22 +300,22 @@ export function App() {
       setBo5Score({ BLG: 0, GENG: 0 });
       setCurrentRound(1);
       adminSocket.emit('admin:bo5-control', { action: 'reset' });
-      addLog('SYSTEM', '🔄 Đã Reset toàn bộ kết quả trận đấu BO5 về 0 - 0 (Ván 1)');
+      addLog('SYSTEM', `🔄 Đã Reset toàn bộ kết quả trận đấu ${seriesConfig.format} về 0 - 0 (Ván 1)`);
       return;
     }
 
     if (action === 'nextRound') {
-      const nextRound = Math.min(5, currentRound + 1);
+      const nextRound = Math.min(seriesConfig.maxRounds, currentRound + 1);
       setCurrentRound(nextRound);
       adminSocket.emit('admin:bo5-control', { action: 'nextRound' });
-      addLog('SYSTEM', `⚔️ Chuyển sang Ván ${nextRound} / BO5`);
+      addLog('SYSTEM', `⚔️ Chuyển sang Ván ${nextRound} / ${seriesConfig.format}`);
       return;
     }
 
     if (action === 'setScore') {
-      const nextBlg = Math.max(0, Math.min(3, blg ?? bo5Score.BLG));
-      const nextGeng = Math.max(0, Math.min(3, geng ?? bo5Score.GENG));
-      const nextRound = round ?? Math.min(5, nextBlg + nextGeng + 1);
+      const nextBlg = Math.max(0, Math.min(seriesConfig.targetWins, blg ?? bo5Score.BLG));
+      const nextGeng = Math.max(0, Math.min(seriesConfig.targetWins, geng ?? bo5Score.GENG));
+      const nextRound = round ?? Math.min(seriesConfig.maxRounds, nextBlg + nextGeng + 1);
       setBo5Score({ BLG: nextBlg, GENG: nextGeng });
       setCurrentRound(nextRound);
       adminSocket.emit('admin:bo5-control', {
@@ -306,7 +324,7 @@ export function App() {
         geng: nextGeng,
         currentRound: nextRound,
       });
-      addLog('SYSTEM', `⚙️ Cập nhật điểm BO5: ${leftTeam.shortTag} ${nextBlg} - ${nextGeng} ${rightTeam.shortTag} (Ván ${nextRound})`);
+      addLog('SYSTEM', `⚙️ Cập nhật điểm ${seriesConfig.format}: ${leftTeam.shortTag} ${nextBlg} - ${nextGeng} ${rightTeam.shortTag} (Ván ${nextRound})`);
     }
   };
 
@@ -710,6 +728,11 @@ export function App() {
         {/* Team Configuration Panel */}
         <div id="section-teams" className={shouldShowTeams ? 'block' : 'hidden'}>
           <TeamConfigPanel teamConfig={teamConfig} onLog={addLog} />
+        </div>
+
+        {/* Section: Series Format (BO1/BO3/BO5) & Silver Scrapes 1v1 */}
+        <div id="section-series-duel" className={shouldShowSeriesDuel ? 'block' : 'hidden'}>
+          <SilverScrapesControls />
         </div>
 
         {/* Admin Section Tabs */}
@@ -1220,12 +1243,12 @@ export function App() {
                 </div>
               </div>
 
-              {/* BO5 Match State & Controls */}
+              {/* BO Series Match State & Controls */}
               <div className="pt-2 border-t border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center space-x-1">
                     <Crown className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Trận Đấu BO5 (Ván {currentRound}/5)</span>
+                    <span>Trận Đấu {seriesConfig.format} (Ván {currentRound}/{seriesConfig.maxRounds})</span>
                   </span>
                   <span className="font-mono text-xs font-black text-cyan-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
                     {leftTeam.shortTag} {bo5Score.BLG} - {bo5Score.GENG} {rightTeam.shortTag}
@@ -1262,7 +1285,7 @@ export function App() {
                     onClick={() => handleBo5Control('reset')}
                     className="py-1 px-2 rounded bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[10px] font-bold transition active:scale-95"
                   >
-                    Reset BO5 (0-0)
+                    Reset {seriesConfig.format} (0-0)
                   </button>
                 </div>
               </div>

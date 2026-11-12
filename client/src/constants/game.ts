@@ -1,3 +1,5 @@
+import { SilverScrapesDuelState } from '../types/game';
+
 export const APP_TITLE = 'LOL CKTG';
 
 export const TEAM_KEY = {
@@ -82,6 +84,19 @@ export const GAME_CONSTANTS = {
     TARGET_WINS: 3,
     MAX_ROUNDS: 5,
     ROUND_TRANSITION_SECONDS: 5,
+  },
+  SERIES_FORMATS: {
+    BO1: { TARGET_WINS: 1, MAX_ROUNDS: 1 },
+    BO3: { TARGET_WINS: 2, MAX_ROUNDS: 3 },
+    BO5: { TARGET_WINS: 3, MAX_ROUNDS: 5 },
+  },
+  SILVER_SCRAPES: {
+    DURATION_SECONDS: 60,
+    EXTEND_SECONDS: 30,
+    BUFF_DURATION_MS: 90000,
+    BUFF_DAMAGE_MULTIPLIER: 1.2,
+    LAST_STAND_SHIELD_SECONDS: 15,
+    TUG_OF_WAR_INITIAL_PERCENT: 50,
   },
   SUMMON_RULES: {
     MAX_ACTIVE_PER_USER: 1, // Option B: Mỗi người chỉ có tối đa 1 tướng đang sống trên sàn
@@ -1039,4 +1054,29 @@ export const ADMIN_CONSTANTS = {
     { key: 'howToPlay', labelVi: 'Cách Tham Gia & Quà Tặng', labelEn: 'How to Play & Rewards' },
   ] as const,
 } as const;
+
+export const DEFAULT_DUEL_STATE: SilverScrapesDuelState = {
+  isActive: false,
+  timeRemaining: 60,
+  totalDuration: 60,
+  tugOfWarPercent: 50,
+  selectedLane: 'MID',
+  leftFighter: {
+    id: 'blg_mid',
+    name: 'Knight',
+    champion: 'Ahri',
+    avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.20.1/img/champion/Ahri.png',
+    team: 'BLG',
+  },
+  rightFighter: {
+    id: 'gen_mid',
+    name: 'Chovy',
+    champion: 'Yone',
+    avatarUrl: 'https://ddragon.leagueoflegends.com/cdn/14.20.1/img/champion/Yone.png',
+    team: 'GENG',
+  },
+  winner: null,
+  isLastStandActive: false,
+  winningTeamBuff: null,
+};
 

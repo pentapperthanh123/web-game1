@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check, Sparkles, User, X } from 'lucide-react';
-import { ALL_CHAMPIONS, findChampion } from '../constants/champions';
+import { findChampion } from '../constants/champions';
 import {
   DDRAGON_CHAMPION_CDN,
   TEAM_COLOR_THEME_OPTIONS,
@@ -9,7 +9,12 @@ import {
   TeamProfile,
   createChampionPortraitUrl,
 } from '../constants/teams';
+import { TeamEditorPlayerCard } from './TeamEditorPlayerCard';
 import { TeamLogo } from './TeamLogos';
+
+const MAX_TEAM_NAME_LENGTH = 36;
+const MAX_SHORT_TAG_LENGTH = 8;
+const FALLBACK_SHORT_TAG = 'TEAM';
 
 interface TeamEditorCardProps {
   initialTeam: TeamProfile;
@@ -19,6 +24,15 @@ interface TeamEditorCardProps {
 }
 
 const isAutoAvatar = (url: string): boolean => !url || url.startsWith(DDRAGON_CHAMPION_CDN);
+
+const parseAliases = (aliasesText: string, mandatoryTag?: string): string[] => {
+  const parsed = aliasesText
+    .split(',')
+    .map((alias) => alias.trim().toUpperCase())
+    .filter(Boolean);
+  const combined = mandatoryTag ? [mandatoryTag, ...parsed] : parsed;
+  return Array.from(new Set(combined.filter(Boolean)));
+};
 
 export const TeamEditorCard: React.FC<TeamEditorCardProps> = ({
   initialTeam,
@@ -32,24 +46,21 @@ export const TeamEditorCard: React.FC<TeamEditorCardProps> = ({
   const [colorTheme, setColorTheme] = useState<TeamColorThemeId>(initialTeam.colorTheme);
   const [logoUrl, setLogoUrl] = useState(initialTeam.logoUrl);
   const [roster, setRoster] = useState<TeamPlayerProfile[]>(() =>
-    initialTeam.roster.map((p) => ({ ...p }))
+    initialTeam.roster.map((player) => ({ ...player }))
   );
 
   const previewProfile: TeamProfile = {
     ...initialTeam,
     name: name.trim() || initialTeam.name,
     shortTag: shortTag.trim().toUpperCase() || initialTeam.shortTag,
-    aliases: aliasesText
-      .split(',')
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean),
+    aliases: parseAliases(aliasesText),
     colorTheme,
     logoUrl: logoUrl.trim(),
     roster,
   };
 
   const handlePlayerPatch = (index: number, patch: Partial<TeamPlayerProfile>) => {
-    setRoster((prev) => prev.map((p, idx) => (idx === index ? { ...p, ...patch } : p)));
+    setRoster((prev) => prev.map((player, idx) => (idx === index ? { ...player, ...patch } : player)));
   };
 
   const handleChampionChange = (index: number, champName: string) => {
@@ -72,31 +83,20 @@ export const TeamEditorCard: React.FC<TeamEditorCardProps> = ({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanTag = shortTag.trim().toUpperCase().slice(0, 8) || 'TEAM';
-    const aliases = Array.from(
-      new Set(
-        [
-          cleanTag,
-          ...aliasesText
-            .split(',')
-            .map((a) => a.trim().toUpperCase())
-            .filter(Boolean),
-        ].filter(Boolean)
-      )
-    );
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const cleanTag = shortTag.trim().toUpperCase().slice(0, MAX_SHORT_TAG_LENGTH) || FALLBACK_SHORT_TAG;
     onSave({
       ...initialTeam,
       name: name.trim() || cleanTag,
       shortTag: cleanTag,
-      aliases,
+      aliases: parseAliases(aliasesText, cleanTag),
       colorTheme,
       logoUrl: logoUrl.trim(),
-      roster: roster.map((p) => ({
-        ...p,
-        name: p.name.trim() || p.role,
-        avatarUrl: p.avatarUrl.trim() || createChampionPortraitUrl(p.championKey),
+      roster: roster.map((player) => ({
+        ...player,
+        name: player.name.trim() || player.role,
+        avatarUrl: player.avatarUrl.trim() || createChampionPortraitUrl(player.championKey),
       })),
     });
   };
@@ -130,17 +130,19 @@ export const TeamEditorCard: React.FC<TeamEditorCardProps> = ({
           <span className="text-[10px] font-bold text-slate-400">Tên đội tuyển:</span>
           <input
             type="text"
-            maxLength={36}
+            maxLength={MAX_TEAM_NAME_LENGTH}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-400"
           />
         </label>
         <label className="space-y-1">
-          <span className="text-[10px] font-bold text-slate-400">Tag ngắn (tối đa 8 ký tự):</span>
+          <span className="text-[10px] font-bold text-slate-400">
+            Tag ngắn (tối đa {MAX_SHORT_TAG_LENGTH} ký tự):
+          </span>
           <input
             type="text"
-            maxLength={8}
+            maxLength={MAX_SHORT_TAG_LENGTH}
             value={shortTag}
             onChange={(e) => setShortTag(e.target.value.toUpperCase())}
             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-white font-black uppercase text-xs focus:outline-none focus:border-amber-400"
@@ -196,47 +198,13 @@ export const TeamEditorCard: React.FC<TeamEditorCardProps> = ({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
           {roster.map((player, index) => (
-            <div
+            <TeamEditorPlayerCard
               key={`${player.role}-${index}`}
-              className="p-2 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5"
-            >
-              <div className="flex items-center space-x-1.5">
-                <img
-                  src={player.avatarUrl || createChampionPortraitUrl(player.championKey)}
-                  alt={player.name}
-                  className="w-7 h-7 rounded-full object-cover border border-slate-700 shrink-0"
-                />
-                <span className="text-[10px] font-mono font-black px-1.5 py-0.5 rounded bg-slate-800 text-amber-300">
-                  {player.role}
-                </span>
-              </div>
-              <input
-                type="text"
-                maxLength={24}
-                value={player.name}
-                onChange={(e) => handlePlayerPatch(index, { name: e.target.value })}
-                placeholder="Tên game thủ"
-                className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-white text-[11px] font-bold"
-              />
-              <select
-                value={player.signatureChampion}
-                onChange={(e) => handleChampionChange(index, e.target.value)}
-                className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-cyan-200 text-[11px] font-bold"
-              >
-                {ALL_CHAMPIONS.map((c) => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={player.avatarUrl}
-                onChange={(e) => handlePlayerPatch(index, { avatarUrl: e.target.value })}
-                placeholder="Link ảnh (trống = ảnh tướng)"
-                className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-800 text-slate-300 text-[10px]"
-              />
-            </div>
+              player={player}
+              index={index}
+              onPatch={handlePlayerPatch}
+              onChampionChange={handleChampionChange}
+            />
           ))}
         </div>
       </div>

@@ -12,6 +12,7 @@ import { LiveChatStream } from './LiveChatStream';
 import { LikeCounter } from './LikeCounter';
 import { ParticipationGuidePanel } from './ParticipationGuidePanel';
 import { VictoryOverlay } from './VictoryOverlay';
+import { SilverScrapesDuelOverlay } from './SilverScrapesDuelOverlay';
 import { GuestSimulationDock } from './GuestSimulationDock';
 import { AdminControlModal } from './AdminControlModal';
 import { ScreenFlash } from './ScreenFlash';
@@ -181,6 +182,7 @@ export const HUDOverlay = () => {
       <SummonShowcase />
       <FloatingDamage />
       <VictoryOverlay />
+      <SilverScrapesDuelOverlay />
       <GuestSimulationDock />
       <AdminControlModal />
 

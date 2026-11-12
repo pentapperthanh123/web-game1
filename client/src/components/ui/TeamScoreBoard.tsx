@@ -11,6 +11,8 @@ export const TeamScoreBoard = () => {
   const teamScoreGENG = useGameStore((state) => state.teamScoreGENG);
   const bo5Score = useGameStore((state) => state.bo5Score);
   const currentRound = useGameStore((state) => state.currentRound);
+  const seriesFormat = useGameStore((state) => state.seriesFormat);
+  const bo5TargetWins = useGameStore((state) => state.bo5TargetWins);
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
   const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
 
@@ -56,11 +58,11 @@ export const TeamScoreBoard = () => {
           </div>
         </div>
 
-        {/* Center Worlds BO5 & VS Crest */}
+        {/* Center Series Format & VS Crest */}
         <div className="flex flex-col items-center px-1.5 shrink-0">
           <div className="text-[8px] font-black tracking-widest text-slate-300 uppercase bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full mb-1 shadow flex items-center space-x-1">
             <Swords className="w-2.5 h-2.5 text-amber-400" />
-            <span>{t('Game.roundLabel', 'VÁN {{round}} / BO5', { round: currentRound })}</span>
+            <span>{t('Game.roundLabel', 'VÁN {{round}} / {{format}}', { round: currentRound, format: seriesFormat })}</span>
           </div>
 
           {/* Win Pips + Score */}
@@ -70,7 +72,7 @@ export const TeamScoreBoard = () => {
               className="flex items-center space-x-1"
               title={`${leftTeam.shortTag} thắng ${bo5Score.BLG} ván`}
             >
-              {[0, 1, 2].map((i) => (
+              {Array.from({ length: bo5TargetWins }).map((_, i) => (
                 <span
                   key={`left-pip-${i}`}
                   className={`w-2 h-2 rotate-45 border transition-all ${
@@ -92,7 +94,7 @@ export const TeamScoreBoard = () => {
               className="flex items-center space-x-1"
               title={`${rightTeam.shortTag} thắng ${bo5Score.GENG} ván`}
             >
-              {[0, 1, 2].map((i) => (
+              {Array.from({ length: bo5TargetWins }).map((_, i) => (
                 <span
                   key={`right-pip-${i}`}
                   className={`w-2 h-2 rotate-45 border transition-all ${

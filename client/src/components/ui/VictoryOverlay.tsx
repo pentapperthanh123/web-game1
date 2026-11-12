@@ -23,6 +23,8 @@ export const VictoryOverlay = () => {
   const proLeaderboard = useGameStore((state) => state.proLeaderboard);
   const bo5Score = useGameStore((state) => state.bo5Score);
   const currentRound = useGameStore((state) => state.currentRound);
+  const seriesFormat = useGameStore((state) => state.seriesFormat);
+  const bo5TargetWins = useGameStore((state) => state.bo5TargetWins);
   const roundWinner = useGameStore((state) => state.roundWinner);
   const isSeriesEnded = useGameStore((state) => state.isSeriesEnded);
   const seriesWinner = useGameStore((state) => state.seriesWinner);
@@ -109,7 +111,8 @@ export const VictoryOverlay = () => {
         <div>
           <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
             {isSeriesEnded
-              ? t('Victory.seriesScore', 'TỈ SỐ CHUNG CUỘC BO5: {{blg}} - {{geng}}', {
+              ? t('Victory.seriesScore', 'TỈ SỐ CHUNG CUỘC {{format}}: {{blg}} - {{geng}}', {
+                  format: seriesFormat,
                   blg: bo5Score.BLG,
                   geng: bo5Score.GENG,
                 })
@@ -119,7 +122,7 @@ export const VictoryOverlay = () => {
             className={`text-xl sm:text-2xl font-black uppercase tracking-wider drop-shadow-lg ${winnerTheme.textStrongClass}`}
           >
             {isSeriesEnded
-              ? t('Victory.seriesChampion', '🏆 {{team}} VÔ ĐỊCH CKTG 2026 BO5!', { team: winnerName })
+              ? t('Victory.seriesChampion', '🏆 {{team}} VÔ ĐỊCH CKTG 2026 {{format}}!', { team: winnerName, format: seriesFormat })
               : t('Victory.roundWin', '{{team}} CHIẾN THẮNG VÁN {{round}}!', {
                   team: winnerName,
                   round: currentRound,
@@ -127,10 +130,10 @@ export const VictoryOverlay = () => {
           </h1>
         </div>
 
-        {/* BO5 Scoreboard Card */}
+        {/* Series Scoreboard Card */}
         <div className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-1.5">
           <div className="text-[9px] font-black tracking-widest text-slate-400 uppercase">
-            {t('Victory.bo5Score', 'TỈ SỐ BO5 HIỆN TẠI')}
+            {t('Victory.bo5Score', 'TỈ SỐ {{format}} HIỆN TẠI', { format: seriesFormat })}
           </div>
 
           <div className="flex items-center justify-center space-x-3">
@@ -138,7 +141,7 @@ export const VictoryOverlay = () => {
             <div className="flex items-center space-x-1.5">
               <span className={`text-xs font-black ${leftTheme.textStrongClass}`}>{leftTeam.shortTag}</span>
               <div className="flex space-x-0.5">
-                {[0, 1, 2].map((i) => (
+                {Array.from({ length: bo5TargetWins }).map((_, i) => (
                   <span
                     key={`win-left-${i}`}
                     className={`w-2.5 h-2.5 rotate-45 border transition-all ${
@@ -159,7 +162,7 @@ export const VictoryOverlay = () => {
             {/* Right Team Block */}
             <div className="flex items-center space-x-1.5">
               <div className="flex space-x-0.5">
-                {[0, 1, 2].map((i) => (
+                {Array.from({ length: bo5TargetWins }).map((_, i) => (
                   <span
                     key={`win-right-${i}`}
                     className={`w-2.5 h-2.5 rotate-45 border transition-all ${

@@ -1,5 +1,6 @@
 export const ADMIN_PORTAL_TAB = {
   TEAMS: 'TEAMS',
+  SERIES_DUEL: 'SERIES_DUEL',
   INTERACTION: 'INTERACTION',
   BOSS_MAP: 'BOSS_MAP',
   OVERLAYS: 'OVERLAYS',
@@ -20,6 +21,7 @@ export interface AdminPortalTabMeta {
 export const ADMIN_PORTAL_TABS: readonly AdminPortalTabMeta[] = [
   { id: ADMIN_PORTAL_TAB.ALL, label: 'Xem Tất Cả' },
   { id: ADMIN_PORTAL_TAB.TEAMS, label: 'Đội & Game Thủ' },
+  { id: ADMIN_PORTAL_TAB.SERIES_DUEL, label: 'Thể Thức & 1v1' },
   { id: ADMIN_PORTAL_TAB.OVERLAYS, label: 'Ẩn/Hiện Section (Overlay)' },
   { id: ADMIN_PORTAL_TAB.INTERACTION, label: 'Tương Tác & Quà' },
   { id: ADMIN_PORTAL_TAB.BOSS_MAP, label: 'Boss & Bản Đồ' },

@@ -1,17 +1,33 @@
 import React, { useState } from 'react';
-import { ArrowLeftRight, Edit3, Plus, Swords, Trash2, Users } from 'lucide-react';
+import { ArrowLeftRight, Plus, Swords, Users } from 'lucide-react';
 import {
   HOT_MATCHUPS,
   TeamConfigState,
   TeamProfile,
   TeamSlotKey,
   createCustomTeamTemplate,
-  getTeamTheme,
   mountTeamToSlot,
 } from '../constants/teams';
 import { adminSocket } from '../services/socket';
-import { TeamLogo } from './TeamLogos';
+import { AdminTeamSlotCard } from './AdminTeamSlotCard';
 import { TeamEditorCard } from './TeamEditorCard';
+
+const DEFAULT_CUSTOM_TEAM_NAME = 'Đội Tuyển Mới';
+
+const SLOT_LABELS: Record<TeamSlotKey, string> = {
+  BLG: 'Phe Trái',
+  GENG: 'Phe Phải',
+};
+
+const SLOT_TITLES: Record<TeamSlotKey, string> = {
+  BLG: 'Phe Trái (Cánh Trái)',
+  GENG: 'Phe Phải (Cánh Phải)',
+};
+
+const resolveEditorSlotLabel = (slot?: TeamSlotKey): string => {
+  if (!slot) return 'Kho Đội';
+  return SLOT_LABELS[slot];
+};
 
 interface TeamConfigPanelProps {
   teamConfig: TeamConfigState;
@@ -27,8 +43,6 @@ export const TeamConfigPanel: React.FC<TeamConfigPanelProps> = ({ teamConfig, on
 
   const leftTeam = teamConfig.activeTeams.BLG;
   const rightTeam = teamConfig.activeTeams.GENG;
-  const leftTheme = getTeamTheme(leftTeam.colorTheme);
-  const rightTheme = getTeamTheme(rightTeam.colorTheme);
 
   const pushConfig = (nextConfig: TeamConfigState, resetMatch: boolean, logMsg: string) => {
     adminSocket.setTeamConfig(nextConfig, resetMatch);
@@ -111,8 +125,8 @@ export const TeamConfigPanel: React.FC<TeamConfigPanelProps> = ({ teamConfig, on
   const handleDeleteCustom = (team: TeamProfile) => {
     if (team.isPreset) return;
     const nextCatalog = teamConfig.teamCatalog.filter((t) => t.id !== team.id);
-    const fallbackLeft = teamConfig.teamCatalog[0] || leftTeam;
-    const fallbackRight = teamConfig.teamCatalog[1] || rightTeam;
+    const fallbackLeft = nextCatalog[0] || leftTeam;
+    const fallbackRight = nextCatalog[1] || rightTeam;
     pushConfig(
       {
         activeTeams: {
@@ -126,9 +140,13 @@ export const TeamConfigPanel: React.FC<TeamConfigPanelProps> = ({ teamConfig, on
     );
   };
 
+  const activeSlots: Array<{ slot: TeamSlotKey; team: TeamProfile }> = [
+    { slot: 'BLG', team: leftTeam },
+    { slot: 'GENG', team: rightTeam },
+  ];
+
   return (
     <section className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
         <div className="flex items-center space-x-2 text-xs font-black uppercase text-white">
           <Users className="w-4 h-4 text-amber-400" />
@@ -157,11 +175,11 @@ export const TeamConfigPanel: React.FC<TeamConfigPanelProps> = ({ teamConfig, on
             type="button"
             onClick={() =>
               setEditorState({
-                team: createCustomTeamTemplate('Đội Tuyển Mới'),
+                team: createCustomTeamTemplate(DEFAULT_CUSTOM_TEAM_NAME),
                 slot: 'BLG',
               })
             }
-            className="px-3 py-1 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white text-xs font-black flex items-center space-x-1"
+            className="px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 text-xs font-black flex items-center space-x-1"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Tạo Đội Mới</span>
@@ -172,121 +190,53 @@ export const TeamConfigPanel: React.FC<TeamConfigPanelProps> = ({ teamConfig, on
       {editorState ? (
         <TeamEditorCard
           initialTeam={editorState.team}
-          slotLabel={
-            editorState.slot === 'BLG'
-              ? 'Phe Trái'
-              : editorState.slot === 'GENG'
-              ? 'Phe Phải'
-              : 'Kho Đội'
-          }
+          slotLabel={resolveEditorSlotLabel(editorState.slot)}
           onSave={handleSaveTeam}
           onCancel={() => setEditorState(null)}
         />
       ) : (
         <>
-          {/* Hot Matchups Quick Bar */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-bold text-slate-400 flex items-center space-x-1 mr-1">
               <Swords className="w-3.5 h-3.5 text-amber-400" />
               <span>Kèo hot 1-click:</span>
             </span>
-            {HOT_MATCHUPS.map((m) => {
-              const isActive = leftTeam.id === m.leftTeamId && rightTeam.id === m.rightTeamId;
+            {HOT_MATCHUPS.map((matchup) => {
+              const isActive =
+                leftTeam.id === matchup.leftTeamId && rightTeam.id === matchup.rightTeamId;
               return (
                 <button
-                  key={m.id}
+                  key={matchup.id}
                   type="button"
-                  onClick={() => handleHotMatchup(m.leftTeamId, m.rightTeamId, m.label)}
+                  onClick={() =>
+                    handleHotMatchup(matchup.leftTeamId, matchup.rightTeamId, matchup.label)
+                  }
                   className={`px-2.5 py-1 rounded-lg border text-[11px] font-black transition ${
                     isActive
                       ? 'bg-amber-500/20 border-amber-400 text-amber-200'
                       : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'
                   }`}
                 >
-                  {m.label}
+                  {matchup.label}
                 </button>
               );
             })}
           </div>
 
-          {/* 2 Active Team Slot Pickers */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {[
-              { slot: 'BLG' as TeamSlotKey, team: leftTeam, theme: leftTheme, title: 'Phe Trái (Cánh Trái)' },
-              { slot: 'GENG' as TeamSlotKey, team: rightTeam, theme: rightTheme, title: 'Phe Phải (Cánh Phải)' },
-            ].map(({ slot, team, theme, title }) => (
-              <div
+            {activeSlots.map(({ slot, team }) => (
+              <AdminTeamSlotCard
                 key={slot}
-                className={`p-3 rounded-xl bg-slate-950/85 border space-y-2.5 ${theme.borderSoftClass}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center space-x-2.5 min-w-0">
-                    <TeamLogo teamProfile={team} className="w-8 h-8 shrink-0" />
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase">{title}</div>
-                      <div className={`text-sm font-black truncate ${theme.textClass}`}>
-                        {team.name} ({team.shortTag})
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditorState({ team: mountTeamToSlot(team, slot), slot })}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-bold flex items-center space-x-1 shrink-0"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Sửa Đội &amp; Game Thủ</span>
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <select
-                    value={team.id}
-                    onChange={(e) => handleAssignSlot(slot, e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-bold text-white"
-                  >
-                    {teamConfig.teamCatalog.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.shortTag} — {t.name} {!t.isPreset ? '★ Custom' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {!team.isPreset && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCustom(team)}
-                      className="p-1.5 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 hover:bg-rose-900"
-                      title="Xóa đội tùy chỉnh"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="text-[10px] text-slate-400">
-                  Từ khóa TikTok Chat:{' '}
-                  <span className="text-cyan-300 font-mono font-bold">
-                    {team.aliases.join(', ')}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-5 gap-1">
-                  {team.roster.map((p) => (
-                    <div
-                      key={p.id}
-                      className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center space-y-0.5"
-                    >
-                      <img
-                        src={p.avatarUrl}
-                        alt={p.name}
-                        className="w-6 h-6 rounded-full mx-auto object-cover border border-slate-700"
-                      />
-                      <div className="text-[9px] font-black text-white truncate">{p.name}</div>
-                      <div className="text-[8px] text-cyan-300 truncate">{p.signatureChampion}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                slot={slot}
+                title={SLOT_TITLES[slot]}
+                team={team}
+                catalog={teamConfig.teamCatalog}
+                onAssignSlot={handleAssignSlot}
+                onEditSlot={(targetSlot, targetTeam) =>
+                  setEditorState({ team: mountTeamToSlot(targetTeam, targetSlot), slot: targetSlot })
+                }
+                onDeleteCustom={handleDeleteCustom}
+              />
             ))}
           </div>
         </>

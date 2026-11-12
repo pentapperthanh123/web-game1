@@ -251,11 +251,22 @@
     "shortTagLabel": "Tag hiển thị (tối đa 8 ký tự):",
     "aliasesLabel": "Từ khóa Chat TikTok (cách bằng dấu phẩy):",
     "logoUrlLabel": "Link Logo (trống = huy hiệu tự động):",
+    "logoPlaceholder": "URL hoặc /images/teams/t1.svg",
     "colorThemeLabel": "Màu chủ đạo & Hiệu ứng 3D:",
     "rosterTitle": "Đội hình 5 Tuyển Thủ (TOP / JUG / MID / ADC / SUP):",
     "playerNamePlaceholder": "Tên game thủ",
     "avatarPlaceholder": "Link ảnh tuyển thủ (trống = tự dùng ảnh tướng)",
     "cancelBtn": "Hủy",
     "saveApplyBtn": "Lưu & Áp Dụng"
+  },
+  "SilverScrapes": {
+    "title": "⚡ SILVER SCRAPES: ĐẠI CHIẾN ĐỘC TÔN 1V1 ⚡",
+    "lastStand": "LÁ CHẮN TỬ THỦ (GIỚI HẠN 95%)",
+    "clashPrompt": "Tap Tim & Donate Để Đẩy Chưởng",
+    "draw": "KẾT QUẢ HÒA CÂN NÃO!",
+    "drawDesc": "Hai bên ngang tài ngang sức — Cả 2 đội nhận +10% Sát Thương đầu ván!",
+    "winnerTitle": "🏆 {{winner}} CHIẾN THẮNG 1V1 SILVER SCRAPES!",
+    "winnerBuffDesc": "Đoạt Chiến Công Đầu! Toàn đội {{winner}} nhận bùa lợi +20% Sát Thương trong 90s đầu Ván quyết định!",
+    "idleHint": "Mọi tương tác Thả Tim, Chat gọi tướng & Tặng Quà đều lập tức nạp năng lượng đẩy lùi đối thủ!"
   }
 }

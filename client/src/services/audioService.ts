@@ -1222,7 +1222,79 @@ class AudioSynthesizerService {
     osc.stop(t + 0.085);
   }
 
-  // 12. Web Speech API (Vietnamese TTS)
+  // 12. Silver Scrapes Duel Audio
+  private silverScrapesBgmTimer: number | null = null;
+
+  public startSilverScrapesBgm(): void {
+    if (!this.isAudioEnabled) return;
+    this.stopSilverScrapesBgm();
+
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    let step = 0;
+    const notes = [146.83, 146.83, 174.61, 196.0, 220.0, 196.0, 174.61, 146.83];
+    const intervalMs = 280;
+
+    const tick = () => {
+      if (!this.isAudioEnabled || !this.ctx) return;
+      const t = this.ctx.currentTime;
+      const out = this.getOutputNode(0);
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      const freq = notes[step % notes.length];
+      step++;
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.98, t + 0.22);
+
+      gain.gain.setValueAtTime(0.18 * this.volume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(t);
+      osc.stop(t + 0.25);
+    };
+
+    tick();
+    this.silverScrapesBgmTimer = window.setInterval(tick, intervalMs);
+  }
+
+  public stopSilverScrapesBgm(): void {
+    if (this.silverScrapesBgmTimer !== null) {
+      clearInterval(this.silverScrapesBgmTimer);
+      this.silverScrapesBgmTimer = null;
+    }
+  }
+
+  public playBeamBurstSound(isUltimate = false): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = isUltimate ? 'sawtooth' : 'triangle';
+    const startFreq = isUltimate ? 580 : 380;
+    osc.frequency.setValueAtTime(startFreq, t);
+    osc.frequency.exponentialRampToValueAtTime(120, t + (isUltimate ? 0.35 : 0.18));
+
+    gain.gain.setValueAtTime((isUltimate ? 0.35 : 0.2) * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + (isUltimate ? 0.38 : 0.2));
+
+    osc.connect(gain);
+    gain.connect(out);
+    osc.start(t);
+    osc.stop(t + (isUltimate ? 0.4 : 0.22));
+  }
+
+  // 13. Web Speech API (Vietnamese TTS)
   public cancelSpeech(): void {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();

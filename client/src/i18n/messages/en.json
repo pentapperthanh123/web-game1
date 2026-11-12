@@ -251,11 +251,22 @@
     "shortTagLabel": "Display Tag (max 8 chars):",
     "aliasesLabel": "TikTok Chat Keywords (comma-separated):",
     "logoUrlLabel": "Logo URL (empty = auto crest):",
+    "logoPlaceholder": "URL or /images/teams/t1.svg",
     "colorThemeLabel": "Primary Color & 3D VFX Theme:",
     "rosterTitle": "5-Player Roster (TOP / JUG / MID / ADC / SUP):",
     "playerNamePlaceholder": "Player name",
     "avatarPlaceholder": "Player portrait URL (empty = champion icon)",
     "cancelBtn": "Cancel",
     "saveApplyBtn": "Save & Apply"
+  },
+  "SilverScrapes": {
+    "title": "⚡ SILVER SCRAPES: 1V1 DECIDER DUEL ⚡",
+    "lastStand": "LAST STAND SHIELD (95% CAP)",
+    "clashPrompt": "Tap Likes & Donate Gifts to Push Beam",
+    "draw": "EPIC DRAW MATCH!",
+    "drawDesc": "Both teams fought equally — Both receive +10% Damage at round start!",
+    "winnerTitle": "🏆 {{winner}} WINS 1V1 SILVER SCRAPES!",
+    "winnerBuffDesc": "First Blood Claimed! Team {{winner}} receives +20% Damage for 90s in the Decider Game!",
+    "idleHint": "All Likes, Summon Chats & Gifts immediately fuel the energy beam to push back opponents!"
   }
 }

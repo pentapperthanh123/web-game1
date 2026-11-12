@@ -14,12 +14,25 @@ import {
   TeamConfigState,
   TeamSlotKey,
 } from './constants/teams.js';
+import {
+  DEFAULT_DUEL_STATE,
+  DEFAULT_SERIES_CONFIG,
+  DuelFighter,
+  DuelLaneKey,
+  getSeriesFormatSpecs,
+  isDeciderRound,
+  SeriesFormat,
+  SeriesFormatConfig,
+  SilverScrapesDuelEvent,
+  SilverScrapesDuelState,
+} from './constants/series.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, '../data');
 const OVERLAY_DATA_FILE = path.join(DATA_DIR, 'overlay_visibility.json');
 const TEAM_CONFIG_DATA_FILE = path.join(DATA_DIR, 'team_config.json');
+const SERIES_FORMAT_DATA_FILE = path.join(DATA_DIR, 'series_format.json');
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
@@ -176,6 +189,190 @@ app.post('/api/teams', (req, res) => {
   res.json({ success: true, config: currentTeamConfig });
 });
 
+function loadSeriesConfigFromDisk(): SeriesFormatConfig {
+  try {
+    if (fs.existsSync(SERIES_FORMAT_DATA_FILE)) {
+      const raw = fs.readFileSync(SERIES_FORMAT_DATA_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.format === 'string') {
+        const specs = getSeriesFormatSpecs(parsed.format as SeriesFormat);
+        return {
+          format: parsed.format as SeriesFormat,
+          targetWins: specs.targetWins,
+          maxRounds: specs.maxRounds,
+          blgScore: Number(parsed.blgScore) || 0,
+          gengScore: Number(parsed.gengScore) || 0,
+          currentRound: Number(parsed.currentRound) || 1,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[Server] Could not read series config from disk:', err);
+  }
+  return { ...DEFAULT_SERIES_CONFIG };
+}
+
+function saveSeriesConfigToDisk(config: SeriesFormatConfig): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(SERIES_FORMAT_DATA_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Server] Could not persist series config to disk:', err);
+  }
+}
+
+let currentSeriesConfig: SeriesFormatConfig = loadSeriesConfigFromDisk();
+
+app.get('/api/series-format', (_req, res) => {
+  res.json(currentSeriesConfig);
+});
+
+app.post('/api/series-format', (req, res) => {
+  const format = req.body?.format as SeriesFormat;
+  if (!format || !['BO1', 'BO3', 'BO5'].includes(format)) {
+    res.status(400).json({ error: 'Invalid series format. Must be BO1, BO3, or BO5' });
+    return;
+  }
+  const specs = getSeriesFormatSpecs(format);
+  const resetScore = Boolean(req.body?.resetScore);
+  currentSeriesConfig = {
+    format,
+    targetWins: specs.targetWins,
+    maxRounds: specs.maxRounds,
+    blgScore: resetScore ? 0 : Math.min(specs.targetWins, currentSeriesConfig.blgScore),
+    gengScore: resetScore ? 0 : Math.min(specs.targetWins, currentSeriesConfig.gengScore),
+    currentRound: resetScore ? 1 : Math.min(specs.maxRounds, currentSeriesConfig.currentRound),
+  };
+  saveSeriesConfigToDisk(currentSeriesConfig);
+  io.emit('game:series-format', currentSeriesConfig);
+  res.json({ success: true, config: currentSeriesConfig });
+});
+
+function resolveFighter(teamKey: 'BLG' | 'GENG', lane: DuelLaneKey): DuelFighter {
+  const laneMap: Record<DuelLaneKey, number> = { TOP: 0, JUG: 1, MID: 2, ADC: 3, SUP: 4 };
+  const index = laneMap[lane] ?? 2;
+  const roster = currentTeamConfig.activeTeams[teamKey]?.roster ?? [];
+  const player = roster[index] ?? roster[0];
+  return {
+    id: player?.id ?? `${teamKey.toLowerCase()}_${lane.toLowerCase()}`,
+    name: player?.name ?? (teamKey === 'BLG' ? 'Knight' : 'Chovy'),
+    champion: player?.signatureChampion ?? (teamKey === 'BLG' ? 'Ahri' : 'Yone'),
+    avatarUrl: player?.avatarUrl ?? '',
+    team: teamKey,
+  };
+}
+
+let silverScrapesDuelState: SilverScrapesDuelState = { ...DEFAULT_DUEL_STATE };
+let duelIntervalTimer: NodeJS.Timeout | null = null;
+
+function broadcastDuelState(): void {
+  io.emit('game:silver-scrapes-state', silverScrapesDuelState);
+}
+
+function startDuel(lane: DuelLaneKey = 'MID', duration = 60): void {
+  if (duelIntervalTimer) {
+    clearInterval(duelIntervalTimer);
+    duelIntervalTimer = null;
+  }
+  const left = resolveFighter('BLG', lane);
+  const right = resolveFighter('GENG', lane);
+
+  silverScrapesDuelState = {
+    isActive: true,
+    timeRemaining: duration,
+    totalDuration: duration,
+    tugOfWarPercent: 50,
+    selectedLane: lane,
+    leftFighter: left,
+    rightFighter: right,
+    winner: null,
+    isLastStandActive: true,
+    winningTeamBuff: null,
+  };
+  broadcastDuelState();
+
+  duelIntervalTimer = setInterval(() => {
+    if (!silverScrapesDuelState.isActive) {
+      if (duelIntervalTimer) clearInterval(duelIntervalTimer);
+      return;
+    }
+
+    silverScrapesDuelState.timeRemaining -= 1;
+    if (silverScrapesDuelState.timeRemaining <= (silverScrapesDuelState.totalDuration - 15)) {
+      silverScrapesDuelState.isLastStandActive = false;
+    }
+
+    if (silverScrapesDuelState.timeRemaining <= 0) {
+      finishDuel();
+      return;
+    }
+
+    broadcastDuelState();
+  }, 1000);
+}
+
+function stopDuel(): void {
+  if (duelIntervalTimer) {
+    clearInterval(duelIntervalTimer);
+    duelIntervalTimer = null;
+  }
+  silverScrapesDuelState.isActive = false;
+  broadcastDuelState();
+}
+
+function finishDuel(forcedWinner?: 'BLG' | 'GENG'): void {
+  if (duelIntervalTimer) {
+    clearInterval(duelIntervalTimer);
+    duelIntervalTimer = null;
+  }
+
+  let finalWinner: 'BLG' | 'GENG' | 'DRAW' = 'DRAW';
+  if (forcedWinner) {
+    finalWinner = forcedWinner;
+  } else if (silverScrapesDuelState.tugOfWarPercent > 50) {
+    finalWinner = 'BLG';
+  } else if (silverScrapesDuelState.tugOfWarPercent < 50) {
+    finalWinner = 'GENG';
+  }
+
+  silverScrapesDuelState.isActive = false;
+  silverScrapesDuelState.winner = finalWinner;
+  silverScrapesDuelState.timeRemaining = 0;
+
+  if (finalWinner !== 'DRAW') {
+    silverScrapesDuelState.winningTeamBuff = finalWinner;
+    silverScrapesDuelState.buffActiveUntil = Date.now() + 90000;
+  }
+
+  broadcastDuelState();
+}
+
+function applyDuelContribution(team: 'BLG' | 'GENG', deltaPercent: number, event: SilverScrapesDuelEvent): void {
+  if (!silverScrapesDuelState.isActive) return;
+
+  const direction = team === 'BLG' ? 1 : -1;
+  let next = silverScrapesDuelState.tugOfWarPercent + direction * deltaPercent;
+
+  if (silverScrapesDuelState.isLastStandActive) {
+    next = Math.max(5, Math.min(95, next));
+  } else {
+    next = Math.max(0, Math.min(100, next));
+  }
+
+  silverScrapesDuelState.tugOfWarPercent = Math.round(next * 10) / 10;
+  silverScrapesDuelState.lastEvent = event;
+  broadcastDuelState();
+
+  if (next >= 100) {
+    finishDuel('BLG');
+  } else if (next <= 0) {
+    finishDuel('GENG');
+  }
+}
+
+
 let currentGameTheme: 'BARON' | 'ELDER_DRAGON' = 'BARON';
 
 interface BossSkillConfig {
@@ -314,6 +511,16 @@ app.post('/api/tiktok/connect', async (req, res) => {
           team: parsed.team,
         });
       }
+
+      if (silverScrapesDuelState.isActive && parsed.team) {
+        applyDuelContribution(parsed.team, 0.8, {
+          type: 'SKILL',
+          donorName: nickname,
+          team: parsed.team,
+          deltaPercent: 0.8,
+          description: `${nickname} gọi ${parsed.champion || 'Tướng'} xuất chiêu! (+0.8%)`,
+        });
+      }
     });
 
     tiktokConnection.on('gift', (data) => {
@@ -333,6 +540,25 @@ app.post('/api/tiktok/connect', async (req, res) => {
         team,
         coins: diamondCount,
       });
+
+      if (silverScrapesDuelState.isActive) {
+        let delta = 3.0;
+        let eventType: 'SKILL' | 'ULTIMATE' | 'MYTHIC' = 'SKILL';
+        if (diamondCount >= 1000) {
+          delta = 25.0;
+          eventType = 'MYTHIC';
+        } else if (diamondCount >= 50) {
+          delta = 10.0;
+          eventType = 'ULTIMATE';
+        }
+        applyDuelContribution(team, delta, {
+          type: eventType,
+          donorName: nickname,
+          team,
+          deltaPercent: delta,
+          description: `${nickname} nạp ${giftName} (+${delta}%)`,
+        });
+      }
     });
 
     tiktokConnection.on('like', (data) => {
@@ -345,6 +571,16 @@ app.post('/api/tiktok/connect', async (req, res) => {
         team,
         userName: nickname,
       });
+
+      if (silverScrapesDuelState.isActive) {
+        applyDuelContribution(team, 0.2, {
+          type: 'TAP',
+          donorName: nickname,
+          team,
+          deltaPercent: 0.2,
+          description: `${nickname} thả tim tiếp sức! (+0.2%)`,
+        });
+      }
     });
 
     res.json({ message: 'Connecting to TikTok Live...', username: cleanUsername });
@@ -370,12 +606,14 @@ app.post('/api/tiktok/disconnect', (_, res) => {
 io.on('connection', (socket) => {
   console.log(`[Socket] Client connected: ${socket.id}`);
 
-  // Send current TikTok status on connect
+  // Send current state on connect
   socket.emit('game:team-config', currentTeamConfig);
   socket.emit('game:overlay-visibility', currentOverlayVisibility);
   socket.emit('game:theme', { theme: currentGameTheme });
   socket.emit('game:boss-skill-config', currentBossSkillConfig);
   socket.emit('game:auto-pro-battle', currentAutoProBattleConfig);
+  socket.emit('game:series-format', currentSeriesConfig);
+  socket.emit('game:silver-scrapes-state', silverScrapesDuelState);
   socket.emit('tiktok:status', {
     status: connectionStatus,
     username: currentTiktokUsername,
@@ -388,14 +626,51 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin:gift', (payload) => {
+    if (silverScrapesDuelState.isActive && payload?.team) {
+      const coins = payload.coins || 10;
+      let delta = 3.0;
+      let eventType: 'SKILL' | 'ULTIMATE' | 'MYTHIC' = 'SKILL';
+      if (coins >= 1000) {
+        delta = 25.0;
+        eventType = 'MYTHIC';
+      } else if (coins >= 50) {
+        delta = 10.0;
+        eventType = 'ULTIMATE';
+      }
+      applyDuelContribution(payload.team, delta, {
+        type: eventType,
+        donorName: payload.donorName || 'Admin VIP',
+        team: payload.team,
+        deltaPercent: delta,
+        description: `${payload.donorName || 'Admin'} nạp ${payload.giftName || 'Quà'} (+${delta}%)`,
+      });
+    }
     io.emit('game:gift', payload);
   });
 
   socket.on('admin:like', (payload) => {
+    if (silverScrapesDuelState.isActive && payload?.team) {
+      applyDuelContribution(payload.team, 0.2, {
+        type: 'TAP',
+        donorName: payload.userName || 'Admin',
+        team: payload.team,
+        deltaPercent: 0.2,
+        description: `${payload.userName || 'Admin'} thả tim tiếp sức! (+0.2%)`,
+      });
+    }
     io.emit('game:like', payload);
   });
 
   socket.on('admin:chat', (payload) => {
+    if (silverScrapesDuelState.isActive && payload?.team) {
+      applyDuelContribution(payload.team, 0.8, {
+        type: 'SKILL',
+        donorName: payload.userName || 'Admin',
+        team: payload.team,
+        deltaPercent: 0.8,
+        description: `${payload.userName || 'Admin'} tung chiêu! (+0.8%)`,
+      });
+    }
     // If not already parsed into a champion summon, parse the comment text
     if (!payload.championName && payload.text) {
       const parsed = parseCommentCommand(payload.text, payload.team);
@@ -428,8 +703,69 @@ io.on('connection', (socket) => {
     io.emit('game:boss-control', payload);
   });
 
-  socket.on('admin:bo5-control', (payload) => {
+  socket.on('admin:bo5-control', (payload: { action?: string; blg?: number; geng?: number; currentRound?: number }) => {
+    if (payload?.action === 'reset') {
+      currentSeriesConfig.blgScore = 0;
+      currentSeriesConfig.gengScore = 0;
+      currentSeriesConfig.currentRound = 1;
+      saveSeriesConfigToDisk(currentSeriesConfig);
+      io.emit('game:series-format', currentSeriesConfig);
+    } else if (payload?.action === 'nextRound') {
+      currentSeriesConfig.currentRound = Math.min(currentSeriesConfig.maxRounds, currentSeriesConfig.currentRound + 1);
+      saveSeriesConfigToDisk(currentSeriesConfig);
+      io.emit('game:series-format', currentSeriesConfig);
+    } else if (payload?.action === 'setScore') {
+      const nextBlg = Math.max(0, Math.min(currentSeriesConfig.targetWins, payload.blg ?? currentSeriesConfig.blgScore));
+      const nextGeng = Math.max(0, Math.min(currentSeriesConfig.targetWins, payload.geng ?? currentSeriesConfig.gengScore));
+      const nextRound = payload.currentRound ?? Math.min(currentSeriesConfig.maxRounds, nextBlg + nextGeng + 1);
+      currentSeriesConfig.blgScore = nextBlg;
+      currentSeriesConfig.gengScore = nextGeng;
+      currentSeriesConfig.currentRound = nextRound;
+      saveSeriesConfigToDisk(currentSeriesConfig);
+      io.emit('game:series-format', currentSeriesConfig);
+
+      // Trigger Silver Scrapes if decider round!
+      if (isDeciderRound(nextBlg, nextGeng, currentSeriesConfig.targetWins) && !silverScrapesDuelState.isActive) {
+        startDuel(silverScrapesDuelState.selectedLane, 60);
+      }
+    }
     io.emit('game:bo5-control', payload);
+  });
+
+  socket.on('admin:set-series-format', (payload: { format: SeriesFormat; resetScore?: boolean }) => {
+    const format = payload?.format;
+    if (!format || !['BO1', 'BO3', 'BO5'].includes(format)) return;
+    const specs = getSeriesFormatSpecs(format);
+    const resetScore = Boolean(payload?.resetScore);
+    currentSeriesConfig = {
+      format,
+      targetWins: specs.targetWins,
+      maxRounds: specs.maxRounds,
+      blgScore: resetScore ? 0 : Math.min(specs.targetWins, currentSeriesConfig.blgScore),
+      gengScore: resetScore ? 0 : Math.min(specs.targetWins, currentSeriesConfig.gengScore),
+      currentRound: resetScore ? 1 : Math.min(specs.maxRounds, currentSeriesConfig.currentRound),
+    };
+    saveSeriesConfigToDisk(currentSeriesConfig);
+    io.emit('game:series-format', currentSeriesConfig);
+  });
+
+  socket.on('admin:silver-scrapes-duel', (payload: { action: 'start' | 'stop' | 'extend' | 'setLane'; lane?: DuelLaneKey; duration?: number }) => {
+    if (!payload?.action) return;
+    if (payload.action === 'start') {
+      startDuel(payload.lane || silverScrapesDuelState.selectedLane, payload.duration || 60);
+    } else if (payload.action === 'stop') {
+      stopDuel();
+    } else if (payload.action === 'extend') {
+      if (silverScrapesDuelState.isActive) {
+        silverScrapesDuelState.timeRemaining += 30;
+        broadcastDuelState();
+      }
+    } else if (payload.action === 'setLane' && payload.lane) {
+      silverScrapesDuelState.selectedLane = payload.lane;
+      silverScrapesDuelState.leftFighter = resolveFighter('BLG', payload.lane);
+      silverScrapesDuelState.rightFighter = resolveFighter('GENG', payload.lane);
+      broadcastDuelState();
+    }
   });
 
   socket.on('admin:set-team-config', (payload: unknown) => {

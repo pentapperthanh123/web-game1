@@ -418,7 +418,7 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
       </group>
 
       {/* 7. Celestial Halo Aura */}
-      <mesh position={[0, 0, -0.015]} geometry={SHARED_CELESTIAL_AURA_GEO}>
+      <mesh name="celestial-halo" position={[0, 0, -0.015]} geometry={SHARED_CELESTIAL_AURA_GEO}>
         <meshBasicMaterial
           color={teamPalette.crit}
           transparent
@@ -430,7 +430,7 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
       </mesh>
 
       {/* 8. Vertical Sky Light Beam Pillar */}
-      <mesh position={[0, 1.4, 0]} geometry={SHARED_LIGHT_BEAM_GEO}>
+      <mesh name="sky-beam" position={[0, 1.4, 0]} geometry={SHARED_LIGHT_BEAM_GEO}>
         <meshBasicMaterial
           color={teamPalette.primary}
           transparent
@@ -445,6 +445,7 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
       <mesh
         position={[0, -0.25, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
+        name="landing-ring"
         geometry={SHARED_LANDING_RING_GEO}
       >
         <meshBasicMaterial
@@ -477,6 +478,7 @@ const ChampionToken = ({ minion }: ChampionTokenProps) => {
       {/* 11. Invulnerability Shield Barrier (Khiên bảo hộ bất tử 1s khi mới hồi sinh/triệu hồi) */}
       <mesh
         position={[0, 0, 0.035]}
+        name="invuln-shield"
         geometry={SHARED_SHIELD_RING_GEO}
       >
         <meshBasicMaterial
@@ -581,17 +583,17 @@ export const SummonPortals3D = () => {
         const innerRing = portalGroup.children[1] as THREE.Mesh | undefined;
         const pillar = portalGroup.children[2] as THREE.Mesh | undefined;
 
-        if (outerRing) {
+        if (outerRing && outerRing.material instanceof THREE.MeshBasicMaterial) {
           outerRing.rotation.z = elapsedTime * 3.2;
-          (outerRing.material as THREE.MeshBasicMaterial).opacity = fade * 0.9;
+          outerRing.material.opacity = fade * 0.9;
         }
-        if (innerRing) {
+        if (innerRing && innerRing.material instanceof THREE.MeshBasicMaterial) {
           innerRing.rotation.z = -elapsedTime * 5.0;
-          (innerRing.material as THREE.MeshBasicMaterial).opacity = fade * 0.95;
+          innerRing.material.opacity = fade * 0.95;
         }
-        if (pillar) {
+        if (pillar && pillar.material instanceof THREE.MeshBasicMaterial) {
           pillar.scale.set(1 - progress * 0.45, 1 + progress * 0.6, 1 - progress * 0.45);
-          (pillar.material as THREE.MeshBasicMaterial).opacity = fade * 0.55;
+          pillar.material.opacity = fade * 0.55;
         }
       }
     }
@@ -867,40 +869,40 @@ export const SummonPortals3D = () => {
         const tokenSubgroup = champGroup.children[0] as THREE.Group | undefined;
 
         if (tokenSubgroup) {
-          const haloMesh = tokenSubgroup.children[6] as THREE.Mesh | undefined;
-          const beamMesh = tokenSubgroup.children[7] as THREE.Mesh | undefined;
-          const landingMesh = tokenSubgroup.children[8] as THREE.Mesh | undefined;
+          const haloMesh = tokenSubgroup.getObjectByName('celestial-halo') as THREE.Mesh | undefined;
+          const beamMesh = tokenSubgroup.getObjectByName('sky-beam') as THREE.Mesh | undefined;
+          const landingMesh = tokenSubgroup.getObjectByName('landing-ring') as THREE.Mesh | undefined;
 
-          if (haloMesh) {
+          if (haloMesh && haloMesh.material instanceof THREE.MeshBasicMaterial) {
             if (isAuraActive) {
               const haloPulse = Math.sin(auraProg * Math.PI);
               haloMesh.scale.setScalar(0.85 + haloPulse * 0.65);
               haloMesh.rotation.z = elapsedTime * (minion.team === TEAM_KEY.BLG ? 3.5 : -3.5);
-              (haloMesh.material as THREE.MeshBasicMaterial).opacity = haloPulse * 0.95;
+              haloMesh.material.opacity = haloPulse * 0.95;
               haloMesh.visible = true;
             } else {
               haloMesh.visible = false;
             }
           }
 
-          if (beamMesh) {
+          if (beamMesh && beamMesh.material instanceof THREE.MeshBasicMaterial) {
             if (isAuraActive) {
               const beamFade = Math.max(0, 1.0 - auraProg);
               beamMesh.scale.set(1.0 + auraProg * 0.4, 1.0, 1.0 + auraProg * 0.4);
-              (beamMesh.material as THREE.MeshBasicMaterial).opacity = beamFade * 0.75;
+              beamMesh.material.opacity = beamFade * 0.75;
               beamMesh.visible = true;
             } else {
               beamMesh.visible = false;
             }
           }
 
-          if (landingMesh) {
+          if (landingMesh && landingMesh.material instanceof THREE.MeshBasicMaterial) {
             if (isAuraActive && entranceAgeMs >= 350) {
               const landProg = (entranceAgeMs - 350) / (AURA_DURATION_MS - 350);
               const landScale = 0.5 + landProg * 2.0;
               const landFade = Math.max(0, 1.0 - landProg);
               landingMesh.scale.setScalar(landScale);
-              (landingMesh.material as THREE.MeshBasicMaterial).opacity = landFade * 0.85;
+              landingMesh.material.opacity = landFade * 0.85;
               landingMesh.visible = true;
             } else {
               landingMesh.visible = false;
@@ -908,8 +910,8 @@ export const SummonPortals3D = () => {
           }
 
           // Dynamic Invulnerability Shield Barrier (Khiên Bảo Hộ 1s)
-          const shieldMesh = tokenSubgroup.children[10] as THREE.Mesh | undefined;
-          if (shieldMesh) {
+          const shieldMesh = tokenSubgroup.getObjectByName('invuln-shield') as THREE.Mesh | undefined;
+          if (shieldMesh && shieldMesh.material instanceof THREE.MeshBasicMaterial) {
             const isShieldActive = entranceAgeMs < GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
             if (isShieldActive) {
               const shieldPulse = 1.0 + Math.sin(elapsedTime * 12) * 0.08;
@@ -917,7 +919,7 @@ export const SummonPortals3D = () => {
               shieldMesh.rotation.z = -elapsedTime * 4.0;
               const shieldProg = entranceAgeMs / GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
               const shieldOpacity = Math.max(0.2, (1.0 - shieldProg * 0.35) * 0.9);
-              (shieldMesh.material as THREE.MeshBasicMaterial).opacity = shieldOpacity;
+              shieldMesh.material.opacity = shieldOpacity;
               shieldMesh.visible = true;
             } else {
               shieldMesh.visible = false;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, X, Sparkles, User } from 'lucide-react';
-import { ALL_CHAMPIONS, findChampion } from '../../../constants/champions';
+import { findChampion } from '../../../constants/champions';
 import {
   TEAM_COLOR_THEME_OPTIONS,
   createChampionPortraitUrl,
@@ -9,6 +9,7 @@ import {
 } from '../../../constants/teams';
 import { TeamColorThemeId, TeamPlayerProfile, TeamProfile } from '../../../types/team';
 import { TeamLogo } from '../../icons/TeamLogos';
+import { TeamPlayerEditorRow } from './TeamPlayerEditorRow';
 
 interface TeamProfileEditorProps {
   initialTeam: TeamProfile;
@@ -51,10 +52,7 @@ export const TeamProfileEditor: React.FC<TeamProfileEditorProps> = ({
     roster,
   };
 
-  const handlePlayerFieldChange = (
-    index: number,
-    patch: Partial<TeamPlayerProfile>
-  ) => {
+  const patchPlayer = (index: number, patch: Partial<TeamPlayerProfile>) => {
     setRoster((prev) =>
       prev.map((player, idx) => (idx === index ? { ...player, ...patch } : player))
     );
@@ -119,9 +117,7 @@ export const TeamProfileEditor: React.FC<TeamProfileEditorProps> = ({
           <TeamLogo teamProfile={previewProfile} className="w-7 h-7 shrink-0" />
           <div className="min-w-0">
             <div className="font-black text-amber-300 truncate">
-              {t('AdminTeams.editorTitle', 'Chỉnh Sửa Đội ({{slot}})', {
-                slot: targetSlotLabel,
-              })}
+              {t('AdminTeams.editorTitle', 'Chỉnh Sửa Đội ({{slot}})', { slot: targetSlotLabel })}
             </div>
             <div className="text-[10px] text-slate-400 truncate">
               {t('AdminTeams.editorSubtitle', 'Cấu hình tên, từ khóa chat & 5 tuyển thủ')}
@@ -138,7 +134,6 @@ export const TeamProfileEditor: React.FC<TeamProfileEditorProps> = ({
         </button>
       </div>
 
-      {/* Team Basic Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <label className="space-y-1">
           <span className="text-[10px] font-bold text-slate-400">
@@ -149,11 +144,9 @@ export const TeamProfileEditor: React.FC<TeamProfileEditorProps> = ({
             maxLength={36}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="T1 Esports"
             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-[11px] focus:outline-none focus:border-amber-400"
           />
         </label>
-
         <label className="space-y-1">
           <span className="text-[10px] font-bold text-slate-400">
             {t('AdminTeams.shortTagLabel', 'Tag hiển thị (tối đa 8 ký tự):')}
@@ -163,13 +156,9 @@ export const TeamProfileEditor: React.FC<TeamProfileEditorProps> = ({
             maxLength={8}
             value={shortTag}
             onChange={(e) => setShortTag(e.target.value.toUpperCase())}
-            placeholder="T1"
             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white font-black uppercase text-[11px] focus:outline-none focus:border-amber-400"
           />
         </label>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <label className="space-y-1">
           <span className="text-[10px] font-bold text-slate-400">
             {t('AdminTeams.aliasesLabel', 'Từ khóa Chat TikTok (cách bằng dấu phẩy):')}
@@ -178,11 +167,9 @@ export const TeamProfileEditor: React.FC<TeamProfileEditorProps> = ({
             type="text"
             value={aliasesText}
             onChange={(e) => setAliasesText(e.target.value)}
-            placeholder="T1, SKT, FAKER"
             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-cyan-200 text-[11px] focus:outline-none focus:border-cyan-400"
           />
         </label>
-
         <label className="space-y-1">
           <span className="text-[10px] font-bold text-slate-400">
             {t('AdminTeams.logoUrlLabel', 'Link Logo (trống = huy hiệu tự động):')}
@@ -191,100 +178,54 @@ export const TeamProfileEditor: React.FC<TeamProfileEditorProps> = ({
             type="text"
             value={logoUrl}
             onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="https://... hoặc /images/teams/t1.svg"
+            placeholder={t('AdminTeams.logoPlaceholder', 'URL hoặc /images/teams/t1.svg')}
             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 text-[11px] focus:outline-none focus:border-cyan-400"
           />
         </label>
       </div>
 
-      {/* Color Theme Picker */}
       <div className="space-y-1">
         <span className="text-[10px] font-bold text-slate-400">
           {t('AdminTeams.colorThemeLabel', 'Màu chủ đạo & Hiệu ứng 3D:')}
         </span>
         <div className="flex flex-wrap gap-1.5">
-          {TEAM_COLOR_THEME_OPTIONS.map((palette) => {
-            const isSelected = colorTheme === palette.id;
-            return (
-              <button
-                key={palette.id}
-                type="button"
-                onClick={() => setColorTheme(palette.id)}
-                className={`flex items-center space-x-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold transition ${
-                  isSelected
-                    ? `${palette.pillButtonClass} ring-1 ring-white/40`
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className={`w-2.5 h-2.5 rounded-full ${palette.swatchClass}`} />
-                <span>{isVi ? palette.labelVi : palette.labelEn}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 5 Pro Players Roster Editor */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold text-amber-300 flex items-center space-x-1">
-            <User className="w-3 h-3" />
-            <span>{t('AdminTeams.rosterTitle', 'Đội hình 5 Tuyển Thủ (TOP / JUG / MID / ADC / SUP):')}</span>
-          </span>
-        </div>
-
-        <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-          {roster.map((player, index) => (
-            <div
-              key={`${player.role}-${index}`}
-              className="p-2 rounded-lg bg-slate-950/85 border border-slate-800 space-y-1.5"
+          {TEAM_COLOR_THEME_OPTIONS.map((palette) => (
+            <button
+              key={palette.id}
+              type="button"
+              onClick={() => setColorTheme(palette.id)}
+              className={`flex items-center space-x-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold transition ${
+                colorTheme === palette.id
+                  ? `${palette.pillButtonClass} ring-1 ring-white/40`
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
             >
-              <div className="flex items-center gap-1.5">
-                <img
-                  src={player.avatarUrl || createChampionPortraitUrl(player.championKey)}
-                  alt={player.name}
-                  className="w-7 h-7 rounded-full object-cover border border-slate-700 shrink-0 bg-slate-900"
-                />
-                <span className="text-[10px] font-mono font-black px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 shrink-0">
-                  {player.role}
-                </span>
-                <input
-                  type="text"
-                  maxLength={24}
-                  value={player.name}
-                  onChange={(e) => handlePlayerFieldChange(index, { name: e.target.value })}
-                  placeholder={t('AdminTeams.playerNamePlaceholder', 'Tên game thủ')}
-                  className="flex-1 min-w-0 px-2 py-1 rounded bg-slate-900 border border-slate-800 text-white text-[11px] font-bold focus:outline-none focus:border-cyan-400"
-                />
-                <select
-                  value={player.signatureChampion}
-                  onChange={(e) => handleChampionChange(index, e.target.value)}
-                  className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-cyan-200 text-[11px] font-bold max-w-[125px] focus:outline-none focus:border-cyan-400"
-                >
-                  {ALL_CHAMPIONS.map((champ) => (
-                    <option key={champ.id} value={champ.name}>
-                      {champ.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <input
-                type="text"
-                value={player.avatarUrl}
-                onChange={(e) => handlePlayerFieldChange(index, { avatarUrl: e.target.value })}
-                placeholder={t(
-                  'AdminTeams.avatarPlaceholder',
-                  'Link ảnh tuyển thủ (trống = tự dùng ảnh tướng)'
-                )}
-                className="w-full px-2 py-1 rounded bg-slate-900/70 border border-slate-800/80 text-slate-300 text-[10px] focus:outline-none focus:border-cyan-400"
-              />
-            </div>
+              <span className={`w-2.5 h-2.5 rounded-full ${palette.swatchClass}`} />
+              <span>{isVi ? palette.labelVi : palette.labelEn}</span>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Form Actions */}
+      <div className="space-y-1.5">
+        <span className="text-[10px] font-bold text-amber-300 flex items-center space-x-1">
+          <User className="w-3 h-3" />
+          <span>{t('AdminTeams.rosterTitle', 'Đội hình 5 Tuyển Thủ (TOP / JUG / MID / ADC / SUP):')}</span>
+        </span>
+        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+          {roster.map((player, index) => (
+            <TeamPlayerEditorRow
+              key={`${player.role}-${index}`}
+              player={player}
+              index={index}
+              onNameChange={(idx, val) => patchPlayer(idx, { name: val })}
+              onChampionChange={handleChampionChange}
+              onAvatarChange={(idx, val) => patchPlayer(idx, { avatarUrl: val })}
+            />
+          ))}
+        </div>
+      </div>
+
       <div className="flex items-center justify-end space-x-2 pt-1 border-t border-slate-800">
         <button
           type="button"

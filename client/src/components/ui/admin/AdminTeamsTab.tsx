@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  ArrowLeftRight,
-  Check,
-  Edit3,
-  Plus,
-  Swords,
-  Trash2,
-  Users,
-} from 'lucide-react';
+import { ArrowLeftRight, Check, Swords } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
 import { TEAM_KEY, TeamType } from '../../../constants/game';
 import {
   HOT_MATCHUPS,
   createCustomTeamTemplate,
-  getTeamTheme,
   mountTeamToSlot,
 } from '../../../constants/teams';
 import { gameSocket } from '../../../services/socket';
 import { TeamProfile } from '../../../types/team';
-import { TeamLogo } from '../../icons/TeamLogos';
 import { TeamProfileEditor } from './TeamProfileEditor';
+import { TeamSlotSelectorCard } from './TeamSlotSelectorCard';
+import { TeamCatalogGrid } from './TeamCatalogGrid';
 
 interface EditorTarget {
   team: TeamProfile;
@@ -41,8 +33,6 @@ export const AdminTeamsTab: React.FC = () => {
 
   const leftTeam = activeTeams[TEAM_KEY.BLG];
   const rightTeam = activeTeams[TEAM_KEY.GENG];
-  const leftTheme = getTeamTheme(leftTeam.colorTheme);
-  const rightTheme = getTeamTheme(rightTeam.colorTheme);
 
   const showFeedback = (msg: string) => {
     setFeedback(msg);
@@ -54,10 +44,7 @@ export const AdminTeamsTab: React.FC = () => {
   const syncMatchupToServer = (resetMatch: boolean) => {
     const latest = useGameStore.getState();
     gameSocket.sendTeamConfig(
-      {
-        activeTeams: latest.activeTeams,
-        teamCatalog: latest.teamCatalog,
-      },
+      { activeTeams: latest.activeTeams, teamCatalog: latest.teamCatalog },
       resetMatch
     );
   };
@@ -98,8 +85,7 @@ export const AdminTeamsTab: React.FC = () => {
   };
 
   const handleSaveEditor = (updated: TeamProfile) => {
-    const mountSlot = editorTarget?.slot;
-    saveTeamToCatalog(updated, mountSlot);
+    saveTeamToCatalog(updated, editorTarget?.slot);
     syncMatchupToServer(false);
     setEditorTarget(null);
     showFeedback(
@@ -113,20 +99,22 @@ export const AdminTeamsTab: React.FC = () => {
     if (team.isPreset) return;
     deleteCustomTeam(team.id);
     syncMatchupToServer(false);
-    showFeedback(t('AdminTeams.deletedFeedback', 'Đã xóa đội tự tạo: {{name}}', { name: team.name }));
+    showFeedback(
+      t('AdminTeams.deletedFeedback', 'Đã xóa đội tự tạo: {{name}}', { name: team.name })
+    );
+  };
+
+  const resolveEditorSlotLabel = (slot?: TeamType): string => {
+    if (slot === TEAM_KEY.BLG) return t('AdminTeams.leftSlotLabel', 'Phe Trái');
+    if (slot === TEAM_KEY.GENG) return t('AdminTeams.rightSlotLabel', 'Phe Phải');
+    return t('AdminTeams.customTeamLabel', 'Đội Tùy Chỉnh');
   };
 
   if (editorTarget) {
-    const slotLabel = editorTarget.slot
-      ? editorTarget.slot === TEAM_KEY.BLG
-        ? t('AdminTeams.leftSlotLabel', 'Phe Trái')
-        : t('AdminTeams.rightSlotLabel', 'Phe Phải')
-      : t('AdminTeams.customTeamLabel', 'Đội Tùy Chỉnh');
-
     return (
       <TeamProfileEditor
         initialTeam={editorTarget.team}
-        targetSlotLabel={slotLabel}
+        targetSlotLabel={resolveEditorSlotLabel(editorTarget.slot)}
         onSave={handleSaveEditor}
         onCancel={() => setEditorTarget(null)}
       />
@@ -142,7 +130,6 @@ export const AdminTeamsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Active Matchup Overview + Swap */}
       <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold text-amber-300 flex items-center space-x-1.5">
@@ -159,64 +146,25 @@ export const AdminTeamsTab: React.FC = () => {
           </button>
         </div>
 
-        {/* Left vs Right Slots */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[
-            { slot: TEAM_KEY.BLG, team: leftTeam, theme: leftTheme, label: t('AdminTeams.leftSlotLabel', 'Phe Trái') },
-            { slot: TEAM_KEY.GENG, team: rightTeam, theme: rightTheme, label: t('AdminTeams.rightSlotLabel', 'Phe Phải') },
-          ].map(({ slot, team, theme, label }) => (
-            <div
-              key={slot}
-              className={`p-2.5 rounded-xl border bg-slate-950/85 space-y-2 ${theme.borderSoftClass}`}
-            >
-              <div className="flex items-center justify-between gap-1.5">
-                <div className="flex items-center space-x-2 min-w-0">
-                  <TeamLogo teamProfile={team} className="w-7 h-7 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-[9px] text-slate-400 uppercase font-bold">{label}</div>
-                    <div className={`text-xs font-black truncate ${theme.textClass}`}>
-                      {team.name} ({team.shortTag})
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEditorTarget({ team: mountTeamToSlot(team, slot), slot })}
-                  className="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-amber-300 hover:bg-slate-700 text-[10px] font-bold flex items-center space-x-1 shrink-0 transition active:scale-95"
-                >
-                  <Edit3 className="w-3 h-3" />
-                  <span>{t('AdminTeams.editTeamBtn', 'Sửa')}</span>
-                </button>
-              </div>
-
-              <select
-                value={team.id}
-                onChange={(e) => handleAssignSlot(slot, e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-slate-100 focus:outline-none focus:border-cyan-400"
-              >
-                {teamCatalog.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.shortTag} — {item.name} {!item.isPreset ? '★' : ''}
-                  </option>
-                ))}
-              </select>
-
-              <div className="flex flex-wrap gap-1">
-                {team.roster.map((p) => (
-                  <span
-                    key={p.id}
-                    className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300"
-                    title={`${p.role}: ${p.name} (${p.signatureChampion})`}
-                  >
-                    <strong className={theme.textStrongClass}>{p.name}</strong> · {p.signatureChampion}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
+          <TeamSlotSelectorCard
+            slot={TEAM_KEY.BLG}
+            label={t('AdminTeams.leftSlotLabel', 'Phe Trái')}
+            team={leftTeam}
+            catalog={teamCatalog}
+            onAssignSlot={handleAssignSlot}
+            onEditTeam={(team, slot) => setEditorTarget({ team: mountTeamToSlot(team, slot), slot })}
+          />
+          <TeamSlotSelectorCard
+            slot={TEAM_KEY.GENG}
+            label={t('AdminTeams.rightSlotLabel', 'Phe Phải')}
+            team={rightTeam}
+            catalog={teamCatalog}
+            onAssignSlot={handleAssignSlot}
+            onEditTeam={(team, slot) => setEditorTarget({ team: mountTeamToSlot(team, slot), slot })}
+          />
         </div>
 
-        {/* Reset Match Toggle */}
         <button
           type="button"
           onClick={() => setResetOnSwitch((prev) => !prev)}
@@ -235,7 +183,6 @@ export const AdminTeamsTab: React.FC = () => {
         </button>
       </div>
 
-      {/* Hot Matchups 1-Click Presets */}
       <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
         <div className="text-[11px] font-bold text-cyan-300">
           {t('AdminTeams.hotMatchupsTitle', 'Kèo Đấu Nổi Bật (1 Click Đổi Nhanh):')}
@@ -262,70 +209,17 @@ export const AdminTeamsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Custom Team Builder Section */}
-      <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">
-            <Users className="w-3.5 h-3.5 text-violet-400" />
-            <span>{t('AdminTeams.catalogTitle', 'Kho Đội Tuyển ({{count}} đội):', { count: teamCatalog.length })}</span>
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              setEditorTarget({
-                team: createCustomTeamTemplate(t('AdminTeams.newTeamDefaultName', 'Đội Tuyển Mới')),
-                slot: TEAM_KEY.BLG,
-              })
-            }
-            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-600 text-white font-black text-[10px] flex items-center space-x-1 active:scale-95 transition"
-          >
-            <Plus className="w-3 h-3" />
-            <span>{t('AdminTeams.createTeamBtn', 'Tạo Đội Mới')}</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1">
-          {teamCatalog.map((item) => {
-            const theme = getTeamTheme(item.colorTheme);
-            return (
-              <div
-                key={item.id}
-                className="p-1.5 rounded-lg bg-slate-950/85 border border-slate-800 flex items-center justify-between gap-1.5"
-              >
-                <div className="flex items-center space-x-1.5 min-w-0">
-                  <TeamLogo teamProfile={item} className="w-5 h-5 shrink-0" />
-                  <div className="min-w-0 leading-tight">
-                    <div className={`text-[10px] font-black truncate ${theme.textClass}`}>
-                      {item.shortTag}
-                    </div>
-                    <div className="text-[9px] text-slate-400 truncate">{item.name}</div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setEditorTarget({ team: mountTeamToSlot(item, TEAM_KEY.BLG) })}
-                    className="p-1 rounded bg-slate-900 text-slate-400 hover:text-amber-300"
-                    title={t('AdminTeams.editTeamBtn', 'Sửa')}
-                  >
-                    <Edit3 className="w-3 h-3" />
-                  </button>
-                  {!item.isPreset && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCustom(item)}
-                      className="p-1 rounded bg-slate-900 text-slate-400 hover:text-rose-400"
-                      title={t('AdminTeams.deleteTeamBtn', 'Xóa đội tùy chỉnh')}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <TeamCatalogGrid
+        catalog={teamCatalog}
+        onCreateTeam={() =>
+          setEditorTarget({
+            team: createCustomTeamTemplate(t('AdminTeams.newTeamDefaultName', 'Đội Tuyển Mới')),
+            slot: TEAM_KEY.BLG,
+          })
+        }
+        onEditTeam={(item) => setEditorTarget({ team: mountTeamToSlot(item, TEAM_KEY.BLG) })}
+        onDeleteTeam={handleDeleteCustom}
+      />
     </div>
   );
 };
