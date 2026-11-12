@@ -222,23 +222,17 @@ export const ParticipationGuidePanel = () => {
           className="flex items-center space-x-1.5 min-w-0 text-left flex-1 hover:opacity-90 transition active:scale-95"
         >
           {activeTab === 'RULES' ? (
-            <div className="flex items-center space-x-1 min-w-0 animate-in fade-in duration-300">
+            <div className="flex items-center space-x-1.5 min-w-0 animate-in fade-in duration-300">
               <BookOpen className="w-3 h-3 text-cyan-400 shrink-0" />
               <span className="text-[9px] sm:text-[9.5px] font-black uppercase text-cyan-200 tracking-wider truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                 {t('HUD.guideTabRules', 'Cách Tham Gia')}
               </span>
-              <span className="text-[6.5px] font-mono font-bold px-1 py-0.2 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 shrink-0">
-                5s
-              </span>
             </div>
           ) : (
-            <div className="flex items-center space-x-1 min-w-0 animate-in fade-in duration-300">
+            <div className="flex items-center space-x-1.5 min-w-0 animate-in fade-in duration-300">
               <Gift className="w-3 h-3 text-amber-400 shrink-0" />
               <span className="text-[9px] sm:text-[9.5px] font-black uppercase text-amber-200 tracking-wider truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                 {t('HUD.guideTabRewards', 'Quà & Sát Thương')}
-              </span>
-              <span className="text-[6.5px] font-mono font-bold px-1 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-700/60 shrink-0">
-                5s
               </span>
             </div>
           )}
