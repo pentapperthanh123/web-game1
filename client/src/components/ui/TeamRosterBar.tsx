@@ -26,7 +26,7 @@ const getAvatarBorderClass = (
   teamTheme: TeamColorPalette
 ): string => {
   if (isFullFury) {
-    return 'border-amber-300 ring-1 ring-amber-400/70 shadow-[0_0_10px_rgba(245,158,11,0.7)]';
+    return 'border-amber-300 ring-1 ring-amber-400/80 shadow-[0_0_8px_rgba(245,158,11,0.7)]';
   }
   if (isActive) {
     return teamTheme.borderClass;
@@ -56,7 +56,6 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
   const isLeft = side === 'left';
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(isCompactViewport);
-  // User manual toggle is sovereign - no auto-collapse overrides
 
   const getSummonCount = (player: RosterPlayer) => {
     const playerNameLower = player.name.toLowerCase();
@@ -78,8 +77,8 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
       <div
         id={`roster-container-${team}`}
         style={topOffset ? { top: `${topOffset}px` } : undefined}
-        className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
-          isLeft ? 'left-1' : 'right-1'
+        className={`absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
+          isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
         } z-[36] pointer-events-auto select-none transition-[top] duration-200`}
       >
         <button
@@ -89,12 +88,22 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
             audioService.playUiToggleSound(true);
             setIsCollapsed(false);
           }}
-          className={`cursor-pointer flex items-center space-x-1 px-2.5 py-1 rounded-full border backdrop-blur-md shadow-lg transition active:scale-95 hover:scale-105 opacity-90 hover:opacity-100 ${teamTheme.pillButtonClass}`}
+          className={`cursor-pointer flex items-center space-x-1 px-2 py-0.5 rounded-full border backdrop-blur-md shadow-md transition active:scale-95 hover:scale-105 opacity-90 hover:opacity-100 ${teamTheme.pillButtonClass}`}
           title={t('HUD.lineupExpand', 'Mở đội hình {{team}}', { team: shortTeamLabel })}
         >
-          {isLeft ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-          <Users className="w-3 h-3" />
-          <span className="text-[10px] font-black">{collapsedLabel}</span>
+          {isLeft ? (
+            <>
+              <Users className="w-2.5 h-2.5" />
+              <span className="text-[8.5px] sm:text-[9px] font-black">{collapsedLabel}</span>
+              <ChevronRight className="w-3 h-3" />
+            </>
+          ) : (
+            <>
+              <ChevronLeft className="w-3 h-3" />
+              <span className="text-[8.5px] sm:text-[9px] font-black">{collapsedLabel}</span>
+              <Users className="w-2.5 h-2.5" />
+            </>
+          )}
         </button>
       </div>
     );
@@ -105,27 +114,38 @@ export const TeamRosterBar = ({ side, topOffset }: TeamRosterBarProps) => {
       id={`roster-container-${team}`}
       aria-label={`${teamProfile.name} Team Roster`}
       style={topOffset ? { top: `${topOffset}px` } : undefined}
-      className={`absolute ${!topOffset ? 'top-[128px] sm:top-[136px]' : ''} ${
-        isLeft ? 'left-1' : 'right-1'
-      } flex flex-col space-y-1 pointer-events-auto z-[36] select-none max-w-[96px] sm:max-w-[108px] transition-[top] duration-200`}
+      className={`absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
+        isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
+      } flex flex-col space-y-0.5 pointer-events-auto z-[36] select-none w-[74px] sm:w-[84px] transition-[top] duration-200`}
     >
-      {/* Clickable Header Pill to collapse */}
+      {/* Symmetrical Compact Header Pill */}
       <button
         type="button"
         onClick={() => {
           audioService.playUiToggleSound(false);
           setIsCollapsed(true);
         }}
-        className={`cursor-pointer text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full border backdrop-blur-md flex items-center justify-between shadow-md transition active:scale-95 hover:brightness-110 ${teamTheme.pillButtonClass}`}
+        className={`cursor-pointer text-[8px] sm:text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border backdrop-blur-md flex items-center justify-between shadow-sm transition active:scale-95 hover:brightness-110 ${teamTheme.pillButtonClass}`}
         title={t('HUD.lineupCollapse', 'Thu gọn đội hình {{team}}', { team: shortTeamLabel })}
       >
-        <span className="truncate">{shortTeamLabel}</span>
-        <span className="p-0.5 hover:bg-white/20 rounded transition flex items-center justify-center">
-          {isLeft ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-        </span>
+        {isLeft ? (
+          <>
+            <span className="truncate">{shortTeamLabel}</span>
+            <span className="p-0.5 hover:bg-white/20 rounded transition flex items-center justify-center">
+              <ChevronLeft className="w-3 h-3" />
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="p-0.5 hover:bg-white/20 rounded transition flex items-center justify-center">
+              <ChevronRight className="w-3 h-3" />
+            </span>
+            <span className="truncate">{shortTeamLabel}</span>
+          </>
+        )}
       </button>
 
-      {/* Compact Pro Player Strip (Supporting Role, Viewer Remains Spotlight) */}
+      {/* Sleek Ultra-Compact Pro Player Cards */}
       {roster.map((player) => {
         const count = getSummonCount(player);
         const isAttacking = Boolean(rosterAttackTimestamps[player.id]);
@@ -171,12 +191,12 @@ const getRosterItemCardClass = (
   teamTheme: TeamColorPalette
 ): string => {
   if (isFullFury) {
-    return 'bg-gradient-to-r from-rose-950/85 via-amber-950/80 to-slate-950/80 border-amber-300/90 shadow-[0_0_12px_rgba(245,158,11,0.65)] scale-105';
+    return 'bg-gradient-to-r from-rose-950/90 via-amber-950/85 to-slate-950/85 border-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.65)] scale-[1.02]';
   }
   if (!isActive) {
-    return 'bg-slate-950/50 border-slate-800/55 opacity-80 hover:opacity-100';
+    return 'bg-slate-950/65 border-slate-800/65 opacity-85 hover:opacity-100 hover:border-slate-700';
   }
-  const scaleClass = isAttacking ? 'scale-105 ring-1 ring-white/40' : '';
+  const scaleClass = isAttacking ? 'scale-[1.02] ring-1 ring-white/40' : '';
   return `${teamTheme.rosterCardActiveClass} ${scaleClass}`;
 };
 
@@ -201,14 +221,14 @@ const RosterItem = ({
     <div
       id={`roster-card-${player.id}`}
       title={`${player.name} (${player.role}) • Tướng tủ: ${player.signatureChampion}`}
-      className={`relative flex items-center space-x-1.5 px-1.5 py-0.5 rounded-lg border backdrop-blur-sm transition-all duration-200 ${
+      className={`relative flex items-center space-x-1 px-1 py-0.5 rounded-md border backdrop-blur-sm transition-all duration-150 select-none ${
         isLeft ? 'flex-row' : 'flex-row-reverse space-x-reverse'
       } ${getRosterItemCardClass(isActive, isAttacking, isFullFury, teamTheme)}`}
     >
-      {/* Compact Pro Avatar with Mini Role Tag */}
-      <div id={`roster-avatar-${player.id}`} className="relative shrink-0 transition-transform duration-200">
+      {/* Micro Pro Avatar with Mini Role Tag */}
+      <div id={`roster-avatar-${player.id}`} className="relative shrink-0">
         <div
-          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden border ${getAvatarBorderClass(
+          className={`w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full overflow-hidden border ${getAvatarBorderClass(
             isFullFury,
             isActive,
             teamTheme
@@ -224,7 +244,7 @@ const RosterItem = ({
             />
           ) : (
             <div
-              className={`w-full h-full flex items-center justify-center text-[8px] font-black ${teamTheme.avatarInitialsBgClass}`}
+              className={`w-full h-full flex items-center justify-center text-[7px] font-black ${teamTheme.avatarInitialsBgClass}`}
             >
               {player.name.slice(0, 2).toUpperCase()}
             </div>
@@ -232,36 +252,36 @@ const RosterItem = ({
         </div>
 
         <span
-          className={`absolute -bottom-0.5 -right-0.5 text-[6px] font-mono font-black px-0.5 rounded leading-none shadow ${teamTheme.bgBadgeClass}`}
+          className={`absolute -bottom-0.5 -right-0.5 text-[5px] sm:text-[5.5px] font-mono font-black px-0.5 rounded-[2px] leading-none shadow ${teamTheme.bgBadgeClass}`}
         >
           {player.role}
         </span>
       </div>
 
       {/* Compact Player Name & Hairline Fury Progress */}
-      <div className={`text-[9px] leading-tight min-w-0 flex-1 ${isLeft ? 'text-left' : 'text-right'}`}>
+      <div className={`text-[8px] sm:text-[8.5px] leading-none min-w-0 flex-1 ${isLeft ? 'text-left' : 'text-right'}`}>
         <div
-          className={`font-bold text-slate-100 flex items-center space-x-0.5 truncate ${
+          className={`font-black text-slate-100 flex items-center gap-0.5 truncate ${
             isLeft ? 'justify-start' : 'justify-end'
           }`}
         >
           <span className="truncate">{player.name}</span>
           {count > 0 && (
             <span
-              className={`text-[7px] px-1 rounded-full font-mono font-black shrink-0 ${teamTheme.bgBadgeClass}`}
+              className={`text-[6.5px] px-0.5 rounded font-mono font-black shrink-0 ${teamTheme.bgBadgeClass}`}
             >
               x{count}
             </span>
           )}
           {isFullFury && (
-            <span className="text-[6px] px-1 rounded bg-red-600 text-white font-black uppercase shrink-0">
+            <span className="text-[5.5px] px-0.5 rounded bg-red-600 text-white font-black uppercase shrink-0 animate-pulse">
               {furyReadyLabel}!
             </span>
           )}
         </div>
 
         {/* Hairline Fury Bar */}
-        <div className="w-full h-0.5 bg-slate-900/90 rounded-full overflow-hidden mt-1">
+        <div className="w-full h-[1.5px] sm:h-0.5 bg-slate-900/90 rounded-full overflow-hidden mt-0.5">
           <div
             className={`h-full transition-all duration-300 rounded-full ${getFuryBarFillClass(
               isFullFury,
