@@ -339,6 +339,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
     const resolvedChampion = findSignatureChampionByPlayer(championName) || championName;
     const skillVfx = getChampionSkillVFX(resolvedChampion, isCrit);
+    const attackVfxType = isCrit ? skillVfx.type : CHAMPION_SKILL_VFX_TYPE.BASIC_ATTACK;
+    const attackSkillName = isCrit ? skillVfx.skillName : 'Đòn Đánh Thường';
+
     audioService.playChampionSkillSound(
       isCrit ? skillVfx.type : CHAMPION_SKILL_VFX_TYPE.ARROW,
       isCrit,
@@ -377,8 +380,8 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       id: `arrow-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       sourceRosterId: rosterPlayer?.id,
       championName,
-      vfxType: skillVfx.type,
-      skillName: skillVfx.skillName,
+      vfxType: attackVfxType,
+      skillName: attackSkillName,
       team,
       startX,
       startY,

@@ -202,14 +202,14 @@ export const MOUNTAIN_DRAGON_SKILLS: BossSkillBase[] = [
 export const STORM_DRAGON_SKILLS: BossSkillBase[] = [
   {
     id: 'storm_lightning_spark',
-    name: 'Storm Fire Breath',
-    vietnameseName: 'Phun Lửa Bão Tố',
-    iconName: 'Flame',
+    name: 'Storm Lightning Spark',
+    vietnameseName: 'Tia Sét Bão Tố',
+    iconName: 'Zap',
     baseDamage: 28,
-    targetCount: 999,
+    targetCount: 4,
     isUltimate: false,
-    color: '#f97316',
-    description: 'Phun luồng lửa bão tố thiêu đốt toàn bộ vùng mục tiêu (-28 HP & Thiêu Đốt)',
+    color: '#818cf8',
+    description: 'Phóng luồng sấm chớp bão tố giật điện 4 tướng đối phương (-28 HP)',
   },
   {
     id: 'storm_wind_vortex',

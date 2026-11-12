@@ -39,10 +39,10 @@ export const BossPhaseShiftBanner: React.FC<BossPhaseShiftBannerProps> = React.m
   return (
     <div
       key={bossPhaseChangedAt}
-      className="w-full max-w-xs sm:max-w-sm pointer-events-none select-none animate-phase-shift-banner px-2"
+      className="w-full max-w-xs sm:max-w-sm pointer-events-none select-none animate-phase-shift-banner px-2 mx-auto flex flex-col items-center"
     >
       <div
-        className="px-4 py-2 rounded-xl border bg-slate-950/92 backdrop-blur-md text-center shadow-2xl transition-all"
+        className="w-full px-4 py-2 rounded-xl border bg-slate-950/92 backdrop-blur-md text-center shadow-2xl transition-all"
         style={{
           borderColor: accentColor,
           boxShadow: `0 0 24px ${accentColor}55`,

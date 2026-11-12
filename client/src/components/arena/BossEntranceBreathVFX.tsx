@@ -31,15 +31,6 @@ export const DRAGON_MOUTH_SPECS: Partial<Record<GameThemeType, DragonMouthModelS
     midColor: '#fde047',
     outerColor: '#ea580c',
   },
-  [GAME_THEME.RONG_GIA]: {
-    leftPercent: 62.0,
-    topPercent: 38.8,
-    nativeFacesRight: true,
-    tiltDeg: -6,
-    coreColor: '#ffffff',
-    midColor: '#67e8f9',
-    outerColor: '#6366f1',
-  },
   [GAME_THEME.ELDER_DRAGON]: {
     leftPercent: 58.5,
     topPercent: 31.0,

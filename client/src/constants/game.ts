@@ -45,9 +45,9 @@ export const GAME_CONSTANTS = {
     MAX_INSTANCES: 36,
     ORBIT_RADIUS_MIN: 2.6,
     ORBIT_RADIUS_MAX: 5.4,
-    BASE_DPS: 95,
-    DPS_VARIANCE: 35,
-    LIFETIME_MS: 16000,
+    BASE_DPS: 32,
+    DPS_VARIANCE: 10,
+    LIFETIME_MS: 18000,
     SPAWN_GRACE_PERIOD_MS: 1000, // 1s grace period: only after 1s do newly summoned champions deal and receive damage
     BLG_COLOR: '#06b6d4',
     GENG_COLOR: '#eab308',
@@ -99,6 +99,9 @@ export const GAME_CONSTANTS = {
     BUFF_DAMAGE_MULTIPLIER: 1.2,
     LAST_STAND_SHIELD_SECONDS: 15,
     TUG_OF_WAR_INITIAL_PERCENT: 50,
+    RESULT_DISPLAY_DURATION_MS: 5000,
+    RESULT_FADE_DELAY_MS: 4000,
+    CLASH_FLASH_MS: 220,
   },
   SUMMON_RULES: {
     MAX_ACTIVE_PER_USER: 1, // Option B: Mỗi người chỉ có tối đa 1 tướng đang sống trên sàn
@@ -109,11 +112,12 @@ export const GAME_CONSTANTS = {
   PRO_FURY: {
     MAX_FURY: 100,
     FURY_AUTO_CAP: 100, // Tuyển thủ tự đánh tích đầy 100% Nộ — tự động kích hoạt Bạo Nộ khi đầy
-    FURY_GAIN_AUTO_ATTACK: 10, // +10 Nộ mỗi đòn giữ nhịp
-    FURY_GAIN_HEART_TAP: 4, // +4 Nộ cho tuyển thủ khi người xem thả tim (nhân thêm theo tốc độ tap)
-    FURY_GAIN_SUMMON_MATCH: 35, // +35 Nộ khi người xem chat gọi tướng trùng với tuyển thủ
-    FURY_GAIN_GIFT_BOOST: 50, // +50 Nộ cho toàn đội hình tuyển thủ khi có người xem tặng quà
-    FURY_ULTIMATE_DAMAGE_MULTIPLIER: 4.5, // 4.5x sát thương khi tung Đòn Bạo Nộ
+    FURY_GAIN_AUTO_ATTACK: 1, // Mỗi đòn đánh thường tăng đúng 1 Nộ
+    FURY_GAIN_HEART_TAP: 1, // +1 Nộ cho tuyển thủ khi người xem thả tim
+    FURY_GAIN_SUMMON_MATCH: 15, // +15 Nộ khi người xem chat gọi đúng tướng tủ của tuyển thủ
+    FURY_GAIN_COMMENT_TEAM: 3, // +3 Nộ cho các tuyển thủ trong đội khi người xem comment đúng cú pháp gọi tướng
+    FURY_GAIN_GIFT_BOOST: 30, // +30 Nộ cho toàn đội hình tuyển thủ khi có người xem tặng quà
+    FURY_ULTIMATE_DAMAGE_MULTIPLIER: 3.5, // 3.5x sát thương khi tung Đòn Bạo Nộ
     FURY_ULTIMATE_DURATION_MS: 1200,
   },
   SIGNATURE_SYNERGY: {
@@ -134,9 +138,9 @@ export const GAME_CONSTANTS = {
   },
   MINION_FURY: {
     MAX_FURY: 100,
-    GAIN_PER_ATTACK: 25, // +25 Nộ mỗi lần tướng triệu hồi tung đòn đánh thường
+    GAIN_PER_ATTACK: 1, // Mỗi đòn đánh thường của tướng triệu hồi tăng đúng 1 Nộ
     ULTIMATE_DAMAGE_MULTIPLIER: 1.85, // 1.85x sát thương khi tướng triệu hồi đầy 100% Nộ
-    HEART_TAP_GAIN_BASE: 6, // +6 Nộ cơ bản cho tướng triệu hồi mỗi nhịp thả tim
+    HEART_TAP_GAIN_BASE: 1, // +1 Nộ cơ bản cho tướng triệu hồi mỗi nhịp thả tim
     HEART_TAP_RAPID_WINDOW_MS: 900, // Khoảng cách giữa các lần tap được tính là tap nhanh liên tục
     HEART_TAP_SPEED_WINDOW_MS: 2500, // Thời gian duy trì bội số tăng tốc Nộ sau cú tap gần nhất
     HEART_TAP_MULTIPLIER_STEP: 0.22, // Mỗi lần tap liên tiếp tăng thêm 0.22x tốc độ tích Nộ
@@ -839,18 +843,18 @@ export const COMBAT_VFX_CONSTANTS = {
     },
   },
   CHAMPION_MOVEMENT: {
-    TOKEN_SCALE: 0.50,
-    MIN_SPEED: 0.85,
-    MAX_SPEED: 1.65,
-    WANDER_INTERVAL_MIN_S: 1.8,
-    WANDER_INTERVAL_MAX_S: 3.5,
-    ATTACK_INTERVAL_MIN_S: 0.9,
-    ATTACK_INTERVAL_MAX_S: 1.7,
-    CAST_RECOIL_DISTANCE: 0.08,
-    CAST_LIFT_HEIGHT: 0.08,
-    ATTACK_DURATION_S: 0.34,
-    BOB_AMPLITUDE: 0.12,
-    BOB_SPEED: 2.8,
+    TOKEN_SCALE: 0.44,
+    MIN_SPEED: 0.35,
+    MAX_SPEED: 0.68,
+    WANDER_INTERVAL_MIN_S: 3.5,
+    WANDER_INTERVAL_MAX_S: 6.5,
+    ATTACK_INTERVAL_MIN_S: 1.2,
+    ATTACK_INTERVAL_MAX_S: 2.0,
+    CAST_RECOIL_DISTANCE: 0.06,
+    CAST_LIFT_HEIGHT: 0.06,
+    ATTACK_DURATION_S: 0.30,
+    BOB_AMPLITUDE: 0.06,
+    BOB_SPEED: 1.8,
     ENTRANCE_DURATION_MS: 750,
     ENTRANCE_SWOOP_Y: 0.32,
     ENTRANCE_SWOOP_X: 0.0,
@@ -865,13 +869,13 @@ export const COMBAT_VFX_CONSTANTS = {
   },
   SUMMON: {
     PORTAL_DURATION_MS: 1200,
-    SPOTLIGHT_DURATION_MS: 2200,
+    SPOTLIGHT_DURATION_MS: 1800,
     MAX_ACTIVE_PORTALS: 8,
     MAX_VISIBLE_ORBS: 12,
     MAX_VISIBLE_BADGES_PER_TEAM: 4,
     CRIT_CHANCE: 0.28,
-    CRIT_MULTIPLIER: 3,
-    NORMAL_MULTIPLIER: 1.2,
+    CRIT_MULTIPLIER: 1.75,
+    NORMAL_MULTIPLIER: 0.85,
     CRIT_FOLLOWUP_DELAY_MS: 95,
     PORTAL_BURST_PARTICLES: 20,
   },
@@ -991,7 +995,7 @@ export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';
 
 export const ARROW_VFX_CONFIG = {
   DURATION_MS: 660,
-  MAX_ACTIVE: 24,
+  MAX_ACTIVE: 10,
   COLORS: {
     BLG: '#06b6d4',
     BLG_CRIT: '#38bdf8',
@@ -1001,6 +1005,7 @@ export const ARROW_VFX_CONFIG = {
 } as const;
 
 export const CHAMPION_SKILL_VFX_TYPE = {
+  BASIC_ATTACK: 'BASIC_ATTACK',
   SHURIKEN: 'SHURIKEN',
   LASER: 'LASER',
   TORNADO: 'TORNADO',
@@ -1363,8 +1368,8 @@ export const AUTO_PRO_BATTLE_CONSTANTS = {
   MAX_INTERVAL_MS: 4500,
   TICK_MS: 120,
   INITIAL_STAGGER_MS: 220,
-  DAMAGE_MIN: 85,
-  DAMAGE_MAX: 155,
+  DAMAGE_MIN: 45,
+  DAMAGE_MAX: 95,
   CRIT_CHANCE: 0.12,
   CRIT_MULTIPLIER: 1.4,
   BOSS_HP_FLOOR_PERCENT: 0.15, // Auto-pro giữ nhịp tối đa tới 15% HP Boss, người xem phải ra đòn dứt điểm

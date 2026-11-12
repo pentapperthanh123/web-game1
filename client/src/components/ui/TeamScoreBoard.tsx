@@ -5,6 +5,7 @@ import { TEAM_KEY } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
 import { TeamComboBadge, MIN_COMBO_DISPLAY_COUNT } from './TeamComboBadge';
+import { SummonSpotlight } from './SummonShowcase';
 
 export const TeamScoreBoard = () => {
   const { t } = useTranslation();
@@ -40,7 +41,12 @@ export const TeamScoreBoard = () => {
       {/* Dynamic Team Headers */}
       <div className="flex items-center justify-between mb-1">
         {/* Left Team Block */}
-        <div className={`flex items-center space-x-2 min-w-0 ${leftTheme.textStrongClass}`}>
+        <div className={`relative flex items-center space-x-2 min-w-0 flex-1 justify-start ${leftTheme.textStrongClass}`}>
+          {/* Summon Notification Mini-Pill right above Left Team Logo */}
+          <div className="absolute -top-6 left-0 z-40 pointer-events-none">
+            <SummonSpotlight side="left" />
+          </div>
+
           <div
             style={{ boxShadow: leftTheme.glowStyle }}
             className={`relative shrink-0 p-0.5 rounded-md border ${leftTheme.bgSoftClass} ${leftTheme.borderSoftClass}`}
@@ -50,9 +56,9 @@ export const TeamScoreBoard = () => {
           <div className="min-w-0">
             <div className="flex items-center space-x-1.5">
               <span
-                className={`text-[10px] sm:text-xs font-black uppercase tracking-wider truncate ${leftTheme.textClass}`}
+                className={`text-xs sm:text-sm font-black uppercase tracking-wider truncate ${leftTheme.textClass}`}
               >
-                {leftTeam.name}
+                {leftTeam.shortTag}
               </span>
               <span
                 className={`text-[9px] sm:text-[10px] font-mono font-extrabold px-1 rounded border shrink-0 ${leftTheme.textMutedClass} ${leftTheme.bgSoftClass} ${leftTheme.borderSoftClass}`}
@@ -117,7 +123,12 @@ export const TeamScoreBoard = () => {
         </div>
 
         {/* Right Team Block */}
-        <div className={`flex items-center space-x-2 text-right flex-row-reverse space-x-reverse min-w-0 ${rightTheme.textStrongClass}`}>
+        <div className={`relative flex items-center space-x-2 text-right flex-row-reverse space-x-reverse min-w-0 flex-1 justify-start ${rightTheme.textStrongClass}`}>
+          {/* Summon Notification Mini-Pill right above Right Team Logo */}
+          <div className="absolute -top-6 right-0 z-40 pointer-events-none">
+            <SummonSpotlight side="right" />
+          </div>
+
           <div
             style={{ boxShadow: rightTheme.glowStyle }}
             className={`relative shrink-0 p-0.5 rounded-md border ${rightTheme.bgSoftClass} ${rightTheme.borderSoftClass}`}
@@ -132,9 +143,9 @@ export const TeamScoreBoard = () => {
                 {rightRatio.toFixed(0)}%
               </span>
               <span
-                className={`text-[10px] sm:text-xs font-black uppercase tracking-wider truncate ${rightTheme.textClass}`}
+                className={`text-xs sm:text-sm font-black uppercase tracking-wider truncate ${rightTheme.textClass}`}
               >
-                {rightTeam.name}
+                {rightTeam.shortTag}
               </span>
             </div>
             <div className={`text-[9px] sm:text-[10px] font-mono font-extrabold tracking-tight ${rightTheme.textStrongClass}`}>

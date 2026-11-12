@@ -16,7 +16,6 @@ import {
 import { bossSpeechManager, BossSpeechItem, resolveBossSpeechItem } from '../../constants/bossSpeech';
 import { BossHitMarks2D } from './BossHitMarks2D';
 import { BossAlertBanner } from './BossAlertBanner';
-import { ElementalEmbers } from './ElementalEmbers';
 import { BossSpeechBubble } from './BossSpeechBubble';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
@@ -614,14 +613,6 @@ export const Boss2D = () => {
         {/* 2. Realistic Ground Contact Shadow under Monster */}
         <div
           className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 rounded-[50%] blur-md pointer-events-none ${groundShadowAnimationClass}`}
-        />
-
-        {/* 3. Elemental Floating Embers & Sparks */}
-        <ElementalEmbers
-          color={themeConfig.colors.glowHex || themeConfig.colors.primaryHex}
-          enragedColor={themeConfig.colors.enragedHex}
-          isEnraged={isEnraged}
-          isDefeated={isDefeated}
         />
 
         {/* 8. Vertical Altitude Patrol + Cave Entrance Swoop + Uninterrupted Hover/Coil Wrapper */}

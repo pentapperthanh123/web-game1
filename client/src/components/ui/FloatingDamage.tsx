@@ -37,7 +37,7 @@ const DAMAGE_TAG_CONFIG_MAP: Partial<
   [DAMAGE_TYPE.ULTIMATE]: { i18nKey: 'Combat.ultimateTag', fallback: 'TUYỆT KỸ!' },
 };
 
-const MAX_RENDERED_FLOATING_DAMAGES = 16;
+const MAX_RENDERED_FLOATING_DAMAGES = 8;
 
 export const FloatingDamage = React.memo(() => {
   const { t } = useTranslation();

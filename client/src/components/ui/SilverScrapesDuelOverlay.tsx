@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Swords, Flame, Sparkles, Shield, Trophy } from 'lucide-react';
+import { Swords, Flame, Sparkles, Shield, Trophy, X } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { audioService } from '../../services/audioService';
-import { TEAM_KEY } from '../../constants/game';
+import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 
 export function SilverScrapesDuelOverlay() {
@@ -18,19 +18,31 @@ export function SilverScrapesDuelOverlay() {
   const isActive = silverScrapesState.isActive;
   const hasWinner = silverScrapesState.winner !== null;
 
-  // Reset dismissed flag whenever Silver Scrapes becomes active again
+  // Track if duel was actively running in the current session.
+  // On page reload or fresh load, if isActive is false, this remains false,
+  // preventing stale completed duels (winner !== null) from immediately popping up.
+  const wasActiveInSessionRef = useRef<boolean>(silverScrapesState.isActive);
+
+  // Reset dismissed flag and mark session active whenever Silver Scrapes starts
   useEffect(() => {
     if (isActive) {
+      wasActiveInSessionRef.current = true;
       setIsDismissed(false);
       setIsFadingOut(false);
     }
   }, [isActive]);
 
-  // Auto-dismiss overlay 5 seconds after winner is decided (fade out at 4s)
+  // Auto-dismiss overlay 5 seconds after winner is decided ONLY IF duel was actively witnessed
   useEffect(() => {
-    if (!hasWinner) return;
-    const fadeTimer = setTimeout(() => setIsFadingOut(true), 4000);
-    const dismissTimer = setTimeout(() => setIsDismissed(true), 5000);
+    if (!hasWinner || !wasActiveInSessionRef.current) return;
+    const fadeTimer = setTimeout(
+      () => setIsFadingOut(true),
+      GAME_CONSTANTS.SILVER_SCRAPES.RESULT_FADE_DELAY_MS
+    );
+    const dismissTimer = setTimeout(() => {
+      setIsDismissed(true);
+      wasActiveInSessionRef.current = false;
+    }, GAME_CONSTANTS.SILVER_SCRAPES.RESULT_DISPLAY_DURATION_MS);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(dismissTimer);
@@ -58,11 +70,19 @@ export function SilverScrapesDuelOverlay() {
     audioService.playBeamBurstSound(isUlti);
 
     setClashFlash(true);
-    const timer = setTimeout(() => setClashFlash(false), 220);
+    const timer = setTimeout(
+      () => setClashFlash(false),
+      GAME_CONSTANTS.SILVER_SCRAPES.CLASH_FLASH_MS
+    );
     return () => clearTimeout(timer);
   }, [silverScrapesState.lastEvent]);
 
-  if (isDismissed || (!isActive && !hasWinner)) {
+  // Only render when not dismissed AND either actively ongoing,
+  // OR just concluded in this browser session.
+  const shouldRender =
+    !isDismissed && (isActive || (wasActiveInSessionRef.current && hasWinner));
+
+  if (!shouldRender) {
     return null;
   }
 
@@ -82,6 +102,19 @@ export function SilverScrapesDuelOverlay() {
 
   return (
     <div className={`fixed inset-0 z-50 pointer-events-auto flex flex-col items-center justify-between p-3 sm:p-5 select-none bg-slate-950/85 backdrop-blur-md transition-opacity duration-1000 ${isFadingOut ? 'opacity-0' : 'animate-in fade-in duration-300'}`}>
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={() => {
+          setIsDismissed(true);
+          wasActiveInSessionRef.current = false;
+        }}
+        className="absolute top-2 right-2 sm:top-4 sm:right-4 p-1.5 sm:p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 transition-colors shadow-lg z-20 pointer-events-auto"
+        title={t('SilverScrapes.close', 'Đóng')}
+        aria-label={t('SilverScrapes.close', 'Đóng')}
+      >
+        <X className="w-4 h-4 sm:w-5 sm:h-5" />
+      </button>
       {/* 1. Header: Silver Scrapes Title & Countdown Timer */}
       <div className="w-full max-w-xl flex flex-col items-center space-y-1.5 pt-2 sm:pt-4">
         <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.4)]">

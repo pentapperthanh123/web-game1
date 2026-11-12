@@ -18,7 +18,6 @@ import { AdminControlModal } from './AdminControlModal';
 import { ScreenFlash } from './ScreenFlash';
 import { SwarmLegionCanvas } from './SwarmLegionCanvas';
 import { TeamRosterBar } from './TeamRosterBar';
-import { SummonSpotlight } from './SummonShowcase';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
@@ -256,7 +255,6 @@ export const HUDOverlay = () => {
         className="absolute left-1 sm:left-1.5 z-[36] pointer-events-none flex flex-col items-start gap-1.5 transition-[top] duration-200"
       >
         {overlayVisibility.teamRosters && <TeamRosterBar side="left" isInFlow />}
-        <SummonSpotlight side="left" />
       </div>
 
       <div
@@ -264,7 +262,6 @@ export const HUDOverlay = () => {
         className="absolute right-1 sm:right-1.5 z-[36] pointer-events-none flex flex-col items-end gap-1.5 transition-[top] duration-200"
       >
         {overlayVisibility.teamRosters && <TeamRosterBar side="right" isInFlow />}
-        <SummonSpotlight side="right" />
       </div>
 
       {/* Floating 3D & Combat Elements */}

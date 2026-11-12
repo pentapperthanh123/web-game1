@@ -324,6 +324,13 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       if (matchingPro) {
         furyBoosts[matchingPro.id] =
           (furyBoosts[matchingPro.id] ?? 0) + GAME_CONSTANTS.PRO_FURY.FURY_GAIN_SUMMON_MATCH;
+      } else {
+        // Comment đúng cú pháp tăng nộ cổ vũ cho toàn bộ tuyển thủ trong đội
+        const teamRoster = activeTeamProfile?.roster ?? [];
+        for (const pro of teamRoster) {
+          furyBoosts[pro.id] =
+            (furyBoosts[pro.id] ?? 0) + GAME_CONSTANTS.PRO_FURY.FURY_GAIN_COMMENT_TEAM;
+        }
       }
 
       const teamTag = activeTeamProfile?.shortTag || req.team;

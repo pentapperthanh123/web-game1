@@ -122,9 +122,8 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
 
   // ── Storm Drake: wind & thunder ──────────────────────────────────────
   storm_lightning_spark: {
-    vfxType: BOSS_SKILL_VFX.FIRE_BREATH,
-    vfxParams: { secondaryColor: '#fde047', count: 8, scale: 1.25 },
-    statusEffect: { type: BOSS_STATUS_EFFECT.BURN, ...DOT.LIGHT },
+    vfxType: BOSS_SKILL_VFX.LIGHTNING_STRIKE,
+    vfxParams: { secondaryColor: '#e0e7ff', count: 5, scale: 1.15 },
   },
   storm_wind_vortex: {
     vfxType: BOSS_SKILL_VFX.VORTEX,

@@ -13,32 +13,32 @@ import {
 // -----------------------------------------------------------------------------
 const VFX_STYLE = {
   TRAIL: {
-    LENGTH_NORMAL: 58,
-    LENGTH_CRIT: 104,
-    WIDTH_HEAD_NORMAL: 12,
-    WIDTH_HEAD_CRIT: 22,
+    LENGTH_NORMAL: 32,
+    LENGTH_CRIT: 58,
+    WIDTH_HEAD_NORMAL: 7,
+    WIDTH_HEAD_CRIT: 13,
     RIBBON_WAVE_SPEED: 0.026,
-    RIBBON_WAVE_AMP_NORMAL: 3.2,
-    RIBBON_WAVE_AMP_CRIT: 6.5,
-    STARDUST_COUNT_NORMAL: 4,
-    STARDUST_COUNT_CRIT: 8,
+    RIBBON_WAVE_AMP_NORMAL: 1.8,
+    RIBBON_WAVE_AMP_CRIT: 3.5,
+    STARDUST_COUNT_NORMAL: 2,
+    STARDUST_COUNT_CRIT: 4,
   },
   IMPACT: {
     START_PROGRESS: 0.74,
-    RING_MAX_RADIUS_NORMAL: 28,
-    RING_MAX_RADIUS_CRIT: 54,
-    STAR_RAY_LENGTH_NORMAL: 22,
-    STAR_RAY_LENGTH_CRIT: 44,
-    SPARK_COUNT_NORMAL: 6,
-    SPARK_COUNT_CRIT: 12,
+    RING_MAX_RADIUS_NORMAL: 16,
+    RING_MAX_RADIUS_CRIT: 28,
+    STAR_RAY_LENGTH_NORMAL: 14,
+    STAR_RAY_LENGTH_CRIT: 24,
+    SPARK_COUNT_NORMAL: 4,
+    SPARK_COUNT_CRIT: 7,
   },
   GLOW: {
-    BLUR_NORMAL: 10,
-    BLUR_CRIT: 24,
+    BLUR_NORMAL: 6,
+    BLUR_CRIT: 14,
   },
   SCALE: {
-    NORMAL: 0.92,
-    CRIT: 1.48,
+    NORMAL: 0.58,
+    CRIT: 0.95,
   },
 } as const;
 
@@ -181,6 +181,31 @@ const drawSkillGraphic = (
   ctx.save();
 
   switch (vfxType) {
+    // -------------------------------------------------------------------------
+    // 0. BASIC ATTACK (Đòn Đánh Thường - Đạn Năng Lượng Nhỏ Gọn MOBA)
+    // -------------------------------------------------------------------------
+    case CHAMPION_SKILL_VFX_TYPE.BASIC_ATTACK: {
+      const radius = isCrit ? 4.5 : 3.0;
+      // Soft energy aura
+      ctx.fillStyle = hexToRgba(glowColor, 0.45);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Team projectile core
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bright white tip
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(1, 0, radius * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+
     // -------------------------------------------------------------------------
     // A. SHURIKEN & SPINNING LANTERN (Phi Tiêu Ám Sát / Đèn Lồng Jax)
     // -------------------------------------------------------------------------

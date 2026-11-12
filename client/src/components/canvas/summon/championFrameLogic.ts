@@ -114,7 +114,7 @@ export const stepChampionFrame = (
     );
   }
 
-  const lerpFactor = Math.min(1.0, clampedDelta * ai.moveSpeed * 1.5);
+  const lerpFactor = Math.min(1.0, clampedDelta * ai.moveSpeed * 0.75);
   ai.currentX = THREE.MathUtils.lerp(ai.currentX, ai.targetX, lerpFactor);
   ai.currentY = THREE.MathUtils.lerp(ai.currentY, ai.targetY, lerpFactor);
   ai.currentZ = THREE.MathUtils.lerp(ai.currentZ, ai.targetZ, lerpFactor);

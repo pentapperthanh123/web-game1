@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import { Crown, Swords, Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY, TeamType, COMBAT_VFX_CONSTANTS } from '../../constants/game';
@@ -39,57 +38,51 @@ const ChampionPortrait = ({
 const SummonSpotlightCard = ({
   portal,
   side,
+  isFadingOut = false,
 }: {
   portal: SummonPortalEntity;
   side: 'left' | 'right';
+  isFadingOut?: boolean;
 }) => {
-  const { t } = useTranslation();
   const teamProfile = useGameStore((state) => state.activeTeams[portal.team]);
   const theme = getTeamTheme(teamProfile?.colorTheme);
   const isRight = side === 'right';
   const isSignature = Boolean(portal.isSignatureSynergy && portal.signaturePlayerName);
   const cardBorderClass = isSignature ? 'border-amber-400/90 ring-1 ring-amber-400/40' : theme.borderClass;
-  const cardShadowStyle = isSignature ? '0 0 12px rgba(251,191,36,0.45)' : theme.glowStyle;
+  const cardShadowStyle = isSignature ? '0 0 10px rgba(251,191,36,0.4)' : theme.glowStyle;
   const nameColorClass = isSignature ? 'text-amber-300' : theme.textClass;
 
   return (
     <div
       key={portal.id}
       style={{ boxShadow: cardShadowStyle }}
-      className={`flex items-center gap-1.5 px-2 py-1 rounded-xl border backdrop-blur-md animate-summon-entrance max-w-[128px] sm:max-w-[145px] bg-slate-950/90 ${cardBorderClass} ${
-        isRight ? 'flex-row-reverse text-right' : ''
-      }`}
+      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border backdrop-blur-md w-max max-w-[118px] sm:max-w-[136px] h-[22px] sm:h-[24px] bg-slate-950/95 transition-all duration-300 ${
+        isFadingOut ? 'opacity-0 scale-95 -translate-y-1' : 'opacity-100 scale-100 animate-in fade-in zoom-in-95'
+      } ${cardBorderClass} ${isRight ? 'flex-row-reverse text-right' : ''}`}
     >
-      {/* Spinning Magic Summon Ring + Champion Avatar */}
-      <div className="relative w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center shrink-0">
-        <div
-          className={`absolute inset-0 rounded-full border border-dashed animate-spin-slow ${theme.summonPortalBorderClass}`}
-        />
+      {/* Compact Mini Avatar matching Team Theme */}
+      <div className="relative w-4 h-4 sm:w-4.5 sm:h-4.5 flex items-center justify-center shrink-0">
         <ChampionPortrait
           avatarUrl={portal.avatarUrl}
           championName={portal.championName}
-          sizeClass="w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 relative z-10 border border-white/60"
+          sizeClass="w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 border border-white/60"
         />
       </div>
 
-      <div className="min-w-0 flex-1 leading-tight">
-        <div className={`flex items-center gap-1 ${isRight ? 'justify-end' : ''}`}>
-          <span className={`text-[7px] sm:text-[7.5px] font-black px-1 py-0.5 rounded ${theme.bgBadgeClass} leading-none tracking-wider`}>
-            {t('Combat.summonTag', 'TRIỆU HỒI')}
+      <div className="min-w-0 flex-1 leading-none">
+        <div className={`flex items-center gap-0.5 ${isRight ? 'flex-row-reverse' : ''}`}>
+          <span className={`text-[8px] sm:text-[9px] font-black truncate ${nameColorClass}`}>
+            {portal.championName}
           </span>
           {portal.isCrit && (
-            <Zap className="w-2.5 h-2.5 text-rose-400 fill-current animate-bounce shrink-0" />
+            <Zap className="w-2 h-2 text-rose-400 fill-current animate-bounce shrink-0" />
           )}
           {isSignature && (
-            <Crown className="w-2.5 h-2.5 text-amber-300 fill-current shrink-0" />
+            <Crown className="w-2 h-2 text-amber-300 fill-current shrink-0" />
           )}
         </div>
-        <p className={`text-[10px] sm:text-[11px] font-black truncate mt-0.5 ${nameColorClass}`}>
-          {portal.championName}
-        </p>
-        <p className="text-[7.5px] sm:text-[8px] text-slate-300/80 truncate font-semibold flex items-center gap-0.5">
-          <span className="opacity-70 text-[7px]">💬</span>
-          <span className="truncate">@{portal.summonerName.replace(/^@+/, '')}</span>
+        <p className={`text-[6.5px] sm:text-[7px] text-slate-400 truncate font-medium mt-[1px] ${isRight ? 'text-right' : 'text-left'}`}>
+          @{portal.summonerName.replace(/^@+/, '')}
         </p>
       </div>
     </div>
@@ -113,17 +106,46 @@ const getLatestTeamPortal = (
   return null;
 };
 
-export const SummonSpotlight = ({ side }: { side: 'left' | 'right' }) => {
+export const SummonSpotlight = ({
+  side,
+  className = '',
+}: {
+  side: 'left' | 'right';
+  className?: string;
+}) => {
   const activeSummonPortals = useGameStore((state) => state.activeSummonPortals);
   const team = side === 'left' ? TEAM_KEY.BLG : TEAM_KEY.GENG;
   const now = Date.now();
   const latestPortal = getLatestTeamPortal(activeSummonPortals, team, now);
+  const [hiddenPortalId, setHiddenPortalId] = useState<string | null>(null);
+  const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
-  if (!latestPortal) return null;
+  useEffect(() => {
+    if (!latestPortal) return;
+    setHiddenPortalId(null);
+    setIsFadingOut(false);
+    const duration = COMBAT_VFX_CONSTANTS.SUMMON.SPOTLIGHT_DURATION_MS;
+    const elapsed = Date.now() - latestPortal.createdAt;
+    const remainingMs = Math.max(0, duration - elapsed);
+    const fadeTimer = setTimeout(() => {
+      setIsFadingOut(true);
+    }, Math.max(0, remainingMs - 350));
+    const hideTimer = setTimeout(() => {
+      setHiddenPortalId(latestPortal.id);
+    }, remainingMs);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [latestPortal?.id, latestPortal?.createdAt]);
+
+  if (!latestPortal || hiddenPortalId === latestPortal.id) return null;
 
   return (
-    <div className={`pointer-events-none flex flex-col ${side === 'right' ? 'items-end' : 'items-start'}`}>
-      <SummonSpotlightCard portal={latestPortal} side={side} />
+    <div
+      className={`pointer-events-none flex flex-col ${side === 'right' ? 'items-end' : 'items-start'} ${className}`}
+    >
+      <SummonSpotlightCard portal={latestPortal} side={side} isFadingOut={isFadingOut} />
     </div>
   );
 };

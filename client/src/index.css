@@ -1443,11 +1443,11 @@
 .animate-skill-nova-ring { animation: skillNovaRing 1.5s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
 
 @keyframes phaseShiftBanner {
-  0% { opacity: 0; transform: translate(-50%, -30px) scale(0.6); }
-  12% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
-  20% { transform: translate(-50%, 0) scale(1); }
-  85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
+  0% { opacity: 0; transform: translateY(-24px) scale(0.75); }
+  14% { opacity: 1; transform: translateY(0) scale(1.05); }
+  24% { transform: translateY(0) scale(1); opacity: 1; }
+  86% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { opacity: 0; transform: translateY(-16px) scale(0.92); }
 }
 .animate-phase-shift-banner { animation: phaseShiftBanner 2.8s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 

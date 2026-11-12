@@ -81,6 +81,16 @@ export function createDuelService(ctx: ServerContext): DuelService {
     }
 
     broadcastDuelState();
+
+    // Auto-clear winner from server state after presentation completes (6 seconds)
+    // so new clients or reloads don't receive a stale winner banner
+    setTimeout(() => {
+      const current = ctx.state.silverScrapesDuelState;
+      if (!current.isActive && current.winner === finalWinner) {
+        current.winner = null;
+        broadcastDuelState();
+      }
+    }, 6000);
   };
 
   const startDuel = (lane: DuelLaneKey = 'MID', duration = 60): void => {
@@ -127,6 +137,7 @@ export function createDuelService(ctx: ServerContext): DuelService {
   const stopDuel = (): void => {
     clearDuelTimer();
     ctx.state.silverScrapesDuelState.isActive = false;
+    ctx.state.silverScrapesDuelState.winner = null;
     broadcastDuelState();
   };
 

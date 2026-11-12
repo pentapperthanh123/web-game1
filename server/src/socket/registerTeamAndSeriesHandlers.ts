@@ -42,6 +42,7 @@ export function registerTeamAndSeriesHandlers(
       series.currentRound = 1;
       saveSeriesConfigToDisk(series);
       ctx.io.emit('game:series-format', series);
+      duelService.stopDuel();
     } else if (payload?.action === 'nextRound') {
       series.currentRound = Math.min(series.maxRounds, series.currentRound + 1);
       saveSeriesConfigToDisk(series);
