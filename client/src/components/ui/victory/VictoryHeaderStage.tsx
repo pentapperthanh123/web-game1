@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Crown, Star, Trophy } from 'lucide-react';
-import { GAME_THEME, TeamType } from '../../../constants/game';
+import { GameThemeType, getThemeConfig, TeamType } from '../../../constants/game';
 import { TeamColorPalette, TeamProfile } from '../../../types/team';
 import { TeamLogo } from '../../icons/TeamLogos';
 
@@ -13,7 +13,7 @@ interface VictoryHeaderStageProps {
   leftScore: number;
   rightScore: number;
   currentRound: number;
-  gameTheme: string;
+  gameTheme: GameThemeType;
 }
 
 export const VictoryHeaderStage = ({
@@ -29,11 +29,13 @@ export const VictoryHeaderStage = ({
 }: VictoryHeaderStageProps) => {
   const { t } = useTranslation();
   const winnerName = winnerProfile?.name || winnerSlot;
-  const isElderDragon = gameTheme === GAME_THEME.ELDER_DRAGON;
+  const themeConfig = getThemeConfig(gameTheme);
 
-  const bossDefeatedSubtitle = isElderDragon
-    ? t('Victory.bossDefeatedElder', 'RỒNG NGÀN TUỔI ĐÃ BỊ TIÊU DIỆT!')
-    : t('Victory.bossDefeated', 'BARON NASHOR ĐÃ BỊ TIÊU DIỆT!');
+  const bossDefeatedSubtitle = t(
+    'Victory.bossDefeatedDynamic',
+    `${themeConfig.bossName.toUpperCase()} ĐÃ BỊ TIÊU DIỆT!`,
+    { bossName: themeConfig.bossName.toUpperCase() }
+  );
 
   const headlineAction = isSeriesEnded
     ? t('Victory.seriesChampionAction', 'VÔ ĐỊCH CKTG {{format}}!', { format: seriesFormat })

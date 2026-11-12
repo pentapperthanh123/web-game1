@@ -90,6 +90,102 @@ export const BOSS_SPEECHES: Record<GameThemeType, Record<SpeechCategory, readonl
       { id: 'bn_p_10', text: 'Coi chừng gai lưng của ta đâm thủng màn hình điện thoại bây giờ!', icon: 'flame' },
     ],
   },
+  [GAME_THEME.XU_GIA]: {
+    RESTLESS: [
+      { id: 'xg_r_1', text: 'Sứ Giả Khe Nứt đói bụng rồi! Mau gọi tướng ra húc trụ nào!', icon: 'flame' },
+      { id: 'xg_r_2', text: 'Đấu trường Ván 1 im ắng thế? Thả tim triệu hồi tướng cứu viện đi!', icon: 'zap' },
+      { id: 'xg_r_3', text: '{{leftTag}} hay {{rightTag}} dám bước ra solo với đòn húc đầu tiên?!', icon: 'swords' },
+      { id: 'xg_r_4', text: 'Ai cho ta tí sát thương đi! Càng đánh giáp ta càng cứng!', icon: 'crown' },
+      { id: 'xg_r_5', text: 'Cần một dũng sĩ chém vào mắt sau lưng ta! Ai dám nhận kèo?!', icon: 'swords' },
+      { id: 'xg_r_6', text: 'Mau gọi {{leftPlayer}} hay {{rightPlayer}} ra mở màn BO đi nào!', icon: 'zap' },
+    ],
+    AMBIENT: [
+      { id: 'xg_a_1', text: 'Cua khổng lồ Hư Không sẵn sàng húc đổ mọi chướng ngại vật!', icon: 'crown' },
+      { id: 'xg_a_2', text: 'Vỏ giáp ngọc bích tỏa sáng rực rỡ trong hang Khe Nứt!', icon: 'flame' },
+      { id: 'xg_a_3', text: 'Ai hạ được Sứ Giả sẽ nắm giữ lợi thế dẫn trước ván đấu!', icon: 'swords' },
+      { id: 'xg_a_4', text: 'Bước chân dũng mãnh rung chuyển cả Summoner Rift!', icon: 'zap' },
+      { id: 'xg_a_5', text: 'Đòn húc cuồng nộ sẽ san bằng tiền tuyến của kẻ địch!', icon: 'crown' },
+    ],
+    POKE: [
+      { id: 'xg_p_1', text: 'Ái chà! Dám chọc vào mai Sứ Giả à?!', icon: 'flame' },
+      { id: 'xg_p_2', text: 'Đừng chọc mắt sau lưng ta, nhột lắm haha!', icon: 'message' },
+      { id: 'xg_p_3', text: 'Chọc tay không xi nhê đâu, gọi tướng ra gõ mai ta xem nào!', icon: 'swords' },
+      { id: 'xg_p_4', text: 'Chọc nữa ta húc lật màn hình bây giờ đấy!', icon: 'crown' },
+      { id: 'xg_p_5', text: 'Tay nhanh thế? Mau dùng tốc độ đó triệu hồi tướng đi!', icon: 'zap' },
+    ],
+  },
+  [GAME_THEME.RONG_NUI]: {
+    RESTLESS: [
+      { id: 'rn_r_1', text: 'Dung nham đang sôi sục dưới chân! Tướng hai đội đâu hết rồi?!', icon: 'flame' },
+      { id: 'rn_r_2', text: 'Rồng Núi Nham Thạch cần đối thủ xứng tầm! Mau gọi tướng vào!', icon: 'crown' },
+      { id: 'rn_r_3', text: '{{leftTag}} với {{rightTag}} run rẩy trước địa chấn rồi à?!', icon: 'swords' },
+      { id: 'rn_r_4', text: 'Khói lửa bốc lên ngùn ngụt... mau gáy tên tướng đi các bạn!', icon: 'zap' },
+      { id: 'rn_r_5', text: 'Thả tim tăng nhiệt độ trận đấu nào các dũng sĩ!', icon: 'flame' },
+      { id: 'rn_r_6', text: '{{leftPlayer}} hay {{rightPlayer}} dám vượt qua nham thạch so tài?!', icon: 'swords' },
+    ],
+    AMBIENT: [
+      { id: 'rn_a_1', text: 'Địa chấn rền vang! Lửa nham thạch thiêu rụi kẻ yếu đuối!', icon: 'flame' },
+      { id: 'rn_a_2', text: 'Giáp đá nghìn năm bất khả xâm phạm của Rồng Núi!', icon: 'crown' },
+      { id: 'rn_a_3', text: 'Hang Rồng Núi nóng bỏng đang chờ đợi chủ nhân mới!', icon: 'swords' },
+      { id: 'rn_a_4', text: 'Một cú đập đuôi đủ khiến đất trời rung chuyển!', icon: 'zap' },
+      { id: 'rn_a_5', text: 'Long hồn địa chấn sẽ bảo hộ cho đội tuyển mạnh nhất!', icon: 'crown' },
+    ],
+    POKE: [
+      { id: 'rn_p_1', text: 'Chọc vào vảy đá nham thạch coi chừng bỏng tay nhé!', icon: 'flame' },
+      { id: 'rn_p_2', text: 'Grừ! Da ta dày gấp mười lần vỏ xe tăng đấy!', icon: 'crown' },
+      { id: 'rn_p_3', text: 'Chọc ta làm gì, gọi chiến binh ra ném đá ta xem nào!', icon: 'swords' },
+      { id: 'rn_p_4', text: 'Cù lét móng vuốt nham thạch à? Gan to đấy!', icon: 'zap' },
+      { id: 'rn_p_5', text: 'Nóng máy chưa? Chọc nhiệt tình lên nào dũng sĩ!', icon: 'message' },
+    ],
+  },
+  [GAME_THEME.RONG_GIA]: {
+    RESTLESS: [
+      { id: 'rg_r_1', text: 'Sấm sét đang xé toạc bầu trời! Ai dám bước vào tâm bão?!', icon: 'zap' },
+      { id: 'rg_r_2', text: 'Rồng Già Bão Tố tích điện xong rồi! Mau triệu hồi tướng ra nghênh chiến!', icon: 'crown' },
+      { id: 'rg_r_3', text: 'Fan {{leftTag}} hay {{rightTag}} dám lãnh trọn tia sét thiên hà?!', icon: 'swords' },
+      { id: 'rg_r_4', text: 'Đấu trường Ván 3 căng thẳng thế này mà các bạn đứng im à?!', icon: 'flame' },
+      { id: 'rg_r_5', text: 'Thả tim tăng điện áp nào! Mau gọi {{leftMid}} hoặc {{rightMid}} ra múa!', icon: 'zap' },
+      { id: 'rg_r_6', text: 'Cuồng phong đang gào thét... ai sẽ làm chủ ván đấu bản lề?!', icon: 'crown' },
+    ],
+    AMBIENT: [
+      { id: 'rg_a_1', text: 'Tia sét tím xé toạc màn đêm Summoner Rift!', icon: 'zap' },
+      { id: 'rg_a_2', text: 'Bão tố thiên hà sẵn sàng quét sạch mọi ảo tưởng chiến thắng!', icon: 'flame' },
+      { id: 'rg_a_3', text: 'Long Thần cổ đại ngự trị đỉnh cao sấm sét!', icon: 'crown' },
+      { id: 'rg_a_4', text: 'Ai chiếm được Long Hồn Bão Tố sẽ nắm chắc vé chung kết!', icon: 'swords' },
+      { id: 'rg_a_5', text: 'Sấm chớp rền vang báo hiệu thời khắc sinh tử!', icon: 'zap' },
+    ],
+    POKE: [
+      { id: 'rg_p_1', text: 'Tê tay chưa?! Điện áp 500kV của Rồng Già đấy!', icon: 'zap' },
+      { id: 'rg_p_2', text: 'Chọc vào móng vuốt sấm sét là giật đùng đùng bây giờ!', icon: 'flame' },
+      { id: 'rg_p_3', text: 'Tay nhanh như chớp đấy, nhưng chưa đủ đô đâu!', icon: 'swords' },
+      { id: 'rg_p_4', text: 'Điện giật sáng màn hình điện thoại bây giờ, bớt chọc lại!', icon: 'crown' },
+      { id: 'rg_p_5', text: 'Haha! Sấm sét làm bạn ngứa tay muốn triệu hồi tướng đúng không?!', icon: 'message' },
+    ],
+  },
+  [GAME_THEME.VOID_TITAN]: {
+    RESTLESS: [
+      { id: 'vt_r_1', text: 'CÕI HƯ VÔ VĨNH HẰNG ĐÃ MỞ! Mau hiến tế chiến binh của các ngươi!', icon: 'crown' },
+      { id: 'vt_r_2', text: 'Ván 5 định mệnh! Ai sẽ sống sót trước Thần Hư Vô Nguyên Thủy?!', icon: 'flame' },
+      { id: 'vt_r_3', text: 'Tất cả fan {{leftTag}} và {{rightTag}} mau dồn toàn lực tổng công kích!', icon: 'swords' },
+      { id: 'vt_r_4', text: 'Thời không sụp đổ... Không còn đường lui nữa đâu!', icon: 'zap' },
+      { id: 'vt_r_5', text: 'Thả tim và chat tên tướng dốc cạn sức lực cho ván đấu quyết định!', icon: 'crown' },
+      { id: 'vt_r_6', text: '{{leftPlayer}} và {{rightPlayer}} đâu? Mang tất cả những gì các ngươi có ra đây!', icon: 'swords' },
+    ],
+    AMBIENT: [
+      { id: 'vt_a_1', text: 'Hư Vô nguyên thủy nuốt chửng vạn vật trong vũ trụ!', icon: 'crown' },
+      { id: 'vt_a_2', text: 'Ta là khởi đầu và cũng là kết thúc của trận chung kết này!', icon: 'flame' },
+      { id: 'vt_a_3', text: 'Bóng tối vĩnh hằng nghiền nát mọi hy vọng nâng cúp!', icon: 'zap' },
+      { id: 'vt_a_4', text: 'Sức mạnh Hư Vô vượt qua mọi giới hạn phàm trần!', icon: 'swords' },
+      { id: 'vt_a_5', text: 'Chỉ có nhà vô địch đích thực mới có thể tiêu diệt được Thần Hư Vô!', icon: 'crown' },
+    ],
+    POKE: [
+      { id: 'vt_p_1', text: 'Ngươi dám chạm vào Thần Hư Vô sao?! Linh hồn ngươi sắp tan biến!', icon: 'crown' },
+      { id: 'vt_p_2', text: 'Chọc vào hố đen vũ trụ à?! Coi chừng bị hút mất máy!', icon: 'zap' },
+      { id: 'vt_p_3', text: 'Sức mạnh ngón tay trần tục không thể làm xước chân thân Hư Vô!', icon: 'flame' },
+      { id: 'vt_p_4', text: 'Dũng cảm lắm sâu bọ! Nhưng hãy dồn sức vào tướng của ngươi!', icon: 'swords' },
+      { id: 'vt_p_5', text: 'Bấm nát màn hình đi! Trận chiến cuối cùng không có chỗ cho sự do dự!', icon: 'crown' },
+    ],
+  },
 };
 
 /**

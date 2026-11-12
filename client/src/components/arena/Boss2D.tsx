@@ -3,14 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
 import {
   BOSS_STATUS,
-  THEME_CONFIGS,
-  GAME_THEME,
   TEAM_KEY,
   DAMAGE_TYPE,
   BOSS_ANIMATION_CONSTANTS,
   BOSS_IDLE_CONSTANTS,
   TeamType,
   DamageType,
+  isDragonArchetype,
+  getThemeConfig,
 } from '../../constants/game';
 import { bossSpeechManager, BossSpeechItem, resolveBossSpeechItem } from '../../constants/bossSpeech';
 import { BossHitMarks2D } from './BossHitMarks2D';
@@ -177,8 +177,8 @@ export const Boss2D = () => {
   const bossAttackTargetTeam = useGameStore((state) => state.bossAttackTargetTeam);
   const spawnParticleBurst = useGameStore((state) => state.spawnParticleBurst);
 
-  const themeConfig = THEME_CONFIGS[gameTheme] || THEME_CONFIGS[GAME_THEME.BARON];
-  const isElderDragon = gameTheme === GAME_THEME.ELDER_DRAGON;
+  const themeConfig = getThemeConfig(gameTheme);
+  const isElderDragon = isDragonArchetype(gameTheme);
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED;
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
 
@@ -490,7 +490,7 @@ export const Boss2D = () => {
 
     audioService.playBossPokeSound(isElderDragon);
 
-    const burstColor = isElderDragon ? '#f59e0b' : '#c084fc';
+    const burstColor = themeConfig.colors.primaryHex || (isElderDragon ? '#f59e0b' : '#c084fc');
     spawnParticleBurst([0, 0.4, 0.5], burstColor, 1.2);
 
     const nextPokeSpeech = resolveBossSpeechItem(
@@ -542,11 +542,13 @@ export const Boss2D = () => {
     (isHitActive &&
       (lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE));
 
-  const shockwaveColor = isElderDragon
-    ? '#f59e0b'
-    : activeBossSkillBanner?.color || (isEnraged ? '#ef4444' : '#a855f7');
+  const shockwaveColor =
+    themeConfig.colors.enragedHex ||
+    (isElderDragon
+      ? '#f59e0b'
+      : activeBossSkillBanner?.color || (isEnraged ? '#ef4444' : '#a855f7'));
 
-  const wingGustColor = isElderDragon ? '#38bdf8' : '#a855f7';
+  const wingGustColor = themeConfig.colors.primaryHex || (isElderDragon ? '#38bdf8' : '#a855f7');
 
   // Dynamic 2.5D perspective tilt reacting to hit side & pokes
   let tiltYDeg = 0;
@@ -674,11 +676,18 @@ export const Boss2D = () => {
                   <img
                     src={themeConfig.bossImagePng}
                     alt={themeConfig.bossName}
-                    className="w-full h-full object-contain filter contrast-110 brightness-105 group-hover:scale-105 transition-transform duration-200"
+                    className={`w-full h-full object-contain filter contrast-110 brightness-105 group-hover:scale-105 transition-all duration-300 ${themeConfig.spriteFilterClass} ${themeConfig.bossScale}`}
                     loading="eager"
                     draggable={false}
                   />
                 </picture>
+
+                {themeConfig.hasVoidOverlay && !isDefeated && (
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-[-12%] rounded-full bg-[radial-gradient(ellipse_at_center,_rgba(147,51,234,0.45)_0%,_rgba(88,28,135,0.35)_40%,_transparent_75%)] animate-pulse mix-blend-screen pointer-events-none blur-xl"
+                  />
+                )}
 
                 {/* Phase 2 & 3 Glowing Armor Cracks flipped in sync with Boss body */}
                 <BossArmorCracks

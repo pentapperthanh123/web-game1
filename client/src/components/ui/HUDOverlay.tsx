@@ -21,7 +21,7 @@ import { SummonShowcase } from './SummonShowcase';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
-import { AUTO_PRO_BATTLE_CONSTANTS, GAME_THEME, TEAM_KEY } from '../../constants/game';
+import { AUTO_PRO_BATTLE_CONSTANTS, isDragonArchetype, TEAM_KEY } from '../../constants/game';
 
 export const HUDOverlay = () => {
   const { t } = useTranslation();
@@ -101,7 +101,7 @@ export const HUDOverlay = () => {
         style={{ top: `${headerBottomOffset}px` }}
         className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-40 pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
       >
-        <BossEnragedEntranceBanner isElderDragon={gameTheme === GAME_THEME.ELDER_DRAGON} />
+        <BossEnragedEntranceBanner isElderDragon={isDragonArchetype(gameTheme)} />
         <GiftBanner />
         <HeartMilestoneBanner />
       </div>

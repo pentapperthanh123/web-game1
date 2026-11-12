@@ -18,7 +18,7 @@ import {
   Clock,
   Check,
 } from 'lucide-react';
-import { adminSocket } from '../services/socket';
+import { adminSocket, GameThemeType } from '../services/socket';
 import { BossSkillConfig, BossSkillDefinition, BossSkillMode } from '../types/bossSkill';
 import {
   BARON_SKILLS,
@@ -30,8 +30,17 @@ import {
 } from '../constants/bossSkills';
 
 interface BossSkillControlsProps {
-  currentTheme: 'BARON' | 'ELDER_DRAGON';
+  currentTheme: GameThemeType;
 }
+
+const BOSS_NAMES: Record<GameThemeType, string> = {
+  BARON: 'Baron Nashor',
+  ELDER_DRAGON: 'Rồng Ngàn Tuổi',
+  XU_GIA: 'Sứ Giả Khe Nứt',
+  RONG_NUI: 'Rồng Núi Nham Thạch',
+  RONG_GIA: 'Rồng Già Bão Tố',
+  VOID_TITAN: 'Thần Hư Vô Nguyên Thủy',
+};
 
 const DAMAGE_MULTIPLIER_OPTIONS = [0.5, 1.0, 1.5, 2.0] as const;
 
@@ -102,8 +111,12 @@ export function BossSkillControls({ currentTheme }: BossSkillControlsProps) {
     adminSocket.healTeam(team, amount);
   };
 
-  const activeSkills = currentTheme === 'ELDER_DRAGON' ? ELDER_DRAGON_SKILLS : BARON_SKILLS;
-  const bossName = currentTheme === 'ELDER_DRAGON' ? 'Rồng Ngàn Tuổi' : 'Baron Nashor';
+  const isDragon =
+    currentTheme === 'ELDER_DRAGON' ||
+    currentTheme === 'RONG_NUI' ||
+    currentTheme === 'RONG_GIA';
+  const activeSkills = isDragon ? ELDER_DRAGON_SKILLS : BARON_SKILLS;
+  const bossName = BOSS_NAMES[currentTheme] || 'Baron Nashor';
 
   const getSkillChanceBadge = (index: number) => {
     if (config.mode === BOSS_SKILL_MODES.RANDOM_WEIGHTED) {

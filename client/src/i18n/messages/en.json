@@ -108,6 +108,17 @@
     "ultimateSkill": "ULTIMATE!",
     "signatureTag": "SIGNATURE · {{player}} (+25%)"
   },
+  "BossTheme": {
+    "xuGia": "Rift Herald Worlds",
+    "rongNui": "Mountain Magma Dragon",
+    "rongGia": "Storm Ancient Dragon",
+    "elderDragon": "Elder Dragon Worlds",
+    "baron": "Baron Nashor Worlds",
+    "voidTitan": "Primeval Void Titan"
+  },
+  "BossRound": {
+    "badge": "GAME {{round}}/{{max}}"
+  },
   "BossInteractive": {
     "pokeTooltip": "Click to poke the Boss!",
     "shieldTitle": "VOID ENERGY SHIELD",
@@ -119,6 +130,7 @@
     "phase3Label": "APOCALYPSE ENRAGE"
   },
   "Victory": {
+    "bossDefeatedDynamic": "{{bossName}} HAS BEEN SLAIN!",
     "bossDefeated": "BARON NASHOR HAS BEEN SLAIN!",
     "bossDefeatedElder": "ELDER DRAGON HAS BEEN SLAIN!",
     "worldsBadge": "CKTG 2026 WORLDS CHAMPIONSHIP",

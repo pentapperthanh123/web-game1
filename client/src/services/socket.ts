@@ -2,7 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
 import { OverlayVisibility } from '../types/game';
 import { TeamConfigState } from '../types/team';
-import { OVERLAY_SECTION } from '../constants/game';
+import { OVERLAY_SECTION, GameThemeType } from '../constants/game';
 import { sanitizeTeamConfigState } from '../constants/teams';
 
 const OVERLAY_KEYS = Object.values(OVERLAY_SECTION) as (keyof OverlayVisibility)[];
@@ -314,7 +314,7 @@ class GameSocketClient {
     }
   }
 
-  public sendTheme(theme: 'BARON' | 'ELDER_DRAGON'): void {
+  public sendTheme(theme: GameThemeType): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:set-theme', { theme, senderId: CLIENT_INSTANCE_ID });
     }

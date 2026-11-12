@@ -20,7 +20,7 @@ import {
   Search,
   ShieldAlert,
 } from 'lucide-react';
-import { adminSocket } from './services/socket';
+import { adminSocket, GameThemeType } from './services/socket';
 import { TeamLogo } from './components/TeamLogos';
 import { TeamConfigPanel } from './components/TeamConfigPanel';
 import { SilverScrapesControls } from './components/SilverScrapesControls';
@@ -56,6 +56,96 @@ function getMainGridClassName(activeTab: AdminPortalTabId): string {
 }
 
 const ADMIN_APP_TITLE = 'LOL CKTG';
+
+interface BossThemeOption {
+  id: GameThemeType;
+  name: string;
+  sub: string;
+  desc: string;
+  icon: string;
+  bgActive: string;
+  borderActive: string;
+  badgeBg: string;
+  badgeText: string;
+}
+
+const VALID_THEMES = new Set<GameThemeType>([
+  'BARON',
+  'ELDER_DRAGON',
+  'XU_GIA',
+  'RONG_NUI',
+  'RONG_GIA',
+  'VOID_TITAN',
+]);
+
+const THEME_OPTIONS: BossThemeOption[] = [
+  {
+    id: 'XU_GIA',
+    name: 'Sứ Giả Khe Nứt',
+    sub: 'Ván 1 (0.5x HP)',
+    desc: 'Cua Kỳ Cục đột biến • Tông xanh lục bảo',
+    icon: '/images/boss_baron_2d.png',
+    bgActive: 'bg-emerald-950/90',
+    borderActive: 'border-emerald-400',
+    badgeBg: 'bg-emerald-600',
+    badgeText: 'text-white',
+  },
+  {
+    id: 'RONG_NUI',
+    name: 'Rồng Núi Nham Thạch',
+    sub: 'Ván 2 (0.7x HP)',
+    desc: 'Địa Long Núi Lửa • Tông đỏ cam dung nham',
+    icon: '/images/elder_dragon_icon_135001.webp',
+    bgActive: 'bg-orange-950/90',
+    borderActive: 'border-orange-400',
+    badgeBg: 'bg-orange-600',
+    badgeText: 'text-white',
+  },
+  {
+    id: 'RONG_GIA',
+    name: 'Rồng Già Bão Tố',
+    sub: 'Ván 3 (0.85x HP)',
+    desc: 'Lôi Long Cổ Đại • Tông tím sấm sét',
+    icon: '/images/elder_dragon_icon_135001.webp',
+    bgActive: 'bg-indigo-950/90',
+    borderActive: 'border-indigo-400',
+    badgeBg: 'bg-indigo-600',
+    badgeText: 'text-white',
+  },
+  {
+    id: 'ELDER_DRAGON',
+    name: 'Rồng Ngàn Tuổi',
+    sub: 'Kinh Điển (1.0x HP)',
+    desc: 'Long Thần CKTG • Lửa Thiên Thanh & Vàng Kim',
+    icon: '/images/elder_dragon_icon_135001.webp',
+    bgActive: 'bg-gradient-to-r from-amber-950/90 to-cyan-950/90',
+    borderActive: 'border-amber-400',
+    badgeBg: 'bg-amber-600',
+    badgeText: 'text-slate-950',
+  },
+  {
+    id: 'BARON',
+    name: 'Baron Nashor',
+    sub: 'Tiêu Chuẩn (1.0x HP)',
+    desc: 'Chúa tể Hư Không • Tông tím Void huyền bí',
+    icon: '/images/boss_baron_2d.png',
+    bgActive: 'bg-purple-950/90',
+    borderActive: 'border-purple-400',
+    badgeBg: 'bg-purple-600',
+    badgeText: 'text-white',
+  },
+  {
+    id: 'VOID_TITAN',
+    name: 'Thần Hư Vô Nguyên Thủy',
+    sub: 'Ván 5 Quyết Đấu (1.3x HP)',
+    desc: 'Đại Cổ Thần Hư Không • Void Aura tối thượng',
+    icon: '/images/boss_baron_2d.png',
+    bgActive: 'bg-violet-950/95',
+    borderActive: 'border-fuchsia-400',
+    badgeBg: 'bg-fuchsia-600',
+    badgeText: 'text-white',
+  },
+];
 
 const RANDOM_CHAMPION_LIST = ALL_CHAMPIONS.map((c) => c.name);
 
@@ -177,10 +267,10 @@ export function App() {
   const [customComment, setCustomComment] = useState('Vô địch CKTG 2026!');
   const [chatTeam, setChatTeam] = useState<'BLG' | 'GENG'>('BLG');
 
-  const [selectedTheme, setSelectedTheme] = useState<'BARON' | 'ELDER_DRAGON'>(() => {
+  const [selectedTheme, setSelectedTheme] = useState<GameThemeType>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('lol_game_theme_config');
-      if (stored === 'ELDER_DRAGON') return 'ELDER_DRAGON';
+      if (stored && VALID_THEMES.has(stored as GameThemeType)) return stored as GameThemeType;
     }
     return 'BARON';
   });
@@ -333,7 +423,7 @@ export function App() {
     }
   };
 
-  const handleSelectTheme = (theme: 'BARON' | 'ELDER_DRAGON') => {
+  const handleSelectTheme = (theme: GameThemeType) => {
     setSelectedTheme(theme);
     if (typeof window !== 'undefined') {
       try {
@@ -345,7 +435,7 @@ export function App() {
     adminSocket.setGameTheme(theme);
     addLog(
       'SYSTEM',
-      `🗺️ Đã đổi bản đồ sang: ${theme === 'ELDER_DRAGON' ? 'Hang Rồng Ngàn Tuổi (Elder Dragon)' : 'Hang Baron Hư Không'}`
+      `🗺️ Đã đổi bản đồ sang: ${THEME_OPTIONS.find((t) => t.id === theme)?.name || theme}`
     );
   };
 
@@ -1352,78 +1442,51 @@ export function App() {
                 <span>5. Bản Đồ & Theme Trận Đấu (Map / Arena Theme)</span>
               </div>
               <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-2 py-0.5 rounded-full">
-                Đang chọn: {selectedTheme === 'ELDER_DRAGON' ? '🐉 Hang Rồng Ngàn Tuổi' : '🟣 Hang Baron Nashor'}
+                Đang chọn: {THEME_OPTIONS.find((t) => t.id === selectedTheme)?.name || selectedTheme}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Card 1: Baron Nashor */}
-              <button
-                type="button"
-                onClick={() => handleSelectTheme('BARON')}
-                className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${selectedTheme === 'BARON'
-                    ? 'bg-purple-950/90 border-purple-400 shadow-[0_0_18px_rgba(168,85,247,0.5)] scale-[1.01]'
-                    : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-              >
-                <div className="w-12 h-12 rounded-lg bg-purple-900/60 border border-purple-500/60 flex items-center justify-center shrink-0 overflow-hidden">
-                  <img
-                    src="/images/boss_baron_2d.png"
-                    alt="Baron Nashor"
-                    className="w-10 h-10 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-white">Hang Baron Hư Không</span>
-                    {selectedTheme === 'BARON' && (
-                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-600 text-white">
-                        ĐANG DÙNG
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    Quái thú Baron Nashor CKTG • Tông tím Hư Không huyền bí
-                  </div>
-                </div>
-              </button>
-
-              {/* Card 2: Elder Dragon */}
-              <button
-                type="button"
-                onClick={() => handleSelectTheme('ELDER_DRAGON')}
-                className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${selectedTheme === 'ELDER_DRAGON'
-                    ? 'bg-gradient-to-r from-amber-950/90 to-cyan-950/90 border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.55)] scale-[1.01]'
-                    : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-              >
-                <div className="w-12 h-12 rounded-lg bg-amber-900/60 border border-amber-500/60 flex items-center justify-center shrink-0 overflow-hidden">
-                  <img
-                    src="/images/elder_dragon_icon_135001.webp"
-                    alt="Elder Dragon"
-                    className="w-10 h-10 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-white">Hang Rồng Ngàn Tuổi (Elder)</span>
-                    {selectedTheme === 'ELDER_DRAGON' && (
-                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-600 text-slate-950">
-                        ĐANG DÙNG
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    Long Thần Ngàn Tuổi CKTG • Lửa Thiên Thanh & Vàng Kim rực lửa
-                  </div>
-                </div>
-              </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {THEME_OPTIONS.map((opt) => {
+                const isSelected = selectedTheme === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleSelectTheme(opt.id)}
+                    className={`p-3 rounded-xl border text-left transition-all duration-200 flex items-center space-x-3 ${
+                      isSelected
+                        ? `${opt.bgActive} ${opt.borderActive} shadow-[0_0_18px_rgba(245,158,11,0.55)] scale-[1.01]`
+                        : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-slate-900/80 border border-slate-700/60 flex items-center justify-center shrink-0 overflow-hidden">
+                      <img
+                        src={opt.icon}
+                        alt={opt.name}
+                        className="w-10 h-10 object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-white truncate">{opt.name}</span>
+                        {isSelected && (
+                          <span
+                            className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${opt.badgeBg} ${opt.badgeText}`}
+                          >
+                            ĐANG DÙNG
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-amber-300/90 font-mono mt-0.5">{opt.sub}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{opt.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
 

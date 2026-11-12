@@ -2,9 +2,15 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Compass, Flame, Shield, Check, Zap } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
-import { ADMIN_CONSTANTS, TEAM_KEY } from '../../../constants/game';
+import {
+  ADMIN_CONSTANTS,
+  TEAM_KEY,
+  THEME_CONFIGS,
+  getThemeConfig,
+  BossThemeConfig,
+  GameThemeType,
+} from '../../../constants/game';
 import { getTeamTheme } from '../../../constants/teams';
-import { GameThemeType } from '../../../types/game';
 import { gameSocket } from '../../../services/socket';
 
 export const AdminMapSkillsTab: React.FC = () => {
@@ -32,10 +38,8 @@ export const AdminMapSkillsTab: React.FC = () => {
   const handleSelectTheme = (theme: GameThemeType) => {
     setGameTheme(theme);
     gameSocket.sendTheme(theme);
-    const themeName =
-      theme === 'BARON'
-        ? t('Admin.baronTheme', 'Hang Baron Hư Không')
-        : t('Admin.elderTheme', 'Hang Rồng Ngàn Tuổi');
+    const config = getThemeConfig(theme);
+    const themeName = isVi ? config.nameVi : config.nameEn;
     showFeedback(`Đã chuyển bản đồ: ${themeName}`);
   };
 
@@ -68,40 +72,32 @@ export const AdminMapSkillsTab: React.FC = () => {
           <span>{t('Admin.mapTheme', 'Chọn Bản Đồ Chiến Đấu:')}</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => handleSelectTheme('BARON')}
-            className={`p-2.5 rounded-xl border text-left transition active:scale-95 ${
-              gameTheme === 'BARON'
-                ? 'bg-purple-950/80 border-purple-400 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
-                : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <div className="text-[11px] font-black uppercase text-purple-300">
-              {t('Admin.baronTheme', 'Hang Baron Hư Không')}
-            </div>
-            <div className="text-[9px] text-slate-400 mt-0.5">
-              Quái vật Baron Nashor CKTG 2026
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSelectTheme('ELDER_DRAGON')}
-            className={`p-2.5 rounded-xl border text-left transition active:scale-95 ${
-              gameTheme === 'ELDER_DRAGON'
-                ? 'bg-amber-950/80 border-amber-400 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.35)]'
-                : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <div className="text-[11px] font-black uppercase text-amber-300">
-              {t('Admin.elderTheme', 'Hang Rồng Ngàn Tuổi')}
-            </div>
-            <div className="text-[9px] text-slate-400 mt-0.5">
-              Rồng Ngàn Tuổi CKTG Rực Lửa
-            </div>
-          </button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {(Object.values(THEME_CONFIGS) as BossThemeConfig[]).map((cfg) => {
+            const isSelected = gameTheme === cfg.id;
+            return (
+              <button
+                key={cfg.id}
+                type="button"
+                onClick={() => handleSelectTheme(cfg.id)}
+                className={`p-2 rounded-xl border text-left transition active:scale-95 flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-slate-800/90 border-amber-400 text-white shadow-[0_0_12px_rgba(245,158,11,0.35)]'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[10px] font-black uppercase text-amber-300 truncate">
+                    {cfg.bossName}
+                  </span>
+                  {isSelected && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
+                </div>
+                <div className="text-[9px] text-slate-400 mt-1 line-clamp-1">
+                  {isVi ? cfg.nameVi : cfg.nameEn}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 

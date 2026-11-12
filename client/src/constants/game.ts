@@ -175,45 +175,256 @@ export const SIMULATION_PRESETS = [
 export const GAME_THEME = {
   BARON: 'BARON',
   ELDER_DRAGON: 'ELDER_DRAGON',
+  XU_GIA: 'XU_GIA',
+  RONG_NUI: 'RONG_NUI',
+  RONG_GIA: 'RONG_GIA',
+  VOID_TITAN: 'VOID_TITAN',
 } as const;
 
 export type GameThemeType = (typeof GAME_THEME)[keyof typeof GAME_THEME];
 
+export type BossArchetype = 'BARON' | 'DRAGON';
+
+export interface BossThemeColors {
+  primaryHex: string;
+  secondaryHex: string;
+  enragedHex: string;
+  hpBarClass: string;
+  hpBarEnragedClass: string;
+  borderClass: string;
+  badgeClass: string;
+}
+
+export interface BossThemeConfig {
+  id: GameThemeType;
+  archetype: BossArchetype;
+  nameVi: string;
+  nameEn: string;
+  bossName: string;
+  roarTextVi: string;
+  roarTextEn: string;
+  backgroundImageWebp: string;
+  backgroundImagePng: string;
+  bossImageWebp: string;
+  bossImagePng: string;
+  spriteFilterClass: string;
+  hasVoidOverlay: boolean;
+  auraColorClass: {
+    idle: string;
+    enraged: string;
+    roar: string;
+  };
+  ambientMistClass: string;
+  bossScale: string;
+  avatarIcon: string;
+  containerPosition: string;
+  spriteSize: string;
+  groundAuraClass: string;
+  colors: BossThemeColors;
+  i18nKey: string;
+}
+
+export interface BossDifficultyConfig {
+  hpMultiplier: number;
+  enrageThreshold: number;
+  phaseSpeedMultiplier: number;
+  skillDamageMultiplier: number;
+}
+
+export const BOSS_DIFFICULTY_SCALE: Record<GameThemeType, BossDifficultyConfig> = {
+  [GAME_THEME.XU_GIA]: {
+    hpMultiplier: 0.5,
+    enrageThreshold: 0.4,
+    phaseSpeedMultiplier: 0.8,
+    skillDamageMultiplier: 0.75,
+  },
+  [GAME_THEME.RONG_NUI]: {
+    hpMultiplier: 0.7,
+    enrageThreshold: 0.38,
+    phaseSpeedMultiplier: 0.9,
+    skillDamageMultiplier: 0.9,
+  },
+  [GAME_THEME.RONG_GIA]: {
+    hpMultiplier: 0.85,
+    enrageThreshold: 0.32,
+    phaseSpeedMultiplier: 1.1,
+    skillDamageMultiplier: 1.0,
+  },
+  [GAME_THEME.ELDER_DRAGON]: {
+    hpMultiplier: 1.0,
+    enrageThreshold: 0.35,
+    phaseSpeedMultiplier: 1.0,
+    skillDamageMultiplier: 1.0,
+  },
+  [GAME_THEME.BARON]: {
+    hpMultiplier: 1.0,
+    enrageThreshold: 0.35,
+    phaseSpeedMultiplier: 1.0,
+    skillDamageMultiplier: 1.0,
+  },
+  [GAME_THEME.VOID_TITAN]: {
+    hpMultiplier: 1.3,
+    enrageThreshold: 0.3,
+    phaseSpeedMultiplier: 1.25,
+    skillDamageMultiplier: 1.2,
+  },
+};
+
+export const SERIES_BOSS_MAP: Record<'BO1' | 'BO3' | 'BO5', readonly GameThemeType[]> = {
+  BO1: [GAME_THEME.BARON],
+  BO3: [GAME_THEME.XU_GIA, GAME_THEME.ELDER_DRAGON, GAME_THEME.BARON],
+  BO5: [
+    GAME_THEME.XU_GIA,
+    GAME_THEME.RONG_NUI,
+    GAME_THEME.RONG_GIA,
+    GAME_THEME.BARON,
+    GAME_THEME.VOID_TITAN,
+  ],
+};
+
+export const getBossThemeForRound = (
+  round: number,
+  seriesFormat: 'BO1' | 'BO3' | 'BO5' = 'BO5'
+): GameThemeType => {
+  const list = SERIES_BOSS_MAP[seriesFormat] || SERIES_BOSS_MAP.BO5;
+  const idx = Math.max(0, Math.min(round - 1, list.length - 1));
+  return list[idx] || GAME_THEME.BARON;
+};
+
+export const isDragonArchetype = (theme: GameThemeType): boolean => {
+  const cfg = THEME_CONFIGS[theme];
+  return cfg ? cfg.archetype === 'DRAGON' : theme === GAME_THEME.ELDER_DRAGON;
+};
+
+export const getThemeConfig = (theme: GameThemeType): BossThemeConfig => {
+  return THEME_CONFIGS[theme] || THEME_CONFIGS[GAME_THEME.BARON];
+};
+
 export const THEME_STORAGE_KEY = 'lol_game_theme_config';
 
-export const THEME_CONFIGS: Record<
-  GameThemeType,
-  {
-    id: GameThemeType;
-    nameVi: string;
-    bossName: string;
-    roarTextVi: string;
-    backgroundImageWebp: string;
-    backgroundImagePng: string;
-    bossImageWebp: string;
-    bossImagePng: string;
-    auraColorClass: {
-      idle: string;
-      enraged: string;
-      roar: string;
-    };
-    ambientMistClass: string;
-    bossScale: string;
-    avatarIcon: string;
-    containerPosition: string;
-    spriteSize: string;
-    groundAuraClass: string;
-  }
-> = {
-  [GAME_THEME.BARON]: {
-    id: GAME_THEME.BARON,
-    nameVi: 'Hang Baron Hư Không',
-    bossName: 'Baron Nashor CKTG',
-    roarTextVi: 'BARON GẦM RÚ HƯ KHÔNG!',
+export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
+  [GAME_THEME.XU_GIA]: {
+    id: GAME_THEME.XU_GIA,
+    archetype: 'BARON',
+    nameVi: 'Hang Sứ Giả Khe Nứt',
+    nameEn: 'Rift Herald Cave',
+    bossName: 'Sứ Giả Khe Nứt CKTG',
+    roarTextVi: 'SỨ GIẢ KHE NỨT XUNG KÍCH!',
+    roarTextEn: 'RIFT HERALD CHARGES!',
     backgroundImageWebp: '/images/arena_background_2d.webp',
     backgroundImagePng: '/images/arena_background_2d.png',
     bossImageWebp: '/images/boss_baron_2d.webp',
     bossImagePng: '/images/boss_baron_2d.png',
+    spriteFilterClass: 'hue-rotate-[95deg] saturate-[1.35] brightness-[1.05]',
+    hasVoidOverlay: false,
+    auraColorClass: {
+      idle: 'bg-emerald-600/35 shadow-[0_0_90px_rgba(16,185,129,0.5)]',
+      enraged: 'bg-lime-500/50 shadow-[0_0_120px_rgba(132,204,22,0.7)]',
+      roar: 'bg-teal-400/60 shadow-[0_0_140px_rgba(45,212,191,0.85)]',
+    },
+    ambientMistClass: 'from-transparent via-emerald-950/25 to-slate-950/40',
+    bossScale: 'scale-[0.80]',
+    avatarIcon: '/images/boss_baron_2d.png',
+    containerPosition: 'top-[59.5%] sm:top-[60%]',
+    spriteSize: 'w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96',
+    groundAuraClass: 'top-[78%] w-64 h-16 bg-emerald-500/20',
+    colors: {
+      primaryHex: '#10b981',
+      secondaryHex: '#059669',
+      enragedHex: '#84cc16',
+      hpBarClass: 'bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-400',
+      hpBarEnragedClass: 'bg-gradient-to-r from-lime-600 via-emerald-500 to-yellow-400',
+      borderClass: 'border-emerald-500/80',
+      badgeClass: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60',
+    },
+    i18nKey: 'BossTheme.xuGia',
+  },
+  [GAME_THEME.RONG_NUI]: {
+    id: GAME_THEME.RONG_NUI,
+    archetype: 'DRAGON',
+    nameVi: 'Hang Rồng Núi Nham Thạch',
+    nameEn: 'Mountain Drake Peak',
+    bossName: 'Rồng Núi Nham Thạch CKTG',
+    roarTextVi: 'RỒNG NÚI THỔI LỬA ĐỊA CHẤN!',
+    roarTextEn: 'MOUNTAIN DRAKE SEISMIC INFERNO!',
+    backgroundImageWebp: '/images/arena_elder_dragon_2d.webp',
+    backgroundImagePng: '/images/arena_elder_dragon_2d.png',
+    bossImageWebp: '/images/boss_elder_dragon_2d.webp',
+    bossImagePng: '/images/boss_elder_dragon_2d.png',
+    spriteFilterClass: 'hue-rotate-[-35deg] saturate-[1.5] brightness-[1.02]',
+    hasVoidOverlay: false,
+    auraColorClass: {
+      idle: 'bg-orange-600/35 shadow-[0_0_90px_rgba(234,88,12,0.55)]',
+      enraged: 'bg-red-600/55 shadow-[0_0_120px_rgba(239,68,68,0.75)]',
+      roar: 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-[0_0_140px_rgba(245,158,11,0.85)]',
+    },
+    ambientMistClass: 'from-transparent via-orange-950/25 to-amber-950/35',
+    bossScale: 'scale-[0.92]',
+    avatarIcon: '/images/elder_dragon_icon_135001.webp',
+    containerPosition: 'top-[59.5%] sm:top-[60%]',
+    spriteSize: 'w-[430px] h-[240px] sm:w-[490px] sm:h-[275px] md:w-[560px] md:h-[315px]',
+    groundAuraClass: 'top-[80%] w-80 h-16 bg-orange-500/30',
+    colors: {
+      primaryHex: '#f97316',
+      secondaryHex: '#ea580c',
+      enragedHex: '#ef4444',
+      hpBarClass: 'bg-gradient-to-r from-orange-700 via-orange-500 to-amber-400',
+      hpBarEnragedClass: 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400',
+      borderClass: 'border-orange-500/80',
+      badgeClass: 'bg-orange-950/80 text-orange-300 border-orange-500/60',
+    },
+    i18nKey: 'BossTheme.rongNui',
+  },
+  [GAME_THEME.RONG_GIA]: {
+    id: GAME_THEME.RONG_GIA,
+    archetype: 'DRAGON',
+    nameVi: 'Hang Rồng Già Sấm Sét',
+    nameEn: 'Storm Drake Lair',
+    bossName: 'Rồng Già Bão Tố CKTG',
+    roarTextVi: 'RỒNG GIÀ PHÓNG SÉT THIÊN HÀ!',
+    roarTextEn: 'STORM DRAKE LIGHTNING TEMPEST!',
+    backgroundImageWebp: '/images/arena_elder_dragon_2d.webp',
+    backgroundImagePng: '/images/arena_elder_dragon_2d.png',
+    bossImageWebp: '/images/boss_elder_dragon_2d.webp',
+    bossImagePng: '/images/boss_elder_dragon_2d.png',
+    spriteFilterClass: 'hue-rotate-[205deg] saturate-[1.6] contrast-[1.1]',
+    hasVoidOverlay: false,
+    auraColorClass: {
+      idle: 'bg-indigo-600/35 shadow-[0_0_90px_rgba(99,102,241,0.55)]',
+      enraged: 'bg-fuchsia-600/55 shadow-[0_0_120px_rgba(192,38,211,0.75)]',
+      roar: 'bg-gradient-to-r from-indigo-500 to-fuchsia-500 shadow-[0_0_140px_rgba(168,85,247,0.85)]',
+    },
+    ambientMistClass: 'from-transparent via-indigo-950/25 to-fuchsia-950/35',
+    bossScale: 'scale-[1.05]',
+    avatarIcon: '/images/elder_dragon_icon_135001.webp',
+    containerPosition: 'top-[59.5%] sm:top-[60%]',
+    spriteSize: 'w-[430px] h-[240px] sm:w-[490px] sm:h-[275px] md:w-[560px] md:h-[315px]',
+    groundAuraClass: 'top-[80%] w-80 h-16 bg-indigo-500/30',
+    colors: {
+      primaryHex: '#818cf8',
+      secondaryHex: '#6366f1',
+      enragedHex: '#c026d3',
+      hpBarClass: 'bg-gradient-to-r from-indigo-700 via-blue-500 to-cyan-300',
+      hpBarEnragedClass: 'bg-gradient-to-r from-fuchsia-600 via-indigo-500 to-amber-300',
+      borderClass: 'border-indigo-500/80',
+      badgeClass: 'bg-indigo-950/80 text-indigo-300 border-indigo-500/60',
+    },
+    i18nKey: 'BossTheme.rongGia',
+  },
+  [GAME_THEME.BARON]: {
+    id: GAME_THEME.BARON,
+    archetype: 'BARON',
+    nameVi: 'Hang Baron Hư Không',
+    nameEn: 'Baron Nashor Pit',
+    bossName: 'Baron Nashor CKTG',
+    roarTextVi: 'BARON GẦM RÚ HƯ KHÔNG!',
+    roarTextEn: 'BARON NASHOR VOID ROAR!',
+    backgroundImageWebp: '/images/arena_background_2d.webp',
+    backgroundImagePng: '/images/arena_background_2d.png',
+    bossImageWebp: '/images/boss_baron_2d.webp',
+    bossImagePng: '/images/boss_baron_2d.png',
+    spriteFilterClass: '',
+    hasVoidOverlay: false,
     auraColorClass: {
       idle: 'bg-purple-600/35 shadow-[0_0_90px_rgba(168,85,247,0.5)]',
       enraged: 'bg-rose-600/50 shadow-[0_0_120px_rgba(244,63,94,0.7)]',
@@ -225,16 +436,31 @@ export const THEME_CONFIGS: Record<
     containerPosition: 'top-[59.5%] sm:top-[60%]',
     spriteSize: 'w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96',
     groundAuraClass: 'top-[78%] w-64 h-16 bg-purple-500/20',
+    colors: {
+      primaryHex: '#a855f7',
+      secondaryHex: '#7c3aed',
+      enragedHex: '#f43f5e',
+      hpBarClass: 'bg-gradient-to-r from-purple-700 via-fuchsia-500 to-purple-300',
+      hpBarEnragedClass: 'bg-gradient-to-r from-rose-600 via-red-500 to-amber-400',
+      borderClass: 'border-purple-500/80',
+      badgeClass: 'bg-purple-950/80 text-purple-300 border-purple-500/60',
+    },
+    i18nKey: 'BossTheme.baron',
   },
   [GAME_THEME.ELDER_DRAGON]: {
     id: GAME_THEME.ELDER_DRAGON,
+    archetype: 'DRAGON',
     nameVi: 'Hang Rồng Ngàn Tuổi',
+    nameEn: 'Elder Dragon Pit',
     bossName: 'Rồng Ngàn Tuổi CKTG',
     roarTextVi: 'LONG THẦN THỔI LỬA NGUYÊN TỐ!',
+    roarTextEn: 'ELDER DRAGON INFERNAL BREATH!',
     backgroundImageWebp: '/images/arena_elder_dragon_2d.webp',
     backgroundImagePng: '/images/arena_elder_dragon_2d.png',
     bossImageWebp: '/images/boss_elder_dragon_2d.webp',
     bossImagePng: '/images/boss_elder_dragon_2d.png',
+    spriteFilterClass: '',
+    hasVoidOverlay: false,
     auraColorClass: {
       idle: 'bg-cyan-500/35 shadow-[0_0_90px_rgba(6,182,212,0.55)]',
       enraged: 'bg-amber-500/50 shadow-[0_0_120px_rgba(245,158,11,0.75)]',
@@ -246,6 +472,52 @@ export const THEME_CONFIGS: Record<
     containerPosition: 'top-[59.5%] sm:top-[60%]',
     spriteSize: 'w-[430px] h-[240px] sm:w-[490px] sm:h-[275px] md:w-[560px] md:h-[315px]',
     groundAuraClass: 'top-[80%] w-80 h-16 bg-cyan-500/30',
+    colors: {
+      primaryHex: '#06b6d4',
+      secondaryHex: '#0284c7',
+      enragedHex: '#f59e0b',
+      hpBarClass: 'bg-gradient-to-r from-cyan-600 via-blue-500 to-amber-400',
+      hpBarEnragedClass: 'bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-400',
+      borderClass: 'border-cyan-500/80',
+      badgeClass: 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60',
+    },
+    i18nKey: 'BossTheme.elderDragon',
+  },
+  [GAME_THEME.VOID_TITAN]: {
+    id: GAME_THEME.VOID_TITAN,
+    archetype: 'BARON',
+    nameVi: 'Cõi Vĩnh Hằng Hư Vô',
+    nameEn: 'Primordial Void Realm',
+    bossName: 'Thần Hư Vô Nguyên Thủy',
+    roarTextVi: 'THẦN HƯ VÔ HỦY DIỆT VŨ TRỤ!',
+    roarTextEn: 'VOID TITAN COSMIC OBLIVION!',
+    backgroundImageWebp: '/images/arena_background_2d.webp',
+    backgroundImagePng: '/images/arena_background_2d.png',
+    bossImageWebp: '/images/boss_baron_2d.webp',
+    bossImagePng: '/images/boss_baron_2d.png',
+    spriteFilterClass: 'hue-rotate-[18deg] contrast-[1.3] brightness-[0.88] drop-shadow-[0_0_36px_rgba(139,92,246,0.95)]',
+    hasVoidOverlay: true,
+    auraColorClass: {
+      idle: 'bg-purple-950/70 shadow-[0_0_120px_rgba(88,28,135,0.85)]',
+      enraged: 'bg-rose-950/80 shadow-[0_0_150px_rgba(225,29,72,0.95)]',
+      roar: 'bg-gradient-to-r from-purple-900 via-fuchsia-800 to-rose-700 shadow-[0_0_160px_rgba(217,70,239,0.95)]',
+    },
+    ambientMistClass: 'from-transparent via-purple-950/40 to-slate-950/60',
+    bossScale: 'scale-[1.20]',
+    avatarIcon: '/images/boss_baron_2d.png',
+    containerPosition: 'top-[59.5%] sm:top-[60%]',
+    spriteSize: 'w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96',
+    groundAuraClass: 'top-[78%] w-64 h-16 bg-purple-900/40',
+    colors: {
+      primaryHex: '#c084fc',
+      secondaryHex: '#9333ea',
+      enragedHex: '#e11d48',
+      hpBarClass: 'bg-gradient-to-r from-purple-900 via-fuchsia-600 to-rose-400',
+      hpBarEnragedClass: 'bg-gradient-to-r from-rose-700 via-red-600 to-amber-300',
+      borderClass: 'border-fuchsia-500/90 shadow-[0_0_12px_rgba(192,132,252,0.6)]',
+      badgeClass: 'bg-purple-950/90 text-fuchsia-300 border-fuchsia-500/70 shadow-[0_0_8px_rgba(192,132,252,0.5)]',
+    },
+    i18nKey: 'BossTheme.voidTitan',
   },
 };
 

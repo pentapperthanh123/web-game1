@@ -108,6 +108,17 @@
     "ultimateSkill": "CHIÊU CUỐI!",
     "signatureTag": "TƯỚNG TỦ · {{player}} (+25%)"
   },
+  "BossTheme": {
+    "xuGia": "Sứ Giả Khe Nứt CKTG",
+    "rongNui": "Rồng Núi Nham Thạch",
+    "rongGia": "Rồng Già Bão Tố",
+    "elderDragon": "Rồng Ngàn Tuổi CKTG",
+    "baron": "Baron Nashor CKTG",
+    "voidTitan": "Thần Hư Vô Nguyên Thủy"
+  },
+  "BossRound": {
+    "badge": "VÁN {{round}}/{{max}}"
+  },
   "BossInteractive": {
     "pokeTooltip": "Click để tương tác với Boss!",
     "shieldTitle": "KHIÊN NĂNG LƯỢNG",
@@ -119,6 +130,7 @@
     "phase3Label": "CUỒNG NỘ TỐI THƯỢNG"
   },
   "Victory": {
+    "bossDefeatedDynamic": "{{bossName}} ĐÃ BỊ TIÊU DIỆT!",
     "bossDefeated": "BARON NASHOR ĐÃ BỊ TIÊU DIỆT!",
     "bossDefeatedElder": "RỒNG NGÀN TUỔI ĐÃ BỊ TIÊU DIỆT!",
     "worldsBadge": "CKTG 2026 WORLDS CHAMPIONSHIP",

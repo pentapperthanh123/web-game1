@@ -12,6 +12,7 @@ import {
   AUTO_PRO_BATTLE_CONSTANTS,
   AUTO_SUMMON_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
+  BOSS_DIFFICULTY_SCALE,
 } from './constants/game';
 
 import { getRandomChampion } from './constants/champions';
@@ -34,6 +35,7 @@ export function App() {
   const roundWinner = useGameStore((state) => state.roundWinner);
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
   const activeTeams = useGameStore((state) => state.activeTeams);
+  const gameTheme = useGameStore((state) => state.gameTheme);
 
   const nextFireAtRef = useRef<Record<string, number>>({});
   const autoSummonTickRef = useRef(0);
@@ -50,9 +52,11 @@ export function App() {
   useEffect(() => {
     if (isBattlePaused) return;
 
-    const retaliationInterval = isBossEnraged
+    const phaseSpeedMultiplier = BOSS_DIFFICULTY_SCALE[gameTheme]?.phaseSpeedMultiplier ?? 1.0;
+    const baseRetaliation = isBossEnraged
       ? BOSS_ENRAGED_CONSTANTS.RETALIATION_INTERVAL_MS
       : BOSS_ENRAGED_CONSTANTS.NORMAL_RETALIATION_INTERVAL_MS;
+    const retaliationInterval = Math.round(baseRetaliation / phaseSpeedMultiplier);
 
     const interval = setInterval(() => {
       const state = useGameStore.getState();
@@ -70,7 +74,7 @@ export function App() {
     }, retaliationInterval);
 
     return () => clearInterval(interval);
-  }, [isBattlePaused, isBossEnraged]);
+  }, [isBattlePaused, isBossEnraged, gameTheme]);
 
   // Periodic Boss Counterattack Loop with 4 Configurable Skills targeting Champions
   useEffect(() => {
@@ -83,11 +87,13 @@ export function App() {
     const runAttackCycle = () => {
       const state = useGameStore.getState();
       const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
+      const phaseSpeedMultiplier = BOSS_DIFFICULTY_SCALE[state.gameTheme]?.phaseSpeedMultiplier ?? 1.0;
       // When enraged: attacks occur ~1.54x faster (interval multiplied by 0.65)
       const speedMultiplier = isEnraged
         ? BOSS_ENRAGED_CONSTANTS.ATTACK_INTERVAL_MULTIPLIER
         : 1.0;
-      const baseInterval = (bossSkillConfig.intervalMs || 4000) * speedMultiplier;
+      const baseInterval =
+        ((bossSkillConfig.intervalMs || 4000) * speedMultiplier) / phaseSpeedMultiplier;
       const nextDelay = bossSkillConfig.randomIntervalEnabled
         ? Math.round(baseInterval * (0.7 + Math.random() * 0.6))
         : Math.round(baseInterval);
@@ -113,6 +119,7 @@ export function App() {
   }, [
     isBattlePaused,
     isBossEnraged,
+    gameTheme,
     bossSkillConfig.autoAttackEnabled,
     bossSkillConfig.intervalMs,
     bossSkillConfig.randomIntervalEnabled,

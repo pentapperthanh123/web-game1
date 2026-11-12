@@ -376,7 +376,16 @@ function applyDuelContribution(team: 'BLG' | 'GENG', deltaPercent: number, event
 }
 
 
-let currentGameTheme: 'BARON' | 'ELDER_DRAGON' = 'BARON';
+type GameThemeType = 'BARON' | 'ELDER_DRAGON' | 'XU_GIA' | 'RONG_NUI' | 'RONG_GIA' | 'VOID_TITAN';
+const VALID_GAME_THEMES = new Set<GameThemeType>([
+  'BARON',
+  'ELDER_DRAGON',
+  'XU_GIA',
+  'RONG_NUI',
+  'RONG_GIA',
+  'VOID_TITAN',
+]);
+let currentGameTheme: GameThemeType = 'BARON';
 
 interface BossSkillConfig {
   autoAttackEnabled: boolean;
@@ -879,8 +888,8 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('admin:set-theme', (payload: { theme: 'BARON' | 'ELDER_DRAGON' }) => {
-    if (payload?.theme) {
+  socket.on('admin:set-theme', (payload: { theme: GameThemeType }) => {
+    if (payload?.theme && VALID_GAME_THEMES.has(payload.theme)) {
       currentGameTheme = payload.theme;
       io.emit('game:theme', { theme: currentGameTheme });
     }

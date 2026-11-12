@@ -1,5 +1,5 @@
 import { BossSkillDefinition, BossSkillConfig } from '../types/bossSkill';
-import { GAME_THEME, GameThemeType } from './game';
+import { GameThemeType, isDragonArchetype } from './game';
 
 export const DEFAULT_BOSS_SKILL_CONFIG: BossSkillConfig = {
   autoAttackEnabled: true,
@@ -104,7 +104,7 @@ export const ELDER_DRAGON_SKILLS: BossSkillDefinition[] = [
 ];
 
 export const getBossSkillsByTheme = (theme: GameThemeType): BossSkillDefinition[] => {
-  return theme === GAME_THEME.ELDER_DRAGON ? ELDER_DRAGON_SKILLS : BARON_SKILLS;
+  return isDragonArchetype(theme) ? ELDER_DRAGON_SKILLS : BARON_SKILLS;
 };
 
 export const BOSS_SKILL_STORAGE_KEY = 'lol_boss_skill_config_v1';

@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, GAME_THEME } from '../../constants/game';
+import { BOSS_STATUS, isDragonArchetype, getThemeConfig } from '../../constants/game';
 
 const LIGHTNING_SEGMENTS = 8;
 const BOLT_COUNT = 8;
@@ -29,6 +29,18 @@ interface VoidSpike {
   rotationY: number;
 }
 
+const resolveShockwaveColor = (
+  isCataclysm: boolean,
+  isAcidSpit: boolean,
+  isTailSweep: boolean,
+  defaultColor: string
+): string => {
+  if (isCataclysm) return '#ef4444';
+  if (isAcidSpit) return '#22c55e';
+  if (isTailSweep) return '#d946ef';
+  return defaultColor;
+};
+
 // Singletons for Shared Geometries & Materials
 const SHARED_ACID_GEO = new THREE.SphereGeometry(0.09, 12, 12);
 const SHARED_ACID_RING_GEO = new THREE.RingGeometry(0.12, 0.42, 24);
@@ -48,7 +60,8 @@ export const BossVoidAttack = () => {
   const activeBossSkillBanner = useGameStore((state) => state.activeBossSkillBanner);
   const gameTheme = useGameStore((state) => state.gameTheme);
 
-  const isBaron = gameTheme === GAME_THEME.BARON;
+  const themeConfig = getThemeConfig(gameTheme);
+  const isBaron = !isDragonArchetype(gameTheme);
 
   // 1. Pre-generated Lightning Bolts
   const bolts = useMemo<LightningBolt[]>(() => {
@@ -121,7 +134,9 @@ export const BossVoidAttack = () => {
 
         const mat = shockRingRef.current.material as THREE.MeshBasicMaterial;
         mat.opacity = (1 - progress) * 0.95;
-        mat.color.set(isCataclysm ? '#ef4444' : isAcidSpit ? '#22c55e' : isTailSweep ? '#d946ef' : '#a855f7');
+        mat.color.set(
+          resolveShockwaveColor(isCataclysm, isAcidSpit, isTailSweep, themeConfig.colors.primaryHex)
+        );
       } else {
         shockRingRef.current.visible = false;
       }
@@ -164,7 +179,7 @@ export const BossVoidAttack = () => {
 
           const mat = line.material as THREE.LineBasicMaterial;
           mat.opacity = Math.random() > 0.2 ? 0.95 : 0.35;
-          mat.color.set(isCataclysm ? '#f43f5e' : '#c084fc');
+          mat.color.set(isCataclysm ? '#f43f5e' : themeConfig.colors.secondaryHex);
         });
       } else {
         lightningGroupRef.current.visible = false;

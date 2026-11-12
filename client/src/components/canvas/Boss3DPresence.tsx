@@ -6,17 +6,9 @@ import {
   BOSS_MECHANICS_CONSTANTS,
   BOSS_STATUS,
   COMBAT_VFX_CONSTANTS,
-  GAME_THEME,
+  getThemeConfig,
+  BossThemeConfig,
 } from '../../constants/game';
-
-const CRYSTAL_COLORS = {
-  BARON_NORMAL: '#a855f7',
-  BARON_CRACKED: '#c084fc',
-  BARON_ENRAGED: '#ef4444',
-  DRAGON_NORMAL: '#38bdf8',
-  DRAGON_CRACKED: '#f59e0b',
-  DRAGON_ENRAGED: '#fb7185',
-} as const;
 
 const MAX_ORBIT_CRYSTALS = 9;
 const SHIELD_DOME_RADIUS = 1.18;
@@ -29,15 +21,10 @@ const resolveBossPhase = (bossHp: number, bossMaxHp: number): 1 | 2 | 3 => {
   return 1;
 };
 
-const resolveCrystalColor = (phase: 1 | 2 | 3, isElderDragon: boolean): string => {
-  if (isElderDragon) {
-    if (phase === 3) return CRYSTAL_COLORS.DRAGON_ENRAGED;
-    if (phase === 2) return CRYSTAL_COLORS.DRAGON_CRACKED;
-    return CRYSTAL_COLORS.DRAGON_NORMAL;
-  }
-  if (phase === 3) return CRYSTAL_COLORS.BARON_ENRAGED;
-  if (phase === 2) return CRYSTAL_COLORS.BARON_CRACKED;
-  return CRYSTAL_COLORS.BARON_NORMAL;
+const resolveCrystalColor = (phase: 1 | 2 | 3, themeConfig: BossThemeConfig): string => {
+  if (phase === 3) return themeConfig.colors.enragedHex;
+  if (phase === 2) return themeConfig.colors.secondaryHex;
+  return themeConfig.colors.primaryHex;
 };
 
 export const Boss3DPresence = () => {
@@ -56,9 +43,9 @@ export const Boss3DPresence = () => {
   const bossWeakPoint = useGameStore((state) => state.bossWeakPoint);
 
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0;
-  const isElderDragon = gameTheme === GAME_THEME.ELDER_DRAGON;
+  const themeConfig = getThemeConfig(gameTheme);
   const phase = resolveBossPhase(bossHp, bossMaxHp);
-  const crystalColor = resolveCrystalColor(phase, isElderDragon);
+  const crystalColor = resolveCrystalColor(phase, themeConfig);
   const visibleCrystalCount = phase * 3;
 
   const crystalOffsets = useMemo(
@@ -145,7 +132,7 @@ export const Boss3DPresence = () => {
       <mesh ref={innerRingRef}>
         <torusGeometry args={[1.28, 0.02, 8, 40]} />
         <meshBasicMaterial
-          color={isElderDragon ? '#fbbf24' : '#38bdf8'}
+          color={themeConfig.colors.secondaryHex}
           transparent
           opacity={phase >= 2 ? 0.42 : 0.2}
           blending={THREE.AdditiveBlending}

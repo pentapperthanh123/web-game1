@@ -52,6 +52,10 @@ import {
   GAME_THEME,
   GameThemeType,
   THEME_STORAGE_KEY,
+  BOSS_DIFFICULTY_SCALE,
+  getBossThemeForRound,
+  getThemeConfig,
+  isDragonArchetype,
   AUTO_PRO_BATTLE_CONSTANTS,
   AUTO_PRO_STORAGE_KEY,
   DEFAULT_AUTO_PRO_BATTLE_CONFIG,
@@ -169,8 +173,10 @@ const DAMAGE_INTENSITY_MAP: Record<DamageType, number> = {
 const getStoredGameTheme = (): GameThemeType => {
   if (typeof window === 'undefined') return GAME_THEME.BARON;
   try {
-    const raw = localStorage.getItem(THEME_STORAGE_KEY);
-    if (raw === GAME_THEME.ELDER_DRAGON) return GAME_THEME.ELDER_DRAGON;
+    const raw = localStorage.getItem(THEME_STORAGE_KEY) as GameThemeType | null;
+    if (raw && Object.values(GAME_THEME).includes(raw)) {
+      return raw;
+    }
     return GAME_THEME.BARON;
   } catch {
     return GAME_THEME.BARON;
@@ -712,7 +718,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         // ignore
       }
     }
-    set({ gameTheme: theme });
+    const difficulty = BOSS_DIFFICULTY_SCALE[theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+    const newMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
+    set({
+      gameTheme: theme,
+      bossMaxHp: newMaxHp,
+      bossHp: newMaxHp,
+    });
   },
 
   setOverlayVisibility: (visibility) => {
@@ -1466,12 +1478,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     audioService.playDamageImpactSound(effectiveDamageType, effectiveDamageType === DAMAGE_TYPE.CRIT);
 
+    const difficulty = BOSS_DIFFICULTY_SCALE[state.gameTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+    const enrageThreshold = difficulty.enrageThreshold;
     const wasEnraged =
       state.bossHp > 0 &&
-      state.bossHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+      state.bossHp <= state.bossMaxHp * enrageThreshold;
     const isEnraged =
       newHp > 0 &&
-      newHp <= state.bossMaxHp * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+      newHp <= state.bossMaxHp * enrageThreshold;
     const isJustEnraged = !wasEnraged && isEnraged;
     const isDefeated = newHp <= 0;
 
@@ -1490,7 +1504,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             expiresAt: now + BOSS_MECHANICS_CONSTANTS.SHIELD.DURATION_MS,
           };
           nextTriggeredShieldThresholds = [...state.triggeredShieldThresholds, threshold];
-          audioService.playBossRoarSound(state.gameTheme === GAME_THEME.ELDER_DRAGON, false);
+          audioService.playBossRoarSound(isDragonArchetype(state.gameTheme), false);
           get().addLog(
             'BOSS',
             `🛡️ [KHIÊN NĂNG LƯỢNG] Boss bật khiên ${BOSS_MECHANICS_CONSTANTS.SHIELD.SHIELD_HP.toLocaleString()} HP! Phá trong 12s kẻo Boss hồi máu!`
@@ -1501,14 +1515,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     if (isJustEnraged) {
-      audioService.playBossEnrageSound(state.gameTheme === GAME_THEME.ELDER_DRAGON);
+      const themeConfig = getThemeConfig(state.gameTheme);
+      audioService.playBossEnrageSound(isDragonArchetype(state.gameTheme));
       get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
       get().addLog(
         'BOSS',
-        state.gameTheme === GAME_THEME.ELDER_DRAGON
-          ? '🔥 [CẢNH BÁO: RỒNG NGÀN TUỔI CUỒNG NỘ!] Máu dưới 35% - Sát thương & Tốc đánh tăng vọt!'
-          : '🔥 [CẢNH BÁO: BARON CUỒNG NỘ!] Máu dưới 35% - Sát thương & Tốc đánh tăng vọt!'
+        `🔥 [CẢNH BÁO: ${themeConfig.bossName.toUpperCase()} CUỒNG NỘ!] Máu dưới ${Math.round(enrageThreshold * 100)}% - Sát thương & Tốc đánh tăng vọt!`
       );
     }
 
@@ -1650,14 +1663,22 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     if (isDefeated) {
-      const isElder = state.gameTheme === GAME_THEME.ELDER_DRAGON;
-      const defeatColor = isElder
-        ? BOSS_DEFEAT_CONSTANTS.ELDER_DRAGON_DEFEAT_COLOR
-        : BOSS_DEFEAT_CONSTANTS.BARON_DEFEAT_COLOR;
+      const isDragon = isDragonArchetype(state.gameTheme);
+      const themeConfig = getThemeConfig(state.gameTheme);
+      const defeatColor =
+        themeConfig.colors.enragedHex ||
+        (isDragon
+          ? BOSS_DEFEAT_CONSTANTS.ELDER_DRAGON_DEFEAT_COLOR
+          : BOSS_DEFEAT_CONSTANTS.BARON_DEFEAT_COLOR);
 
-      audioService.playBossDefeatSound(isElder);
+      audioService.playBossDefeatSound(isDragon);
       get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(teamPalette.primary);
+
+      get().addLog(
+        'BOSS',
+        `🏆 [TIÊU DIỆT BOSS] ${themeConfig.bossName} ĐÃ BỊ HẠ GỤC!`
+      );
 
       newShockwaves.push(
         {
@@ -2163,7 +2184,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? BOSS_STATUS.ENRAGED
           : BOSS_STATUS.IDLE;
 
-      audioService.playBossRoarSound(state.gameTheme === GAME_THEME.ELDER_DRAGON, true);
+      audioService.playBossRoarSound(isDragonArchetype(state.gameTheme), true);
       get().spawnParticleBurst([0, 0.5, 0.5], '#22c55e', 1.6);
       get().addLog(
         'BOSS',
@@ -2303,12 +2324,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const skill = skills[nextIndex];
     const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
-    const baseMultiplier = state.bossSkillConfig.damageMultiplier || 1.0;
+    const difficulty = BOSS_DIFFICULTY_SCALE[state.gameTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+    const baseMultiplier = (state.bossSkillConfig.damageMultiplier || 1.0) * (difficulty.skillDamageMultiplier || 1.0);
     const rageBoost = isEnraged ? BOSS_ENRAGED_CONSTANTS.DAMAGE_BOOST_MULTIPLIER : 1.0;
     const actualDamage = Math.max(1, Math.round(skill.baseDamage * baseMultiplier * rageBoost));
     const now = Date.now();
-    const isElderDragon = state.gameTheme === GAME_THEME.ELDER_DRAGON;
-    const bossName = isElderDragon ? 'Rồng Ngàn Tuổi' : 'Baron Nashor';
+    const isDragon = isDragonArchetype(state.gameTheme);
+    const themeConfig = getThemeConfig(state.gameTheme);
+    const bossName = themeConfig.bossName;
 
     const currentMinions = state.minions;
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
@@ -2359,7 +2382,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (skill.isUltimate) {
       get().triggerScreenShake(1.6);
       get().triggerScreenFlash(skill.color);
-      audioService.playBossRoarSound(isElderDragon, true);
+      audioService.playBossRoarSound(isDragon, true);
     } else {
       get().triggerScreenShake(0.5);
       audioService.playDamageImpactSound(DAMAGE_TYPE.CRIT, false);
@@ -2449,10 +2472,28 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.isSeriesEnded) return;
     const nextRound = Math.min(GAME_CONSTANTS.BO5.MAX_ROUNDS, state.currentRound + 1);
+    const nextTheme = getBossThemeForRound(nextRound, state.seriesFormat);
+    const difficulty = BOSS_DIFFICULTY_SCALE[nextTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+    const nextMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
+    const themeConfig = getThemeConfig(nextTheme);
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      } catch {
+        // ignore
+      }
+    }
+
     audioService.playRoundStartSound();
-    get().addLog('SYSTEM', `⚔️ Bắt đầu Ván ${nextRound} / BO5!`);
+    get().addLog(
+      'SYSTEM',
+      `⚔️ Bắt đầu Ván ${nextRound} / ${state.seriesFormat} • Đối đầu ${themeConfig.bossName} (${nextMaxHp.toLocaleString()} HP)!`
+    );
     set({
-      bossHp: state.bossMaxHp,
+      gameTheme: nextTheme,
+      bossMaxHp: nextMaxHp,
+      bossHp: nextMaxHp,
       bossStatus: BOSS_STATUS.IDLE,
       currentRound: nextRound,
       roundWinner: null,
@@ -2493,11 +2534,26 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   resetBO5Match: () => {
-    const maxHp = get().bossMaxHp;
+    const state = get();
+    const round1Theme = getBossThemeForRound(1, state.seriesFormat);
+    const difficulty = BOSS_DIFFICULTY_SCALE[round1Theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+    const round1MaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
+    const themeConfig = getThemeConfig(round1Theme);
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, round1Theme);
+      } catch {
+        // ignore
+      }
+    }
+
     audioService.playRoundStartSound();
-    get().addLog('SYSTEM', '🔄 Bắt đầu Trận đấu BO5 Mới (0 - 0)!');
+    get().addLog('SYSTEM', `🔄 Bắt đầu Trận đấu ${state.seriesFormat} Mới (0 - 0) • Ván 1: ${themeConfig.bossName}!`);
     set({
-      bossHp: maxHp,
+      gameTheme: round1Theme,
+      bossMaxHp: round1MaxHp,
+      bossHp: round1MaxHp,
       bossStatus: BOSS_STATUS.IDLE,
       bo5Score: { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 },
       currentRound: 1,
@@ -2548,7 +2604,22 @@ export const useGameStore = create<GameState>((set, get) => ({
       const nextBlg = resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score.BLG);
       const nextGeng = resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score.GENG);
       const isEnded = nextBlg >= specs.TARGET_WINS || nextGeng >= specs.TARGET_WINS;
+      const round1Theme = getBossThemeForRound(1, format);
+      const difficulty = BOSS_DIFFICULTY_SCALE[round1Theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+      const round1MaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
+
+      if (typeof window !== 'undefined' && resetScore) {
+        try {
+          localStorage.setItem(THEME_STORAGE_KEY, round1Theme);
+        } catch {
+          // ignore
+        }
+      }
+
       return {
+        gameTheme: resetScore ? round1Theme : state.gameTheme,
+        bossMaxHp: resetScore ? round1MaxHp : state.bossMaxHp,
+        bossHp: resetScore ? round1MaxHp : state.bossHp,
         seriesFormat: format,
         bo5TargetWins: specs.TARGET_WINS,
         seriesMaxRounds: specs.MAX_ROUNDS,
@@ -2668,14 +2739,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   setBossHp: (hp: number) => {
+    const currentTheme = get().gameTheme;
+    const difficulty = BOSS_DIFFICULTY_SCALE[currentTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+    const enrageThreshold = difficulty.enrageThreshold;
     const max = get().bossMaxHp;
     const clampedHp = Math.max(0, Math.min(max, hp));
     const wasEnraged =
       get().bossHp > 0 &&
-      get().bossHp <= max * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+      get().bossHp <= max * enrageThreshold;
     const isEnraged =
       clampedHp > 0 &&
-      clampedHp <= max * BOSS_ENRAGED_CONSTANTS.HEALTH_THRESHOLD_PERCENT;
+      clampedHp <= max * enrageThreshold;
     const isJustEnraged = !wasEnraged && isEnraged;
     const isDefeated = clampedHp <= 0;
     const status = isDefeated
@@ -2687,14 +2761,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().addLog('BOSS', `Chỉnh máu Boss về ${clampedHp.toLocaleString()} HP`);
 
     if (isJustEnraged) {
-      audioService.playBossEnrageSound(get().gameTheme === GAME_THEME.ELDER_DRAGON);
+      const themeConfig = getThemeConfig(currentTheme);
+      audioService.playBossEnrageSound(isDragonArchetype(currentTheme));
       get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
       get().addLog(
         'BOSS',
-        get().gameTheme === GAME_THEME.ELDER_DRAGON
-          ? '🔥 [CẢNH BÁO: RỒNG NGÀN TUỔI CUỒNG NỘ!] Máu dưới 35% - Sát thương & Tốc đánh tăng vọt!'
-          : '🔥 [CẢNH BÁO: BARON CUỒNG NỘ!] Máu dưới 35% - Sát thương & Tốc đánh tăng vọt!'
+        `🔥 [CẢNH BÁO: ${themeConfig.bossName.toUpperCase()} CUỒNG NỘ!] Máu dưới ${Math.round(enrageThreshold * 100)}% - Sát thương & Tốc đánh tăng vọt!`
       );
     }
 

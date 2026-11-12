@@ -6,7 +6,7 @@ import { getTeamTheme } from '../../constants/teams';
 import {
   BOSS_DEFEAT_CONSTANTS,
   BOSS_STATUS,
-  GAME_THEME,
+  getThemeConfig,
   TEAM_KEY,
   TeamType,
 } from '../../constants/game';
@@ -111,14 +111,10 @@ export const BossDeathVFX3D = () => {
   const gameTheme = useGameStore((state) => state.gameTheme);
 
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED && bossDefeatedTimestamp > 0;
-  const isElder = gameTheme === GAME_THEME.ELDER_DRAGON;
+  const themeConfig = getThemeConfig(gameTheme);
   const winningTeam: TeamType = (finisherTeam || roundWinner || TEAM_KEY.BLG) as TeamType;
-  const bossColor = isElder
-    ? BOSS_DEFEAT_CONSTANTS.ELDER_DRAGON_DEFEAT_COLOR
-    : BOSS_DEFEAT_CONSTANTS.BARON_DEFEAT_COLOR;
-  const secondaryColor = isElder
-    ? BOSS_DEFEAT_CONSTANTS.ELDER_SECONDARY_COLOR
-    : BOSS_DEFEAT_CONSTANTS.BARON_SECONDARY_COLOR;
+  const bossColor = themeConfig.colors.primaryHex;
+  const secondaryColor = themeConfig.colors.secondaryHex;
   const winningProfile = useGameStore((state) => state.activeTeams[winningTeam]);
   const teamColor = getTeamTheme(winningProfile?.colorTheme).primaryHex;
 

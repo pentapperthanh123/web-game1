@@ -15,6 +15,14 @@ import {
 } from '../constants/series';
 import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
 
+export type GameThemeType =
+  | 'BARON'
+  | 'ELDER_DRAGON'
+  | 'XU_GIA'
+  | 'RONG_NUI'
+  | 'RONG_GIA'
+  | 'VOID_TITAN';
+
 export interface TikTokPipelineStats {
   trackedAffinityCount: number;
   leftAffinityCount: number;
@@ -265,11 +273,11 @@ class AdminSocketService {
     }
   }
 
-  public setGameTheme(theme: 'BARON' | 'ELDER_DRAGON'): void {
+  public setGameTheme(theme: GameThemeType): void {
     this.emit('admin:set-theme', { theme });
   }
 
-  public onGameTheme(callback: (data: { theme: 'BARON' | 'ELDER_DRAGON' }) => void): () => void {
+  public onGameTheme(callback: (data: { theme: GameThemeType }) => void): () => void {
     if (!this.socket) return () => {};
     this.socket.on('game:theme', callback);
     return () => {

@@ -2,11 +2,17 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Flame } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, UI_CONSTANTS, GAME_THEME } from '../../constants/game';
+import {
+  BOSS_STATUS,
+  UI_CONSTANTS,
+  GAME_CONSTANTS,
+  getThemeConfig,
+  BossThemeConfig,
+} from '../../constants/game';
 
 const getStatusBadgeConfig = (
   bossStatus: string,
-  isElderDragon: boolean,
+  themeConfig: BossThemeConfig,
   t: (key: string, fallback: string) => string
 ) => {
   if (bossStatus === BOSS_STATUS.DEFEATED) {
@@ -20,9 +26,7 @@ const getStatusBadgeConfig = (
   if (bossStatus === BOSS_STATUS.ENRAGED) {
     return {
       text: t('Game.rageModeDetailed', 'CUỒNG NỘ (+50% TỐC ĐÁNH)'),
-      className: isElderDragon
-        ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white font-black border-amber-400 shadow-[0_0_20px_#f59e0b] animate-pulse'
-        : 'bg-gradient-to-r from-red-600 via-rose-600 to-purple-600 text-white font-black border-red-400 shadow-[0_0_20px_#ef4444] animate-pulse',
+      className: `bg-gradient-to-r from-red-600 via-rose-600 to-purple-600 text-white font-black border-red-400 shadow-[0_0_20px_#ef4444] animate-pulse ${themeConfig.colors.badgeClass}`,
       isAlert: false,
       isFlame: true,
     };
@@ -30,28 +34,21 @@ const getStatusBadgeConfig = (
   return { text: '', className: '', isAlert: false, isFlame: false };
 };
 
-const getHpBarGradient = (bossStatus: string, isElderDragon: boolean): string => {
+const getHpBarGradient = (bossStatus: string, themeConfig: BossThemeConfig): string => {
   if (bossStatus === BOSS_STATUS.ENRAGED) {
-    return isElderDragon
-      ? 'bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-400 animate-lava-flow-shimmer shadow-[0_0_24px_#f59e0b]'
-      : 'bg-gradient-to-r from-red-700 via-rose-600 to-amber-500 animate-lava-flow-shimmer shadow-[0_0_24px_#ef4444]';
+    return `${themeConfig.colors.hpBarEnragedClass} animate-lava-flow-shimmer shadow-[0_0_24px_rgba(239,68,68,0.7)]`;
   }
-  if (isElderDragon) {
-    return 'bg-gradient-to-r from-cyan-600 via-amber-500 to-yellow-400 shadow-[0_0_16px_#f59e0b]';
-  }
-  return 'bg-gradient-to-r from-violet-700 via-purple-600 to-cyan-400 shadow-[0_0_16px_#06b6d4]';
+  return `${themeConfig.colors.hpBarClass} shadow-[0_0_16px_rgba(0,0,0,0.5)]`;
 };
 
-const getContainerBorderClass = (bossStatus: string, isElderDragon: boolean): string => {
+const getContainerBorderClass = (bossStatus: string, themeConfig: BossThemeConfig): string => {
   if (bossStatus === BOSS_STATUS.ENRAGED) {
-    return isElderDragon
-      ? 'border-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.85)] animate-pulse'
-      : 'border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.85)] animate-pulse';
+    return `${themeConfig.colors.borderClass} shadow-[0_0_25px_rgba(239,68,68,0.85)] animate-pulse`;
   }
   if (bossStatus === BOSS_STATUS.DEFEATED) {
     return 'border-rose-900/80 shadow-[0_0_15px_rgba(244,63,94,0.4)] opacity-75';
   }
-  return isElderDragon ? 'border-amber-900/80' : 'border-purple-900/80';
+  return themeConfig.colors.borderClass;
 };
 
 export const BossHealthBar = () => {
@@ -60,8 +57,11 @@ export const BossHealthBar = () => {
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const bossStatus = useGameStore((state) => state.bossStatus);
   const gameTheme = useGameStore((state) => state.gameTheme);
+  const currentRound = useGameStore((state) => state.currentRound);
+  const seriesFormat = useGameStore((state) => state.seriesFormat);
 
-  const isElderDragon = gameTheme === GAME_THEME.ELDER_DRAGON;
+  const themeConfig = getThemeConfig(gameTheme);
+  const maxRounds = GAME_CONSTANTS.SERIES_FORMATS[seriesFormat]?.MAX_ROUNDS ?? 5;
 
   const [ghostHpPercent, setGhostHpPercent] = useState(100);
 
@@ -75,16 +75,26 @@ export const BossHealthBar = () => {
     return () => clearTimeout(timer);
   }, [hpPercentage]);
 
-  const badgeConfig = getStatusBadgeConfig(bossStatus, isElderDragon, t);
-  const barGradient = getHpBarGradient(bossStatus, isElderDragon);
-  const containerBorderClass = getContainerBorderClass(bossStatus, isElderDragon);
+  const badgeConfig = getStatusBadgeConfig(bossStatus, themeConfig, t);
+  const barGradient = getHpBarGradient(bossStatus, themeConfig);
+  const containerBorderClass = getContainerBorderClass(bossStatus, themeConfig);
 
   return (
     <div className="w-full max-w-lg mx-auto px-2 sm:px-3 pt-0.5 pointer-events-auto select-none">
-      {/* Alert badge only if Boss is Enraged or Defeated */}
-      {badgeConfig.text && (
-        <div className="flex items-center justify-center mb-1 animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="flex items-center space-x-1">
+      {/* Boss name and Round badge */}
+      <div className="flex items-center justify-between text-[11px] font-bold px-1 mb-1">
+        <div className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-900/90 border border-slate-700/80 text-amber-300 font-mono font-bold shadow">
+            {t('BossRound.badge', `VÁN ${currentRound}/${maxRounds}`, { round: currentRound, max: maxRounds })}
+          </span>
+          <span className="tracking-wide uppercase text-white font-black drop-shadow text-[11px] sm:text-xs">
+            {t(themeConfig.i18nKey, themeConfig.bossName)}
+          </span>
+        </div>
+
+        {/* Alert badge only if Boss is Enraged or Defeated */}
+        {badgeConfig.text && (
+          <div className="flex items-center space-x-1 animate-in fade-in slide-in-from-top-1 duration-200">
             {badgeConfig.isFlame && (
               <Flame className="w-3.5 h-3.5 text-amber-300 animate-bounce shrink-0" />
             )}
@@ -97,8 +107,8 @@ export const BossHealthBar = () => {
               {badgeConfig.text}
             </span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Segmented Cyberpunk / Fantasy HP Bar Container */}
       <div
