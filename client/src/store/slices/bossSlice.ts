@@ -2,7 +2,6 @@ import { StateCreator } from 'zustand';
 import {
   ActiveStatusEffect,
   DefeatedChampionEntity,
-  FloatingDamageText,
   GameState,
   HeartMilestoneBanner,
   MeteorEntity,
@@ -19,7 +18,6 @@ import {
   BOSS_MECHANICS_CONSTANTS,
   BOSS_STATUS,
   BossStatusType,
-  COMBAT_VFX_CONSTANTS,
   DAMAGE_TYPE,
   GAME_CONSTANTS,
   GAME_THEME,
@@ -171,10 +169,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     }
 
     const normalizedTarget = targetTeam === 'GEN' ? TEAM_KEY.GENG : targetTeam;
-    const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
-    const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
-    const now = Date.now();
-    const newFloats: FloatingDamageText[] = [];
 
     const updatedMinions = state.minions.map((minion) => {
       if (normalizedTarget !== 'ALL' && minion.team !== normalizedTarget) {
@@ -182,36 +176,13 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       }
       const curHp = minion.hp ?? CHAMPION_DEFAULT_MAX_HP;
       const nextHp = Math.min(minion.maxHp ?? CHAMPION_DEFAULT_MAX_HP, curHp + amount);
-
-      const livePos = getLiveMinionScreenPos(minion.championName);
-      const posX = livePos ? livePos.x : (minion.team === TEAM_KEY.BLG ? screenW * 0.25 : screenW * 0.75);
-      const posY = livePos ? livePos.y : screenH * 0.65;
-
-      newFloats.push({
-        id: `heal-${now}-${Math.random()}`,
-        amount,
-        text: `+${amount} HP`,
-        damageType: DAMAGE_TYPE.NORMAL,
-        team: minion.team,
-        playerName: minion.championName,
-        x: posX - screenW * 0.5,
-        y: posY - screenH * 0.5,
-        color: '#22c55e',
-        scale: 1.1,
-        createdAt: now,
-      });
-
       return { ...minion, hp: nextHp };
     });
 
     audioService.playHeartChime();
-    set((prev) => ({
+    set({
       minions: updatedMinions,
-      floatingDamages: [
-        ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
-        ...newFloats,
-      ],
-    }));
+    });
   },
 
   triggerHeartMilestoneHeal: (milestoneCount: number) => {
@@ -342,7 +313,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     }
 
     const remainingMinions: MinionEntity[] = [];
-    const newFloats: FloatingDamageText[] = [];
     const newDefeatedChampions: DefeatedChampionEntity[] = [];
     let totalDamageDealt = 0;
 
@@ -364,22 +334,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       const livePos = getLiveMinionScreenPos(minion.id) || getLiveMinionScreenPos(minion.championName);
       const posX = livePos ? livePos.x : (minion.team === TEAM_KEY.BLG ? screenW * 0.25 : screenW * 0.75);
       const posY = livePos ? livePos.y : screenH * 0.65;
-
-      newFloats.push({
-        id: `boss-dmg-${now}-${Math.random()}`,
-        amount: actualDamage,
-        text: `-${actualDamage} HP`,
-        damageType: skill.isUltimate ? DAMAGE_TYPE.ULTIMATE : DAMAGE_TYPE.CRIT,
-        team: minion.team,
-        playerName: minion.championName,
-        x: posX - screenW * 0.5,
-        y: posY - screenH * 0.5,
-        color: '#ef4444',
-        scale: skill.isUltimate
-          ? COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_ULTIMATE
-          : COMBAT_VFX_CONSTANTS.DAMAGE.FLOATING_SCALE_CRIT,
-        createdAt: now,
-      });
 
       const liveWorldPos = getLiveMinionPosition(minion.id) || minion.spawnPosition;
       get().spawnParticleBurst(liveWorldPos, skill.color, skill.isUltimate ? 2.0 : 1.0);
@@ -411,19 +365,30 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       );
     }
 
+    // Tự động xuất trận tiếp viện từ hàng đợi nếu có tướng bị hạ gục
+    const deployed = deployQueuedMinions(
+      remainingMinions,
+      state.summonQueue,
+      state.lastSummonTurnTimestamps,
+      now,
+      state.activeTeams
+    );
+
     set((prev) => ({
       bossAttackTimestamp: now,
       bossAttackTargetTeam: targetTeam,
       activeBossSkillBanner: banner,
       bossSkillRotationIndex: (state.bossSkillRotationIndex + 1) % skills.length,
-      minions: remainingMinions,
+      minions: deployed.nextMinions,
+      summonQueue: deployed.nextQueue,
+      lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
+      activeSummonPortals: [
+        ...prev.activeSummonPortals,
+        ...deployed.newPortals,
+      ],
       activeDefeatedChampions: [
         ...prev.activeDefeatedChampions.slice(-8),
         ...newDefeatedChampions,
-      ],
-      floatingDamages: [
-        ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
-        ...newFloats,
       ],
     }));
 
@@ -511,7 +476,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     const bossName = getThemeConfig(state.gameTheme).bossName;
 
     const remainingMinions: MinionEntity[] = [];
-    const newFloats: FloatingDamageText[] = [];
     const newDefeatedChampions: DefeatedChampionEntity[] = [];
     let hasChanges = false;
 
@@ -541,24 +505,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
         const tickDamage = effect.tickDamage ?? 0;
         nextHp -= tickDamage;
         nextEffects.push({ ...effect, lastTickAt: now });
-
-        const livePos = getLiveMinionScreenPos(minion.id);
-        const posX = livePos ? livePos.x : screenW * 0.5;
-        const posY = livePos ? livePos.y : screenH * 0.65;
-        const presentation = STATUS_EFFECT_PRESENTATION[effect.type];
-        newFloats.push({
-          id: `dot-${now}-${minion.id}-${effect.type}`,
-          amount: tickDamage,
-          text: `${presentation.icon} -${tickDamage}`,
-          damageType: DAMAGE_TYPE.NORMAL,
-          team: minion.team,
-          playerName: minion.championName,
-          x: posX - screenW * 0.5,
-          y: posY - screenH * 0.5,
-          color: presentation.color,
-          scale: STATUS_EFFECT_CONSTANTS.FLOATING_TEXT_SCALE,
-          createdAt: now,
-        });
       });
 
       if (nextHp > 0) {
@@ -589,17 +535,24 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
 
     if (!hasChanges) return;
 
-    const keepFloatingCount = Math.max(
-      0,
-      COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - newFloats.length
+    // Tự động xuất trận tiếp viện từ hàng đợi nếu có tướng gục ngã vì hiệu ứng
+    const deployed = deployQueuedMinions(
+      remainingMinions,
+      state.summonQueue,
+      state.lastSummonTurnTimestamps,
+      now,
+      state.activeTeams
     );
+
     set((prev) => ({
-      minions: remainingMinions,
-      activeDefeatedChampions: [...prev.activeDefeatedChampions.slice(-8), ...newDefeatedChampions],
-      floatingDamages: [
-        ...(keepFloatingCount > 0 ? prev.floatingDamages.slice(-keepFloatingCount) : []),
-        ...newFloats,
+      minions: deployed.nextMinions,
+      summonQueue: deployed.nextQueue,
+      lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
+      activeSummonPortals: [
+        ...prev.activeSummonPortals,
+        ...deployed.newPortals,
       ],
+      activeDefeatedChampions: [...prev.activeDefeatedChampions.slice(-8), ...newDefeatedChampions],
     }));
   },
 
@@ -620,6 +573,10 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
+      summonQueue: {
+        [TEAM_KEY.BLG]: [],
+        [TEAM_KEY.GENG]: [],
+      },
       activeBursts: [],
       activeHearts: [],
       activeProjectiles: [],

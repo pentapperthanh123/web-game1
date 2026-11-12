@@ -8,6 +8,7 @@ import {
   TEAM_KEY,
 } from '../../constants/game';
 import { createEmptyTeamCombo, createEmptyTeamHeartMomentum } from '../storeHelpers';
+import { deployQueuedMinions } from '../summonQueueHelper';
 
 export type VfxPruneSlice = Pick<GameState, 'pruneEntities'>;
 
@@ -84,6 +85,30 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
     }
 
     const hasMinionsChanged = activeMinions.length !== state.minions.length;
+    const hasQueueItems =
+      (state.summonQueue?.[TEAM_KEY.BLG]?.length ?? 0) > 0 ||
+      (state.summonQueue?.[TEAM_KEY.GENG]?.length ?? 0) > 0;
+
+    let finalMinions = activeMinions;
+    let nextSummonQueue = state.summonQueue;
+    let nextSummonPortals = activeSummonPortals;
+    let nextLastTurnTimestamps = state.lastSummonTurnTimestamps;
+
+    if (hasMinionsChanged || hasQueueItems) {
+      const deployed = deployQueuedMinions(
+        activeMinions,
+        state.summonQueue,
+        state.lastSummonTurnTimestamps,
+        now,
+        state.activeTeams
+      );
+      if (deployed.nextMinions.length !== activeMinions.length || deployed.newPortals.length > 0) {
+        finalMinions = deployed.nextMinions;
+        nextSummonQueue = deployed.nextQueue;
+        nextLastTurnTimestamps = deployed.nextLastTurnTimestamps;
+        nextSummonPortals = [...activeSummonPortals, ...deployed.newPortals];
+      }
+    }
     const hasHeartsChanged = activeHearts.length !== state.activeHearts.length;
     const hasProjChanged = activeProj.length !== state.activeProjectiles.length;
     const hasFloatsChanged = activeFloats.length !== state.floatingDamages.length;
@@ -147,14 +172,16 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
     }
 
     set({
-      minions: hasMinionsChanged ? activeMinions : state.minions,
+      minions: finalMinions,
+      summonQueue: nextSummonQueue,
+      lastSummonTurnTimestamps: nextLastTurnTimestamps,
       activeHearts: hasHeartsChanged ? activeHearts : state.activeHearts,
       activeProjectiles: hasProjChanged ? activeProj : state.activeProjectiles,
       floatingDamages: hasFloatsChanged ? activeFloats : state.floatingDamages,
       activeSlashes: hasSlashesChanged ? activeSlashes : state.activeSlashes,
       activeShockwaves: hasWavesChanged ? activeWaves : state.activeShockwaves,
       activeMeteors: hasMeteorsChanged ? activeMeteors : state.activeMeteors,
-      activeSummonPortals: hasPortalsChanged ? activeSummonPortals : state.activeSummonPortals,
+      activeSummonPortals: nextSummonPortals,
       activeHitImpacts: hasImpactsChanged ? activeHitImpacts : state.activeHitImpacts,
       activeBursts: hasBurstsChanged ? activeBursts : state.activeBursts,
       activeFlyingArrows: hasArrowsChanged ? activeArrows : state.activeFlyingArrows,

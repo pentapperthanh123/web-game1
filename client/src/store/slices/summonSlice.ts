@@ -5,10 +5,11 @@ import {
   GiftAnnouncement,
   LiveChatMessage,
   MeteorEntity,
-  MinionEntity,
   ParticleBurst,
+  QueuedSummon,
   SummonPortalEntity,
 } from '../../types/game';
+import { deployQueuedMinions } from '../summonQueueHelper';
 import {
   COMBAT_VFX_CONSTANTS,
   DAMAGE_TYPE,
@@ -27,13 +28,13 @@ import {
 import { SFX_EVENT } from '../../constants/sfx';
 import { audioService } from '../../services/audioService';
 import { playSound } from '../../services/soundManager';
-import { swarmLegionPool, SwarmSpawnInput } from '../../services/swarmLegionPool';
-import { isBattleHalted, randomInRange, createWingSpawnPosition } from '../storeHelpers';
+import { isBattleHalted } from '../storeHelpers';
 
 export type SummonSlice = Pick<
   GameState,
   | 'summonMinion'
   | 'summonMinionsBatch'
+  | 'advanceSummonTurnQueue'
   | 'triggerGiftExplosion'
   | 'triggerFollowReward'
   | 'triggerShareReward'
@@ -53,6 +54,15 @@ const pendingSummonQueue: PendingSummonRequest[] = [];
 let isSummonFlushScheduled = false;
 let lastSummonSfxAt = 0;
 let lastBatchFlushAt = 0;
+let turnTimerId: ReturnType<typeof setTimeout> | null = null;
+
+const scheduleTurnAdvance = (get: () => GameState, delayMs: number): void => {
+  if (turnTimerId !== null) return;
+  turnTimerId = setTimeout(() => {
+    turnTimerId = null;
+    get().advanceSummonTurnQueue();
+  }, Math.max(50, delayMs));
+};
 
 const scheduleBatchFlush = (callback: () => void, delayMs: number): void => {
   if (delayMs <= 0 && typeof requestAnimationFrame === 'function') {
@@ -111,10 +121,9 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     };
     let hasPlayedSupportChime = false;
 
-    const swarmSpawnList: SwarmSpawnInput[] = [];
-    const teamColorCache: Record<TeamType, string> = {
-      [TEAM_KEY.BLG]: getTeamTheme(state.activeTeams[TEAM_KEY.BLG]?.colorTheme).primaryHex,
-      [TEAM_KEY.GENG]: getTeamTheme(state.activeTeams[TEAM_KEY.GENG]?.colorTheme).primaryHex,
+    const nextQueue: Record<TeamType, QueuedSummon[]> = {
+      [TEAM_KEY.BLG]: [...(state.summonQueue?.[TEAM_KEY.BLG] || [])],
+      [TEAM_KEY.GENG]: [...(state.summonQueue?.[TEAM_KEY.GENG] || [])],
     };
 
     if (overflowCount > 0) {
@@ -126,34 +135,17 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         teamAggregatedSupportDmg[slotTeam] += Math.round(
           GAME_CONSTANTS.MINIONS.BASE_DPS * SUMMON_PERF_CONSTANTS.OVERFLOW_SUPPORT_DPS_FACTOR
         );
-        swarmSpawnList.push({
+        nextQueue[slotTeam].push({
+          id: `queue-${now}-ov-${k}-${Math.random().toString(36).substring(2, 6)}`,
+          summonerName: item.summonerName,
+          championName: item.championName,
           team: slotTeam,
-          colorHex: teamColorCache[slotTeam],
-          avatarUrl: getChampionAvatarUrl(item.championName, slotTeam),
           userAvatarUrl: item.userAvatarUrl,
+          isExplicitChampion: item.isExplicitChampion,
+          isGiftBypass: item.isGiftBypass,
+          queuedAt: now,
         });
       }
-    }
-
-    // Any units in effectiveBatch beyond MAX_VISIBLE_ORBS won't appear in the 3D Hero slots,
-    // so mirror them into SwarmLegionCanvas so the full requested army (200/500/1000/2000) is visible.
-    const maxVisible3D = COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_ORBS;
-    if (!isVisualSaturated && effectiveBatch.length > maxVisible3D) {
-      const hidden3DCount = effectiveBatch.length - maxVisible3D;
-      for (let k = 0; k < hidden3DCount; k += 1) {
-        const item = effectiveBatch[k];
-        const slotTeam = item.team === TEAM_KEY.GENG ? TEAM_KEY.GENG : TEAM_KEY.BLG;
-        swarmSpawnList.push({
-          team: slotTeam,
-          colorHex: teamColorCache[slotTeam],
-          avatarUrl: getChampionAvatarUrl(item.championName, slotTeam),
-          userAvatarUrl: item.userAvatarUrl,
-        });
-      }
-    }
-
-    if (swarmSpawnList.length > 0) {
-      swarmLegionPool.spawnUnits(swarmSpawnList, now);
     }
 
     for (let i = 0; i < effectiveBatch.length; i += 1) {
@@ -245,79 +237,38 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         }
       }
 
-      const spawnPosition = createWingSpawnPosition(req.team);
-      const avatarUrl = getChampionAvatarUrl(req.championName, req.team);
       const activeTeamProfile = state.activeTeams[req.team];
-      const dynamicTeamTheme = getTeamTheme(activeTeamProfile?.colorTheme);
-      const primaryColor = dynamicTeamTheme.primaryHex;
+      const teamTag = activeTeamProfile?.shortTag || req.team;
+
+      // Xếp vào hàng đợi xuất trận theo lượt (Reinforcement Turn Queue)
+      nextQueue[req.team].push({
+        id: `queue-${now}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+        summonerName: req.summonerName,
+        championName: req.championName,
+        team: req.team,
+        userAvatarUrl: req.userAvatarUrl,
+        isExplicitChampion: req.isExplicitChampion,
+        isGiftBypass: req.isGiftBypass,
+        queuedAt: now,
+      });
+
+      const queuePos = nextQueue[req.team].length;
+      newChats.push({
+        id: `chat-q-${now}-${i}`,
+        userName: req.summonerName,
+        text: `gọi tướng [${req.championName}] (${teamTag} • Lượt #${queuePos})`,
+        team: req.team,
+        championName: req.championName,
+        timestamp: new Date(now).toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      });
+
       const exactSignaturePro = findExactSignaturePlayer(
         req.championName,
         activeTeamProfile?.roster ?? []
       );
-      const isSignatureSynergy = Boolean(exactSignaturePro);
-      const rawBaseDps =
-        GAME_CONSTANTS.MINIONS.BASE_DPS +
-        Math.floor(Math.random() * GAME_CONSTANTS.MINIONS.DPS_VARIANCE);
-      const baseDps = isSignatureSynergy
-        ? Math.round(rawBaseDps * GAME_CONSTANTS.SIGNATURE_SYNERGY.DAMAGE_MULTIPLIER)
-        : rawBaseDps;
-      const summonDps = baseDps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER;
-
-      const newMinion: MinionEntity = {
-        id: `minion-${now}-${i}-${Math.random().toString(36).substring(2, 6)}`,
-        summonerName: req.summonerName,
-        championName: req.championName,
-        avatarUrl,
-        userAvatarUrl: req.userAvatarUrl,
-        team: req.team,
-        spawnPosition,
-        orbitRadius: randomInRange(
-          GAME_CONSTANTS.MINIONS.ORBIT_RADIUS_MIN,
-          GAME_CONSTANTS.MINIONS.ORBIT_RADIUS_MAX
-        ),
-        orbitSpeed: (0.4 + Math.random() * 0.6) * (req.team === TEAM_KEY.BLG ? 1 : -1),
-        orbitAngle: Math.random() * Math.PI * 2,
-        verticalOffset: (Math.random() - 0.5) * 1.8,
-        createdAt: now,
-        lifetimeMs: GAME_CONSTANTS.MINIONS.LIFETIME_MS,
-        dps: baseDps,
-        hp: CHAMPION_DEFAULT_MAX_HP,
-        maxHp: CHAMPION_DEFAULT_MAX_HP,
-        fury: 0,
-        maxFury: GAME_CONSTANTS.MINION_FURY.MAX_FURY,
-        isSignatureSynergy,
-        signaturePlayerName: exactSignaturePro?.name,
-        signaturePlayerRole: exactSignaturePro?.role,
-      };
-      nextMinions.push(newMinion);
-
-      if (newPortals.length < SUMMON_PERF_CONSTANTS.MAX_PORTALS_PER_BATCH) {
-        newPortals.push({
-          id: `portal-${now}-${i}-${Math.random().toString(36).substring(2, 6)}`,
-          summonerName: req.summonerName,
-          championName: req.championName,
-          avatarUrl,
-          team: req.team,
-          position: spawnPosition,
-          color: isSignatureSynergy ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor,
-          isCrit: isSignatureSynergy,
-          dps: summonDps,
-          createdAt: now,
-          isSignatureSynergy,
-          signaturePlayerName: exactSignaturePro?.name,
-        });
-      }
-
-      if (newBursts.length < SUMMON_PERF_CONSTANTS.MAX_BURSTS_PER_BATCH) {
-        newBursts.push({
-          id: `burst-${now}-${i}-${Math.random().toString(36).substring(2, 6)}`,
-          origin: spawnPosition,
-          color: primaryColor,
-          intensity: COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_NORMAL,
-          timestamp: now,
-        });
-      }
-
       const matchingPro =
         exactSignaturePro ||
         findRosterPlayerInRoster(req.championName, activeTeamProfile?.roster ?? []);
@@ -325,44 +276,11 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         furyBoosts[matchingPro.id] =
           (furyBoosts[matchingPro.id] ?? 0) + GAME_CONSTANTS.PRO_FURY.FURY_GAIN_SUMMON_MATCH;
       } else {
-        // Comment đúng cú pháp tăng nộ cổ vũ cho toàn bộ tuyển thủ trong đội
         const teamRoster = activeTeamProfile?.roster ?? [];
         for (const pro of teamRoster) {
           furyBoosts[pro.id] =
             (furyBoosts[pro.id] ?? 0) + GAME_CONSTANTS.PRO_FURY.FURY_GAIN_COMMENT_TEAM;
         }
-      }
-
-      const teamTag = activeTeamProfile?.shortTag || req.team;
-      if (newLogs.length < SUMMON_PERF_CONSTANTS.MAX_LOGS_PER_BATCH) {
-        const logMsg =
-          isSignatureSynergy && exactSignaturePro
-            ? `⭐ TƯỚNG TỦ [${exactSignaturePro.name}]! ${req.summonerName} triệu hồi ${req.championName} phe ${teamTag} (+${GAME_CONSTANTS.SIGNATURE_SYNERGY.BONUS_PERCENT}% ST)`
-            : `${req.summonerName} triệu hồi [${req.championName}] phe ${teamTag} (Bảo hộ 1s)`;
-        newLogs.push({
-          id: `log-${now}-${i}-${Math.random().toString(36).substring(2, 5)}`,
-          time: new Date(now).toLocaleTimeString('vi-VN', { hour12: false }),
-          type: 'SUMMON',
-          message: logMsg,
-          team: req.team,
-        });
-      }
-      if (newChats.length < SUMMON_PERF_CONSTANTS.MAX_CHATS_PER_BATCH) {
-        const chatMsg =
-          isSignatureSynergy && exactSignaturePro
-            ? `⭐ Tướng Tủ ${exactSignaturePro.name}: ${req.championName} (+${GAME_CONSTANTS.SIGNATURE_SYNERGY.BONUS_PERCENT}% ST)!`
-            : `Triệu hồi ${req.championName} chiến đấu!`;
-        newChats.push({
-          id: `chat-${now}-${i}-${Math.random().toString(36).substring(2, 5)}`,
-          userName: req.summonerName,
-          text: chatMsg,
-          team: req.team,
-          championName: req.championName,
-          timestamp: new Date(now).toLocaleTimeString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        });
       }
     }
 
@@ -392,6 +310,23 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     const portalSliceCount = COMBAT_VFX_CONSTANTS.SUMMON.MAX_ACTIVE_PORTALS;
     const burstSliceCount = COMBAT_VFX_CONSTANTS.PARTICLES.MAX_BURST_QUEUE;
 
+    // Tự động kiểm tra và xuất trận lượt tướng theo tuần tự (delay giữa các lượt xuất hiện)
+    const deployed = deployQueuedMinions(
+      nextMinions,
+      nextQueue,
+      state.lastSummonTurnTimestamps,
+      now,
+      state.activeTeams
+    );
+    const finalMinions = deployed.nextMinions;
+    const finalQueue = deployed.nextQueue;
+    newPortals.push(...deployed.newPortals);
+    newLogs.push(...deployed.newLogs);
+
+    if (deployed.hasPendingTurns) {
+      scheduleTurnAdvance(get, GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS);
+    }
+
     set((prev) => {
       let nextFuryMap = prev.rosterPlayerFury;
       const boostEntries = Object.entries(furyBoosts);
@@ -406,7 +341,9 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       }
 
       return {
-        minions: nextMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES),
+        minions: finalMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES),
+        summonQueue: finalQueue,
+        lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
         activeSummonPortals: [...prev.activeSummonPortals, ...newPortals].slice(-portalSliceCount),
         activeBursts: [...prev.activeBursts, ...newBursts].slice(-burstSliceCount),
         eventLogs: [...newLogs.reverse(), ...prev.eventLogs].slice(0, 100),
@@ -461,6 +398,35 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         isExplicitChampion: item.isExplicitChampion,
       }));
       enqueueSummons(normalized);
+    },
+
+    advanceSummonTurnQueue: () => {
+      const state = get();
+      if (isBattleHalted(state)) return;
+      const now = Date.now();
+      const deployed = deployQueuedMinions(
+        state.minions,
+        state.summonQueue,
+        state.lastSummonTurnTimestamps,
+        now,
+        state.activeTeams
+      );
+      if (deployed.nextMinions.length === state.minions.length && deployed.newPortals.length === 0) {
+        return;
+      }
+      set((prev) => ({
+        minions: deployed.nextMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES),
+        summonQueue: deployed.nextQueue,
+        lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
+        activeSummonPortals: [
+          ...prev.activeSummonPortals,
+          ...deployed.newPortals,
+        ].slice(-COMBAT_VFX_CONSTANTS.SUMMON.MAX_ACTIVE_PORTALS),
+        eventLogs: [...deployed.newLogs.reverse(), ...prev.eventLogs].slice(0, 100),
+      }));
+      if (deployed.hasPendingTurns) {
+        scheduleTurnAdvance(get, GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS);
+      }
     },
 
   triggerGiftExplosion: (
