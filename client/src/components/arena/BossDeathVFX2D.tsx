@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Skull, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { BOSS_DEFEAT_CONSTANTS, GAME_THEME, TEAM_KEY } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
 
 const RADIAL_SHARD_ANGLES = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330] as const;
 
@@ -26,6 +27,7 @@ export const BossDeathVFX2D = () => {
   const finisherTeam = useGameStore((state) => state.finisherTeam);
   const roundWinner = useGameStore((state) => state.roundWinner);
   const gameTheme = useGameStore((state) => state.gameTheme);
+  const activeTeams = useGameStore((state) => state.activeTeams);
 
   if (bossDefeatedTimestamp === 0) return null;
 
@@ -38,11 +40,9 @@ export const BossDeathVFX2D = () => {
     : BOSS_DEFEAT_CONSTANTS.BARON_SECONDARY_COLOR;
 
   const effectiveTeam = finisherTeam || roundWinner || TEAM_KEY.BLG;
-  const isBLGFinisher = effectiveTeam === TEAM_KEY.BLG;
-  const finisherBadgeClass = isBLGFinisher
-    ? 'border-cyan-400 bg-cyan-950/95 text-cyan-200 shadow-[0_0_24px_rgba(6,182,212,0.85)]'
-    : 'border-amber-400 bg-amber-950/95 text-amber-200 shadow-[0_0_24px_rgba(245,158,11,0.85)]';
-  const teamAccentColor = isBLGFinisher ? '#00f2fe' : '#fbbf24';
+  const finisherTheme = getTeamTheme(activeTeams[effectiveTeam]?.colorTheme);
+  const finisherBadgeClass = `${finisherTheme.giftBannerGradientClass} ${finisherTheme.textMutedClass}`;
+  const teamAccentColor = finisherTheme.primaryHex;
 
   return (
     <div

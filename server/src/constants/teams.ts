@@ -91,8 +91,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
     shortTag: 'BLG',
     aliases: ['BLG', 'BILIBILI'],
     colorTheme: 'cyan',
-    logoUrl:
-      'https://am-a.akamaihd.net/image?resize=400:&f=http%3A%2F%2Fstatic.lolesports.com%2Fteams%2F1682322954525_Bilibili_Gaming_logo_20211.png',
+    logoUrl: '/images/teams/blg.png',
     isPreset: true,
     roster: [
       {
@@ -129,15 +128,15 @@ export const PRESET_TEAMS: TeamProfile[] = [
         avatarUrl: '/images/players/knight.png',
       },
       {
-        id: 'blg-viper',
-        name: 'Viper',
+        id: 'blg-elk',
+        name: 'Elk',
         role: 'ADC',
         roleName: PLAYER_ROLE_LABEL_VI.ADC,
-        signatureChampion: "Kai'Sa",
-        championKey: 'Kaisa',
+        signatureChampion: 'Kalista',
+        championKey: 'Kalista',
         team: 'BLG',
         color: '#22d3ee',
-        avatarUrl: '/images/players/viper.png',
+        avatarUrl: createChampionPortrait('Kalista'),
       },
       {
         id: 'blg-on',
@@ -158,8 +157,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
     shortTag: 'GEN',
     aliases: ['GEN', 'GENG', 'GEN.G'],
     colorTheme: 'amber',
-    logoUrl:
-      'https://am-a.akamaihd.net/image?resize=400:&f=http%3A%2F%2Fstatic.lolesports.com%2Fteams%2F1773829250929_GENGLOGO_GOLD.png',
+    logoUrl: '/images/teams/geng.svg',
     isPreset: true,
     roster: [
       {
@@ -328,15 +326,15 @@ export const PRESET_TEAMS: TeamProfile[] = [
         avatarUrl: createChampionPortrait('Sylas'),
       },
       {
-        id: 'hle-peyz',
-        name: 'Peyz',
+        id: 'hle-viper',
+        name: 'Viper',
         role: 'ADC',
         roleName: PLAYER_ROLE_LABEL_VI.ADC,
-        signatureChampion: 'Ashe',
-        championKey: 'Ashe',
+        signatureChampion: "Kai'Sa",
+        championKey: 'Kaisa',
         team: 'GENG',
         color: '#ea580c',
-        avatarUrl: createChampionPortrait('Ashe'),
+        avatarUrl: '/images/players/viper.png',
       },
       {
         id: 'hle-delight',
@@ -357,7 +355,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
     shortTag: 'TES',
     aliases: ['TES', 'TOP ESPORTS'],
     colorTheme: 'red',
-    logoUrl: '/images/teams/tes.svg',
+    logoUrl: '/images/teams/tes.png',
     isPreset: true,
     roster: [
       {
@@ -423,7 +421,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
     shortTag: 'AL',
     aliases: ['AL', 'ANYONE'],
     colorTheme: 'violet',
-    logoUrl: '/images/teams/al.svg',
+    logoUrl: '/images/teams/al.webp',
     isPreset: true,
     roster: [
       {
@@ -555,7 +553,7 @@ export const PRESET_TEAMS: TeamProfile[] = [
     shortTag: 'GAM',
     aliases: ['GAM', 'GIGABYTE', 'VCS'],
     colorTheme: 'amber',
-    logoUrl: '/images/teams/gam.svg',
+    logoUrl: '/images/teams/gam.png',
     isPreset: true,
     roster: [
       {

@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Crown, Trophy, Sparkles, RotateCcw, ArrowRight, Swords } from 'lucide-react';
+import {
+  Crown,
+  Trophy,
+  Sparkles,
+  RotateCcw,
+  ArrowRight,
+  Swords,
+  Star,
+  Flame,
+} from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import {
   BOSS_DEFEAT_CONSTANTS,
@@ -13,6 +22,15 @@ import { gameSocket } from '../../services/socket';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
 import { ProDamageRecord } from '../../types/game';
+
+const CELEBRATION_STARS = [
+  { id: 1, top: '8%', left: '12%', size: 'w-4 h-4', delay: '0s', opacity: 'opacity-70' },
+  { id: 2, top: '15%', right: '14%', size: 'w-5 h-5', delay: '0.4s', opacity: 'opacity-90' },
+  { id: 3, top: '28%', left: '8%', size: 'w-3 h-3', delay: '0.8s', opacity: 'opacity-60' },
+  { id: 4, top: '35%', right: '10%', size: 'w-4 h-4', delay: '1.2s', opacity: 'opacity-80' },
+  { id: 5, top: '70%', left: '15%', size: 'w-3.5 h-3.5', delay: '0.6s', opacity: 'opacity-75' },
+  { id: 6, top: '75%', right: '18%', size: 'w-4 h-4', delay: '1s', opacity: 'opacity-85' },
+];
 
 export const VictoryOverlay = () => {
   const { t } = useTranslation();
@@ -59,7 +77,6 @@ export const VictoryOverlay = () => {
     return () => clearTimeout(revealTimer);
   }, [isDefeated]);
 
-  // Determine active winner
   const effectiveWinner: TeamType = isSeriesEnded
     ? seriesWinner || (bo5Score.BLG >= bo5Score.GENG ? TEAM_KEY.BLG : TEAM_KEY.GENG)
     : roundWinner || (teamScoreBLG >= teamScoreGENG ? TEAM_KEY.BLG : TEAM_KEY.GENG);
@@ -109,29 +126,67 @@ export const VictoryOverlay = () => {
   if (!isDefeated || !isVictoryVisible) return null;
 
   return (
-    <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-4 sm:p-6 text-center animate-in fade-in zoom-in-95 duration-500 pointer-events-auto select-none">
-      {/* Radiant Glow Orb */}
-      <div className={`absolute w-80 h-80 rounded-full blur-3xl opacity-35 ${winnerTheme.glowOrbClass}`} />
+    <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-2xl z-50 flex flex-col items-center justify-center p-3 sm:p-6 text-center animate-in fade-in zoom-in-95 duration-700 pointer-events-auto select-none overflow-y-auto">
+      {/* Background Celebration Atmosphere */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/30 via-slate-950/80 to-slate-950 pointer-events-none" />
+      <div
+        className={`absolute w-96 h-96 rounded-full blur-[100px] opacity-40 pointer-events-none ${winnerTheme.glowOrbClass}`}
+      />
 
-      {/* Main Victory Card */}
-      <div className="relative z-10 max-w-sm w-full space-y-3 sm:space-y-4">
-        {/* Large Winning Team Logo */}
-        <div className="flex justify-center items-center">
-          <div className="relative p-2 rounded-3xl bg-slate-900/90 border-2 border-slate-700/80 shadow-2xl">
-            <TeamLogo
-              teamProfile={winnerProfile}
-              teamSlot={effectiveWinner}
-              className="w-16 h-16 sm:w-20 sm:h-20 animate-bounce"
-            />
-            <div className="absolute -top-3 -right-3 p-1.5 rounded-full bg-amber-400 text-slate-950 shadow-lg">
-              <Trophy className="w-5 h-5 fill-current" />
+      {/* Floating Golden Celebration Sparkles */}
+      {CELEBRATION_STARS.map((star) => (
+        <div
+          key={`star-${star.id}`}
+          style={{ top: star.top, left: star.left, right: star.right, animationDelay: star.delay }}
+          className={`absolute pointer-events-none text-amber-300 animate-pulse ${star.size} ${star.opacity}`}
+        >
+          <Sparkles className="w-full h-full drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+        </div>
+      ))}
+
+      {/* Main Victory Stage / Podium */}
+      <div className="relative z-10 max-w-sm sm:max-w-md w-full space-y-3.5 my-auto py-2">
+        {/* World Championship Header Tag */}
+        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-950/90 via-slate-900/90 to-amber-950/90 border border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-amber-200">
+            CKTG 2026 WORLDS CHAMPIONSHIP
+          </span>
+          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+        </div>
+
+        {/* Grand Champion Trophy & Team Crest Pedestal */}
+        <div className="relative flex justify-center items-center pt-2">
+          {/* Radiant Halo behind Logo */}
+          <div className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-tr from-amber-500/40 via-yellow-300/30 to-amber-600/40 blur-xl animate-pulse" />
+
+          {/* Golden Shield Base */}
+          <div className="relative p-3.5 sm:p-4 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-2 border-amber-400/80 shadow-[0_0_35px_rgba(245,158,11,0.55)] flex flex-col items-center">
+            {/* Crown Crest on top */}
+            <div className="absolute -top-4 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-[10px] uppercase tracking-wider flex items-center space-x-1 shadow-lg">
+              <Crown className="w-3.5 h-3.5 fill-current" />
+              <span>CHAMPION</span>
+            </div>
+
+            {/* Official Team Logo */}
+            <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center p-1.5 transition-transform duration-300 hover:scale-105">
+              <TeamLogo
+                teamProfile={winnerProfile}
+                teamSlot={effectiveWinner}
+                className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+              />
+            </div>
+
+            {/* Trophy Icon Badge */}
+            <div className="absolute -bottom-3 p-1.5 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-950 border-2 border-slate-900 shadow-xl">
+              <Trophy className="w-4 h-4 fill-current" />
             </div>
           </div>
         </div>
 
-        {/* Title */}
-        <div>
-          <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+        {/* Victory Title & Subtitle */}
+        <div className="space-y-0.5 pt-1">
+          <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400">
             {isSeriesEnded
               ? t('Victory.seriesScore', 'TỈ SỐ CHUNG CUỘC {{format}}: {{blg}} - {{geng}}', {
                   format: seriesFormat,
@@ -140,11 +195,13 @@ export const VictoryOverlay = () => {
                 })
               : t('Victory.bossDefeated', 'BARON NASHOR ĐÃ BỊ TIÊU DIỆT!')}
           </div>
-          <h1
-            className={`text-xl sm:text-2xl font-black uppercase tracking-wider drop-shadow-lg ${winnerTheme.textStrongClass}`}
-          >
+
+          <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wide bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(245,158,11,0.7)]">
             {isSeriesEnded
-              ? t('Victory.seriesChampion', '🏆 {{team}} VÔ ĐỊCH CKTG 2026 {{format}}!', { team: winnerName, format: seriesFormat })
+              ? t('Victory.seriesChampion', '🏆 {{team}} VÔ ĐỊCH CKTG 2026 {{format}}!', {
+                  team: winnerName,
+                  format: seriesFormat,
+                })
               : t('Victory.roundWin', '{{team}} CHIẾN THẮNG VÁN {{round}}!', {
                   team: winnerName,
                   round: currentRound,
@@ -152,72 +209,97 @@ export const VictoryOverlay = () => {
           </h1>
         </div>
 
-        {/* Series Scoreboard Card */}
-        <div className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-1.5">
-          <div className="text-[9px] font-black tracking-widest text-slate-400 uppercase">
-            {t('Victory.bo5Score', 'TỈ SỐ {{format}} HIỆN TẠI', { format: seriesFormat })}
+        {/* Match Series Scoreboard Card */}
+        <div className="p-3 rounded-2xl bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-slate-800 shadow-2xl space-y-2">
+          <div className="text-[9px] font-black tracking-widest text-slate-400 uppercase flex items-center justify-center space-x-1">
+            <Flame className="w-3 h-3 text-amber-400" />
+            <span>{t('Victory.bo5Score', 'TỈ SỐ {{format}} HIỆN TẠI', { format: seriesFormat })}</span>
           </div>
 
-          <div className="flex items-center justify-center space-x-3">
+          <div className="flex items-center justify-between px-2 sm:px-4">
             {/* Left Team Block */}
-            <div className="flex items-center space-x-1.5">
-              <span className={`text-xs font-black ${leftTheme.textStrongClass}`}>{leftTeam.shortTag}</span>
-              <div className="flex space-x-0.5">
-                {Array.from({ length: bo5TargetWins }).map((_, i) => (
-                  <span
-                    key={`win-left-${i}`}
-                    className={`w-2.5 h-2.5 rotate-45 border transition-all ${
-                      i < bo5Score.BLG
-                        ? leftTheme.winPipActiveClass
-                        : 'bg-slate-900 border-slate-700'
-                    }`}
-                  />
-                ))}
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center p-1">
+                <TeamLogo teamProfile={leftTeam} teamSlot={TEAM_KEY.BLG} className="w-6 h-6 object-contain" />
+              </div>
+              <div className="text-left">
+                <div className={`text-xs font-black leading-tight ${leftTheme.textStrongClass}`}>
+                  {leftTeam.shortTag}
+                </div>
+                <div className="flex space-x-1 mt-0.5">
+                  {Array.from({ length: bo5TargetWins }).map((_, i) => (
+                    <span
+                      key={`win-left-${i}`}
+                      className={`w-2.5 h-2.5 rotate-45 border transition-all ${
+                        i < bo5Score.BLG
+                          ? leftTheme.winPipActiveClass
+                          : 'bg-slate-900 border-slate-700'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Score Numbers */}
-            <div className="font-mono text-base font-black text-white px-2 py-0.5 rounded bg-slate-950 border border-slate-800">
-              {bo5Score.BLG} - {bo5Score.GENG}
+            {/* Score Display */}
+            <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-950 border border-slate-800 shadow-inner">
+              <span className={`font-mono text-base sm:text-lg font-black ${leftTheme.textStrongClass}`}>
+                {bo5Score.BLG}
+              </span>
+              <span className="text-slate-500 font-black">-</span>
+              <span className={`font-mono text-base sm:text-lg font-black ${rightTheme.textStrongClass}`}>
+                {bo5Score.GENG}
+              </span>
             </div>
 
             {/* Right Team Block */}
-            <div className="flex items-center space-x-1.5">
-              <div className="flex space-x-0.5">
-                {Array.from({ length: bo5TargetWins }).map((_, i) => (
-                  <span
-                    key={`win-right-${i}`}
-                    className={`w-2.5 h-2.5 rotate-45 border transition-all ${
-                      i < bo5Score.GENG
-                        ? rightTheme.winPipActiveClass
-                        : 'bg-slate-900 border-slate-700'
-                    }`}
-                  />
-                ))}
+            <div className="flex items-center space-x-2 flex-row-reverse space-x-reverse">
+              <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center p-1">
+                <TeamLogo teamProfile={rightTeam} teamSlot={TEAM_KEY.GENG} className="w-6 h-6 object-contain" />
               </div>
-              <span className={`text-xs font-black ${rightTheme.textStrongClass}`}>{rightTeam.shortTag}</span>
+              <div className="text-right">
+                <div className={`text-xs font-black leading-tight ${rightTheme.textStrongClass}`}>
+                  {rightTeam.shortTag}
+                </div>
+                <div className="flex space-x-1 justify-end mt-0.5">
+                  {Array.from({ length: bo5TargetWins }).map((_, i) => (
+                    <span
+                      key={`win-right-${i}`}
+                      className={`w-2.5 h-2.5 rotate-45 border transition-all ${
+                        i < bo5Score.GENG
+                          ? rightTheme.winPipActiveClass
+                          : 'bg-slate-900 border-slate-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* MVP Showcase (Viewer MVP first, Pro-Player MVP fallback when solo) */}
+        {/* MVP Award Showcase */}
         {viewerMvp && (
-          <div className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-1">
-            <div className="flex items-center justify-center space-x-1.5 text-[11px] font-black text-amber-400 uppercase">
-              <Crown className="w-3.5 h-3.5 fill-current" />
+          <div className="p-3 rounded-2xl bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-900/90 border border-amber-500/40 shadow-xl space-y-1.5">
+            <div className="flex items-center justify-center space-x-1.5 text-[10px] sm:text-[11px] font-black text-amber-300 uppercase tracking-wider">
+              <Crown className="w-3.5 h-3.5 fill-current text-amber-400" />
               <span>{t('Victory.mvpTitle', 'MVP CỦA TRẬN ĐẤU')}</span>
-              <Sparkles className="w-3 h-3" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             </div>
 
-            <div className="text-sm sm:text-base font-extrabold text-white truncate">
+            <div className="text-sm sm:text-base font-black text-white truncate px-2">
               {viewerMvp.userName}
             </div>
 
             <div className="flex justify-center items-center space-x-2 text-xs">
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${getTeamTheme(activeTeams[viewerMvp.team]?.colorTheme).badgePillClass}`}>
+              <span
+                className={`text-[9px] font-black px-2 py-0.5 rounded ${
+                  getTeamTheme(activeTeams[viewerMvp.team]?.colorTheme).badgePillClass
+                }`}
+              >
                 {activeTeams[viewerMvp.team]?.shortTag || viewerMvp.team}
               </span>
-              <span className="font-mono text-emerald-400 font-bold text-[11px]">
+              <span className="font-mono text-emerald-400 font-black text-xs sm:text-sm">
                 {(viewerMvp.totalDamage ?? 0).toLocaleString()} {t('Victory.damage', 'SÁT THƯƠNG')}
               </span>
             </div>
@@ -225,15 +307,15 @@ export const VictoryOverlay = () => {
         )}
 
         {!viewerMvp && proMvp && (
-          <div className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-1.5">
-            <div className="flex items-center justify-center space-x-1.5 text-[11px] font-black text-amber-400 uppercase">
-              <Crown className="w-3.5 h-3.5 fill-current" />
+          <div className="p-3 rounded-2xl bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-900/90 border border-amber-500/40 shadow-xl space-y-1.5">
+            <div className="flex items-center justify-center space-x-1.5 text-[10px] sm:text-[11px] font-black text-amber-300 uppercase tracking-wider">
+              <Crown className="w-3.5 h-3.5 fill-current text-amber-400" />
               <span>{t('Victory.proMvpTitle', 'MVP TUYỂN THỦ')}</span>
-              <Sparkles className="w-3 h-3" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             </div>
 
-            <div className="flex items-center justify-center space-x-2.5">
-              <div className="w-9 h-9 rounded-full overflow-hidden border border-amber-400/80 bg-slate-800 shrink-0 flex items-center justify-center">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-400/80 bg-slate-800 shrink-0 flex items-center justify-center shadow-lg">
                 {!proAvatarFailed ? (
                   <img
                     src={proMvp.avatarUrl}
@@ -249,9 +331,9 @@ export const VictoryOverlay = () => {
               </div>
 
               <div className="text-left min-w-0">
-                <div className="text-sm sm:text-base font-extrabold text-white truncate flex items-center space-x-1.5">
+                <div className="text-sm sm:text-base font-black text-white truncate flex items-center space-x-1.5">
                   <span>{proMvp.playerName}</span>
-                  <span className="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                  <span className="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
                     {proMvp.role}
                   </span>
                 </div>
@@ -261,11 +343,15 @@ export const VictoryOverlay = () => {
               </div>
             </div>
 
-            <div className="flex justify-center items-center space-x-2 text-xs">
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${getTeamTheme(activeTeams[proMvp.team]?.colorTheme).badgePillClass}`}>
+            <div className="flex justify-center items-center space-x-2 text-xs pt-0.5">
+              <span
+                className={`text-[9px] font-black px-2 py-0.5 rounded ${
+                  getTeamTheme(activeTeams[proMvp.team]?.colorTheme).badgePillClass
+                }`}
+              >
                 {activeTeams[proMvp.team]?.shortTag || proMvp.team}
               </span>
-              <span className="font-mono text-emerald-400 font-bold text-[11px]">
+              <span className="font-mono text-emerald-400 font-black text-xs sm:text-sm">
                 {(proMvp.totalDamage ?? 0).toLocaleString()} {t('Victory.damage', 'SÁT THƯƠNG')}
               </span>
             </div>
@@ -274,7 +360,7 @@ export const VictoryOverlay = () => {
 
         {/* Last-Hit Finisher Callout */}
         {finisherPlayerName && (
-          <div className="inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-full bg-rose-950/75 border border-rose-500/40 text-[11px]">
+          <div className="inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-full bg-rose-950/80 border border-rose-500/50 text-[11px] shadow">
             <Swords className="w-3.5 h-3.5 text-rose-400 shrink-0" />
             <span className="text-rose-200/90 font-semibold">
               {t('Victory.finisherLabel', 'Kết liễu bởi')}:
@@ -284,7 +370,9 @@ export const VictoryOverlay = () => {
             </span>
             {finisherTeam && (
               <span
-                className={`text-[9px] font-black px-1.5 py-0.5 rounded ${getTeamTheme(activeTeams[finisherTeam]?.colorTheme).badgePillClass}`}
+                className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                  getTeamTheme(activeTeams[finisherTeam]?.colorTheme).badgePillClass
+                }`}
               >
                 {activeTeams[finisherTeam]?.shortTag || finisherTeam}
               </span>
@@ -292,8 +380,8 @@ export const VictoryOverlay = () => {
           </div>
         )}
 
-        {/* Total Score Tug-of-War of this game */}
-        <div className="flex justify-between text-xs font-mono px-3">
+        {/* Total Damage Summary */}
+        <div className="flex justify-between text-[11px] font-mono px-3 text-slate-400">
           <span className={`${leftTheme.textStrongClass} font-bold`}>
             {leftTeam.shortTag}: {(teamScoreBLG ?? 0).toLocaleString()} DMG
           </span>
@@ -302,25 +390,27 @@ export const VictoryOverlay = () => {
           </span>
         </div>
 
-        {/* Manual Advance / Match Control */}
-        <div className="pt-2 flex flex-col items-center space-y-2.5">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300 shadow">
+        {/* Action Controls & Match Advancing */}
+        <div className="pt-1 flex flex-col items-center space-y-2">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[10px] sm:text-[11px] text-slate-300 shadow">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>
               {isSeriesEnded
-                ? t('Victory.seriesEndedNotice', 'Loạt trận BO5 đã kết thúc!')
+                ? t('Victory.seriesEndedNotice', 'Loạt trận {{format}} đã kết thúc!', {
+                    format: seriesFormat,
+                  })
                 : t('Victory.roundIntermissionPrompt', 'Nghỉ giữa hiệp - Sẵn sàng cho ván tiếp theo')}
             </span>
           </div>
 
           {isSeriesEnded ? (
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 w-full">
               {nextQueuedMatch && (
                 <button
                   type="button"
                   disabled={isAdvancing}
                   onClick={handleAdvanceQueuedMatch}
-                  className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_18px_rgba(16,185,129,0.55)] flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_20px_rgba(16,185,129,0.55)] flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <span>
                     {t('Victory.nextQueuedMatch', 'TRẬN TIẾP THEO: {{label}} ({{remaining}})', {
@@ -335,7 +425,7 @@ export const VictoryOverlay = () => {
                 type="button"
                 disabled={isAdvancing}
                 onClick={handleResetBO5Match}
-                className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_15px_rgba(245,158,11,0.5)] flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_18px_rgba(245,158,11,0.5)] flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>{t('Victory.newSeries', 'BẮT ĐẦU TRẬN ĐẤU MỚI')}</span>
@@ -346,7 +436,7 @@ export const VictoryOverlay = () => {
               type="button"
               disabled={isAdvancing}
               onClick={handleStartNextRound}
-              className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer animate-pulse hover:animate-none"
+              className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-[0_0_18px_rgba(6,182,212,0.55)] flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer animate-pulse hover:animate-none"
             >
               <span>{t('Victory.nextRoundNow', 'VÀO VÁN TIẾP THEO')}</span>
               <ArrowRight className="w-4 h-4" />

@@ -1,12 +1,16 @@
 import { useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { THEME_CONFIGS, GAME_THEME } from '../../constants/game';
+import { THEME_CONFIGS, GAME_THEME, TEAM_KEY } from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
 
 export const ArenaBackground2D = () => {
   const teamScoreBLG = useGameStore((state) => state.teamScoreBLG);
   const teamScoreGENG = useGameStore((state) => state.teamScoreGENG);
   const gameTheme = useGameStore((state) => state.gameTheme);
+  const activeTeams = useGameStore((state) => state.activeTeams);
 
+  const leftTheme = getTeamTheme(activeTeams[TEAM_KEY.BLG]?.colorTheme);
+  const rightTheme = getTeamTheme(activeTeams[TEAM_KEY.GENG]?.colorTheme);
   const themeConfig = THEME_CONFIGS[gameTheme] || THEME_CONFIGS[GAME_THEME.BARON];
 
   // Dynamic light intensity based on which team is currently dealing more damage
@@ -37,14 +41,18 @@ export const ArenaBackground2D = () => {
       </picture>
 
       {/* 2. Dual Team Esports Atmosphere Lighting Overlays */}
-      {/* Left Side: Cyan Mist (BLG) */}
       <div
-        className={`absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-cyan-500/25 via-cyan-900/10 to-transparent transition-opacity duration-700 pointer-events-none ${blgGlowOpacity}`}
+        style={{
+          background: `linear-gradient(to right, ${leftTheme.primaryHex}40, ${leftTheme.secondaryHex}1a, transparent)`,
+        }}
+        className={`absolute inset-y-0 left-0 w-1/2 transition-opacity duration-700 pointer-events-none ${blgGlowOpacity}`}
       />
 
-      {/* Right Side: Gold/Amber Glow (GEN.G) */}
       <div
-        className={`absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-amber-500/25 via-amber-900/10 to-transparent transition-opacity duration-700 pointer-events-none ${gengGlowOpacity}`}
+        style={{
+          background: `linear-gradient(to left, ${rightTheme.primaryHex}40, ${rightTheme.secondaryHex}1a, transparent)`,
+        }}
+        className={`absolute inset-y-0 right-0 w-1/2 transition-opacity duration-700 pointer-events-none ${gengGlowOpacity}`}
       />
 
       {/* 3. Floating Atmospheric Mist Layer */}
