@@ -7,7 +7,6 @@ import {
   Gift,
   Heart,
   Swords,
-  Sparkles,
   LucideIcon,
 } from 'lucide-react';
 import { GAME_CONSTANTS } from '../../constants/game';
@@ -206,17 +205,15 @@ export const ParticipationGuidePanel = () => {
   const isUserInteractingRef = useRef<boolean>(false);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-switch back and forth periodically, with user interaction pause
+  // Auto-switch back and forth continuously every 5 seconds (runs in BOTH expanded and collapsed states!)
   useEffect(() => {
-    if (isCollapsed) return;
-
     const interval = setInterval(() => {
       if (isUserInteractingRef.current) return;
       setActiveTab((prev) => (prev === 'RULES' ? 'REWARDS' : 'RULES'));
     }, AUTO_SWITCH_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [isCollapsed]);
+  }, []);
 
   // Clean up user interaction timer on unmount
   useEffect(() => {
@@ -240,54 +237,55 @@ export const ParticipationGuidePanel = () => {
   };
 
   return (
-    <aside className="relative z-[35] w-full sm:w-60 max-w-full bg-slate-950/25 backdrop-blur-[2px] border border-white/15 rounded-xl p-1.5 sm:p-2 shadow-lg pointer-events-auto select-none transition-all duration-300">
-      {/* Header with Switcher Tabs & Collapse Button */}
-      <div className="flex items-center justify-between pb-1.5 border-b border-white/10 gap-1.5">
-        {/* Switcher Pills (Chuyển đổi qua lại giữa Cách Tham Gia & Quà/Damage) */}
-        <div className="flex items-center space-x-1 p-0.5 rounded-lg bg-slate-950/60 border border-white/10">
-          <button
-            type="button"
-            onClick={() => handleSelectTab('RULES')}
-            title={t('HUD.guideTabSwitchHint', 'Chuyển chế độ xem hướng dẫn / quy đổi quà')}
-            className={`flex items-center space-x-1 px-1.5 py-0.5 rounded text-[8px] sm:text-[8.5px] font-black uppercase transition active:scale-95 ${
-              activeTab === 'RULES'
-                ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/40 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <BookOpen className="w-2.5 h-2.5 shrink-0" />
-            <span>{t('HUD.guideTabRules', 'Cách Tham Gia')}</span>
-          </button>
+    <aside className="relative z-[35] w-48 sm:w-52 max-w-full bg-slate-950/40 backdrop-blur-[2px] border border-white/15 rounded-xl p-1.5 shadow-lg pointer-events-auto select-none transition-all duration-300">
+      {/* Header: Compact single title that automatically flips every 5 seconds */}
+      <div className="flex items-center justify-between pb-1 border-b border-white/10 gap-1">
+        <button
+          type="button"
+          onClick={() => handleSelectTab(activeTab === 'RULES' ? 'REWARDS' : 'RULES')}
+          title={t('HUD.guideTabSwitchHint', 'Click để đổi nhanh giữa Cách Tham Gia & Quy Đổi Quà (Tự đổi mỗi 5s)')}
+          className="flex items-center space-x-1.5 min-w-0 text-left flex-1 hover:opacity-90 transition active:scale-95"
+        >
+          {activeTab === 'RULES' ? (
+            <div className="flex items-center space-x-1 min-w-0 animate-in fade-in duration-300">
+              <BookOpen className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span className="text-[9px] sm:text-[9.5px] font-black uppercase text-cyan-200 tracking-wider truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                {t('HUD.guideTabRules', 'Cách Tham Gia')}
+              </span>
+              <span className="text-[6.5px] font-mono font-bold px-1 py-0.2 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 shrink-0">
+                5s
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1 min-w-0 animate-in fade-in duration-300">
+              <Gift className="w-3 h-3 text-amber-400 shrink-0" />
+              <span className="text-[9px] sm:text-[9.5px] font-black uppercase text-amber-200 tracking-wider truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                {t('HUD.guideTabRewards', 'Quà & Sát Thương')}
+              </span>
+              <span className="text-[6.5px] font-mono font-bold px-1 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-700/60 shrink-0">
+                5s
+              </span>
+            </div>
+          )}
+        </button>
 
-          <button
-            type="button"
-            onClick={() => handleSelectTab('REWARDS')}
-            title={t('HUD.guideTabSwitchHint', 'Chuyển chế độ xem hướng dẫn / quy đổi quà')}
-            className={`flex items-center space-x-1 px-1.5 py-0.5 rounded text-[8px] sm:text-[8.5px] font-black uppercase transition active:scale-95 ${
-              activeTab === 'REWARDS'
-                ? 'bg-amber-500/25 text-amber-200 border border-amber-400/40 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Sparkles className="w-2.5 h-2.5 shrink-0" />
-            <span>{t('HUD.guideTabRewards', 'Quà & Sát Thương')}</span>
-          </button>
-        </div>
-
-        {/* Collapse Button */}
+        {/* Collapse Button Only (No 2 extra tabs, saving maximum space) */}
         <button
           type="button"
           onClick={() => setIsCollapsed((prev) => !prev)}
-          className="p-1 hover:bg-slate-800/50 rounded-lg text-slate-300 hover:text-white transition shrink-0"
+          className="p-0.5 hover:bg-slate-800/50 rounded text-slate-300 hover:text-white transition shrink-0"
           aria-label={t('HUD.guideToggleLabel', 'Thu gọn/mở bảng hướng dẫn')}
         >
           {isCollapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
       </div>
 
-      {/* Main Content Body */}
+      {/* Main Content Body with sleek thin scrollbar */}
       {!isCollapsed && (
-        <div key={activeTab} className="mt-1.5 space-y-1 max-h-60 overflow-y-auto pr-0.5 animate-in fade-in duration-300">
+        <div
+          key={activeTab}
+          className="mt-1 space-y-1 max-h-56 overflow-y-auto pr-0.5 animate-in fade-in duration-300 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/25"
+        >
           {/* TAB 1: CÁCH THAM GIA */}
           {activeTab === 'RULES' &&
             GUIDE_ITEMS.map((item) => {
