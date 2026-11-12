@@ -21,9 +21,9 @@ function pickOverlayVisibilityPatch(rawPayload: unknown): Partial<OverlayVisibil
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
-  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:4000'
-    : '');
+  (typeof window !== 'undefined' && window.location.hostname
+    ? `${window.location.protocol}//${window.location.hostname}:4000`
+    : 'http://localhost:4000');
 
 const CLIENT_INSTANCE_ID = `client-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
 
@@ -39,8 +39,11 @@ class GameSocketClient {
     try {
       this.socket = io(SERVER_URL, {
         transports: ['websocket', 'polling'],
-        reconnectionAttempts: 10,
-        timeout: 3000,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 5000,
       });
 
       this.socket.on('connect', () => {
@@ -53,6 +56,21 @@ class GameSocketClient {
         this.isConnected = false;
         console.log('[Game Socket] Disconnected from Backend Server');
       });
+
+      // Hydrate latest overlay visibility from server REST API immediately on init
+      if (typeof window !== 'undefined') {
+        fetch(`${SERVER_URL}/api/overlay-visibility`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data) {
+              const cleanPatch = pickOverlayVisibilityPatch(data);
+              if (Object.keys(cleanPatch).length > 0) {
+                useGameStore.getState().setOverlayVisibility(cleanPatch);
+              }
+            }
+          })
+          .catch(() => {});
+      }
 
       // Listen for game events dispatched by Server or Admin Portal
       this.socket.on('game:summon', (payload) => {
@@ -219,11 +237,18 @@ class GameSocketClient {
   }
 
   public sendOverlayVisibility(visibility: Partial<OverlayVisibility>): void {
-    if (this.socket && this.isConnected) {
+    if (this.socket) {
       this.socket.emit('admin:overlay-visibility', {
         ...visibility,
         senderId: CLIENT_INSTANCE_ID,
       });
+    }
+    if (typeof window !== 'undefined') {
+      fetch(`${SERVER_URL}/api/overlay-visibility`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...visibility, senderId: CLIENT_INSTANCE_ID }),
+      }).catch(() => {});
     }
   }
 

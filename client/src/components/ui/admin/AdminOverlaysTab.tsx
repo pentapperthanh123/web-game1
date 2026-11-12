@@ -5,6 +5,7 @@ import { useGameStore } from '../../../store/gameStore';
 import { ADMIN_CONSTANTS, OVERLAY_SECTION } from '../../../constants/game';
 import { OverlayVisibility } from '../../../types/game';
 import { gameSocket } from '../../../services/socket';
+import { gameBus } from '../../../services/eventBus';
 
 const FEEDBACK_TOAST_DURATION_MS = 1500;
 const OVERLAY_KEYS = Object.values(OVERLAY_SECTION) as (keyof OverlayVisibility)[];
@@ -50,6 +51,7 @@ export const AdminOverlaysTab: React.FC = () => {
   const applyVisibilityPatch = (patch: Partial<OverlayVisibility>, feedbackMsg: string) => {
     setOverlayVisibility(patch);
     gameSocket.sendOverlayVisibility(patch);
+    gameBus.publish({ type: 'SET_OVERLAY_VISIBILITY', payload: patch });
     showFeedback(feedbackMsg);
   };
 

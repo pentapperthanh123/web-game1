@@ -1,0 +1,9 @@
+{
+  "chat": true,
+  "leaderboard": true,
+  "teamRosters": true,
+  "bossHealth": true,
+  "teamScores": true,
+  "likeCounter": true,
+  "howToPlay": false
+}

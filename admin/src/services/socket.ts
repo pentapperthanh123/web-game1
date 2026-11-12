@@ -1,19 +1,23 @@
 import { io, Socket } from 'socket.io-client';
 import { OverlayVisibility } from '../types/overlay';
 import { BossSkillConfig } from '../types/bossSkill';
-import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
+import {
+  loadStoredOverlayVisibility,
+  pickOverlayVisibilityPatch,
+} from '../utils/overlayVisibility';
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
-  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:4000'
-    : '');
+  (typeof window !== 'undefined' && window.location.hostname
+    ? `${window.location.protocol}//${window.location.hostname}:4000`
+    : 'http://localhost:4000');
 const CHANNEL_NAME = 'tiktok_live_game_bus';
 
 class AdminSocketService {
   private socket: Socket | null = null;
   private broadcastChannel: BroadcastChannel | null = null;
   private lastOverlayPatch: Partial<OverlayVisibility> | null = null;
+  private overlayListeners: ((visibility: Partial<OverlayVisibility>) => void)[] = [];
   public isConnected = false;
 
   constructor() {
@@ -26,13 +30,19 @@ class AdminSocketService {
     try {
       this.socket = io(SERVER_URL, {
         transports: ['websocket', 'polling'],
-        reconnectionAttempts: 5,
-        timeout: 3000,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 5000,
       });
 
       this.socket.on('connect', () => {
         this.isConnected = true;
         console.log('[Admin Socket] Connected to Backend Server on port 4000');
+        // Push Admin's locally saved overlay visibility to server so server stays synchronized
+        const stored = loadStoredOverlayVisibility();
+        this.emit('admin:overlay-visibility', stored);
       });
 
       this.socket.on('disconnect', () => {
@@ -44,17 +54,45 @@ class AdminSocketService {
         const cleanPatch = pickOverlayVisibilityPatch(payload);
         if (Object.keys(cleanPatch).length > 0) {
           this.lastOverlayPatch = { ...this.lastOverlayPatch, ...cleanPatch };
+          this.notifyOverlayListeners(cleanPatch);
         }
       });
     } catch (err) {
       console.warn('[Admin Socket] Could not connect to backend server, falling back to BroadcastChannel', err);
     }
+
+    // 3. Fallback initial HTTP fetch to ensure immediate state hydration
+    if (typeof window !== 'undefined') {
+      fetch(`${SERVER_URL}/api/overlay-visibility`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) {
+            const cleanPatch = pickOverlayVisibilityPatch(data);
+            if (Object.keys(cleanPatch).length > 0) {
+              this.lastOverlayPatch = { ...this.lastOverlayPatch, ...cleanPatch };
+              this.notifyOverlayListeners(cleanPatch);
+            }
+          }
+        })
+        .catch(() => {});
+    }
   }
 
   // Generic emitter that sends to both Socket.io and BroadcastChannel
   public emit(event: string, payload: any): void {
-    if (this.socket && this.socket.connected) {
+    if (this.socket) {
       this.socket.emit(event, payload);
+    }
+
+    // HTTP REST fallback for overlay visibility
+    if (event === 'admin:overlay-visibility' && typeof window !== 'undefined') {
+      fetch(`${SERVER_URL}/api/overlay-visibility`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => {
+        // ignore offline fetch error
+      });
     }
 
     // Also dispatch to BroadcastChannel for direct client tab sync
@@ -134,17 +172,20 @@ class AdminSocketService {
     if (this.lastOverlayPatch) {
       callback(this.lastOverlayPatch);
     }
-    if (!this.socket) return () => {};
-    const handleEvent = (payload: unknown) => {
-      const cleanPatch = pickOverlayVisibilityPatch(payload);
-      if (Object.keys(cleanPatch).length > 0) {
-        callback(cleanPatch);
-      }
-    };
-    this.socket.on('game:overlay-visibility', handleEvent);
+    this.overlayListeners.push(callback);
     return () => {
-      this.socket?.off('game:overlay-visibility', handleEvent);
+      this.overlayListeners = this.overlayListeners.filter((cb) => cb !== callback);
     };
+  }
+
+  private notifyOverlayListeners(patch: Partial<OverlayVisibility>): void {
+    for (const listener of this.overlayListeners) {
+      try {
+        listener(patch);
+      } catch (err) {
+        console.error('[Admin Socket] Error in overlay listener:', err);
+      }
+    }
   }
 
   public setBossSkillConfig(payload: Partial<BossSkillConfig>): void {

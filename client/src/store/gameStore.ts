@@ -2345,4 +2345,17 @@ if (typeof window !== 'undefined') {
         break;
     }
   });
+
+  window.addEventListener('storage', (event: StorageEvent) => {
+    if (event.key === OVERLAY_STORAGE_KEY && event.newValue) {
+      try {
+        const parsed = JSON.parse(event.newValue);
+        if (parsed && typeof parsed === 'object') {
+          useGameStore.getState().setOverlayVisibility(parsed);
+        }
+      } catch {
+        // ignore storage parse error
+      }
+    }
+  });
 }

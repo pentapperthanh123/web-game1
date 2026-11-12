@@ -2,7 +2,15 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { WebcastPushConnection } from 'tiktok-live-connector';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_DIR = path.resolve(__dirname, '../data');
+const OVERLAY_DATA_FILE = path.join(DATA_DIR, 'overlay_visibility.json');
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
@@ -31,7 +39,7 @@ interface OverlayVisibility {
   howToPlay: boolean;
 }
 
-let currentOverlayVisibility: OverlayVisibility = {
+const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   chat: true,
   leaderboard: true,
   teamRosters: true,
@@ -64,6 +72,50 @@ function pickOverlayVisibilityPatch(rawPayload: unknown): Partial<OverlayVisibil
   }
   return patch;
 }
+
+function loadOverlayVisibilityFromDisk(): OverlayVisibility {
+  try {
+    if (fs.existsSync(OVERLAY_DATA_FILE)) {
+      const raw = fs.readFileSync(OVERLAY_DATA_FILE, 'utf-8');
+      const patch = pickOverlayVisibilityPatch(JSON.parse(raw));
+      return { ...DEFAULT_OVERLAY_VISIBILITY, ...patch };
+    }
+  } catch (err) {
+    console.warn('[Server] Could not read overlay visibility from disk:', err);
+  }
+  return { ...DEFAULT_OVERLAY_VISIBILITY };
+}
+
+function saveOverlayVisibilityToDisk(visibility: OverlayVisibility): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(OVERLAY_DATA_FILE, JSON.stringify(visibility, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Server] Could not persist overlay visibility to disk:', err);
+  }
+}
+
+let currentOverlayVisibility: OverlayVisibility = loadOverlayVisibilityFromDisk();
+
+// REST APIs for overlay visibility fallback
+app.get('/api/overlay-visibility', (_req, res) => {
+  res.json(currentOverlayVisibility);
+});
+
+app.post('/api/overlay-visibility', (req, res) => {
+  const cleanPatch = pickOverlayVisibilityPatch(req.body);
+  if (Object.keys(cleanPatch).length > 0) {
+    currentOverlayVisibility = { ...currentOverlayVisibility, ...cleanPatch };
+    saveOverlayVisibilityToDisk(currentOverlayVisibility);
+    io.emit('game:overlay-visibility', {
+      ...currentOverlayVisibility,
+      senderId: typeof req.body?.senderId === 'string' ? req.body.senderId : undefined,
+    });
+  }
+  res.json({ success: true, visibility: currentOverlayVisibility });
+});
 let currentGameTheme: 'BARON' | 'ELDER_DRAGON' = 'BARON';
 
 interface BossSkillConfig {
@@ -306,11 +358,14 @@ io.on('connection', (socket) => {
 
   socket.on('admin:overlay-visibility', (payload: Partial<OverlayVisibility> & { senderId?: string }) => {
     const cleanPatch = pickOverlayVisibilityPatch(payload);
-    currentOverlayVisibility = { ...currentOverlayVisibility, ...cleanPatch };
-    io.emit('game:overlay-visibility', {
-      ...currentOverlayVisibility,
-      senderId: typeof payload?.senderId === 'string' ? payload.senderId : undefined,
-    });
+    if (Object.keys(cleanPatch).length > 0) {
+      currentOverlayVisibility = { ...currentOverlayVisibility, ...cleanPatch };
+      saveOverlayVisibilityToDisk(currentOverlayVisibility);
+      io.emit('game:overlay-visibility', {
+        ...currentOverlayVisibility,
+        senderId: typeof payload?.senderId === 'string' ? payload.senderId : undefined,
+      });
+    }
   });
 
   socket.on('admin:boss-control', (payload) => {
