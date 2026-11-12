@@ -1,15 +1,12 @@
 import { io, Socket } from 'socket.io-client';
 import { OverlayVisibility } from '../types/overlay';
 import { BossSkillConfig } from '../types/bossSkill';
-import {
-  loadStoredOverlayVisibility,
-  pickOverlayVisibilityPatch,
-} from '../utils/overlayVisibility';
+import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ||
-  (typeof window !== 'undefined'
-    ? window.location.origin
+  (typeof window !== 'undefined' && window.location.hostname
+    ? `${window.location.protocol}//${window.location.hostname}:4000`
     : 'http://localhost:4000');
 const CHANNEL_NAME = 'tiktok_live_game_bus';
 
@@ -40,9 +37,6 @@ class AdminSocketService {
       this.socket.on('connect', () => {
         this.isConnected = true;
         console.log('[Admin Socket] Connected to Backend Server on port 4000');
-        // Push Admin's locally saved overlay visibility to server so server stays synchronized
-        const stored = loadStoredOverlayVisibility();
-        this.emit('admin:overlay-visibility', stored);
       });
 
       this.socket.on('disconnect', () => {

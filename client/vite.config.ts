@@ -5,11 +5,11 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const isPublicNetwork =
-    process.env.PUBLIC_NETWORK === 'true' ||
-    process.env.VITE_PUBLIC_NETWORK === 'true' ||
-    env.PUBLIC_NETWORK === 'true' ||
-    env.VITE_PUBLIC_NETWORK === 'true';
+  const isPublicDisabled =
+    process.env.PUBLIC_NETWORK === 'false' ||
+    process.env.VITE_PUBLIC_NETWORK === 'false' ||
+    env.PUBLIC_NETWORK === 'false' ||
+    env.VITE_PUBLIC_NETWORK === 'false';
 
   const backendTarget =
     process.env.VITE_SERVER_URL ||
@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: {
       port: 8000,
-      host: isPublicNetwork ? true : false,
+      host: !isPublicDisabled,
       allowedHosts: true,
       proxy: {
         '/socket.io': {

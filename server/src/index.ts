@@ -7,11 +7,19 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { WebcastPushConnection } from 'tiktok-live-connector';
+import {
+  createDefaultTeamConfig,
+  matchCommentTeam,
+  sanitizeTeamConfigState,
+  TeamConfigState,
+  TeamSlotKey,
+} from './constants/teams.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, '../data');
 const OVERLAY_DATA_FILE = path.join(DATA_DIR, 'overlay_visibility.json');
+const TEAM_CONFIG_DATA_FILE = path.join(DATA_DIR, 'team_config.json');
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
@@ -117,6 +125,57 @@ app.post('/api/overlay-visibility', (req, res) => {
   }
   res.json({ success: true, visibility: currentOverlayVisibility });
 });
+
+function loadTeamConfigFromDisk(): TeamConfigState {
+  try {
+    if (fs.existsSync(TEAM_CONFIG_DATA_FILE)) {
+      const raw = fs.readFileSync(TEAM_CONFIG_DATA_FILE, 'utf-8');
+      const clean = sanitizeTeamConfigState(JSON.parse(raw));
+      if (clean) {
+        return clean;
+      }
+    }
+  } catch (err) {
+    console.warn('[Server] Could not read team config from disk:', err);
+  }
+  return createDefaultTeamConfig();
+}
+
+function saveTeamConfigToDisk(config: TeamConfigState): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(TEAM_CONFIG_DATA_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Server] Could not persist team config to disk:', err);
+  }
+}
+
+let currentTeamConfig: TeamConfigState = loadTeamConfigFromDisk();
+
+app.get('/api/teams', (_req, res) => {
+  res.json(currentTeamConfig);
+});
+
+app.post('/api/teams', (req, res) => {
+  const cleanConfig = sanitizeTeamConfigState(req.body);
+  if (!cleanConfig) {
+    res.status(400).json({ error: 'Invalid team configuration payload' });
+    return;
+  }
+  currentTeamConfig = cleanConfig;
+  saveTeamConfigToDisk(currentTeamConfig);
+  const resetMatch = Boolean(req.body?.resetMatch);
+  const senderId = typeof req.body?.senderId === 'string' ? req.body.senderId : undefined;
+  io.emit('game:team-config', {
+    ...currentTeamConfig,
+    resetMatch,
+    senderId,
+  });
+  res.json({ success: true, config: currentTeamConfig });
+});
+
 let currentGameTheme: 'BARON' | 'ELDER_DRAGON' = 'BARON';
 
 interface BossSkillConfig {
@@ -154,15 +213,10 @@ import { findChampion, getRandomChampion } from './constants/champions.js';
 
 function parseCommentCommand(
   comment: string,
-  fallbackTeam?: 'BLG' | 'GENG'
-): { team?: 'BLG' | 'GENG'; champion?: string } {
+  fallbackTeam?: TeamSlotKey
+): { team?: TeamSlotKey; champion?: string } {
   const upperComment = comment.toUpperCase();
-  let team: 'BLG' | 'GENG' | undefined = undefined;
-  if (upperComment.includes('BLG')) {
-    team = 'BLG';
-  } else if (upperComment.includes('GEN') || upperComment.includes('GENG')) {
-    team = 'GENG';
-  }
+  let team: TeamSlotKey | undefined = matchCommentTeam(comment, currentTeamConfig.activeTeams);
 
   let detectedChampion: string | undefined = undefined;
 
@@ -317,6 +371,7 @@ io.on('connection', (socket) => {
   console.log(`[Socket] Client connected: ${socket.id}`);
 
   // Send current TikTok status on connect
+  socket.emit('game:team-config', currentTeamConfig);
   socket.emit('game:overlay-visibility', currentOverlayVisibility);
   socket.emit('game:theme', { theme: currentGameTheme });
   socket.emit('game:boss-skill-config', currentBossSkillConfig);
@@ -375,6 +430,19 @@ io.on('connection', (socket) => {
 
   socket.on('admin:bo5-control', (payload) => {
     io.emit('game:bo5-control', payload);
+  });
+
+  socket.on('admin:set-team-config', (payload: unknown) => {
+    const cleanConfig = sanitizeTeamConfigState(payload);
+    if (!cleanConfig) return;
+    currentTeamConfig = cleanConfig;
+    saveTeamConfigToDisk(currentTeamConfig);
+    const src = (payload || {}) as Record<string, unknown>;
+    io.emit('game:team-config', {
+      ...currentTeamConfig,
+      resetMatch: Boolean(src.resetMatch),
+      senderId: typeof src.senderId === 'string' ? src.senderId : undefined,
+    });
   });
 
   socket.on('admin:set-theme', (payload: { theme: 'BARON' | 'ELDER_DRAGON' }) => {
