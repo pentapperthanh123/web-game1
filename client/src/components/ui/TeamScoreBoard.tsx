@@ -35,8 +35,8 @@ export const TeamScoreBoard = () => {
 
   return (
     <div className="w-full max-w-lg mx-auto px-2 sm:px-3 mt-1 pointer-events-auto select-none">
-      {/* Dynamic Team Headers (Fixed min-height so combo appearance never pushes lineups) */}
-      <div className="flex items-center justify-between mb-1 min-h-[34px] sm:min-h-[38px]">
+      {/* Dynamic Team Headers */}
+      <div className="flex items-center justify-between min-h-[32px] sm:min-h-[36px]">
         {/* Left Team Block */}
         <div className={`relative flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-1 justify-start ${leftTheme.textStrongClass}`}>
           {/* Summon Notification Mini-Pill right above Left Team Logo */}
@@ -66,11 +66,6 @@ export const TeamScoreBoard = () => {
             <div className={`text-[9px] sm:text-[10px] font-mono font-extrabold tracking-tight ${leftTheme.textStrongClass}`}>
               {(teamScoreBLG ?? 0).toLocaleString()} DMG
             </div>
-          </div>
-
-          {/* Left Team Combo Badge (Inline on same score row to prevent vertical layout shifts) */}
-          <div className="shrink-0 ml-0.5 sm:ml-1 pointer-events-none">
-            <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
           </div>
         </div>
 
@@ -154,11 +149,16 @@ export const TeamScoreBoard = () => {
               {(teamScoreGENG ?? 0).toLocaleString()} DMG
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Right Team Combo Badge (Inline on same score row to prevent vertical layout shifts) */}
-          <div className="shrink-0 mr-0.5 sm:ml-1 pointer-events-none">
-            <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} />
-          </div>
+      {/* Combo Row (Dưới logo, trên thanh điểm — Fixed height ensures rosters never jump up/down) */}
+      <div className="flex items-center justify-between w-full h-5 sm:h-6 my-0.5 px-0.5 pointer-events-none">
+        <div className="flex-1 flex justify-start items-center min-w-0">
+          <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
+        </div>
+        <div className="flex-1 flex justify-end items-center min-w-0">
+          <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} />
         </div>
       </div>
 
