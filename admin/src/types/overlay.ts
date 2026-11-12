@@ -6,6 +6,7 @@ export interface OverlayVisibility {
   teamScores: boolean;
   likeCounter: boolean;
   howToPlay: boolean;
+  heartMilestone: boolean;
 }
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -16,6 +17,7 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   teamScores: true,
   likeCounter: true,
   howToPlay: true,
+  heartMilestone: true,
 };
 
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';

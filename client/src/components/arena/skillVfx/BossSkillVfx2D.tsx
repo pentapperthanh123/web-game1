@@ -12,8 +12,10 @@ import { Vortex2D } from './Vortex2D';
 import { ChargeDash2D } from './ChargeDash2D';
 import { SeismicSlam2D } from './SeismicSlam2D';
 import { Nova2D } from './Nova2D';
+import { FireBreath2D } from './FireBreath2D';
 
 const VFX_COMPONENT_MAP: Readonly<Record<BossSkillVfxType, React.FC<SkillVfx2DProps>>> = {
+  [BOSS_SKILL_VFX.FIRE_BREATH]: FireBreath2D,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: ProjectileArc2D,
   [BOSS_SKILL_VFX.GROUND_SPIKES]: GroundSpikes2D,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: CrescentSweep2D,

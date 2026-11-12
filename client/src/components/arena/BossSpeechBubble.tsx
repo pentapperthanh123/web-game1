@@ -12,21 +12,21 @@ interface BossSpeechBubbleProps {
 const renderSpeechIcon = (iconType: BossSpeechItem['icon']) => {
   switch (iconType) {
     case 'flame':
-      return <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />;
+      return <Flame className="w-2.5 h-2.5 text-amber-300/90 shrink-0 animate-pulse" />;
     case 'zap':
-      return <Zap className="w-3.5 h-3.5 text-yellow-300 shrink-0 animate-bounce" />;
+      return <Zap className="w-2.5 h-2.5 text-yellow-200/90 shrink-0 animate-bounce" />;
     case 'swords':
-      return <Swords className="w-3.5 h-3.5 text-cyan-400 shrink-0" />;
+      return <Swords className="w-2.5 h-2.5 text-cyan-300/90 shrink-0" />;
     case 'crown':
-      return <Crown className="w-3.5 h-3.5 text-amber-300 shrink-0" />;
+      return <Crown className="w-2.5 h-2.5 text-amber-200/90 shrink-0" />;
     default:
-      return <MessageSquare className="w-3.5 h-3.5 text-purple-300 shrink-0" />;
+      return <MessageSquare className="w-2.5 h-2.5 text-purple-200/90 shrink-0" />;
   }
 };
 
 const RESTLESS_BUBBLE_THEME =
-  'bg-gradient-to-r from-rose-950/95 via-red-900/90 to-rose-950/95 border-rose-400 text-rose-50 shadow-[0_0_30px_rgba(244,63,94,0.75)]';
-const RESTLESS_TAIL_THEME = 'border-t-rose-400';
+  'bg-gradient-to-r from-rose-950/60 via-red-900/55 to-rose-950/60 border-rose-400/50 text-rose-100/90 shadow-[0_0_12px_rgba(244,63,94,0.28)]';
+const RESTLESS_TAIL_THEME = 'border-t-rose-400/50';
 
 export const BossSpeechBubble: React.FC<BossSpeechBubbleProps> = React.memo(
   ({ speech, themeConfig, isRestless }) => {
@@ -42,20 +42,20 @@ export const BossSpeechBubble: React.FC<BossSpeechBubbleProps> = React.memo(
       : themeConfig.bubbleTailThemeClass;
 
     return (
-      <div className="absolute -top-8 sm:-top-10 left-1/2 -translate-x-1/2 pointer-events-none z-30 select-none w-max max-w-[280px] sm:max-w-[360px]">
-        <div className="animate-speech-bubble">
+      <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 pointer-events-none z-30 select-none w-max max-w-[185px] sm:max-w-[230px]">
+        <div className="animate-speech-bubble opacity-85">
           {/* Main Comic Dialogue Pill */}
           <div
-            className={`px-3.5 py-1.5 rounded-2xl border-2 text-[11px] sm:text-xs font-black tracking-wide flex items-center space-x-2 backdrop-blur-md ${bubbleThemeClass}`}
+            className={`px-2.5 py-1 rounded-xl border text-[9px] sm:text-[10px] font-semibold tracking-normal flex items-center space-x-1.5 backdrop-blur-sm ${bubbleThemeClass}`}
           >
             {renderSpeechIcon(speech.icon)}
-            <span className="leading-snug drop-shadow-md text-center">{speech.text}</span>
+            <span className="leading-tight drop-shadow-sm text-center">{speech.text}</span>
           </div>
 
           {/* Downward Speech Bubble Tail pointing straight to monster's head */}
           <div className="flex justify-center -mt-[1px]">
             <div
-              className={`w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] ${tailThemeClass}`}
+              className={`w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[5px] ${tailThemeClass}`}
             />
           </div>
         </div>

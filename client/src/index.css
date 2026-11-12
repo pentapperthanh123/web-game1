@@ -1450,3 +1450,80 @@
   100% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
 }
 .animate-phase-shift-banner { animation: phaseShiftBanner 2.8s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+
+@keyframes bossCaveEntrance {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -165px, 0) scale(0.22);
+    filter: brightness(0.3) blur(2px);
+  }
+  18% {
+    opacity: 1;
+    transform: translate3d(0, -115px, 0) scale(0.45);
+    filter: brightness(0.7) blur(0.6px);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(0, -18px, 0) scale(1.07);
+    filter: brightness(1.1);
+  }
+  72% {
+    transform: translate3d(0, 7px, 0) scale(0.97);
+    filter: brightness(1.04);
+  }
+  86% {
+    transform: translate3d(0, -3px, 0) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: brightness(1);
+  }
+}
+.animate-boss-cave-entrance {
+  animation: bossCaveEntrance 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bossFireBreathCone {
+  0% {
+    opacity: 0;
+    transform: rotate(-22deg) scaleX(0.1) scaleY(0.4);
+  }
+  15% {
+    opacity: 1;
+    transform: rotate(-22deg) scaleX(1.08) scaleY(1.05);
+  }
+  45% {
+    opacity: 0.96;
+    transform: rotate(-20deg) scaleX(1.18) scaleY(1.12);
+  }
+  75% {
+    opacity: 0.85;
+    transform: rotate(-24deg) scaleX(0.98) scaleY(0.94);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-22deg) scaleX(0.35) scaleY(0.5);
+  }
+}
+.animate-boss-fire-breath {
+  transform-origin: right center;
+  animation: bossFireBreathCone 1.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bossFireBreathEmber {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.4);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-130px, 46px, 0) scale(1.25);
+  }
+}
+.animate-boss-fire-ember {
+  animation: bossFireBreathEmber 0.95s ease-out infinite;
+}

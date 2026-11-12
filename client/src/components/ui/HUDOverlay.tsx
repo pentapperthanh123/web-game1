@@ -234,12 +234,12 @@ export const HUDOverlay = () => {
       {/* Bottom Section: Left (DPS + Live Chat), Right (Participation Guide + Like Counter) */}
       <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0 w-full min-w-0">
         <div className="flex items-end justify-between w-full min-w-0 px-0.5 sm:px-1 gap-1.5 sm:gap-2">
-          <div className="flex flex-col items-start space-y-1.5 pointer-events-auto min-w-0 w-[47%] max-w-[172px] sm:w-auto sm:max-w-[52%]">
+          <div className="flex flex-col items-start space-y-1.5 pointer-events-auto min-w-0 w-[50%] max-w-[196px] sm:w-auto sm:max-w-[54%]">
             {overlayVisibility.leaderboard && <DPSLeaderboard />}
             {overlayVisibility.chat && <LiveChatStream />}
           </div>
 
-          <div className="flex flex-col items-end space-y-1.5 pointer-events-auto min-w-0 w-[51%] max-w-[186px] sm:w-auto sm:max-w-[48%]">
+          <div className="flex flex-col items-end space-y-1.5 pointer-events-auto min-w-0 w-[48%] max-w-[180px] sm:w-auto sm:max-w-[44%]">
             {overlayVisibility.howToPlay && <ParticipationGuidePanel />}
             {overlayVisibility.likeCounter && <LikeCounter />}
           </div>

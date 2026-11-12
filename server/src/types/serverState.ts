@@ -11,6 +11,7 @@ export interface OverlayVisibility {
   teamScores: boolean;
   likeCounter: boolean;
   howToPlay: boolean;
+  heartMilestone: boolean;
 }
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -21,6 +22,7 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   teamScores: true,
   likeCounter: true,
   howToPlay: true,
+  heartMilestone: true,
 };
 
 export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
@@ -31,6 +33,7 @@ export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
   'teamScores',
   'likeCounter',
   'howToPlay',
+  'heartMilestone',
 ];
 
 export type GameThemeType =

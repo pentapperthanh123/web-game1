@@ -15,7 +15,7 @@
     "dynamicTitle": "CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}"
   },
   "HUD": {
-    "leaderboardTitle": "TOP 5 SÁT THƯƠNG (DPS)",
+    "leaderboardTitle": "TOP 5 SÁT THƯƠNG",
     "noPlayersYet": "Chưa có sát thương, hãy chat tên tướng!",
     "rank": "Hạng",
     "damage": "ST",
@@ -216,6 +216,9 @@
     "overlayHiddenFeedback": "Ẩn: {{label}}",
     "overlayShowAllFeedback": "Đã bật hiển thị toàn bộ section!",
     "overlayHideAllFeedback": "Đã ẩn toàn bộ section HUD!",
+    "triggerHealTest": "Kích hoạt ngay",
+    "triggerHealSuccess": "Đã kích hoạt Đại Hồi Phục toàn bản đồ!",
+    "triggerHealTooltip": "Kích hoạt ngay hiệu ứng Đại Hồi Phục toàn bản đồ (+150 HP)",
     "autoProTitle": "Tự Đánh Tuyển Thủ Pro:",
     "autoProRunning": "Đang Tự Đánh: BẬT",
     "autoProStopped": "Đã Tắt Tự Đánh",

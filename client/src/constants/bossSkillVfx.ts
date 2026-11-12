@@ -2,6 +2,7 @@ import { BOSS_SKILL_VFX, BossSkillVfxType } from '../types/bossSkill';
 
 /** How long each archetype stays on screen after the cast (2D + 3D share this). */
 export const BOSS_SKILL_VFX_DURATION_MS: Readonly<Record<BossSkillVfxType, number>> = {
+  [BOSS_SKILL_VFX.FIRE_BREATH]: 1500,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: 1100,
   [BOSS_SKILL_VFX.GROUND_SPIKES]: 1200,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: 900,
@@ -16,6 +17,7 @@ export const BOSS_SKILL_VFX_DURATION_MS: Readonly<Record<BossSkillVfxType, numbe
 
 /** Default element counts when a skill does not override `vfxParams.count`. */
 export const BOSS_SKILL_VFX_DEFAULT_COUNT: Readonly<Record<BossSkillVfxType, number>> = {
+  [BOSS_SKILL_VFX.FIRE_BREATH]: 8,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: 4,
   [BOSS_SKILL_VFX.GROUND_SPIKES]: 6,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: 1,
@@ -45,6 +47,7 @@ export const BOSS_PHASE_SHIFT_SHAKE_INTENSITY = 1.2;
 
 /** Boss sprite animation per archetype (CSS classes in index.css). */
 export const BOSS_SKILL_VFX_ANIMATION_CLASS: Readonly<Record<BossSkillVfxType, string>> = {
+  [BOSS_SKILL_VFX.FIRE_BREATH]: 'animate-boss-spit',
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: 'animate-boss-spit',
   [BOSS_SKILL_VFX.GROUND_SPIKES]: 'animate-boss-stomp',
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: 'animate-boss-sweep',

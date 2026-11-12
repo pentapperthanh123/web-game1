@@ -12,6 +12,7 @@ export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
   'teamScores',
   'likeCounter',
   'howToPlay',
+  'heartMilestone',
 ];
 
 export const TOTAL_OVERLAY_SECTIONS = OVERLAY_VISIBILITY_KEYS.length;

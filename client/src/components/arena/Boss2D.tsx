@@ -15,13 +15,10 @@ import {
 import { bossSpeechManager, BossSpeechItem, resolveBossSpeechItem } from '../../constants/bossSpeech';
 import { BossHitMarks2D } from './BossHitMarks2D';
 import { BossAlertBanner } from './BossAlertBanner';
-import { GroundShockwaveRing } from './GroundShockwaveRing';
 import { ElementalEmbers } from './ElementalEmbers';
 import { BossSpeechBubble } from './BossSpeechBubble';
 import { BossGlowingEyes } from './BossGlowingEyes';
-import { WingGustVFX } from './WingGustVFX';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
-import { BossEnragedAura } from './BossEnragedAura';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
 import { audioService } from '../../services/audioService';
@@ -30,6 +27,7 @@ import { SFX_EVENT } from '../../constants/sfx';
 import { BossSkillVfxType } from '../../types/bossSkill';
 import { BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
 import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
+import { BossEntranceBreathVFX } from './BossEntranceBreathVFX';
 
 const getAnimationClass = (
   isDefeated: boolean,
@@ -132,67 +130,6 @@ const getAnimationClass = (
   return `${themeConfig.idleAnimationClass} drop-shadow-[0_0_32px_${themeConfig.colors.primaryHex}b3] cursor-pointer hover:drop-shadow-[0_0_48px_${themeConfig.colors.primaryHex}] transition-all`;
 };
 
-const getHeraldSkillAura = (skillId?: string): string => {
-  if (skillId === 'herald_charge') {
-    return 'bg-gradient-to-tr from-emerald-500/80 via-teal-400/70 to-lime-300/60 blur-3xl scale-130 drop-shadow-[0_0_40px_#10b981]';
-  }
-  if (skillId === 'herald_void_cleave') {
-    return 'bg-gradient-to-tr from-teal-600/75 via-emerald-500/65 to-green-400/55 blur-3xl scale-125 drop-shadow-[0_0_35px_#059669]';
-  }
-  if (skillId === 'herald_eye_gaze') {
-    return 'bg-gradient-to-tr from-lime-500/85 via-fuchsia-500/75 to-purple-600/65 blur-3xl scale-135 drop-shadow-[0_0_45px_#84cc16]';
-  }
-  if (skillId === 'herald_seismic_slam') {
-    return 'bg-gradient-to-tr from-pink-600/90 via-purple-600/80 to-rose-500/70 blur-3xl scale-140 drop-shadow-[0_0_55px_#ec4899] animate-pulse';
-  }
-  return 'bg-gradient-to-tr from-emerald-500/60 via-teal-500/50 to-lime-500/40 blur-3xl scale-125';
-};
-
-const getBaronSkillAura = (skillId?: string): string => {
-  if (skillId === 'baron_acid_spit') {
-    return 'bg-gradient-to-tr from-emerald-500/70 via-green-400/60 to-lime-300/50 blur-3xl scale-125 drop-shadow-[0_0_35px_#22c55e]';
-  }
-  if (skillId === 'baron_void_spikes') {
-    return 'bg-gradient-to-tr from-purple-600/75 via-violet-500/65 to-indigo-400/55 blur-3xl scale-125 drop-shadow-[0_0_35px_#a855f7]';
-  }
-  if (skillId === 'baron_tail_sweep') {
-    return 'bg-gradient-to-tr from-fuchsia-600/75 via-pink-500/65 to-purple-400/55 blur-3xl scale-125 drop-shadow-[0_0_35px_#d946ef]';
-  }
-  if (skillId === 'baron_void_cataclysm') {
-    return 'bg-gradient-to-tr from-rose-600/85 via-purple-600/75 to-red-500/65 blur-3xl scale-135 drop-shadow-[0_0_50px_#ef4444] animate-pulse';
-  }
-  return 'bg-gradient-to-tr from-purple-500/60 via-fuchsia-500/50 to-pink-500/40 blur-3xl scale-125';
-};
-
-const getAuraColorClass = (
-  isDefeated: boolean,
-  isRoarActive: boolean,
-  isEnraged: boolean,
-  isRestless: boolean,
-  themeConfig: BossThemeConfig,
-  skillId?: string
-): string => {
-  if (isDefeated) {
-    return 'opacity-0';
-  }
-  if (isRestless) {
-    return 'bg-gradient-to-tr from-rose-700/75 via-rose-600/65 to-red-600/55 blur-3xl animate-restless-aura';
-  }
-  if (isRoarActive) {
-    if (themeConfig.archetype === 'HERALD') {
-      return getHeraldSkillAura(skillId);
-    }
-    if (themeConfig.archetype === 'BARON') {
-      return getBaronSkillAura(skillId);
-    }
-    return themeConfig.auraColorClass.roar;
-  }
-  if (isEnraged) {
-    return themeConfig.auraColorClass.enraged;
-  }
-  return themeConfig.auraColorClass.idle;
-};
-
 export const Boss2D = () => {
   const { t } = useTranslation();
   const bossStatus = useGameStore((state) => state.bossStatus);
@@ -214,6 +151,7 @@ export const Boss2D = () => {
 
   const themeConfig = getThemeConfig(gameTheme);
   const isHerald = themeConfig.archetype === 'HERALD';
+  const isDragon = themeConfig.archetype === 'DRAGON';
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
 
@@ -221,11 +159,12 @@ export const Boss2D = () => {
   const [isHitActive, setIsHitActive] = useState(false);
   const [hitNonce, setHitNonce] = useState(0);
   const [isRoarActive, setIsRoarActive] = useState(false);
+  const [isEntranceActive, setIsEntranceActive] = useState(false);
+  const [isEntranceBreathActive, setIsEntranceBreathActive] = useState(false);
 
   // Interactive & Ambient Idle States
   const [isPoked, setIsPoked] = useState(false);
   const [isEyesSurging, setIsEyesSurging] = useState(false);
-  const [isWingGustActive, setIsWingGustActive] = useState(false);
   const [isRestless, setIsRestless] = useState(false);
   const [isFacingRight, setIsFacingRight] = useState(false);
   const [verticalTierIndex, setVerticalTierIndex] = useState<number>(1);
@@ -238,6 +177,37 @@ export const Boss2D = () => {
   const lastFlipTimestampRef = useRef<number>(0);
   const pokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Trigger dramatic cave-to-arena swoop & mouth fire breath on spawn / theme change
+  useEffect(() => {
+    if (isDefeated) {
+      setIsEntranceActive(false);
+      setIsEntranceBreathActive(false);
+      return;
+    }
+
+    setIsEntranceActive(true);
+    setIsEntranceBreathActive(false);
+
+    const breathTimer = isDragon
+      ? setTimeout(() => {
+          setIsEntranceBreathActive(true);
+          playSound(SFX_EVENT.BOSS_ROAR, {
+            rateScale: themeConfig.audioPitchRate,
+          });
+        }, BOSS_ANIMATION_CONSTANTS.ENTRANCE_BREATH_DELAY_MS)
+      : null;
+
+    const endTimer = setTimeout(() => {
+      setIsEntranceActive(false);
+      setIsEntranceBreathActive(false);
+    }, BOSS_ANIMATION_CONSTANTS.ENTRANCE_DURATION_MS);
+
+    return () => {
+      if (breathTimer) clearTimeout(breathTimer);
+      clearTimeout(endTimer);
+    };
+  }, [gameTheme, isDefeated, isDragon, themeConfig.audioPitchRate]);
 
   const shiftVerticalPatrolTier = useCallback(
     (preferredTier?: number) => {
@@ -386,10 +356,8 @@ export const Boss2D = () => {
         audioService.playBossIdleBreath(themeConfig.audioPitchRate);
         setTimeout(() => setIsEyesSurging(false), BOSS_IDLE_CONSTANTS.EYE_SURGE_DURATION_MS);
       } else if (actionRoll < 0.75 || !canSpeak) {
-        // Ambient 2: Wing Gust (Dragon) or Acid Sputter (Baron) or Chitin Tremor (Herald)
-        setIsWingGustActive(true);
+        // Ambient 2: Idle Breath
         audioService.playBossIdleBreath(themeConfig.audioPitchRate);
-        setTimeout(() => setIsWingGustActive(false), BOSS_IDLE_CONSTANTS.WING_GUST_DURATION_MS);
       } else {
         // Ambient 3: Menacing Non-Repeating Speech Taunt (when cooldown allows)
         lastSpeechTimestampRef.current = now;
@@ -435,7 +403,6 @@ export const Boss2D = () => {
             rateScale: themeConfig.audioPitchRate,
           });
           setIsEyesSurging(true);
-          setIsWingGustActive(true);
           setIsRoarActive(true);
           updateFacingSide('TOGGLE');
           shiftVerticalPatrolTier(0);
@@ -444,7 +411,6 @@ export const Boss2D = () => {
           settleTimer = setTimeout(() => {
             setIsRoarActive(false);
             setIsEyesSurging(false);
-            setIsWingGustActive(false);
           }, BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_DURATION_MS);
         }
         scheduleNextRoar();
@@ -569,27 +535,6 @@ export const Boss2D = () => {
     activeBossSkillBanner?.vfxType
   );
 
-  const auraColorClass = getAuraColorClass(
-    isDefeated,
-    isRoarActive,
-    isEnraged,
-    isRestless,
-    themeConfig,
-    activeBossSkillBanner?.skillId
-  );
-
-  const isGroundShockActive =
-    isRoarActive ||
-    (isHitActive &&
-      (lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE));
-
-  const shockwaveColor =
-    themeConfig.colors.enragedHex ||
-    activeBossSkillBanner?.color ||
-    (isEnraged ? '#ef4444' : themeConfig.colors.primaryHex);
-
-  const wingGustColor = themeConfig.colors.primaryHex;
-
   // Dynamic 2.5D perspective tilt reacting to hit side & pokes
   let tiltYDeg = 0;
   let tiltXDeg = 0;
@@ -628,35 +573,12 @@ export const Boss2D = () => {
       {/* 1c. Per-archetype skill VFX overlay (projectiles, beams, spikes…) */}
       {!isDefeated && <BossSkillVfx2D />}
 
-      {/* 2. Living Elemental Portal Aura Glow */}
-      <div
-        className={`absolute w-52 h-52 sm:w-72 sm:h-72 rounded-full transition-all duration-300 pointer-events-none animate-aura-pulse ${auraColorClass}`}
-      />
-
-      {/* 2b. Violent Enraged Fiery Void Aura */}
-      {isEnraged && !isDefeated && <BossEnragedAura themeConfig={themeConfig} />}
-
-      {/* 3. Runic Ground Reflection */}
-      <div
-        className={`absolute ${themeConfig.groundAuraClass} rounded-full blur-xl pointer-events-none`}
-      />
-
-      {/* 4. Realistic Ground Contact Shadow under Monster */}
+      {/* 2. Realistic Ground Contact Shadow under Monster */}
       <div
         className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 rounded-[50%] blur-md pointer-events-none ${groundShadowAnimationClass}`}
       />
 
-      {/* 5. Dynamic Ground Shockwave Ripples during Slam & Heavy Hit */}
-      <GroundShockwaveRing
-        isActive={isGroundShockActive}
-        color={shockwaveColor}
-        isUltimate={isUltimateAttack || lastHitDamageType === DAMAGE_TYPE.ULTIMATE}
-      />
-
-      {/* 6. Wing Flap / Acid Sputter Shockwave Gust */}
-      <WingGustVFX isActive={isWingGustActive} color={wingGustColor} />
-
-      {/* 7. Elemental Floating Embers & Sparks */}
+      {/* 3. Elemental Floating Embers & Sparks */}
       <ElementalEmbers
         color={themeConfig.colors.glowHex || themeConfig.colors.primaryHex}
         enragedColor={themeConfig.colors.enragedHex}
@@ -664,13 +586,17 @@ export const Boss2D = () => {
         isDefeated={isDefeated}
       />
 
-      {/* 8. Vertical Altitude Patrol + Uninterrupted Hover/Coil Wrapper around Interactive Boss */}
+      {/* 8. Vertical Altitude Patrol + Cave Entrance Swoop + Uninterrupted Hover/Coil Wrapper */}
       <div
-        className="relative pointer-events-none"
-        style={{
-          transform: `translate3d(0, ${verticalOffsetPx}px, 0)`,
-          transition: `transform ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms cubic-bezier(0.37, 0, 0.63, 1)`,
-        }}
+        className={`relative pointer-events-none ${isEntranceActive ? 'animate-boss-cave-entrance' : ''}`}
+        style={
+          isEntranceActive
+            ? undefined
+            : {
+                transform: `translate3d(0, ${verticalOffsetPx}px, 0)`,
+                transition: `transform ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms cubic-bezier(0.37, 0, 0.63, 1)`,
+              }
+        }
       >
         <div className={verticalMotionClass}>
           <div
@@ -714,10 +640,10 @@ export const Boss2D = () => {
                   />
                 </picture>
 
-                {themeConfig.hasVoidOverlay && !isDefeated && (
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-[-12%] rounded-full bg-[radial-gradient(ellipse_at_center,_rgba(147,51,234,0.45)_0%,_rgba(88,28,135,0.35)_40%,_transparent_75%)] animate-pulse mix-blend-screen pointer-events-none blur-xl"
+                {isDragon && (
+                  <BossEntranceBreathVFX
+                    isActive={isEntranceBreathActive && !isDefeated}
+                    gameTheme={gameTheme}
                   />
                 )}
 

@@ -73,6 +73,12 @@ const buildSectionConfigs = (leftTag: string, rightTag: string): SectionConfig[]
     icon: Heart,
   },
   {
+    key: 'heartMilestone',
+    label: 'Cơ Chế Đại Hồi Phục (0/200 Tim)',
+    description: 'Thanh tiến trình 0/200 tim & tự kích hoạt Đại Hồi Phục toàn bản đồ (+150 HP)',
+    icon: Sparkles,
+  },
+  {
     key: 'howToPlay',
     label: 'Cách Tham Gia & Quà Tặng (Góc Phải)',
     description: 'Bảng hướng dẫn cú pháp chat & bảng quy đổi Quà tặng - Sát thương',

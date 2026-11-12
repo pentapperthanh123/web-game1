@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, Layout, Check } from 'lucide-react';
+import { Eye, EyeOff, Layout, Check, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
-import { ADMIN_CONSTANTS, OVERLAY_SECTION } from '../../../constants/game';
+import { ADMIN_CONSTANTS, GAME_CONSTANTS, OVERLAY_SECTION } from '../../../constants/game';
 import { OverlayVisibility } from '../../../types/game';
 import { gameSocket } from '../../../services/socket';
 import { gameBus } from '../../../services/eventBus';
@@ -26,6 +26,9 @@ export const AdminOverlaysTab: React.FC = () => {
 
   const overlayVisibility = useGameStore((state) => state.overlayVisibility);
   const setOverlayVisibility = useGameStore((state) => state.setOverlayVisibility);
+  const totalLikesBLG = useGameStore((state) => state.totalLikesBLG);
+  const totalLikesGENG = useGameStore((state) => state.totalLikesGENG);
+  const triggerHeartMilestoneHeal = useGameStore((state) => state.triggerHeartMilestoneHeal);
 
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -140,19 +143,41 @@ export const AdminOverlaysTab: React.FC = () => {
                 <span>{label}</span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleToggle(key, label)}
-                className={`px-3 py-1 rounded-full border text-[10px] font-bold uppercase transition active:scale-95 ${
-                  isVisible
-                    ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-[0_0_8px_rgba(6,182,212,0.35)]'
-                    : 'bg-slate-950/80 border-slate-700 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {isVisible
-                  ? t('Admin.overlayVisibleStatus', 'Đang hiện')
-                  : t('Admin.overlayHiddenStatus', 'Đang ẩn')}
-              </button>
+              <div className="flex items-center space-x-2">
+                {key === 'heartMilestone' && isVisible && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentLikes = (totalLikesBLG ?? 0) + (totalLikesGENG ?? 0);
+                      const nextTier =
+                        (Math.floor(currentLikes / GAME_CONSTANTS.HEART_MILESTONE.THRESHOLD) + 1) *
+                        GAME_CONSTANTS.HEART_MILESTONE.THRESHOLD;
+                      triggerHeartMilestoneHeal(nextTier);
+                      showFeedback(t('Admin.triggerHealSuccess', 'Đã kích hoạt Đại Hồi Phục toàn bản đồ!'));
+                    }}
+                    className="px-2 py-1 rounded-full border border-emerald-500/60 bg-emerald-950/70 text-emerald-300 hover:bg-emerald-900/80 text-[10px] font-bold flex items-center space-x-1 transition active:scale-95 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                    title={t('Admin.triggerHealTooltip', 'Kích hoạt ngay hiệu ứng Đại Hồi Phục toàn bản đồ (+150 HP)')}
+                  >
+                    <Sparkles className="w-2.5 h-2.5 text-emerald-400 animate-spin" />
+                    <span>{t('Admin.triggerHealTest', 'Kích hoạt ngay')}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleToggle(key, label)}
+                  className={`px-3 py-1 rounded-full border text-[10px] font-bold uppercase transition active:scale-95 ${
+                    isVisible
+                      ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-[0_0_8px_rgba(6,182,212,0.35)]'
+                      : 'bg-slate-950/80 border-slate-700 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {isVisible
+                    ? t('Admin.overlayVisibleStatus', 'Đang hiện')
+                    : t('Admin.overlayHiddenStatus', 'Đang ẩn')}
+                </button>
+              </div>
             </div>
           );
         })}

@@ -61,14 +61,14 @@ export const BARON_SKILLS: BossSkillBase[] = [
 export const ELDER_DRAGON_SKILLS: BossSkillBase[] = [
   {
     id: 'elder_dragon_breath',
-    name: 'Dragon Breath',
-    vietnameseName: 'Hơi Thở Rồng CKTG',
+    name: 'Fire Breath',
+    vietnameseName: 'Phun Lửa Cổ Đại',
     iconName: 'Flame',
-    baseDamage: 20,
-    targetCount: 1,
+    baseDamage: 25,
+    targetCount: 999,
     isUltimate: false,
-    color: '#06b6d4',
-    description: 'Bắn cầu lửa thiên thanh rực sáng đơn mục tiêu (-20 HP)',
+    color: '#f97316',
+    description: 'Phun luồng lửa rồng thiêu đốt toàn bộ vùng mục tiêu (-25 HP & Thiêu Đốt)',
   },
   {
     id: 'elder_wing_buffet',
@@ -155,14 +155,14 @@ export const RIFT_HERALD_SKILLS: BossSkillBase[] = [
 export const MOUNTAIN_DRAGON_SKILLS: BossSkillBase[] = [
   {
     id: 'mountain_magma_spit',
-    name: 'Magma Spit',
-    vietnameseName: 'Nham Thạch Nóng Chảy',
+    name: 'Magma Fire Breath',
+    vietnameseName: 'Phun Lửa Nham Thạch',
     iconName: 'Flame',
-    baseDamage: 25,
-    targetCount: 1,
+    baseDamage: 28,
+    targetCount: 999,
     isUltimate: false,
     color: '#ea580c',
-    description: 'Phun khối nham thạch rực lửa nung chảy giáp 1 tướng (-25 HP)',
+    description: 'Phun luồng lửa nham thạch thiêu đốt toàn bộ vùng mục tiêu (-28 HP & Thiêu Đốt)',
   },
   {
     id: 'mountain_rock_slide',
@@ -202,14 +202,14 @@ export const MOUNTAIN_DRAGON_SKILLS: BossSkillBase[] = [
 export const STORM_DRAGON_SKILLS: BossSkillBase[] = [
   {
     id: 'storm_lightning_spark',
-    name: 'Lightning Spark',
-    vietnameseName: 'Tia Chớp Lôi Long',
-    iconName: 'Zap',
-    baseDamage: 25,
-    targetCount: 1,
+    name: 'Storm Fire Breath',
+    vietnameseName: 'Phun Lửa Bão Tố',
+    iconName: 'Flame',
+    baseDamage: 28,
+    targetCount: 999,
     isUltimate: false,
-    color: '#6366f1',
-    description: 'Phóng tia chớp sắc lẹm giật điện đơn mục tiêu (-25 HP)',
+    color: '#f97316',
+    description: 'Phun luồng lửa bão tố thiêu đốt toàn bộ vùng mục tiêu (-28 HP & Thiêu Đốt)',
   },
   {
     id: 'storm_wind_vortex',

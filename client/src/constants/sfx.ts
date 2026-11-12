@@ -310,6 +310,7 @@ export const SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
 
 /** Extra layer per VFX archetype; SEISMIC_SLAM / NOVA rely on the generic BOSS_SKILL / BOSS_ULTIMATE sound. */
 export const BOSS_SKILL_VFX_SFX: Readonly<Partial<Record<BossSkillVfxType, SfxEventName>>> = {
+  [BOSS_SKILL_VFX.FIRE_BREATH]: SFX_EVENT.BOSS_FIRE_BREATH,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: SFX_EVENT.BOSS_FIRE_BREATH,
   [BOSS_SKILL_VFX.GROUND_SPIKES]: SFX_EVENT.BOSS_SPIKES,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: SFX_EVENT.BOSS_SWEEP,

@@ -5,6 +5,7 @@ export type BossPhase = 1 | 2 | 3;
 
 /** Shared VFX archetypes; every skill maps to one and parameterises it by colour/scale. */
 export const BOSS_SKILL_VFX = {
+  FIRE_BREATH: 'FIRE_BREATH',
   PROJECTILE_ARC: 'PROJECTILE_ARC',
   GROUND_SPIKES: 'GROUND_SPIKES',
   CRESCENT_SWEEP: 'CRESCENT_SWEEP',

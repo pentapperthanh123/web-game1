@@ -55,8 +55,8 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
 
   // ── Elder Dragon: celestial fire ─────────────────────────────────────
   elder_dragon_breath: {
-    vfxType: BOSS_SKILL_VFX.PROJECTILE_ARC,
-    vfxParams: { secondaryColor: '#fbbf24', count: 4, scale: 1.2 },
+    vfxType: BOSS_SKILL_VFX.FIRE_BREATH,
+    vfxParams: { secondaryColor: '#fbbf24', count: 8, scale: 1.25 },
     statusEffect: { type: BOSS_STATUS_EFFECT.BURN, ...DOT.LIGHT },
   },
   elder_wing_buffet: {
@@ -99,8 +99,8 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
 
   // ── Mountain Drake: magma & stone ────────────────────────────────────
   mountain_magma_spit: {
-    vfxType: BOSS_SKILL_VFX.PROJECTILE_ARC,
-    vfxParams: { secondaryColor: '#fdba74', count: 3, scale: 1.3 },
+    vfxType: BOSS_SKILL_VFX.FIRE_BREATH,
+    vfxParams: { secondaryColor: '#fde047', count: 8, scale: 1.3 },
     statusEffect: { type: BOSS_STATUS_EFFECT.BURN, ...DOT.LIGHT },
   },
   mountain_rock_slide: {
@@ -122,8 +122,9 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
 
   // ── Storm Drake: wind & thunder ──────────────────────────────────────
   storm_lightning_spark: {
-    vfxType: BOSS_SKILL_VFX.LIGHTNING_STRIKE,
-    vfxParams: { secondaryColor: '#c7d2fe', count: 2 },
+    vfxType: BOSS_SKILL_VFX.FIRE_BREATH,
+    vfxParams: { secondaryColor: '#fde047', count: 8, scale: 1.25 },
+    statusEffect: { type: BOSS_STATUS_EFFECT.BURN, ...DOT.LIGHT },
   },
   storm_wind_vortex: {
     vfxType: BOSS_SKILL_VFX.VORTEX,

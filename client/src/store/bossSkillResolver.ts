@@ -89,6 +89,30 @@ export const pickSkillTargets = (vulnerableMinions: MinionEntity[], targetCount:
 
 export type SkillTargetTeam = TeamType | 'ALL';
 
+/**
+ * Picks one active side (zone) to spray with fire breath and returns every
+ * vulnerable champion in that sprayed zone so the whole sprayed area takes damage.
+ */
+export const pickZoneBreathTargets = (
+  vulnerableMinions: MinionEntity[]
+): { targetedMinionIds: Set<string>; targetTeam: SkillTargetTeam } => {
+  const leftMinions = vulnerableMinions.filter((m) => m.team === TEAM_KEY.BLG);
+  const rightMinions = vulnerableMinions.filter((m) => m.team === TEAM_KEY.GENG);
+
+  let sprayedTeam: TeamType = Math.random() < 0.5 ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+  if (leftMinions.length > 0 && rightMinions.length === 0) {
+    sprayedTeam = TEAM_KEY.BLG;
+  } else if (rightMinions.length > 0 && leftMinions.length === 0) {
+    sprayedTeam = TEAM_KEY.GENG;
+  }
+
+  const zoneTargets = sprayedTeam === TEAM_KEY.BLG ? leftMinions : rightMinions;
+  return {
+    targetedMinionIds: new Set(zoneTargets.map((minion) => minion.id)),
+    targetTeam: sprayedTeam,
+  };
+};
+
 /** Which side the boss turns toward: the team holding most of the targeted champions. */
 export const resolveSkillTargetTeam = (
   minions: MinionEntity[],

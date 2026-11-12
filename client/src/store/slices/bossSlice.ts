@@ -51,6 +51,7 @@ import {
   buildDefeatedChampion,
   pickBossSkillIndex,
   pickSkillTargets,
+  pickZoneBreathTargets,
   resolveSkillTargetTeam,
 } from '../bossSkillResolver';
 import {
@@ -294,8 +295,16 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     const vulnerableMinions = currentMinions.filter(
       (m) => now - (m.createdAt || 0) >= gracePeriodMs
     );
-    const targetedMinionIds = pickSkillTargets(vulnerableMinions, skill.targetCount);
-    const targetTeam = resolveSkillTargetTeam(currentMinions, targetedMinionIds, skill.isUltimate);
+    const isZoneBreath = skill.vfxType === BOSS_SKILL_VFX.FIRE_BREATH;
+    const zoneBreathSelection = isZoneBreath
+      ? pickZoneBreathTargets(vulnerableMinions)
+      : null;
+    const targetedMinionIds = zoneBreathSelection
+      ? zoneBreathSelection.targetedMinionIds
+      : pickSkillTargets(vulnerableMinions, skill.targetCount);
+    const targetTeam = zoneBreathSelection
+      ? zoneBreathSelection.targetTeam
+      : resolveSkillTargetTeam(currentMinions, targetedMinionIds, skill.isUltimate);
     const championDebuff = buildChampionStatusEffect(skill.statusEffect, skill.id, phase, now);
     const isLifesteal = skill.statusEffect?.type === BOSS_STATUS_EFFECT.LIFESTEAL;
 

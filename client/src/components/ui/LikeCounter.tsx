@@ -13,6 +13,9 @@ export const LikeCounter = () => {
   const teamHeartMomentum = useGameStore((state) => state.teamHeartMomentum);
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
   const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+  const overlayVisibility = useGameStore((state) => state.overlayVisibility);
+  const isAdminModeActive = useGameStore((state) => state.isAdminModeActive);
+  const triggerHeartMilestoneHeal = useGameStore((state) => state.triggerHeartMilestoneHeal);
 
   const leftTheme = getTeamTheme(leftTeam.colorTheme);
   const rightTheme = getTeamTheme(rightTeam.colorTheme);
@@ -61,25 +64,37 @@ export const LikeCounter = () => {
       )}
 
       {/* Heart Milestone Healing Progress */}
-      <div className="flex flex-col px-2 py-1 rounded-lg bg-slate-950/35 border border-emerald-500/40 backdrop-blur-[1px] shadow-md text-[9px] w-full max-w-[136px] sm:w-36">
-        <div className="flex items-center justify-between text-emerald-300 font-bold mb-0.5">
-          <span className="flex items-center space-x-1">
-            <Sparkles className="w-2.5 h-2.5 text-emerald-400 animate-spin" />
-            <span className="text-[8px] font-black uppercase tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-              {t('Milestone.healProgress', 'Đại Hồi Phục:')}
+      {overlayVisibility.heartMilestone && (
+        <div
+          onClick={() => {
+            if (isAdminModeActive) {
+              triggerHeartMilestoneHeal((Math.floor(totalCombinedLikes / threshold) + 1) * threshold);
+            }
+          }}
+          className={`flex flex-col px-2 py-1 rounded-lg bg-slate-950/35 border border-emerald-500/40 backdrop-blur-[1px] shadow-md text-[9px] w-full max-w-[136px] sm:w-36 ${
+            isAdminModeActive ? 'cursor-pointer hover:border-emerald-400 hover:bg-emerald-950/40 transition active:scale-95' : ''
+          }`}
+          title={isAdminModeActive ? 'Admin: Nhấp để kích hoạt ngay Đại Hồi Phục!' : undefined}
+        >
+          <div className="flex items-center justify-between text-emerald-300 font-bold mb-0.5">
+            <span className="flex items-center space-x-1">
+              <Sparkles className="w-2.5 h-2.5 text-emerald-400 animate-spin" />
+              <span className="text-[8px] font-black uppercase tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                {t('Milestone.healProgress', 'Đại Hồi Phục:')}
+              </span>
             </span>
-          </span>
-          <span className="font-mono text-[8px] text-emerald-300 font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-            {currentProgress}/{threshold}
-          </span>
+            <span className="font-mono text-[8px] text-emerald-300 font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+              {currentProgress}/{threshold}
+            </span>
+          </div>
+          <div className="w-full h-1.5 bg-slate-900/50 rounded-full overflow-hidden border border-emerald-950/60">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-300 transition-all duration-300 rounded-full"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
-        <div className="w-full h-1.5 bg-slate-900/50 rounded-full overflow-hidden border border-emerald-950/60">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-teal-300 transition-all duration-300 rounded-full"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      </div>
+      )}
 
       <div className="flex items-center justify-end flex-wrap gap-1">
         {/* Left Team Likes */}

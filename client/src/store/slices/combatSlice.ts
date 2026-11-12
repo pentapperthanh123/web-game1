@@ -615,7 +615,8 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const prevMilestoneTier = Math.floor(prevTotalLikes / milestoneThreshold);
     const newMilestoneTier = Math.floor(newTotalLikes / milestoneThreshold);
 
-    if (newMilestoneTier > prevMilestoneTier) {
+    const isHeartMilestoneEnabled = get().overlayVisibility.heartMilestone !== false;
+    if (isHeartMilestoneEnabled && newMilestoneTier > prevMilestoneTier) {
       get().triggerHeartMilestoneHeal(newMilestoneTier * milestoneThreshold);
     }
   },
