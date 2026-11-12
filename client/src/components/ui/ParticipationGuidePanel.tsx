@@ -49,8 +49,8 @@ interface RewardItemConfig {
 
 const GIFT_DAMAGE_PER_COIN = 120;
 const LIKE_DAMAGE_PER_HEART = 15;
-const AUTO_SWITCH_INTERVAL_MS = 9000;
-const USER_PAUSE_AUTO_SWITCH_MS = 25000;
+const AUTO_SWITCH_INTERVAL_MS = 5000;
+const USER_PAUSE_AUTO_SWITCH_MS = 10000;
 
 const GUIDE_ITEMS: readonly GuideItemConfig[] = [
   {
@@ -287,7 +287,7 @@ export const ParticipationGuidePanel = () => {
 
       {/* Main Content Body */}
       {!isCollapsed && (
-        <div className="mt-1.5 space-y-1 max-h-60 overflow-y-auto pr-0.5">
+        <div key={activeTab} className="mt-1.5 space-y-1 max-h-60 overflow-y-auto pr-0.5 animate-in fade-in duration-300">
           {/* TAB 1: CÁCH THAM GIA */}
           {activeTab === 'RULES' &&
             GUIDE_ITEMS.map((item) => {
