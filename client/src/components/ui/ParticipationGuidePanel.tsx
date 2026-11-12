@@ -41,9 +41,6 @@ interface RewardItemConfig {
   badgeKey: string;
   badgeFallback: string;
   badgeParams: Record<string, number | string>;
-  descKey: string;
-  descFallback: string;
-  descParams: Record<string, number | string>;
 }
 
 const GIFT_DAMAGE_PER_COIN = 120;
@@ -111,90 +108,68 @@ const REWARD_ITEMS: readonly RewardItemConfig[] = [
   {
     id: 'rose',
     emoji: '🌹',
-    containerClass: 'border-rose-500/25 bg-rose-950/15',
-    badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-400/40 shadow-[0_0_8px_rgba(244,63,94,0.2)]',
+    containerClass: 'border-rose-500/20 bg-rose-950/15',
+    badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-400/40 shadow-[0_0_6px_rgba(244,63,94,0.15)]',
     titleKey: 'HUD.guideGiftRoseTitle',
     titleFallback: 'Hoa Hồng (1 xu)',
     badgeKey: 'HUD.guideGiftRoseBadge',
     badgeFallback: '+120 ST',
     badgeParams: { dmg: 120 },
-    descKey: 'HUD.guideGiftRoseDesc',
-    descFallback: '+120 Sát Thương • Nạp +{{fury}}% Nộ toàn phe',
-    descParams: { dmg: 120, fury: GAME_CONSTANTS.PRO_FURY.FURY_GAIN_GIFT_BOOST },
   },
   {
     id: 'heart_tap',
     emoji: '💖',
-    containerClass: 'border-pink-500/25 bg-pink-950/15',
-    badgeClass: 'bg-pink-500/20 text-pink-300 border-pink-400/40 shadow-[0_0_8px_rgba(236,72,153,0.2)]',
+    containerClass: 'border-pink-500/20 bg-pink-950/15',
+    badgeClass: 'bg-pink-500/20 text-pink-300 border-pink-400/40 shadow-[0_0_6px_rgba(236,72,153,0.15)]',
     titleKey: 'HUD.guideGiftHeartTitle',
     titleFallback: 'Thả Tim (1♥)',
     badgeKey: 'HUD.guideGiftHeartBadge',
     badgeFallback: '+15 ST / tim',
     badgeParams: { dmg: LIKE_DAMAGE_PER_HEART },
-    descKey: 'HUD.guideGiftHeartDesc',
-    descFallback: '+15 ST/tim • Tốc Nộ x{{mult}} • Mốc {{milestone}}♥ Đại Hồi Phục',
-    descParams: {
-      dmg: LIKE_DAMAGE_PER_HEART,
-      mult: GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_MAX,
-      milestone: GAME_CONSTANTS.HEART_MILESTONE.THRESHOLD,
-    },
   },
   {
     id: 'cookie',
     emoji: '🍪',
-    containerClass: 'border-amber-500/25 bg-amber-950/15',
-    badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]',
+    containerClass: 'border-amber-500/20 bg-amber-950/15',
+    badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-[0_0_6px_rgba(245,158,11,0.15)]',
     titleKey: 'HUD.guideGiftCookieTitle',
     titleFallback: 'Bánh Quy (10 xu)',
     badgeKey: 'HUD.guideGiftCookieBadge',
     badgeFallback: '+1,200 ST',
     badgeParams: { dmg: '1,200' },
-    descKey: 'HUD.guideGiftCookieDesc',
-    descFallback: 'Bão Thiên Thạch công phá +1,200 Sát Thương',
-    descParams: { dmg: '1,200' },
   },
   {
     id: 'watergun',
     emoji: '🔫',
-    containerClass: 'border-cyan-500/25 bg-cyan-950/15',
-    badgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-[0_0_8px_rgba(6,182,212,0.2)]',
+    containerClass: 'border-cyan-500/20 bg-cyan-950/15',
+    badgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-[0_0_6px_rgba(6,182,212,0.15)]',
     titleKey: 'HUD.guideGiftWatergunTitle',
     titleFallback: 'Súng Nước (50 xu)',
     badgeKey: 'HUD.guideGiftWatergunBadge',
     badgeFallback: '+6,000 ST',
     badgeParams: { dmg: '6,000' },
-    descKey: 'HUD.guideGiftWatergunDesc',
-    descFallback: '+6,000 ST • Mở khóa Tướng Tinh Anh VIP',
-    descParams: { dmg: '6,000' },
   },
   {
     id: 'world_heart',
     emoji: '💎',
-    containerClass: 'border-fuchsia-500/25 bg-fuchsia-950/15',
-    badgeClass: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-400/40 shadow-[0_0_8px_rgba(217,70,239,0.2)]',
+    containerClass: 'border-fuchsia-500/20 bg-fuchsia-950/15',
+    badgeClass: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-400/40 shadow-[0_0_6px_rgba(217,70,239,0.15)]',
     titleKey: 'HUD.guideGiftWorldHeartTitle',
     titleFallback: 'Tim CKTG (199 xu)',
     badgeKey: 'HUD.guideGiftWorldHeartBadge',
     badgeFallback: '+23,880 ST',
     badgeParams: { dmg: '23,880' },
-    descKey: 'HUD.guideGiftWorldHeartDesc',
-    descFallback: 'Hồi +50 HP toàn đội & gây +23,880 Sát Thương',
-    descParams: { dmg: '23,880' },
   },
   {
     id: 'dragon',
     emoji: '🐉',
-    containerClass: 'border-yellow-500/25 bg-yellow-950/15',
-    badgeClass: 'bg-yellow-500/20 text-yellow-300 border-yellow-400/40 shadow-[0_0_8px_rgba(234,179,8,0.25)]',
+    containerClass: 'border-yellow-500/20 bg-yellow-950/15',
+    badgeClass: 'bg-yellow-500/20 text-yellow-300 border-yellow-400/40 shadow-[0_0_6px_rgba(234,179,8,0.2)]',
     titleKey: 'HUD.guideGiftDragonTitle',
     titleFallback: 'Rồng Thần (1,000 xu)',
     badgeKey: 'HUD.guideGiftDragonBadge',
     badgeFallback: '+120,000 ST',
     badgeParams: { dmg: '120,000' },
-    descKey: 'HUD.guideGiftDragonDesc',
-    descFallback: 'Siêu Thiên Thạch chấn động toàn bản đồ +120,000 ST',
-    descParams: { dmg: '120,000' },
   },
 ];
 
@@ -269,7 +244,7 @@ export const ParticipationGuidePanel = () => {
           )}
         </button>
 
-        {/* Collapse Button Only (No 2 extra tabs, saving maximum space) */}
+        {/* Collapse Button Only */}
         <button
           type="button"
           onClick={() => setIsCollapsed((prev) => !prev)}
@@ -280,78 +255,73 @@ export const ParticipationGuidePanel = () => {
         </button>
       </div>
 
-      {/* Main Content Body with sleek thin scrollbar */}
+      {/* Main Content Body: Zero scrolling, perfectly fitted height */}
       {!isCollapsed && (
-        <div
-          key={activeTab}
-          className="mt-1 space-y-1 max-h-56 overflow-y-auto pr-0.5 animate-in fade-in duration-300 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/25"
-        >
+        <div key={activeTab} className="mt-1 overflow-hidden animate-in fade-in duration-300">
           {/* TAB 1: CÁCH THAM GIA */}
-          {activeTab === 'RULES' &&
-            GUIDE_ITEMS.map((item) => {
-              const IconComponent = item.icon;
-              return (
+          {activeTab === 'RULES' && (
+            <div className="space-y-1">
+              {GUIDE_ITEMS.map((item) => {
+                const IconComponent = item.icon;
+                return (
+                  <div
+                    key={item.id}
+                    className={`rounded-lg border px-1.5 py-1 ${item.containerClass}`}
+                  >
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <div className="flex items-center space-x-1 min-w-0">
+                        <IconComponent className={`w-2.5 h-2.5 shrink-0 ${item.iconColorClass}`} />
+                        <span className="text-[8.5px] sm:text-[9px] font-black text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                          {t(item.titleKey, item.titleFallback)}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[7px] font-mono font-black px-1 py-0.2 rounded border shrink-0 ${item.badgeClass}`}
+                      >
+                        {t(item.badgeKey, item.badgeFallback, item.badgeParams)}
+                      </span>
+                    </div>
+
+                    {item.commandKey && item.commandFallback && (
+                      <div className="mt-0.5 px-1 py-0.5 rounded bg-slate-950/25 border border-cyan-500/20 font-mono text-[7.5px] sm:text-[8px] font-bold text-cyan-200 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                        {t(item.commandKey, item.commandFallback)}
+                      </div>
+                    )}
+
+                    <p className="mt-0.5 text-[7.5px] sm:text-[8px] leading-snug text-slate-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      {t(item.descKey, item.descFallback, item.descParams)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* TAB 2: QUY ĐỔI QUÀ & DAMAGE (Compact 1-line dense rows, 0 scrolling) */}
+          {activeTab === 'REWARDS' && (
+            <div className="space-y-0.5">
+              {REWARD_ITEMS.map((item) => (
                 <div
                   key={item.id}
-                  className={`rounded-lg border px-1.5 py-1 ${item.containerClass}`}
+                  className={`flex items-center justify-between px-1.5 py-0.5 rounded border transition-all ${item.containerClass}`}
                 >
-                  <div className="flex items-center justify-between gap-1 flex-wrap">
-                    <div className="flex items-center space-x-1 min-w-0">
-                      <IconComponent className={`w-2.5 h-2.5 shrink-0 ${item.iconColorClass}`} />
-                      <span className="text-[8.5px] sm:text-[9px] font-black text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                        {t(item.titleKey, item.titleFallback)}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-[7px] font-mono font-black px-1 py-0.2 rounded border shrink-0 ${item.badgeClass}`}
-                    >
-                      {t(item.badgeKey, item.badgeFallback, item.badgeParams)}
+                  <div className="flex items-center space-x-1 min-w-0 pr-1">
+                    <span className="text-[9.5px] leading-none shrink-0" aria-hidden="true">
+                      {item.emoji}
+                    </span>
+                    <span className="text-[8px] sm:text-[8.5px] font-black text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      {t(item.titleKey, item.titleFallback)}
                     </span>
                   </div>
-
-                  {item.commandKey && item.commandFallback && (
-                    <div className="mt-0.5 px-1 py-0.5 rounded bg-slate-950/25 border border-cyan-500/20 font-mono text-[7.5px] sm:text-[8px] font-bold text-cyan-200 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {t(item.commandKey, item.commandFallback)}
-                    </div>
-                  )}
-
-                  <p className="mt-0.5 text-[7.5px] sm:text-[8px] leading-snug text-slate-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                    {t(item.descKey, item.descFallback, item.descParams)}
-                  </p>
+                  <span
+                    className={`text-[7px] sm:text-[7.5px] font-mono font-black px-1 py-0.2 rounded border shrink-0 ${item.badgeClass}`}
+                  >
+                    {t(item.badgeKey, item.badgeFallback, item.badgeParams)}
+                  </span>
                 </div>
-              );
-            })}
-
-          {/* TAB 2: QUY ĐỔI QUÀ & DAMAGE */}
-          {activeTab === 'REWARDS' &&
-            REWARD_ITEMS.map((item) => {
-              return (
-                <div
-                  key={item.id}
-                  className={`rounded-lg border px-1.5 py-1 transition-all ${item.containerClass}`}
-                >
-                  <div className="flex items-center justify-between gap-1 flex-wrap">
-                    <div className="flex items-center space-x-1.5 min-w-0">
-                      <span className="text-[11px] leading-none shrink-0" aria-hidden="true">
-                        {item.emoji}
-                      </span>
-                      <span className="text-[8.5px] sm:text-[9px] font-black text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                        {t(item.titleKey, item.titleFallback)}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-[7px] font-mono font-black px-1.5 py-0.2 rounded border shrink-0 ${item.badgeClass}`}
-                    >
-                      {t(item.badgeKey, item.badgeFallback, item.badgeParams)}
-                    </span>
-                  </div>
-
-                  <p className="mt-0.5 text-[7.5px] sm:text-[8px] leading-snug text-slate-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                    {t(item.descKey, item.descFallback, item.descParams)}
-                  </p>
-                </div>
-              );
-            })}
+              ))}
+            </div>
+          )}
         </div>
       )}
     </aside>
