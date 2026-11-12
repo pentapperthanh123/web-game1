@@ -167,6 +167,7 @@ export const ChampionToken = React.memo(({ minion }: ChampionTokenProps) => {
       <mesh
         position={[0, COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.NAMEPLATE_POS_Y, COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.NAMEPLATE_POS_Z]}
         geometry={SHARED_NAMEPLATE_GEO}
+        renderOrder={100}
       >
         <meshBasicMaterial map={nameplateTexture} transparent depthWrite={false} side={THREE.DoubleSide} />
       </mesh>

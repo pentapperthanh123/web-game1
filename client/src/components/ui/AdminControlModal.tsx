@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, X, Trophy, Compass, Bot, Layout, Swords, Users } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -47,8 +48,8 @@ export const AdminControlModal: React.FC = () => {
     setAdminMode(false);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 pointer-events-auto bg-black/60 backdrop-blur-sm animate-fadeIn">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 pointer-events-auto bg-black/75 backdrop-blur-md animate-fadeIn select-none">
       <div className="relative w-full min-w-0 max-w-lg bg-slate-950/95 border border-amber-500/50 rounded-2xl shadow-[0_0_35px_rgba(245,158,11,0.25)] overflow-hidden flex flex-col max-h-[88vh] text-slate-100">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-amber-500/30 bg-gradient-to-r from-amber-950/50 via-slate-900/80 to-slate-950">
@@ -160,5 +161,7 @@ export const AdminControlModal: React.FC = () => {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
 

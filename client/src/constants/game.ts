@@ -105,6 +105,7 @@ export const GAME_CONSTANTS = {
   },
   SUMMON_RULES: {
     MAX_ACTIVE_PER_TEAM: 5, // Tối đa 5 lượt / tướng cùng lúc mỗi phe trên sàn đấu
+    SUMMON_TURN_DELAY_MS: 1300, // Độ trễ xuất hiện giữa các lượt: sau khi tướng xuất hiện xong mới đến lượt tiếp theo
     MAX_ACTIVE_PER_USER: 1, // Option B: Mỗi người chỉ có tối đa 1 tướng đang sống trên sàn
     ALIVE_SUPPORT_HEAL: 50, // Option B: Comment tiếp theo khi tướng còn sống sẽ hồi +50 HP tiếp sức
     ALIVE_SUPPORT_DAMAGE: 90, // Option B: Đòn đánh tiếp sức gây thêm +90 sát thương vào Boss
@@ -375,8 +376,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     groundShadowClass: 'animate-herald-idle scale-x-110 opacity-70',
     audioPitchRate: 1.25,
     defeatBuffTitle: 'BÙA LỢI SỨ GIẢ KHE NỨT THUỘC VỀ {{team}}',
-    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/55 via-emerald-950/50 to-slate-950/55 border-emerald-400/45 text-emerald-100/90 shadow-[0_0_10px_rgba(16,185,129,0.25)]',
-    bubbleTailThemeClass: 'border-t-emerald-400/50',
+    bubbleThemeClass: 'bg-slate-950/95 border-2 border-emerald-400 text-white font-bold shadow-[0_0_18px_rgba(16,185,129,0.55)]',
+    bubbleTailThemeClass: 'border-t-emerald-400',
     eyeColorHex: '#10b981',
     crackStrokeHex: '#34d399',
     eyePositions: {
@@ -427,8 +428,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     groundShadowClass: 'animate-dragon-shadow',
     audioPitchRate: 0.9,
     defeatBuffTitle: 'LONG HỒN ĐỊA CHẤN THUỘC VỀ {{team}}',
-    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/55 via-orange-950/50 to-slate-950/55 border-orange-400/45 text-orange-100/90 shadow-[0_0_10px_rgba(249,115,22,0.25)]',
-    bubbleTailThemeClass: 'border-t-orange-400/50',
+    bubbleThemeClass: 'bg-slate-950/95 border-2 border-orange-400 text-white font-bold shadow-[0_0_18px_rgba(249,115,22,0.55)]',
+    bubbleTailThemeClass: 'border-t-orange-400',
     eyeColorHex: '#f97316',
     crackStrokeHex: '#fb923c',
     eyePositions: {
@@ -479,8 +480,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     groundShadowClass: 'animate-dragon-shadow',
     audioPitchRate: 1.05,
     defeatBuffTitle: 'LONG HỒN BÃO TỐ THUỘC VỀ {{team}}',
-    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/55 via-indigo-950/50 to-slate-950/55 border-indigo-400/45 text-indigo-100/90 shadow-[0_0_10px_rgba(129,140,248,0.25)]',
-    bubbleTailThemeClass: 'border-t-indigo-400/50',
+    bubbleThemeClass: 'bg-slate-950/95 border-2 border-indigo-400 text-white font-bold shadow-[0_0_18px_rgba(129,140,248,0.55)]',
+    bubbleTailThemeClass: 'border-t-indigo-400',
     eyeColorHex: '#818cf8',
     crackStrokeHex: '#a5b4fc',
     eyePositions: {
@@ -531,8 +532,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     groundShadowClass: 'animate-baron-shadow',
     audioPitchRate: 1.0,
     defeatBuffTitle: 'BÙA LỢI BARON THUỘC VỀ {{team}}',
-    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/55 via-purple-950/50 to-slate-950/55 border-purple-400/45 text-purple-100/90 shadow-[0_0_10px_rgba(168,85,247,0.25)]',
-    bubbleTailThemeClass: 'border-t-purple-400/50',
+    bubbleThemeClass: 'bg-slate-950/95 border-2 border-purple-400 text-white font-bold shadow-[0_0_18px_rgba(168,85,247,0.55)]',
+    bubbleTailThemeClass: 'border-t-purple-400',
     eyeColorHex: '#c084fc',
     crackStrokeHex: '#c084fc',
     eyePositions: {
@@ -583,8 +584,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     groundShadowClass: 'animate-dragon-shadow',
     audioPitchRate: 1.0,
     defeatBuffTitle: 'LONG HỒN NGÀN TUỔI THUỘC VỀ {{team}}',
-    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/55 via-amber-950/50 to-slate-950/55 border-amber-400/45 text-amber-100/90 shadow-[0_0_10px_rgba(245,158,11,0.25)]',
-    bubbleTailThemeClass: 'border-t-amber-400/50',
+    bubbleThemeClass: 'bg-slate-950/95 border-2 border-amber-400 text-white font-bold shadow-[0_0_18px_rgba(245,158,11,0.55)]',
+    bubbleTailThemeClass: 'border-t-amber-400',
     eyeColorHex: '#fbbf24',
     crackStrokeHex: '#fbbf24',
     eyePositions: {
@@ -633,8 +634,8 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     groundShadowClass: 'animate-baron-shadow',
     audioPitchRate: 0.78,
     defeatBuffTitle: 'CHÂN THÂN HƯ VÔ THUỘC VỀ {{team}}',
-    bubbleThemeClass: 'bg-gradient-to-r from-slate-950/55 via-fuchsia-950/50 to-slate-950/55 border-fuchsia-400/45 text-fuchsia-100/90 shadow-[0_0_10px_rgba(217,70,239,0.28)]',
-    bubbleTailThemeClass: 'border-t-fuchsia-400/50',
+    bubbleThemeClass: 'bg-slate-950/95 border-2 border-fuchsia-400 text-white font-bold shadow-[0_0_18px_rgba(217,70,239,0.55)]',
+    bubbleTailThemeClass: 'border-t-fuchsia-400',
     eyeColorHex: '#e879f9',
     crackStrokeHex: '#f472b6',
     eyePositions: {

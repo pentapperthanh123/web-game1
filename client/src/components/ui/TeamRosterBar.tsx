@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { RosterPlayer } from '../../constants/roster';
 import { BOSS_STATUS, GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamColorPalette } from '../../types/team';
-import { audioService } from '../../services/audioService';
 
 interface TeamRosterBarProps {
   side: 'left' | 'right';
@@ -60,8 +58,6 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
     bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isLeft = side === 'left';
 
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
-
   const getSummonCount = (player: RosterPlayer) => {
     const playerNameLower = player.name.toLowerCase();
     const champLower = player.signatureChampion.toLowerCase();
@@ -72,53 +68,7 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
     }).length;
   };
 
-  const totalTeamSummons = minions.filter((m) => m.team === team).length;
-  const shortTeamLabel = teamProfile.shortTag;
-
   const isFlowLayout = Boolean(isInFlow || topOffset === undefined);
-
-  if (isCollapsed) {
-    const collapsedLabel =
-      totalTeamSummons > 0 ? `${shortTeamLabel} (${totalTeamSummons})` : shortTeamLabel;
-    return (
-      <div
-        id={`roster-container-${team}`}
-        style={!isFlowLayout && topOffset ? { top: `${topOffset}px` } : undefined}
-        className={`${
-          isFlowLayout
-            ? 'relative'
-            : `absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
-                isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
-              } transition-[top] duration-200`
-        } z-[36] pointer-events-auto select-none`}
-      >
-        <button
-          id={`roster-collapsed-${team}`}
-          type="button"
-          onClick={() => {
-            audioService.playUiToggleSound(true);
-            setIsCollapsed(false);
-          }}
-          className={`cursor-pointer flex items-center space-x-1 px-2 py-0.5 rounded-full border backdrop-blur-md shadow-md transition active:scale-95 hover:scale-105 opacity-90 hover:opacity-100 ${teamTheme.pillButtonClass}`}
-          title={t('HUD.lineupExpand', 'Mở đội hình {{team}}', { team: shortTeamLabel })}
-        >
-          {isLeft ? (
-            <>
-              <Users className="w-2.5 h-2.5" />
-              <span className="text-[8.5px] sm:text-[9px] font-black">{collapsedLabel}</span>
-              <ChevronRight className="w-3 h-3" />
-            </>
-          ) : (
-            <>
-              <ChevronLeft className="w-3 h-3" />
-              <span className="text-[8.5px] sm:text-[9px] font-black">{collapsedLabel}</span>
-              <Users className="w-2.5 h-2.5" />
-            </>
-          )}
-        </button>
-      </div>
-    );
-  }
 
   return (
     <aside
@@ -133,33 +83,6 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
             } transition-[top] duration-200`
       } flex flex-col space-y-0.5 pointer-events-auto z-[36] select-none w-[70px] sm:w-[84px]`}
     >
-      {/* Symmetrical Compact Header Pill */}
-      <button
-        type="button"
-        onClick={() => {
-          audioService.playUiToggleSound(false);
-          setIsCollapsed(true);
-        }}
-        className={`cursor-pointer text-[8px] sm:text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border backdrop-blur-md flex items-center justify-between shadow-sm transition active:scale-95 hover:brightness-110 ${teamTheme.pillButtonClass}`}
-        title={t('HUD.lineupCollapse', 'Thu gọn đội hình {{team}}', { team: shortTeamLabel })}
-      >
-        {isLeft ? (
-          <>
-            <span className="truncate">{shortTeamLabel}</span>
-            <span className="p-0.5 hover:bg-white/20 rounded transition flex items-center justify-center">
-              <ChevronLeft className="w-3 h-3" />
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="p-0.5 hover:bg-white/20 rounded transition flex items-center justify-center">
-              <ChevronRight className="w-3 h-3" />
-            </span>
-            <span className="truncate">{shortTeamLabel}</span>
-          </>
-        )}
-      </button>
-
       {/* Sleek Ultra-Compact Pro Player Cards */}
       {roster.map((player, playerIndex) => {
         const count = getSummonCount(player);

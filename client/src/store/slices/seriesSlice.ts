@@ -70,6 +70,10 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
+      summonQueue: {
+        [TEAM_KEY.BLG]: [],
+        [TEAM_KEY.GENG]: [],
+      },
       teamCombos: createInitialTeamCombos(),
       teamHeartMomentum: createInitialTeamHeartMomentum(),
       floatingDamages: [],
@@ -132,6 +136,10 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
+      summonQueue: {
+        [TEAM_KEY.BLG]: [],
+        [TEAM_KEY.GENG]: [],
+      },
       activeBursts: [],
       activeHearts: [],
       activeProjectiles: [],

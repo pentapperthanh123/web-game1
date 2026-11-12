@@ -265,7 +265,7 @@ export const stepChampionFrame = (
 
   const vfxRefs = resolveCachedVfxRefs(ai, champGroup.children[0] as THREE.Group | undefined);
   if (vfxRefs.ring) {
-    const spinSpeed = ai.isAttacking ? 6.5 : 2.5;
+    const spinSpeed = ai.isAttacking ? 0.9 : 0.45;
     vfxRefs.ring.rotation.z = elapsedTime * (minion.team === TEAM_KEY.BLG ? spinSpeed : -spinSpeed);
   }
 

@@ -1,6 +1,6 @@
 {
   "chat": false,
-  "leaderboard": true,
+  "leaderboard": false,
   "teamRosters": true,
   "bossHealth": true,
   "teamScores": true,

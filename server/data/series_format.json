@@ -1,7 +1,7 @@
 {
-  "format": "BO5",
-  "targetWins": 3,
-  "maxRounds": 5,
+  "format": "BO3",
+  "targetWins": 2,
+  "maxRounds": 3,
   "blgScore": 0,
   "gengScore": 0,
   "currentRound": 1

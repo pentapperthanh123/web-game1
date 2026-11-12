@@ -69,6 +69,10 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
         totalLikesBLG: 0,
         totalLikesGENG: 0,
         minions: [],
+        summonQueue: {
+          [TEAM_KEY.BLG]: [],
+          [TEAM_KEY.GENG]: [],
+        },
         activeBursts: [],
         activeHearts: [],
         activeProjectiles: [],

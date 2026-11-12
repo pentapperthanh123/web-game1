@@ -38,9 +38,9 @@ export const TeamScoreBoard = () => {
       {/* Dynamic Team Headers */}
       <div className="flex items-center justify-between min-h-[32px] sm:min-h-[36px]">
         {/* Left Team Block */}
-        <div className={`relative flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-1 justify-start ${leftTheme.textStrongClass}`}>
+        <div className={`relative z-40 flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-1 justify-start ${leftTheme.textStrongClass}`}>
           {/* Summon Notification Mini-Pill right above Left Team Logo */}
-          <div className="absolute -top-6 left-0 z-40 pointer-events-none">
+          <div className="absolute -top-7 sm:-top-8 left-0 z-50 pointer-events-none">
             <SummonSpotlight side="left" />
           </div>
 
@@ -120,9 +120,9 @@ export const TeamScoreBoard = () => {
         </div>
 
         {/* Right Team Block */}
-        <div className={`relative flex items-center space-x-1.5 sm:space-x-2 text-right flex-row-reverse space-x-reverse min-w-0 flex-1 justify-start ${rightTheme.textStrongClass}`}>
+        <div className={`relative z-40 flex items-center space-x-1.5 sm:space-x-2 text-right flex-row-reverse space-x-reverse min-w-0 flex-1 justify-start ${rightTheme.textStrongClass}`}>
           {/* Summon Notification Mini-Pill right above Right Team Logo */}
-          <div className="absolute -top-6 right-0 z-40 pointer-events-none">
+          <div className="absolute -top-7 sm:-top-8 right-0 z-50 pointer-events-none">
             <SummonSpotlight side="right" />
           </div>
 
@@ -152,36 +152,39 @@ export const TeamScoreBoard = () => {
         </div>
       </div>
 
-      {/* Combo Row (Dưới logo, trên thanh điểm — Fixed height ensures rosters never jump up/down) */}
-      <div className="flex items-center justify-between w-full h-5 sm:h-6 my-0.5 px-0.5 pointer-events-none">
-        <div className="flex-1 flex justify-start items-center min-w-0">
-          <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
-        </div>
-        <div className="flex-1 flex justify-end items-center min-w-0">
-          <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} />
-        </div>
-      </div>
-
-      {/* Cyberpunk Battle Tug-of-War Bar */}
-      <div className="relative w-full h-3.5 sm:h-4 bg-slate-950/95 rounded-lg border border-slate-700/90 p-0.5 shadow-[0_0_16px_rgba(0,0,0,0.9)] overflow-hidden flex">
-        {/* Left Territory Bar */}
-        <div
-          className={`h-full transition-all duration-300 relative ${leftTheme.tugBarLeftClass}`}
-          style={{ width: `${leftRatio}%` }}
-        >
-          <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#ffffff]" />
+      {/* Cyberpunk Battle Tug-of-War Bar with Floating Overlaid Combos */}
+      <div className="relative w-full mt-0.5 sm:mt-1">
+        {/* Floating Overlaid Combo Badges (Zero layout height — no empty gap when idle, no roster jumping when active) */}
+        <div className="absolute -top-3 sm:-top-3.5 inset-x-0 flex items-center justify-between px-0.5 pointer-events-none z-30">
+          <div className="flex-1 flex justify-start items-center min-w-0 pr-1">
+            <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
+          </div>
+          <div className="flex-1 flex justify-end items-center min-w-0 pl-1">
+            <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} />
+          </div>
         </div>
 
-        {/* Right Territory Bar */}
-        <div
-          className={`h-full transition-all duration-300 relative ${rightTheme.tugBarRightClass}`}
-          style={{ width: `${rightRatio}%` }}
-        >
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#ffffff]" />
-        </div>
+        {/* Cyberpunk Battle Tug-of-War Bar */}
+        <div className="relative w-full h-3.5 sm:h-4 bg-slate-950/95 rounded-lg border border-slate-700/90 p-0.5 shadow-[0_0_16px_rgba(0,0,0,0.9)] overflow-hidden flex">
+          {/* Left Territory Bar */}
+          <div
+            className={`h-full transition-all duration-300 relative ${leftTheme.tugBarLeftClass}`}
+            style={{ width: `${leftRatio}%` }}
+          >
+            <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#ffffff]" />
+          </div>
 
-        {/* Center Tension Divider */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-white shadow-[0_0_6px_#ffffff] z-10" />
+          {/* Right Territory Bar */}
+          <div
+            className={`h-full transition-all duration-300 relative ${rightTheme.tugBarRightClass}`}
+            style={{ width: `${rightRatio}%` }}
+          >
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#ffffff]" />
+          </div>
+
+          {/* Center Tension Divider */}
+          <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-white shadow-[0_0_6px_#ffffff] z-10" />
+        </div>
       </div>
     </div>
   );

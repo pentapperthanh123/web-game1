@@ -394,7 +394,7 @@ export function App() {
         <HUDOverlay />
 
         {/* Layer 4: Boss Speech Bubbles & Skill Callouts above all 3D particles/VFX */}
-        <div id="boss-notification-layer" className="absolute inset-0 pointer-events-none z-[45]" />
+        <div id="boss-notification-layer" className="absolute inset-0 pointer-events-none z-[50]" />
       </div>
     </main>
   );

@@ -39,6 +39,9 @@ export const FloatingDamage = React.memo(() => {
 
       for (let i = 0; i < newItems.length; i++) {
         const item: FloatingDamageText = newItems[i];
+        // Chỉ giữ lại số sát thương gây lên Quái vật (ẩn toàn bộ số hồi máu hoặc phụ trợ)
+        if (!item.text || item.text.startsWith('+')) continue;
+
         if (!existingIds.has(item.id) && now - item.createdAt < DAMAGE_LIFETIME_MS) {
           particlesRef.current.push({
             id: item.id,
