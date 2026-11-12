@@ -662,18 +662,10 @@ export interface ChampionVFXConfig {
 }
 
 export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
-  // --- BLG ROSTER ---
+  // --- BLG FEATURED CHAMPIONS ---
   jax: {
     type: CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN,
     skillName: 'Nhảy Nện [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN,
-    ultimateSkillName: 'Sức Mạnh Bậc Thầy [R]',
-    glowColor: '#38bdf8',
-    coreColor: '#fef08a',
-  },
-  bin: {
-    type: CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN,
-    skillName: 'Phản Công [E]',
     ultimateType: CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN,
     ultimateSkillName: 'Sức Mạnh Bậc Thầy [R]',
     glowColor: '#38bdf8',
@@ -695,23 +687,7 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     glowColor: '#06b6d4',
     coreColor: '#ffffff',
   },
-  xun: {
-    type: CHAMPION_SKILL_VFX_TYPE.WIND_SPEAR,
-    skillName: 'Can Trường [E]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.WIND_SPEAR,
-    ultimateSkillName: 'Bán Nguyệt Thương [R]',
-    glowColor: '#06b6d4',
-    coreColor: '#ffffff',
-  },
   ahri: {
-    type: CHAMPION_SKILL_VFX_TYPE.SPIRIT_ORB,
-    skillName: 'Quả Cầu Ma Thuật [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.SPIRIT_ORB,
-    ultimateSkillName: 'Hôn Gió Phi Hồ [R]',
-    glowColor: '#06b6d4',
-    coreColor: '#ec4899',
-  },
-  knight: {
     type: CHAMPION_SKILL_VFX_TYPE.SPIRIT_ORB,
     skillName: 'Quả Cầu Ma Thuật [Q]',
     ultimateType: CHAMPION_SKILL_VFX_TYPE.SPIRIT_ORB,
@@ -735,14 +711,6 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     glowColor: '#a855f7',
     coreColor: '#e0e7ff',
   },
-  elk: {
-    type: CHAMPION_SKILL_VFX_TYPE.VOID_MISSILE,
-    skillName: 'Cơn Mưa Icathia [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.VOID_MISSILE,
-    ultimateSkillName: 'Bản Năng Sát Thủ [R]',
-    glowColor: '#a855f7',
-    coreColor: '#06b6d4',
-  },
   rakan: {
     type: CHAMPION_SKILL_VFX_TYPE.GOLDEN_FEATHER,
     skillName: 'Phi Tiêu Lông Vũ [Q]',
@@ -751,16 +719,8 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     glowColor: '#38bdf8',
     coreColor: '#fbbf24',
   },
-  on: {
-    type: CHAMPION_SKILL_VFX_TYPE.GOLDEN_FEATHER,
-    skillName: 'Xuất Hiện Hoành Tráng [W]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.GOLDEN_FEATHER,
-    ultimateSkillName: 'Bộ Pháp Thần Tốc [R]',
-    glowColor: '#38bdf8',
-    coreColor: '#fbbf24',
-  },
 
-  // --- GEN.G ROSTER ---
+  // --- GEN.G FEATURED CHAMPIONS ---
   ksante: {
     type: CHAMPION_SKILL_VFX_TYPE.NTOFO_SLAM,
     skillName: 'Tàn Phá [Q]',
@@ -777,28 +737,12 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     glowColor: '#f59e0b',
     coreColor: '#ef4444',
   },
-  kiin: {
-    type: CHAMPION_SKILL_VFX_TYPE.NTOFO_SLAM,
-    skillName: 'Mở Đường [W]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.NTOFO_SLAM,
-    ultimateSkillName: 'Chơi Khô Máu [R]',
-    glowColor: '#f59e0b',
-    coreColor: '#ef4444',
-  },
   nidalee: {
     type: CHAMPION_SKILL_VFX_TYPE.JAVELIN,
     skillName: 'Phóng Lao [Q]',
     ultimateType: CHAMPION_SKILL_VFX_TYPE.JAVELIN,
     ultimateSkillName: 'Cú Vồ Báo Chúa [R]',
     glowColor: '#eab308',
-    coreColor: '#84cc16',
-  },
-  canyon: {
-    type: CHAMPION_SKILL_VFX_TYPE.JAVELIN,
-    skillName: 'Phóng Lao Cực Đại [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.JAVELIN,
-    ultimateSkillName: 'Cú Vồ Báo Chúa [R]',
-    glowColor: '#f59e0b',
     coreColor: '#84cc16',
   },
   yone: {
@@ -809,28 +753,12 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     glowColor: '#ef4444',
     coreColor: '#38bdf8',
   },
-  chovy: {
-    type: CHAMPION_SKILL_VFX_TYPE.BLADE_SLASH,
-    skillName: 'Xuất Hồn [E]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.BLADE_SLASH,
-    ultimateSkillName: 'Đoạt Mệnh [R]',
-    glowColor: '#f59e0b',
-    coreColor: '#ef4444',
-  },
   ezreal: {
     type: CHAMPION_SKILL_VFX_TYPE.CRESCENT_ARC,
     skillName: 'Phát Bắn Thần Bí [Q]',
     ultimateType: CHAMPION_SKILL_VFX_TYPE.CRESCENT_ARC,
     ultimateSkillName: 'Cung Ánh Sáng [R]',
     glowColor: '#fbbf24',
-    coreColor: '#ffffff',
-  },
-  ruler: {
-    type: CHAMPION_SKILL_VFX_TYPE.CRESCENT_ARC,
-    skillName: 'Tinh Hoa Huyền Bí [W]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.CRESCENT_ARC,
-    ultimateSkillName: 'Cung Ánh Sáng [R]',
-    glowColor: '#f59e0b',
     coreColor: '#ffffff',
   },
   nautilus: {
@@ -841,27 +769,11 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     glowColor: '#0284c7',
     coreColor: '#38bdf8',
   },
-  duro: {
-    type: CHAMPION_SKILL_VFX_TYPE.ANCHOR_DEPTH,
-    skillName: 'Thủy Triều Dữ Dội [E]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.ANCHOR_DEPTH,
-    ultimateSkillName: 'Thủy Lôi Tầm Nhiệt [R]',
-    glowColor: '#eab308',
-    coreColor: '#38bdf8',
-  },
 
   // --- POPULAR / LEGENDARY CHAMPIONS ---
   azir: {
     type: CHAMPION_SKILL_VFX_TYPE.SAND_SOLDIER,
     skillName: 'Cát Lưu Binh [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.SAND_SOLDIER,
-    ultimateSkillName: 'Phân Chia Thiên Hạ [R]',
-    glowColor: '#f59e0b',
-    coreColor: '#fef08a',
-  },
-  faker: {
-    type: CHAMPION_SKILL_VFX_TYPE.SAND_SOLDIER,
-    skillName: 'Đế Vương Shurima [Q]',
     ultimateType: CHAMPION_SKILL_VFX_TYPE.SAND_SOLDIER,
     ultimateSkillName: 'Phân Chia Thiên Hạ [R]',
     glowColor: '#f59e0b',
@@ -931,14 +843,6 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     glowColor: '#ef4444',
     coreColor: '#fef08a',
   },
-  'hans sama': {
-    type: CHAMPION_SKILL_VFX_TYPE.SPINNING_AXE,
-    skillName: 'Rìu Xoay [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.SPINNING_AXE,
-    ultimateSkillName: 'Lốc Xoáy Tử Thần [R]',
-    glowColor: '#ef4444',
-    coreColor: '#fef08a',
-  },
   jinx: {
     type: CHAMPION_SKILL_VFX_TYPE.ROCKET_MISSILE,
     skillName: 'Giật Bắn [W]',
@@ -946,14 +850,6 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     ultimateSkillName: 'Tên Lửa Siêu Khủng Khiếp [R]',
     glowColor: '#ec4899',
     coreColor: '#38bdf8',
-  },
-  gumayusi: {
-    type: CHAMPION_SKILL_VFX_TYPE.ARROW,
-    skillName: 'Mũi Tên Xuyên Phá [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.ARROW,
-    ultimateSkillName: 'Sợi Xích Tội Lỗi [R]',
-    glowColor: '#dc2626',
-    coreColor: '#ffffff',
   },
   kalista: {
     type: CHAMPION_SKILL_VFX_TYPE.SPIRIT_SPEAR,
@@ -1011,62 +907,6 @@ export const CHAMPION_VFX_MAP: Record<string, ChampionVFXConfig> = {
     glowColor: '#10b981',
     coreColor: '#6ee7b7',
   },
-  keria: {
-    type: CHAMPION_SKILL_VFX_TYPE.ANCHOR_DEPTH,
-    skillName: 'Án Tử Thần Thánh [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.ANCHOR_DEPTH,
-    ultimateSkillName: 'Đóng Băng Hồn [R]',
-    glowColor: '#dc2626',
-    coreColor: '#38bdf8',
-  },
-  doran: {
-    type: CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN,
-    skillName: 'Phản Công [E]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN,
-    ultimateSkillName: 'Sức Mạnh Bậc Thầy [R]',
-    glowColor: '#dc2626',
-    coreColor: '#fef08a',
-  },
-  oner: {
-    type: CHAMPION_SKILL_VFX_TYPE.SONIC_WAVE,
-    skillName: 'Sóng Âm [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.SONIC_WAVE,
-    ultimateSkillName: 'Nộ Long Cước [R]',
-    glowColor: '#dc2626',
-    coreColor: '#bae6fd',
-  },
-  zeus: {
-    type: CHAMPION_SKILL_VFX_TYPE.DARKIN_BLADE,
-    skillName: 'Đường Kiếm Darkin [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.DARKIN_BLADE,
-    ultimateSkillName: 'Chiến Binh Tận Thế [R]',
-    glowColor: '#f97316',
-    coreColor: '#ef4444',
-  },
-  viper: {
-    type: CHAMPION_SKILL_VFX_TYPE.VOID_MISSILE,
-    skillName: 'Cơn Mưa Icathia [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.VOID_MISSILE,
-    ultimateSkillName: 'Bản Năng Sát Thủ [R]',
-    glowColor: '#f97316',
-    coreColor: '#a855f7',
-  },
-  caps: {
-    type: CHAMPION_SKILL_VFX_TYPE.SPIRIT_ORB,
-    skillName: 'Ảo Ảnh [W]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.SPIRIT_ORB,
-    ultimateSkillName: 'Mô Phỏng [R]',
-    glowColor: '#ef4444',
-    coreColor: '#fbbf24',
-  },
-  artemis: {
-    type: CHAMPION_SKILL_VFX_TYPE.ARROW,
-    skillName: 'Mũi Tên Tinh Thể [Q]',
-    ultimateType: CHAMPION_SKILL_VFX_TYPE.ARROW,
-    ultimateSkillName: 'Bão Tên Ánh Sáng [R]',
-    glowColor: '#eab308',
-    coreColor: '#38bdf8',
-  },
 };
 
 export const DEFAULT_CHAMPION_VFX: ChampionVFXConfig = {
@@ -1097,7 +937,7 @@ export const getChampionSkillVFX = (
     };
   }
 
-  // 1. Full Fury / Bạo Nộ: Check custom pro player & team specific overrides first
+  // 1. Full Fury / Bạo Nộ: Check curated champion specific overrides first
   if (CHAMPION_VFX_MAP[normalized]) {
     const baseConfig = CHAMPION_VFX_MAP[normalized];
     return {
