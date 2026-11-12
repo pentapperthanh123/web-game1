@@ -407,6 +407,12 @@ let connectionStatus: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR' = 'D
 let lastErrorMessage = '';
 
 import { findChampion, getRandomChampion } from './constants/champions.js';
+import {
+  SimulationResult,
+  TIKTOK_PIPELINE_CONSTANTS,
+  TikTokSimulationType,
+} from './constants/tiktok.js';
+import { TikTokLivePipeline } from './services/tiktokLivePipeline.js';
 
 function parseCommentCommand(
   comment: string,
@@ -442,7 +448,139 @@ function parseCommentCommand(
   };
 }
 
+const tiktokPipeline = new TikTokLivePipeline({
+  getActiveTeams: () => currentTeamConfig.activeTeams,
+  parseComment: (comment) => parseCommentCommand(comment),
+  getRandomChampionName: () => getRandomChampion().name,
+  onDuelContribution: (team, deltaPercent, event) => applyDuelContribution(team, deltaPercent, event),
+  emit: (eventName, payload) => {
+    io.emit(eventName, payload);
+  },
+});
+
+const VALID_SIM_ACTIONS: readonly TikTokSimulationType[] = ['chat', 'like', 'gift', 'follow', 'share'];
+
+function runTikTokSimulation(rawPayload: unknown): SimulationResult | null {
+  if (!rawPayload || typeof rawPayload !== 'object') return null;
+  const src = rawPayload as Record<string, unknown>;
+  const action = typeof src.action === 'string' ? (src.action as TikTokSimulationType) : null;
+  if (!action || !VALID_SIM_ACTIONS.includes(action)) return null;
+
+  const uniqueId = typeof src.uniqueId === 'string' ? src.uniqueId : undefined;
+  const nickname = typeof src.nickname === 'string' && src.nickname.trim() ? src.nickname.trim() : 'Fan_Test';
+  const explicitTeam = src.explicitTeam === 'BLG' || src.explicitTeam === 'GENG' ? src.explicitTeam : undefined;
+
+  let outcome: SimulationResult;
+
+  switch (action) {
+    case 'chat': {
+      const comment = typeof src.comment === 'string' ? src.comment : '';
+      const res = tiktokPipeline.handleChat({ uniqueId, nickname, comment });
+      outcome = {
+        accepted: true,
+        action,
+        team: res.team,
+        source: res.source,
+        championName: res.championName,
+        stats: tiktokPipeline.getStats(),
+      };
+      break;
+    }
+    case 'gift': {
+      const res = tiktokPipeline.handleGift({
+        uniqueId,
+        nickname,
+        giftId: typeof src.giftId === 'string' || typeof src.giftId === 'number' ? src.giftId : undefined,
+        giftName: typeof src.giftName === 'string' ? src.giftName : 'Hoa Hồng',
+        diamondCount: typeof src.diamondCount === 'number' ? src.diamondCount : 1,
+        giftType:
+          typeof src.giftType === 'number'
+            ? src.giftType
+            : TIKTOK_PIPELINE_CONSTANTS.STREAK_GIFT_TYPE,
+        repeatCount: typeof src.repeatCount === 'number' ? src.repeatCount : 1,
+        repeatEnd: typeof src.repeatEnd === 'boolean' ? src.repeatEnd : false,
+        explicitTeam,
+      });
+      outcome = {
+        accepted: res.accepted,
+        action,
+        team: res.team,
+        source: res.source,
+        deltaCoins: res.deltaCoins,
+        streakCount: res.streakCount,
+        reason: res.reason,
+        stats: tiktokPipeline.getStats(),
+      };
+      break;
+    }
+    case 'like': {
+      const res = tiktokPipeline.handleLike({
+        uniqueId,
+        nickname,
+        likeCount: typeof src.likeCount === 'number' ? src.likeCount : 5,
+        explicitTeam,
+      });
+      outcome = {
+        accepted: true,
+        action,
+        team: res.team,
+        source: res.source,
+        stats: tiktokPipeline.getStats(),
+      };
+      break;
+    }
+    case 'follow': {
+      const res = tiktokPipeline.handleFollow({ uniqueId, nickname, explicitTeam });
+      outcome = {
+        accepted: res.accepted,
+        action,
+        team: res.team,
+        source: res.source,
+        championName: res.championName,
+        reason: res.reason,
+        stats: tiktokPipeline.getStats(),
+      };
+      break;
+    }
+    case 'share': {
+      const res = tiktokPipeline.handleShare({ uniqueId, nickname, explicitTeam });
+      outcome = {
+        accepted: res.accepted,
+        action,
+        team: res.team,
+        source: res.source,
+        reason: res.reason,
+        stats: tiktokPipeline.getStats(),
+      };
+      break;
+    }
+  }
+
+  io.emit('tiktok:pipeline-stats', outcome.stats);
+  return outcome;
+}
+
 // REST APIs
+app.get('/api/tiktok/pipeline-stats', (_req, res) => {
+  res.json(tiktokPipeline.getStats());
+});
+
+app.post('/api/tiktok/simulate', (req, res) => {
+  if (req.body?.action === 'resetStats') {
+    tiktokPipeline.resetSessionTrackers();
+    const stats = tiktokPipeline.getStats();
+    io.emit('tiktok:pipeline-stats', stats);
+    res.json({ accepted: true, action: 'resetStats', stats });
+    return;
+  }
+  const result = runTikTokSimulation(req.body);
+  if (!result) {
+    res.status(400).json({ error: 'Invalid simulation action' });
+    return;
+  }
+  res.json(result);
+});
+
 app.get('/api/status', (_, res) => {
   res.json({
     status: connectionStatus,
@@ -488,99 +626,55 @@ app.post('/api/tiktok/connect', async (req, res) => {
       io.emit('tiktok:status', { status: connectionStatus, username: cleanUsername, error: lastErrorMessage });
     });
 
-    // Listen to real TikTok Live events
+    tiktokPipeline.resetSessionTrackers();
+    io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
+
+    // Listen to real TikTok Live events routed through unified Pipeline (Affinity + Gift Streak Delta + Follow/Share)
     tiktokConnection.on('chat', (data) => {
-      const comment = data.comment || '';
-      const nickname = data.nickname || data.uniqueId || 'Viewer';
-
-      const parsed = parseCommentCommand(comment);
-
-      // Broadcast chat
-      io.emit('game:chat', {
-        userName: nickname,
-        text: comment,
-        team: parsed.team,
-        championName: parsed.champion,
+      tiktokPipeline.handleChat({
+        uniqueId: data.uniqueId,
+        nickname: data.nickname,
+        comment: data.comment || '',
       });
-
-      // If valid summon command detected, summon minion!
-      if (parsed.team && parsed.champion) {
-        io.emit('game:summon', {
-          summonerName: nickname,
-          championName: parsed.champion,
-          team: parsed.team,
-        });
-      }
-
-      if (silverScrapesDuelState.isActive && parsed.team) {
-        applyDuelContribution(parsed.team, 0.8, {
-          type: 'SKILL',
-          donorName: nickname,
-          team: parsed.team,
-          deltaPercent: 0.8,
-          description: `${nickname} gọi ${parsed.champion || 'Tướng'} xuất chiêu! (+0.8%)`,
-        });
-      }
+      io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
     });
 
     tiktokConnection.on('gift', (data) => {
-      // Avoid streak spam
-      if (data.giftType === 1 && !data.repeatEnd) return;
-
-      const nickname = data.nickname || data.uniqueId || 'Đại Gia';
-      const giftName = data.giftName || 'Quà TikTok';
-      const diamondCount = data.diamondCount || 10;
-
-      // Assign team randomly or default to BLG if not specified
-      const team = Math.random() > 0.5 ? 'BLG' : 'GENG';
-
-      io.emit('game:gift', {
-        donorName: nickname,
-        giftName,
-        team,
-        coins: diamondCount,
+      tiktokPipeline.handleGift({
+        uniqueId: data.uniqueId,
+        nickname: data.nickname,
+        giftId: data.giftId,
+        giftName: data.giftName,
+        diamondCount: data.diamondCount,
+        giftType: data.giftType,
+        repeatCount: data.repeatCount,
+        repeatEnd: data.repeatEnd,
       });
-
-      if (silverScrapesDuelState.isActive) {
-        let delta = 3.0;
-        let eventType: 'SKILL' | 'ULTIMATE' | 'MYTHIC' = 'SKILL';
-        if (diamondCount >= 1000) {
-          delta = 25.0;
-          eventType = 'MYTHIC';
-        } else if (diamondCount >= 50) {
-          delta = 10.0;
-          eventType = 'ULTIMATE';
-        }
-        applyDuelContribution(team, delta, {
-          type: eventType,
-          donorName: nickname,
-          team,
-          deltaPercent: delta,
-          description: `${nickname} nạp ${giftName} (+${delta}%)`,
-        });
-      }
+      io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
     });
 
     tiktokConnection.on('like', (data) => {
-      const count = data.likeCount || 1;
-      const nickname = data.nickname || data.uniqueId || 'Viewer';
-      const team = Math.random() > 0.5 ? 'BLG' : 'GENG';
-
-      io.emit('game:like', {
-        count: Math.min(count, 5),
-        team,
-        userName: nickname,
+      tiktokPipeline.handleLike({
+        uniqueId: data.uniqueId,
+        nickname: data.nickname,
+        likeCount: data.likeCount,
       });
+    });
 
-      if (silverScrapesDuelState.isActive) {
-        applyDuelContribution(team, 0.2, {
-          type: 'TAP',
-          donorName: nickname,
-          team,
-          deltaPercent: 0.2,
-          description: `${nickname} thả tim tiếp sức! (+0.2%)`,
-        });
-      }
+    tiktokConnection.on('follow', (data) => {
+      tiktokPipeline.handleFollow({
+        uniqueId: data.uniqueId,
+        nickname: data.nickname,
+      });
+      io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
+    });
+
+    tiktokConnection.on('share', (data) => {
+      tiktokPipeline.handleShare({
+        uniqueId: data.uniqueId,
+        nickname: data.nickname,
+      });
+      io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
     });
 
     res.json({ message: 'Connecting to TikTok Live...', username: cleanUsername });
@@ -614,6 +708,7 @@ io.on('connection', (socket) => {
   socket.emit('game:auto-pro-battle', currentAutoProBattleConfig);
   socket.emit('game:series-format', currentSeriesConfig);
   socket.emit('game:silver-scrapes-state', silverScrapesDuelState);
+  socket.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
   socket.emit('tiktok:status', {
     status: connectionStatus,
     username: currentTiktokUsername,
@@ -799,6 +894,26 @@ io.on('connection', (socket) => {
 
   socket.on('admin:heal-team', (payload: { team: 'BLG' | 'GEN' | 'GENG' | 'ALL'; amount: number }) => {
     io.emit('game:heal-team', payload);
+  });
+
+  socket.on('admin:sync-score-hint', (payload: { leftScore?: number; rightScore?: number }) => {
+    tiktokPipeline.updateTeamScoreBalance(
+      Number(payload?.leftScore) || 0,
+      Number(payload?.rightScore) || 0
+    );
+  });
+
+  socket.on('admin:simulate-tiktok', (payload: unknown) => {
+    const src = (payload || {}) as Record<string, unknown>;
+    if (src.action === 'resetStats') {
+      tiktokPipeline.resetSessionTrackers();
+      io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
+      return;
+    }
+    const result = runTikTokSimulation(payload);
+    if (result) {
+      socket.emit('tiktok:simulate-result', result);
+    }
   });
 
   socket.on('admin:auto-pro-battle', (payload: Partial<AutoProBattleConfig>) => {

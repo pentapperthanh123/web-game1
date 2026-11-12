@@ -918,7 +918,7 @@ export function App() {
                     type="text"
                     value={championSearchFilter}
                     onChange={(e) => setChampionSearchFilter(e.target.value)}
-                    placeholder="Tìm trong 169 tướng (VD: Lee Sin, Ahri, Yasuo, Briar...)"
+                    placeholder={`Tìm trong ${ALL_CHAMPIONS.length} tướng (VD: Lee Sin, Ahri, Yasuo, Mel, Briar...)`}
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
@@ -926,7 +926,7 @@ export function App() {
                 {/* Role Filter Pills */}
                 <div className="flex space-x-1 mb-1.5 overflow-x-auto pb-0.5 text-[9px] font-bold">
                   {[
-                    { key: 'ALL', label: 'Tất cả (169)' },
+                    { key: 'ALL', label: `Tất cả (${ALL_CHAMPIONS.length})` },
                     { key: 'Fighter', label: 'Đấu Sĩ' },
                     { key: 'Mage', label: 'Pháp Sư' },
                     { key: 'Assassin', label: 'Sát Thủ' },

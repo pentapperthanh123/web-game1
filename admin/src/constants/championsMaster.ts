@@ -80,3 +80,4 @@ export const findMasterChampion = (input: string): ChampionMasterInfo | undefine
 export const getRandomMasterChampion = (): ChampionMasterInfo => {
   return ALL_MASTER_CHAMPIONS[Math.floor(Math.random() * ALL_MASTER_CHAMPIONS.length)];
 };
+

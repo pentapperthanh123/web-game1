@@ -1871,6 +1871,33 @@
     }
   },
   {
+    "id": "Locke",
+    "key": "805",
+    "name": "Locke",
+    "nameVi": "Locke",
+    "title": "Kẻ Diệt Quỷ",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Locke.png",
+    "tags": [
+      "Assassin",
+      "Mage"
+    ],
+    "roleNameVi": "Sát Thủ / Pháp Sư",
+    "aliases": [
+      "locke",
+      "ke diet quy",
+      "kedietquy"
+    ],
+    "skill": {
+      "normalSkillName": "Chú Đinh. [Q]",
+      "normalVfxType": "SHURIKEN",
+      "ultimateSkillName": "Ngục Môn Tỏa Hồn [R]",
+      "ultimateVfxType": "DARKIN_BLADE",
+      "glowColor": "#dc2626",
+      "coreColor": "#a855f7",
+      "attackRangeType": "MELEE"
+    }
+  },
+  {
     "id": "Lucian",
     "key": "236",
     "name": "Lucian",
@@ -2052,6 +2079,34 @@
       "glowColor": "#eab308",
       "coreColor": "#84cc16",
       "attackRangeType": "MELEE"
+    }
+  },
+  {
+    "id": "Mel",
+    "key": "800",
+    "name": "Mel",
+    "nameVi": "Mel",
+    "title": "Ảnh Chiếu Của Tâm Hồn",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Mel.png",
+    "tags": [
+      "Mage",
+      "Support"
+    ],
+    "roleNameVi": "Pháp Sư / Hỗ Trợ",
+    "aliases": [
+      "mel",
+      "mel medarda",
+      "medarda",
+      "anh chieu cua tam hon"
+    ],
+    "skill": {
+      "normalSkillName": "Quang Xạ Rực Rỡ [Q]",
+      "normalVfxType": "SPIRIT_ORB",
+      "ultimateSkillName": "Nhật Thực Hoàng Kim [R]",
+      "ultimateVfxType": "LASER",
+      "glowColor": "#f59e0b",
+      "coreColor": "#ffffff",
+      "attackRangeType": "RANGED"
     }
   },
   {
@@ -4090,6 +4145,32 @@
     }
   },
   {
+    "id": "Yunara",
+    "key": "804",
+    "name": "Yunara",
+    "nameVi": "Yunara",
+    "title": "Bất Phá Tín Niệm",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Yunara.png",
+    "tags": [
+      "Marksman"
+    ],
+    "roleNameVi": "Xạ Thủ",
+    "aliases": [
+      "yunara",
+      "bat pha tin niem",
+      "batphatinniem"
+    ],
+    "skill": {
+      "normalSkillName": "Kết Linh Thành Châu [Q]",
+      "normalVfxType": "ARROW",
+      "ultimateSkillName": "Phá Ngã Đăng Thần [R]",
+      "ultimateVfxType": "CRESCENT_ARC",
+      "glowColor": "#38bdf8",
+      "coreColor": "#fef08a",
+      "attackRangeType": "RANGED"
+    }
+  },
+  {
     "id": "Yuumi",
     "key": "350",
     "name": "Yuumi",
@@ -4112,6 +4193,33 @@
       "glowColor": "#38bdf8",
       "coreColor": "#fef08a",
       "attackRangeType": "RANGED"
+    }
+  },
+  {
+    "id": "Zaahen",
+    "key": "904",
+    "name": "Zaahen",
+    "nameVi": "Zaahen",
+    "title": "Bất Diệt Thần Quân",
+    "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Zaahen.png",
+    "tags": [
+      "Fighter"
+    ],
+    "roleNameVi": "Đấu Sĩ",
+    "aliases": [
+      "zaahen",
+      "bat diet than quan",
+      "batdietthanquan",
+      "dai dao darkin"
+    ],
+    "skill": {
+      "normalSkillName": "Đại Đao Darkin [Q]",
+      "normalVfxType": "DARKIN_BLADE",
+      "ultimateSkillName": "Định Thần Quyết [R]",
+      "ultimateVfxType": "DARKIN_BLADE",
+      "glowColor": "#dc2626",
+      "coreColor": "#fbbf24",
+      "attackRangeType": "MELEE"
     }
   },
   {
