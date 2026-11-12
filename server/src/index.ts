@@ -351,6 +351,17 @@ io.on('connection', (socket) => {
   });
 });
 
+httpServer.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ [Server Error] Cổng ${PORT} đang bị tiến trình khác chiếm dụng (EADDRINUSE).`);
+    console.error(`💡 Hướng dẫn: Khởi động lại bằng 'start.bat' để tự động giải phóng cổng, hoặc chạy PowerShell:`);
+    console.error(`   Get-Process -Id (Get-NetTCPConnection -LocalPort ${PORT}).OwningProcess | Stop-Process -Force\n`);
+    process.exit(1);
+  } else {
+    console.error('[Server Error]', err);
+  }
+});
+
 httpServer.listen(PORT, () => {
   console.log(`===============================================`);
   console.log(`🎮 TikTok Live Game Server running on port ${PORT}`);
