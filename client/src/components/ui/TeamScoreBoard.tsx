@@ -4,7 +4,7 @@ import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
-import { TeamComboBadge, MIN_COMBO_DISPLAY_COUNT } from './TeamComboBadge';
+import { TeamComboBadge } from './TeamComboBadge';
 import { SummonSpotlight } from './SummonShowcase';
 
 export const TeamScoreBoard = () => {
@@ -21,9 +21,6 @@ export const TeamScoreBoard = () => {
 
   const blgCombo = teamCombos[TEAM_KEY.BLG];
   const gengCombo = teamCombos[TEAM_KEY.GENG];
-  const hasActiveCombo =
-    Boolean(blgCombo && blgCombo.count >= MIN_COMBO_DISPLAY_COUNT) ||
-    Boolean(gengCombo && gengCombo.count >= MIN_COMBO_DISPLAY_COUNT);
 
   const leftTheme = getTeamTheme(leftTeam.colorTheme);
   const rightTheme = getTeamTheme(rightTeam.colorTheme);
@@ -38,10 +35,10 @@ export const TeamScoreBoard = () => {
 
   return (
     <div className="w-full max-w-lg mx-auto px-2 sm:px-3 mt-1 pointer-events-auto select-none">
-      {/* Dynamic Team Headers */}
-      <div className="flex items-center justify-between mb-1">
+      {/* Dynamic Team Headers (Fixed min-height so combo appearance never pushes lineups) */}
+      <div className="flex items-center justify-between mb-1 min-h-[34px] sm:min-h-[38px]">
         {/* Left Team Block */}
-        <div className={`relative flex items-center space-x-2 min-w-0 flex-1 justify-start ${leftTheme.textStrongClass}`}>
+        <div className={`relative flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-1 justify-start ${leftTheme.textStrongClass}`}>
           {/* Summon Notification Mini-Pill right above Left Team Logo */}
           <div className="absolute -top-6 left-0 z-40 pointer-events-none">
             <SummonSpotlight side="left" />
@@ -53,7 +50,7 @@ export const TeamScoreBoard = () => {
           >
             <TeamLogo teamProfile={leftTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 shrink-0">
             <div className="flex items-center space-x-1.5">
               <span
                 className={`text-xs sm:text-sm font-black uppercase tracking-wider truncate ${leftTheme.textClass}`}
@@ -70,10 +67,15 @@ export const TeamScoreBoard = () => {
               {(teamScoreBLG ?? 0).toLocaleString()} DMG
             </div>
           </div>
+
+          {/* Left Team Combo Badge (Inline on same score row to prevent vertical layout shifts) */}
+          <div className="shrink-0 ml-0.5 sm:ml-1 pointer-events-none">
+            <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
+          </div>
         </div>
 
         {/* Center Series Format & VS Crest */}
-        <div className="flex flex-col items-center px-1.5 shrink-0">
+        <div className="flex flex-col items-center px-1 sm:px-1.5 shrink-0 z-10">
           <div className="text-[8px] font-black tracking-widest text-slate-300 uppercase bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full mb-1 shadow flex items-center space-x-1">
             <Swords className="w-2.5 h-2.5 text-amber-400" />
             <span>{t('Game.roundLabel', 'VÁN {{round}} / {{format}}', { round: currentRound, format: seriesFormat })}</span>
@@ -123,7 +125,7 @@ export const TeamScoreBoard = () => {
         </div>
 
         {/* Right Team Block */}
-        <div className={`relative flex items-center space-x-2 text-right flex-row-reverse space-x-reverse min-w-0 flex-1 justify-start ${rightTheme.textStrongClass}`}>
+        <div className={`relative flex items-center space-x-1.5 sm:space-x-2 text-right flex-row-reverse space-x-reverse min-w-0 flex-1 justify-start ${rightTheme.textStrongClass}`}>
           {/* Summon Notification Mini-Pill right above Right Team Logo */}
           <div className="absolute -top-6 right-0 z-40 pointer-events-none">
             <SummonSpotlight side="right" />
@@ -135,7 +137,7 @@ export const TeamScoreBoard = () => {
           >
             <TeamLogo teamProfile={rightTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 shrink-0">
             <div className="flex items-center space-x-1.5 justify-end">
               <span
                 className={`text-[9px] sm:text-[10px] font-mono font-extrabold px-1 rounded border shrink-0 ${rightTheme.textMutedClass} ${rightTheme.bgSoftClass} ${rightTheme.borderSoftClass}`}
@@ -151,6 +153,11 @@ export const TeamScoreBoard = () => {
             <div className={`text-[9px] sm:text-[10px] font-mono font-extrabold tracking-tight ${rightTheme.textStrongClass}`}>
               {(teamScoreGENG ?? 0).toLocaleString()} DMG
             </div>
+          </div>
+
+          {/* Right Team Combo Badge (Inline on same score row to prevent vertical layout shifts) */}
+          <div className="shrink-0 mr-0.5 sm:ml-1 pointer-events-none">
+            <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} />
           </div>
         </div>
       </div>
@@ -176,18 +183,6 @@ export const TeamScoreBoard = () => {
         {/* Center Tension Divider */}
         <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-white shadow-[0_0_6px_#ffffff] z-10" />
       </div>
-
-      {/* Top Team Combo Counters */}
-      {hasActiveCombo && (
-        <div className="flex items-center justify-between w-full max-w-sm sm:max-w-md mx-auto mt-1 px-1 sm:px-2 pointer-events-none min-h-[22px] sm:min-h-[24px]">
-          <div className="flex-1 flex justify-start">
-            <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
-          </div>
-          <div className="flex-1 flex justify-end">
-            <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

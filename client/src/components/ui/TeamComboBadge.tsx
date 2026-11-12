@@ -110,21 +110,21 @@ export const TeamComboBadge: React.FC<{
     <div
       key={`${team}-${combo.count}`}
       style={{ boxShadow: tier.isHighTier ? undefined : theme.glowStyle }}
-      className={`flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border backdrop-blur-md animate-combo-punch select-none transition-all duration-200 ${tier.badgeContainerClass}`}
+      className={`flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border backdrop-blur-md animate-combo-punch select-none transition-all duration-200 shrink-0 ${tier.badgeContainerClass}`}
     >
       <ComboTierIcons tierLevel={tier.tierLevel} />
 
-      <div className="flex items-center gap-1">
-        <span className="text-[9px] sm:text-xs font-black tracking-wider uppercase whitespace-nowrap">
-          <span className="hidden sm:inline">{teamTag} {tier.tagText}</span>
-          <span className="inline sm:hidden">{teamTag} {tier.compactTagText}</span>
+      <div className="flex items-center gap-0.5 sm:gap-1">
+        <span className="text-[8px] sm:text-[10px] font-black tracking-wider uppercase whitespace-nowrap">
+          <span className="hidden md:inline">{teamTag} {tier.tagText}</span>
+          <span className="hidden sm:inline md:hidden">{tier.compactTagText}</span>
         </span>
-        <span className="px-1.5 py-0.2 rounded-full bg-white/20 font-mono font-black text-[9px] sm:text-xs text-white shadow-inner">
+        <span className="px-1 py-0.2 rounded-full bg-white/20 font-mono font-black text-[8px] sm:text-[10px] text-white shadow-inner">
           x{combo.count}
         </span>
       </div>
 
-      <span className="text-[9px] sm:text-xs font-mono font-black text-amber-200 whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+      <span className="text-[8px] sm:text-[10px] font-mono font-black text-amber-200 whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
         -{combo.damage.toLocaleString()}
       </span>
     </div>

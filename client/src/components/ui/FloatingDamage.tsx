@@ -1,85 +1,168 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { Zap, Flame } from 'lucide-react';
+import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import {
-  DAMAGE_TYPE,
-  DamageType,
-} from '../../constants/game';
+import { DAMAGE_TYPE, DamageType } from '../../constants/game';
+import { FloatingDamageText } from '../../types/game';
 
-const DAMAGE_TEXT_CLASS_MAP: Record<DamageType, string> = {
-  [DAMAGE_TYPE.NORMAL]:
-    'text-[10px] sm:text-xs font-extrabold drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]',
-  [DAMAGE_TYPE.CRIT]:
-    'text-[10px] sm:text-xs font-black px-1.5 py-0.2 rounded-full bg-rose-950/85 border border-rose-400/60 drop-shadow-[0_0_8px_rgba(244,63,94,0.7)]',
-  [DAMAGE_TYPE.ULTIMATE]:
-    'text-[11px] sm:text-xs font-black px-1.5 py-0.2 rounded-full bg-amber-950/90 border border-amber-300/75 drop-shadow-[0_0_10px_rgba(245,158,11,0.75)]',
-};
+const CANVAS_WIDTH = 360;
+const CANVAS_HEIGHT = 240;
+const DAMAGE_LIFETIME_MS = 1000;
 
-const DamageBadgeIcon = ({ damageType }: { damageType: DamageType }) => {
-  if (damageType === DAMAGE_TYPE.ULTIMATE) {
-    return (
-      <span className="flex items-center gap-0.5 shrink-0">
-        <Flame className="w-2.5 h-2.5 text-orange-400 fill-current animate-pulse" />
-      </span>
-    );
-  }
-  if (damageType === DAMAGE_TYPE.CRIT) {
-    return <Zap className="w-2.5 h-2.5 text-rose-400 fill-current shrink-0" />;
-  }
-  return null;
-};
+interface CanvasDamageParticle {
+  id: string;
+  text: string;
+  damageType: DamageType;
+  x: number;
+  y: number;
+  color: string;
+  baseScale: number;
+  createdAt: number;
+}
 
-const DAMAGE_TAG_CONFIG_MAP: Partial<
-  Record<DamageType, { i18nKey: string; fallback: string }>
-> = {
-  [DAMAGE_TYPE.CRIT]: { i18nKey: 'Combat.critTag', fallback: 'BẠO KÍCH!' },
-  [DAMAGE_TYPE.ULTIMATE]: { i18nKey: 'Combat.ultimateTag', fallback: 'TUYỆT KỸ!' },
-};
-
-const MAX_RENDERED_FLOATING_DAMAGES = 8;
+const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
 export const FloatingDamage = React.memo(() => {
-  const { t } = useTranslation();
-  const floatingDamages = useGameStore((state) => state.floatingDamages);
-  const visibleDamages =
-    floatingDamages.length > MAX_RENDERED_FLOATING_DAMAGES
-      ? floatingDamages.slice(-MAX_RENDERED_FLOATING_DAMAGES)
-      : floatingDamages;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const particlesRef = useRef<CanvasDamageParticle[]>([]);
+  const animFrameIdRef = useRef<number | null>(null);
+  const isLoopRunningRef = useRef<boolean>(false);
+
+  // Subscribe to floatingDamages in store without triggering React DOM re-renders
+  useEffect(() => {
+    const unsub = useGameStore.subscribe((state, prevState) => {
+      if (state.floatingDamages === prevState.floatingDamages) return;
+
+      const newItems = state.floatingDamages;
+      if (!newItems || newItems.length === 0) return;
+
+      const existingIds = new Set(particlesRef.current.map((p) => p.id));
+      const now = Date.now();
+
+      for (let i = 0; i < newItems.length; i++) {
+        const item: FloatingDamageText = newItems[i];
+        if (!existingIds.has(item.id) && now - item.createdAt < DAMAGE_LIFETIME_MS) {
+          particlesRef.current.push({
+            id: item.id,
+            text: item.text,
+            damageType: item.damageType,
+            x: CANVAS_WIDTH * 0.5 + item.x,
+            y: CANVAS_HEIGHT * 0.5 + item.y,
+            color: item.color,
+            baseScale: item.scale || 1.0,
+            createdAt: item.createdAt || now,
+          });
+        }
+      }
+
+      // Start canvas render loop if not already running
+      if (!isLoopRunningRef.current && particlesRef.current.length > 0) {
+        startCanvasLoop();
+      }
+    });
+
+    return () => {
+      unsub();
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+    };
+  }, []);
+
+  const startCanvasLoop = () => {
+    isLoopRunningRef.current = true;
+
+    const render = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        isLoopRunningRef.current = false;
+        return;
+      }
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        isLoopRunningRef.current = false;
+        return;
+      }
+
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      const now = Date.now();
+      const activeList: CanvasDamageParticle[] = [];
+
+      for (let i = 0; i < particlesRef.current.length; i++) {
+        const p = particlesRef.current[i];
+        const age = now - p.createdAt;
+        if (age >= DAMAGE_LIFETIME_MS) continue;
+
+        activeList.push(p);
+
+        const progress = Math.min(1.0, age / DAMAGE_LIFETIME_MS);
+        const yOffset = -easeOutCubic(progress) * 46;
+        const opacity = Math.max(0, 1.0 - Math.pow(progress, 1.6));
+
+        // Scale pop effect: expand slightly at birth, then settle
+        const scalePop =
+          progress < 0.18
+            ? 0.75 + (progress / 0.18) * 0.35
+            : 1.10 - ((progress - 0.18) / 0.82) * 0.18;
+        const finalScale = p.baseScale * scalePop;
+
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        ctx.translate(p.x, p.y + yOffset);
+        ctx.scale(finalScale, finalScale);
+
+        // Typography styling per damage tier
+        let fontSize = 12;
+        let prefixTag = '';
+
+        if (p.damageType === DAMAGE_TYPE.ULTIMATE) {
+          fontSize = 15;
+          prefixTag = '🔥 ';
+        } else if (p.damageType === DAMAGE_TYPE.CRIT) {
+          fontSize = 13.5;
+          prefixTag = '⚡ ';
+        }
+
+        ctx.font = `900 ${fontSize}px system-ui, -apple-system, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // High contrast black stroke for crystal-clear readability over vibrant arena
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(2, 6, 23, 0.95)';
+        ctx.lineJoin = 'round';
+        ctx.strokeText(`${prefixTag}${p.text}`, 0, 0);
+
+        // Vibrant inner text fill
+        ctx.fillStyle = p.color;
+        ctx.fillText(`${prefixTag}${p.text}`, 0, 0);
+
+        ctx.restore();
+      }
+
+      particlesRef.current = activeList;
+
+      if (activeList.length > 0) {
+        animFrameIdRef.current = requestAnimationFrame(render);
+      } else {
+        isLoopRunningRef.current = false;
+      }
+    };
+
+    animFrameIdRef.current = requestAnimationFrame(render);
+  };
 
   return (
     <div
-      aria-live="polite"
-      className="absolute top-[56%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-88 h-56 pointer-events-none z-30 flex items-center justify-center overflow-visible"
+      aria-hidden="true"
+      className="absolute top-[56%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[240px] pointer-events-none z-30 flex items-center justify-center overflow-visible"
     >
-      {visibleDamages.map((item) => {
-        const typeClass = DAMAGE_TEXT_CLASS_MAP[item.damageType];
-        const tagConfig = DAMAGE_TAG_CONFIG_MAP[item.damageType];
-        const tagLabel = tagConfig ? t(tagConfig.i18nKey, tagConfig.fallback) : '';
-
-        return (
-          <div
-            key={item.id}
-            style={{
-              transform: `translate(${item.x}px, ${item.y}px) scale(${item.scale})`,
-              color: item.color,
-            }}
-            className="absolute pointer-events-none"
-          >
-            <div
-              className={`flex items-center gap-1 tracking-tight animate-float-damage select-none whitespace-nowrap ${typeClass}`}
-            >
-              <DamageBadgeIcon damageType={item.damageType} />
-              {tagLabel && (
-                <span className="text-[7.5px] sm:text-[8px] font-black tracking-wider uppercase opacity-90">
-                  {tagLabel}
-                </span>
-              )}
-              <span>{item.text}</span>
-            </div>
-          </div>
-        );
-      })}
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        className="w-full h-full pointer-events-none"
+      />
     </div>
   );
 });
