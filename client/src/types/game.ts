@@ -588,7 +588,8 @@ export interface GameState {
     from: [number, number, number],
     color: string,
     isCrit?: boolean,
-    customTarget?: [number, number, number]
+    customTarget?: [number, number, number],
+    shouldPlaySound?: boolean
   ) => void;
   spawnSlash: (position: [number, number, number], color: string, isCrit?: boolean) => void;
   spawnParticleBurst: (origin: [number, number, number], color: string, intensity: number) => void;

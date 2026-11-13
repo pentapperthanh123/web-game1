@@ -393,5 +393,24 @@
   "Audio": {
     "ambienceOn": "Turn on ambience",
     "ambienceOff": "Turn off ambience"
+  },
+  "RoundIntro": {
+    "roundLabel": "Round {{round}} is about to start",
+    "titleRules": "📜 Rules",
+    "titleJoin": "🎮 How to join",
+    "titleGifts": "🎁 Gifts",
+    "ruleTeams": "Both teams fight the Boss; the team dealing more damage wins the round.",
+    "ruleSeries": "{{format}} format: win {{wins}} rounds to be champion.",
+    "ruleBoss": "The Boss kills champions with skills, keep summoning to keep up the pressure!",
+    "joinChat": "Chat champion + team: \"{{champ}} {{tag}}\" or \"{{champ2}} {{tag2}}\"",
+    "joinHeart": "Tap hearts to charge Fury faster; every {{milestone}} hearts heals the team.",
+    "joinSignature": "Chat a pro player's signature champion to boost that player's Fury.",
+    "giftDamage": "1 coin = {{damage}} damage to the Boss",
+    "giftTier": {
+      "SMALL": "From {{coins}} coin: heal + damage for your team",
+      "MEDIUM": "From {{coins}} coins: fireworks + 3 meteors",
+      "BIG": "From {{coins}} coins: light pillar + 8 meteors + your name banner",
+      "MEGA": "From {{coins}} coins: TYCOON - Boss stunned + 16 meteors"
+    }
   }
 }

@@ -1041,7 +1041,7 @@ export const DEFAULT_OVERLAY_VISIBILITY = {
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';
 
 export const ARROW_VFX_CONFIG = {
-  DURATION_MS: 660,
+  DURATION_MS: 680,
   /** Canvas-drawn (no shadowBlur), so a crowd can afford many arrows; extra hits are dropped, never cut mid-flight. */
   MAX_ACTIVE: 24,
   COLORS: {
@@ -1422,6 +1422,8 @@ export const AUTO_PRO_BATTLE_CONSTANTS = {
   CRIT_MULTIPLIER: 1.4,
   BOSS_HP_FLOOR_PERCENT: 0.15, // Auto-pro giữ nhịp tối đa tới 15% HP Boss, người xem phải ra đòn dứt điểm
   FLYING_ARROW_HIT_DELAY_MS: 580,
+  /** Screen shake applied when a full-fury ultimate lands (not when it is cast). */
+  ULTIMATE_HIT_SHAKE: 0.45,
   ROSTER_ATTACK_GLOW_MS: 440,
   ROLE_COOLDOWN_FACTOR: {
     ADC: 0.85,
@@ -1727,4 +1729,22 @@ export const SQUAD_ENTRANCE_CONSTANTS = {
   BEAM_PEAK_OPACITY: 0.35,
   FLOOR_Y: -1.66,
   MAX_ACTIVE: 4,
+} as const;
+
+/** Pre-round intro card (rules, how to join, gifts) shown when a new round is about to start. */
+export const ROUND_INTRO_CONSTANTS = {
+  TOTAL_MS: 10500,
+  PAGE_MS: 3500,
+  FADE_OUT_MS: 400,
+  PAGE_COUNT: 3,
+} as const;
+
+/** Participation guide panel: collapsed during battle, revealed periodically or when nobody is playing. */
+export const GUIDE_AUTO_REVEAL_CONSTANTS = {
+  CHECK_INTERVAL_MS: 1000,
+  /** Every PERIOD_MS the panel opens for SHOW_MS. */
+  PERIOD_MS: 60000,
+  SHOW_MS: 12000,
+  /** A manual open/close by the operator wins over the auto rule for this long. */
+  MANUAL_OVERRIDE_MS: 30000,
 } as const;

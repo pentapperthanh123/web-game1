@@ -1,5 +1,6 @@
 import { StateCreator } from 'zustand';
 import { resetRoundDamage } from '../roundDamageTracker';
+import { showRoundIntro } from '../roundIntroStore';
 import { resetCommunityQuests } from '../communityQuestStore';
 import { clearMatchupTitles, persistChampionshipTally } from '../championshipTally';
 import { GameState, SeriesFormat } from '../../types/game';
@@ -61,6 +62,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     persistGameTheme(nextTheme);
     audioService.setCombatMuted(false);
     playSound(SFX_EVENT.ROUND_START);
+    showRoundIntro(nextRound);
     get().addLog(
       'SYSTEM',
       `⚔️ Bắt đầu Ván ${nextRound} / ${state.seriesFormat} • Đối đầu ${themeConfig.bossName} (${nextMaxHp.toLocaleString()} HP)!`
@@ -136,6 +138,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     persistGameTheme(round1Theme);
     audioService.setCombatMuted(false);
     playSound(SFX_EVENT.ROUND_START);
+    showRoundIntro(1);
     get().addLog(
       'SYSTEM',
       `🔄 Bắt đầu Trận đấu ${state.seriesFormat} Mới (0 - 0) • Ván 1: ${themeConfig.bossName}!`

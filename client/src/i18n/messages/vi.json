@@ -393,5 +393,24 @@
   "Audio": {
     "ambienceOn": "Bật nhạc nền",
     "ambienceOff": "Tắt nhạc nền"
+  },
+  "RoundIntro": {
+    "roundLabel": "Ván {{round}} sắp bắt đầu",
+    "titleRules": "📜 Luật chơi",
+    "titleJoin": "🎮 Cách tham gia",
+    "titleGifts": "🎁 Quà tặng",
+    "ruleTeams": "Hai đội cùng đánh Boss, đội gây nhiều sát thương hơn thắng ván.",
+    "ruleSeries": "Thể thức {{format}}: thắng {{wins}} ván để vô địch.",
+    "ruleBoss": "Boss tung chiêu tiêu diệt tướng, triệu hồi liên tục để giữ sức ép!",
+    "joinChat": "Chat tên tướng + tên đội: \"{{champ}} {{tag}}\" hoặc \"{{champ2}} {{tag2}}\"",
+    "joinHeart": "Thả tim để tăng tốc Nộ, mỗi {{milestone}} tim hồi máu cả đội.",
+    "joinSignature": "Chat trùng tướng tủ của tuyển thủ để buff Nộ cho tuyển thủ đó.",
+    "giftDamage": "1 xu = {{damage}} sát thương lên Boss",
+    "giftTier": {
+      "SMALL": "Từ {{coins}} xu: hồi máu + sát thương cho đội",
+      "MEDIUM": "Từ {{coins}} xu: pháo hoa + 3 thiên thạch",
+      "BIG": "Từ {{coins}} xu: cột sáng + 8 thiên thạch + banner tên bạn",
+      "MEGA": "Từ {{coins}} xu: ĐẠI GIA - Boss bị choáng + 16 thiên thạch"
+    }
   }
 }

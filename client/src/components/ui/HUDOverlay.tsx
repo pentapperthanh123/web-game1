@@ -11,6 +11,7 @@ import { GiftBanner } from './GiftBanner';
 import { FloatingDamage } from './FloatingDamage';
 import { LiveChatStream } from './LiveChatStream';
 import { KillFeed, WipeStamp } from './KillFeed';
+import { RoundIntroOverlay } from './roundIntro/RoundIntroOverlay';
 import { LikeCounter } from './LikeCounter';
 import { ParticipationGuidePanel } from './ParticipationGuidePanel';
 import { VictoryOverlay } from './VictoryOverlay';
@@ -168,6 +169,7 @@ export const HUDOverlay = () => {
         <GiftBanner />
         <HeartMilestoneBanner />
         <WipeStamp />
+        <RoundIntroOverlay />
       </div>
 
       {/* Top Section: Esports Broadcast Header & Scores */}

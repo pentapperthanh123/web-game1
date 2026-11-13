@@ -302,9 +302,6 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           randomInRange(600, 1800)
       );
 
-      audioService.playDamageImpactSound(DAMAGE_TYPE.ULTIMATE, true);
-      get().triggerScreenShake(0.45);
-
       get().addLog(
         'BOSS',
         `🔥 [SIÊU TUYỆT KỸ BẠO NỘ] ${player.name} (${player.role}) xả Full Nộ gây ${finalDamage.toLocaleString()} ST!`,
@@ -369,7 +366,8 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       undefined,
       player.id
     );
-    get().spawnProjectile(proStart3D, proBeamColor, isFullFury, bossTarget3D);
+    // The flying arrow already plays the champion's skill sound; the 3D beam stays silent to avoid stacking
+    get().spawnProjectile(proStart3D, proBeamColor, isFullFury, bossTarget3D, false);
 
     set((prev) => ({
       rosterAttackTimestamps: {
@@ -389,6 +387,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         return;
       }
 
+      if (isFullFury) latest.triggerScreenShake(AUTO_PRO_BATTLE_CONSTANTS.ULTIMATE_HIT_SHAKE);
       latest.damageBoss(
         finalDamage,
         team,
@@ -716,14 +715,15 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     from: [number, number, number],
     color: string,
     isCrit = false,
-    customTarget?: [number, number, number]
+    customTarget?: [number, number, number],
+    shouldPlaySound = true
   ) => {
     const currentState = get();
     if (isBattleHalted(currentState)) {
       return;
     }
 
-    audioService.playLaserSound();
+    if (shouldPlaySound) audioService.playLaserSound();
 
     const [baseTargetX, baseTargetY, baseTargetZ] = customTarget ?? COMBAT_VFX_CONSTANTS.BOSS_TARGET;
     const newProj: ProjectileEntity = {

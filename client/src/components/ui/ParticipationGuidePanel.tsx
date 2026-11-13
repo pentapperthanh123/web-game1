@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
 import { useGameStore } from '../../store/gameStore';
+import { useGuideAutoReveal } from './useGuideAutoReveal';
 
 type GuidePanelTab = 'RULES' | 'REWARDS';
 
@@ -172,11 +173,6 @@ const REWARD_ITEMS: readonly RewardItemConfig[] = [
   },
 ];
 
-const isCompactViewport = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth < 768;
-};
-
 export const ParticipationGuidePanel = () => {
   const { t } = useTranslation();
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
@@ -184,7 +180,8 @@ export const ParticipationGuidePanel = () => {
   const leftChamp = leftTeam.roster[2]?.signatureChampion || leftTeam.roster[0]?.signatureChampion || 'Ahri';
   const rightChamp = rightTeam.roster[2]?.signatureChampion || rightTeam.roster[0]?.signatureChampion || 'Yone';
   const [activeTab, setActiveTab] = useState<GuidePanelTab>('RULES');
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(isCompactViewport);
+  const { isExpanded, toggleExpanded } = useGuideAutoReveal();
+  const isCollapsed = !isExpanded;
   const isUserInteractingRef = useRef<boolean>(false);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -249,7 +246,7 @@ export const ParticipationGuidePanel = () => {
         {/* Collapse Button Only */}
         <button
           type="button"
-          onClick={() => setIsCollapsed((prev) => !prev)}
+          onClick={toggleExpanded}
           className="p-0.5 hover:bg-slate-800/50 rounded text-slate-300 hover:text-white transition shrink-0"
           aria-label={t('HUD.guideToggleLabel', 'Thu gọn/mở bảng hướng dẫn')}
         >
