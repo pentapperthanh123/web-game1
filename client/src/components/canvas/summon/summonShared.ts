@@ -10,6 +10,8 @@ export const setActiveSceneCamera = (camera: THREE.Camera): void => {
   activeSceneCamera = camera;
 };
 
+export const getActiveSceneCamera = (): THREE.Camera | null => activeSceneCamera;
+
 /**
  * Converts a 2D viewport pixel coordinate onto the 3D combat plane at `targetZ`
  * so 3D projectiles start and land on exact DOM element positions (roster cards, Boss hitbox).
@@ -39,6 +41,22 @@ export const unprojectScreenToWorld = (
   ];
 };
 
+/** Writes the projected pixel position into `out` (no allocation; use inside per-frame loops). */
+export const projectToScreenInto = (
+  out: { x: number; y: number },
+  worldX: number,
+  worldY: number,
+  worldZ: number,
+  camera: THREE.Camera,
+  width: number,
+  height: number
+): void => {
+  tempProjVec.set(worldX, worldY, worldZ);
+  tempProjVec.project(camera);
+  out.x = Math.round(((tempProjVec.x + 1) / 2) * width);
+  out.y = Math.round(((-tempProjVec.y + 1) / 2) * height);
+};
+
 export const project3DToScreen = (
   worldX: number,
   worldY: number,
@@ -47,12 +65,9 @@ export const project3DToScreen = (
   width: number,
   height: number
 ): { x: number; y: number } => {
-  tempProjVec.set(worldX, worldY, worldZ);
-  tempProjVec.project(camera);
-  return {
-    x: Math.round(((tempProjVec.x + 1) / 2) * width),
-    y: Math.round(((-tempProjVec.y + 1) / 2) * height),
-  };
+  const screenPosition = { x: 0, y: 0 };
+  projectToScreenInto(screenPosition, worldX, worldY, worldZ, camera, width, height);
+  return screenPosition;
 };
 
 export interface CachedChampionVfxRefs {
@@ -60,7 +75,10 @@ export interface CachedChampionVfxRefs {
   sigHaloMesh?: THREE.Mesh;
   haloMesh?: THREE.Mesh;
   beamMesh?: THREE.Mesh;
+  beamCoreMesh?: THREE.Mesh;
+  runeSealMesh?: THREE.Mesh;
   landingMesh?: THREE.Mesh;
+  landingFlashMesh?: THREE.Mesh;
   shieldMesh?: THREE.Mesh;
 }
 
@@ -81,6 +99,11 @@ export interface ChampionAIState {
   targetBossZone?: [number, number, number];
   bobPhase: number;
   cachedVfxRefs?: CachedChampionVfxRefs;
+  /** uuid of the token group the cached refs belong to (the group is recreated on LOD change). */
+  cachedVfxGroupId?: string;
+  /** Registry-owned position objects, mutated in place every frame. */
+  liveWorld?: [number, number, number];
+  liveScreen?: { x: number; y: number };
 }
 
 const MAX_CHAMPION_TEXTURE_CACHE = 80;
@@ -90,10 +113,10 @@ const textureCache = new Map<string, THREE.Texture>();
 const nameplateTextureCache = new Map<string, THREE.CanvasTexture>();
 const textureLoader = new THREE.TextureLoader();
 
-export const SHARED_BACKING_DISC_GEO = new THREE.CircleGeometry(0.2, 24);
+export const SHARED_BACKING_DISC_GEO = new THREE.CircleGeometry(0.19, 24);
 export const SHARED_PORTRAIT_GEO = new THREE.CircleGeometry(0.17, 24);
-export const SHARED_TORUS_BORDER_GEO = new THREE.TorusGeometry(0.18, 0.016, 8, 24);
-export const SHARED_RUNIC_RING_GEO = new THREE.RingGeometry(0.2, 0.23, 20);
+export const SHARED_TORUS_BORDER_GEO = new THREE.TorusGeometry(0.175, 0.008, 8, 32);
+export const SHARED_RUNIC_RING_GEO = new THREE.RingGeometry(0.2, 0.212, 32);
 export const SHARED_SATELLITE_GEO = new THREE.OctahedronGeometry(0.045, 0);
 
 export const SHARED_HP_BG_GEO = new THREE.PlaneGeometry(0.36, 0.05);
@@ -106,11 +129,17 @@ export const SHARED_FURY_FILL_GEO = new THREE.PlaneGeometry(0.34, 0.026);
 
 export const SHARED_CELESTIAL_AURA_GEO = new THREE.RingGeometry(0.16, 0.26, 24);
 export const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.05, 0.18, 1.6, 16, 1, true);
+export const SHARED_LIGHT_BEAM_CORE_GEO = new THREE.CylinderGeometry(0.015, 0.06, 1.6, 12, 1, true);
+export const SHARED_RUNE_SEAL_GEO = new THREE.RingGeometry(0.24, 0.265, 6);
 export const SHARED_LANDING_RING_GEO = new THREE.RingGeometry(0.09, 0.24, 24);
+export const SHARED_LANDING_FLASH_GEO = new THREE.CircleGeometry(0.22, 24);
 export const SHARED_SHIELD_RING_GEO = new THREE.RingGeometry(0.19, 0.25, 24);
 
 export const SHARED_DEFEAT_EXPANDING_RING_GEO = new THREE.RingGeometry(0.12, 0.32, 28);
-export const SHARED_DEFEAT_CROSS_GEO = new THREE.PlaneGeometry(0.32, 0.04);
+export const SHARED_DEFEAT_CROSS_GEO = new THREE.PlaneGeometry(0.42, 0.035);
+export const SHARED_DEFEAT_FLASH_GEO = new THREE.CircleGeometry(0.22, 24);
+export const SHARED_DEFEAT_SHARD_GEO = new THREE.CircleGeometry(0.032, 3);
+export const SHARED_SOUL_WISP_GEO = new THREE.CylinderGeometry(0.008, 0.035, 0.7, 10, 1, true);
 
 export const SHARED_NAMEPLATE_GEO = new THREE.PlaneGeometry(
   COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.NAMEPLATE_WIDTH,

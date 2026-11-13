@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Swords, Flame, Play, Square, ShieldAlert, Search } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
+import { SummonQueueRulesPanel } from './SummonQueueRulesPanel';
 import {
   AUTO_SUMMON_CONSTANTS,
   CHAMPION_DAMAGE_CONSTANTS,
-  COMBAT_VFX_CONSTANTS,
   GAME_CONSTANTS,
   TEAM_KEY,
   TeamType,
@@ -169,7 +169,7 @@ export const AdminSummonTab: React.FC = () => {
         <span className="px-2 py-0.5 rounded bg-slate-950/90 border border-slate-800 text-cyan-300 font-bold">
           {t('Admin.summonActiveCount', {
             defaultValue: 'Đang chiến đấu: {{count}}',
-            count: Math.min(activeMinionCount, COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_ORBS) + activeSwarmCount,
+            count: activeMinionCount + activeSwarmCount,
           })}
         </span>
         {feedback && (
@@ -360,8 +360,11 @@ export const AdminSummonTab: React.FC = () => {
         {/* Dynamic Participation Rules (Option C) */}
         <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
           <span className="text-[11px] font-bold text-slate-300 block">
-            {t('Admin.participationRulesTitle', 'Luật Tham Gia (Option C):')}
+            {t('Admin.participationRulesTitle', 'Luật Tham Gia & Hàng Đợi Xuất Trận:')}
           </span>
+
+          <SummonQueueRulesPanel />
+
           {(
             [
               {

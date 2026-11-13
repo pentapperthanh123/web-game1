@@ -6,7 +6,7 @@ import {
   BOSS_STATUS,
   TEAM_KEY,
 } from '../../constants/game';
-import { soundManager, playSound } from '../../services/soundManager';
+import { playSound } from '../../services/soundManager';
 import { audioService } from '../../services/audioService';
 import { SFX_EVENT } from '../../constants/sfx';
 import { gameSocket } from '../../services/socket';
@@ -14,6 +14,8 @@ import { getTeamTheme } from '../../constants/teams';
 import { VictoryHeaderStage } from './victory/VictoryHeaderStage';
 import { VictorySeriesScoreCard } from './victory/VictorySeriesScoreCard';
 import { VictoryMvpCard } from './victory/VictoryMvpCard';
+import { PODIUM_SIZE, VictoryPodiumCard } from './victory/VictoryPodiumCard';
+import { VictoryWeeklyBoardCard } from './victory/VictoryWeeklyBoardCard';
 import { VictoryDamageSummaryCard } from './victory/VictoryDamageSummaryCard';
 import { VictoryActionControls } from './victory/VictoryActionControls';
 import {
@@ -57,9 +59,8 @@ export const VictoryOverlay = () => {
       return;
     }
 
-    // Immediately silence any ongoing combat sounds, battle loops, and speech
+    // Silence combat synths and speech; the boss-defeat sting already playing keeps going
     audioService.setCombatMuted(true);
-    soundManager.stopAll();
 
     const revealTimer = setTimeout(() => {
       setIsVictoryVisible(true);
@@ -90,7 +91,7 @@ export const VictoryOverlay = () => {
   const winnerProfile = activeTeams[effectiveWinner];
   const winnerTheme = getTeamTheme(winnerProfile?.colorTheme);
 
-  const viewerMvp = leaderboard.length > 0 ? leaderboard[0] : null;
+  const viewerTopPlayers = leaderboard.slice(0, PODIUM_SIZE);
   const proMvp = proLeaderboard.length > 0 ? proLeaderboard[0] : null;
   const nextQueuedMatch = matchQueue.length > 0 ? matchQueue[0] : null;
 
@@ -140,7 +141,7 @@ export const VictoryOverlay = () => {
         </div>
       ))}
 
-      <div className="relative z-10 max-w-md w-full space-y-3 my-auto py-2 px-1">
+      <div className="relative z-10 max-w-sm w-full space-y-3 my-auto py-2 px-3">
         <VictoryHeaderStage
           winnerProfile={winnerProfile}
           winnerSlot={effectiveWinner}
@@ -164,7 +165,13 @@ export const VictoryOverlay = () => {
           seriesFormat={seriesFormat}
         />
 
-        <VictoryMvpCard viewerMvp={viewerMvp} proMvp={proMvp} activeTeams={activeTeams} />
+        {viewerTopPlayers.length > 0 ? (
+          <VictoryPodiumCard topPlayers={viewerTopPlayers} activeTeams={activeTeams} />
+        ) : (
+          <VictoryMvpCard viewerMvp={null} proMvp={proMvp} activeTeams={activeTeams} />
+        )}
+
+        <VictoryWeeklyBoardCard />
 
         <VictoryDamageSummaryCard
           leftTeam={leftTeam}

@@ -12,7 +12,9 @@
     "damageContribution": "Damage Contribution",
     "vs": "VS",
     "voidRoar": "BARON VOID ROAR!",
-    "dynamicTitle": "WORLDS 2026: {{left}} VS {{right}} CLASH"
+    "dynamicTitle": "WORLDS 2026: {{left}} VS {{right}} CLASH",
+    "titleTallyLabel": "Titles",
+    "titleTallyTooltip": "{{left}} {{leftTitles}} - {{rightTitles}} {{right}} ({{format}} titles head-to-head)"
   },
   "HUD": {
     "leaderboardTitle": "TOP 5 DAMAGE",
@@ -75,7 +77,10 @@
     "sentLabel": "SENT GIFT",
     "patronTag": "VIP {{team}}",
     "ultimateBonus": "ULTIMATE DMG & METEOR SHOWER!",
-    "comboStreak": "COMBO x{{count}}"
+    "comboStreak": "COMBO x{{count}}",
+    "coinsGained": "+{{coins}} coins",
+    "megaCrest": "{{team}} TOP PATRON",
+    "megaDamage": "+{{damage}} DMG • BOSS KNOCKED BACK!"
   },
   "Controls": {
     "title": "TikTok Live Simulator Panel",
@@ -237,7 +242,7 @@
     "userAvatarModeLabel": "Summon Avatar:",
     "userAvatarModeOn": "ON (User Avatar)",
     "userAvatarModeOff": "OFF (Champion Avatar)",
-    "participationRulesTitle": "Participation Rules (Option C):",
+    "participationRulesTitle": "Participation Rules & Entrance Queue:",
     "ruleTeamOnlyLabel": "Team-only comment summons immediately",
     "ruleAutoSigLabel": "Auto-match signature champion to Team",
     "ruleLockTeamLabel": "Lock Team after joining",
@@ -263,7 +268,15 @@
     "healTeamDynamic": "+50 HP for {{team}}",
     "summonAlternateDynamicLabel": "Alternate both teams ({{left}} ↔ {{right}})",
     "roundEndedNotice": "Round ended! Intermission in progress.",
-    "chatSentIntermission": "Comment sent! (Summons paused during intermission)"
+    "chatSentIntermission": "Comment sent! (Summons paused during intermission)",
+    "queueDeployPerTurnLabel": "Champions entering per turn",
+    "queueFloorUnlimitedHint": "(Arena floor: unlimited)",
+    "queueDeployPerTurnValue": "{{count}} champions / turn",
+    "queueTurnDelayLabel": "Delay between entrance turns",
+    "queueTurnDelayValue": "{{seconds}}s ({{ms}}ms)",
+    "resetMatchupTitles": "Reset this matchup's titles",
+    "resetMatchupTitlesDone": "Matchup titles cleared!",
+    "matchupTitlesLabel": "Head-to-head titles:"
   },
   "AdminTeams": {
     "activeMatchupTitle": "Current Matchup:",
@@ -353,5 +366,32 @@
     "STUN": "Stunned",
     "WEAKEN": "Weakened",
     "LIFESTEAL": "Lifesteal"
+  },
+  "LiveOps": {
+    "tokenSaved": "Admin token saved",
+    "authError": "Server rejected admin action (missing or invalid token)",
+    "leaderboardWeekly": "Weekly leaderboard",
+    "leaderboardMonthly": "Monthly leaderboard",
+    "leaderboardAllTime": "All-time leaderboard",
+    "totalDamage": "Total damage",
+    "mvpCount": "MVP count",
+    "roundsPlayed": "Rounds played"
+  },
+  "LiveHud": {
+    "questTooltip": "Tier {{tier}}/{{total}}: {{value}}/{{target}}",
+    "queueTooltip": "Waiting to enter: {{count}} • Next: {{name}}",
+    "podiumTitle": "TOP 3 WARRIORS OF THE ROUND",
+    "podiumShoutout": "Congratulations {{name}}, top damage of the round!",
+    "weeklyBoardTitle": "WEEKLY LEADERBOARD",
+    "mvpCount": "{{count}} MVP"
+  },
+  "KillFeed": {
+    "byKiller": "— {{killer}}",
+    "wipeTitle": "WIPED OUT!",
+    "wipeSubtitle": "{{count}} champions down"
+  },
+  "Audio": {
+    "ambienceOn": "Turn on ambience",
+    "ambienceOff": "Turn off ambience"
   }
 }

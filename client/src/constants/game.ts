@@ -42,7 +42,7 @@ export const GAME_CONSTANTS = {
     COLOR_EYE_VOID: '#ec4899', // Electric Magenta
   },
   MINIONS: {
-    MAX_INSTANCES: 10,
+    MAX_INSTANCES: 500, // Safety cap only — gameplay treats the arena floor as unlimited
     ORBIT_RADIUS_MIN: 2.6,
     ORBIT_RADIUS_MAX: 5.4,
     BASE_DPS: 32,
@@ -77,7 +77,7 @@ export const GAME_CONSTANTS = {
     MAX_DISPLAY: 5,
   },
   CHAT: {
-    MAX_MESSAGES: 7,
+    MAX_MESSAGES: 30,
   },
   VICTORY: {
     COUNTDOWN_SECONDS: 5,
@@ -104,8 +104,13 @@ export const GAME_CONSTANTS = {
     CLASH_FLASH_MS: 220,
   },
   SUMMON_RULES: {
-    MAX_ACTIVE_PER_TEAM: 5, // Tối đa 5 lượt / tướng cùng lúc mỗi phe trên sàn đấu
+    // Hàng đợi theo lượt: số tướng bước ra sàn mỗi lượt. Số tướng trên sàn là KHÔNG giới hạn.
+    MAX_DEPLOY_PER_TURN: 1,
+    MIN_DEPLOY_PER_TURN: 1,
+    DEPLOY_PER_TURN_OPTIONS: [1, 3, 5, 8, 10, 15],
     SUMMON_TURN_DELAY_MS: 1300, // Độ trễ xuất hiện giữa các lượt: sau khi tướng xuất hiện xong mới đến lượt tiếp theo
+    MIN_TURN_ADVANCE_DELAY_MS: 50,
+    TURN_DELAY_OPTIONS_MS: [800, 1300, 2000, 3000],
     MAX_ACTIVE_PER_USER: 1, // Option B: Mỗi người chỉ có tối đa 1 tướng đang sống trên sàn
     ALIVE_SUPPORT_HEAL: 50, // Option B: Comment tiếp theo khi tướng còn sống sẽ hồi +50 HP tiếp sức
     ALIVE_SUPPORT_DAMAGE: 90, // Option B: Đòn đánh tiếp sức gây thêm +90 sát thương vào Boss
@@ -134,9 +139,14 @@ export const GAME_CONSTANTS = {
     SHARE_HEAL_AMOUNT: 50,
     GIFT_DAMAGE_PER_COIN: 120,
     GIFT_HEAL_AMOUNT: 50,
-    VIP_VFX_MIN_COINS: 50,
+    /** Rapid low-value streak ticks (e.g. 1-coin roses) only get full feedback every N ticks. */
+    STREAK_FEEDBACK_EVERY: 5,
+    STREAK_TICK_MAX_COINS: 10,
     STREAK_BURST_METEOR_COUNT: 3,
-    DEFAULT_METEOR_COUNT: 8,
+    /** Elite champion summon on gift: on the first tick, every N ticks, or any gift at/above this value. */
+    ELITE_SUMMON_EVERY_STREAK: 3,
+    ELITE_SUMMON_MIN_COINS: 10,
+    FALLBACK_ELITE_CHAMPIONS: ['Ahri', 'Yone', 'Aatrox', 'Jinx', 'Lee Sin'],
   },
   MINION_FURY: {
     MAX_FURY: 100,
@@ -612,7 +622,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       enraged: 'bg-rose-950/80 shadow-[0_0_150px_rgba(225,29,72,0.95)]',
       roar: 'bg-gradient-to-r from-purple-900 via-fuchsia-800 to-rose-700 shadow-[0_0_160px_rgba(217,70,239,0.95)]',
     },
-    ambientMistClass: 'from-transparent via-purple-950/40 to-slate-950/60',
+    ambientMistClass: 'from-transparent via-cyan-950/25 to-slate-950/60',
     bossScale: 'scale-[1.12] sm:scale-[1.16]',
     avatarIcon: '/images/boss_void_titan_2d.png',
     containerPosition: 'top-[64%] sm:top-[65%]',
@@ -832,32 +842,32 @@ export const COMBAT_VFX_CONSTANTS = {
   BOSS_TARGET: [0, 0.45, 0] as readonly [number, number, number],
   WING_BOUNDS: {
     [TEAM_KEY.BLG]: {
-      minX: -2.35,
-      maxX: -1.45,
+      minX: -2.75,
+      maxX: -1.35,
       minY: -0.75,
       maxY: 0.95,
-      minZ: 0.5,
-      maxZ: 2.1,
+      minZ: 0.3,
+      maxZ: 2.4,
     },
     [TEAM_KEY.GENG]: {
-      minX: 1.45,
-      maxX: 2.35,
+      minX: 1.35,
+      maxX: 2.75,
       minY: -0.75,
       maxY: 0.95,
-      minZ: 0.5,
-      maxZ: 2.1,
+      minZ: 0.3,
+      maxZ: 2.4,
     },
     GEN: {
-      minX: 1.45,
-      maxX: 2.35,
+      minX: 1.35,
+      maxX: 2.75,
       minY: -0.75,
       maxY: 0.95,
-      minZ: 0.5,
-      maxZ: 2.1,
+      minZ: 0.3,
+      maxZ: 2.4,
     },
   },
   CHAMPION_MOVEMENT: {
-    TOKEN_SCALE: 0.44,
+    TOKEN_SCALE: 0.62,
     MIN_SPEED: 0.35,
     MAX_SPEED: 0.65,
     WANDER_INTERVAL_MIN_S: 3.5,
@@ -867,12 +877,16 @@ export const COMBAT_VFX_CONSTANTS = {
     CAST_RECOIL_DISTANCE: 0.06,
     CAST_LIFT_HEIGHT: 0.06,
     ATTACK_DURATION_S: 0.30,
+    /** Share of the attack animation after which the hit lands (also fires late if the frame was skipped). */
+    ATTACK_FIRE_PROGRESS: 0.18,
+    /** Random delay before a new champion's first attack; keeps entrances from striking in lockstep. */
+    INITIAL_ATTACK_JITTER_MAX_S: 1.2,
     BOB_AMPLITUDE: 0.06,
     BOB_SPEED: 1.8,
     ENTRANCE_DURATION_MS: 750,
     ENTRANCE_SWOOP_Y: 0.32,
     ENTRANCE_SWOOP_X: 0.0,
-    DEFEAT_DURATION_MS: 700,
+    DEFEAT_DURATION_MS: 1200,
     VIEWPORT_SAFE_NDC_X: 0.86,
     VIEWPORT_SAFE_NDC_Y_MIN: -0.80,
     VIEWPORT_SAFE_NDC_Y_MAX: 0.65,
@@ -881,11 +895,19 @@ export const COMBAT_VFX_CONSTANTS = {
     NAMEPLATE_POS_Y: -0.28,
     NAMEPLATE_POS_Z: 0.04,
   },
+  /** Level of detail for crowded fields: above ENTER the tokens drop to portrait + border + HP. */
+  CROWD_LOD: {
+    COMPACT_ENTER_COUNT: 40,
+    COMPACT_EXIT_COUNT: 30,
+    /** Newest champions that keep a nameplate while the field is compact. */
+    COMPACT_NAMEPLATE_BUDGET: 14,
+  },
   SUMMON: {
     PORTAL_DURATION_MS: 1200,
     SPOTLIGHT_DURATION_MS: 1800,
-    MAX_ACTIVE_PORTALS: 8,
-    MAX_VISIBLE_ORBS: 10,
+    MAX_ACTIVE_PORTALS: 32,
+    MAX_ACTIVE_DEFEATED: 24, // Cap simultaneous death VFX when an ultimate wipes many champions
+    MAX_VISIBLE_ORBS: 300,
     MAX_VISIBLE_BADGES_PER_TEAM: 4,
     CRIT_CHANCE: 0.28,
     CRIT_MULTIPLIER: 1.75,
@@ -900,6 +922,17 @@ export const COMBAT_VFX_CONSTANTS = {
     DPS_TICK_INTERVAL_S: 1.0,
     SLASH_DURATION_S: 0.36,
     MAX_ACTIVE_SLASHES: 8,
+    /** Normal hits of one team inside this window share a single damage number / impact ring. */
+    HIT_FEEDBACK_MERGE_MS: 250,
+    /** Damage numbers sit on their team's side of the boss so both teams' numbers never overlap. */
+    FLOAT_SIDE_MIN_X: 18,
+    FLOAT_SIDE_MAX_X: 120,
+    /** Unshown damage older than this is forgotten instead of leaking into a much later number. */
+    HIT_FEEDBACK_PENDING_EXPIRE_MS: 1200,
+    /** A merged number grows slightly per extra hit so a big volley reads as bigger. */
+    MERGED_TEXT_SCALE_STEP: 0.05,
+    MERGED_TEXT_SCALE_MAX_HITS: 8,
+    FRAME_FALLBACK_MS: 16,
     HIT_IMPACT_DURATION_MS: 420,
     MAX_ACTIVE_HIT_IMPACTS: 6,
     FLOATING_DURATION_MS: 1200,
@@ -1009,7 +1042,8 @@ export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';
 
 export const ARROW_VFX_CONFIG = {
   DURATION_MS: 660,
-  MAX_ACTIVE: 10,
+  /** Canvas-drawn (no shadowBlur), so a crowd can afford many arrows; extra hits are dropped, never cut mid-flight. */
+  MAX_ACTIVE: 24,
   COLORS: {
     BLG: '#06b6d4',
     BLG_CRIT: '#38bdf8',
@@ -1422,6 +1456,22 @@ export const BOSS_MECHANICS_CONSTANTS = {
 
 export const AUDIO_SFX_CONSTANTS = {
   SKILL_THROTTLE_MS: 65,
+  IMPACT_THROTTLE_MS: 90,
+  WHOOSH_THROTTLE_MS: 40,
+  HEART_CHIME_THROTTLE_MS: 70,
+  /** Rolling window used to measure how many combat hits are firing per second. */
+  DENSITY_WINDOW_MS: 1000,
+  /** Hits per window at which combat sounds start spacing out and getting quieter. */
+  DENSITY_REFERENCE_HITS: 6,
+  /** Extra gap added per hit above the reference, so floods never machine-gun. */
+  DENSITY_GAP_PER_HIT_MS: 14,
+  DENSITY_MAX_GAP_MS: 320,
+  DENSITY_MIN_GAIN: 0.3,
+  /** Combat bus level while a stinger (victory, boss ult...) is playing. */
+  DUCK_LEVEL: 0.3,
+  DUCK_ATTACK_S: 0.05,
+  DUCK_RELEASE_S: 0.6,
+  COMBAT_BUS_LEVEL: 0.85,
   COMBO_MILESTONE_THROTTLE_MS: 1200,
   COMBO_EARLY_MILESTONES: [10, 25] as readonly number[],
   COMBO_STEP_MILESTONE: 50,
@@ -1496,10 +1546,10 @@ export const SUMMON_PERF_CONSTANTS = {
   SFX_THROTTLE_MS: 120,
   COALESCE_FALLBACK_MS: 16,
   BURST_COALESCE_MS: 140,
-  MAX_BATCH_BUILD_COUNT: 12,
+  MAX_BATCH_BUILD_COUNT: 50,
   MAX_PORTALS_PER_BATCH: 6,
   MAX_BURSTS_PER_BATCH: 6,
-  MAX_VISUAL_SWAPS_PER_WAVE: 4,
+  MAX_VISUAL_SWAPS_PER_WAVE: 30,
   MIN_VISUAL_STAY_MS: 2200,
   OVERFLOW_SUPPORT_DPS_FACTOR: 0.45,
   MAX_LOGS_PER_BATCH: 12,
@@ -1568,3 +1618,113 @@ export const DEFAULT_DUEL_STATE: SilverScrapesDuelState = {
   winningTeamBuff: null,
 };
 
+
+/** Community quests: per team, per round. Each tier rewards once; progress resets when a new round starts. */
+export const QUEST_KIND = {
+  LIKES: 'LIKES',
+  SUMMONS: 'SUMMONS',
+  COINS: 'COINS',
+} as const;
+export type QuestKind = (typeof QUEST_KIND)[keyof typeof QUEST_KIND];
+
+export const COMMUNITY_QUEST_CONSTANTS = {
+  TIERS: {
+    [QUEST_KIND.LIKES]: [300, 1000, 3000],
+    [QUEST_KIND.SUMMONS]: [20, 60, 150],
+    [QUEST_KIND.COINS]: [500, 2000, 8000],
+  },
+  /** LIKES reward: every pro of the team jumps to full fury. */
+  /** SUMMONS reward: team damage buff. */
+  DAMAGE_BUFF_MULTIPLIER: 1.25,
+  DAMAGE_BUFF_DURATION_MS: 15000,
+  /** COINS reward: meteor strike on the boss, scaled by tier. */
+  METEOR_BASE_DAMAGE: 2500,
+  METEOR_SCREEN_SHAKE: 1.4,
+  REWARD_FLASH_COLOR: '#fde047',
+  REWARD_ACTOR_NAME: 'Nhiệm vụ cộng đồng',
+} as const;
+
+/** Match snapshot so an OBS reload mid-round resumes the same fight. */
+export const MATCH_SNAPSHOT_CONSTANTS = {
+  STORAGE_KEY: 'lol_match_snapshot_v1',
+  SAVE_INTERVAL_MS: 5000,
+  MAX_AGE_MS: 30 * 60 * 1000,
+  VERSION: 1,
+} as const;
+
+/** Gift tiers by coin value (a streak escalates by its running total). Single source of truth for gift VFX/SFX. */
+export const GIFT_TIER = {
+  SMALL: 'SMALL',
+  MEDIUM: 'MEDIUM',
+  BIG: 'BIG',
+  MEGA: 'MEGA',
+} as const;
+export type GiftTier = (typeof GIFT_TIER)[keyof typeof GIFT_TIER];
+
+export interface GiftTierConfig {
+  minCoins: number;
+  /** 3D meteors spawned on the boss. */
+  meteorCount: number;
+  screenShake: number;
+  hasScreenFlash: boolean;
+  /** DOM presentation lifetime; 0 = no banner/pill. */
+  bannerDurationMs: number;
+  /** Boss cannot cast skills for this long (MEGA knock-back). */
+  bossStaggerMs: number;
+  /** Particle burst intensity at the boss; 0 = none. */
+  burstIntensity: number;
+}
+
+export const GIFT_TIER_CONFIG: Readonly<Record<GiftTier, GiftTierConfig>> = {
+  [GIFT_TIER.SMALL]: { minCoins: 0, meteorCount: 0, screenShake: 0, hasScreenFlash: false, bannerDurationMs: 0, bossStaggerMs: 0, burstIntensity: 0 },
+  [GIFT_TIER.MEDIUM]: { minCoins: 10, meteorCount: 3, screenShake: 0.45, hasScreenFlash: false, bannerDurationMs: 2500, bossStaggerMs: 0, burstIntensity: 1.5 },
+  [GIFT_TIER.BIG]: { minCoins: 99, meteorCount: 8, screenShake: 1.3, hasScreenFlash: true, bannerDurationMs: 4500, bossStaggerMs: 0, burstIntensity: 4 },
+  [GIFT_TIER.MEGA]: { minCoins: 1000, meteorCount: 16, screenShake: 2.2, hasScreenFlash: true, bannerDurationMs: 6500, bossStaggerMs: 1800, burstIntensity: 6 },
+};
+
+export const GIFT_METEOR_SPAWN = {
+  RING_RADIUS_MIN: 3.5,
+  RING_RADIUS_SPREAD: 2,
+  START_HEIGHT_MIN: 10,
+  START_HEIGHT_SPREAD: 3,
+  TARGET_SPREAD: 1.5,
+  TARGET_Y: 0.4,
+  STAGGER_MS: 90,
+  FALL_DURATION_S: 0.65,
+  MAX_KEPT: 24,
+} as const;
+
+/** Combo level-up sound climbs in pitch with the combo tier (NORMAL, GREAT, SUPER, HYPER). */
+export const COMBO_TIER_SOUND_RATES = [1, 1.12, 1.25, 1.4] as const;
+
+export const resolveComboSoundRate = (comboCount: number): number => {
+  if (comboCount >= COMBO_TIER_CONFIG.HYPER.min) return COMBO_TIER_SOUND_RATES[3];
+  if (comboCount >= COMBO_TIER_CONFIG.SUPER.min) return COMBO_TIER_SOUND_RATES[2];
+  if (comboCount >= COMBO_TIER_CONFIG.GREAT.min) return COMBO_TIER_SOUND_RATES[1];
+  return COMBO_TIER_SOUND_RATES[0];
+};
+
+/** Heart milestone heal wave: a green ring sweeping the arena floor through every champion. */
+export const HEAL_WAVE_CONSTANTS = {
+  DURATION_MS: 1600,
+  MAX_RADIUS: 7.5,
+  RING_COUNT: 3,
+  RING_STAGGER: 0.18,
+  COLOR: '#34d399',
+  CORE_COLOR: '#ecfdf5',
+  PEAK_OPACITY: 0.75,
+  FLOOR_Y: -1.68,
+} as const;
+
+/** A turn that brings this many champions of one team enters as a squad: one shared pulse instead of N sky beams. */
+export const SQUAD_ENTRANCE_CONSTANTS = {
+  MIN_SIZE: 3,
+  DURATION_MS: 1500,
+  MAX_RING_SCALE: 3.4,
+  BEAM_WIDTH_PER_CHAMPION: 0.08,
+  MAX_BEAM_WIDTH: 1.6,
+  PEAK_OPACITY: 0.6,
+  BEAM_PEAK_OPACITY: 0.35,
+  FLOOR_Y: -1.66,
+  MAX_ACTIVE: 4,
+} as const;

@@ -7,6 +7,7 @@ import { ShockwaveRings } from './ShockwaveRings';
 import { SlashEffects } from './SlashEffects';
 import { MeteorShower3D } from './MeteorShower3D';
 import { CelestialGiftVFX } from './CelestialGiftVFX';
+import { HealWave3D } from './HealWave3D';
 import { ArenaEnvironment } from './ArenaEnvironment';
 import { BossVoidAttack } from './BossVoidAttack';
 import { BossSkillVfx3D } from './bossSkill/BossSkillVfx3D';
@@ -47,6 +48,7 @@ export const GameCanvas = () => {
         <MeteorShower3D />
         <CelestialGiftVFX />
         <FloatingHearts />
+        <HealWave3D />
       </Canvas>
     </div>
   );

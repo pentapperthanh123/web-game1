@@ -19,10 +19,10 @@ const getAvatarBorderClass = (
   teamTheme: TeamColorPalette
 ): string => {
   if (isAttacking) {
-    return 'border-white ring-2 ring-white shadow-[0_0_8px_rgba(255,255,255,0.9)]';
+    return 'border-white/80 shadow-[0_0_4px_rgba(255,255,255,0.5)]';
   }
   if (isFullFury) {
-    return 'border-amber-300 ring-1.5 ring-amber-400/90 shadow-[0_0_8px_rgba(245,158,11,0.8)]';
+    return 'border-amber-300/80 shadow-[0_0_4px_rgba(245,158,11,0.45)]';
   }
   if (isActive) {
     return teamTheme.borderClass;
@@ -32,7 +32,7 @@ const getAvatarBorderClass = (
 
 const getFuryBarFillClass = (isFullFury: boolean, fury: number): string => {
   if (isFullFury) {
-    return 'bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300 shadow-[0_0_6px_#f59e0b]';
+    return 'bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300';
   }
   if (fury >= GAME_CONSTANTS.PRO_FURY.FURY_AUTO_CAP) {
     return 'bg-amber-400';
@@ -138,10 +138,10 @@ const getRosterItemCardClass = (
   teamTheme: TeamColorPalette
 ): string => {
   if (isAttacking) {
-    return `${teamTheme.rosterCardActiveClass} ring-2 ring-white/95 shadow-[0_0_12px_rgba(255,255,255,0.85)] brightness-125`;
+    return `${teamTheme.rosterCardActiveClass} border-white/60 brightness-110`;
   }
   if (isFullFury) {
-    return 'bg-gradient-to-r from-rose-950/90 via-amber-950/85 to-slate-950/85 border-amber-300 ring-1.5 ring-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.7)]';
+    return 'bg-gradient-to-r from-rose-950/80 via-amber-950/70 to-slate-950/75 border-amber-400/50 shadow-[0_0_5px_rgba(245,158,11,0.3)]';
   }
   if (!isActive) {
     return 'bg-slate-950/65 border-slate-800/65 opacity-85 hover:opacity-100 hover:border-slate-700';

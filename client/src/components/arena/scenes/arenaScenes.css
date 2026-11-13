@@ -1,0 +1,91 @@
+/*
+ * Animated arena scene layers (Baron pit, Primordial Void realm).
+ * Only transform / opacity are animated so every layer stays on the compositor
+ * and costs nothing next to the WebGL battle canvas.
+ */
+
+@keyframes arenaNebulaBreathe {
+  0% { transform: translate3d(-2%, 0, 0) scale(1); opacity: 0.7; }
+  50% { transform: translate3d(2%, -1.5%, 0) scale(1.08); opacity: 1; }
+  100% { transform: translate3d(-2%, 0, 0) scale(1); opacity: 0.7; }
+}
+.arena-nebula-breathe { animation: arenaNebulaBreathe 22s ease-in-out infinite; }
+
+@keyframes arenaStarTwinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.arena-star-twinkle {
+  animation: arenaStarTwinkle 3.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes arenaStarDrift {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-1.5%, -2.5%, 0); }
+}
+.arena-star-drift { animation: arenaStarDrift 60s ease-in-out infinite alternate; }
+
+@keyframes arenaSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.arena-accretion-spin { animation: arenaSpin 26s linear infinite; }
+.arena-accretion-spin-reverse { animation: arenaSpin 40s linear infinite reverse; }
+.arena-rune-spin { animation: arenaSpin 70s linear infinite; }
+
+@keyframes arenaHorizonPulse {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+.arena-horizon-pulse { animation: arenaHorizonPulse 4.5s ease-in-out infinite; }
+
+@keyframes arenaShardFloat {
+  0% { transform: translate3d(0, 0, 0) rotate(-2deg); }
+  100% { transform: translate3d(0, -14px, 0) rotate(2deg); }
+}
+.arena-shard-float { animation: arenaShardFloat 9s ease-in-out infinite alternate; }
+
+@keyframes arenaRiseParticle {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  15% { opacity: 0.9; }
+  80% { opacity: 0.55; }
+  100% { transform: translate3d(var(--arena-particle-sway, 12px), -55vh, 0); opacity: 0; }
+}
+.arena-rise-particle { animation: arenaRiseParticle 12s linear infinite; }
+
+@keyframes arenaGodRaySway {
+  0%, 100% { opacity: 0.18; transform: rotate(var(--arena-ray-angle, 18deg)) translate3d(0, 0, 0); }
+  50% { opacity: 0.42; transform: rotate(var(--arena-ray-angle, 18deg)) translate3d(-10px, 0, 0); }
+}
+.arena-god-ray { animation: arenaGodRaySway 11s ease-in-out infinite; transform-origin: top center; }
+
+@keyframes arenaAcidPulse {
+  0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.07); }
+}
+.arena-acid-pulse { animation: arenaAcidPulse 3.8s ease-in-out infinite; }
+
+@keyframes arenaRiverSheen {
+  from { transform: translate3d(-25%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+.arena-river-sheen { animation: arenaRiverSheen 14s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-nebula-breathe,
+  .arena-star-twinkle,
+  .arena-star-drift,
+  .arena-accretion-spin,
+  .arena-accretion-spin-reverse,
+  .arena-rune-spin,
+  .arena-horizon-pulse,
+  .arena-shard-float,
+  .arena-rise-particle,
+  .arena-god-ray,
+  .arena-acid-pulse,
+  .arena-river-sheen {
+    animation: none;
+  }
+}

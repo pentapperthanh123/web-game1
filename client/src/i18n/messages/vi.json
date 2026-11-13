@@ -12,7 +12,9 @@
     "damageContribution": "Đóng góp sát thương",
     "vs": "ĐỐI ĐẦU",
     "voidRoar": "BARON GẦM RÚ HƯ KHÔNG!",
-    "dynamicTitle": "CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}"
+    "dynamicTitle": "CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}",
+    "titleTallyLabel": "Số lần vô địch",
+    "titleTallyTooltip": "{{left}} {{leftTitles}} - {{rightTitles}} {{right}} (số lần vô địch {{format}} khi đối đầu)"
   },
   "HUD": {
     "leaderboardTitle": "TOP 5 SÁT THƯƠNG",
@@ -75,7 +77,10 @@
     "sentLabel": "ĐÃ TẶNG",
     "patronTag": "ĐẠI GIA {{team}}",
     "ultimateBonus": "ST TUYỆT KỸ & MƯA THIÊN THẠCH!",
-    "comboStreak": "COMBO x{{count}}"
+    "comboStreak": "COMBO x{{count}}",
+    "coinsGained": "+{{coins}} xu",
+    "megaCrest": "ĐẠI GIA {{team}}",
+    "megaDamage": "+{{damage}} ST • BOSS BỊ ĐÁNH BẬT!"
   },
   "Controls": {
     "title": "Bảng Giả Lập Tương Tác TikTok Live",
@@ -237,7 +242,7 @@
     "userAvatarModeLabel": "Avatar Triệu Hồi:",
     "userAvatarModeOn": "BẬT (Avatar Người Dùng)",
     "userAvatarModeOff": "TẮT (Avatar Tướng)",
-    "participationRulesTitle": "Luật Tham Gia (Option C):",
+    "participationRulesTitle": "Luật Tham Gia & Hàng Đợi Xuất Trận:",
     "ruleTeamOnlyLabel": "Gõ Team (T1/GenG) ra quân ngay",
     "ruleAutoSigLabel": "Gõ Tướng tự khớp Team Tủ",
     "ruleLockTeamLabel": "Khóa Team sau khi chọn",
@@ -263,7 +268,15 @@
     "healTeamDynamic": "+50 HP cho {{team}}",
     "summonAlternateDynamicLabel": "Luân phiên 2 phe ({{left}} ↔ {{right}})",
     "roundEndedNotice": "Ván đấu đã kết thúc, đang nghỉ giữa hiệp!",
-    "chatSentIntermission": "Đã gửi bình luận! (Không triệu hồi trong lúc nghỉ giữa hiệp)"
+    "chatSentIntermission": "Đã gửi bình luận! (Không triệu hồi trong lúc nghỉ giữa hiệp)",
+    "queueDeployPerTurnLabel": "Tướng xuất hiện mỗi lượt",
+    "queueFloorUnlimitedHint": "(Trên sàn: Không giới hạn)",
+    "queueDeployPerTurnValue": "{{count}} tướng / lượt",
+    "queueTurnDelayLabel": "Thời gian giữa các lượt xuất hiện",
+    "queueTurnDelayValue": "{{seconds}}s ({{ms}}ms)",
+    "resetMatchupTitles": "Xoá số lần vô địch cặp này",
+    "resetMatchupTitlesDone": "Đã xoá số lần vô địch của cặp đấu hiện tại!",
+    "matchupTitlesLabel": "Số lần vô địch (đối đầu):"
   },
   "AdminTeams": {
     "activeMatchupTitle": "Cặp Đấu Hiện Tại:",
@@ -353,5 +366,32 @@
     "STUN": "Choáng",
     "WEAKEN": "Suy yếu",
     "LIFESTEAL": "Hút máu"
+  },
+  "LiveOps": {
+    "tokenSaved": "Đã lưu mã admin",
+    "authError": "Máy chủ từ chối thao tác admin (thiếu hoặc sai mã)",
+    "leaderboardWeekly": "Bảng xếp hạng tuần",
+    "leaderboardMonthly": "Bảng xếp hạng tháng",
+    "leaderboardAllTime": "Bảng xếp hạng mọi thời đại",
+    "totalDamage": "Tổng sát thương",
+    "mvpCount": "Số lần MVP",
+    "roundsPlayed": "Số ván"
+  },
+  "LiveHud": {
+    "questTooltip": "Mốc {{tier}}/{{total}}: {{value}}/{{target}}",
+    "queueTooltip": "Đang chờ ra sân: {{count}} • Tiếp theo: {{name}}",
+    "podiumTitle": "TOP 3 CHIẾN BINH CỦA VÁN",
+    "podiumShoutout": "Chúc mừng {{name}} gây sát thương cao nhất ván đấu!",
+    "weeklyBoardTitle": "BẢNG XẾP HẠNG TUẦN",
+    "mvpCount": "{{count}} MVP"
+  },
+  "KillFeed": {
+    "byKiller": "— {{killer}}",
+    "wipeTitle": "QUÉT SẠCH!",
+    "wipeSubtitle": "{{count}} tướng gục ngã"
+  },
+  "Audio": {
+    "ambienceOn": "Bật nhạc nền",
+    "ambienceOff": "Tắt nhạc nền"
   }
 }

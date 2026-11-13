@@ -1,15 +1,18 @@
 import { StateCreator } from 'zustand';
+import { GiftEvent, buildGiftAnnouncement, runGiftExplosion } from '../giftExplosion';
+import { isGiftTierAtLeast, resolveGiftTier } from '../giftTier';
+import { GIFT_METEOR_SPAWN, GIFT_TIER } from '../../constants/game';
+import { trackQuestProgress } from '../communityQuestRewards';
+import { QUEST_KIND } from '../../constants/game';
 import {
   AdminEventLog,
   GameState,
-  GiftAnnouncement,
   LiveChatMessage,
-  MeteorEntity,
   ParticleBurst,
   QueuedSummon,
   SummonPortalEntity,
 } from '../../types/game';
-import { deployQueuedMinions } from '../summonQueueHelper';
+import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
 import { rebuildMinionCollections } from '../minionMapHelpers';
 import {
   COMBAT_VFX_CONSTANTS,
@@ -54,6 +57,16 @@ interface PendingSummonRequest {
 const pendingSummonQueue: PendingSummonRequest[] = [];
 let isSummonFlushScheduled = false;
 let lastSummonSfxAt = 0;
+
+/** One entrance sound per deploy tick, throttled so a 15-champion turn is not 15 whooshes. */
+const playSummonEntranceSfx = (now: number, deployedPortals: readonly SummonPortalEntity[]): void => {
+  if (deployedPortals.length === 0) return;
+  if (now - lastSummonSfxAt < SUMMON_PERF_CONSTANTS.SFX_THROTTLE_MS) return;
+  lastSummonSfxAt = now;
+  // A pro's signature champion entering gets its own chord on top of the normal entrance
+  const hasSignatureEntrance = deployedPortals.some((portal) => portal.isSignatureSynergy);
+  playSound(hasSignatureEntrance ? SFX_EVENT.SIGNATURE_SUMMON : SFX_EVENT.CHAMPION_SUMMON);
+};
 let lastBatchFlushAt = 0;
 let turnTimerId: ReturnType<typeof setTimeout> | null = null;
 
@@ -62,7 +75,7 @@ const scheduleTurnAdvance = (get: () => GameState, delayMs: number): void => {
   turnTimerId = setTimeout(() => {
     turnTimerId = null;
     get().advanceSummonTurnQueue();
-  }, Math.max(50, delayMs));
+  }, Math.max(GAME_CONSTANTS.SUMMON_RULES.MIN_TURN_ADVANCE_DELAY_MS, delayMs));
 };
 
 const scheduleBatchFlush = (callback: () => void, delayMs: number): void => {
@@ -99,12 +112,6 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     const effectiveBatch =
       batch.length > visualBudget ? batch.slice(-visualBudget) : batch;
     const overflowCount = Math.max(0, batch.length - effectiveBatch.length);
-
-    // Throttle summon audio so 100-1000 simultaneous summons never spam WebAudio nodes
-    if (now - lastSummonSfxAt >= SUMMON_PERF_CONSTANTS.SFX_THROTTLE_MS) {
-      lastSummonSfxAt = now;
-      playSound(SFX_EVENT.CHAMPION_SUMMON);
-    }
 
     const nextMinions = [...state.minions];
     const newPortals: SummonPortalEntity[] = [];
@@ -312,29 +319,23 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     const burstSliceCount = COMBAT_VFX_CONSTANTS.PARTICLES.MAX_BURST_QUEUE;
 
     // Tự động kiểm tra và xuất trận lượt tướng theo tuần tự (delay giữa các lượt xuất hiện)
-    const activeRules = state.participationRuleConfig;
+    const turnLimits = resolveSummonTurnLimits(state.participationRuleConfig);
     const deployed = deployQueuedMinions(
       nextMinions,
       nextQueue,
       state.lastSummonTurnTimestamps,
       now,
       state.activeTeams,
-      state.livingCountByTeam,
-      {
-        maxActivePerTeam: activeRules?.maxActivePerTeam,
-        summonTurnDelayMs: activeRules?.summonTurnDelayMs,
-      }
+      turnLimits
     );
     const finalMinions = deployed.nextMinions;
     const finalQueue = deployed.nextQueue;
     newPortals.push(...deployed.newPortals);
     newLogs.push(...deployed.newLogs);
+    playSummonEntranceSfx(now, deployed.newPortals);
 
     if (deployed.hasPendingTurns) {
-      scheduleTurnAdvance(
-        get,
-        activeRules?.summonTurnDelayMs ?? GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS
-      );
+      scheduleTurnAdvance(get, turnLimits.summonTurnDelayMs);
     }
 
     set((prev) => {
@@ -375,9 +376,13 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       return;
     }
 
+    const summonsByTeam: Record<TeamType, number> = { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 };
     for (let i = 0; i < items.length; i += 1) {
       pendingSummonQueue.push(items[i]);
+      summonsByTeam[items[i].team] += 1;
     }
+    trackQuestProgress(get, TEAM_KEY.BLG, QUEST_KIND.SUMMONS, summonsByTeam[TEAM_KEY.BLG]);
+    trackQuestProgress(get, TEAM_KEY.GENG, QUEST_KIND.SUMMONS, summonsByTeam[TEAM_KEY.GENG]);
 
     if (!isSummonFlushScheduled) {
       isSummonFlushScheduled = true;
@@ -420,24 +425,22 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       const state = get();
       if (isBattleHalted(state)) return;
       const now = Date.now();
-      const activeRules = state.participationRuleConfig;
+      const turnLimits = resolveSummonTurnLimits(state.participationRuleConfig);
       const deployed = deployQueuedMinions(
         state.minions,
         state.summonQueue,
         state.lastSummonTurnTimestamps,
         now,
         state.activeTeams,
-        state.livingCountByTeam,
-        {
-          maxActivePerTeam: activeRules?.maxActivePerTeam,
-          summonTurnDelayMs: activeRules?.summonTurnDelayMs,
-        }
+        turnLimits
       );
-      if (deployed.nextMinions.length === state.minions.length && deployed.newPortals.length === 0) {
+      if (deployed.newPortals.length === 0) {
+        if (deployed.hasPendingTurns) scheduleTurnAdvance(get, turnLimits.summonTurnDelayMs);
         return;
       }
       const slicedMinions = deployed.nextMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES);
       const collections = rebuildMinionCollections(slicedMinions, now);
+      playSummonEntranceSfx(now, deployed.newPortals);
 
       set((prev) => ({
         minions: slicedMinions,
@@ -453,10 +456,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         eventLogs: [...deployed.newLogs.reverse(), ...prev.eventLogs].slice(0, 100),
       }));
       if (deployed.hasPendingTurns) {
-        scheduleTurnAdvance(
-          get,
-          activeRules?.summonTurnDelayMs ?? GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS
-        );
+        scheduleTurnAdvance(get, turnLimits.summonTurnDelayMs);
       }
     },
 
@@ -467,121 +467,38 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     coins = 100,
     streakCount = 1,
     totalCoins?: number,
-    isComboFinal = false
+    isComboFinal = false,
+    donorAvatarUrl?: string
   ) => {
-    const state = get();
-    const resolvedStreak = Math.max(1, streakCount);
-    const resolvedTotalCoins = totalCoins ?? coins;
-    const newBanner: GiftAnnouncement = {
-      id: `banner-${Date.now()}-${resolvedStreak}`,
-      donorName,
+    const now = Date.now();
+    const event: GiftEvent = {
       giftName,
       team,
+      donorName,
+      donorAvatarUrl,
       coins,
-      streakCount: resolvedStreak,
-      totalCoins: resolvedTotalCoins,
+      streakCount: Math.max(1, streakCount),
+      totalCoins: totalCoins ?? coins,
       isComboFinal,
-      timestamp: Date.now(),
     };
+    trackQuestProgress(get, team, QUEST_KIND.COINS, coins);
 
-    const isMajorGift =
-      coins >= GAME_CONSTANTS.TIKTOK_ENGAGEMENT.VIP_VFX_MIN_COINS ||
-      resolvedTotalCoins >= GAME_CONSTANTS.TIKTOK_ENGAGEMENT.VIP_VFX_MIN_COINS;
-
-    if (isBattleHalted(state)) {
-      if (isMajorGift) {
-        set({ activeGiftBanner: newBanner });
+    if (isBattleHalted(get())) {
+      const haltedTier = resolveGiftTier(event.coins, event.totalCoins);
+      if (isGiftTierAtLeast(haltedTier, GIFT_TIER.BIG)) {
+        set({ activeGiftBanner: buildGiftAnnouncement(event, haltedTier, now) });
       }
-      get().addChatMessage(
-        donorName,
-        `Đã tặng ${giftName}${resolvedStreak > 1 ? ` x${resolvedStreak}` : ''} (${resolvedTotalCoins} xu)!`,
-        team
-      );
+      const streakLabel = event.streakCount > 1 ? ` x${event.streakCount}` : '';
+      get().addChatMessage(donorName, `Đã tặng ${giftName}${streakLabel} (${event.totalCoins} xu)!`, team);
       return;
     }
 
-    const activeGiftTeam = state.activeTeams[team];
-    const giftTeamTheme = getTeamTheme(activeGiftTeam?.colorTheme);
-    const burstColor = giftTeamTheme.primaryHex;
-    const isRapidStreakTick = resolvedStreak > 1 && coins < 10 && resolvedStreak % 5 !== 0;
-
-    if (!isMajorGift || isRapidStreakTick) {
-      audioService.playHeartChime();
-    } else {
-      audioService.playGiftFanfare();
-    }
-
-    const newMeteors: MeteorEntity[] = [];
-    if (isMajorGift) {
-      const meteorCount = isRapidStreakTick
-        ? GAME_CONSTANTS.TIKTOK_ENGAGEMENT.STREAK_BURST_METEOR_COUNT
-        : GAME_CONSTANTS.TIKTOK_ENGAGEMENT.DEFAULT_METEOR_COUNT;
-      for (let i = 0; i < meteorCount; i++) {
-        const angle = (i / meteorCount) * Math.PI * 2;
-        const startX = Math.cos(angle) * (3.5 + Math.random() * 2);
-        const startZ = Math.sin(angle) * (3.5 + Math.random() * 2);
-        newMeteors.push({
-          id: `meteor-${Date.now()}-${resolvedStreak}-${i}`,
-          start: [startX, 10 + Math.random() * 3, startZ],
-          target: [(Math.random() - 0.5) * 1.5, 0.4, (Math.random() - 0.5) * 1.5],
-          color: burstColor,
-          createdAt: Date.now() + i * 90,
-          duration: 0.65,
-        });
-      }
-    }
-
-    get().healTeamChampions(team, GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_HEAL_AMOUNT);
-    const giftDamage = coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN;
-    get().damageBoss(
-      giftDamage,
-      team,
-      `${donorName} (${giftName})`,
-      isMajorGift ? 'ULTIMATE' : 'NORMAL'
-    );
-    if (isMajorGift) {
-      get().triggerScreenFlash(giftTeamTheme.secondaryHex);
-      get().triggerScreenShake(isRapidStreakTick ? 0.65 : 1.3);
-    }
-
-    const giftTeamRoster = activeGiftTeam?.roster ?? [];
-    giftTeamRoster.forEach((pro) => {
-      get().addPlayerFury(pro.id, GAME_CONSTANTS.PRO_FURY.FURY_GAIN_GIFT_BOOST);
-    });
-
-    if (resolvedStreak === 1 || resolvedStreak % 3 === 0 || coins >= 10) {
-      const signaturePool = giftTeamRoster.map((p) => p.signatureChampion).filter(Boolean);
-      const pool = signaturePool.length > 0 ? signaturePool : ['Ahri', 'Yone', 'Aatrox', 'Jinx', 'Lee Sin'];
-      const eliteChamp = pool[Math.floor(Math.random() * pool.length)];
-      get().summonMinion(`👑 ${donorName}`, eliteChamp, team, true);
-    }
-
-    const safeGiftDamage = Number.isFinite(giftDamage) ? giftDamage : 0;
-    const giftTeamTag = activeGiftTeam?.shortTag || team;
-    const streakLabel = resolvedStreak > 1 ? ` x${resolvedStreak}` : '';
-    get().addLog(
-      'GIFT',
-      `💎 ${donorName} tặng [${giftName}${streakLabel}] (+${coins} xu) phe ${giftTeamTag} gây +${safeGiftDamage.toLocaleString()} ST!`,
-      team
-    );
-    if (!isRapidStreakTick || isComboFinal) {
-      get().addChatMessage(
-        donorName,
-        `Đã tặng ${giftName}${streakLabel} (+${safeGiftDamage.toLocaleString()} DMG)!`,
-        team
-      );
-    }
-
-    if (isMajorGift) {
-      set((prev) => ({
-        activeBursts: [
-          ...prev.activeBursts.slice(-4),
-          { id: `burst-${Date.now()}`, timestamp: Date.now(), origin: [0, 0, 0], color: burstColor, intensity: 4 },
-        ],
-        activeMeteors: [...prev.activeMeteors.slice(-12), ...newMeteors],
-        activeGiftBanner: newBanner,
-      }));
-    }
+    const result = runGiftExplosion(get, event, now);
+    set((prev) => ({
+      activeMeteors: [...prev.activeMeteors.slice(-GIFT_METEOR_SPAWN.MAX_KEPT), ...result.meteors],
+      activeGiftBanner: result.banner ?? prev.activeGiftBanner,
+      bossStaggerUntil: Math.max(prev.bossStaggerUntil, result.bossStaggerUntil),
+    }));
   },
 
   triggerFollowReward: (
@@ -599,9 +516,9 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       get().addPlayerFury(pro.id, furyGain);
     });
 
+    playSound(SFX_EVENT.FOLLOW_NOTIFY);
     if (!isBattleHalted(state)) {
       get().summonMinion(`💖 ${userName}`, championName, team, true);
-      audioService.playHeartChime();
     }
 
     get().addLog(

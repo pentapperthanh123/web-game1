@@ -1,4 +1,5 @@
 import { DuelService } from '../services/duelService.js';
+import { PlayerProfileService } from '../services/playerProfileService.js';
 import { TikTokConnectionService } from '../services/tiktokConnectionService.js';
 import { ServerContext } from '../types/serverState.js';
 import { registerAdminHandlers } from './registerAdminHandlers.js';
@@ -11,7 +12,8 @@ import { registerTikTokHandlers } from './registerTikTokHandlers.js';
 export function registerSocketHub(
   ctx: ServerContext,
   duelService: DuelService,
-  tiktokService: TikTokConnectionService
+  tiktokService: TikTokConnectionService,
+  playerProfileService: PlayerProfileService
 ): void {
   ctx.io.on('connection', (socket) => {
     console.log(`[Socket] Client connected: ${socket.id}`);
@@ -35,11 +37,14 @@ export function registerSocketHub(
       status: ctx.state.connectionStatus,
       username: ctx.state.tiktokUsername,
       error: ctx.state.lastErrorMessage,
+      attempt: ctx.state.reconnectAttempt,
+      nextRetryAt: ctx.state.nextRetryAt,
     });
 
     registerAdminHandlers(socket, ctx, duelService);
     registerTeamAndSeriesHandlers(socket, ctx, duelService);
     registerTikTokHandlers(socket, tiktokService);
+    playerProfileService.registerSocketHandlers(socket);
 
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);

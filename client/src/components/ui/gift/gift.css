@@ -1,0 +1,66 @@
+/* Tiered gift presentation. Only transform / opacity are animated. */
+
+@keyframes giftStreakPunch {
+  0% { transform: scale(1.6); }
+  60% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.animate-gift-streak-punch { animation: giftStreakPunch 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+
+@keyframes giftPillIn {
+  0% { transform: translateY(-8px) scale(0.9); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.animate-gift-pill-in { animation: giftPillIn 0.22s ease-out both; }
+
+@keyframes giftShimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.animate-gift-shimmer { animation: giftShimmer 1.8s linear infinite; }
+
+@keyframes giftHeroIn {
+  0% { transform: scale(0.4); opacity: 0; }
+  55% { transform: scale(1.08); opacity: 1; }
+  75% { transform: scale(0.97); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-gift-hero-in { animation: giftHeroIn 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+
+@keyframes giftRaysSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.animate-gift-rays { animation: giftRaysSpin 9s linear infinite; }
+.animate-gift-ring-spin { animation: giftRaysSpin 3.5s linear infinite; }
+
+@keyframes giftConfettiFall {
+  0% { transform: translate3d(0, -20px, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate3d(var(--gift-confetti-drift, 0px), 220px, 0) rotate(var(--gift-confetti-spin, 540deg)); opacity: 0; }
+}
+.animate-gift-confetti { animation: giftConfettiFall 2.4s cubic-bezier(0.25, 0.6, 0.4, 1) forwards; }
+
+/* Applied to the boss sprite wrapper during a MEGA gift knock-back. */
+@keyframes bossKnockback {
+  0% { transform: translate3d(0, 0, 0); }
+  18% { transform: translate3d(0, -24px, 0) scale(0.94); }
+  40% { transform: translate3d(0, 0, 0) scale(1.02); }
+  60% { transform: translate3d(0, -9px, 0); }
+  80% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+.animate-boss-knockback { animation: bossKnockback 0.9s cubic-bezier(0.3, 0.7, 0.4, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-gift-streak-punch,
+  .animate-gift-pill-in,
+  .animate-gift-shimmer,
+  .animate-gift-hero-in,
+  .animate-gift-rays,
+  .animate-gift-ring-spin,
+  .animate-gift-confetti,
+  .animate-boss-knockback {
+    animation: none;
+  }
+}

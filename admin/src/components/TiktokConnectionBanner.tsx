@@ -1,9 +1,13 @@
 import { getTiktokStatusStyle } from '../constants/adminPortal';
+import { TIKTOK_STATUS } from '../constants/adminAuth';
+import { TiktokReconnectInfo } from './TiktokReconnectInfo';
 
 interface TiktokConnectionBannerProps {
   tiktokUsername: string;
   tiktokStatus: string;
   tiktokRoomId: string;
+  reconnectAttempt?: number;
+  nextRetryAt?: number;
   isConnecting: boolean;
   onUsernameChange: (username: string) => void;
   onConnect: () => void;
@@ -17,6 +21,8 @@ export function TiktokConnectionBanner({
   tiktokUsername,
   tiktokStatus,
   tiktokRoomId,
+  reconnectAttempt,
+  nextRetryAt,
   isConnecting,
   onUsernameChange,
   onConnect,
@@ -32,6 +38,9 @@ export function TiktokConnectionBanner({
           <div className="text-xs font-black uppercase text-white flex items-center flex-wrap gap-1.5">
             <span>Trạng thái TikTok Live:</span>
             <span className={tiktokStyle.textClass}>{tiktokStatus}</span>
+            {tiktokStatus === TIKTOK_STATUS.RECONNECTING && (
+              <TiktokReconnectInfo attempt={reconnectAttempt} nextRetryAt={nextRetryAt} />
+            )}
             {tiktokRoomId && (
               <span className="text-slate-500 text-[10px]">(Room ID: {tiktokRoomId})</span>
             )}
@@ -54,7 +63,7 @@ export function TiktokConnectionBanner({
           />
         </div>
 
-        {tiktokStatus === 'CONNECTED' ? (
+        {tiktokStatus === TIKTOK_STATUS.CONNECTED ? (
           <button
             type="button"
             onClick={onDisconnect}

@@ -59,12 +59,12 @@ export const VictoryDamageSummaryCard = ({
       )}
 
       <div className="p-2.5 rounded-xl bg-slate-900/75 border border-slate-800/90 shadow-lg space-y-1.5">
-        <div className="flex items-center justify-between gap-2 text-[11px] font-mono whitespace-nowrap">
-          <span className={`font-black ${leftTheme.textStrongClass}`}>
-            {leftTeam.shortTag} {leftPercent}% • {leftDamage.toLocaleString()} DMG
+        <div className="flex items-center justify-between gap-1 text-[10px] font-mono whitespace-nowrap overflow-hidden">
+          <span className={`font-black truncate ${leftTheme.textStrongClass}`}>
+            {leftTeam.shortTag}: {leftPercent}% &bull; {leftDamage.toLocaleString()}
           </span>
-          <span className={`font-black ${rightTheme.textStrongClass}`}>
-            {rightDamage.toLocaleString()} DMG • {rightPercent}% {rightTeam.shortTag}
+          <span className={`font-black truncate text-right ${rightTheme.textStrongClass}`}>
+            {rightDamage.toLocaleString()} &bull; {rightPercent}% {rightTeam.shortTag}
           </span>
         </div>
 

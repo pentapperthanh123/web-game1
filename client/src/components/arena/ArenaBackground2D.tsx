@@ -1,7 +1,37 @@
-import { useMemo } from 'react';
+import { useMemo, type ComponentType } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { THEME_CONFIGS, GAME_THEME, TEAM_KEY } from '../../constants/game';
+import { THEME_CONFIGS, GAME_THEME, TEAM_KEY, GameThemeType } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
+import { BaronPitOverlay } from './scenes/BaronPitOverlay';
+import { VoidRealmBackdrop } from './scenes/VoidRealmBackdrop';
+
+/** Themes whose arena is fully procedural (replaces the painted background). */
+const SCENE_BACKDROPS: Partial<Record<GameThemeType, ComponentType>> = {
+  [GAME_THEME.VOID_TITAN]: VoidRealmBackdrop,
+};
+
+/** Animated layers drawn on top of the painted background for a theme. */
+const SCENE_OVERLAYS: Partial<Record<GameThemeType, ComponentType>> = {
+  [GAME_THEME.BARON]: BaronPitOverlay,
+};
+
+interface PaintedBackdropProps {
+  imageWebp: string;
+  imagePng: string;
+  altText: string;
+}
+
+const PaintedBackdrop = ({ imageWebp, imagePng, altText }: PaintedBackdropProps) => (
+  <picture className="absolute inset-0 w-full h-full transition-opacity duration-500">
+    <source srcSet={imageWebp} type="image/webp" />
+    <img
+      src={imagePng}
+      alt={altText}
+      className="w-full h-full object-cover object-center scale-[1.02] transform-gpu"
+      loading="eager"
+    />
+  </picture>
+);
 
 export const ArenaBackground2D = () => {
   const teamScoreBLG = useGameStore((state) => state.teamScoreBLG);
@@ -12,6 +42,8 @@ export const ArenaBackground2D = () => {
   const leftTheme = getTeamTheme(activeTeams[TEAM_KEY.BLG]?.colorTheme);
   const rightTheme = getTeamTheme(activeTeams[TEAM_KEY.GENG]?.colorTheme);
   const themeConfig = THEME_CONFIGS[gameTheme] || THEME_CONFIGS[GAME_THEME.BARON];
+  const SceneBackdrop = SCENE_BACKDROPS[gameTheme];
+  const SceneOverlay = SCENE_OVERLAYS[gameTheme];
 
   // Dynamic light intensity based on which team is currently dealing more damage
   const { blgGlowOpacity, gengGlowOpacity } = useMemo(() => {
@@ -29,16 +61,17 @@ export const ArenaBackground2D = () => {
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
-      {/* 1. Dynamic Arena Background based on selected Game Theme */}
-      <picture className="absolute inset-0 w-full h-full transition-opacity duration-500">
-        <source srcSet={themeConfig.backgroundImageWebp} type="image/webp" />
-        <img
-          src={themeConfig.backgroundImagePng}
-          alt={themeConfig.nameVi}
-          className="w-full h-full object-cover object-center scale-[1.02] transform-gpu"
-          loading="eager"
+      {/* 1. Arena backdrop: procedural scene for some themes, painted image + optional animated layers otherwise */}
+      {SceneBackdrop ? (
+        <SceneBackdrop />
+      ) : (
+        <PaintedBackdrop
+          imageWebp={themeConfig.backgroundImageWebp}
+          imagePng={themeConfig.backgroundImagePng}
+          altText={themeConfig.nameVi}
         />
-      </picture>
+      )}
+      {SceneOverlay && <SceneOverlay />}
 
       {/* 2. Dual Team Esports Atmosphere Lighting Overlays */}
       <div

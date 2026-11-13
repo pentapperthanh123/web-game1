@@ -1,5 +1,6 @@
 import { Howl, Howler } from 'howler';
 import {
+  SFX_CATEGORY_LEVEL,
   SFX_DEFINITIONS,
   SFX_EVENT,
   SfxDefinition,
@@ -42,6 +43,9 @@ const isCrossOriginUrl = (url: string): boolean => {
   if (typeof window === 'undefined') return false;
   return new URL(url, window.location.href).origin !== window.location.origin;
 };
+
+const resolveMixedVolume = (definition: SfxDefinition, volumeScale = 1): number =>
+  clampVolume(definition.volume * SFX_CATEGORY_LEVEL[definition.category] * volumeScale);
 
 const pickJitteredRate = (rateJitter: number, rateScale: number): number => {
   const jitter = (Math.random() * 2 - 1) * rateJitter;
@@ -95,6 +99,7 @@ class SoundManager {
     const voiceId = howl.play();
     channel.activeVoiceIds.push(voiceId);
     this.applyVoiceSettings(channel.definition, howl, voiceId, options);
+    if (channel.definition.duckCombatMs) audioService.duckCombat(channel.definition.duckCombatMs);
   }
 
   /** Starts downloading sounds ahead of time so the first trigger has no delay. */
@@ -156,7 +161,7 @@ class SoundManager {
       // Cross-origin hosts without CORS headers (Myinstants) must stream via HTML5 Audio.
       html5: isCrossOriginUrl(sourceUrl) && !definition.isCorsReady,
       preload: true,
-      volume: definition.volume,
+      volume: resolveMixedVolume(definition),
       pool: definition.maxVoices,
       onload: () => {
         channel.hasPendingPlay = false;
@@ -215,7 +220,7 @@ class SoundManager {
   ): void {
     const { volumeScale, rateScale = SOUND_MANAGER_CONSTANTS.DEFAULT_RATE } = options;
     if (volumeScale !== undefined) {
-      howl.volume(clampVolume(definition.volume * volumeScale), voiceId);
+      howl.volume(resolveMixedVolume(definition, volumeScale), voiceId);
     }
     if (definition.rateJitter > 0 || rateScale !== SOUND_MANAGER_CONSTANTS.DEFAULT_RATE) {
       howl.rate(pickJitteredRate(definition.rateJitter, rateScale), voiceId);

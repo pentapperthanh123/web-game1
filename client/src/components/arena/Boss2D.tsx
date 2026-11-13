@@ -27,7 +27,10 @@ import { BOSS_SKILL_VFX, BossSkillVfxType } from '../../types/bossSkill';
 import { BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
 import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
 import { useSkillVfxWindow } from './skillVfx/skillVfxShared';
-import { BossEntranceBreathVFX, isDragonNativeFacingRight } from './BossEntranceBreathVFX';
+import { BossEntranceBreathVFX } from './BossEntranceBreathVFX';
+import { BossSpriteAnchorMarkers } from './BossSpriteAnchorMarkers';
+import '../ui/gift/gift.css';
+import { getBossSpriteAnchors } from '../../constants/bossSpriteAnchors';
 
 const getAnimationClass = (
   isDefeated: boolean,
@@ -130,6 +133,21 @@ const getAnimationClass = (
   return `${themeConfig.idleAnimationClass} drop-shadow-[0_0_32px_${themeConfig.colors.primaryHex}b3] cursor-pointer hover:drop-shadow-[0_0_48px_${themeConfig.colors.primaryHex}] transition-all`;
 };
 
+const BOSS_KNOCKBACK_CLASS = 'animate-boss-knockback';
+
+/** True until `deadline` passes; re-renders once when it does. */
+const useIsBeforeDeadline = (deadline: number): boolean => {
+  const [isBefore, setIsBefore] = useState(() => Date.now() < deadline);
+  useEffect(() => {
+    const remainingMs = deadline - Date.now();
+    setIsBefore(remainingMs > 0);
+    if (remainingMs <= 0) return;
+    const timer = setTimeout(() => setIsBefore(false), remainingMs);
+    return () => clearTimeout(timer);
+  }, [deadline]);
+  return isBefore;
+};
+
 export const Boss2D = () => {
   const { t } = useTranslation();
   const bossStatus = useGameStore((state) => state.bossStatus);
@@ -152,8 +170,13 @@ export const Boss2D = () => {
   const themeConfig = getThemeConfig(gameTheme);
   const isHerald = themeConfig.archetype === 'HERALD';
   const isDragon = themeConfig.archetype === 'DRAGON';
+  const isSilverScrapesActive = useGameStore((state) => state.silverScrapesState.isActive);
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
+  const bossStaggerUntil = useGameStore((state) => state.bossStaggerUntil);
+  const isKnockedBack = useIsBeforeDeadline(bossStaggerUntil);
+  const isEnragedArtShown = isEnraged && Boolean(themeConfig.bossEnragedImagePng);
+  const spriteAnchors = getBossSpriteAnchors(gameTheme, isEnragedArtShown);
 
   // Combat Animation States
   const [isHitActive, setIsHitActive] = useState(false);
@@ -171,10 +194,10 @@ export const Boss2D = () => {
   const [notificationPortalEl, setNotificationPortalEl] = useState<HTMLElement | null>(null);
 
   const isSkillVfxWindowOpen = useSkillVfxWindow(activeBossSkillBanner);
-  const isSkillFireBreathActive =
-    !isDefeated &&
-    isSkillVfxWindowOpen &&
-    activeBossSkillBanner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH;
+  const isMouthBreathSkill =
+    activeBossSkillBanner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH ||
+    Boolean(activeBossSkillBanner?.vfxParams?.isMouthBreath);
+  const isSkillFireBreathActive = !isDefeated && isSkillVfxWindowOpen && isMouthBreathSkill;
   const isDragonMouthFireActive = isDragon && !isDefeated && (isEntranceBreathActive || isSkillFireBreathActive);
 
   useEffect(() => {
@@ -294,7 +317,9 @@ export const Boss2D = () => {
   useEffect(() => {
     if (bossAttackTimestamp === 0) return;
 
-    const shouldBypassFlipCooldown = activeBossSkillBanner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH;
+    const shouldBypassFlipCooldown =
+      activeBossSkillBanner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH ||
+      Boolean(activeBossSkillBanner?.vfxParams?.isMouthBreath);
     if (bossAttackTargetTeam === TEAM_KEY.BLG) {
       updateFacingSide(false, shouldBypassFlipCooldown);
     } else if (bossAttackTargetTeam === TEAM_KEY.GENG) {
@@ -524,7 +549,7 @@ export const Boss2D = () => {
 
   const isUltimateAttack = activeBossSkillBanner?.isUltimate ?? false;
 
-  const animationClass = getAnimationClass(
+  const baseAnimationClass = getAnimationClass(
     isDefeated,
     isPoked,
     isRoarActive,
@@ -540,6 +565,8 @@ export const Boss2D = () => {
     activeBossSkillBanner?.skillId,
     activeBossSkillBanner?.vfxType
   );
+  // MEGA gift knock-back overrides the idle/attack animation while the boss is staggered
+  const animationClass = isKnockedBack ? BOSS_KNOCKBACK_CLASS : baseAnimationClass;
 
   // Dynamic 2.5D perspective tilt reacting to hit side & pokes
   let tiltYDeg = 0;
@@ -561,7 +588,7 @@ export const Boss2D = () => {
   const verticalOffsetPx = isDefeated ? 0 : (verticalTiers[verticalTierIndex] ?? 0);
   const verticalMotionClass = isDefeated ? '' : themeConfig.verticalMotionClass;
   const groundShadowAnimationClass = isDefeated ? '' : themeConfig.groundShadowClass;
-  const shouldMirrorBody = isDragonNativeFacingRight(gameTheme) ? !isFacingRight : isFacingRight;
+  const shouldMirrorBody = spriteAnchors.isNativeFacingRight ? !isFacingRight : isFacingRight;
 
   const bossNotificationOverlay = (
     <div
@@ -589,7 +616,7 @@ export const Boss2D = () => {
         <div className={verticalMotionClass}>
           <div className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-none`}>
             <BossSpeechBubble
-              speech={isRoarActive || isDefeated ? null : activeSpeech}
+              speech={isRoarActive || isDefeated || isSilverScrapesActive ? null : activeSpeech}
               themeConfig={themeConfig}
               isRestless={isRestless}
             />
@@ -696,10 +723,13 @@ export const Boss2D = () => {
                       </picture>
                     )}
 
+                    <BossSpriteAnchorMarkers anchors={spriteAnchors} />
+
                     {isDragon && (
                       <BossEntranceBreathVFX
                         isActive={isDragonMouthFireActive}
                         gameTheme={gameTheme}
+                        isEnragedArtShown={isEnragedArtShown}
                         isSkillCast={isSkillFireBreathActive}
                         castKey={activeBossSkillBanner?.timestamp}
                         overrideColor={isSkillFireBreathActive ? activeBossSkillBanner?.color : undefined}

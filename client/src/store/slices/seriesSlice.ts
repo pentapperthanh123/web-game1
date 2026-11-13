@@ -1,4 +1,7 @@
 import { StateCreator } from 'zustand';
+import { resetRoundDamage } from '../roundDamageTracker';
+import { resetCommunityQuests } from '../communityQuestStore';
+import { clearMatchupTitles, persistChampionshipTally } from '../championshipTally';
 import { GameState, SeriesFormat } from '../../types/game';
 import {
   BOSS_DIFFICULTY_SCALE,
@@ -25,6 +28,7 @@ export type SeriesSlice = Pick<
   GameState,
   | 'startNextRound'
   | 'resetBO5Match'
+  | 'resetMatchupChampionships'
   | 'setSeriesFormat'
   | 'applySeriesFormatSnapshot'
   | 'setSilverScrapesState'
@@ -46,6 +50,8 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
   startNextRound: () => {
     const state = get();
     if (state.isSeriesEnded) return;
+    resetCommunityQuests();
+    resetRoundDamage();
     const nextRound = Math.min(GAME_CONSTANTS.BO5.MAX_ROUNDS, state.currentRound + 1);
     const nextTheme = getBossThemeForRound(nextRound, state.seriesFormat);
     const difficulty = BOSS_DIFFICULTY_SCALE[nextTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
@@ -108,7 +114,19 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     });
   },
 
+  resetMatchupChampionships: () => {
+    const state = get();
+    const leftTeam = state.activeTeams[TEAM_KEY.BLG];
+    const rightTeam = state.activeTeams[TEAM_KEY.GENG];
+    const nextTally = clearMatchupTitles(state.championshipTally, leftTeam, rightTeam);
+    persistChampionshipTally(nextTally);
+    set({ championshipTally: nextTally });
+    get().addLog('SYSTEM', `🧹 Đã xoá số lần vô địch của cặp ${leftTeam.shortTag} vs ${rightTeam.shortTag}`);
+  },
+
   resetBO5Match: () => {
+    resetCommunityQuests();
+    resetRoundDamage();
     const state = get();
     const round1Theme = getBossThemeForRound(1, state.seriesFormat);
     const difficulty = BOSS_DIFFICULTY_SCALE[round1Theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];

@@ -36,6 +36,8 @@ export interface BossSkillVfxParams {
   count?: number;
   /** Relative size multiplier of the effect (1 = default). */
   scale?: number;
+  /** Dragons also breathe fire from the jaw while this skill plays; 3D VFX start at the mouth. */
+  isMouthBreath?: boolean;
 }
 
 export interface BossSkillStatusEffect {

@@ -1,4 +1,14 @@
 import { StateCreator } from 'zustand';
+import { resolveComboSoundRate } from '../../constants/game';
+import { recordRoundDamage } from '../roundDamageTracker';
+import { trackQuestProgress } from '../communityQuestRewards';
+import { getQuestDamageMultiplier } from '../communityQuestStore';
+import { QUEST_KIND } from '../../constants/game';
+import {
+  addChampionshipTitle,
+  getMatchupTitleCount,
+  persistChampionshipTally,
+} from '../championshipTally';
 import {
   BossShieldState,
   DamageBossOptions,
@@ -53,7 +63,9 @@ import {
   randomInRange,
   updateLeaderboardList,
   updateProLeaderboardList,
+  appendIfCapacity,
 } from '../storeHelpers';
+import { decideHitFeedback } from '../hitFeedbackAggregator';
 
 export type CombatSlice = Pick<
   GameState,
@@ -152,6 +164,76 @@ const resolveRosterAnchorScreenPos = (
   };
 };
 
+/** Caps a list by dropping its oldest entries; used for short-lived overlays that may be cut. */
+const resolveNextCappedList = <T>(
+  current: T[],
+  incoming: T,
+  maxItems: number,
+  isCleared: boolean,
+  shouldAdd: boolean
+): T[] => {
+  if (isCleared) return [];
+  if (!shouldAdd) return current;
+  return [...current.slice(-(maxItems - 1)), incoming];
+};
+
+const formatHitText = (amount: number, hitCount: number, isWeakPoint: boolean): string => {
+  const base = `-${amount.toLocaleString()}`;
+  const withCount = hitCount > 1 ? `${base} ×${hitCount}` : base;
+  return isWeakPoint ? `🎯 ${withCount}` : withCount;
+};
+
+/** Left team's numbers float left of the boss centre, right team's to the right. */
+const resolveTeamFloatX = (team: TeamType): number => {
+  const offset = randomInRange(COMBAT_VFX_CONSTANTS.DAMAGE.FLOAT_SIDE_MIN_X, COMBAT_VFX_CONSTANTS.DAMAGE.FLOAT_SIDE_MAX_X);
+  return team === TEAM_KEY.BLG ? -offset : offset;
+};
+
+const resolveMergedTextScale = (baseScale: number, hitCount: number): number => {
+  const extraHits = Math.min(hitCount - 1, COMBAT_VFX_CONSTANTS.DAMAGE.MERGED_TEXT_SCALE_MAX_HITS);
+  return baseScale * (1 + Math.max(0, extraHits) * COMBAT_VFX_CONSTANTS.DAMAGE.MERGED_TEXT_SCALE_STEP);
+};
+
+const pendingFuryByMinionId = new Map<string, number>();
+let isFuryFlushScheduled = false;
+
+const requestNextFrame = (callback: () => void): void => {
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => callback());
+    return;
+  }
+  setTimeout(callback, COMBAT_VFX_CONSTANTS.DAMAGE.FRAME_FALLBACK_MS);
+};
+
+/**
+ * Many champions attack in the same frame. Rebuilding the whole `minions` array for each of them
+ * made every attack O(N) and re-rendered all subscribers once per attack; this batches the fury
+ * writes of a frame into a single array rebuild. Only `fury` is written, so a hp change that lands
+ * in between is never reverted.
+ */
+const scheduleFuryFlush = (
+  minionId: string,
+  nextFury: number,
+  set: (updater: (state: GameState) => Partial<GameState>) => void
+): void => {
+  pendingFuryByMinionId.set(minionId, nextFury);
+  if (isFuryFlushScheduled) return;
+  isFuryFlushScheduled = true;
+  requestNextFrame(() => {
+    isFuryFlushScheduled = false;
+    if (pendingFuryByMinionId.size === 0) return;
+    const furyUpdates = new Map(pendingFuryByMinionId);
+    pendingFuryByMinionId.clear();
+    set((prev) => ({
+      minions: prev.minions.map((minion) => {
+        const furyUpdate = furyUpdates.get(minion.id);
+        if (furyUpdate === undefined || furyUpdate === minion.fury) return minion;
+        return { ...minion, fury: furyUpdate };
+      }),
+    }));
+  });
+};
+
 /** Creates the combat damage, fury, projectiles, likes, and screen VFX slice. */
 export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (set, get) => ({
   addPlayerFury: (playerId: string, amount: number) => {
@@ -185,14 +267,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       ? 0
       : Math.min(targetMinion.maxFury, targetMinion.fury + furyGain);
 
-    const updatedTarget = { ...targetMinion, fury: nextFury };
-    state.minionMap?.set(minionId, updatedTarget);
-
-    set((prev) => ({
-      minions: prev.minions.map((minion) =>
-        minion.id === minionId ? updatedTarget : minion
-      ),
-    }));
+    // The map is updated right away (callers read fury from it); the `minions` array is rebuilt once per frame
+    state.minionMap?.set(minionId, { ...targetMinion, fury: nextFury });
+    scheduleFuryFlush(minionId, nextFury, set);
 
     return { isFullFury, nextFury };
   },
@@ -398,12 +475,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       durationMs: ARROW_VFX_CONFIG.DURATION_MS,
     };
 
-    set((state) => ({
-      activeFlyingArrows: [
-        ...state.activeFlyingArrows.slice(-(ARROW_VFX_CONFIG.MAX_ACTIVE - 1)),
+    set((state) => {
+      const nextArrows = appendIfCapacity(
+        state.activeFlyingArrows,
         newArrow,
-      ],
-    }));
+        ARROW_VFX_CONFIG.MAX_ACTIVE,
+        newArrow.createdAt
+      );
+      if (!nextArrows) return state;
+      return { activeFlyingArrows: nextArrows };
+    });
   },
 
   triggerScreenShake: (intensity = 0.5) => {
@@ -493,6 +574,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
   },
 
   addLikes: (count: number, team: TeamType, userName = 'Viewer') => {
+    trackQuestProgress(get, team, QUEST_KIND.LIKES, count);
     const state = get();
     const newLikesBLG = team === TEAM_KEY.BLG ? state.totalLikesBLG + count : state.totalLikesBLG;
     const newLikesGENG = team === TEAM_KEY.GENG ? state.totalLikesGENG + count : state.totalLikesGENG;
@@ -685,7 +767,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       state.bossWeakPoint !== null &&
       now < state.bossWeakPoint.expiresAt;
 
-    const damageMultiplier = state.championDamageMultiplier ?? 1;
+    const damageMultiplier = (state.championDamageMultiplier ?? 1) * getQuestDamageMultiplier(team, now);
     const baseWithGlobalMultiplier = Math.max(1, Math.round(amount * damageMultiplier));
     const scaledAmount = isWeakPointActive
       ? Math.round(baseWithGlobalMultiplier * BOSS_MECHANICS_CONSTANTS.WEAK_POINT.DAMAGE_MULTIPLIER)
@@ -704,12 +786,13 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         true
       );
 
+      const shieldFeedback = decideHitFeedback(team, absorbedDamage, now, isShieldBroken);
       const shieldHitFloat: FloatingDamageText = {
         id: `float-${now}-${Math.random()}`,
         amount: absorbedDamage,
         text: isShieldBroken
           ? `💥 -${BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE.toLocaleString()}`
-          : `🛡️ -${absorbedDamage.toLocaleString()}`,
+          : `🛡️ ${formatHitText(shieldFeedback.amount, shieldFeedback.hitCount, false)}`,
         damageType: isShieldBroken ? DAMAGE_TYPE.ULTIMATE : effectiveDamageType,
         team,
         playerName,
@@ -768,7 +851,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         return;
       }
 
-      get().spawnParticleBurst([0, 0.4, 0.7], '#38bdf8', 0.8);
+      if (shieldFeedback.shouldShow) get().spawnParticleBurst([0, 0.4, 0.7], '#38bdf8', 0.8);
       set((prev) => ({
         bossShield: prev.bossShield ? { ...prev.bossShield, hp: remainingShieldHp } : null,
         bossHitTimestamp: now,
@@ -778,10 +861,13 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         teamScoreGENG: nextScoreGENG,
         leaderboard: nextViewerBoard,
         proLeaderboard: nextProBoard,
-        floatingDamages: [
-          ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
+        floatingDamages: resolveNextCappedList(
+          prev.floatingDamages,
           shieldHitFloat,
-        ],
+          COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE,
+          false,
+          shieldFeedback.shouldShow
+        ),
       }));
       return;
     }
@@ -847,6 +933,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
     const newBLGScore = team === TEAM_KEY.BLG ? state.teamScoreBLG + effectiveDamage : state.teamScoreBLG;
     const newGENGScore = team === TEAM_KEY.GENG ? state.teamScoreGENG + effectiveDamage : state.teamScoreGENG;
+    if (!options?.excludeFromLeaderboard) recordRoundDamage(playerName, team, effectiveDamage);
     const topLeaderboard = options?.excludeFromLeaderboard
       ? state.leaderboard
       : updateLeaderboardList(state.leaderboard, playerName, team, effectiveDamage);
@@ -858,6 +945,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     let nextRoundWinner: TeamType | null = state.roundWinner;
     let nextIsSeriesEnded = state.isSeriesEnded;
     let nextSeriesWinner: TeamType | null = state.seriesWinner;
+    let nextChampionshipTally = state.championshipTally;
 
     if (isDefeated && !state.roundWinner && !state.isSeriesEnded) {
       nextRoundWinner = newBLGScore >= newGENGScore ? TEAM_KEY.BLG : TEAM_KEY.GENG;
@@ -868,9 +956,22 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       if (nextBO5Score[nextRoundWinner] >= state.bo5TargetWins) {
         nextIsSeriesEnded = true;
         nextSeriesWinner = nextRoundWinner;
+        const loserSlot = nextRoundWinner === TEAM_KEY.BLG ? TEAM_KEY.GENG : TEAM_KEY.BLG;
+        const winnerProfile = state.activeTeams[nextRoundWinner];
+        nextChampionshipTally = addChampionshipTitle(
+          state.championshipTally,
+          winnerProfile,
+          state.activeTeams[loserSlot]
+        );
+        persistChampionshipTally(nextChampionshipTally);
+        const { leftTitles: winnerTitleCount } = getMatchupTitleCount(
+          nextChampionshipTally,
+          winnerProfile,
+          state.activeTeams[loserSlot]
+        );
         get().addLog(
           'SYSTEM',
-          `🏆 ${winnerTag} VÔ ĐỊCH CKTG 2026 BO5 (${nextBO5Score.BLG} - ${nextBO5Score.GENG})!`
+          `🏆 ${winnerTag} VÔ ĐỊCH CKTG 2026 ${state.seriesFormat} (${nextBO5Score.BLG} - ${nextBO5Score.GENG})! Lần vô địch thứ ${winnerTitleCount} trước ${state.activeTeams[loserSlot].shortTag}.`
         );
       } else {
         get().addLog(
@@ -893,11 +994,21 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       0.65 + randomInRange(-0.2, 0.25),
     ];
 
+    // Decided once per hit: crowds fire dozens of hits per second, so normal ones share one number/ring/burst
+    const hitFeedback = decideHitFeedback(
+      team,
+      Number.isFinite(effectiveDamage) ? effectiveDamage : 0,
+      now,
+      isCritOrUlt || isWeakPointActive
+    );
+
     const impactColor = effectiveDamageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : teamPalette.secondary;
     if (isCritOrUlt) {
       get().spawnSlash(hitPoint, impactColor, true);
     }
-    get().spawnParticleBurst(hitPoint, impactColor, DAMAGE_INTENSITY_MAP[effectiveDamageType]);
+    if (hitFeedback.shouldShow) {
+      get().spawnParticleBurst(hitPoint, impactColor, DAMAGE_INTENSITY_MAP[effectiveDamageType]);
+    }
 
     const newShockwaves: ShockwaveEntity[] = [...state.activeShockwaves];
     if (isCritOrUlt) {
@@ -915,16 +1026,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
     const safeAmount = Number.isFinite(effectiveDamage) ? effectiveDamage : 0;
     const textColor = resolveFloatingTextColor(effectiveDamageType, teamPalette.secondary);
-    const textScale = FLOATING_SCALE_MAP[effectiveDamageType];
+    const textScale = resolveMergedTextScale(FLOATING_SCALE_MAP[effectiveDamageType], hitFeedback.hitCount);
 
     const newFloat: FloatingDamageText = {
       id: `float-${now}-${Math.random()}`,
-      amount: safeAmount,
-      text: isWeakPointActive ? `🎯 -${safeAmount.toLocaleString()}` : `-${safeAmount.toLocaleString()}`,
+      amount: hitFeedback.amount,
+      text: formatHitText(hitFeedback.amount, hitFeedback.hitCount, isWeakPointActive),
       damageType: effectiveDamageType,
       team,
       playerName,
-      x: randomInRange(-88, 88),
+      x: resolveTeamFloatX(team),
       y: randomInRange(-48, 44),
       color: textColor,
       scale: textScale,
@@ -960,7 +1071,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       };
 
       if (isComboMilestoneReached(nextCount)) {
-        playSound(SFX_EVENT.COMBO_LEVEL_UP);
+        playSound(SFX_EVENT.COMBO_LEVEL_UP, { rateScale: resolveComboSoundRate(nextCount) });
       }
     }
 
@@ -1027,18 +1138,20 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       leaderboard: topLeaderboard,
       proLeaderboard: nextProLeaderboard,
       activeShockwaves: newShockwaves.slice(-8),
-      floatingDamages: isDefeated
-        ? []
-        : [
-            ...prev.floatingDamages.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE - 1)),
-            newFloat,
-          ],
-      activeHitImpacts: isDefeated
-        ? []
-        : [
-            ...prev.activeHitImpacts.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_ACTIVE_HIT_IMPACTS - 1)),
-            newImpact,
-          ],
+      floatingDamages: resolveNextCappedList(
+        prev.floatingDamages,
+        newFloat,
+        COMBAT_VFX_CONSTANTS.DAMAGE.MAX_FLOATING_DAMAGE,
+        isDefeated,
+        hitFeedback.shouldShow
+      ),
+      activeHitImpacts: resolveNextCappedList(
+        prev.activeHitImpacts,
+        newImpact,
+        COMBAT_VFX_CONSTANTS.DAMAGE.MAX_ACTIVE_HIT_IMPACTS,
+        isDefeated,
+        hitFeedback.shouldShow
+      ),
       teamCombos: isDefeated ? createInitialTeamCombos() : nextTeamCombos,
       teamHeartMomentum: isDefeated ? createInitialTeamHeartMomentum() : prev.teamHeartMomentum,
       minions: isDefeated ? [] : prev.minions,
@@ -1054,6 +1167,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       roundWinner: nextRoundWinner,
       isSeriesEnded: nextIsSeriesEnded,
       seriesWinner: nextSeriesWinner,
+      championshipTally: nextChampionshipTally,
     }));
   },
 });

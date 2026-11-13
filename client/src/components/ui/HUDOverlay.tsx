@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getIsAmbienceEnabled, setIsAmbienceEnabled } from '../../services/arenaAmbience';
 import { useTranslation } from 'react-i18next';
-import { Volume2, VolumeX, UserCheck, ShieldAlert } from 'lucide-react';
+import { Volume2, VolumeX, UserCheck, ShieldAlert, Music } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { audioService } from '../../services/audioService';
 import { BossHealthBar } from './BossHealthBar';
@@ -9,6 +10,7 @@ import { DPSLeaderboard } from './DPSLeaderboard';
 import { GiftBanner } from './GiftBanner';
 import { FloatingDamage } from './FloatingDamage';
 import { LiveChatStream } from './LiveChatStream';
+import { KillFeed, WipeStamp } from './KillFeed';
 import { LikeCounter } from './LikeCounter';
 import { ParticipationGuidePanel } from './ParticipationGuidePanel';
 import { VictoryOverlay } from './VictoryOverlay';
@@ -101,12 +103,19 @@ export const HUDOverlay = () => {
     };
   }, []);
 
+  const [isAmbienceOn, setIsAmbienceOn] = useState<boolean>(getIsAmbienceEnabled);
+  const toggleAmbience = () => {
+    const next = !isAmbienceOn;
+    setIsAmbienceOn(next);
+    setIsAmbienceEnabled(next);
+  };
+
   const toggleAudio = () => {
     const next = !isAudioOn;
     setIsAudioOn(next);
     audioService.isAudioEnabled = next;
     if (next) {
-      audioService.playGiftFanfare();
+      audioService.playUiToggleSound(true);
     }
   };
 
@@ -158,6 +167,7 @@ export const HUDOverlay = () => {
         <BossEnragedEntranceBanner themeConfig={getThemeConfig(gameTheme)} />
         <GiftBanner />
         <HeartMilestoneBanner />
+        <WipeStamp />
       </div>
 
       {/* Top Section: Esports Broadcast Header & Scores */}
@@ -184,6 +194,15 @@ export const HUDOverlay = () => {
               ) : (
                 <VolumeX className="w-3 h-3 text-slate-500" />
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleAmbience}
+              className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
+              title={isAmbienceOn ? t('Audio.ambienceOff', 'Tắt nhạc nền') : t('Audio.ambienceOn', 'Bật nhạc nền')}
+            >
+              <Music className={isAmbienceOn ? 'w-3 h-3 text-cyan-300' : 'w-3 h-3 text-slate-500'} />
             </button>
 
             <button
@@ -282,6 +301,7 @@ export const HUDOverlay = () => {
           </div>
 
           <div className="flex flex-col items-end space-y-1.5 pointer-events-auto min-w-0 w-[48%] max-w-[180px] sm:w-auto sm:max-w-[44%]">
+            <KillFeed />
             {overlayVisibility.howToPlay && <ParticipationGuidePanel />}
             {overlayVisibility.likeCounter && <LikeCounter />}
           </div>

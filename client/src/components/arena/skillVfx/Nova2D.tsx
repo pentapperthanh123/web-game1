@@ -1,61 +1,68 @@
 import React from 'react';
-import { SkillVfx2DProps } from './skillVfxShared';
+import { BOSS_SKILL_VFX_2D_ALPHA, BOSS_SKILL_VFX_STYLE } from '../../../constants/bossSkillVfx';
+import { SKILL_VFX_2D_LAYER_STYLE, SkillVfx2DProps, withAlpha } from './skillVfxShared';
 
 const BASE_RING_PX = 260;
 const RAY_LENGTH_PX = 420;
+const RAY_THICKNESS_PX = 2;
+const MIN_RAYS = 6;
+const CORE_SIZE_RATIO = 0.6;
+const RING_STAGGER_MS = 180;
+const RING_BAND_START = 58;
+const RING_BAND_PEAK = 66;
+const RING_BAND_END = 71;
+const RING_ALPHAS: readonly string[] = [BOSS_SKILL_VFX_2D_ALPHA.STRONG, BOSS_SKILL_VFX_2D_ALPHA.MEDIUM];
 
-/** Ultimate: blinding core flash, rotating rays and a huge expanding ring engulfing the arena. */
-export const Nova2D: React.FC<SkillVfx2DProps> = React.memo(
-  ({ color, secondaryColor, scale, count, nonce }) => {
-    const rayCount = Math.max(6, count);
-    const ringPx = Math.round(BASE_RING_PX * scale);
+/** Soft ring band (transparent centre → bright rim → transparent) instead of a hard solid border. */
+const buildRingBackground = (color: string, alphaHex: string): string =>
+  `radial-gradient(circle, transparent ${RING_BAND_START}%, ${withAlpha(color, alphaHex)} ${RING_BAND_PEAK}%, transparent ${RING_BAND_END}%)`;
 
-    return (
-      <div className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30">
-        <div
-          key={`${nonce}-flash`}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full animate-skill-nova-core"
-          style={{
-            width: ringPx * 0.6,
-            height: ringPx * 0.6,
-            background: `radial-gradient(circle, #ffffff 0%, ${secondaryColor} 40%, ${color} 70%, transparent 100%)`,
-            boxShadow: `0 0 80px ${color}, 0 0 160px ${secondaryColor}`,
-          }}
-        />
-        <div
-          key={`${nonce}-rays`}
-          className="absolute left-1/2 top-1/2 animate-skill-nova-rays"
-          style={{ width: 0, height: 0 }}
-        >
-          {Array.from({ length: rayCount }, (_, index) => (
-            <div
-              key={index}
-              className="absolute left-0 top-0 origin-left h-[3px]"
-              style={{
-                width: Math.round(RAY_LENGTH_PX * scale),
-                transform: `rotate(${(index / rayCount) * 360}deg)`,
-                background: `linear-gradient(to right, #ffffff, ${secondaryColor} 30%, transparent)`,
-                boxShadow: `0 0 12px ${color}`,
-              }}
-            />
-          ))}
-        </div>
-        {[0, 1].map((index) => (
+/** Ultimate: white-hot core flash, rotating soft rays and two expanding shockwave bands. */
+export const Nova2D: React.FC<SkillVfx2DProps> = React.memo(({ color, secondaryColor, scale, count, nonce }) => {
+  const rayCount = Math.max(MIN_RAYS, count);
+  const ringPx = Math.round(BASE_RING_PX * scale);
+  const corePx = ringPx * CORE_SIZE_RATIO;
+  const ringColors = [secondaryColor, color];
+
+  return (
+    <div className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30" style={SKILL_VFX_2D_LAYER_STYLE}>
+      <div
+        key={`${nonce}-flash`}
+        className="absolute left-1/2 top-1/2 rounded-full animate-skill-nova-core"
+        style={{
+          width: corePx,
+          height: corePx,
+          background: `radial-gradient(circle, ${BOSS_SKILL_VFX_STYLE.CORE_COLOR} 0%, ${withAlpha(secondaryColor, BOSS_SKILL_VFX_2D_ALPHA.STRONG)} 25%, ${withAlpha(color, BOSS_SKILL_VFX_2D_ALPHA.SOFT)} 55%, transparent 75%)`,
+        }}
+      />
+      <div key={`${nonce}-rays`} className="absolute left-1/2 top-1/2 w-0 h-0 animate-skill-nova-rays">
+        {Array.from({ length: rayCount }, (_, index) => (
           <div
-            key={`${nonce}-ring-${index}`}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 animate-skill-nova-ring"
+            key={index}
+            className="absolute left-0 top-0 origin-left rounded-full"
             style={{
-              width: ringPx,
-              height: ringPx,
-              borderColor: index === 0 ? '#ffffff' : color,
-              boxShadow: `0 0 40px ${color}, inset 0 0 40px ${secondaryColor}`,
-              animationDelay: `${index * 180}ms`,
+              width: Math.round(RAY_LENGTH_PX * scale),
+              height: RAY_THICKNESS_PX,
+              transform: `rotate(${(index / rayCount) * 360}deg)`,
+              background: `linear-gradient(to right, ${withAlpha(BOSS_SKILL_VFX_STYLE.CORE_COLOR, BOSS_SKILL_VFX_2D_ALPHA.STRONG)}, ${withAlpha(secondaryColor, BOSS_SKILL_VFX_2D_ALPHA.MEDIUM)} 30%, transparent)`,
             }}
           />
         ))}
       </div>
-    );
-  }
-);
+      {ringColors.map((ringColor, index) => (
+        <div
+          key={`${nonce}-ring-${index}`}
+          className="absolute left-1/2 top-1/2 rounded-full animate-skill-nova-ring"
+          style={{
+            width: ringPx,
+            height: ringPx,
+            background: buildRingBackground(ringColor, RING_ALPHAS[index]),
+            animationDelay: `${index * RING_STAGGER_MS}ms`,
+          }}
+        />
+      ))}
+    </div>
+  );
+});
 
 Nova2D.displayName = 'Nova2D';

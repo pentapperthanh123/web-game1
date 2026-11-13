@@ -1,8 +1,9 @@
 import { useMemo, useRef } from 'react';
+import { getCombatTimeScale } from '../../store/combatMomentStore';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
+import { BOSS_STATUS, COMBAT_VFX_CONSTANTS } from '../../constants/game';
 import {
   liveMinionPositionMap,
   getLiveMinionPosition,
@@ -11,29 +12,40 @@ import {
 import { ChampionAIState, project3DToScreen } from './summon/summonShared';
 import { createInitialChampionAI, stepChampionFrame } from './summon/championFrameLogic';
 import { SummonGroundPortalsInstanced } from './summon/SummonGroundPortalsInstanced';
+import { SquadEntrancePulse3D } from './summon/SquadEntrancePulse3D';
 import { ChampionToken } from './summon/ChampionToken';
 import { allocSlot, freeSlot } from '../../workers/physicsSharedBuffer';
 import { DefeatedChampionToken } from './summon/DefeatedChampionToken';
+import { CHAMPION_DEFAULT_MAX_HP } from '../../constants/bossSkills';
 
 export { liveMinionPositionMap, getLiveMinionPosition, project3DToScreen };
 
 const activeMinionIdsSet = new Set<string>();
+
+/** Hysteresis so the field does not flip between detail levels around the threshold. */
+const useCompactCrowdMode = (championCount: number): boolean => {
+  const isCompactRef = useRef(false);
+  const lod = COMBAT_VFX_CONSTANTS.CROWD_LOD;
+  if (championCount >= lod.COMPACT_ENTER_COUNT) isCompactRef.current = true;
+  if (championCount <= lod.COMPACT_EXIT_COUNT) isCompactRef.current = false;
+  return isCompactRef.current;
+};
 
 export const SummonPortals3D = () => {
   const championsGroupRef = useRef<THREE.Group>(null);
   const aiStatesRef = useRef<Map<string, ChampionAIState>>(new Map());
 
   const minions = useGameStore((state) => state.minions);
-  const maxActivePerTeam = useGameStore(
-    (state) => state.participationRuleConfig?.maxActivePerTeam ?? GAME_CONSTANTS.SUMMON_RULES.MAX_ACTIVE_PER_TEAM
-  );
   const activeDefeatedChampions = useGameStore((state) => state.activeDefeatedChampions);
+  // One subscription for the whole field; tokens used to subscribe one by one (2 x N listeners per store update)
+  const activeTeams = useGameStore((state) => state.activeTeams);
+  const shouldUseUserAvatar = useGameStore((state) => state.useUserAvatar);
+  // Unlimited floor: all living champions actively fight on the battlefield
   const visibleMinions = useMemo(() => {
-    const maxPerSide = maxActivePerTeam;
-    const blgMinions = minions.filter((m) => m.team === TEAM_KEY.BLG).slice(-maxPerSide);
-    const gengMinions = minions.filter((m) => m.team === TEAM_KEY.GENG).slice(-maxPerSide);
-    return [...blgMinions, ...gengMinions];
-  }, [minions, maxActivePerTeam]);
+    return minions.filter((m) => (m.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0);
+  }, [minions]);
+  const isCompact = useCompactCrowdMode(visibleMinions.length);
+  const nameplateStartIndex = visibleMinions.length - COMBAT_VFX_CONSTANTS.CROWD_LOD.COMPACT_NAMEPLATE_BUDGET;
 
   useFrame((state, delta) => {
     const championsGroup = championsGroupRef.current;
@@ -44,7 +56,7 @@ export const SummonPortals3D = () => {
 
     const now = Date.now();
     const elapsedTime = state.clock.getElapsedTime();
-    const clampedDelta = Math.min(0.1, delta);
+    const clampedDelta = Math.min(0.1, delta) * getCombatTimeScale(Date.now());
     const { bossStatus, bossHp, isRoundIntermission, roundWinner } = useGameStore.getState();
     const isBossAlive =
       bossStatus !== BOSS_STATUS.DEFEATED &&
@@ -64,7 +76,7 @@ export const SummonPortals3D = () => {
 
       let ai = aiStatesRef.current.get(minion.id);
       if (!ai) {
-        ai = createInitialChampionAI(minion, i, elapsedTime);
+        ai = createInitialChampionAI(minion, elapsedTime);
         aiStatesRef.current.set(minion.id, ai);
       }
 
@@ -94,11 +106,18 @@ export const SummonPortals3D = () => {
   return (
     <group>
       <SummonGroundPortalsInstanced />
+      <SquadEntrancePulse3D />
 
       <group ref={championsGroupRef}>
-        {visibleMinions.map((minion) => (
-          <group key={minion.id} position={minion.spawnPosition}>
-            <ChampionToken minion={minion} />
+        {visibleMinions.map((minion, index) => (
+          <group key={`${minion.id}:${isCompact ? 'c' : 'f'}`} position={minion.spawnPosition}>
+            <ChampionToken
+              minion={minion}
+              colorThemeId={activeTeams[minion.team]?.colorTheme}
+              shouldUseUserAvatar={shouldUseUserAvatar}
+              isCompact={isCompact}
+              hasNameplate={!isCompact || index >= nameplateStartIndex}
+            />
           </group>
         ))}
       </group>

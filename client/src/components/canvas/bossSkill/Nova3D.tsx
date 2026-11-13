@@ -1,86 +1,186 @@
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { BOSS_3D_ANCHORS, SkillVfx3DProps, computeProgress, easeOutCubic, setMaterialOpacity } from './bossSkill3DShared';
+import { BOSS_SKILL_VFX_STYLE } from '../../../constants/bossSkillVfx';
+import {
+  ADDITIVE_DOUBLE_SIDED_PROPS,
+  BOSS_3D_ANCHORS,
+  FLAT_ON_GROUND,
+  GROUND_DECAL_LIFT,
+  SHARED_QUAD_GEO,
+  SkillVfx3DProps,
+  computeProgress,
+  easeInCubic,
+  easeOutCubic,
+  easeOutExpo,
+  fadeOut,
+  getSoftGlowTexture,
+  phaseProgress,
+  setMaterialOpacity,
+} from './bossSkill3DShared';
+import { DECAL_TEXTURE, EmberBurst, GlowSprite, GroundDecal } from './VfxPrimitives3D';
 
-const SHARED_CORE_GEO = new THREE.SphereGeometry(0.6, 20, 20);
-const SHARED_RING_GEO = new THREE.RingGeometry(0.8, 1.25, 48);
-const SHARED_DOME_GEO = new THREE.SphereGeometry(1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-const ARC_SEGMENTS = 8;
-const ARC_LIFE = 0.6;
-const MAX_RADIUS = 11;
+const SHARED_DOME_GEO = new THREE.SphereGeometry(1, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2);
 
-const createArc = (color: string): THREE.Line => {
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array((ARC_SEGMENTS + 1) * 3), 3));
-  return new THREE.Line(geometry, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
-};
+/** Timeline: gather energy → detonate → shockwaves roll across the arena → dissipate. */
+const CHARGE_END = 0.16;
+const CORE_FADE_END = 0.55;
+const WAVE_END = 0.92;
+const WAVE_STAGGER = 0.12;
+const RAY_END = 0.7;
 
-/** Ultimate: core flash, expanding dome, double shockwave rings and radial energy arcs across the arena. */
-export const Nova3D = ({ color, secondaryColor, scale, count, startedAt, durationMs }: SkillVfx3DProps) => {
-  const coreRef = useRef<THREE.Mesh>(null);
-  const domeRef = useRef<THREE.Mesh>(null);
-  const ringGroupRef = useRef<THREE.Group>(null);
-  const arcs = useMemo(() => Array.from({ length: count }, () => createArc(secondaryColor)), [count, secondaryColor]);
+const CORE_MIN_SIZE = 0.6;
+const CORE_GROW = 2.2;
+const CORE_PULSE_RATE = 0.03;
+const CORE_GLOW_RATIO = 0.6;
+const CORE_WHITE_RATIO = 0.3;
+const CORE_PULSE_AMPLITUDE = 0.08;
+const GATHER_RING_START_SIZE = 7;
+const MAX_WAVE_DIAMETER = 22;
+const DOME_MAX_RADIUS = 6.5;
+const DOME_OPACITY_RATIO = 0.25;
+const GROUND_GLOW_SIZE = 9;
+const RAY_MAX_LENGTH = 8;
+const RAY_WIDTH = 0.55;
+const RAY_SPIN = 0.6;
+const MIN_RAYS = 6;
+const EMBER_COUNT = 10;
+const GROUND_POSITION = [0, BOSS_3D_ANCHORS.GROUND_Y + GROUND_DECAL_LIFT, 0] as const;
+const EMBER_ORIGIN = [0, BOSS_3D_ANCHORS.GROUND_Y, 0] as const;
+
+type NovaPartProps = Pick<SkillVfx3DProps, 'color' | 'secondaryColor' | 'scale' | 'startedAt' | 'durationMs' | 'coreOrigin'>;
+
+/** White-hot core that gathers (with an inward-collapsing ring) then detonates. */
+const NovaCore = ({ color, secondaryColor, scale, startedAt, durationMs, coreOrigin }: NovaPartProps) => {
+  const coreRef = useRef<THREE.Group>(null);
+  const gatherRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
     const progress = computeProgress(startedAt, durationMs);
-    const isAlive = progress > 0 && progress < 1;
+    const charge = easeInCubic(phaseProgress(progress, 0, CHARGE_END));
+    const fade = fadeOut(phaseProgress(progress, CHARGE_END, CORE_FADE_END));
+    const pulse = 1 + Math.sin(progress * durationMs * CORE_PULSE_RATE) * CORE_PULSE_AMPLITUDE;
     if (coreRef.current) {
-      coreRef.current.visible = isAlive;
-      const flash = progress < 0.15 ? progress / 0.15 : Math.max(0, 1 - (progress - 0.15) / 0.5);
-      coreRef.current.scale.setScalar((0.3 + flash * 2.2) * scale);
-      setMaterialOpacity(coreRef.current, flash);
+      coreRef.current.visible = progress > 0 && progress < CORE_FADE_END;
+      coreRef.current.scale.setScalar((CORE_MIN_SIZE + CORE_GROW * charge) * scale * pulse);
+      setMaterialOpacity(coreRef.current, easeOutCubic(phaseProgress(progress, 0, CHARGE_END)) * fade * BOSS_SKILL_VFX_STYLE.MAX_CORE_OPACITY);
     }
-    if (domeRef.current) {
-      domeRef.current.visible = isAlive;
-      domeRef.current.scale.setScalar(0.5 + easeOutCubic(progress) * MAX_RADIUS * 0.6 * scale);
-      setMaterialOpacity(domeRef.current, (1 - progress) * 0.25);
+    if (gatherRef.current) {
+      const gather = phaseProgress(progress, 0, CHARGE_END);
+      gatherRef.current.visible = gather > 0 && gather < 1;
+      gatherRef.current.scale.setScalar(GATHER_RING_START_SIZE * (1 - easeInCubic(gather)) * scale);
+      setMaterialOpacity(gatherRef.current, easeOutCubic(gather) * BOSS_SKILL_VFX_STYLE.MAX_GLOW_OPACITY);
     }
-    ringGroupRef.current?.children.forEach((ring, index) => {
-      const local = Math.min(1, Math.max(0, progress - index * 0.15));
-      ring.visible = isAlive && local > 0;
-      const radius = (0.5 + easeOutCubic(local) * MAX_RADIUS) * scale;
-      ring.scale.set(radius, radius, 1);
-      setMaterialOpacity(ring, (1 - local) * 0.95);
-    });
-    arcs.forEach((arc, index) => {
-      const alive = isAlive && progress < ARC_LIFE;
-      arc.visible = alive;
-      if (!alive) return;
-      const angle = (index / arcs.length) * Math.PI * 2 + progress * 0.8;
-      const reach = (2 + easeOutCubic(progress / ARC_LIFE) * 6) * scale;
-      const positions = (arc.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
-      for (let segment = 0; segment <= ARC_SEGMENTS; segment += 1) {
-        const fraction = segment / ARC_SEGMENTS;
-        const jitter = segment === 0 || segment === ARC_SEGMENTS ? 0 : (Math.random() - 0.5) * 0.6;
-        positions[segment * 3] = Math.cos(angle) * reach * fraction + jitter;
-        positions[segment * 3 + 1] = THREE.MathUtils.lerp(0.6, BOSS_3D_ANCHORS.GROUND_Y, fraction) + jitter;
-        positions[segment * 3 + 2] = Math.sin(angle) * reach * fraction * 0.6 + 0.5 + jitter;
-      }
-      (arc.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
-      setMaterialOpacity(arc, Math.random() > 0.2 ? 0.95 : 0.35);
-    });
   });
 
   return (
     <group>
-      <mesh ref={coreRef} position={[0, 0.5, 0.3]} geometry={SHARED_CORE_GEO} visible={false}>
-        <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-      <mesh ref={domeRef} position={[0, BOSS_3D_ANCHORS.GROUND_Y, 0]} geometry={SHARED_DOME_GEO} visible={false}>
-        <meshBasicMaterial color={color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
-      </mesh>
-      <group ref={ringGroupRef} position={[0, BOSS_3D_ANCHORS.GROUND_Y + 0.05, 0.1]} rotation={[-Math.PI / 2, 0, 0]}>
-        {[0, 1].map((index) => (
-          <mesh key={`${startedAt}-ring-${index}`} geometry={SHARED_RING_GEO} visible={false}>
-            <meshBasicMaterial color={index === 0 ? '#ffffff' : color} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
-          </mesh>
-        ))}
+      <group ref={coreRef} position={coreOrigin} visible={false}>
+        <GlowSprite color={color} opacityScale={BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.HALO} />
+        <group scale={CORE_GLOW_RATIO}>
+          <GlowSprite color={secondaryColor} opacityScale={BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.GLOW} />
+        </group>
+        <group scale={CORE_WHITE_RATIO}>
+          <GlowSprite color={BOSS_SKILL_VFX_STYLE.CORE_COLOR} />
+        </group>
       </group>
-      {arcs.map((arc, index) => (
-        <primitive key={`${startedAt}-arc-${index}`} object={arc} />
+      <group ref={gatherRef} position={GROUND_POSITION} visible={false}>
+        <GroundDecal color={secondaryColor} texture={DECAL_TEXTURE.RING} />
+      </group>
+    </group>
+  );
+};
+
+/** Ground glow, translucent dome and two shockwave bands rolling across the arena. */
+const NovaShockwaves = ({ color, secondaryColor, scale, startedAt, durationMs }: NovaPartProps) => {
+  const wavesRef = useRef<THREE.Group>(null);
+  const domeRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    const progress = computeProgress(startedAt, durationMs);
+    const blast = phaseProgress(progress, CHARGE_END, WAVE_END);
+    wavesRef.current?.children.forEach((wave, index) => {
+      const local = phaseProgress(progress, CHARGE_END + index * WAVE_STAGGER, WAVE_END);
+      wave.visible = local > 0 && local < 1;
+      wave.scale.setScalar(easeOutExpo(local) * MAX_WAVE_DIAMETER * scale);
+      setMaterialOpacity(wave, fadeOut(local) * BOSS_SKILL_VFX_STYLE.MAX_GLOW_OPACITY);
+    });
+    if (domeRef.current) {
+      domeRef.current.visible = blast > 0 && blast < 1;
+      domeRef.current.scale.setScalar(easeOutExpo(blast) * DOME_MAX_RADIUS * scale);
+      setMaterialOpacity(domeRef.current, fadeOut(blast) * BOSS_SKILL_VFX_STYLE.MAX_HALO_OPACITY * DOME_OPACITY_RATIO);
+    }
+    if (glowRef.current) {
+      glowRef.current.visible = blast > 0 && blast < 1;
+      setMaterialOpacity(glowRef.current, fadeOut(blast) * BOSS_SKILL_VFX_STYLE.MAX_DECAL_OPACITY);
+    }
+  });
+
+  return (
+    <group>
+      <group ref={glowRef} position={GROUND_POSITION} scale={GROUND_GLOW_SIZE * scale} visible={false}>
+        <GroundDecal color={color} />
+      </group>
+      <group ref={wavesRef} position={GROUND_POSITION}>
+        <group visible={false}>
+          <GroundDecal color={BOSS_SKILL_VFX_STYLE.CORE_COLOR} texture={DECAL_TEXTURE.RING} />
+        </group>
+        <group visible={false}>
+          <GroundDecal color={secondaryColor} texture={DECAL_TEXTURE.RING} />
+        </group>
+      </group>
+      <mesh ref={domeRef} position={[0, BOSS_3D_ANCHORS.GROUND_Y, 0]} geometry={SHARED_DOME_GEO} visible={false}>
+        <meshBasicMaterial {...ADDITIVE_DOUBLE_SIDED_PROPS} color={color} />
+      </mesh>
+    </group>
+  );
+};
+
+/** Soft light rays fanning out across the floor, slowly rotating. */
+const NovaRays = ({ secondaryColor, scale, count, startedAt, durationMs }: NovaPartProps & { count: number }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const rayCount = Math.max(MIN_RAYS, count);
+
+  useFrame(() => {
+    const group = groupRef.current;
+    if (!group) return;
+    const local = phaseProgress(computeProgress(startedAt, durationMs), CHARGE_END, RAY_END);
+    group.visible = local > 0 && local < 1;
+    group.rotation.y = easeOutCubic(local) * RAY_SPIN;
+    const reach = easeOutExpo(local) * RAY_MAX_LENGTH * scale;
+    group.children.forEach((pivot) => {
+      const ray = pivot.children[0];
+      ray.position.x = reach / 2;
+      ray.scale.set(reach, RAY_WIDTH * scale, 1);
+    });
+    setMaterialOpacity(group, fadeOut(local) * BOSS_SKILL_VFX_STYLE.MAX_GLOW_OPACITY);
+  });
+
+  return (
+    <group ref={groupRef} position={GROUND_POSITION} visible={false}>
+      {Array.from({ length: rayCount }, (_, index) => (
+        <group key={`${startedAt}-ray-${index}`} rotation={[0, (index / rayCount) * Math.PI * 2, 0]}>
+          <mesh geometry={SHARED_QUAD_GEO} rotation={FLAT_ON_GROUND}>
+            <meshBasicMaterial {...ADDITIVE_DOUBLE_SIDED_PROPS} map={getSoftGlowTexture()} color={secondaryColor} />
+          </mesh>
+        </group>
       ))}
+    </group>
+  );
+};
+
+/** Ultimate: energy gathers into a white-hot core, detonates, and shockwaves + rays sweep the whole arena. */
+export const Nova3D = ({ color, secondaryColor, scale, count, startedAt, durationMs, coreOrigin }: SkillVfx3DProps) => {
+  const partProps = { color, secondaryColor, scale, startedAt, durationMs, coreOrigin };
+  return (
+    <group>
+      <NovaCore {...partProps} />
+      <group position={[coreOrigin[0], 0, 0]}>
+        <NovaShockwaves {...partProps} />
+        <NovaRays {...partProps} count={count} />
+      </group>
+      <EmberBurst color={secondaryColor} origin={EMBER_ORIGIN} count={EMBER_COUNT} seed={startedAt} startedAt={startedAt} durationMs={durationMs} start={CHARGE_END} end={WAVE_END} scale={scale} />
     </group>
   );
 };
