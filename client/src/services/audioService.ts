@@ -8,11 +8,65 @@ import {
   TeamType,
   AUDIO_SFX_CONSTANTS,
 } from '../constants/game';
+import { AudioDensityGate } from './audioDensityGate';
+
+export const AUDIO_BUS = {
+  /** Stingers, fanfares, boss voice: never ducked. */
+  MASTER: 'MASTER',
+  /** Hits, whooshes, chimes, ambience: density-limited and ducked under stingers. */
+  COMBAT: 'COMBAT',
+} as const;
+export type AudioBus = (typeof AUDIO_BUS)[keyof typeof AUDIO_BUS];
+
+const resolveTeamPan = (team: TeamType | undefined, width: number): number => {
+  if (team === TEAM_KEY.BLG) return -width;
+  if (team === TEAM_KEY.GENG) return width;
+  return 0;
+};
+
+/** Silver Scrapes duel loop: D minor riff, one note per step. */
+const BGM_SEQUENCE = {
+  NOTES: [146.83, 146.83, 174.61, 196.0, 220.0, 196.0, 174.61, 146.83],
+  STEP_MS: 280,
+  BEATS_PER_BAR: 4,
+  NOTE_S: 0.24,
+  ATTACK_S: 0.02,
+  LEAD_GAIN: 0.12,
+  LEAD_FILTER_HZ: 900,
+  LEAD_FILTER_FLOOR_HZ: 320,
+  LEAD_FILTER_Q: 1.2,
+  SUB_GAIN: 0.2,
+  SUB_S: 0.2,
+} as const;
+
+const TTS_CONSTANTS = {
+  MAX_QUEUE: 3,
+} as const;
+
+/**
+ * Keeps names readable: "Viewer_830" → "Viewer", "Gamer_Pro_99_358" → "Gamer Pro",
+ * long numbers dropped, underscores spoken as spaces. The old version removed the whole token,
+ * so such names were read as nothing.
+ */
+/** Digit runs of 4+ are IDs or raw amounts nobody wants read aloud. */
+const LONG_NUMBER_PATTERN = /\d{4,}/g;
+
+const sanitizeSpeechText = (text: string): string =>
+  text
+    .replace(/(_\d+)+/g, '')
+    .replace(LONG_NUMBER_PATTERN, '')
+    .replace(/_+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 class AudioSynthesizerService {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private combatGain: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
+  private readonly impactGate = new AudioDensityGate(AUDIO_SFX_CONSTANTS.IMPACT_THROTTLE_MS);
+  private readonly skillGate = new AudioDensityGate(AUDIO_SFX_CONSTANTS.SKILL_THROTTLE_MS);
+  private readonly whooshGate = new AudioDensityGate(AUDIO_SFX_CONSTANTS.WHOOSH_THROTTLE_MS);
 
   public isAudioEnabled: boolean = GAME_CONSTANTS.AUDIO.DEFAULT_ENABLED;
   public isTtsEnabled: boolean = GAME_CONSTANTS.AUDIO.DEFAULT_TTS_ENABLED;
@@ -29,11 +83,9 @@ class AudioSynthesizerService {
 
   private isSpeaking = false;
   private ttsQueue: string[] = [];
-  private lastHitSoundTime = 0;
-  private lastWhooshSoundTime = 0;
   private lastRoarSoundTime = 0;
-  private lastSkillSoundTime = 0;
   private lastComboSoundTime = 0;
+  private lastHeartChimeTime = 0;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -77,6 +129,12 @@ class AudioSynthesizerService {
         master.gain.setValueAtTime(this.volume, this.ctx.currentTime);
         master.connect(compressor);
         this.masterGain = master;
+
+        // 3. Combat Bus: rapid gameplay sounds share one gain so stingers can duck them
+        const combat = this.ctx.createGain();
+        combat.gain.setValueAtTime(AUDIO_SFX_CONSTANTS.COMBAT_BUS_LEVEL, this.ctx.currentTime);
+        combat.connect(master);
+        this.combatGain = combat;
       }
     }
 
@@ -86,20 +144,46 @@ class AudioSynthesizerService {
     return this.ctx;
   }
 
-  // Get output node with optional stereo panning
-  private getOutputNode(pan = 0): AudioNode {
+  /** Output node with optional stereo panning, routed through the requested bus. */
+  private getOutputNode(pan = 0, bus: AudioBus = AUDIO_BUS.COMBAT): AudioNode {
     const ctx = this.getAudioContext();
     if (!ctx || !this.masterGain) return ctx?.destination as AudioNode;
 
-    // Use Web Audio StereoPannerNode when available
+    const busNode = bus === AUDIO_BUS.COMBAT && this.combatGain ? this.combatGain : this.masterGain;
     if (typeof ctx.createStereoPanner === 'function' && Math.abs(pan) > 0.05) {
       const panner = ctx.createStereoPanner();
       panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), ctx.currentTime);
-      panner.connect(this.masterGain);
+      panner.connect(busNode);
       return panner;
     }
 
-    return this.masterGain;
+    return busNode;
+  }
+
+  /** Context + combat-bus input for long-running layers (arena ambience); null when audio is off. */
+  public getCombatOutput(): { ctx: AudioContext; node: AudioNode } | null {
+    if (!this.isAudioEnabled) return null;
+    const ctx = this.getAudioContext();
+    if (!ctx) return null;
+    return { ctx, node: this.getOutputNode(0, AUDIO_BUS.COMBAT) };
+  }
+
+  /** Briefly lowers the combat bus so a stinger (victory, boss ultimate...) stands out. */
+  public duckCombat(durationMs: number): void {
+    const ctx = this.getAudioContext();
+    if (!ctx || !this.combatGain) return;
+    const t = ctx.currentTime;
+    const gain = this.combatGain.gain;
+    const duckedLevel = AUDIO_SFX_CONSTANTS.COMBAT_BUS_LEVEL * AUDIO_SFX_CONSTANTS.DUCK_LEVEL;
+    const releaseStart = t + durationMs / 1000;
+    gain.cancelScheduledValues(t);
+    gain.setValueAtTime(gain.value, t);
+    gain.linearRampToValueAtTime(duckedLevel, t + AUDIO_SFX_CONSTANTS.DUCK_ATTACK_S);
+    gain.setValueAtTime(duckedLevel, releaseStart);
+    gain.linearRampToValueAtTime(
+      AUDIO_SFX_CONSTANTS.COMBAT_BUS_LEVEL,
+      releaseStart + AUDIO_SFX_CONSTANTS.DUCK_RELEASE_S
+    );
   }
 
   // Procedural white noise buffer for wind, fire, electricity and whooshes
@@ -128,7 +212,7 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const vol = this.volume * (isEnraged ? 1.4 : 1.15);
 
     // Layer A: Primordial Earthquake Sub-Bass Drop
@@ -351,19 +435,16 @@ class AudioSynthesizerService {
     team?: TeamType
   ): void {
     if (!this.isAudioEnabled || this.isCombatMuted) return;
-    const now = performance.now();
-    if (!isCrit && now - this.lastSkillSoundTime < AUDIO_SFX_CONSTANTS.SKILL_THROTTLE_MS) {
-      return;
-    }
-    this.lastSkillSoundTime = now;
+    const gate = this.skillGate.request(performance.now());
+    if (!gate.shouldPlay && !isCrit) return;
 
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const pan = team === TEAM_KEY.BLG ? -0.38 : team === TEAM_KEY.GENG ? 0.38 : 0;
-    const out = this.getOutputNode(pan);
-    const vol = this.volume * (isCrit ? 1.25 : 1.0);
+    const out = this.getOutputNode(resolveTeamPan(team, 0.38));
+    const critBoost = isCrit ? 1.25 : 1.0;
+    const vol = this.volume * critBoost * Math.max(gate.gainScale, AUDIO_SFX_CONSTANTS.DENSITY_MIN_GAIN);
 
     switch (vfxType) {
       case CHAMPION_SKILL_VFX_TYPE.SHURIKEN: {
@@ -837,9 +918,8 @@ class AudioSynthesizerService {
   // 4. Visceral Multi-Layer Damage Impact Sound (Hit feeling on Baron / Elder Dragon)
   public playDamageImpactSound(damageType: DamageType = DAMAGE_TYPE.NORMAL, isCrit = false): void {
     if (!this.isAudioEnabled || this.isCombatMuted) return;
-    const now = performance.now();
-    if (now - this.lastHitSoundTime < 90) return;
-    this.lastHitSoundTime = now;
+    const gate = this.impactGate.request(performance.now());
+    if (!gate.shouldPlay) return;
 
     const ctx = this.getAudioContext();
     if (!ctx) return;
@@ -848,7 +928,7 @@ class AudioSynthesizerService {
     const out = this.getOutputNode(0);
     const isUltimate = damageType === DAMAGE_TYPE.ULTIMATE;
     const isCritical = isCrit || damageType === DAMAGE_TYPE.CRIT;
-    const vol = this.volume;
+    const vol = this.volume * gate.gainScale;
 
     // Layer A: Punchy Low-End Sub Kick Thump
     const bassOsc = ctx.createOscillator();
@@ -971,7 +1051,7 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const chord =
       comboCount >= 50
         ? [523.25, 659.25, 783.99, 1046.5, 1318.51] // C Major 9 epic glory
@@ -996,9 +1076,8 @@ class AudioSynthesizerService {
   // 7. Procedural Attack Whoosh
   public playAttackWhoosh(isCrit = false, isMelee = false): void {
     if (!this.isAudioEnabled || this.isCombatMuted) return;
-    const now = performance.now();
-    if (now - this.lastWhooshSoundTime < 40) return;
-    this.lastWhooshSoundTime = now;
+    const gate = this.whooshGate.request(performance.now());
+    if (!gate.shouldPlay) return;
 
     const ctx = this.getAudioContext();
     if (!ctx) return;
@@ -1018,7 +1097,7 @@ class AudioSynthesizerService {
     osc.frequency.setValueAtTime(baseFreq, t);
     osc.frequency.exponentialRampToValueAtTime(170, t + 0.1);
 
-    gain.gain.setValueAtTime((isCrit ? 0.24 : 0.15) * this.volume, t);
+    gain.gain.setValueAtTime((isCrit ? 0.24 : 0.15) * this.volume * gate.gainScale, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
 
     osc.connect(gain);
@@ -1044,7 +1123,7 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6 chord
     notes.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
@@ -1077,7 +1156,7 @@ class AudioSynthesizerService {
     ];
 
     let start = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     melody.forEach((note) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -1130,7 +1209,7 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const vol = Math.min(1.5, this.volume * 1.35);
 
     // Layer 1: Deep Tectonic Implosion Sub-Boom
@@ -1184,6 +1263,9 @@ class AudioSynthesizerService {
   // 11. Procedural Heart Sparkle Chime
   public playHeartChime(): void {
     if (!this.isAudioEnabled || this.isCombatMuted) return;
+    const now = performance.now();
+    if (now - this.lastHeartChimeTime < AUDIO_SFX_CONSTANTS.HEART_CHIME_THROTTLE_MS) return;
+    this.lastHeartChimeTime = now;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1211,7 +1293,7 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51]; // C5 - E5 - G5 - C6 - E6
 
     notes.forEach((freq, idx) => {
@@ -1243,7 +1325,7 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
 
     const sirenOsc = ctx.createOscillator();
     const sirenGain = ctx.createGain();
@@ -1271,7 +1353,7 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const notes = [293.66, 440.0, 587.33]; // D4 - A4 - D5
 
     notes.forEach((freq, idx) => {
@@ -1300,7 +1382,7 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
@@ -1333,30 +1415,49 @@ class AudioSynthesizerService {
     if (!ctx) return;
 
     let step = 0;
-    const notes = [146.83, 146.83, 174.61, 196.0, 220.0, 196.0, 174.61, 146.83];
-    const intervalMs = 280;
+    const notes = BGM_SEQUENCE.NOTES;
+    const intervalMs = BGM_SEQUENCE.STEP_MS;
 
     const tick = () => {
       if (!this.isAudioEnabled || this.isCombatMuted || !this.ctx) return;
-      const t = this.ctx.currentTime;
+      const ctx = this.ctx;
+      const t = ctx.currentTime;
       const out = this.getOutputNode(0);
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
       const freq = notes[step % notes.length];
+      const isDownbeat = step % BGM_SEQUENCE.BEATS_PER_BAR === 0;
       step++;
 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, t);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.98, t + 0.22);
+      // Lead: lowpass-filtered sawtooth so it hums instead of buzzing
+      const lead = ctx.createOscillator();
+      const leadFilter = ctx.createBiquadFilter();
+      const leadGain = ctx.createGain();
+      lead.type = 'sawtooth';
+      lead.frequency.setValueAtTime(freq, t);
+      leadFilter.type = 'lowpass';
+      leadFilter.frequency.setValueAtTime(BGM_SEQUENCE.LEAD_FILTER_HZ, t);
+      leadFilter.frequency.exponentialRampToValueAtTime(BGM_SEQUENCE.LEAD_FILTER_FLOOR_HZ, t + BGM_SEQUENCE.NOTE_S);
+      leadFilter.Q.value = BGM_SEQUENCE.LEAD_FILTER_Q;
+      leadGain.gain.setValueAtTime(0.0001, t);
+      leadGain.gain.exponentialRampToValueAtTime(BGM_SEQUENCE.LEAD_GAIN * this.volume, t + BGM_SEQUENCE.ATTACK_S);
+      leadGain.gain.exponentialRampToValueAtTime(0.0001, t + BGM_SEQUENCE.NOTE_S);
+      lead.connect(leadFilter);
+      leadFilter.connect(leadGain);
+      leadGain.connect(out);
+      lead.start(t);
+      lead.stop(t + BGM_SEQUENCE.NOTE_S);
 
-      gain.gain.setValueAtTime(0.18 * this.volume, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
-
-      osc.connect(gain);
-      gain.connect(out);
-      osc.start(t);
-      osc.stop(t + 0.25);
+      // Sub pulse one octave down on downbeats gives the loop a heartbeat
+      if (!isDownbeat) return;
+      const sub = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(freq / 2, t);
+      subGain.gain.setValueAtTime(BGM_SEQUENCE.SUB_GAIN * this.volume, t);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, t + BGM_SEQUENCE.SUB_S);
+      sub.connect(subGain);
+      subGain.connect(out);
+      sub.start(t);
+      sub.stop(t + BGM_SEQUENCE.SUB_S);
     };
 
     tick();
@@ -1408,16 +1509,10 @@ class AudioSynthesizerService {
       return;
     }
 
-    // Sanitize: strip out numeric IDs and raw numbers (e.g. Viewer_830, Gamer_Pro_99_358, 120000)
-    const sanitized = text
-      .replace(/[A-Za-z0-9_]*_\d+[A-Za-z0-9_]*/g, '')
-      .replace(/\d+/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-
+    const sanitized = sanitizeSpeechText(text);
     if (!sanitized) return;
 
-    if (this.ttsQueue.length >= 4) {
+    if (this.ttsQueue.length >= TTS_CONSTANTS.MAX_QUEUE) {
       this.ttsQueue.shift();
     }
     this.ttsQueue.push(sanitized);

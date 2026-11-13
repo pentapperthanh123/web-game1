@@ -1,5 +1,6 @@
-import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXType } from '../constants/game';
+import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXType, GiftTier } from '../constants/game';
 export type { GameThemeType };
+import type { ChampionshipTally } from '../store/championshipTally';
 import { RosterPlayer } from '../constants/roster';
 import {
   BossSkillConfig,
@@ -24,6 +25,8 @@ import { ActiveTeamsMap, QueuedMatchup, TeamConfigState, TeamProfile } from './t
 
 export interface MinionEntity {
   id: string;
+  /** Champions deployed in the same turn for this team (≥ SQUAD_ENTRANCE_CONSTANTS.MIN_SIZE → squad entrance). */
+  entranceSquadSize?: number;
   summonerName: string;
   championName: string;
   avatarUrl: string;
@@ -188,8 +191,10 @@ export interface HitImpactEntity {
 export interface GiftAnnouncement {
   id: string;
   donorName: string;
+  donorAvatarUrl?: string;
   giftName: string;
   team: TeamType;
+  tier: GiftTier;
   coins: number;
   streakCount?: number;
   totalCoins?: number;
@@ -295,7 +300,8 @@ export interface ParticipationRuleConfig {
   autoMatchSignatureTeam: boolean;
   lockTeamAfterJoin: boolean;
   allowChampionEvolution: boolean;
-  maxActivePerTeam?: number;
+  /** Number of queued champions entering the arena per turn (arena floor is unlimited). */
+  maxDeployPerTurn?: number;
   summonTurnDelayMs?: number;
 }
 
@@ -368,6 +374,8 @@ export interface GameState {
   bossStatus: BossStatusType;
   bossHitTimestamp: number;
   bossAttackTimestamp: number;
+  /** Boss is knocked back (no skill casts) until this time; set by MEGA gifts. */
+  bossStaggerUntil: number;
   screenShakeTimestamp: number;
   screenShakeIntensity: number;
   screenFlashColor: string | null;
@@ -444,6 +452,8 @@ export interface GameState {
   isRoundIntermission: boolean;
   isSeriesEnded: boolean;
   seriesWinner: TeamType | null;
+  /** Series titles per matchup, persisted across streams (see store/championshipTally.ts). */
+  championshipTally: ChampionshipTally;
   roundCountdownSeconds: number;
 
   // Silver Scrapes 1v1 State
@@ -492,6 +502,8 @@ export interface GameState {
   setAdminMode: (active: boolean) => void;
   startNextRound: () => void;
   resetBO5Match: () => void;
+  /** Clears the title count of the two teams currently on stage. */
+  resetMatchupChampionships: () => void;
   setBO5Score: (blg: number, geng: number, currentRound?: number) => void;
   setBossSkillConfig: (config: Partial<BossSkillConfig>) => void;
   castBossSkill: (skillIndex?: number) => void;
@@ -555,7 +567,8 @@ export interface GameState {
     coins?: number,
     streakCount?: number,
     totalCoins?: number,
-    isComboFinal?: boolean
+    isComboFinal?: boolean,
+    donorAvatarUrl?: string
   ) => void;
   triggerFollowReward: (
     userName: string,
@@ -575,7 +588,8 @@ export interface GameState {
     from: [number, number, number],
     color: string,
     isCrit?: boolean,
-    customTarget?: [number, number, number]
+    customTarget?: [number, number, number],
+    shouldPlaySound?: boolean
   ) => void;
   spawnSlash: (position: [number, number, number], color: string, isCrit?: boolean) => void;
   spawnParticleBurst: (origin: [number, number, number], color: string, intensity: number) => void;

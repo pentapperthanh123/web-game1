@@ -1,10 +1,5 @@
 import { useEffect } from 'react';
-import {
-  BIG_DONATE_MIN_COINS,
-  SFX_EVENT,
-  SFX_SOCKET_EVENT,
-  SfxEventName,
-} from '../constants/sfx';
+import { SFX_EVENT, SFX_SOCKET_EVENT, SfxEventName } from '../constants/sfx';
 import { gameSocket } from '../services/socket';
 import { soundManager, playSound } from '../services/soundManager';
 
@@ -13,21 +8,8 @@ export type SocketSfxBinding = SfxEventName | ((payload: unknown) => SfxEventNam
 
 export type SocketSfxBindings = Readonly<Record<string, SocketSfxBinding>>;
 
-const readGiftCoins = (payload: unknown): number => {
-  if (!payload || typeof payload !== 'object') return 0;
-  const coins = (payload as { coins?: unknown }).coins;
-  return typeof coins === 'number' ? coins : 0;
-};
-
-const resolveGiftSound = (payload: unknown): SfxEventName =>
-  readGiftCoins(payload) >= BIG_DONATE_MIN_COINS ? SFX_EVENT.BIG_DONATE : SFX_EVENT.SCORE_UP;
-
 export const DEFAULT_SOCKET_SFX_BINDINGS: SocketSfxBindings = {
   [SFX_SOCKET_EVENT.CHAT]: SFX_EVENT.CHAT_POP,
-  [SFX_SOCKET_EVENT.LIKE]: SFX_EVENT.LIKE_TAP,
-  [SFX_SOCKET_EVENT.GIFT]: resolveGiftSound,
-  [SFX_SOCKET_EVENT.FOLLOW]: SFX_EVENT.FOLLOW_NOTIFY,
-  [SFX_SOCKET_EVENT.BOSS_CAST_SKILL]: SFX_EVENT.SKILL_SMITE,
 };
 
 const resolveBinding = (binding: SocketSfxBinding, payload: unknown): SfxEventName | null =>

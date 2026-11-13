@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { OverlayVisibility } from '../types/overlay';
 import { BossSkillConfig } from '../types/bossSkill';
+import { SUMMON_QUEUE_UI } from '../constants/summonQueue';
 import {
   TeamConfigState,
   createDefaultTeamConfig,
@@ -14,6 +15,26 @@ import {
   DuelLaneKey,
 } from '../constants/series';
 import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
+import { SERVER_AUTH_ERROR_EVENT } from '../constants/adminAuth';
+import { buildAdminHeaders, readAdminToken, writeAdminToken } from './adminToken';
+
+const HTTP_METHOD_POST = 'POST';
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+export interface TiktokStatusPayload {
+  status: string;
+  username?: string;
+  roomId?: string;
+  error?: string;
+  /** Present when status is RECONNECTING. */
+  attempt?: number;
+  /** Epoch ms of the next reconnect attempt (RECONNECTING only). */
+  nextRetryAt?: number;
+}
+
+export interface AuthErrorPayload {
+  event?: string;
+}
 
 export type GameThemeType =
   | 'BARON'
@@ -28,7 +49,8 @@ export interface ParticipationRuleConfig {
   autoMatchSignatureTeam: boolean;
   lockTeamAfterJoin: boolean;
   allowChampionEvolution: boolean;
-  maxActivePerTeam?: number;
+  /** Champions entering the arena per turn (arena floor is unlimited). */
+  maxDeployPerTurn?: number;
   summonTurnDelayMs?: number;
 }
 
@@ -95,6 +117,7 @@ class AdminSocketService {
     blockedAntiSpamCount: 0,
   };
   private pipelineStatsListeners: ((stats: TikTokPipelineStats) => void)[] = [];
+  private authErrorListeners: ((payload: AuthErrorPayload) => void)[] = [];
   public isConnected = false;
 
   constructor() {
@@ -112,6 +135,12 @@ class AdminSocketService {
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         timeout: 5000,
+        auth: (callback) => callback({ adminToken: readAdminToken() }),
+      });
+
+      this.socket.on(SERVER_AUTH_ERROR_EVENT, (payload: AuthErrorPayload) => {
+        console.warn('[Admin Socket] Server rejected admin event:', payload?.event);
+        this.authErrorListeners.forEach((cb) => cb(payload ?? {}));
       });
 
       this.socket.on('connect', () => {
@@ -214,8 +243,8 @@ class AdminSocketService {
     // HTTP REST fallback for overlay visibility
     if (event === 'admin:overlay-visibility' && typeof window !== 'undefined') {
       fetch(`${SERVER_URL}/api/overlay-visibility`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: HTTP_METHOD_POST,
+        headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
         body: JSON.stringify(payload),
       }).catch(() => {
         // ignore offline fetch error
@@ -325,8 +354,8 @@ class AdminSocketService {
     this.emit('admin:set-team-config', payload);
     if (typeof window !== 'undefined') {
       fetch(`${SERVER_URL}/api/teams`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: HTTP_METHOD_POST,
+        headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
         body: JSON.stringify(payload),
       }).catch(() => {});
     }
@@ -388,12 +417,27 @@ class AdminSocketService {
     };
   }
 
-  public onTiktokStatus(callback: (status: any) => void): () => void {
+  public onTiktokStatus(callback: (status: TiktokStatusPayload) => void): () => void {
     if (!this.socket) return () => {};
     this.socket.on('tiktok:status', callback);
     return () => {
       this.socket?.off('tiktok:status', callback);
     };
+  }
+
+  public onAuthError(callback: (payload: AuthErrorPayload) => void): () => void {
+    this.authErrorListeners.push(callback);
+    return () => {
+      this.authErrorListeners = this.authErrorListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  /** Persists a new admin token (empty = clear) and reconnects so the handshake uses it. */
+  public updateAdminToken(token: string): void {
+    writeAdminToken(token.trim());
+    if (!this.socket) return;
+    this.socket.disconnect();
+    this.socket.connect();
   }
 
   public onSeriesFormat(callback: (config: SeriesFormatConfig) => void): () => void {
@@ -418,8 +462,8 @@ class AdminSocketService {
     this.emit('admin:set-series-format', { format, resetScore });
     if (typeof window !== 'undefined') {
       fetch(`${SERVER_URL}/api/series-format`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: HTTP_METHOD_POST,
+        headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
         body: JSON.stringify({ format, resetScore }),
       }).catch(() => {});
     }
@@ -485,8 +529,14 @@ class AdminSocketService {
           autoMatchSignatureTeam: Boolean(payload.autoMatchSignatureTeam),
           lockTeamAfterJoin: Boolean(payload.lockTeamAfterJoin),
           allowChampionEvolution: Boolean(payload.allowChampionEvolution),
-          maxActivePerTeam: typeof payload.maxActivePerTeam === 'number' ? payload.maxActivePerTeam : 5,
-          summonTurnDelayMs: typeof payload.summonTurnDelayMs === 'number' ? payload.summonTurnDelayMs : 1300,
+          maxDeployPerTurn:
+            typeof payload.maxDeployPerTurn === 'number'
+              ? payload.maxDeployPerTurn
+              : SUMMON_QUEUE_UI.DEFAULT_DEPLOY_PER_TURN,
+          summonTurnDelayMs:
+            typeof payload.summonTurnDelayMs === 'number'
+              ? payload.summonTurnDelayMs
+              : SUMMON_QUEUE_UI.DEFAULT_TURN_DELAY_MS,
         });
       }
     };
@@ -498,8 +548,8 @@ class AdminSocketService {
 
   public async connectTiktokRoom(username: string): Promise<any> {
     const res = await fetch(`${SERVER_URL}/api/tiktok/connect`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: HTTP_METHOD_POST,
+      headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
       body: JSON.stringify({ username }),
     });
     return res.json();
@@ -507,7 +557,8 @@ class AdminSocketService {
 
   public async disconnectTiktokRoom(): Promise<any> {
     const res = await fetch(`${SERVER_URL}/api/tiktok/disconnect`, {
-      method: 'POST',
+      method: HTTP_METHOD_POST,
+      headers: buildAdminHeaders(HTTP_METHOD_POST),
     });
     return res.json();
   }
@@ -523,8 +574,8 @@ class AdminSocketService {
   public async simulateTikTokEvent(payload: SimulateTikTokRequest): Promise<SimulateTikTokResult | null> {
     try {
       const res = await fetch(`${SERVER_URL}/api/tiktok/simulate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: HTTP_METHOD_POST,
+        headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
         body: JSON.stringify(payload),
       });
       if (!res.ok) return null;

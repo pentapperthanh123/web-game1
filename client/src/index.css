@@ -1527,3 +1527,24 @@
 .animate-boss-fire-ember {
   animation: bossFireBreathEmber 0.95s ease-out infinite;
 }
+
+@keyframes wipeStamp {
+  0% { transform: scale(2.2) rotate(-8deg); opacity: 0; }
+  18% { transform: scale(0.92) rotate(-4deg); opacity: 1; }
+  28% { transform: scale(1.04) rotate(-4deg); }
+  80% { transform: scale(1) rotate(-4deg); opacity: 1; }
+  100% { transform: scale(1.1) rotate(-4deg); opacity: 0; }
+}
+.animate-wipe-stamp { animation: wipeStamp 1.6s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
+
+/* Pre-round intro card */
+@keyframes roundIntroIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes roundIntroPage {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-round-intro-in { animation: roundIntroIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-round-intro-page { animation: roundIntroPage 0.35s ease-out both; }

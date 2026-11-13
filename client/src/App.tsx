@@ -4,6 +4,7 @@ import { Boss2D } from './components/arena/Boss2D';
 import { GameCanvas } from './components/canvas/GameCanvas';
 import { HUDOverlay } from './components/ui/HUDOverlay';
 import { useGameStore } from './store/gameStore';
+import { useMatchSnapshotPersistence } from './store/matchSnapshot';
 import {
   SIMULATION_PRESETS,
   BOSS_STATUS,
@@ -23,6 +24,7 @@ import { getBossPhaseRule } from './constants/bossPhases';
 import { STATUS_EFFECT_CONSTANTS } from './constants/bossStatusEffects';
 
 export function App() {
+  useMatchSnapshotPersistence();
   const isSimulationActive = useGameStore((state) => state.isSimulationActive);
   const botSpeedMs = useGameStore((state) => state.botSpeedMs);
   const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);

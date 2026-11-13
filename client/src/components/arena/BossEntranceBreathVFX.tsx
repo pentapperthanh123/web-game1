@@ -1,58 +1,48 @@
 import React from 'react';
 import { GAME_THEME, GameThemeType } from '../../constants/game';
+import { getBossSpriteAnchors } from '../../constants/bossSpriteAnchors';
 
 interface BossEntranceBreathVFXProps {
   isActive: boolean;
   gameTheme: GameThemeType;
+  /** Enraged art is a different drawing: the jaw sits elsewhere and may face the other way. */
+  isEnragedArtShown: boolean;
   isSkillCast?: boolean;
   castKey?: number;
   overrideColor?: string;
   overrideSecondaryColor?: string;
 }
 
+/** Flame look per dragon. Jaw position and facing live in constants/bossSpriteAnchors.ts. */
 export interface DragonMouthModelSpec {
-  leftPercent: number;
-  topPercent: number;
-  nativeFacesRight: boolean;
+  /** Downward aim of the jet so it reaches the champions below the boss. */
   tiltDeg: number;
   coreColor: string;
   midColor: string;
   outerColor: string;
 }
 
-/** Exact mouth pixel anchors measured directly against each dragon sprite PNG. */
 export const DRAGON_MOUTH_SPECS: Partial<Record<GameThemeType, DragonMouthModelSpec>> = {
   [GAME_THEME.RONG_NUI]: {
-    leftPercent: 19.5,
-    topPercent: 53.5,
-    nativeFacesRight: false,
-    tiltDeg: -8,
+    tiltDeg: -12,
     coreColor: '#ffffff',
     midColor: '#fde047',
     outerColor: '#ea580c',
   },
   [GAME_THEME.RONG_GIA]: {
-    leftPercent: 45.8,
-    topPercent: 31.5,
-    nativeFacesRight: false,
-    tiltDeg: -8,
+    tiltDeg: -14,
     coreColor: '#ffffff',
     midColor: '#818cf8',
     outerColor: '#4f46e5',
   },
   [GAME_THEME.ELDER_DRAGON]: {
-    leftPercent: 45.5,
-    topPercent: 28.5,
-    nativeFacesRight: false,
-    tiltDeg: -6,
+    tiltDeg: -14,
     coreColor: '#ffffff',
     midColor: '#67e8f9',
     outerColor: '#0284c7',
   },
 };
 
-export const isDragonNativeFacingRight = (gameTheme: GameThemeType): boolean =>
-  DRAGON_MOUTH_SPECS[gameTheme]?.nativeFacesRight ?? false;
 
 const EMBER_OFFSETS = [
   { delay: '0s', top: '28%', size: 'w-2 h-2' },
@@ -64,9 +54,10 @@ const EMBER_OFFSETS = [
 ] as const;
 
 export const BossEntranceBreathVFX: React.FC<BossEntranceBreathVFXProps> = React.memo(
-  ({ isActive, gameTheme, isSkillCast = false, castKey = 0, overrideColor, overrideSecondaryColor }) => {
+  ({ isActive, gameTheme, isEnragedArtShown, isSkillCast = false, castKey = 0, overrideColor, overrideSecondaryColor }) => {
     const spec = DRAGON_MOUTH_SPECS[gameTheme];
     if (!isActive || !spec) return null;
+    const anchors = getBossSpriteAnchors(gameTheme, isEnragedArtShown);
 
     const midColor = overrideSecondaryColor || spec.midColor;
     const outerColor = overrideColor || spec.outerColor;
@@ -80,9 +71,10 @@ export const BossEntranceBreathVFX: React.FC<BossEntranceBreathVFXProps> = React
         key={`${gameTheme}-${isSkillCast ? castKey : 'entry'}`}
         aria-hidden="true"
         style={{
-          left: `${spec.leftPercent}%`,
-          top: `${spec.topPercent}%`,
-          transform: `translateY(-50%) scaleX(${spec.nativeFacesRight ? -1 : 1}) rotate(${spec.tiltDeg}deg)`,
+          left: `${anchors.mouth.leftPercent}%`,
+          top: `${anchors.mouth.topPercent}%`,
+          transform: `translateY(-50%) scaleX(${anchors.isNativeFacingRight ? -1 : 1}) rotate(${spec.tiltDeg}deg)`,
+          transformOrigin: 'left center',
         }}
         className="absolute pointer-events-none z-30"
       >

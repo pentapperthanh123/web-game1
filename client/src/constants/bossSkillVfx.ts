@@ -59,3 +59,33 @@ export const BOSS_SKILL_VFX_ANIMATION_CLASS: Readonly<Record<BossSkillVfxType, s
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: 'animate-boss-slam-center',
   [BOSS_SKILL_VFX.NOVA]: 'animate-boss-slam-center',
 };
+
+/**
+ * Shared look of every boss skill VFX (2D + 3D): a white-hot core, a boss-coloured glow and a soft halo.
+ * Opacities are capped well below 1 so overlapping additive layers never blow out to flat white.
+ */
+export const BOSS_SKILL_VFX_STYLE = {
+  CORE_COLOR: '#ffffff',
+  MAX_CORE_OPACITY: 0.85,
+  MAX_GLOW_OPACITY: 0.7,
+  MAX_HALO_OPACITY: 0.32,
+  MAX_DECAL_OPACITY: 0.5,
+  MAX_FLASH_OPACITY: 0.6,
+  /** Per-layer opacity multipliers applied on top of the effect envelope. */
+  LAYER_OPACITY: {
+    CORE: 1,
+    GLOW: 0.6,
+    HALO: 0.28,
+  },
+} as const;
+
+/** Alpha suffixes (hex) for the 2D overlay gradients — the 2D layer sits under the 3D one, so it stays soft. */
+export const BOSS_SKILL_VFX_2D_ALPHA = {
+  STRONG: 'cc',
+  MEDIUM: '88',
+  SOFT: '44',
+  FAINT: '22',
+} as const;
+
+/** Cap applied to every 2D skill overlay wrapper; keyframes animate up to 1, this keeps them premium, not blown out. */
+export const BOSS_SKILL_VFX_2D_MAX_OPACITY = 0.82;

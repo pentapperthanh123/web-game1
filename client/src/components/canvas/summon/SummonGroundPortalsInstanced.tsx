@@ -2,15 +2,17 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../../store/gameStore';
-import { COMBAT_VFX_CONSTANTS } from '../../../constants/game';
+import { COMBAT_VFX_CONSTANTS, SQUAD_ENTRANCE_CONSTANTS } from '../../../constants/game';
 
-const PORTAL_POOL_CAPACITY = 16;
+const PORTAL_POOL_CAPACITY = COMBAT_VFX_CONSTANTS.SUMMON.MAX_ACTIVE_PORTALS;
 
 const SHARED_PORTAL_RING_1 = new THREE.RingGeometry(0.22, 0.32, 24);
 const SHARED_PORTAL_RING_2 = new THREE.RingGeometry(0.1, 0.19, 6);
 const SHARED_PORTAL_CYLINDER = new THREE.CylinderGeometry(0.08, 0.2, 0.8, 12, 1, true);
 
 const dummyObj = new THREE.Object3D();
+/** Reused every frame: portals per team+turn, to spot squad entrances (pillar replaced by SquadEntrancePulse3D). */
+const portalsPerTurn = new Map<string, number>();
 const tempColor = new THREE.Color();
 const tempWhite = new THREE.Color('#ffffff');
 
@@ -39,6 +41,11 @@ export const SummonGroundPortalsInstanced = () => {
     const elapsedTime = state.clock.getElapsedTime();
     const durationMs = COMBAT_VFX_CONSTANTS.SUMMON.PORTAL_DURATION_MS;
     let activeCount = 0;
+    portalsPerTurn.clear();
+    for (let i = 0; i < portals.length; i++) {
+      const turnKey = `${portals[i].team}:${portals[i].createdAt}`;
+      portalsPerTurn.set(turnKey, (portalsPerTurn.get(turnKey) ?? 0) + 1);
+    }
 
     for (let i = 0; i < portals.length && activeCount < PORTAL_POOL_CAPACITY; i++) {
       const portal = portals[i];
@@ -65,12 +72,14 @@ export const SummonGroundPortalsInstanced = () => {
       dummyObj.updateMatrix();
       innerMesh.setMatrixAt(activeCount, dummyObj.matrix);
 
+      const isSquadPortal = (portalsPerTurn.get(`${portal.team}:${portal.createdAt}`) ?? 0) >= SQUAD_ENTRANCE_CONSTANTS.MIN_SIZE;
+      const pillarScale = isSquadPortal ? 0 : popScale;
       dummyObj.position.set(px, py + 0.45, pz);
       dummyObj.rotation.set(0, 0, 0);
       dummyObj.scale.set(
-        popScale * (1 - progress * 0.45),
-        popScale * (1 + progress * 0.6),
-        popScale * (1 - progress * 0.45)
+        pillarScale * (1 - progress * 0.45),
+        pillarScale * (1 + progress * 0.6),
+        pillarScale * (1 - progress * 0.45)
       );
       dummyObj.updateMatrix();
       pillarMesh.setMatrixAt(activeCount, dummyObj.matrix);

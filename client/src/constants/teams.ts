@@ -73,7 +73,7 @@ export const TEAM_COLOR_THEMES: Record<TeamColorThemeId, TeamColorPalette> = {
     giftBannerGradientClass:
       'bg-gradient-to-r from-slate-950/95 via-cyan-950/90 to-slate-950/95 border-cyan-400/90 shadow-[0_0_28px_rgba(6,182,212,0.55)]',
     rosterCardActiveClass:
-      'bg-gradient-to-r from-cyan-950/80 to-slate-950/75 border-cyan-400/80 shadow-[0_0_10px_rgba(6,182,212,0.4)]',
+      'bg-gradient-to-r from-cyan-950/80 to-slate-950/75 border-cyan-400/45 shadow-[0_0_5px_rgba(6,182,212,0.2)]',
     summonPortalBorderClass: 'border-cyan-400/80',
     avatarInitialsBgClass: 'bg-cyan-900 text-cyan-200',
     avatarFallbackIconClass: 'text-cyan-400',
@@ -108,7 +108,7 @@ export const TEAM_COLOR_THEMES: Record<TeamColorThemeId, TeamColorPalette> = {
     giftBannerGradientClass:
       'bg-gradient-to-r from-slate-950/95 via-amber-950/90 to-slate-950/95 border-amber-400/90 shadow-[0_0_28px_rgba(245,158,11,0.55)]',
     rosterCardActiveClass:
-      'bg-gradient-to-r from-amber-950/80 to-slate-950/75 border-amber-400/80 shadow-[0_0_10px_rgba(245,158,11,0.4)]',
+      'bg-gradient-to-r from-amber-950/80 to-slate-950/75 border-amber-400/45 shadow-[0_0_5px_rgba(245,158,11,0.2)]',
     summonPortalBorderClass: 'border-amber-400/80',
     avatarInitialsBgClass: 'bg-amber-900 text-amber-200',
     avatarFallbackIconClass: 'text-amber-400',
@@ -143,7 +143,7 @@ export const TEAM_COLOR_THEMES: Record<TeamColorThemeId, TeamColorPalette> = {
     giftBannerGradientClass:
       'bg-gradient-to-r from-slate-950/95 via-rose-950/90 to-slate-950/95 border-rose-400/90 shadow-[0_0_28px_rgba(244,63,94,0.55)]',
     rosterCardActiveClass:
-      'bg-gradient-to-r from-rose-950/80 to-slate-950/75 border-rose-400/80 shadow-[0_0_10px_rgba(244,63,94,0.4)]',
+      'bg-gradient-to-r from-rose-950/80 to-slate-950/75 border-rose-400/45 shadow-[0_0_5px_rgba(244,63,94,0.2)]',
     summonPortalBorderClass: 'border-rose-400/80',
     avatarInitialsBgClass: 'bg-rose-900 text-rose-200',
     avatarFallbackIconClass: 'text-rose-400',
@@ -178,7 +178,7 @@ export const TEAM_COLOR_THEMES: Record<TeamColorThemeId, TeamColorPalette> = {
     giftBannerGradientClass:
       'bg-gradient-to-r from-slate-950/95 via-orange-950/90 to-slate-950/95 border-orange-400/90 shadow-[0_0_28px_rgba(249,115,22,0.55)]',
     rosterCardActiveClass:
-      'bg-gradient-to-r from-orange-950/80 to-slate-950/75 border-orange-400/80 shadow-[0_0_10px_rgba(249,115,22,0.4)]',
+      'bg-gradient-to-r from-orange-950/80 to-slate-950/75 border-orange-400/45 shadow-[0_0_5px_rgba(249,115,22,0.2)]',
     summonPortalBorderClass: 'border-orange-400/80',
     avatarInitialsBgClass: 'bg-orange-900 text-orange-200',
     avatarFallbackIconClass: 'text-orange-400',
@@ -213,7 +213,7 @@ export const TEAM_COLOR_THEMES: Record<TeamColorThemeId, TeamColorPalette> = {
     giftBannerGradientClass:
       'bg-gradient-to-r from-slate-950/95 via-violet-950/90 to-slate-950/95 border-violet-400/90 shadow-[0_0_28px_rgba(139,92,246,0.55)]',
     rosterCardActiveClass:
-      'bg-gradient-to-r from-violet-950/80 to-slate-950/75 border-violet-400/80 shadow-[0_0_10px_rgba(139,92,246,0.4)]',
+      'bg-gradient-to-r from-violet-950/80 to-slate-950/75 border-violet-400/45 shadow-[0_0_5px_rgba(139,92,246,0.2)]',
     summonPortalBorderClass: 'border-violet-400/80',
     avatarInitialsBgClass: 'bg-violet-900 text-violet-200',
     avatarFallbackIconClass: 'text-violet-400',
@@ -248,7 +248,7 @@ export const TEAM_COLOR_THEMES: Record<TeamColorThemeId, TeamColorPalette> = {
     giftBannerGradientClass:
       'bg-gradient-to-r from-slate-950/95 via-emerald-950/90 to-slate-950/95 border-emerald-400/90 shadow-[0_0_28px_rgba(16,185,129,0.55)]',
     rosterCardActiveClass:
-      'bg-gradient-to-r from-emerald-950/80 to-slate-950/75 border-emerald-400/80 shadow-[0_0_10px_rgba(16,185,129,0.4)]',
+      'bg-gradient-to-r from-emerald-950/80 to-slate-950/75 border-emerald-400/45 shadow-[0_0_5px_rgba(16,185,129,0.2)]',
     summonPortalBorderClass: 'border-emerald-400/80',
     avatarInitialsBgClass: 'bg-emerald-900 text-emerald-200',
     avatarFallbackIconClass: 'text-emerald-400',
@@ -283,7 +283,7 @@ export const TEAM_COLOR_THEMES: Record<TeamColorThemeId, TeamColorPalette> = {
     giftBannerGradientClass:
       'bg-gradient-to-r from-slate-950/95 via-blue-950/90 to-slate-950/95 border-blue-400/90 shadow-[0_0_28px_rgba(59,130,246,0.55)]',
     rosterCardActiveClass:
-      'bg-gradient-to-r from-blue-950/80 to-slate-950/75 border-blue-400/80 shadow-[0_0_10px_rgba(59,130,246,0.4)]',
+      'bg-gradient-to-r from-blue-950/80 to-slate-950/75 border-blue-400/45 shadow-[0_0_5px_rgba(59,130,246,0.2)]',
     summonPortalBorderClass: 'border-blue-400/80',
     avatarInitialsBgClass: 'bg-blue-900 text-blue-200',
     avatarFallbackIconClass: 'text-blue-400',
@@ -318,7 +318,7 @@ export const TEAM_COLOR_THEMES: Record<TeamColorThemeId, TeamColorPalette> = {
     giftBannerGradientClass:
       'bg-gradient-to-r from-slate-950/95 via-red-950/90 to-slate-950/95 border-red-400/90 shadow-[0_0_28px_rgba(239,68,68,0.55)]',
     rosterCardActiveClass:
-      'bg-gradient-to-r from-red-950/80 to-slate-950/75 border-red-400/80 shadow-[0_0_10px_rgba(239,68,68,0.4)]',
+      'bg-gradient-to-r from-red-950/80 to-slate-950/75 border-red-400/45 shadow-[0_0_5px_rgba(239,68,68,0.2)]',
     summonPortalBorderClass: 'border-red-400/80',
     avatarInitialsBgClass: 'bg-red-900 text-red-200',
     avatarFallbackIconClass: 'text-red-400',

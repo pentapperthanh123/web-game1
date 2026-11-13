@@ -9,6 +9,8 @@ import { ALL_CHAMPIONS, findChampion, normalizeQuery } from '../constants/champi
 import { TeamColorPalette, TeamProfile } from '../constants/teams';
 import { adminSocket, ParticipationRuleConfig } from '../services/socket';
 import { TeamLogo } from './TeamLogos';
+import { SummonQueueRulesControls } from './SummonQueueRulesControls';
+import { SUMMON_QUEUE_UI } from '../constants/summonQueue';
 
 const CHAMPION_DAMAGE_UI = {
   DEFAULT_MULTIPLIER: 1,
@@ -109,6 +111,8 @@ export function AdminSummonSection({
     autoMatchSignatureTeam: true,
     lockTeamAfterJoin: true,
     allowChampionEvolution: true,
+    maxDeployPerTurn: SUMMON_QUEUE_UI.DEFAULT_DEPLOY_PER_TURN,
+    summonTurnDelayMs: SUMMON_QUEUE_UI.DEFAULT_TURN_DELAY_MS,
   });
 
   useEffect(() => {
@@ -128,10 +132,13 @@ export function AdminSummonSection({
     };
   }, []);
 
+  const handlePatchRules = (patch: Partial<ParticipationRuleConfig>) => {
+    setParticipationRules((prev) => ({ ...prev, ...patch }));
+    adminSocket.emitParticipationRules(patch);
+  };
+
   const handleToggleRule = (key: keyof ParticipationRuleConfig) => {
-    const nextPatch = { [key]: !participationRules[key] };
-    setParticipationRules((prev) => ({ ...prev, ...nextPatch }));
-    adminSocket.emitParticipationRules(nextPatch);
+    handlePatchRules({ [key]: !participationRules[key] });
   };
 
   const handleToggleUserAvatar = () => {
@@ -445,70 +452,7 @@ export function AdminSummonSection({
               📜 Luật Tham Gia & Hàng Đợi Triệu Hồi (Queue):
             </span>
 
-            {/* Hàng đợi: Số lượng tướng tối đa mỗi phe */}
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-300 font-semibold">Tối đa tướng/phe trên sân:</span>
-                <span className="font-mono font-bold text-cyan-400">
-                  {participationRules.maxActivePerTeam ?? 5} tướng / phe
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {[3, 5, 8, 10, 15].map((count) => (
-                  <button
-                    key={count}
-                    type="button"
-                    onClick={() => {
-                      const nextPatch = { maxActivePerTeam: count };
-                      setParticipationRules((prev) => ({ ...prev, ...nextPatch }));
-                      adminSocket.emitParticipationRules(nextPatch);
-                    }}
-                    className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition ${
-                      (participationRules.maxActivePerTeam ?? 5) === count
-                        ? 'bg-cyan-500 text-slate-950 font-black'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Hàng đợi: Delay xuất hiện giữa các lượt */}
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-300 font-semibold">Delay xuất hiện theo lượt:</span>
-                <span className="font-mono font-bold text-amber-400">
-                  {((participationRules.summonTurnDelayMs ?? 1300) / 1000).toFixed(1)}s ({participationRules.summonTurnDelayMs ?? 1300}ms)
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {[
-                  { label: '0.8s', ms: 800 },
-                  { label: '1.3s', ms: 1300 },
-                  { label: '2.0s', ms: 2000 },
-                  { label: '3.0s', ms: 3000 },
-                ].map((item) => (
-                  <button
-                    key={item.ms}
-                    type="button"
-                    onClick={() => {
-                      const nextPatch = { summonTurnDelayMs: item.ms };
-                      setParticipationRules((prev) => ({ ...prev, ...nextPatch }));
-                      adminSocket.emitParticipationRules(nextPatch);
-                    }}
-                    className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition ${
-                      (participationRules.summonTurnDelayMs ?? 1300) === item.ms
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <SummonQueueRulesControls rules={participationRules} onPatch={handlePatchRules} />
 
             {(
               [

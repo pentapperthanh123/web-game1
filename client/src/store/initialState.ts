@@ -46,6 +46,7 @@ import {
   getStoredOverlayVisibility,
   getStoredTeamConfig,
 } from './storeStorage';
+import { getStoredChampionshipTally } from './championshipTally';
 
 const initialTeamConfig = getStoredTeamConfig();
 
@@ -56,6 +57,7 @@ export const INITIAL_STATE = {
   bossStatus: BOSS_STATUS.IDLE,
   bossHitTimestamp: 0,
   bossAttackTimestamp: 0,
+  bossStaggerUntil: 0,
   screenShakeTimestamp: 0,
   screenShakeIntensity: 0,
   screenFlashColor: null as string | null,
@@ -130,8 +132,8 @@ export const INITIAL_STATE = {
     autoMatchSignatureTeam: true,
     lockTeamAfterJoin: true,
     allowChampionEvolution: true,
-    maxActivePerTeam: 5,
-    summonTurnDelayMs: 1300,
+    maxDeployPerTurn: GAME_CONSTANTS.SUMMON_RULES.MAX_DEPLOY_PER_TURN,
+    summonTurnDelayMs: GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS,
   },
   activeTeams: initialTeamConfig.activeTeams,
   teamCatalog: initialTeamConfig.teamCatalog,
@@ -153,6 +155,7 @@ export const INITIAL_STATE = {
   isRoundIntermission: false,
   isSeriesEnded: false,
   seriesWinner: null as TeamType | null,
+  championshipTally: getStoredChampionshipTally(),
   roundCountdownSeconds: GAME_CONSTANTS.BO5.ROUND_TRANSITION_SECONDS,
   isGuestModeActive: false,
   guestTeam: TEAM_KEY.BLG,

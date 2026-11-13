@@ -17,6 +17,8 @@ import { useAdminInteractionActions } from './hooks/useAdminInteractionActions';
 import { useAutoSummonRunner } from './hooks/useAutoSummonRunner';
 import { AdminHeader } from './components/AdminHeader';
 import { AdminTabBar } from './components/AdminTabBar';
+import { AdminTokenGate } from './components/AdminTokenGate';
+import { useAdminTokenGate } from './hooks/useAdminTokenGate';
 import { TiktokConnectionBanner } from './components/TiktokConnectionBanner';
 import { TeamConfigPanel } from './components/TeamConfigPanel';
 import { SilverScrapesControls } from './components/SilverScrapesControls';
@@ -45,6 +47,7 @@ export function App() {
   }, []);
 
   const socketSync = useAdminSocketSync(addLog);
+  const tokenGate = useAdminTokenGate();
   const actions = useAdminInteractionActions({
     activeTeams: socketSync.teamConfig.activeTeams,
     onLog: addLog,
@@ -104,10 +107,22 @@ export function App() {
           />
         </div>
 
+        <AdminTokenGate
+          savedToken={tokenGate.savedToken}
+          hasAuthError={tokenGate.hasAuthError}
+          isOpen={tokenGate.isGateOpen}
+          onSave={tokenGate.saveToken}
+          onClear={tokenGate.clearToken}
+          onOpen={tokenGate.openGate}
+          onClose={tokenGate.closeGate}
+        />
+
         <TiktokConnectionBanner
           tiktokUsername={socketSync.tiktokUsername}
           tiktokStatus={socketSync.tiktokStatus}
           tiktokRoomId={socketSync.tiktokRoomId}
+          reconnectAttempt={socketSync.reconnectAttempt}
+          nextRetryAt={socketSync.nextRetryAt}
           isConnecting={socketSync.isConnecting}
           onUsernameChange={socketSync.setTiktokUsername}
           onConnect={socketSync.handleConnectTiktok}

@@ -144,6 +144,10 @@ export const TIKTOK_STATUS_STYLE_MAP: Record<string, { dotClass: string; textCla
     dotClass: 'bg-yellow-400 animate-ping',
     textClass: 'text-yellow-400 font-bold',
   },
+  RECONNECTING: {
+    dotClass: 'bg-amber-400 animate-pulse',
+    textClass: 'text-amber-400 font-bold',
+  },
   DISCONNECTED: {
     dotClass: 'bg-rose-500',
     textClass: 'text-slate-400',

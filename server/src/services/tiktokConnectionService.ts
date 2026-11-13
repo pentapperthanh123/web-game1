@@ -7,6 +7,7 @@ import {
   TikTokSimulationType,
 } from '../constants/tiktok.js';
 import { ServerContext } from '../types/serverState.js';
+import { TIKTOK_RECONNECT } from '../constants/tiktokReconnect.js';
 import { getErrorMessage, parseCommentCommand } from '../utils/payloadSanitizers.js';
 import { DuelService } from './duelService.js';
 import { TikTokLivePipeline } from './tiktokLivePipeline.js';
@@ -217,76 +218,146 @@ export function createTikTokConnectionService(
     });
   };
 
+  const reconnectState: { timer: NodeJS.Timeout | null; isConnectionWanted: boolean } = {
+    timer: null,
+    isConnectionWanted: false,
+  };
+
+  const emitStatus = (extra: Record<string, unknown> = {}): void => {
+    ctx.io.emit('tiktok:status', {
+      status: ctx.state.connectionStatus,
+      username: ctx.state.tiktokUsername,
+      attempt: ctx.state.reconnectAttempt,
+      nextRetryAt: ctx.state.nextRetryAt,
+      ...extra,
+    });
+  };
+
+  const cancelPendingReconnect = (): void => {
+    if (reconnectState.timer) {
+      clearTimeout(reconnectState.timer);
+      reconnectState.timer = null;
+    }
+    ctx.state.reconnectAttempt = 0;
+    ctx.state.nextRetryAt = null;
+  };
+
+  const releaseConnection = (): void => {
+    const connection = ctx.state.tiktokConnection;
+    if (!connection) return;
+    ctx.state.tiktokConnection = null;
+    connection.removeAllListeners();
+    try {
+      connection.disconnect();
+    } catch (err: unknown) {
+      console.warn('[TikTok Live] Error while releasing connection:', getErrorMessage(err, 'unknown'));
+    }
+  };
+
+  const computeReconnectDelayMs = (attempt: number): number => {
+    const exponent = Math.max(0, attempt - 1);
+    const baseDelay = Math.min(
+      TIKTOK_RECONNECT.BASE_DELAY_MS * TIKTOK_RECONNECT.BACKOFF_FACTOR ** exponent,
+      TIKTOK_RECONNECT.MAX_DELAY_MS
+    );
+    const jitterFactor = 1 + (Math.random() * 2 - 1) * TIKTOK_RECONNECT.JITTER_RATIO;
+    return Math.round(baseDelay * jitterFactor);
+  };
+
+  // Forward declaration so openConnection and scheduleReconnect can reference each other.
+  let openConnection: (username: string) => void = () => undefined;
+
+  const scheduleReconnect = (reason: string): void => {
+    if (!reconnectState.isConnectionWanted || reconnectState.timer) return;
+    releaseConnection();
+    ctx.state.reconnectAttempt += 1;
+    const delayMs = computeReconnectDelayMs(ctx.state.reconnectAttempt);
+    ctx.state.nextRetryAt = Date.now() + delayMs;
+    ctx.state.connectionStatus = 'RECONNECTING';
+    ctx.state.lastErrorMessage = reason;
+    console.warn(
+      `[TikTok Live] ${reason}. Reconnect attempt ${ctx.state.reconnectAttempt} in ${delayMs}ms`
+    );
+    emitStatus({ error: reason });
+    reconnectState.timer = setTimeout(() => {
+      reconnectState.timer = null;
+      openConnection(ctx.state.tiktokUsername);
+    }, delayMs);
+  };
+
+  const attachLifecycleListeners = (connection: WebcastPushConnection): void => {
+    const isCurrent = (): boolean => ctx.state.tiktokConnection === connection;
+    connection.on('disconnected', () => {
+      if (isCurrent()) scheduleReconnect('TikTok connection dropped');
+    });
+    connection.on('streamEnd', () => {
+      if (isCurrent()) scheduleReconnect('TikTok stream ended');
+    });
+    connection.on('error', (err: unknown) => {
+      console.error('[TikTok Live] Connection error event:', getErrorMessage(err, 'unknown'));
+    });
+  };
+
+  const handleConnectSuccess = (connection: WebcastPushConnection, roomId: string): void => {
+    if (ctx.state.tiktokConnection !== connection) return;
+    cancelPendingReconnect();
+    ctx.state.connectionStatus = 'CONNECTED';
+    ctx.state.lastErrorMessage = '';
+    console.log(`[TikTok Live] Connected to room ID: ${roomId}`);
+    emitStatus({ roomId });
+  };
+
+  const handleConnectFailure = (connection: WebcastPushConnection, err: unknown): void => {
+    if (ctx.state.tiktokConnection !== connection) return;
+    const message = getErrorMessage(err, 'Failed to connect to TikTok Live room');
+    console.error('[TikTok Live] Connection error:', message);
+    scheduleReconnect(message);
+  };
+
+  openConnection = (username: string): void => {
+    releaseConnection();
+    const connection = new WebcastPushConnection(username, {
+      processInitialData: false,
+      enableExtendedGiftInfo: true,
+      requestPollingIntervalMs: TIKTOK_RECONNECT.REQUEST_POLLING_INTERVAL_MS,
+    });
+    ctx.state.tiktokConnection = connection;
+    attachRoomListeners(connection);
+    attachLifecycleListeners(connection);
+    connection
+      .connect()
+      .then((roomState) => handleConnectSuccess(connection, roomState.roomId))
+      .catch((err: unknown) => handleConnectFailure(connection, err));
+  };
+
   const connectToRoom = (rawUsername: string): { cleanUsername: string } => {
     const cleanUsername = rawUsername.replace(/^@/, '').trim();
-
-    if (ctx.state.tiktokConnection) {
-      ctx.state.tiktokConnection.disconnect();
-    }
+    cancelPendingReconnect();
+    reconnectState.isConnectionWanted = true;
 
     ctx.state.tiktokUsername = cleanUsername;
     ctx.state.connectionStatus = 'CONNECTING';
     ctx.state.lastErrorMessage = '';
-    ctx.io.emit('tiktok:status', {
-      status: ctx.state.connectionStatus,
-      username: cleanUsername,
-    });
-
-    const connection = new WebcastPushConnection(cleanUsername, {
-      processInitialData: false,
-      enableExtendedGiftInfo: true,
-      requestPollingIntervalMs: 1000,
-    });
-    ctx.state.tiktokConnection = connection;
-
-    connection
-      .connect()
-      .then((state) => {
-        ctx.state.connectionStatus = 'CONNECTED';
-        console.log(`[TikTok Live] Connected to room ID: ${state.roomId}`);
-        ctx.io.emit('tiktok:status', {
-          status: ctx.state.connectionStatus,
-          username: cleanUsername,
-          roomId: state.roomId,
-        });
-      })
-      .catch((err: unknown) => {
-        ctx.state.connectionStatus = 'ERROR';
-        ctx.state.lastErrorMessage = getErrorMessage(err, 'Failed to connect to TikTok Live room');
-        console.error('[TikTok Live] Connection error:', ctx.state.lastErrorMessage);
-        ctx.io.emit('tiktok:status', {
-          status: ctx.state.connectionStatus,
-          username: cleanUsername,
-          error: ctx.state.lastErrorMessage,
-        });
-      });
+    emitStatus();
 
     resetStats();
-    attachRoomListeners(connection);
-
+    openConnection(cleanUsername);
     return { cleanUsername };
   };
 
   const disconnectFromRoom = (): void => {
-    if (ctx.state.tiktokConnection) {
-      ctx.state.tiktokConnection.disconnect();
-      ctx.state.tiktokConnection = null;
-    }
+    reconnectState.isConnectionWanted = false;
+    cancelPendingReconnect();
+    releaseConnection();
     ctx.state.connectionStatus = 'DISCONNECTED';
     ctx.state.tiktokUsername = '';
-    ctx.io.emit('tiktok:status', { status: ctx.state.connectionStatus });
+    emitStatus();
   };
 
   const disconnectOnShutdown = (): void => {
-    if (!ctx.state.tiktokConnection) {
-      return;
-    }
-    try {
-      ctx.state.tiktokConnection.disconnect();
-    } catch {
-      // Ignore disconnect errors on shutdown
-    }
-    ctx.state.tiktokConnection = null;
+    reconnectState.isConnectionWanted = false;
+    cancelPendingReconnect();
+    releaseConnection();
   };
 
   return {

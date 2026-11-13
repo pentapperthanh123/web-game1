@@ -1,8 +1,10 @@
 import { StrictMode } from 'react';
+import { startArenaAmbience } from './services/arenaAmbience';
 import { createRoot } from 'react-dom/client';
 import './i18n';
 import './index.css';
 import App from './App';
+import { startRoundResultReporter } from './services/roundResultReporter';
 
 // Suppress Three.js core deprecation warning triggered internally by @react-three/fiber
 const originalConsoleWarn = console.warn;
@@ -15,6 +17,9 @@ console.warn = (...args: unknown[]) => {
   }
   originalConsoleWarn.apply(console, args);
 };
+
+startRoundResultReporter();
+startArenaAmbience();
 
 const rootElement = document.getElementById('root');
 

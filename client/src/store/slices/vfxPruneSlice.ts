@@ -8,7 +8,7 @@ import {
   TEAM_KEY,
 } from '../../constants/game';
 import { createEmptyTeamCombo, createEmptyTeamHeartMomentum } from '../storeHelpers';
-import { deployQueuedMinions } from '../summonQueueHelper';
+import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
 import { rebuildMinionCollections } from '../minionMapHelpers';
 
 export type VfxPruneSlice = Pick<GameState, 'pruneEntities'>;
@@ -101,7 +101,8 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
         state.summonQueue,
         state.lastSummonTurnTimestamps,
         now,
-        state.activeTeams
+        state.activeTeams,
+        resolveSummonTurnLimits(state.participationRuleConfig)
       );
       if (deployed.nextMinions.length !== activeMinions.length || deployed.newPortals.length > 0) {
         finalMinions = deployed.nextMinions;

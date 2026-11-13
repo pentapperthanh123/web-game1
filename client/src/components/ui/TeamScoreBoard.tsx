@@ -6,6 +6,8 @@ import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
 import { TeamComboBadge } from './TeamComboBadge';
 import { SummonSpotlight } from './SummonShowcase';
+import { MatchupTitleTally } from './MatchupTitleTally';
+import { TeamLiveStatusRow } from './TeamLiveStatusRow';
 
 export const TeamScoreBoard = () => {
   const { t } = useTranslation();
@@ -117,6 +119,7 @@ export const TeamScoreBoard = () => {
               ))}
             </div>
           </div>
+          <MatchupTitleTally />
         </div>
 
         {/* Right Team Block */}
@@ -186,6 +189,8 @@ export const TeamScoreBoard = () => {
           <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-white shadow-[0_0_6px_#ffffff] z-10" />
         </div>
       </div>
+
+      <TeamLiveStatusRow />
     </div>
   );
 };

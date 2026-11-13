@@ -9,6 +9,7 @@ import {
   OverlayVisibility,
   ParticipationRuleConfig,
   ServerContext,
+  SUMMON_QUEUE_LIMITS,
   VALID_GAME_THEMES,
 } from '../types/serverState.js';
 import {
@@ -16,6 +17,9 @@ import {
   parseCommentCommand,
   pickOverlayVisibilityPatch,
 } from '../utils/payloadSanitizers.js';
+
+const clampRounded = (value: number, min: number, max: number): number =>
+  Math.max(min, Math.min(max, Math.round(value)));
 
 interface AdminGiftPayload {
   team?: 'BLG' | 'GENG';
@@ -211,11 +215,19 @@ export function registerAdminHandlers(
       if (typeof payload?.allowChampionEvolution === 'boolean') {
         next.allowChampionEvolution = payload.allowChampionEvolution;
       }
-      if (typeof payload?.maxActivePerTeam === 'number' && Number.isFinite(payload.maxActivePerTeam)) {
-        next.maxActivePerTeam = Math.max(1, Math.min(30, Math.round(payload.maxActivePerTeam)));
+      if (typeof payload?.maxDeployPerTurn === 'number' && Number.isFinite(payload.maxDeployPerTurn)) {
+        next.maxDeployPerTurn = clampRounded(
+          payload.maxDeployPerTurn,
+          SUMMON_QUEUE_LIMITS.MIN_DEPLOY_PER_TURN,
+          SUMMON_QUEUE_LIMITS.MAX_DEPLOY_PER_TURN
+        );
       }
       if (typeof payload?.summonTurnDelayMs === 'number' && Number.isFinite(payload.summonTurnDelayMs)) {
-        next.summonTurnDelayMs = Math.max(100, Math.min(10000, Math.round(payload.summonTurnDelayMs)));
+        next.summonTurnDelayMs = clampRounded(
+          payload.summonTurnDelayMs,
+          SUMMON_QUEUE_LIMITS.MIN_TURN_DELAY_MS,
+          SUMMON_QUEUE_LIMITS.MAX_TURN_DELAY_MS
+        );
       }
       ctx.state.participationRuleConfig = next;
       ctx.io.emit('game:participation-rules', {

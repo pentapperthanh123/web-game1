@@ -90,13 +90,8 @@ export const VictoryHeaderStage = ({
             : bossDefeatedSubtitle}
         </div>
 
-        <h1 className="flex items-center justify-center gap-1.5 whitespace-nowrap max-w-full text-[clamp(0.84rem,3.6vw,1.25rem)] font-black uppercase tracking-wide drop-shadow-[0_2px_10px_rgba(245,158,11,0.7)]">
-          <span className="truncate min-w-0 bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent">
-            {winnerName}
-          </span>
-          <span className="shrink-0 whitespace-nowrap bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent">
-            {headlineAction}
-          </span>
+        <h1 className="w-full whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(0.72rem,3.2vw,1.1rem)] font-black uppercase tracking-wide drop-shadow-[0_2px_10px_rgba(245,158,11,0.7)] bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent">
+          {`${winnerName} ${headlineAction}`}
         </h1>
       </div>
     </div>

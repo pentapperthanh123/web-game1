@@ -1,4 +1,5 @@
 import { StateCreator } from 'zustand';
+import { announceChampionDeaths } from '../combatMomentStore';
 import {
   ActiveStatusEffect,
   DefeatedChampionEntity,
@@ -18,6 +19,7 @@ import {
   BOSS_MECHANICS_CONSTANTS,
   BOSS_STATUS,
   BossStatusType,
+  COMBAT_VFX_CONSTANTS,
   DAMAGE_TYPE,
   GAME_CONSTANTS,
   GAME_THEME,
@@ -42,7 +44,7 @@ import {
 import { BOSS_SKILL_VFX_SFX, SFX_EVENT } from '../../constants/sfx';
 import { audioService } from '../../services/audioService';
 import { soundManager, playSound } from '../../services/soundManager';
-import { getLiveMinionPosition, getLiveMinionScreenPos } from '../../services/minionPositionRegistry';
+import { getLiveMinionPositionSnapshot, getLiveMinionScreenPos } from '../../services/minionPositionRegistry';
 import { upsertStatusEffect } from '../../utils/statusEffects';
 import {
   buildChampionStatusEffect,
@@ -58,8 +60,8 @@ import {
   createInitialTeamHeartMomentum,
   isBattleHalted,
 } from '../storeHelpers';
-import { deployQueuedMinions } from '../summonQueueHelper';
-import { createEmptyMinionCollections } from '../minionMapHelpers';
+import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
+import { createEmptyMinionCollections, rebuildMinionCollections } from '../minionMapHelpers';
 
 export type BossSlice = Pick<
   GameState,
@@ -232,6 +234,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     if (isBattleHalted(state)) {
       return;
     }
+    if (Date.now() < state.bossStaggerUntil) return;
 
     const skills = getBossSkillsByTheme(state.gameTheme);
     if (!skills || skills.length === 0) return;
@@ -296,17 +299,19 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       statusEffectType: skill.statusEffect?.type,
     };
 
+    const archetypeSound = BOSS_SKILL_VFX_SFX[skill.vfxType];
     if (skill.isUltimate) {
       get().triggerScreenShake(1.6);
       get().triggerScreenFlash(skill.color);
       playSound(SFX_EVENT.BOSS_ULTIMATE, { rateScale: themeConfig.audioPitchRate });
     } else {
       get().triggerScreenShake(0.5);
-      playSound(SFX_EVENT.BOSS_SKILL, { rateScale: themeConfig.audioPitchRate });
     }
-    const archetypeSound = BOSS_SKILL_VFX_SFX[skill.vfxType];
+    // One skill voice per cast: the archetype layer when it exists; ultimates already have their own sting
     if (archetypeSound) {
       playSound(archetypeSound, { rateScale: themeConfig.audioPitchRate });
+    } else if (!skill.isUltimate) {
+      playSound(SFX_EVENT.BOSS_SKILL, { rateScale: themeConfig.audioPitchRate });
     }
 
     if (skill.vfxType === BOSS_SKILL_VFX.METEOR_RAIN) {
@@ -336,7 +341,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       const posX = livePos ? livePos.x : (minion.team === TEAM_KEY.BLG ? screenW * 0.25 : screenW * 0.75);
       const posY = livePos ? livePos.y : screenH * 0.65;
 
-      const liveWorldPos = getLiveMinionPosition(minion.id) || minion.spawnPosition;
+      const liveWorldPos = getLiveMinionPositionSnapshot(minion.id) || minion.spawnPosition;
       get().spawnParticleBurst(liveWorldPos, skill.color, skill.isUltimate ? 2.0 : 1.0);
 
       if (nextHp > 0) {
@@ -350,7 +355,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       newDefeatedChampions.push(
         buildDefeatedChampion(minion, liveWorldPos, posX, posY, bossName, now)
       );
-      playSound(SFX_EVENT.CHAMPION_DEATH);
       get().addLog(
         'BOSS',
         `💀 [${bossName}] dùng [${skill.vietnameseName}] hạ gục ${minion.championName} của ${minion.summonerName}!`,
@@ -367,30 +371,33 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     }
 
     // Tự động xuất trận tiếp viện từ hàng đợi nếu có tướng bị hạ gục
+    announceChampionDeaths(newDefeatedChampions.length, now);
     const deployed = deployQueuedMinions(
       remainingMinions,
       state.summonQueue,
       state.lastSummonTurnTimestamps,
       now,
-      state.activeTeams
+      state.activeTeams,
+      resolveSummonTurnLimits(state.participationRuleConfig)
     );
 
+    const skillCollections = rebuildMinionCollections(deployed.nextMinions, now);
     set((prev) => ({
       bossAttackTimestamp: now,
       bossAttackTargetTeam: targetTeam,
       activeBossSkillBanner: banner,
       bossSkillRotationIndex: (state.bossSkillRotationIndex + 1) % skills.length,
       minions: deployed.nextMinions,
+      ...skillCollections,
       summonQueue: deployed.nextQueue,
       lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
       activeSummonPortals: [
         ...prev.activeSummonPortals,
         ...deployed.newPortals,
       ],
-      activeDefeatedChampions: [
-        ...prev.activeDefeatedChampions.slice(-8),
-        ...newDefeatedChampions,
-      ],
+      activeDefeatedChampions: [...prev.activeDefeatedChampions, ...newDefeatedChampions].slice(
+        -COMBAT_VFX_CONSTANTS.SUMMON.MAX_ACTIVE_DEFEATED
+      ),
     }));
 
     if (isLifesteal && totalDamageDealt > 0) {
@@ -515,7 +522,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
 
       hasChanges = true;
       const livePos = getLiveMinionScreenPos(minion.id);
-      const worldPos = getLiveMinionPosition(minion.id) || minion.spawnPosition;
+      const worldPos = getLiveMinionPositionSnapshot(minion.id) || minion.spawnPosition;
       newDefeatedChampions.push(
         buildDefeatedChampion(
           minion,
@@ -526,7 +533,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
           now
         )
       );
-      playSound(SFX_EVENT.CHAMPION_DEATH);
       get().addLog(
         'BOSS',
         `💀 ${minion.championName} của ${minion.summonerName} gục ngã vì hiệu ứng của [${bossName}]!`,
@@ -537,23 +543,29 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     if (!hasChanges) return;
 
     // Tự động xuất trận tiếp viện từ hàng đợi nếu có tướng gục ngã vì hiệu ứng
+    announceChampionDeaths(newDefeatedChampions.length, now);
     const deployed = deployQueuedMinions(
       remainingMinions,
       state.summonQueue,
       state.lastSummonTurnTimestamps,
       now,
-      state.activeTeams
+      state.activeTeams,
+      resolveSummonTurnLimits(state.participationRuleConfig)
     );
 
+    const effectCollections = rebuildMinionCollections(deployed.nextMinions, now);
     set((prev) => ({
       minions: deployed.nextMinions,
+      ...effectCollections,
       summonQueue: deployed.nextQueue,
       lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
       activeSummonPortals: [
         ...prev.activeSummonPortals,
         ...deployed.newPortals,
       ],
-      activeDefeatedChampions: [...prev.activeDefeatedChampions.slice(-8), ...newDefeatedChampions],
+      activeDefeatedChampions: [...prev.activeDefeatedChampions, ...newDefeatedChampions].slice(
+        -COMBAT_VFX_CONSTANTS.SUMMON.MAX_ACTIVE_DEFEATED
+      ),
     }));
   },
 

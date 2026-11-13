@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SQUAD_ENTRANCE_CONSTANTS } from '../../../constants/game';
 import { useGameStore } from '../../../store/gameStore';
 import {
   GAME_CONSTANTS,
@@ -17,40 +18,42 @@ import {
   ChampionAIState,
   FURY_COLOR_FULL,
   getMinionAttackSpeedFactor,
-  pickTargetInWing,
   project3DToScreen,
+  projectToScreenInto,
   randomInRange,
   tempProjVec,
 } from './summonShared';
+import { updateChampionEntranceAura } from './championEntranceAura';
+import { pickSpreadTargetInWing } from './championSpread';
 
-const AURA_DURATION_MS = 1400;
 
 const resolveCachedVfxRefs = (
   ai: ChampionAIState,
   tokenSubgroup: THREE.Group | undefined
 ): CachedChampionVfxRefs => {
-  if (ai.cachedVfxRefs) return ai.cachedVfxRefs;
   if (!tokenSubgroup) return {};
+  if (ai.cachedVfxRefs && ai.cachedVfxGroupId === tokenSubgroup.uuid) return ai.cachedVfxRefs;
 
   const refs: CachedChampionVfxRefs = {
-    ring: tokenSubgroup.children[3] as THREE.Mesh | undefined,
+    ring: tokenSubgroup.getObjectByName('runic-ring') as THREE.Mesh | undefined,
     sigHaloMesh: tokenSubgroup.getObjectByName('signature-synergy-halo') as THREE.Mesh | undefined,
     haloMesh: tokenSubgroup.getObjectByName('celestial-halo') as THREE.Mesh | undefined,
     beamMesh: tokenSubgroup.getObjectByName('sky-beam') as THREE.Mesh | undefined,
+    beamCoreMesh: tokenSubgroup.getObjectByName('sky-beam-core') as THREE.Mesh | undefined,
+    runeSealMesh: tokenSubgroup.getObjectByName('rune-seal') as THREE.Mesh | undefined,
     landingMesh: tokenSubgroup.getObjectByName('landing-ring') as THREE.Mesh | undefined,
+    landingFlashMesh: tokenSubgroup.getObjectByName('landing-flash') as THREE.Mesh | undefined,
     shieldMesh: tokenSubgroup.getObjectByName('invuln-shield') as THREE.Mesh | undefined,
   };
   ai.cachedVfxRefs = refs;
+  ai.cachedVfxGroupId = tokenSubgroup.uuid;
   return refs;
 };
 
-export const createInitialChampionAI = (
-  minion: MinionEntity,
-  index: number,
-  elapsedTime: number
-): ChampionAIState => {
+export const createInitialChampionAI = (minion: MinionEntity, elapsedTime: number): ChampionAIState => {
+  // The spawn point is already chosen in open space, so the champion lands right on its portal
   const [sx, sy, sz] = minion.spawnPosition;
-  const [tx, ty, tz] = pickTargetInWing(minion.team);
+  const [tx, ty, tz] = minion.spawnPosition;
   return {
     currentX: sx,
     currentY: sy,
@@ -71,7 +74,7 @@ export const createInitialChampionAI = (
     nextAttackTime:
       elapsedTime +
       GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS / 1000 +
-      index * 0.18 +
+      randomInRange(0, COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.INITIAL_ATTACK_JITTER_MAX_S) +
       randomInRange(
         COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MIN_S,
         COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MAX_S
@@ -80,6 +83,34 @@ export const createInitialChampionAI = (
     isAttacking: false,
     bobPhase: Math.random() * Math.PI * 2,
   };
+};
+
+/**
+ * Keeps this champion's world/screen position in the shared registry.
+ * The tuple and screen object are registered once and mutated in place afterwards, so the
+ * per-frame cost is a few number writes instead of 4 Map writes + string work + 2 allocations.
+ */
+const publishLivePosition = (
+  ai: ChampionAIState,
+  minion: MinionEntity,
+  worldX: number,
+  worldY: number,
+  worldZ: number,
+  camera: THREE.Camera,
+  viewportW: number,
+  viewportH: number
+): void => {
+  if (!ai.liveWorld || !ai.liveScreen) {
+    ai.liveWorld = [worldX, worldY, worldZ];
+    ai.liveScreen = { x: 0, y: 0 };
+    projectToScreenInto(ai.liveScreen, worldX, worldY, worldZ, camera, viewportW, viewportH);
+    setLiveMinionPositions(minion.id, minion.championName, ai.liveWorld, ai.liveScreen);
+    return;
+  }
+  ai.liveWorld[0] = worldX;
+  ai.liveWorld[1] = worldY;
+  ai.liveWorld[2] = worldZ;
+  projectToScreenInto(ai.liveScreen, worldX, worldY, worldZ, camera, viewportW, viewportH);
 };
 
 export const stepChampionFrame = (
@@ -98,7 +129,7 @@ export const stepChampionFrame = (
   const entranceAgeMs = now - (minion.createdAt || 0);
 
   if (elapsedTime >= ai.nextWanderTime) {
-    const [tx, ty, tz] = pickTargetInWing(minion.team);
+    const [tx, ty, tz] = pickSpreadTargetInWing(minion.team, camera, viewportW, viewportH, minion.id);
     ai.targetX = tx;
     ai.targetY = ty;
     ai.targetZ = tz;
@@ -141,6 +172,8 @@ export const stepChampionFrame = (
     ai.nextAttackTime = elapsedTime + baseCooldown / attackSpeedFactor;
   }
 
+  // Captured before the animation block below can end the attack on this same frame
+  const wasAttackingThisFrame = ai.isAttacking;
   let castRecoilX = 0;
   let castLiftY = 0;
   let scalePulse = 1.0;
@@ -221,10 +254,11 @@ export const stepChampionFrame = (
   }
 
   const isStunned = isMinionStunned(minion, Date.now());
-  if (isBossAlive && ai.isAttacking && !ai.hasFiredInThisAttack && !isGraceActive && !isStunned) {
+  if (isBossAlive && wasAttackingThisFrame && !ai.hasFiredInThisAttack && !isGraceActive && !isStunned) {
     const attackProgress =
       (elapsedTime - ai.attackStartTime) / COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_DURATION_S;
-    if (attackProgress >= 0.18) {
+    // `>=` with no upper bound: on a slow frame the attack may already be over, but it must still land
+    if (attackProgress >= COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_FIRE_PROGRESS) {
       ai.hasFiredInThisAttack = true;
       const { isFullFury } = store.consumeMinionAttackFury(minion.id);
       const screenStart = project3DToScreen(posX, posY, posZ, camera, viewportW, viewportH);
@@ -260,8 +294,7 @@ export const stepChampionFrame = (
   champGroup.scale.setScalar(finalScale * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE);
   champGroup.quaternion.copy(camera.quaternion);
 
-  const liveScreen = project3DToScreen(posX, posY, posZ, camera, viewportW, viewportH);
-  setLiveMinionPositions(minion.id, minion.championName, [posX, posY, posZ], liveScreen);
+  publishLivePosition(ai, minion, posX, posY, posZ, camera, viewportW, viewportH);
 
   const vfxRefs = resolveCachedVfxRefs(ai, champGroup.children[0] as THREE.Group | undefined);
   if (vfxRefs.ring) {
@@ -274,42 +307,8 @@ export const stepChampionFrame = (
     vfxRefs.sigHaloMesh.scale.setScalar(1.05 + Math.sin(elapsedTime * 4.5) * 0.08);
   }
 
-  const isAuraActive = entranceAgeMs < AURA_DURATION_MS;
-  const auraProg = Math.min(1.0, entranceAgeMs / AURA_DURATION_MS);
-
-  if (vfxRefs.haloMesh?.material instanceof THREE.MeshBasicMaterial) {
-    if (isAuraActive) {
-      const haloPulse = Math.sin(auraProg * Math.PI);
-      vfxRefs.haloMesh.scale.setScalar(0.9 + haloPulse * 0.25);
-      vfxRefs.haloMesh.rotation.z = elapsedTime * (minion.team === TEAM_KEY.BLG ? 3.5 : -3.5);
-      vfxRefs.haloMesh.material.opacity = haloPulse * 0.65;
-      vfxRefs.haloMesh.visible = true;
-    } else if (vfxRefs.haloMesh.visible) {
-      vfxRefs.haloMesh.visible = false;
-    }
-  }
-
-  if (vfxRefs.beamMesh?.material instanceof THREE.MeshBasicMaterial) {
-    if (isAuraActive) {
-      const beamFade = Math.max(0, 1.0 - auraProg);
-      vfxRefs.beamMesh.scale.set(0.9 + auraProg * 0.2, 1.0, 0.9 + auraProg * 0.2);
-      vfxRefs.beamMesh.material.opacity = beamFade * 0.45;
-      vfxRefs.beamMesh.visible = true;
-    } else if (vfxRefs.beamMesh.visible) {
-      vfxRefs.beamMesh.visible = false;
-    }
-  }
-
-  if (vfxRefs.landingMesh?.material instanceof THREE.MeshBasicMaterial) {
-    if (isAuraActive && entranceAgeMs >= 350) {
-      const landProg = (entranceAgeMs - 350) / (AURA_DURATION_MS - 350);
-      vfxRefs.landingMesh.scale.setScalar(0.6 + landProg * 0.75);
-      vfxRefs.landingMesh.material.opacity = Math.max(0, 1.0 - landProg) * 0.55;
-      vfxRefs.landingMesh.visible = true;
-    } else if (vfxRefs.landingMesh.visible) {
-      vfxRefs.landingMesh.visible = false;
-    }
-  }
+  const isSquadMember = (minion.entranceSquadSize ?? 1) >= SQUAD_ENTRANCE_CONSTANTS.MIN_SIZE;
+  updateChampionEntranceAura(vfxRefs, entranceAgeMs, elapsedTime, minion.team, isSquadMember);
 
   if (vfxRefs.shieldMesh?.material instanceof THREE.MeshBasicMaterial) {
     if (isGraceActive) {

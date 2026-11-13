@@ -71,7 +71,7 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
   },
   elder_cataclysmic_burn: {
     vfxType: BOSS_SKILL_VFX.NOVA,
-    vfxParams: { secondaryColor: '#f97316', scale: 1.4 },
+    vfxParams: { secondaryColor: '#f97316', scale: 1.4, isMouthBreath: true },
     statusEffect: { type: BOSS_STATUS_EFFECT.BURN, ...DOT.HEAVY },
     minPhase: ULTIMATE_UNLOCK_PHASE,
   },

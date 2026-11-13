@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { adminSocket, GameThemeType } from '../services/socket';
 import { createDefaultTeamConfig, TeamConfigState } from '../constants/teams';
 import { SeriesFormatConfig, DEFAULT_SERIES_CONFIG } from '../constants/series';
+import { TIKTOK_STATUS } from '../constants/adminAuth';
 import { ADMIN_APP_TITLE, THEME_OPTIONS, VALID_THEMES } from '../constants/adminPortal';
 
 type LogHandler = (type: string, message: string, team?: string) => void;
@@ -20,6 +21,8 @@ export function useAdminSocketSync(onLog: LogHandler) {
   const [tiktokStatus, setTiktokStatus] = useState<string>('DISCONNECTED');
   const [tiktokRoomId, setTiktokRoomId] = useState<string>('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [reconnectAttempt, setReconnectAttempt] = useState<number | undefined>(undefined);
+  const [nextRetryAt, setNextRetryAt] = useState<number | undefined>(undefined);
 
   const [teamConfig, setTeamConfig] = useState<TeamConfigState>(() => createDefaultTeamConfig());
   const [seriesConfig, setSeriesConfig] = useState<SeriesFormatConfig>(DEFAULT_SERIES_CONFIG);
@@ -62,9 +65,11 @@ export function useAdminSocketSync(onLog: LogHandler) {
     const unsubscribeTiktok = adminSocket.onTiktokStatus((data) => {
       setTiktokStatus(data.status);
       if (data.roomId) setTiktokRoomId(data.roomId);
-      if (data.status === 'CONNECTED') {
+      setReconnectAttempt(data.attempt);
+      setNextRetryAt(data.nextRetryAt);
+      if (data.status === TIKTOK_STATUS.CONNECTED) {
         onLog('SYSTEM', `Đã kết nối luồng Live TikTok của @${data.username}`);
-      } else if (data.status === 'ERROR') {
+      } else if (data.status === TIKTOK_STATUS.ERROR) {
         onLog('SYSTEM', `Lỗi kết nối: ${data.error || 'Không xác định'}`);
       }
     });
@@ -90,7 +95,7 @@ export function useAdminSocketSync(onLog: LogHandler) {
 
   const handleDisconnectTiktok = useCallback(async () => {
     await adminSocket.disconnectTiktokRoom();
-    setTiktokStatus('DISCONNECTED');
+    setTiktokStatus(TIKTOK_STATUS.DISCONNECTED);
     setTiktokRoomId('');
     onLog('SYSTEM', 'Đã ngắt kết nối phòng TikTok Live');
   }, [onLog]);
@@ -162,6 +167,8 @@ export function useAdminSocketSync(onLog: LogHandler) {
     setTiktokUsername,
     tiktokStatus,
     tiktokRoomId,
+    reconnectAttempt,
+    nextRetryAt,
     isConnecting,
     teamConfig,
     seriesConfig,

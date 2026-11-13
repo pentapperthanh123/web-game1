@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ActiveBossSkillBanner, BossSkillVfxType } from '../../../types/bossSkill';
-import { BOSS_SKILL_VFX_DEFAULT_COUNT, BOSS_SKILL_VFX_DURATION_MS } from '../../../constants/bossSkillVfx';
+import {
+  BOSS_SKILL_VFX_2D_MAX_OPACITY,
+  BOSS_SKILL_VFX_DEFAULT_COUNT,
+  BOSS_SKILL_VFX_DURATION_MS,
+} from '../../../constants/bossSkillVfx';
 import { TEAM_KEY } from '../../../constants/game';
 
 /** -1 = left side (BLG), 1 = right side (GENG), 0 = both / centre. */
@@ -20,6 +24,12 @@ const DEFAULT_SCALE = 1;
 const SEED_MULTIPLIER = 9301;
 const SEED_INCREMENT = 49297;
 const SEED_MODULUS = 233280;
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+const LEFT_LANDING_START = 8;
+const RIGHT_LANDING_START = 62;
+const SIDE_LANDING_RANGE = 30;
+const CENTER_LANDING_START = 10;
+const CENTER_LANDING_RANGE = 80;
 
 export const resolveSkillDirection = (targetTeam: ActiveBossSkillBanner['targetTeam']): SkillDirection => {
   if (targetTeam === TEAM_KEY.BLG) return -1;
@@ -72,7 +82,20 @@ export const useSkillVfxWindow = (banner: ActiveBossSkillBanner | null): boolean
 
 /** Horizontal landing spot (percent of container width) for projectile-style effects. */
 export const resolveLandingPercent = (direction: SkillDirection, random: number): number => {
-  if (direction < 0) return 8 + random * 30;
-  if (direction > 0) return 62 + random * 30;
-  return 10 + random * 80;
+  if (direction < 0) return LEFT_LANDING_START + random * SIDE_LANDING_RANGE;
+  if (direction > 0) return RIGHT_LANDING_START + random * SIDE_LANDING_RANGE;
+  return CENTER_LANDING_START + random * CENTER_LANDING_RANGE;
+};
+
+/** Appends a hex alpha suffix to a `#rrggbb` colour; other colour formats are returned unchanged. */
+export const withAlpha = (color: string, alphaHex: string): string =>
+  HEX_COLOR_PATTERN.test(color) ? `${color}${alphaHex}` : color;
+
+/**
+ * Wrapper style for every 2D skill overlay: screen-blended so glows only ever brighten the arena,
+ * and capped below full opacity so the keyframes (which animate to 1) never blow out to flat white.
+ */
+export const SKILL_VFX_2D_LAYER_STYLE: CSSProperties = {
+  opacity: BOSS_SKILL_VFX_2D_MAX_OPACITY,
+  mixBlendMode: 'screen',
 };

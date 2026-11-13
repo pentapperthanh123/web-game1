@@ -26,7 +26,7 @@ export type WorkerMsgType = (typeof WORKER_MSG)[keyof typeof WORKER_MSG];
 // [8]: attackProgress (0.0 - 1.0)
 // [9]: slotActive (0.0 | 1.0)
 export const SAB_FLOATS_PER_MINION = 10;
-export const SAB_MAX_MINIONS = 10; // 5 per side
+export const SAB_MAX_MINIONS = 300; // Unlimited arena floor capacity
 
 export interface CombatTickMsg {
   type: typeof WORKER_MSG.COMBAT_TICK;

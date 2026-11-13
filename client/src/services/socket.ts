@@ -2,8 +2,39 @@ import { io, Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
 import { OverlayVisibility, ParticipationRuleConfig } from '../types/game';
 import { TeamConfigState } from '../types/team';
-import { OVERLAY_SECTION, GameThemeType } from '../constants/game';
+import { OVERLAY_SECTION, GameThemeType, TeamType } from '../constants/game';
 import { sanitizeTeamConfigState } from '../constants/teams';
+import { buildAdminHeaders, resolveAdminToken } from './adminTokenStorage';
+import {
+  PlayerLeaderboardSnapshot,
+  sanitizePlayerLeaderboard,
+  usePlayerLeaderboardStore,
+} from '../store/playerLeaderboardStore';
+
+export const LIVE_OPS_SOCKET_EVENT = {
+  AUTH_ERROR: 'server:auth-error',
+  ROUND_RESULT: 'game:round-result',
+  PLAYER_LEADERBOARD: 'game:player-leaderboard',
+} as const;
+
+const UNKNOWN_AUTH_EVENT = 'unknown';
+const PLAYER_LEADERBOARD_PATH = '/api/player-leaderboard';
+const HTTP_METHOD_POST = 'POST';
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+export interface RoundResultPlayer {
+  userName: string;
+  team: TeamType;
+  damage: number;
+}
+
+export interface RoundResultPayload {
+  roundId: string;
+  winnerTeam: TeamType;
+  seriesFormat: string;
+  isSeriesEnd: boolean;
+  players: RoundResultPlayer[];
+}
 
 const OVERLAY_KEYS = Object.values(OVERLAY_SECTION) as (keyof OverlayVisibility)[];
 
@@ -33,6 +64,12 @@ class GameSocketClient {
   private socket: Socket | null = null;
   public isConnected = false;
 
+  // Chat batching: queue messages and flush every CHAT_BATCH_FLUSH_MS ms
+  // Prevents setState spam when many viewers send chat simultaneously
+  private readonly CHAT_BATCH_FLUSH_MS = 100;
+  private chatBatchQueue: Array<{ userName: string; text: string; team?: TeamType; championName?: string }> = [];
+  private chatBatchTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor() {
     this.init();
   }
@@ -46,6 +83,7 @@ class GameSocketClient {
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         timeout: 5000,
+        auth: { adminToken: resolveAdminToken() },
       });
 
       let lastSentLeft = -1;
@@ -82,10 +120,21 @@ class GameSocketClient {
         syncScoreBalanceToServer();
         console.log('[Game Socket] Connected to Backend Server on port 4000');
         useGameStore.getState().addLog('SYSTEM', 'Đã kết nối Socket.io tới Server trung gian');
+        this.startChatBatchFlush();
+        this.fetchPlayerLeaderboard();
+      });
+
+      this.socket.on(LIVE_OPS_SOCKET_EVENT.AUTH_ERROR, (payload: { event?: string } | undefined) => {
+        this.warnAuthErrorOnce(payload?.event);
+      });
+
+      this.socket.on(LIVE_OPS_SOCKET_EVENT.PLAYER_LEADERBOARD, (payload: unknown) => {
+        this.applyPlayerLeaderboard(payload);
       });
 
       this.socket.on('disconnect', () => {
         this.isConnected = false;
+        this.stopChatBatchFlush();
         console.log('[Game Socket] Disconnected from Backend Server');
       });
 
@@ -156,7 +205,8 @@ class GameSocketClient {
             payload.coins,
             payload.streakCount,
             payload.totalCoins,
-            payload.isComboFinal
+            payload.isComboFinal,
+            typeof payload.donorAvatarUrl === 'string' ? payload.donorAvatarUrl : undefined
           );
       });
 
@@ -185,7 +235,13 @@ class GameSocketClient {
 
       this.socket.on('game:chat', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
-        useGameStore.getState().addChatMessage(payload.userName, payload.text, payload.team, payload.championName);
+        // Push to batch queue — flushed every CHAT_BATCH_FLUSH_MS ms
+        this.chatBatchQueue.push({
+          userName: payload.userName,
+          text: payload.text,
+          team: payload.team as TeamType | undefined,
+          championName: payload.championName,
+        });
       });
 
       this.socket.on('game:team-config', (payload) => {
@@ -430,8 +486,8 @@ class GameSocketClient {
     }
     if (typeof window !== 'undefined') {
       fetch(`${SERVER_URL}/api/overlay-visibility`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: HTTP_METHOD_POST,
+        headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
         body: JSON.stringify({ ...visibility, senderId: CLIENT_INSTANCE_ID }),
       }).catch(() => {});
     }
@@ -448,8 +504,8 @@ class GameSocketClient {
     }
     if (typeof window !== 'undefined') {
       fetch(`${SERVER_URL}/api/teams`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: HTTP_METHOD_POST,
+        headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
         body: JSON.stringify(payload),
       }).catch(() => {});
     }
@@ -461,8 +517,8 @@ class GameSocketClient {
     }
     if (typeof window !== 'undefined') {
       fetch(`${SERVER_URL}/api/series-format`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: HTTP_METHOD_POST,
+        headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
         body: JSON.stringify({ format, resetScore }),
       }).catch(() => {});
     }
@@ -482,6 +538,68 @@ class GameSocketClient {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:toggle-bot', { isActive, speedMs, senderId: CLIENT_INSTANCE_ID });
     }
+  }
+
+  /** Sends the result of a finished round to the server (player profiles / leaderboard). */
+  public sendRoundResult(payload: RoundResultPayload): void {
+    if (!this.socket || !this.isConnected) {
+      console.warn('[Game Socket] Round result not sent: socket offline', payload.roundId);
+      return;
+    }
+    this.socket.emit(LIVE_OPS_SOCKET_EVENT.ROUND_RESULT, payload);
+  }
+
+  private warnedAuthErrorEvents = new Set<string>();
+
+  private warnAuthErrorOnce(eventName: string | undefined): void {
+    const key = eventName ?? UNKNOWN_AUTH_EVENT;
+    if (this.warnedAuthErrorEvents.has(key)) return;
+    this.warnedAuthErrorEvents.add(key);
+    console.warn(`[Game Socket] Server rejected "${key}" (no/invalid admin token). Overlay stays read-only.`);
+  }
+
+  private applyPlayerLeaderboard(payload: unknown): void {
+    const snapshot: PlayerLeaderboardSnapshot | null = sanitizePlayerLeaderboard(payload);
+    if (!snapshot) return;
+    usePlayerLeaderboardStore.getState().setLeaderboard(snapshot);
+  }
+
+  private async fetchPlayerLeaderboard(): Promise<void> {
+    try {
+      const response = await fetch(`${SERVER_URL}${PLAYER_LEADERBOARD_PATH}`);
+      if (!response.ok) {
+        console.info('[Game Socket] Player leaderboard unavailable, status', response.status);
+        return;
+      }
+      this.applyPlayerLeaderboard(await response.json());
+    } catch (error) {
+      console.warn('[Game Socket] Failed to fetch player leaderboard', error);
+    }
+  }
+
+  // ─── Chat Batch Flush ───────────────────────────────────────────────────────
+  // Groups incoming chat messages and flushes them to the store in one
+  // setState call every CHAT_BATCH_FLUSH_MS ms, preventing render storms.
+
+  private startChatBatchFlush(): void {
+    if (this.chatBatchTimer !== null) return;
+    this.chatBatchTimer = setInterval(() => this.flushChatBatch(), this.CHAT_BATCH_FLUSH_MS);
+  }
+
+  private stopChatBatchFlush(): void {
+    if (this.chatBatchTimer === null) return;
+    clearInterval(this.chatBatchTimer);
+    this.chatBatchTimer = null;
+    this.flushChatBatch(); // drain remaining messages on disconnect
+  }
+
+  private flushChatBatch(): void {
+    if (this.chatBatchQueue.length === 0) return;
+    const batch = this.chatBatchQueue.splice(0);
+    const store = useGameStore.getState();
+    batch.forEach((msg) =>
+      store.addChatMessage(msg.userName, msg.text, msg.team, msg.championName)
+    );
   }
 }
 

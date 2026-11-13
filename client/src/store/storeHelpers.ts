@@ -168,3 +168,19 @@ export const isBattleHalted = (
   state.isRoundIntermission ||
   state.roundWinner !== null ||
   state.silverScrapesState?.isActive === true;
+
+/**
+ * Adds a timed VFX entity unless `maxActive` are still playing.
+ * Returns null when full: dropping the NEW hit is invisible, while evicting the oldest one
+ * would make a projectile vanish mid-flight.
+ */
+export const appendIfCapacity = <T extends { createdAt: number; durationMs: number }>(
+  list: readonly T[],
+  item: T,
+  maxActive: number,
+  now: number
+): T[] | null => {
+  const stillPlaying = list.filter((entry) => now - entry.createdAt < entry.durationMs);
+  if (stillPlaying.length >= maxActive) return null;
+  return [...stillPlaying, item];
+};

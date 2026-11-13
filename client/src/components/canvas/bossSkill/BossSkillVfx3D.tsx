@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useGameStore } from '../../../store/gameStore';
 import { BOSS_SKILL_VFX, BossSkillVfxType } from '../../../types/bossSkill';
 import { BOSS_STATUS } from '../../../constants/game';
-import { SkillVfx3DProps, buildSkillVfx3DProps } from './bossSkill3DShared';
+import { SkillVfx3DProps, buildSkillVfx3DProps, buildSkillVfxStyleProps } from './bossSkill3DShared';
 import { ProjectileArc3D } from './ProjectileArc3D';
 import { GroundSpikes3D } from './GroundSpikes3D';
 import { CrescentSweep3D } from './CrescentSweep3D';
@@ -39,7 +39,7 @@ export const BossSkillVfx3D = () => {
       setIsWindowOpen(false);
       return;
     }
-    const vfxProps = buildSkillVfx3DProps(activeBossSkillBanner, activeBossSkillBanner.vfxType);
+    const vfxProps = buildSkillVfxStyleProps(activeBossSkillBanner, activeBossSkillBanner.vfxType);
     const remainingMs = vfxProps.durationMs - (Date.now() - vfxProps.startedAt);
     if (remainingMs <= 0) {
       setIsWindowOpen(false);
@@ -50,15 +50,18 @@ export const BossSkillVfx3D = () => {
     return () => clearTimeout(timer);
   }, [activeBossSkillBanner]);
 
-  if (!isWindowOpen || !activeBossSkillBanner || bossStatus === BOSS_STATUS.DEFEATED) return null;
+  // Anchors are read once per cast: the boss keeps patrolling, but the attack leaves from where it was
+  const castVfxProps = useMemo(() => {
+    if (!activeBossSkillBanner) return null;
+    return buildSkillVfx3DProps(activeBossSkillBanner, activeBossSkillBanner.vfxType);
+  }, [activeBossSkillBanner]);
+
+  if (!isWindowOpen || !activeBossSkillBanner || !castVfxProps || bossStatus === BOSS_STATUS.DEFEATED) return null;
 
   const VfxComponent = VFX_COMPONENT_MAP[activeBossSkillBanner.vfxType];
   if (!VfxComponent) return null;
 
   return (
-    <VfxComponent
-      key={activeBossSkillBanner.timestamp}
-      {...buildSkillVfx3DProps(activeBossSkillBanner, activeBossSkillBanner.vfxType)}
-    />
+    <VfxComponent key={activeBossSkillBanner.timestamp} {...castVfxProps} />
   );
 };

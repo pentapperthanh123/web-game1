@@ -175,14 +175,14 @@ export const BossDeathVFX3D = () => {
     if (coreSphereRef.current) {
       const coreScale =
         progress < crackEnd
-          ? THREE.MathUtils.lerp(2.0, 0.35, progress / crackEnd)
-          : THREE.MathUtils.lerp(0.35, 4.8, Math.min(1, (progress - crackEnd) / 0.45));
+          ? THREE.MathUtils.lerp(0.6, 0.2, progress / crackEnd)
+          : THREE.MathUtils.lerp(0.2, 1.2, Math.min(1, (progress - crackEnd) / 0.25));
       coreSphereRef.current.scale.setScalar(coreScale);
       const mat = coreSphereRef.current.material as THREE.MeshBasicMaterial;
       mat.opacity =
         progress < crackEnd
-          ? 0.95
-          : Math.max(0, 1 - (progress - crackEnd) / 0.48);
+          ? 0.7
+          : Math.max(0, 0.75 * (1 - (progress - crackEnd) / 0.25));
     }
 
     // Beat 2: Sky Execution Lightning Pillar & Core Beam
@@ -198,21 +198,21 @@ export const BossDeathVFX3D = () => {
     if (skyPillarRef.current) {
       skyPillarRef.current.visible = pillarFade > 0.01;
       skyPillarRef.current.scale.set(
-        1.5 - pillarProgress * 0.85,
-        1 + pillarProgress * 0.4,
-        1.5 - pillarProgress * 0.85
+        1.0 - pillarProgress * 0.35,
+        1,
+        1.0 - pillarProgress * 0.35
       );
-      (skyPillarRef.current.material as THREE.MeshBasicMaterial).opacity = pillarFade * 0.8;
+      (skyPillarRef.current.material as THREE.MeshBasicMaterial).opacity = pillarFade * 0.42;
     }
 
     if (skyBeamCoreRef.current) {
       skyBeamCoreRef.current.visible = pillarFade > 0.01;
       skyBeamCoreRef.current.scale.set(
-        1.2 - pillarProgress * 0.9,
+        1.0 - pillarProgress * 0.4,
         1,
-        1.2 - pillarProgress * 0.9
+        1.0 - pillarProgress * 0.4
       );
-      (skyBeamCoreRef.current.material as THREE.MeshBasicMaterial).opacity = pillarFade;
+      (skyBeamCoreRef.current.material as THREE.MeshBasicMaterial).opacity = pillarFade * 0.65;
     }
 
     // Multi-angle 3D Shockwave Rings
@@ -329,7 +329,7 @@ export const BossDeathVFX3D = () => {
     <group ref={groupRef} position={[0, ORIGIN_Y, ORIGIN_Z]}>
       {/* Core Supernova Flash Sphere */}
       <mesh ref={coreSphereRef}>
-        <sphereGeometry args={[0.85, 24, 24]} />
+        <sphereGeometry args={[0.35, 20, 20]} />
         <meshBasicMaterial
           color="#ffffff"
           transparent
@@ -342,7 +342,7 @@ export const BossDeathVFX3D = () => {
 
       {/* Execution Sky Pillar (Outer Team Color + Inner White Beam) */}
       <mesh ref={skyPillarRef} position={[0, 4.2, 0]}>
-        <cylinderGeometry args={[0.55, 1.45, 11.2, 24, 1, true]} />
+        <cylinderGeometry args={[0.12, 0.28, 11.2, 24, 1, true]} />
         <meshBasicMaterial
           color={teamColor}
           transparent
@@ -354,7 +354,7 @@ export const BossDeathVFX3D = () => {
       </mesh>
 
       <mesh ref={skyBeamCoreRef} position={[0, 4.2, 0]}>
-        <cylinderGeometry args={[0.22, 0.48, 11.2, 16, 1, true]} />
+        <cylinderGeometry args={[0.05, 0.12, 11.2, 16, 1, true]} />
         <meshBasicMaterial
           color="#ffffff"
           transparent
@@ -372,7 +372,7 @@ export const BossDeathVFX3D = () => {
         <meshBasicMaterial
           color={bossColor}
           transparent
-          opacity={0.95}
+          opacity={0.7}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.DoubleSide}
@@ -412,7 +412,7 @@ export const BossDeathVFX3D = () => {
         <meshBasicMaterial
           color="#ffffff"
           transparent
-          opacity={0.95}
+          opacity={0.7}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           toneMapped={false}
@@ -428,7 +428,7 @@ export const BossDeathVFX3D = () => {
         <meshBasicMaterial
           color={teamColor}
           transparent
-          opacity={0.95}
+          opacity={0.7}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           toneMapped={false}

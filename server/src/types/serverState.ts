@@ -89,20 +89,35 @@ export interface ParticipationRuleConfig {
   autoMatchSignatureTeam: boolean;
   lockTeamAfterJoin: boolean;
   allowChampionEvolution: boolean;
-  maxActivePerTeam?: number;
+  /** Number of queued champions that enter the arena per turn (arena floor itself is unlimited). */
+  maxDeployPerTurn?: number;
   summonTurnDelayMs?: number;
 }
+
+export const SUMMON_QUEUE_LIMITS = {
+  DEFAULT_DEPLOY_PER_TURN: 1,
+  MIN_DEPLOY_PER_TURN: 1,
+  MAX_DEPLOY_PER_TURN: 30,
+  DEFAULT_TURN_DELAY_MS: 1300,
+  MIN_TURN_DELAY_MS: 100,
+  MAX_TURN_DELAY_MS: 10000,
+} as const;
 
 export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
   allowTeamOnlySummon: true,
   autoMatchSignatureTeam: true,
   lockTeamAfterJoin: true,
   allowChampionEvolution: true,
-  maxActivePerTeam: 5,
-  summonTurnDelayMs: 1300,
+  maxDeployPerTurn: SUMMON_QUEUE_LIMITS.DEFAULT_DEPLOY_PER_TURN,
+  summonTurnDelayMs: SUMMON_QUEUE_LIMITS.DEFAULT_TURN_DELAY_MS,
 };
 
-export type TikTokConnectionStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR';
+export type TikTokConnectionStatus =
+  | 'DISCONNECTED'
+  | 'CONNECTING'
+  | 'CONNECTED'
+  | 'RECONNECTING'
+  | 'ERROR';
 
 export interface ServerState {
   overlayVisibility: OverlayVisibility;
@@ -118,6 +133,10 @@ export interface ServerState {
   tiktokUsername: string;
   connectionStatus: TikTokConnectionStatus;
   lastErrorMessage: string;
+  /** Current auto-reconnect attempt number (0 when not reconnecting). */
+  reconnectAttempt: number;
+  /** Epoch ms of the next scheduled reconnect attempt, or null. */
+  nextRetryAt: number | null;
   tiktokConnection: WebcastPushConnection | null;
 }
 

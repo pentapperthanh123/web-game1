@@ -24,7 +24,8 @@ const VFX_STYLE = {
     STARDUST_COUNT_CRIT: 4,
   },
   IMPACT: {
-    START_PROGRESS: 0.74,
+    /** Flight ends (and the burst starts) here; matches AUTO_PRO_BATTLE FLYING_ARROW_HIT_DELAY_MS / DURATION_MS. */
+    START_PROGRESS: 0.86,
     RING_MAX_RADIUS_NORMAL: 16,
     RING_MAX_RADIUS_CRIT: 28,
     STAR_RAY_LENGTH_NORMAL: 14,
@@ -35,6 +36,10 @@ const VFX_STYLE = {
   GLOW: {
     BLUR_NORMAL: 6,
     BLUR_CRIT: 14,
+  },
+  FADE: {
+    IN_SHARE: 0.06,
+    OUT_START: 0.9,
   },
   SCALE: {
     NORMAL: 0.58,
@@ -1061,9 +1066,13 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
 
         if (progress >= 1.0) continue;
 
+        // Flight takes the first part of the timeline; the burst plays on the boss afterwards
+        const flightProgress = Math.min(1, progress / VFX_STYLE.IMPACT.START_PROGRESS);
+        const isInFlight = flightProgress < 1;
+
         // Smooth accelerating curve so projectiles slam sharply into Boss without stalling/twisting at t -> 1
-        const eased = 0.35 * progress + 0.65 * (progress * progress);
-        const dEasedDt = 0.35 + 1.3 * progress;
+        const eased = 0.35 * flightProgress + 0.65 * (flightProgress * flightProgress);
+        const dEasedDt = 0.35 + 1.3 * flightProgress;
 
         const dx = arrow.targetX - arrow.startX;
         const dy = arrow.targetY - arrow.startY;
@@ -1073,8 +1082,8 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
 
         const sideSign = arrow.team === TEAM_KEY.BLG ? -1 : 1;
         const maxCurve = Math.min(26, dist * 0.1);
-        const curveOffset = Math.sin(progress * Math.PI) * maxCurve * sideSign;
-        const dCurveDt = Math.cos(progress * Math.PI) * Math.PI * maxCurve * sideSign;
+        const curveOffset = Math.sin(flightProgress * Math.PI) * maxCurve * sideSign;
+        const dCurveDt = Math.cos(flightProgress * Math.PI) * Math.PI * maxCurve * sideSign;
 
         const currentX = computeLerp(arrow.startX, arrow.targetX, eased) + perpX * curveOffset;
         const currentY = computeLerp(arrow.startY, arrow.targetY, eased) + perpY * curveOffset;
@@ -1100,56 +1109,46 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
           progress
         );
 
-        let opacity = 1.0;
-        if (progress < 0.04) {
-          opacity = progress / 0.04;
-        } else if (progress > 0.9) {
-          opacity = (1.0 - progress) / 0.1;
-        }
         const scale = arrow.isCrit ? VFX_STYLE.SCALE.CRIT : VFX_STYLE.SCALE.NORMAL;
-        const clampedOpacity = Math.max(0, Math.min(1, opacity));
 
-        ctx.save();
-        ctx.translate(currentX, currentY);
-        ctx.rotate(angleRad);
-        ctx.scale(scale, scale);
-        ctx.globalAlpha = clampedOpacity;
+        if (isInFlight) {
+          let opacity = 1.0;
+          if (flightProgress < VFX_STYLE.FADE.IN_SHARE) {
+            opacity = flightProgress / VFX_STYLE.FADE.IN_SHARE;
+          } else if (flightProgress > VFX_STYLE.FADE.OUT_START) {
+            opacity = (1.0 - flightProgress) / (1.0 - VFX_STYLE.FADE.OUT_START);
+          }
 
-        // 1. Dynamic Energy Ribbon Comet Trail Body
-        drawCometEnergyBody(
-          ctx,
-          arrow.color,
-          glowColor,
-          arrow.team,
-          arrow.isCrit,
-          elapsed
-        );
+          ctx.save();
+          ctx.translate(currentX, currentY);
+          ctx.rotate(angleRad);
+          ctx.scale(scale, scale);
+          ctx.globalAlpha = Math.max(0, Math.min(1, opacity));
 
-        // 2. Champion Signature Weapon Graphic
-        drawSkillGraphic(
-          ctx,
-          arrow.vfxType || CHAMPION_SKILL_VFX_TYPE.ARROW,
-          arrow.color,
-          glowColor,
-          coreColor,
-          arrow.isCrit,
-          elapsed
-        );
+          // 1. Dynamic Energy Ribbon Comet Trail Body
+          drawCometEnergyBody(ctx, arrow.color, glowColor, arrow.team, arrow.isCrit, elapsed);
 
-        // 3. Multi-layer Impact Burst upon hitting the Boss Monster
-        if (progress >= VFX_STYLE.IMPACT.START_PROGRESS) {
-          const impactProgress =
-            (progress - VFX_STYLE.IMPACT.START_PROGRESS) /
-            (1.0 - VFX_STYLE.IMPACT.START_PROGRESS);
-          drawImpactBurst(
+          // 2. Champion Signature Weapon Graphic
+          drawSkillGraphic(
             ctx,
+            arrow.vfxType || CHAMPION_SKILL_VFX_TYPE.ARROW,
             arrow.color,
             glowColor,
+            coreColor,
             arrow.isCrit,
-            impactProgress
+            elapsed
           );
+          ctx.restore();
+          continue;
         }
 
+        // 3. Impact burst on the boss, upright and at the exact landing point
+        const impactProgress =
+          (progress - VFX_STYLE.IMPACT.START_PROGRESS) / (1.0 - VFX_STYLE.IMPACT.START_PROGRESS);
+        ctx.save();
+        ctx.translate(arrow.targetX, arrow.targetY);
+        ctx.scale(scale, scale);
+        drawImpactBurst(ctx, arrow.color, glowColor, arrow.isCrit, impactProgress);
         ctx.restore();
       }
 

@@ -5,6 +5,7 @@ import { useGameStore } from '../../../store/gameStore';
 import { ADMIN_CONSTANTS, TEAM_KEY } from '../../../constants/game';
 import { getTeamTheme } from '../../../constants/teams';
 import { gameSocket } from '../../../services/socket';
+import { getMatchupTitleCount } from '../../../store/championshipTally';
 
 export const AdminMatchTab: React.FC = () => {
   const { t } = useTranslation();
@@ -16,6 +17,8 @@ export const AdminMatchTab: React.FC = () => {
   const resetBoss = useGameStore((state) => state.resetBoss);
   const startNextRound = useGameStore((state) => state.startNextRound);
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
+  const resetMatchupChampionships = useGameStore((state) => state.resetMatchupChampionships);
+  const championshipTally = useGameStore((state) => state.championshipTally);
   const setBO5Score = useGameStore((state) => state.setBO5Score);
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
   const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
@@ -64,6 +67,13 @@ export const AdminMatchTab: React.FC = () => {
     setRoundNum(1);
     showFeedback('Đã đặt lại chuỗi BO5 về 0 - 0!');
   };
+
+  const handleResetMatchupTitles = () => {
+    resetMatchupChampionships();
+    showFeedback(t('Admin.resetMatchupTitlesDone', 'Đã xoá số lần vô địch của cặp đấu hiện tại!'));
+  };
+
+  const matchupTitles = getMatchupTitleCount(championshipTally, leftTeam, rightTeam);
 
   const handleSaveScore = () => {
     setBO5Score(blgScore, gengScore, roundNum);
@@ -158,6 +168,26 @@ export const AdminMatchTab: React.FC = () => {
           >
             <RotateCcw className="w-3 h-3" />
             <span>{t('Admin.resetBO5', 'Reset BO5 (0 - 0)')}</span>
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 pt-1 text-[11px]">
+          <span className="text-slate-300 font-semibold">
+            {t('Admin.matchupTitlesLabel', 'Số lần vô địch (đối đầu):')}{' '}
+            <span className={`font-mono font-black ${leftTheme.textClass}`}>
+              {leftTeam.shortTag} {matchupTitles.leftTitles}
+            </span>
+            {' - '}
+            <span className={`font-mono font-black ${rightTheme.textClass}`}>
+              {matchupTitles.rightTitles} {rightTeam.shortTag}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={handleResetMatchupTitles}
+            className="shrink-0 py-1 px-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-bold hover:bg-slate-700 transition active:scale-95"
+          >
+            {t('Admin.resetMatchupTitles', 'Xoá số lần vô địch cặp này')}
           </button>
         </div>
       </div>

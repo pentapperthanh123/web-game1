@@ -40,4 +40,9 @@ export const SFX_FALLBACKS: Record<SfxEventName, () => void> = {
   [SFX_EVENT.BOSS_BEAM]: () => audioService.playBeamBurstSound(false),
   [SFX_EVENT.BOSS_VORTEX]: () => audioService.playAttackWhoosh(false, false),
   [SFX_EVENT.BOSS_CHARGE]: () => audioService.playAttackWhoosh(true, true),
+  [SFX_EVENT.GIFT_MEDIUM]: () => audioService.playHeartChime(),
+  [SFX_EVENT.GIFT_MEGA]: () => audioService.playGiftFanfare(),
+  [SFX_EVENT.CHAMPION_DEATH_MULTI]: () => audioService.playChampionDeathSound(),
+  [SFX_EVENT.SIGNATURE_SUMMON]: () => audioService.playSummonArrivalSound(),
+  [SFX_EVENT.WIPE]: () => audioService.playBossRoarSound(DEFAULT_PITCH_RATE, true),
 };
