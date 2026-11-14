@@ -125,7 +125,7 @@ export const RIFT_HERALD_SKILLS: BossSkillBase[] = [
     targetCount: 3,
     isUltimate: false,
     color: '#059669',
-    description: 'Vung 2 móng vuốt càn quét gây sát thương diện rộng 2-3 tướng (-45 HP)',
+    description: 'Vung 2 móng vuốt càn quét mọi tướng trong tầm quét của cánh bị đánh (-45 HP)',
   },
   {
     id: 'herald_eye_gaze',
@@ -136,7 +136,7 @@ export const RIFT_HERALD_SKILLS: BossSkillBase[] = [
     targetCount: 5,
     isUltimate: false,
     color: '#84cc16',
-    description: 'Mắt trên mai mở ra phóng chùm tia năng lượng quét 3-5 tướng (-70 HP)',
+    description: 'Mắt trên mai mở ra phóng tia chớp phân nhánh giật thẳng vào 3-5 tướng (-70 HP)',
   },
   {
     id: 'herald_seismic_slam',
@@ -172,7 +172,7 @@ export const MOUNTAIN_DRAGON_SKILLS: BossSkillBase[] = [
     targetCount: 3,
     isUltimate: false,
     color: '#c2410c',
-    description: 'Làm sụp đổ vách đá ngàn cân đè bẹp 2-3 tướng (-45 HP)',
+    description: 'Hất tung những tảng đá nham thạch đè bẹp 2-3 tướng ở cánh bị đánh (-45 HP)',
   },
   {
     id: 'mountain_tectonic_roar',
@@ -219,7 +219,7 @@ export const STORM_DRAGON_SKILLS: BossSkillBase[] = [
     targetCount: 3,
     isUltimate: false,
     color: '#8b5cf6',
-    description: 'Triệu hồi cuồng phong sấm sét cuốn phăng 2-3 tướng (-45 HP)',
+    description: 'Triệu hồi cuồng phong lốc sét phóng điện cuốn phăng 3 tướng (-45 HP & Giảm 50% ST)',
   },
   {
     id: 'storm_thunder_barrage',
@@ -227,10 +227,10 @@ export const STORM_DRAGON_SKILLS: BossSkillBase[] = [
     vietnameseName: 'Oanh Kích Sấm Sét',
     iconName: 'Sparkles',
     baseDamage: 70,
-    targetCount: 5,
+    targetCount: 8,
     isUltimate: false,
     color: '#a855f7',
-    description: 'Chuỗi sấm sét liên hoàn giáng xuống 3-5 tướng (-70 HP)',
+    description: 'Phun chùm bão lôi điện oanh kích diện rộng lên tới 8 tướng (-70 HP & Choáng)',
   },
   {
     id: 'storm_tempest_wrath',

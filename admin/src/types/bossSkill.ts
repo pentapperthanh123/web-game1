@@ -15,6 +15,7 @@ export const BOSS_SKILL_VFX = {
   CHARGE_DASH: 'CHARGE_DASH',
   SEISMIC_SLAM: 'SEISMIC_SLAM',
   NOVA: 'NOVA',
+  CHAIN_LIGHTNING: 'CHAIN_LIGHTNING',
 } as const;
 
 export type BossSkillVfxType = (typeof BOSS_SKILL_VFX)[keyof typeof BOSS_SKILL_VFX];
@@ -29,10 +30,22 @@ export const BOSS_STATUS_EFFECT = {
 
 export type BossStatusEffectType = (typeof BOSS_STATUS_EFFECT)[keyof typeof BOSS_STATUS_EFFECT];
 
+export interface BossSkillVfxLayer {
+  vfxType: BossSkillVfxType;
+  delayMs?: number;
+  count?: number;
+  scale?: number;
+  color?: string;
+  secondaryColor?: string;
+}
+
 export interface BossSkillVfxParams {
   secondaryColor?: string;
   count?: number;
   scale?: number;
+  durationScale?: number;
+  isMouthBreath?: boolean;
+  layers?: readonly BossSkillVfxLayer[];
 }
 
 export interface BossSkillStatusEffect {

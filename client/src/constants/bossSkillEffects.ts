@@ -47,8 +47,17 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
     vfxParams: { secondaryColor: '#f0abfc', scale: 1.1 },
   },
   baron_void_cataclysm: {
-    vfxType: BOSS_SKILL_VFX.NOVA,
-    vfxParams: { secondaryColor: '#a855f7', scale: 1.3 },
+    vfxType: BOSS_SKILL_VFX.VORTEX,
+    vfxParams: {
+      secondaryColor: '#a855f7',
+      scale: 1.7,
+      durationScale: 1.2,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.GROUND_SPIKES, delayMs: 500, count: 16, scale: 1.5, secondaryColor: '#c084fc' },
+        { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 900, count: 8, scale: 1.3, color: '#c084fc', secondaryColor: '#f0abfc' },
+        { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 1300, scale: 1.6 },
+      ],
+    },
     statusEffect: { type: BOSS_STATUS_EFFECT.POISON, ...DOT.MEDIUM },
     minPhase: ULTIMATE_UNLOCK_PHASE,
   },
@@ -71,7 +80,17 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
   },
   elder_cataclysmic_burn: {
     vfxType: BOSS_SKILL_VFX.NOVA,
-    vfxParams: { secondaryColor: '#f97316', scale: 1.4, isMouthBreath: true },
+    vfxParams: {
+      secondaryColor: '#f97316',
+      scale: 1.4,
+      isMouthBreath: true,
+      durationScale: 1.6,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.METEOR_RAIN, delayMs: 300, count: 14, secondaryColor: '#fb923c' },
+        { vfxType: BOSS_SKILL_VFX.LIGHTNING_STRIKE, delayMs: 900, count: 10, scale: 1.3, color: '#fbbf24', secondaryColor: '#fde68a' },
+        { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 1500, scale: 1.7 },
+      ],
+    },
     statusEffect: { type: BOSS_STATUS_EFFECT.BURN, ...DOT.HEAVY },
     minPhase: ULTIMATE_UNLOCK_PHASE,
   },
@@ -87,12 +106,21 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
     vfxParams: { secondaryColor: '#34d399', count: 2 },
   },
   herald_eye_gaze: {
-    vfxType: BOSS_SKILL_VFX.BEAM,
-    vfxParams: { secondaryColor: '#ec4899', scale: 1.1 },
+    vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING,
+    vfxParams: { secondaryColor: '#ec4899', count: 5, scale: 1.15 },
   },
   herald_seismic_slam: {
     vfxType: BOSS_SKILL_VFX.SEISMIC_SLAM,
-    vfxParams: { secondaryColor: '#f9a8d4', scale: 1.5 },
+    vfxParams: {
+      secondaryColor: '#f9a8d4',
+      scale: 1.7,
+      durationScale: 1.25,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.GROUND_SPIKES, delayMs: 250, count: 14, scale: 1.5 },
+        { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 550, count: 8, scale: 1.3, color: '#f472b6', secondaryColor: '#fbcfe8' },
+        { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 800, scale: 1.5 },
+      ],
+    },
     statusEffect: { type: BOSS_STATUS_EFFECT.STUN, ...STUN.LONG },
     minPhase: ULTIMATE_UNLOCK_PHASE,
   },
@@ -104,8 +132,8 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
     statusEffect: { type: BOSS_STATUS_EFFECT.BURN, ...DOT.LIGHT },
   },
   mountain_rock_slide: {
-    vfxType: BOSS_SKILL_VFX.METEOR_RAIN,
-    vfxParams: { secondaryColor: '#78350f', count: 6, scale: 1.3 },
+    vfxType: BOSS_SKILL_VFX.PROJECTILE_ARC,
+    vfxParams: { secondaryColor: '#fdba74', count: 4, scale: 1.25 },
     statusEffect: { type: BOSS_STATUS_EFFECT.STUN, ...STUN.SHORT },
   },
   mountain_tectonic_roar: {
@@ -114,8 +142,16 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
     statusEffect: { type: BOSS_STATUS_EFFECT.STUN, ...STUN.SHORT },
   },
   mountain_volcanic_eruption: {
-    vfxType: BOSS_SKILL_VFX.NOVA,
-    vfxParams: { secondaryColor: '#f97316', scale: 1.5 },
+    vfxType: BOSS_SKILL_VFX.METEOR_RAIN,
+    vfxParams: {
+      secondaryColor: '#f97316',
+      count: 16,
+      scale: 1.4,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.SEISMIC_SLAM, delayMs: 0, scale: 1.5, secondaryColor: '#f59e0b' },
+        { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 350, scale: 1.6 },
+      ],
+    },
     statusEffect: { type: BOSS_STATUS_EFFECT.BURN, ...DOT.HEAVY },
     minPhase: ULTIMATE_UNLOCK_PHASE,
   },
@@ -127,16 +163,40 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
   },
   storm_wind_vortex: {
     vfxType: BOSS_SKILL_VFX.VORTEX,
-    vfxParams: { secondaryColor: '#a5b4fc', scale: 1.1 },
+    vfxParams: {
+      secondaryColor: '#c7d2fe',
+      scale: 0.72,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.LIGHTNING_STRIKE, delayMs: 250, count: 4, scale: 0.9, color: '#818cf8', secondaryColor: '#e0e7ff' },
+        { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 650, count: 4, scale: 0.85, color: '#a5b4fc', secondaryColor: '#ffffff' },
+      ],
+    },
     statusEffect: { type: BOSS_STATUS_EFFECT.WEAKEN, ...WEAKEN.SHORT },
   },
   storm_thunder_barrage: {
-    vfxType: BOSS_SKILL_VFX.LIGHTNING_STRIKE,
-    vfxParams: { secondaryColor: '#e9d5ff', count: 7, scale: 1.2 },
+    vfxType: BOSS_SKILL_VFX.PROJECTILE_ARC,
+    vfxParams: {
+      secondaryColor: '#f0abfc',
+      count: 10,
+      scale: 1.55,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.LIGHTNING_STRIKE, delayMs: 450, count: 6, scale: 1.25, color: '#a855f7', secondaryColor: '#e9d5ff' },
+      ],
+    },
+    statusEffect: { type: BOSS_STATUS_EFFECT.STUN, ...STUN.SHORT },
   },
   storm_tempest_wrath: {
     vfxType: BOSS_SKILL_VFX.NOVA,
-    vfxParams: { secondaryColor: '#8b5cf6', scale: 1.4 },
+    vfxParams: {
+      secondaryColor: '#8b5cf6',
+      scale: 1.5,
+      durationScale: 1.3,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.VORTEX, delayMs: 0, scale: 1.7, secondaryColor: '#a5b4fc' },
+        { vfxType: BOSS_SKILL_VFX.LIGHTNING_STRIKE, delayMs: 350, count: 14, scale: 1.3, secondaryColor: '#e0e7ff' },
+        { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 900, count: 8, scale: 1.3, color: '#a5b4fc', secondaryColor: '#e0e7ff' },
+      ],
+    },
     statusEffect: { type: BOSS_STATUS_EFFECT.WEAKEN, ...WEAKEN.LONG },
     minPhase: ULTIMATE_UNLOCK_PHASE,
   },
