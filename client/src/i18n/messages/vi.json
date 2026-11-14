@@ -418,7 +418,7 @@
     "titleJoin": "Cách tham gia",
     "titleGifts": "Quà tặng",
     "buffNotice": "⭐ Buff Nộ",
-    "callToAction": "Chat tên tướng để xuất trận:",
+    "callToAction": "Gõ tên tướng bạn thích để triệu hồi:",
     "quickRule": "Thắng theo ST ván",
     "quickGift": "1 xu = {{damage}} ST",
     "quickHeart": "Thả tim nạp Nộ",
@@ -615,7 +615,8 @@
         "Chưa biết chơi? Gõ một tên tướng và tên đội là xong!",
         "Mỗi tin nhắn hợp lệ là một tướng ra sân, gõ {{champion}} {{teamA}} thử xem!",
         "Chat trùng tướng tủ của tuyển thủ để buff nộ cho họ nhé!",
-        "Người mới vào? Gõ {{champion}} kèm tên đội bạn thích là được!",
+        "Gõ tên vị tướng bạn yêu thích kèm tên đội để triệu hồi ngay vào trận!",
+        "Bạn thích tướng nào? Chat ngay tên tướng kèm tên đội bạn chọn để xuất chiến!",
         "Thả tim liên tục để nạp nộ, đủ mốc tim cả đội được hồi máu!"
       ],
       "BANTER_HYPE": [
@@ -649,11 +650,11 @@
         "Đấu trường này thuộc về ta! Kẻ tiếp theo là ai?"
       ],
       "EMPTY_FIELD_RALLY": [
-        "Anh em ơi phản công ngay! Chat {{champion}} {{teamA}} hoặc {{champion}} {{teamB}} để gọi tướng trở lại!",
+        "Anh em ơi phản công ngay! Chat tên tướng bạn thích kèm {{teamA}} hoặc {{teamB}} để gọi tướng trở lại!",
         "Không được bỏ cuộc! Gõ tên tướng kèm {{teamA}} hoặc {{teamB}}, đấu trường đang cần các bạn!",
         "Gọi viện binh mau! Mỗi tin nhắn là một tướng, mỗi món quà là một trận mưa thiên thạch!",
-        "Hồi sinh đội hình thôi! Chat tên tướng ngay, thả tim để nạp nộ cho tuyển thủ!",
-        "Ai sẽ là người đầu tiên quay lại? Gõ {{champion}} kèm tên đội của bạn!"
+        "Hồi sinh đội hình thôi! Chat tên tướng bạn yêu thích ngay, thả tim để nạp nộ cho tuyển thủ!",
+        "Ai sẽ là người đầu tiên quay lại? Gõ tên vị tướng bạn thích kèm tên đội xuất chiến ngay!"
       ],
       "BANTER_EMPTY": [
         "Sân đang trống! Chat tên tướng kèm {{teamA}} hoặc {{teamB}} để xuất trận ngay!",
@@ -711,10 +712,10 @@
         "BLV Bão xin chào! {{teamA}} và {{teamB}} cùng săn {{boss}}!"
       ],
       "ROUND_INTRO_STARS": [
-        "{{starA}} cầm {{champA}} đấu {{starB}} cầm {{champB}}! Chat {{champA}} {{teamA}} hoặc {{champB}} {{teamB}} để xuất trận!",
-        "Tâm điểm {{starA}} đối đầu {{starB}}! Gõ {{champA}} {{teamA}} hoặc {{champB}} {{teamB}} là vào trận!",
-        "{{champA}} của {{starA}} gặp {{champB}} của {{starB}}! Chat trùng tướng tủ để buff nộ cho tuyển thủ!",
-        "Kèo ngôi sao {{starA}} và {{starB}}! Gõ {{champA}} {{teamA}} hoặc {{champB}} {{teamB}}, một xu bằng {{damage}} sát thương!"
+        "Bạn thích tướng nào? Chat ngay tên tướng kèm {{teamA}} hoặc {{teamB}} để xuất chiến!",
+        "Gõ tên vị tướng bạn yêu thích kèm tên đội để triệu hồi ngay vào trận!",
+        "Tự do chọn tướng! Chat bất kỳ tướng nào bạn thích kèm tên đội để tham chiến!",
+        "Kèo ngôi sao {{starA}} và {{starB}}! Gõ tướng bạn yêu thích kèm tên đội, một xu bằng {{damage}} sát thương!"
       ],
       "ROUND_GO": [
         "Xung trận! Ván {{round}} chính thức bắt đầu!",

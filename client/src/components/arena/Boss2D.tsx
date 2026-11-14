@@ -8,6 +8,8 @@ import {
   DAMAGE_TYPE,
   BOSS_ANIMATION_CONSTANTS,
   BOSS_IDLE_CONSTANTS,
+  getBossHealthBarAnchorClass,
+  getBossNameAnchorClass,
   TeamType,
   DamageType,
   getThemeConfig,
@@ -17,6 +19,7 @@ import { bossSpeechManager, BossSpeechItem, resolveBossSpeechItem } from '../../
 import { BossHitMarks2D } from './BossHitMarks2D';
 import { BossAlertBanner } from './BossAlertBanner';
 import { BossSpeechBubble } from './BossSpeechBubble';
+import { BossHealthBar, BossNameTag } from '../ui/BossHealthBar';
 import { useRoundIntroStore, isRoundIntroActive } from '../../store/roundIntroStore';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
@@ -25,7 +28,7 @@ import { audioService } from '../../services/audioService';
 import { playBossVoice } from '../../services/bossVoice';
 import { BOSS_VOICE_KIND } from '../../constants/sfx';
 import { BOSS_SKILL_VFX, BossSkillVfxType } from '../../types/bossSkill';
-import { BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
+import { BOSS_CHARGE_ANIMATION_CLASS, BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
 import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
 import { useSkillVfxWindow } from './skillVfx/skillVfxShared';
 import { BossEntranceBreathVFX } from './BossEntranceBreathVFX';
@@ -65,8 +68,10 @@ const getAnimationClass = (
       if (isUltimateAttack || skillId === 'herald_seismic_slam') {
         return 'animate-boss-slam-center drop-shadow-[0_0_80px_rgba(236,72,153,1)] cursor-pointer';
       }
-      if (skillId === 'herald_charge') {
-        return 'animate-herald-charge drop-shadow-[0_0_75px_rgba(16,185,129,1)] cursor-pointer';
+      if (vfxType === BOSS_SKILL_VFX.CHARGE_DASH) {
+        const chargeClass =
+          attackTargetTeam === TEAM_KEY.GENG ? BOSS_CHARGE_ANIMATION_CLASS.RIGHT : BOSS_CHARGE_ANIMATION_CLASS.LEFT;
+        return `${chargeClass} drop-shadow-[0_0_75px_rgba(16,185,129,1)] cursor-pointer`;
       }
       if (archetypeClass) {
         return `${archetypeClass} drop-shadow-[0_0_70px_rgba(16,185,129,1)] cursor-pointer`;
@@ -158,6 +163,7 @@ export const Boss2D = () => {
   const bossHitTimestamp = useGameStore((state) => state.bossHitTimestamp);
   const bossAttackTimestamp = useGameStore((state) => state.bossAttackTimestamp);
   const gameTheme = useGameStore((state) => state.gameTheme);
+  const isHealthBarVisible = useGameStore((state) => state.overlayVisibility.bossHealth);
   const activeBossSkillBanner = useGameStore((state) => state.activeBossSkillBanner);
   const lastHitTeam = useGameStore((state) => state.lastHitTeam);
   const lastHitDamageType = useGameStore((state) => state.lastHitDamageType);
@@ -611,6 +617,7 @@ export const Boss2D = () => {
         activeBossSkillBanner={activeBossSkillBanner}
         gameTheme={gameTheme}
         defaultRoarTextVi={themeConfig.roarTextVi}
+        isAboveHealthBar={isHealthBarVisible}
       />
 
       <div
@@ -627,10 +634,22 @@ export const Boss2D = () => {
         <div className={verticalMotionClass}>
           {/* Follows the sprite's motion only; the filter keyframes would add a second filtered layer */}
           <div className={`relative ${themeConfig.spriteSize} ${animationClass} boss-motion-only pointer-events-none`}>
+            {/* Inside the boss motion layer: name (above) and HP bar (below) follow lunges, hits and hovering */}
+            {isHealthBarVisible && (
+              <>
+                <div className={getBossNameAnchorClass(gameTheme)}>
+                  <BossNameTag />
+                </div>
+                <div className={getBossHealthBarAnchorClass(gameTheme)}>
+                  <BossHealthBar />
+                </div>
+              </>
+            )}
             <BossSpeechBubble
               speech={isRoarActive || isDefeated || isSilverScrapesActive || isRoundIntroShown ? null : activeSpeech}
               themeConfig={themeConfig}
               isRestless={isRestless}
+              isAboveHealthBar={isHealthBarVisible}
             />
           </div>
         </div>

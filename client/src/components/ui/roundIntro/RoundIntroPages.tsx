@@ -45,8 +45,8 @@ export const MatchupPage = ({ leftTeam, rightTeam, bossName }: MatchupPageProps)
         >
           <div className="relative shrink-0">
             <img
-              src={getChampionAvatarUrl(leftStar.signatureChampion, TEAM_KEY.BLG)}
-              alt={leftStar.signatureChampion}
+              src={leftStar.avatarUrl || getChampionAvatarUrl(leftStar.signatureChampion, TEAM_KEY.BLG)}
+              alt={leftStar.name}
               className="h-10 w-10 sm:h-11 sm:w-11 rounded-full border-2 object-cover shadow-sm"
               style={{ borderColor: leftTheme.primaryHex }}
             />
@@ -61,7 +61,7 @@ export const MatchupPage = ({ leftTeam, rightTeam, bossName }: MatchupPageProps)
             <p className="truncate text-[10px] font-black uppercase tracking-tight" style={{ color: leftTheme.primaryHex }}>
               {leftStar.name}
             </p>
-            <p className="truncate text-xs font-black text-white">{leftStar.signatureChampion}</p>
+            <p className="truncate text-xs font-black text-white">{leftTeam.name}</p>
             <span
               className="inline-block rounded px-1.5 py-0.2 text-[8px] font-extrabold uppercase tracking-wide"
               style={{
@@ -70,7 +70,7 @@ export const MatchupPage = ({ leftTeam, rightTeam, bossName }: MatchupPageProps)
                 border: `1px solid ${leftTheme.primaryHex}40`,
               }}
             >
-              {t('RoundIntro.buffNotice', '⭐ Buff Nộ')}
+              {leftTeam.shortTag}
             </span>
           </div>
         </div>
@@ -94,7 +94,7 @@ export const MatchupPage = ({ leftTeam, rightTeam, bossName }: MatchupPageProps)
             <p className="truncate text-[10px] font-black uppercase tracking-tight" style={{ color: rightTheme.primaryHex }}>
               {rightStar.name}
             </p>
-            <p className="truncate text-xs font-black text-white">{rightStar.signatureChampion}</p>
+            <p className="truncate text-xs font-black text-white">{rightTeam.name}</p>
             <span
               className="inline-block rounded px-1.5 py-0.2 text-[8px] font-extrabold uppercase tracking-wide"
               style={{
@@ -103,13 +103,13 @@ export const MatchupPage = ({ leftTeam, rightTeam, bossName }: MatchupPageProps)
                 border: `1px solid ${rightTheme.primaryHex}40`,
               }}
             >
-              {t('RoundIntro.buffNotice', '⭐ Buff Nộ')}
+              {rightTeam.shortTag}
             </span>
           </div>
           <div className="relative shrink-0">
             <img
-              src={getChampionAvatarUrl(rightStar.signatureChampion, TEAM_KEY.GENG)}
-              alt={rightStar.signatureChampion}
+              src={rightStar.avatarUrl || getChampionAvatarUrl(rightStar.signatureChampion, TEAM_KEY.GENG)}
+              alt={rightStar.name}
               className="h-10 w-10 sm:h-11 sm:w-11 rounded-full border-2 object-cover shadow-sm"
               style={{ borderColor: rightTheme.primaryHex }}
             />
@@ -126,7 +126,7 @@ export const MatchupPage = ({ leftTeam, rightTeam, bossName }: MatchupPageProps)
       {/* Action Callout Box */}
       <div className="rounded-xl border border-amber-400/30 bg-slate-900/80 p-2 text-center shadow-inner">
         <p className="text-[10px] sm:text-[10.5px] font-extrabold text-slate-300 whitespace-nowrap">
-          💬 {t('RoundIntro.callToAction', 'Chat tên tướng để xuất trận:')}
+          💬 {t('RoundIntro.callToAction', 'Gõ tên tướng bạn thích để triệu hồi:')}
         </p>
         <div className="mt-1 flex items-center justify-center gap-2 text-xs font-black whitespace-nowrap">
           <span
@@ -137,7 +137,7 @@ export const MatchupPage = ({ leftTeam, rightTeam, bossName }: MatchupPageProps)
               border: `1px solid ${leftTheme.primaryHex}60`,
             }}
           >
-            "{leftStar.signatureChampion} {leftTeam.shortTag}"
+            "[Tên tướng] {leftTeam.shortTag}"
           </span>
           <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap shrink-0">hoặc</span>
           <span
@@ -148,7 +148,7 @@ export const MatchupPage = ({ leftTeam, rightTeam, bossName }: MatchupPageProps)
               border: `1px solid ${rightTheme.primaryHex}60`,
             }}
           >
-            "{rightStar.signatureChampion} {rightTeam.shortTag}"
+            "[Tên tướng] {rightTeam.shortTag}"
           </span>
         </div>
       </div>

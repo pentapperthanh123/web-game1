@@ -418,7 +418,7 @@
     "titleJoin": "How to join",
     "titleGifts": "Gifts",
     "buffNotice": "⭐ Boost Fury",
-    "callToAction": "Chat champion to deploy:",
+    "callToAction": "Type any champion you like to summon:",
     "quickRule": "Most DMG wins",
     "quickGift": "1 coin = {{damage}} DMG",
     "quickHeart": "Hearts charge Fury",
@@ -615,7 +615,8 @@
         "New here? Type a champion name and a team, that is it!",
         "Every valid message summons a champion, try {{champion}} {{teamA}}!",
         "Chat a pro's signature champion to charge that pro's fury!",
-        "Just arrived? Type {{champion}} with your favourite team!",
+        "Type any champion you love with your team name to deploy immediately!",
+        "Which champion do you like? Chat that champion name plus your team to join the fight!",
         "Keep tapping hearts to charge fury, every milestone heals the team!"
       ],
       "BANTER_HYPE": [
@@ -649,11 +650,11 @@
         "This arena belongs to me! Who is next?"
       ],
       "EMPTY_FIELD_RALLY": [
-        "Strike back now! Chat {{champion}} {{teamA}} or {{champion}} {{teamB}} to bring champions back!",
-        "Do not give up! Type a champion plus {{teamA}} or {{teamB}}, the arena needs you!",
+        "Strike back now! Chat your favourite champion plus {{teamA}} or {{teamB}} to bring champions back!",
+        "Do not give up! Type any champion plus {{teamA}} or {{teamB}}, the arena needs you!",
         "Call reinforcements! Every message is a champion, every gift a meteor shower!",
-        "Rebuild the lineup! Chat a champion now, tap hearts to charge the pros!",
-        "Who will be the first to return? Type {{champion}} with your team!"
+        "Rebuild the lineup! Chat any champion you love now, tap hearts to charge the pros!",
+        "Who will be the first to return? Type your favourite champion with your team!"
       ],
       "BANTER_EMPTY": [
         "The field is empty! Chat a champion plus {{teamA}} or {{teamB}} to join now!",
@@ -711,10 +712,10 @@
         "Caster Storm here! {{teamA}} and {{teamB}} hunt {{boss}}!"
       ],
       "ROUND_INTRO_STARS": [
-        "{{starA}} on {{champA}} versus {{starB}} on {{champB}}! Chat {{champA}} {{teamA}} or {{champB}} {{teamB}} to join!",
-        "Spotlight on {{starA}} versus {{starB}}! Type {{champA}} {{teamA}} or {{champB}} {{teamB}} to enter!",
-        "{{champA}} of {{starA}} meets {{champB}} of {{starB}}! Match a signature champion to charge that pro!",
-        "Star duel {{starA}} and {{starB}}! Type {{champA}} {{teamA}} or {{champB}} {{teamB}}, one coin is {{damage}} damage!"
+        "Which champion do you like? Chat any champion name plus {{teamA}} or {{teamB}} to enter!",
+        "Type any champion you love with your team name to deploy immediately!",
+        "Free champion pick! Chat your favourite champion plus your team to join the battle!",
+        "Star duel between {{teamA}} and {{teamB}}! Type any champion with your team, one coin is {{damage}} damage!"
       ],
       "ROUND_GO": [
         "Fight! Round {{round}} is on!",
