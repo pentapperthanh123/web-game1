@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import cors from 'cors';
 import express from 'express';
 import { createServer } from 'http';
@@ -7,9 +9,9 @@ import { DEFAULT_DUEL_STATE } from './constants/series.js';
 import { registerConfigRoutes } from './routes/configRoutes.js';
 import { registerPlayerLeaderboardRoutes } from './routes/playerLeaderboardRoutes.js';
 import { registerTikTokRoutes } from './routes/tiktokRoutes.js';
-import { registerCasterRoutes } from './routes/casterRoutes.js';
+import { registerCasterRoutes, registerCasterSocketHandlers } from './routes/casterRoutes.js';
 import { createCasterTtsService } from './services/caster/casterTtsService.js';
-import { createTtsProvider } from './services/caster/ttsProviders.js';
+import { createTtsProviderChain } from './services/caster/ttsProviders.js';
 import {
   installSocketAdminAuth,
   logAdminAuthMode,
@@ -93,13 +95,17 @@ const liveOpsService = createLiveOpsService(ctx, moderation, opsAlerts);
 
 registerConfigRoutes(app, ctx);
 registerTikTokRoutes(app, ctx, tiktokService);
+// server/ (this file runs from server/src with tsx or server/dist when built)
+const SERVER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const casterTts = createCasterTtsService({
-  provider: createTtsProvider(process.env),
+  providers: createTtsProviderChain(process.env, SERVER_ROOT),
+  serverRoot: SERVER_ROOT,
   getCasterConfig: () => ctx.state.casterConfig,
   containsBlocked: (text) => moderation.containsBlocked(text),
 });
 registerCasterRoutes(app, casterTts);
-console.log(`[CasterTTS] voice provider: ${casterTts.providerName}`);
+registerCasterSocketHandlers(io, casterTts);
+console.log(`[CasterTTS] voice: ${casterTts.providerName}${casterTts.fallbackName ? ` (fallback ${casterTts.fallbackName})` : ''}`);
 registerPlayerLeaderboardRoutes(app, playerProfileService);
 registerSocketHub(ctx, duelService, tiktokService, playerProfileService, liveOpsService);
 

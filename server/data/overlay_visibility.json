@@ -7,5 +7,6 @@
   "likeCounter": false,
   "howToPlay": true,
   "heartMilestone": false,
-  "matchTitleBar": false
+  "matchTitleBar": false,
+  "casterSubtitle": false
 }

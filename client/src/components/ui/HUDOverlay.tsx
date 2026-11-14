@@ -289,7 +289,7 @@ export const HUDOverlay = () => {
 
       {/* Floating 3D & Combat Elements */}
       <FloatingDamage />
-      <CasterSubtitle />
+      {overlayVisibility.casterSubtitle && <CasterSubtitle />}
       <FinisherAnnouncementBanner />
       <VictoryOverlay />
       <SilverScrapesDuelOverlay />

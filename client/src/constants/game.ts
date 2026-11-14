@@ -1046,6 +1046,7 @@ export const OVERLAY_SECTION = {
   HOW_TO_PLAY: 'howToPlay',
   HEART_MILESTONE: 'heartMilestone',
   MATCH_TITLE_BAR: 'matchTitleBar',
+  CASTER_SUBTITLE: 'casterSubtitle',
 } as const;
 
 export type OverlaySectionKey = (typeof OVERLAY_SECTION)[keyof typeof OVERLAY_SECTION];
@@ -1060,6 +1061,7 @@ export const DEFAULT_OVERLAY_VISIBILITY = {
   howToPlay: true,
   heartMilestone: true,
   matchTitleBar: true,
+  casterSubtitle: false,
 } as const;
 
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';
@@ -1616,6 +1618,7 @@ export const ADMIN_CONSTANTS = {
     { key: 'likeCounter', labelVi: 'Đếm Lượt Tim & Tinh Thần', labelEn: 'Like Counter' },
     { key: 'heartMilestone', labelVi: 'Cơ Chế Đại Hồi Phục (0/200 Tim)', labelEn: 'Map-Wide Heart Milestone Heal' },
     { key: 'howToPlay', labelVi: 'Cách Tham Gia & Quà Tặng', labelEn: 'How to Play & Rewards' },
+    { key: 'casterSubtitle', labelVi: 'Phụ Đề Bình Luận Viên (BLV Bão / Boss)', labelEn: 'AI Caster & Boss Subtitles' },
   ] as const,
 } as const;
 

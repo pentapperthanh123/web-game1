@@ -14,6 +14,7 @@ export interface OverlayVisibility {
   howToPlay: boolean;
   heartMilestone: boolean;
   matchTitleBar: boolean;
+  casterSubtitle: boolean;
 }
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -26,6 +27,7 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   howToPlay: true,
   heartMilestone: true,
   matchTitleBar: true,
+  casterSubtitle: false,
 };
 
 export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
@@ -38,6 +40,7 @@ export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
   'likeCounter',
   'howToPlay',
   'heartMilestone',
+  'casterSubtitle',
 ];
 
 export type GameThemeType =

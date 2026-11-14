@@ -6,6 +6,7 @@ import { OVERLAY_SECTION, GameThemeType, TeamType, GAME_CONSTANTS, GIFT_TIER, GI
 import { applyCasterConfig } from '../store/casterStore';
 import { hasSpeechNameField, registerSpeechName } from './caster/speechNameRegistry';
 import { announceFollow, announceShare, announceSmallGiftCombo } from './caster/casterDirector';
+import { setCasterWarmSender } from './caster/casterWarmChannel';
 import { sanitizeTeamConfigState } from '../constants/teams';
 import { buildAdminHeaders, resolveAdminToken } from './adminTokenStorage';
 import {
@@ -119,6 +120,7 @@ class GameSocketClient {
 
       this.socket.on('connect', () => {
         this.isConnected = true;
+        setCasterWarmSender((eventName, payload) => this.socket?.emit(eventName, payload));
         lastScoreSyncAt = 0;
         syncScoreBalanceToServer();
         console.log('[Game Socket] Connected to Backend Server on port 4000');

@@ -68,3 +68,7 @@ client/public/models/aatrox_textures/
 
 # Session cache
 .agents/.session/
+
+# AI caster TTS (local voice runtime and generated clips)
+server/.tts-venv/
+server/data/tts-cache/

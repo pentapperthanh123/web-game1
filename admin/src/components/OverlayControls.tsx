@@ -12,6 +12,7 @@ import {
   Sliders,
   Check,
   Layout,
+  Mic,
 } from 'lucide-react';
 import { adminSocket } from '../services/socket';
 import { OverlayVisibility } from '../types/overlay';
@@ -90,6 +91,12 @@ const buildSectionConfigs = (leftTag: string, rightTag: string): SectionConfig[]
     label: 'Cách Tham Gia & Quà Tặng (Góc Phải)',
     description: 'Bảng hướng dẫn cú pháp chat & bảng quy đổi Quà tặng - Sát thương',
     icon: Sparkles,
+  },
+  {
+    key: 'casterSubtitle',
+    label: 'Khung Phụ Đề Bình Luận Viên (BLV Bão / Boss)',
+    description: 'Hiển thị lời thoại phụ đề của bình luận viên và lời gầm của Boss trên màn hình',
+    icon: Mic,
   },
 ];
 
