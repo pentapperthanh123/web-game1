@@ -9,6 +9,7 @@
  */
 
 import { BOSS_SKILL_VFX, BossSkillVfxType } from '../types/bossSkill';
+import { GAME_THEME, GameThemeType } from './game';
 
 export const SFX_EVENT = {
   CHAT_POP: 'CHAT_POP',
@@ -46,6 +47,17 @@ export const SFX_EVENT = {
   CHAMPION_DEATH_MULTI: 'CHAMPION_DEATH_MULTI',
   SIGNATURE_SUMMON: 'SIGNATURE_SUMMON',
   WIPE: 'WIPE',
+  // Per-boss voices (BOSS_ROAR / BOSS_ENRAGE above are Baron's, the default boss)
+  BOSS_ROAR_HERALD: 'BOSS_ROAR_HERALD',
+  BOSS_ENRAGE_HERALD: 'BOSS_ENRAGE_HERALD',
+  BOSS_ROAR_MOUNTAIN: 'BOSS_ROAR_MOUNTAIN',
+  BOSS_ENRAGE_MOUNTAIN: 'BOSS_ENRAGE_MOUNTAIN',
+  BOSS_ROAR_STORM: 'BOSS_ROAR_STORM',
+  BOSS_ENRAGE_STORM: 'BOSS_ENRAGE_STORM',
+  BOSS_ROAR_ELDER: 'BOSS_ROAR_ELDER',
+  BOSS_ENRAGE_ELDER: 'BOSS_ENRAGE_ELDER',
+  BOSS_ROAR_VOID: 'BOSS_ROAR_VOID',
+  BOSS_ENRAGE_VOID: 'BOSS_ENRAGE_VOID',
 } as const;
 
 export type SfxEventName = (typeof SFX_EVENT)[keyof typeof SFX_EVENT];
@@ -218,9 +230,9 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0,
   },
 
-  // ── Boss (rateScale follows theme.audioPitchRate: deeper for Baron, higher for Herald) ──
+  // ── Boss voice: BOSS_ROAR / BOSS_ENRAGE are Baron's; the other bosses use BOSS_VOICE_SFX below ──
   [SFX_EVENT.BOSS_ROAR]: {
-    src: [fromMyinstants('largepredatorsnarl.mp3'), fromMyinstants('dragon-roar-sfx.mp3')], // 4.0 s
+    src: [fromMyinstants('mb-roar-1.mp3'), fromMyinstants('largepredatorsnarl.mp3')], // 3.1 s, deep clean roar
     volume: 0.7,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -228,7 +240,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.04,
   },
   [SFX_EVENT.BOSS_ENRAGE]: {
-    src: [fromMyinstants('enraged-scream2.mp3'), fromMyinstants('beastly-battler-enraged.mp3')], // 4.1 s
+    src: [fromMyinstants('big-monster-roar.mp3'), fromMyinstants('beastly-battler-enraged.mp3')], // 4.3 s, heavy sustained
     volume: 0.9,
     category: SFX_CATEGORY.STINGER,
     duckCombatMs: 2500,
@@ -245,7 +257,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0,
   },
   [SFX_EVENT.BOSS_SKILL]: {
-    src: [fromMyinstants('boss-shockwave.mp3'), fromMyinstants('skill_spell_earthquake_01-23.mp3')], // 2.3 s
+    src: [fromMyinstants('hammer-impact.mp3'), fromMyinstants('boss-shockwave.mp3')], // instant heavy slam, long tail
     volume: 0.75,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -316,7 +328,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0,
   },
   [SFX_EVENT.BOSS_FIRE_BREATH]: {
-    src: [fromMyinstants('firebreath.mp3'), fromMyinstants('fire-breath.mp3')], // 2.4 s
+    src: [fromMyinstants('spell-fireball.mp3'), fromMyinstants('flamethrower.mp3')], // 2.5 s fireball whoosh + burn
     volume: 0.7,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -324,7 +336,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.05,
   },
   [SFX_EVENT.BOSS_SPIKES]: {
-    src: [fromMyinstants('sword-uhsheathe.mp3'), fromMyinstants('skill_spell_earthquake_01-23.mp3')], // 1.5 s
+    src: [fromMyinstants('rock-wall-smash.mp3'), fromMyinstants('skill_spell_earthquake_01-23.mp3')], // 2.3 s rocks bursting up
     volume: 0.65,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -332,7 +344,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.08,
   },
   [SFX_EVENT.BOSS_SWEEP]: {
-    src: [fromMyinstants('whoosh-dark.mp3'), fromMyinstants('whoosh-clean.mp3')], // 1.4 s
+    src: [fromMyinstants('234555__electroviolence__swoosh-explosion.mp3'), fromMyinstants('whoosh-dark.mp3')], // swoosh into blast
     volume: 0.7,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -340,7 +352,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.08,
   },
   [SFX_EVENT.BOSS_LIGHTNING]: {
-    src: [fromMyinstants('thunder-crack.mp3'), fromMyinstants('lightning-strike-cool.mp3')], // 3.5 s
+    src: [fromMyinstants('lightning-strike-cool.mp3'), fromMyinstants('thunder-crack.mp3')], // sharp crack + rumble
     volume: 0.75,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -348,7 +360,10 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.1,
   },
   [SFX_EVENT.BOSS_METEOR]: {
-    src: [fromMyinstants('boss-shockwave.mp3'), fromMyinstants('cinematic-boom-hq.mp3')], // 2.3 s
+    src: [
+      fromMyinstants('zapsplat_sound_design_cinematic_whoosh_into_impact_missle_like_explosion_001_2990_YkpTODt.mp3'),
+      fromMyinstants('meteor-smash.mp3'),
+    ], // incoming whoosh, impact lands ~2.3 s (matches the meteor fall)
     volume: 0.7,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -364,7 +379,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0,
   },
   [SFX_EVENT.BOSS_VORTEX]: {
-    src: [fromMyinstants('whoosh-wind.mp3'), fromMyinstants('gust-of-wind-pauli.mp3')], // 0.65 s
+    src: [fromMyinstants('magic-teleport-whoosh.mp3'), fromMyinstants('wind-whoosh.mp3')], // 2.5 s swirling build-up
     volume: 0.65,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -372,7 +387,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.05,
   },
   [SFX_EVENT.BOSS_CHARGE]: {
-    src: [fromMyinstants('endless-stampede.mp3'), fromMyinstants('fire-whoosh.mp3')], // 4.2 s
+    src: [fromMyinstants('dragon-lands.mp3'), fromMyinstants('endless-stampede.mp3')], // heavy body slam
     volume: 0.7,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
@@ -423,6 +438,93 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     throttleMs: 1500,
     rateJitter: 0,
   },
+
+  // ── Per-boss voices: ROAR = ambient / entrance / shield absorb, ENRAGE = enrage + enraged ambient ──
+  [SFX_EVENT.BOSS_ROAR_HERALD]: {
+    src: [fromMyinstants('winter-monster-scream.mp3'), fromMyinstants('hybrid-monster-roar.mp3')], // 2.4 s shrill shriek
+    volume: 1, // source tops out ~4 dB under the -16 LUFS target (24 kHz file, peak-limited)
+    category: SFX_CATEGORY.BOSS,
+    maxVoices: 1,
+    throttleMs: 900,
+    rateJitter: 0.04,
+  },
+  [SFX_EVENT.BOSS_ENRAGE_HERALD]: {
+    src: [fromMyinstants('universal-monster-roar-1.mp3'), fromMyinstants('hybrid-monster-roar.mp3')], // 3.4 s
+    volume: 0.9,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 2500,
+    maxVoices: 1,
+    throttleMs: 1500,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.BOSS_ROAR_MOUNTAIN]: {
+    src: [fromMyinstants('rar-dragon.mp3'), fromMyinstants('dragon-roar-1_rgUQSld.mp3')], // 2.9 s dark, rocky
+    volume: 0.7,
+    category: SFX_CATEGORY.BOSS,
+    maxVoices: 1,
+    throttleMs: 900,
+    rateJitter: 0.04,
+  },
+  [SFX_EVENT.BOSS_ENRAGE_MOUNTAIN]: {
+    src: [fromMyinstants('giant-troll-roar.mp3'), fromMyinstants('dragon-roar-1_rgUQSld.mp3')], // 3.1 s giant roar
+    volume: 0.9,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 2500,
+    maxVoices: 1,
+    throttleMs: 1500,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.BOSS_ROAR_STORM]: {
+    src: [fromMyinstants('dragon4.mp3'), fromMyinstants('dragon-roar-sfx.mp3')], // 2.9 s screeching dragon
+    volume: 0.7,
+    category: SFX_CATEGORY.BOSS,
+    maxVoices: 1,
+    throttleMs: 900,
+    rateJitter: 0.04,
+  },
+  [SFX_EVENT.BOSS_ENRAGE_STORM]: {
+    src: [fromMyinstants('dragon-roar-long.mp3'), fromMyinstants('dragon-roar-sfx.mp3')], // long dragon roar, capped 4 s
+    volume: 0.9,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 2500,
+    maxVoices: 1,
+    throttleMs: 1500,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.BOSS_ROAR_ELDER]: {
+    src: [fromMyinstants('dragon-roar-short.mp3'), fromMyinstants('dragon-roar-sfx.mp3')], // 2.6 s full-bodied roar
+    volume: 0.7,
+    category: SFX_CATEGORY.BOSS,
+    maxVoices: 1,
+    throttleMs: 900,
+    rateJitter: 0.04,
+  },
+  [SFX_EVENT.BOSS_ENRAGE_ELDER]: {
+    src: [fromMyinstants('dragon-roar-sound-effect-2.mp3'), fromMyinstants('dragon-roar-long.mp3')], // huge front-loaded roar
+    volume: 0.9,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 2500,
+    maxVoices: 1,
+    throttleMs: 1500,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.BOSS_ROAR_VOID]: {
+    src: [fromMyinstants('demon-roar.mp3'), fromMyinstants('deep-sea-monster-roar.mp3')], // demonic roar + dark tail
+    volume: 0.75,
+    category: SFX_CATEGORY.BOSS,
+    maxVoices: 1,
+    throttleMs: 900,
+    rateJitter: 0.04,
+  },
+  [SFX_EVENT.BOSS_ENRAGE_VOID]: {
+    src: [fromMyinstants('very-scary-scream-metallic-echo-monster.mp3'), fromMyinstants('demon-roar.mp3')], // metallic echo
+    volume: 0.9,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 2500,
+    maxVoices: 1,
+    throttleMs: 1500,
+    rateJitter: 0,
+  },
 };
 
 const LOCAL_SFX_EXTENSION = '.mp3';
@@ -453,6 +555,54 @@ export const BOSS_SKILL_VFX_SFX: Readonly<Partial<Record<BossSkillVfxType, SfxEv
   [BOSS_SKILL_VFX.VORTEX]: SFX_EVENT.BOSS_VORTEX,
   [BOSS_SKILL_VFX.CHARGE_DASH]: SFX_EVENT.BOSS_CHARGE,
 };
+
+export const BOSS_VOICE_KIND = {
+  ROAR: 'ROAR',
+  ENRAGE: 'ENRAGE',
+} as const;
+export type BossVoiceKind = (typeof BOSS_VOICE_KIND)[keyof typeof BOSS_VOICE_KIND];
+
+export interface BossVoicePack {
+  sounds: Readonly<Record<BossVoiceKind, SfxEventName>>;
+  /**
+   * Playback rate for the voice. Each file was picked for its boss, so this replaces the theme's
+   * `audioPitchRate` (that one still bends the shared skill layers).
+   */
+  rateScale: number;
+}
+
+/** Each boss has its own roar and enrage scream instead of one roar pitched up or down. */
+export const BOSS_VOICE_SFX: Readonly<Record<GameThemeType, BossVoicePack>> = {
+  [GAME_THEME.XU_GIA]: {
+    sounds: { [BOSS_VOICE_KIND.ROAR]: SFX_EVENT.BOSS_ROAR_HERALD, [BOSS_VOICE_KIND.ENRAGE]: SFX_EVENT.BOSS_ENRAGE_HERALD },
+    rateScale: 1.1,
+  },
+  [GAME_THEME.RONG_NUI]: {
+    sounds: { [BOSS_VOICE_KIND.ROAR]: SFX_EVENT.BOSS_ROAR_MOUNTAIN, [BOSS_VOICE_KIND.ENRAGE]: SFX_EVENT.BOSS_ENRAGE_MOUNTAIN },
+    rateScale: 0.92,
+  },
+  [GAME_THEME.RONG_GIA]: {
+    sounds: { [BOSS_VOICE_KIND.ROAR]: SFX_EVENT.BOSS_ROAR_STORM, [BOSS_VOICE_KIND.ENRAGE]: SFX_EVENT.BOSS_ENRAGE_STORM },
+    rateScale: 1.05,
+  },
+  [GAME_THEME.ELDER_DRAGON]: {
+    sounds: { [BOSS_VOICE_KIND.ROAR]: SFX_EVENT.BOSS_ROAR_ELDER, [BOSS_VOICE_KIND.ENRAGE]: SFX_EVENT.BOSS_ENRAGE_ELDER },
+    rateScale: 1,
+  },
+  [GAME_THEME.BARON]: {
+    sounds: { [BOSS_VOICE_KIND.ROAR]: SFX_EVENT.BOSS_ROAR, [BOSS_VOICE_KIND.ENRAGE]: SFX_EVENT.BOSS_ENRAGE },
+    rateScale: 0.95,
+  },
+  [GAME_THEME.VOID_TITAN]: {
+    sounds: { [BOSS_VOICE_KIND.ROAR]: SFX_EVENT.BOSS_ROAR_VOID, [BOSS_VOICE_KIND.ENRAGE]: SFX_EVENT.BOSS_ENRAGE_VOID },
+    rateScale: 0.88,
+  },
+};
+
+const DEFAULT_BOSS_VOICE_THEME: GameThemeType = GAME_THEME.BARON;
+
+export const getBossVoicePack = (theme: GameThemeType): BossVoicePack =>
+  BOSS_VOICE_SFX[theme] ?? BOSS_VOICE_SFX[DEFAULT_BOSS_VOICE_THEME];
 
 /**
  * Socket.io events that `useSocketSoundEffects` listens to.

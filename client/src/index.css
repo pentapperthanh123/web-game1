@@ -548,10 +548,15 @@
 }
 
 /* 3. Directional Damage Recoil & Stagger */
+/* Hit keyframes flash with brightness/contrast only: a 25-45px drop-shadow re-blurred the whole sprite every frame */
+.boss-motion-only {
+  filter: none !important;
+}
+
 @keyframes bossHitLeft {
   0% {
     transform: translate3d(0, 0, 0) scale(0.96) rotate(0deg);
-    filter: brightness(2.6) contrast(1.4) drop-shadow(0 0 25px #00f2fe);
+    filter: brightness(2.6) contrast(1.4);
   }
   18% {
     transform: translate3d(24px, -12px, 0) scale(0.93) rotate(4.2deg);
@@ -577,7 +582,7 @@
 @keyframes bossHitLeftHeavy {
   0% {
     transform: translate3d(0, 0, 0) scale(0.9) rotate(0deg);
-    filter: brightness(3.5) contrast(1.6) drop-shadow(0 0 45px #00f2fe);
+    filter: brightness(3.5) contrast(1.6);
   }
   20% {
     transform: translate3d(44px, -22px, 0) scale(0.88) rotate(7.5deg);
@@ -603,7 +608,7 @@
 @keyframes bossHitRight {
   0% {
     transform: translate3d(0, 0, 0) scale(0.96) rotate(0deg);
-    filter: brightness(2.6) contrast(1.4) drop-shadow(0 0 25px #fbbf24);
+    filter: brightness(2.6) contrast(1.4);
   }
   18% {
     transform: translate3d(-24px, -12px, 0) scale(0.93) rotate(-4.2deg);
@@ -629,7 +634,7 @@
 @keyframes bossHitRightHeavy {
   0% {
     transform: translate3d(0, 0, 0) scale(0.9) rotate(0deg);
-    filter: brightness(3.5) contrast(1.6) drop-shadow(0 0 45px #fbbf24);
+    filter: brightness(3.5) contrast(1.6);
   }
   20% {
     transform: translate3d(-44px, -22px, 0) scale(0.88) rotate(-7.5deg);
@@ -655,7 +660,7 @@
 @keyframes bossHitCenter {
   0% {
     transform: translate3d(0, 0, 0) scale(0.95) rotate(0deg);
-    filter: brightness(2.6) contrast(1.4) drop-shadow(0 0 25px #f43f5e);
+    filter: brightness(2.6) contrast(1.4);
   }
   18% {
     transform: translate3d(0, -18px, 0) scale(0.92) rotate(-2deg);
@@ -681,7 +686,7 @@
 @keyframes bossHitCenterHeavy {
   0% {
     transform: translate3d(0, 0, 0) scale(0.88) rotate(0deg);
-    filter: brightness(3.5) contrast(1.6) drop-shadow(0 0 45px #f43f5e);
+    filter: brightness(3.5) contrast(1.6);
   }
   20% {
     transform: translate3d(0, -32px, 0) scale(0.86) rotate(3deg);

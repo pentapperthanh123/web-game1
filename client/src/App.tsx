@@ -20,6 +20,7 @@ import {
 
 import { getRandomChampion } from './constants/champions';
 import { gameSocket } from './services/socket'; // Auto-connects to Socket.io backend on port 4000
+import { startCasterDirector } from './services/caster/casterDirector';
 import { getBossPhaseRule } from './constants/bossPhases';
 import { STATUS_EFFECT_CONSTANTS } from './constants/bossStatusEffects';
 import { useRoundIntroStore, isCurrentRoundIntroActive } from './store/roundIntroStore';
@@ -143,6 +144,9 @@ export function App() {
     bossSkillConfig.intervalMs,
     bossSkillConfig.randomIntervalEnabled,
   ]);
+
+  // AI caster: watches game events and speaks through the server TTS route
+  useEffect(() => startCasterDirector(), []);
 
   // Expose store for debugging and prevent mobile browser scroll offset
   useEffect(() => {

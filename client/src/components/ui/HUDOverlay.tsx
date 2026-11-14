@@ -9,11 +9,13 @@ import { TeamScoreBoard } from './TeamScoreBoard';
 import { DPSLeaderboard } from './DPSLeaderboard';
 import { GiftBanner } from './GiftBanner';
 import { FloatingDamage } from './FloatingDamage';
+import { CasterSubtitle } from './CasterSubtitle';
 import { LiveChatStream } from './LiveChatStream';
 import { KillFeed, WipeStamp } from './KillFeed';
 import { RoundIntroOverlay } from './roundIntro/RoundIntroOverlay';
 import { LikeCounter } from './LikeCounter';
 import { ParticipationGuidePanel } from './ParticipationGuidePanel';
+import { FinisherAnnouncementBanner } from './FinisherAnnouncementBanner';
 import { VictoryOverlay } from './VictoryOverlay';
 import { SilverScrapesDuelOverlay } from './SilverScrapesDuelOverlay';
 import { GuestSimulationDock } from './GuestSimulationDock';
@@ -43,7 +45,7 @@ const ClutchStatusBadge = React.memo(() => {
   return (
     <div className="pointer-events-none flex justify-center mt-1">
       <div
-        className={`px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black tracking-wide uppercase border backdrop-blur-sm shadow-md ${
+        className={`px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black tracking-wide uppercase border shadow-md ${
           isBossClutchZone
             ? 'bg-rose-950/85 border-rose-400/70 text-rose-200 animate-pulse'
             : 'bg-cyan-950/80 border-cyan-400/60 text-cyan-200'
@@ -176,7 +178,7 @@ export const HUDOverlay = () => {
       <header ref={headerRef} className="relative z-[35] space-y-0.5 sm:space-y-1 shrink-0 pt-0.5">
         {overlayVisibility.matchTitleBar ? (
           <div className="flex items-center justify-center space-x-1.5 pt-0.5">
-            <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 backdrop-blur-[1px] mb-1 shadow-md">
+            <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 mb-1 shadow-md">
               <span className="text-[10px] font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-amber-400">
                 {t('Game.dynamicTitle', 'CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}', {
                   left: leftTeamTag,
@@ -287,6 +289,8 @@ export const HUDOverlay = () => {
 
       {/* Floating 3D & Combat Elements */}
       <FloatingDamage />
+      <CasterSubtitle />
+      <FinisherAnnouncementBanner />
       <VictoryOverlay />
       <SilverScrapesDuelOverlay />
       <GuestSimulationDock />

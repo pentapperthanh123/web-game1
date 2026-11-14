@@ -2,7 +2,7 @@ import { useEffect, type ReactElement } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { GIFT_TIER, GiftTier } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
-import { getGiftTierConfig } from '../../store/giftTier';
+import { resolveBannerDurationMs } from '../../store/giftTier';
 import { GiftAnnouncement } from '../../types/game';
 import { TeamColorPalette, TeamProfile } from '../../types/team';
 import { MediumGiftPill } from './gift/MediumGiftPill';
@@ -32,7 +32,11 @@ export const GiftBanner = () => {
 
   useEffect(() => {
     if (!activeGiftBanner) return;
-    const timer = setTimeout(dismissGiftBanner, getGiftTierConfig(activeGiftBanner.tier).bannerDurationMs);
+    const duration = resolveBannerDurationMs(
+      activeGiftBanner.tier,
+      activeGiftBanner.totalCoins ?? activeGiftBanner.coins
+    );
+    const timer = setTimeout(dismissGiftBanner, duration);
     return () => clearTimeout(timer);
   }, [activeGiftBanner, dismissGiftBanner]);
 

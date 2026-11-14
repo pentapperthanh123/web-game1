@@ -5,7 +5,6 @@ import { useGameStore } from '../../store/gameStore';
 import {
   BOSS_STATUS,
   UI_CONSTANTS,
-  GAME_CONSTANTS,
   getThemeConfig,
   BossThemeConfig,
 } from '../../constants/game';
@@ -57,11 +56,8 @@ export const BossHealthBar = () => {
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const bossStatus = useGameStore((state) => state.bossStatus);
   const gameTheme = useGameStore((state) => state.gameTheme);
-  const currentRound = useGameStore((state) => state.currentRound);
-  const seriesFormat = useGameStore((state) => state.seriesFormat);
 
   const themeConfig = getThemeConfig(gameTheme);
-  const maxRounds = GAME_CONSTANTS.SERIES_FORMATS[seriesFormat]?.MAX_ROUNDS ?? 5;
 
   const [ghostHpPercent, setGhostHpPercent] = useState(100);
 
@@ -81,12 +77,9 @@ export const BossHealthBar = () => {
 
   return (
     <div className="w-full max-w-lg mx-auto px-2 sm:px-3 pt-0.5 pointer-events-auto select-none">
-      {/* Boss name and Round badge */}
+      {/* Boss name */}
       <div className="flex items-center justify-between text-[11px] font-bold px-1 mb-1">
         <div className="flex items-center gap-1.5">
-          <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-900/90 border border-slate-700/80 text-amber-300 font-mono font-bold shadow">
-            {t('BossRound.badge', `VÁN ${currentRound}/${maxRounds}`, { round: currentRound, max: maxRounds })}
-          </span>
           <span className="tracking-wide uppercase text-white font-black drop-shadow text-[11px] sm:text-xs">
             {t(themeConfig.i18nKey, themeConfig.bossName)}
           </span>
@@ -112,7 +105,7 @@ export const BossHealthBar = () => {
 
       {/* Segmented Cyberpunk / Fantasy HP Bar Container */}
       <div
-        className={`relative w-full h-5 sm:h-6 bg-slate-950/95 rounded-lg border-2 p-0.5 shadow-[0_0_20px_rgba(0,0,0,0.9)] backdrop-blur-md overflow-hidden transition-all duration-500 ${containerBorderClass}`}
+        className={`relative w-full h-5 sm:h-6 bg-slate-950/95 rounded-lg border-2 p-0.5 shadow-[0_0_20px_rgba(0,0,0,0.9)] overflow-hidden transition-all duration-500 ${containerBorderClass}`}
       >
         {/* Tech Grid Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px)] bg-[size:16px_100%] opacity-20 pointer-events-none" />

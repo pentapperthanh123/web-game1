@@ -12,7 +12,7 @@ export const DPSLeaderboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className="relative z-[35] w-full sm:w-60 max-w-full bg-slate-950/20 backdrop-blur-[1px] border border-white/15 rounded-xl p-1.5 sm:p-2 shadow-sm pointer-events-auto select-none transition-all duration-300">
+    <aside className="relative z-[35] w-full sm:w-60 max-w-full bg-slate-950/20 border border-white/15 rounded-xl p-1.5 sm:p-2 shadow-sm pointer-events-auto select-none transition-all duration-300">
       {/* Header */}
       <div className="flex items-center justify-between gap-1.5 pb-1 mb-1 border-b border-white/10">
         <div className="flex items-center space-x-1 min-w-0">

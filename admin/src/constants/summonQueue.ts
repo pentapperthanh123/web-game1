@@ -1,4 +1,7 @@
 /** Reinforcement entrance queue: how many champions step onto the (unlimited) arena per turn. */
+/** Tokens show the champion art; viewers' TikTok profile photos only when an admin turns this on. */
+export const DEFAULT_USE_USER_AVATAR = false;
+
 export const SUMMON_QUEUE_UI = {
   DEFAULT_DEPLOY_PER_TURN: 1,
   DEFAULT_TURN_DELAY_MS: 1300,

@@ -140,6 +140,26 @@ const buildDeployedChampion = (
  * - The queue only paces entrances: each turn releases up to `maxDeployPerTurn` champions per team,
  *   then waits `summonTurnDelayMs` before the next turn so every entrance aura can play out.
  */
+/** Round intro on screen: nobody enters the field; the queue is kept as is until the fight starts. */
+export const holdQueuedMinions = (
+  currentMinions: MinionEntity[],
+  currentQueue: Record<TeamType, QueuedSummon[]> | undefined,
+  currentLastTurnTimestamps: Record<TeamType, number> | undefined
+): DeployQueuedResult => ({
+  nextMinions: [...currentMinions],
+  nextQueue: {
+    [TEAM_KEY.BLG]: [...(currentQueue?.[TEAM_KEY.BLG] || [])],
+    [TEAM_KEY.GENG]: [...(currentQueue?.[TEAM_KEY.GENG] || [])],
+  },
+  nextLastTurnTimestamps: {
+    [TEAM_KEY.BLG]: currentLastTurnTimestamps?.[TEAM_KEY.BLG] ?? 0,
+    [TEAM_KEY.GENG]: currentLastTurnTimestamps?.[TEAM_KEY.GENG] ?? 0,
+  },
+  newPortals: [],
+  newLogs: [],
+  hasPendingTurns: false,
+});
+
 export const deployQueuedMinions = (
   currentMinions: MinionEntity[],
   currentQueue: Record<TeamType, QueuedSummon[]> | undefined,

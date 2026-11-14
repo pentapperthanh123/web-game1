@@ -110,7 +110,8 @@ export const SummonPortals3D = () => {
 
       <group ref={championsGroupRef}>
         {visibleMinions.map((minion, index) => (
-          <group key={`${minion.id}:${isCompact ? 'c' : 'f'}`} position={minion.spawnPosition}>
+          // Stable key: switching to compact mode only changes uniforms, it must not remount every token
+          <group key={minion.id} position={minion.spawnPosition}>
             <ChampionToken
               minion={minion}
               colorThemeId={activeTeams[minion.team]?.colorTheme}

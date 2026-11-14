@@ -80,7 +80,8 @@
     "comboStreak": "COMBO x{{count}}",
     "coinsGained": "+{{coins}} coins",
     "megaCrest": "{{team}} TOP PATRON",
-    "megaDamage": "+{{damage}} DMG • BOSS KNOCKED BACK!"
+    "megaDamage": "+{{damage}} DMG • BOSS KNOCKED BACK!",
+    "queuedForRoundStart": "Sent {{gift}} ({{coins}} coins)! It will fire when the round starts ⚔️"
   },
   "Controls": {
     "title": "TikTok Live Simulator Panel",
@@ -157,7 +158,22 @@
     "newSeries": "START NEW MATCH",
     "seriesEndedNotice": "{{format}} Series has concluded!",
     "roundIntermissionPrompt": "Round Intermission - Ready for next game",
-    "nextQueuedMatch": "NEXT MATCH: {{label}} ({{remaining}})"
+    "nextQueuedMatch": "NEXT MATCH: {{label}} ({{remaining}})",
+    "finisherBannerTitle": "⚡ DECISIVE FINISHING BLOW ⚡",
+    "finisherBannerSlay": "SLAIN {{boss}}!",
+    "finisherBannerDesc": "Brought ultimate glory & relic buff to team {{team}}!",
+    "finisherVoice": "Warrior {{name}} landed the finishing blow on {{boss}}!",
+    "autoAdvanceRound": "Auto-advancing to next round in: {{seconds}}s",
+    "autoAdvanceNewSeries": "Auto-starting new match in: {{seconds}}s",
+    "autoAdvanceQueuedMatch": "Auto-advancing to next matchup in: {{seconds}}s",
+    "autoAdvancePause": "Pause",
+    "autoAdvanceResume": "Resume",
+    "pressKeyHint": "Press Space to enter immediately",
+    "titleDamageKing": "DAMAGE KING",
+    "titleKingFinisher": "DAMAGE KING & SLAYER",
+    "titleWarGod": "WAR GOD",
+    "titleValiant": "VALIANT",
+    "titleFinisherBadge": "SLAYER"
   },
   "Milestone": {
     "healTitle": "GLOBAL DIVINE HEAL!",
@@ -396,9 +412,19 @@
   },
   "RoundIntro": {
     "roundLabel": "Round {{round}} is about to start",
-    "titleRules": "📜 Rules",
-    "titleJoin": "🎮 How to join",
-    "titleGifts": "🎁 Gifts",
+    "vsBoss": "Facing {{boss}}",
+    "titleMatchup": "Matchup",
+    "titleRules": "Rules",
+    "titleJoin": "How to join",
+    "titleGifts": "Gifts",
+    "buffNotice": "⭐ Boost Fury",
+    "callToAction": "Chat champion to deploy:",
+    "quickRule": "Most DMG wins",
+    "quickGift": "1 coin = {{damage}} DMG",
+    "quickHeart": "Hearts charge Fury",
+    "ruleTeamsTitle": "Damage Battle",
+    "ruleSeriesTitle": "{{format}} Series Format",
+    "ruleBossTitle": "Boss Skills & Reinforcements",
     "ruleTeams": "Both teams fight the Boss; the team dealing more damage wins the round.",
     "ruleSeries": "{{format}} format: win {{wins}} rounds to be champion.",
     "ruleBoss": "The Boss kills champions with skills, keep summoning to keep up the pressure!",
@@ -406,11 +432,310 @@
     "joinHeart": "Tap hearts to charge Fury faster; every {{milestone}} hearts heals the team.",
     "joinSignature": "Chat a pro player's signature champion to boost that player's Fury.",
     "giftDamage": "1 coin = {{damage}} damage to the Boss",
+    "giftTierTitle": {
+      "SMALL": "Roses & Small Gifts",
+      "MEDIUM": "Medium Gifts",
+      "BIG": "Grand Offerings",
+      "MEGA": "Mythic Trophies"
+    },
     "giftTier": {
       "SMALL": "From {{coins}} coin: heal + damage for your team",
       "MEDIUM": "From {{coins}} coins: fireworks + 3 meteors",
       "BIG": "From {{coins}} coins: light pillar + 8 meteors + your name banner",
       "MEGA": "From {{coins}} coins: TYCOON - Boss stunned + 16 meteors"
+    },
+    "skipButton": "Deploy battle now"
+  },
+  "Caster": {
+    "subtitleLabel": "Caster Storm",
+    "anonymousName": "a mystery warrior",
+    "score": "{{left}} - {{right}}",
+    "number": {
+      "thousands": "over {{value}} thousand",
+      "millions": "over {{value}} million"
+    },
+    "lines": {
+      "SUMMON": [
+        "{{name}} sends {{champion}} in for {{team}}!",
+        "{{champion}} has arrived! Thanks, {{name}}!",
+        "{{team}} reinforced: {{champion}} from {{name}}!",
+        "{{name}} calls {{champion}} to battle, {{team}} grows stronger!",
+        "Welcome {{champion}} from {{name}} to {{team}}!",
+        "{{champion}} hits the lane! {{name}} picks {{team}}!",
+        "One more warrior for {{team}}: {{name}} with {{champion}}!",
+        "{{name}} brings {{champion}}, more firepower for {{team}}!"
+      ],
+      "SUMMON_MERGED": [
+        "{{a}}, {{b}} and {{n}} more join {{team}}!",
+        "A wave of {{team}}! Led by {{a}} and {{b}}!",
+        "{{team}} gets {{count}} reinforcements, thanks {{a}}, {{b}} and everyone!",
+        "{{a}} and {{b}} bring a whole {{team}} army!",
+        "Thanks {{a}}, {{b}} and all the {{team}} warriors!",
+        "{{a}}, {{b}} and friends: {{count}} new champions for {{team}}!"
+      ],
+      "SUMMON_WAVE": [
+        "{{team}} pours in! {{count}} champions just landed!",
+        "{{count}} {{team}} warriors enter at once!",
+        "Reinforcements for {{team}}: {{count}} more champions!",
+        "{{count}} new champions for {{team}}, the arena heats up!",
+        "{{team}} just got {{count}} reinforcements!",
+        "{{team}} fans speak up: {{count}} champions at once!"
+      ],
+      "FOLLOW": [
+        "Thanks for the follow, {{name}}! Free {{champion}} for {{team}}!",
+        "{{name}} just followed, thank you! {{champion}} enters right away!",
+        "One follow, one champion! Thanks and welcome, {{name}}!",
+        "Thank you {{name}}! Your follow brings {{champion}} to {{team}}!",
+        "Welcome to the family, {{name}}! {{team}} fury surges!",
+        "{{name}} followed! Thank you, {{team}} gets a gift right now!"
+      ],
+      "SHARE": [
+        "Thanks for sharing, {{name}}! The boss takes {{dmg}} damage!",
+        "Thanks for the share, {{name}}! {{team}} is healed!",
+        "A share from {{name}}, thank you, the boss feels it!",
+        "{{name}} spreads the word, thanks! {{team}} gets a buff!",
+        "Shares deal damage! Thank you so much, {{name}}!",
+        "Thanks {{name}} for inviting friends, {{team}} grows stronger!"
+      ],
+      "GIFT_COMBO": [
+        "Thank you {{name}} for {{count}} {{gift}} in a row!",
+        "A streak of {{count}} {{gift}} from {{name}}, thank you so much!",
+        "{{name}} supplies {{count}} {{gift}} to {{team}}, thanks!",
+        "Combo of {{count}} {{gift}}! Thanks for the support, {{name}}!",
+        "{{count}} {{gift}} from {{name}}, {{team}} thanks you!",
+        "Thank you {{name}}! {{count}} {{gift}} for {{team}}!",
+        "{{name}}, thanks a lot for {{count}} {{gift}}!",
+        "All of {{team}} thanks {{name}} for {{count}} {{gift}}!"
+      ],
+      "GIFT_MEDIUM": [
+        "Thank you {{name}} for the {{gift}}! Meteor shower!",
+        "{{name}} reloads {{team}}! Thank you!",
+        "Thanks {{name}}! {{gift}} slams the boss!",
+        "{{gift}} from {{name}}, thank you! That hurt the boss!",
+        "Thanks {{name}}, {{team}} is fired up by the {{gift}}!",
+        "Beautiful support! Thank you {{name}} for the {{gift}}!",
+        "{{name}} sends {{gift}} to {{team}}, thank you!",
+        "Thank you {{name}}! Meteors are raining on the boss!"
+      ],
+      "GIFT_BIG": [
+        "Wow, thank you {{name}}! {{gift}} for {{team}}! The boss staggers!",
+        "Thank you so much, {{name}}! What a boost!",
+        "{{gift}} from {{name}}! Thank you, {{team}} gets a massive boost!",
+        "Incredible! Thank you {{name}} for sending {{gift}} to {{team}}!",
+        "The boss shakes! Thank you {{name}} for the {{gift}}!",
+        "The whole arena thanks {{name}} for the {{gift}}!",
+        "{{name}} steps up! Thanks for the {{gift}}, {{team}} explodes!",
+        "A round of applause for {{name}}! Thank you for the {{gift}}!"
+      ],
+      "GIFT_MEGA": [
+        "UNBELIEVABLE! Thank you {{name}} for the {{gift}}! The boss kneels before {{team}}!",
+        "The whole arena shakes! Thank you {{name}} for the {{gift}}!",
+        "Highlight of the day! {{name}}, thank you so much!",
+        "Masterpiece! Thank you {{name}} for carrying {{team}} with {{gift}}!",
+        "Oh my, {{name}}! {{gift}}! Thank you, the boss is completely stunned!",
+        "A legend appears! Thank you {{name}}, {{team}} celebrate!",
+        "Thank you {{name}}! That {{gift}} goes down in history!",
+        "We bow to you, {{name}}! What a {{gift}}!"
+      ],
+      "BOSS_ENRAGE": [
+        "{{boss}} is enraged! Hold the formation!",
+        "Careful! {{boss}} has gone berserk!",
+        "{{boss}} sees red, damage is way up!",
+        "Boss enraged! We need more champions now!",
+        "{{boss}} roars in fury! This is getting tense!",
+        "Red alert! {{boss}} is striking back like crazy!"
+      ],
+      "BOSS_LOW_HP": [
+        "Almost there! Who will land the final blow?!",
+        "{{boss}} is about to fall! Everything you have!",
+        "Boss health nearly gone! Who gets the kill?",
+        "Just a little more! {{boss}} is on its last legs!",
+        "Decisive moment! Throw everything at {{boss}}!",
+        "{{boss}} is staggering! Who wants the final blow?"
+      ],
+      "BOSS_SKILL": [
+        "Can they dodge it?!",
+        "{{skill}}! Watch out!",
+        "{{boss}} casts {{skill}}!",
+        "That is a strong one! Can the team hold?",
+        "{{skill}} sweeps the arena!",
+        "{{boss}} strikes back with {{skill}}!"
+      ],
+      "BOSS_ULTIMATE": [
+        "{{boss}} unleashes {{skill}}! Brace yourselves!",
+        "Ultimate {{skill}}! The whole arena shakes!",
+        "Danger! {{boss}} uses {{skill}}!",
+        "{{skill}} comes crashing down! Who is still standing?",
+        "The ultimate of {{boss}}! Call in reinforcements now!",
+        "{{skill}}! Both sides are shattered, send help now!"
+      ],
+      "ROUND_INTRO_MATCHUP": [
+        "Round {{round}}! The target is {{boss}}, {{hp}} health!",
+        "Round {{round}}, {{teamA}} and {{teamB}} face {{boss}}!",
+        "Into round {{round}}! More damage wins!",
+        "Here comes round {{round}}! {{boss}} has appeared!"
+      ],
+      "COMEBACK": [
+        "What a comeback! {{team}} pulls ahead!",
+        "{{team}} overtakes {{teamOther}} on damage! Unbelievable!",
+        "The damage board flips! {{team}} takes the lead!",
+        "{{teamOther}} got caught! {{team}} rises!",
+        "Turnaround! {{team}} seizes the initiative!"
+      ],
+      "ROUND_WIN": [
+        "{{team}} wins round {{round}} with more damage! Series score {{score}}!",
+        "Round {{round}} goes to {{team}}! The score is now {{score}}!",
+        "{{boss}} is down! {{team}} led the damage and takes the round!",
+        "Victory for {{team}}! Series score {{score}}, thanks to every warrior!",
+        "{{team}} takes round {{round}}! The damage board says it all!"
+      ],
+      "MVP": [
+        "MVP of the round is {{name}} with {{dmg}} damage!",
+        "Congratulations {{name}}, top damage this round!",
+        "{{name}} carried with {{dmg}} damage!",
+        "Hats off to {{name}}, warrior of the round!",
+        "Nobody beats {{name}}: {{dmg}} damage!"
+      ],
+      "SERIES_WIN": [
+        "{{team}} ARE THE CHAMPIONS! Final score {{score}}!",
+        "The champion is revealed: {{team}}!",
+        "{{team}} take the crown! Final score {{score}}!",
+        "Congratulations {{team}}, champions of this series!"
+      ],
+      "BANTER_GUIDE": [
+        "Type a champion plus {{teamA}} or {{teamB}}, like {{champion}} {{teamB}}, to join!",
+        "Want in? Just chat {{champion}} {{teamA}}!",
+        "Pick a side: chat {{teamA}} or {{teamB}} to get a champion!",
+        "New here? Type a champion name and a team, that is it!",
+        "Every valid message summons a champion, try {{champion}} {{teamA}}!",
+        "Chat a pro's signature champion to charge that pro's fury!",
+        "Just arrived? Type {{champion}} with your favourite team!",
+        "Keep tapping hearts to charge fury, every milestone heals the team!"
+      ],
+      "BANTER_HYPE": [
+        "The atmosphere is on fire! Keep the rhythm, everyone!",
+        "What a match! Who will be the hero today?",
+        "I am Caster Storm, an AI voice calling this match, and I am hyped!",
+        "The Worlds arena never cools down! Keep it going!",
+        "Every champion on the field is a step closer to victory!",
+        "You are playing beautifully! Keep it up!"
+      ],
+      "BANTER_CTA": [
+        "Follow for a free champion, share to damage the boss!",
+        "Tap hearts to charge the pros of your team!",
+        "One share and the boss loses health, try it!",
+        "Bigger gifts mean bigger meteor showers!",
+        "Follow the channel so you never miss a match!",
+        "Bring your friends, more people means more pain for the boss!"
+      ],
+      "WIPE": [
+        "{{boss}} wipes the arena! {{count}} warriors have fallen!",
+        "Disaster! Nobody is left standing against {{boss}}!",
+        "The arena is empty! {{boss}} just erased the whole lineup!",
+        "{{count}} champions down in one blow! {{boss}} is terrifying!",
+        "A brutal sweep! Only {{boss}} remains on the field!"
+      ],
+      "BOSS_WIPE_TAUNT": [
+        "Hahaha! Weak mortals! Who else dares to enter my arena?",
+        "Swept away! Is that all you have?",
+        "I am {{boss}}! Send more, I will crush them all!",
+        "Too weak! {{teamA}} and {{teamB}}, send stronger warriors!",
+        "This arena belongs to me! Who is next?"
+      ],
+      "EMPTY_FIELD_RALLY": [
+        "Strike back now! Chat {{champion}} {{teamA}} or {{champion}} {{teamB}} to bring champions back!",
+        "Do not give up! Type a champion plus {{teamA}} or {{teamB}}, the arena needs you!",
+        "Call reinforcements! Every message is a champion, every gift a meteor shower!",
+        "Rebuild the lineup! Chat a champion now, tap hearts to charge the pros!",
+        "Who will be the first to return? Type {{champion}} with your team!"
+      ],
+      "BANTER_EMPTY": [
+        "The field is empty! Chat a champion plus {{teamA}} or {{teamB}} to join now!",
+        "{{boss}} stands alone and proud! Who will teach it a lesson?",
+        "Just type {{champion}} {{teamA}} and you will have a champion in seconds!",
+        "The first team to summon takes the advantage! {{teamA}} or {{teamB}}?",
+        "Even a small gift hurts {{boss}}! Support your team!",
+        "The pros are fighting {{boss}} alone, fans, come help now!",
+        "Follow for a free champion, share to hurt the boss instantly!",
+        "An empty field is a chance! The first one in gets a shout-out!"
+      ],
+      "BANTER_IDLE": [
+        "{{boss}} is waiting for a challenger! Who strikes first?",
+        "The arena is quiet, type a champion name to wake it up!",
+        "{{teamA}} or {{teamB}}, who will break the ice?",
+        "One message is all it takes to summon a champion, who is first?",
+        "Nobody is bothering {{boss}}, how sad!"
+      ],
+      "ROUND_FINISHER": [
+        "The final blow on {{boss}} goes to {{name}} of {{team}}!",
+        "{{name}} from {{team}} landed the last hit!",
+        "A beautiful finish by {{name}}!",
+        "The one who finished it: {{name}}!"
+      ],
+      "BANTER_BOSS_HP": [
+        "{{boss}} has only {{hpPercent}} percent health left, pile on the damage!",
+        "{{boss}} is down to {{hpPercent}} percent health!",
+        "{{boss}} at {{hpPercent}} percent, who will finish it?",
+        "Keep going, {{boss}} has only {{hpPercent}} percent left!"
+      ],
+      "BANTER_FIELD": [
+        "{{fieldCount}} champions are surrounding {{boss}}, the arena is buzzing!",
+        "{{fieldCount}} warriors on the field right now, what a crowd!",
+        "{{fieldCount}} champions striking at once, {{boss}} cannot hold much longer!",
+        "{{fieldCount}} warriors in the arena, who will carry?"
+      ],
+      "BANTER_LEAD": [
+        "{{team}} leads on damage. Where are the {{teamOther}} fans?!",
+        "{{teamOther}} is falling behind, more champions needed now!",
+        "{{team}} is dominating, can {{teamOther}} come back?",
+        "{{teamOther}} fans, your team needs you!",
+        "{{team}} is dealing more damage, come on {{teamOther}}!",
+        "{{teamOther}} is not out yet! More champions and they catch up!"
+      ],
+      "BANTER_SERIES": [
+        "The series stands at {{score}}, round {{round}} matters a lot!",
+        "{{format}}, score {{score}}. Who takes this round?",
+        "{{score}} so far, the title race is tight!",
+        "Score {{score}}! Every round win is gold in a {{format}}!"
+      ],
+      "SERIES_OPENING": [
+        "Welcome to the Worlds Showdown! {{teamA}} versus {{teamB}}!",
+        "Hello everyone! {{format}}, {{teamA}} meets {{teamB}}!",
+        "The showdown begins! First to {{wins}} wins is champion!",
+        "Caster Storm here! {{teamA}} and {{teamB}} hunt {{boss}}!"
+      ],
+      "ROUND_INTRO_STARS": [
+        "{{starA}} on {{champA}} versus {{starB}} on {{champB}}! Chat {{champA}} {{teamA}} or {{champB}} {{teamB}} to join!",
+        "Spotlight on {{starA}} versus {{starB}}! Type {{champA}} {{teamA}} or {{champB}} {{teamB}} to enter!",
+        "{{champA}} of {{starA}} meets {{champB}} of {{starB}}! Match a signature champion to charge that pro!",
+        "Star duel {{starA}} and {{starB}}! Type {{champA}} {{teamA}} or {{champB}} {{teamB}}, one coin is {{damage}} damage!"
+      ],
+      "ROUND_GO": [
+        "Fight! Round {{round}} is on!",
+        "Three, two, one, fight!",
+        "Go! Summon your champions!",
+        "Battle on! Let us go!"
+      ],
+      "PODIUM_THANKS": [
+        "Thanks to this round's top three: {{a}}, {{b}} and {{c}}!",
+        "The podium calls {{a}}, {{b}} and {{c}}!",
+        "Congratulations {{a}}, {{b}} and {{c}}, the three strongest warriors of the round!"
+      ],
+      "PRO_MVP": [
+        "Best pro: {{name}} of {{team}} with {{dmg}} damage!",
+        "{{name}} on {{champion}} was the standout pro this round!",
+        "Pro of the round goes to {{name}} of {{team}}!"
+      ],
+      "SERIES_OUTRO": [
+        "Thanks to every warrior who fought alongside {{team}} and their rivals!",
+        "What a series! Thank you all for giving everything!",
+        "Thank you all for watching and playing, see you soon!"
+      ],
+      "NEXT_MATCH": [
+        "Next up: {{teamA}} versus {{teamB}}, do not go anywhere!",
+        "Coming next, {{teamA}} meets {{teamB}}, pick your side now!",
+        "Next on stream: {{teamA}} and {{teamB}}!"
+      ]
     }
   }
 }

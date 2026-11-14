@@ -83,6 +83,7 @@ const createGlowMaterial = ({ opacity, map, hasVertexColors = false }: MaterialO
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
+    forceSinglePass: true,
     toneMapped: false,
   });
 

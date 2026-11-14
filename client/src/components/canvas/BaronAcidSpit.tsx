@@ -162,7 +162,7 @@ export const BaronAcidSpit = () => {
             transparent
             opacity={0.35}
             blending={THREE.AdditiveBlending}
-            side={THREE.DoubleSide}
+            side={THREE.DoubleSide} forceSinglePass
           />
         </mesh>
       </group>

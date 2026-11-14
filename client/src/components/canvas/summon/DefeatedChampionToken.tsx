@@ -44,7 +44,7 @@ const GlowMaterial = ({ color }: { color: string }) => (
     blending={THREE.AdditiveBlending}
     depthWrite={false}
     toneMapped={false}
-    side={THREE.DoubleSide}
+    side={THREE.DoubleSide} forceSinglePass
   />
 );
 
@@ -139,7 +139,7 @@ export const DefeatedChampionToken = React.memo(({ entity }: DefeatedChampionTok
         <GlowMaterial color={teamColor} />
       </mesh>
       <mesh ref={portraitRef} geometry={SHARED_PORTRAIT_GEO}>
-        <meshBasicMaterial map={texture} transparent opacity={DEFEAT_VFX.PORTRAIT_PEAK_OPACITY} depthWrite={false} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial map={texture} transparent opacity={DEFEAT_VFX.PORTRAIT_PEAK_OPACITY} depthWrite={false} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </mesh>
       {[SLASH_ANGLE, -SLASH_ANGLE].map((angle, index) => (
         <mesh

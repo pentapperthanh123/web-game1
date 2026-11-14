@@ -29,7 +29,7 @@ const AuraMaterial = ({ color }: AuraMaterialProps) => (
     blending={THREE.AdditiveBlending}
     depthWrite={false}
     toneMapped={false}
-    side={THREE.DoubleSide}
+    side={THREE.DoubleSide} forceSinglePass
   />
 );
 

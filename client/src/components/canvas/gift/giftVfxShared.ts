@@ -50,6 +50,7 @@ export const createGlowMaterial = (color: string): THREE.MeshBasicMaterial =>
     depthWrite: false,
     toneMapped: false,
     side: THREE.DoubleSide,
+    forceSinglePass: true,
   });
 
 export const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));

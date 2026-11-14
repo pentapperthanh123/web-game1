@@ -5,7 +5,7 @@ import { getBossSkillEffect } from './bossSkillEffects';
 export const DEFAULT_BOSS_SKILL_CONFIG: BossSkillConfig = {
   autoAttackEnabled: true,
   intervalMs: 4000,
-  damageMultiplier: 1.0,
+  damageMultiplier: 0.25,
   mode: 'RANDOM_WEIGHTED',
   randomIntervalEnabled: true,
   phaseLockEnabled: true,

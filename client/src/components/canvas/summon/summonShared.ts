@@ -71,7 +71,6 @@ export const project3DToScreen = (
 };
 
 export interface CachedChampionVfxRefs {
-  ring?: THREE.Mesh;
   sigHaloMesh?: THREE.Mesh;
   haloMesh?: THREE.Mesh;
   beamMesh?: THREE.Mesh;
@@ -99,7 +98,7 @@ export interface ChampionAIState {
   targetBossZone?: [number, number, number];
   bobPhase: number;
   cachedVfxRefs?: CachedChampionVfxRefs;
-  /** uuid of the token group the cached refs belong to (the group is recreated on LOD change). */
+  /** uuid of the token group the cached refs belong to (a remounted token gets a new group). */
   cachedVfxGroupId?: string;
   /** Registry-owned position objects, mutated in place every frame. */
   liveWorld?: [number, number, number];
@@ -113,19 +112,8 @@ const textureCache = new Map<string, THREE.Texture>();
 const nameplateTextureCache = new Map<string, THREE.CanvasTexture>();
 const textureLoader = new THREE.TextureLoader();
 
-export const SHARED_BACKING_DISC_GEO = new THREE.CircleGeometry(0.19, 24);
+// Token body layers (disc, portrait, rings, gauges) are drawn by tokenBodyMaterial in one quad
 export const SHARED_PORTRAIT_GEO = new THREE.CircleGeometry(0.17, 24);
-export const SHARED_TORUS_BORDER_GEO = new THREE.TorusGeometry(0.175, 0.008, 8, 32);
-export const SHARED_RUNIC_RING_GEO = new THREE.RingGeometry(0.2, 0.212, 32);
-export const SHARED_SATELLITE_GEO = new THREE.OctahedronGeometry(0.045, 0);
-
-export const SHARED_HP_BG_GEO = new THREE.PlaneGeometry(0.36, 0.05);
-export const SHARED_HP_BORDER_GEO = new THREE.PlaneGeometry(0.38, 0.065);
-export const SHARED_HP_FILL_GEO = new THREE.PlaneGeometry(0.34, 0.038);
-
-export const SHARED_FURY_BG_GEO = new THREE.PlaneGeometry(0.36, 0.036);
-export const SHARED_FURY_BORDER_GEO = new THREE.PlaneGeometry(0.38, 0.048);
-export const SHARED_FURY_FILL_GEO = new THREE.PlaneGeometry(0.34, 0.026);
 
 export const SHARED_CELESTIAL_AURA_GEO = new THREE.RingGeometry(0.16, 0.26, 24);
 export const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.05, 0.18, 1.6, 16, 1, true);
@@ -254,14 +242,14 @@ export const getNameplateTexture = (
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-  ctx.shadowBlur = 6;
-  const maxTextW = pillW - 100;
+  ctx.shadowBlur = 8;
+  const maxTextW = pillW - 88;
 
   let displayName = `@${cleanName}`;
   ctx.fillStyle = '#ffffff';
   ctx.font = sigTag
-    ? 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-    : 'bold 34px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ? 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    : 'bold 38px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   while (ctx.measureText(displayName).width > maxTextW && displayName.length > 4) {
     displayName = `${displayName.slice(0, -2)}…`;
   }
@@ -269,7 +257,7 @@ export const getNameplateTexture = (
   if (sigTag) {
     ctx.fillText(displayName, paddingX + 82, height * 0.36);
     ctx.fillStyle = '#fde047';
-    ctx.font = '900 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.font = '900 23px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     let badgeText = `${GAME_CONSTANTS.SIGNATURE_SYNERGY.BADGE_PREFIX} · ${sigTag.toUpperCase()} (+${GAME_CONSTANTS.SIGNATURE_SYNERGY.BONUS_PERCENT}%)`;
     while (ctx.measureText(badgeText).width > maxTextW && badgeText.length > 6) {
       badgeText = `${badgeText.slice(0, -2)}…`;
@@ -303,6 +291,8 @@ export const getChampionTexture = (url: string): THREE.Texture => {
 
   const tex = textureLoader.load(url);
   tex.generateMipmaps = true;
+  // Set explicitly: the token shader reads it as a uniform, which skips R3F's automatic sRGB tagging of `map` props
+  tex.colorSpace = THREE.SRGBColorSpace;
   textureCache.set(url, tex);
   return tex;
 };

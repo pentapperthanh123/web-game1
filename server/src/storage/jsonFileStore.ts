@@ -12,7 +12,14 @@ import {
   sanitizeTeamConfigState,
   TeamConfigState,
 } from '../constants/teams.js';
+import {
+  CasterConfig,
+  ChatLimitConfig,
+  DEFAULT_CASTER_CONFIG,
+  DEFAULT_CHAT_LIMIT_CONFIG,
+} from '../constants/liveOps.js';
 import { DEFAULT_OVERLAY_VISIBILITY, OverlayVisibility } from '../types/serverState.js';
+import { pickCasterConfigPatch, pickChatLimitPatch } from '../utils/liveOpsSanitizers.js';
 import { pickOverlayVisibilityPatch } from '../utils/payloadSanitizers.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +29,12 @@ const DATA_DIR = path.resolve(__dirname, '../../data');
 const OVERLAY_DATA_FILE = path.join(DATA_DIR, 'overlay_visibility.json');
 const TEAM_CONFIG_DATA_FILE = path.join(DATA_DIR, 'team_config.json');
 const SERIES_FORMAT_DATA_FILE = path.join(DATA_DIR, 'series_format.json');
+const LIVE_OPS_CONFIG_DATA_FILE = path.join(DATA_DIR, 'live_ops_config.json');
+
+export interface LiveOpsConfig {
+  chatLimitConfig: ChatLimitConfig;
+  casterConfig: CasterConfig;
+}
 
 function ensureDataDirectory(): void {
   if (!fs.existsSync(DATA_DIR)) {
@@ -99,4 +112,26 @@ export function loadSeriesConfigFromDisk(): SeriesFormatConfig {
 
 export function saveSeriesConfigToDisk(config: SeriesFormatConfig): void {
   writeJsonFile(SERIES_FORMAT_DATA_FILE, config, 'series config');
+}
+
+export function loadLiveOpsConfigFromDisk(): LiveOpsConfig {
+  const defaults: LiveOpsConfig = {
+    chatLimitConfig: { ...DEFAULT_CHAT_LIMIT_CONFIG },
+    casterConfig: { ...DEFAULT_CASTER_CONFIG },
+  };
+  try {
+    if (!fs.existsSync(LIVE_OPS_CONFIG_DATA_FILE)) return defaults;
+    const parsed = JSON.parse(fs.readFileSync(LIVE_OPS_CONFIG_DATA_FILE, 'utf-8')) as Record<string, unknown> | null;
+    return {
+      chatLimitConfig: { ...defaults.chatLimitConfig, ...pickChatLimitPatch(parsed?.chatLimitConfig) },
+      casterConfig: { ...defaults.casterConfig, ...pickCasterConfigPatch(parsed?.casterConfig) },
+    };
+  } catch (err) {
+    console.warn('[Server] Could not read live-ops config from disk:', err);
+  }
+  return defaults;
+}
+
+export function saveLiveOpsConfigToDisk(config: LiveOpsConfig): void {
+  writeJsonFile(LIVE_OPS_CONFIG_DATA_FILE, config, 'live-ops config');
 }

@@ -23,7 +23,7 @@
           "championKey": "Ambessa",
           "team": "BLG",
           "color": "#fb7185",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ambessa.png"
+          "avatarUrl": "/images/players/doran.png"
         },
         {
           "id": "blg-preset-t1-jug-1",
@@ -34,7 +34,7 @@
           "championKey": "Vi",
           "team": "BLG",
           "color": "#f43f5e",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Vi.png"
+          "avatarUrl": "/images/players/oner.png"
         },
         {
           "id": "blg-preset-t1-mid-2",
@@ -45,18 +45,18 @@
           "championKey": "Azir",
           "team": "BLG",
           "color": "#e11d48",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Azir.png"
+          "avatarUrl": "/images/players/faker.png"
         },
         {
           "id": "blg-preset-t1-adc-3",
-          "name": "Gumayusi",
+          "name": "Peyz",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Jinx",
-          "championKey": "Jinx",
+          "signatureChampion": "Xayah",
+          "championKey": "Xayah",
           "team": "BLG",
           "color": "#fb7185",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jinx.png"
+          "avatarUrl": "/images/players/peyz.png"
         },
         {
           "id": "blg-preset-t1-sup-4",
@@ -67,78 +67,77 @@
           "championKey": "Thresh",
           "team": "BLG",
           "color": "#fda4af",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Thresh.png"
+          "avatarUrl": "/images/players/keria.png"
         }
       ]
     },
     "GENG": {
-      "id": "preset-geng",
-      "name": "Gen.G Esports",
-      "shortTag": "GEN",
+      "id": "preset-blg",
+      "name": "Bilibili Gaming",
+      "shortTag": "BLG",
       "aliases": [
-        "GEN",
-        "GENG",
-        "GEN.G"
+        "BLG",
+        "BILIBILI"
       ],
       "autoSyncRosterAliases": true,
-      "colorTheme": "amber",
-      "logoUrl": "/images/teams/geng.svg",
+      "colorTheme": "cyan",
+      "logoUrl": "/images/teams/blg.png",
       "isPreset": true,
       "roster": [
         {
-          "id": "geng-preset-geng-top-0",
-          "name": "Kiin",
+          "id": "geng-preset-blg-top-0",
+          "name": "Bin",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "K'Sante",
-          "championKey": "KSante",
+          "signatureChampion": "Jax",
+          "championKey": "Jax",
           "team": "GENG",
-          "color": "#f59e0b",
-          "avatarUrl": "/images/players/kiin.png"
+          "color": "#38bdf8",
+          "avatarUrl": "/images/players/bin.png"
         },
         {
-          "id": "geng-preset-geng-jug-1",
-          "name": "Canyon",
+          "id": "geng-preset-blg-jug-1",
+          "name": "Xun",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Nidalee",
-          "championKey": "Nidalee",
+          "signatureChampion": "Xin Zhao",
+          "championKey": "XinZhao",
           "team": "GENG",
-          "color": "#fbbf24",
-          "avatarUrl": "/images/players/canyon.png"
+          "color": "#06b6d4",
+          "avatarUrl": "/images/players/xun.png"
         },
         {
-          "id": "geng-preset-geng-mid-2",
-          "name": "Chovy",
+          "id": "geng-preset-blg-mid-2",
+          "name": "Knight",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "Yone",
-          "championKey": "Yone",
+          "signatureChampion": "Ahri",
+          "championKey": "Ahri",
           "team": "GENG",
-          "color": "#eab308",
-          "avatarUrl": "/images/players/chovy.png"
+          "color": "#60a5fa",
+          "avatarUrl": "/images/players/knight.png"
         },
         {
-          "id": "geng-preset-geng-adc-3",
-          "name": "Ruler",
+          "id": "geng-preset-blg-adc-3",
+          "name": "Elk",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Ezreal",
-          "championKey": "Ezreal",
+          "signatureChampion": "Kalista",
+          "championKey": "Kalista",
           "team": "GENG",
-          "color": "#f97316",
-          "avatarUrl": "/images/players/ruler.png"
+          "color": "#22d3ee",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kalista.png"
         },
         {
-          "id": "geng-preset-geng-sup-4",
-          "name": "Duro",
+          "id": "geng-preset-blg-sup-4",
+          "name": "ON",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Nautilus",
-          "championKey": "Nautilus",
+          "signatureChampion": "Rakan",
+          "championKey": "Rakan",
           "team": "GENG",
-          "color": "#d97706",
-          "avatarUrl": "/images/players/duro.png"
+          "color": "#34d399",
+          "avatarUrl": "/images/players/on.png"
         }
       ]
     }
@@ -308,7 +307,7 @@
           "championKey": "Ambessa",
           "team": "BLG",
           "color": "#fb7185",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Ambessa.png"
+          "avatarUrl": "/images/players/doran.png"
         },
         {
           "id": "blg-preset-t1-jug-1",
@@ -319,7 +318,7 @@
           "championKey": "Vi",
           "team": "BLG",
           "color": "#f43f5e",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Vi.png"
+          "avatarUrl": "/images/players/oner.png"
         },
         {
           "id": "blg-preset-t1-mid-2",
@@ -330,18 +329,18 @@
           "championKey": "Azir",
           "team": "BLG",
           "color": "#e11d48",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Azir.png"
+          "avatarUrl": "/images/players/faker.png"
         },
         {
           "id": "blg-preset-t1-adc-3",
-          "name": "Gumayusi",
+          "name": "Peyz",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Jinx",
-          "championKey": "Jinx",
+          "signatureChampion": "Xayah",
+          "championKey": "Xayah",
           "team": "BLG",
           "color": "#fb7185",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Jinx.png"
+          "avatarUrl": "/images/players/peyz.png"
         },
         {
           "id": "blg-preset-t1-sup-4",
@@ -352,7 +351,7 @@
           "championKey": "Thresh",
           "team": "BLG",
           "color": "#fda4af",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Thresh.png"
+          "avatarUrl": "/images/players/keria.png"
         }
       ]
     },

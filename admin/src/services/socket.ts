@@ -16,6 +16,16 @@ import {
 } from '../constants/series';
 import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
 import { SERVER_AUTH_ERROR_EVENT } from '../constants/adminAuth';
+import { LIVE_OPS_ACK_TIMEOUT_MS, LIVE_OPS_EVENT } from '../constants/liveOps';
+import {
+  CasterConfig,
+  ChatLimitConfig,
+  isLiveOpsAdminState,
+  LiveOpsAdminState,
+  ModerationUpdateAck,
+  ModerationUpdatePatch,
+  OpsAlertResult,
+} from '../types/liveOps';
 import { buildAdminHeaders, readAdminToken, writeAdminToken } from './adminToken';
 
 const HTTP_METHOD_POST = 'POST';
@@ -62,6 +72,10 @@ export interface TikTokPipelineStats {
   followCount: number;
   shareCount: number;
   blockedAntiSpamCount: number;
+  /** Present on servers with live-ops limits (2026-11-14+). */
+  blockedSummonChatCount?: number;
+  softMutedViewerCount?: number;
+  duplicateEventCount?: number;
 }
 
 export interface SimulateTikTokRequest {
@@ -118,6 +132,8 @@ class AdminSocketService {
   };
   private pipelineStatsListeners: ((stats: TikTokPipelineStats) => void)[] = [];
   private authErrorListeners: ((payload: AuthErrorPayload) => void)[] = [];
+  private latestLiveOpsState: LiveOpsAdminState | null = null;
+  private liveOpsListeners: ((state: LiveOpsAdminState) => void)[] = [];
   public isConnected = false;
 
   constructor() {
@@ -174,6 +190,12 @@ class AdminSocketService {
           this.latestPipelineStats = payload;
           this.pipelineStatsListeners.forEach((cb) => cb(payload));
         }
+      });
+
+      this.socket.on(LIVE_OPS_EVENT.ADMIN_STATE, (payload: unknown) => {
+        if (!isLiveOpsAdminState(payload)) return;
+        this.latestLiveOpsState = payload;
+        this.liveOpsListeners.forEach((cb) => cb(payload));
       });
 
       this.socket.on('game:series-format', (payload: SeriesFormatConfig) => {
@@ -569,6 +591,52 @@ class AdminSocketService {
     return () => {
       this.pipelineStatsListeners = this.pipelineStatsListeners.filter((cb) => cb !== callback);
     };
+  }
+
+  public onLiveOpsState(callback: (state: LiveOpsAdminState) => void): () => void {
+    if (this.latestLiveOpsState) callback(this.latestLiveOpsState);
+    this.liveOpsListeners.push(callback);
+    return () => {
+      this.liveOpsListeners = this.liveOpsListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  public requestLiveOpsState(): void {
+    this.socket?.emit(LIVE_OPS_EVENT.ADMIN_REQUEST_STATE);
+  }
+
+  public updateChatLimits(patch: Partial<ChatLimitConfig>): void {
+    this.socket?.emit(LIVE_OPS_EVENT.ADMIN_CHAT_LIMITS, patch);
+  }
+
+  public updateCasterConfig(patch: Partial<CasterConfig>): void {
+    this.socket?.emit(LIVE_OPS_EVENT.ADMIN_CASTER_CONFIG, patch);
+  }
+
+  /** Resolves with the aliases the server rejected, or null when the server did not answer. */
+  public async updateModeration(patch: ModerationUpdatePatch): Promise<ModerationUpdateAck | null> {
+    if (!this.socket) return null;
+    try {
+      return (await this.socket
+        .timeout(LIVE_OPS_ACK_TIMEOUT_MS)
+        .emitWithAck(LIVE_OPS_EVENT.ADMIN_MODERATION_UPDATE, patch)) as ModerationUpdateAck;
+    } catch (err) {
+      console.warn('[Admin Socket] Moderation update not acknowledged:', err);
+      return null;
+    }
+  }
+
+  /** Resolves with the delivery result, or null when the server did not answer. */
+  public async sendOpsAlertTest(): Promise<OpsAlertResult | null> {
+    if (!this.socket) return null;
+    try {
+      return (await this.socket
+        .timeout(LIVE_OPS_ACK_TIMEOUT_MS)
+        .emitWithAck(LIVE_OPS_EVENT.ADMIN_OPS_ALERT_TEST, {})) as OpsAlertResult;
+    } catch (err) {
+      console.warn('[Admin Socket] Test alert not acknowledged:', err);
+      return null;
+    }
   }
 
   public async simulateTikTokEvent(payload: SimulateTikTokRequest): Promise<SimulateTikTokResult | null> {

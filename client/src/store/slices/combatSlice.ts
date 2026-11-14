@@ -48,7 +48,8 @@ import {
   findSignatureChampionByPlayer,
   getTeamTheme,
 } from '../../constants/teams';
-import { SFX_EVENT } from '../../constants/sfx';
+import { BOSS_VOICE_KIND, SFX_EVENT } from '../../constants/sfx';
+import { playBossVoice } from '../../services/bossVoice';
 import { audioService } from '../../services/audioService';
 import { soundManager, playSound } from '../../services/soundManager';
 import { unprojectScreenToWorld } from '../../components/canvas/summon/summonShared';
@@ -66,6 +67,7 @@ import {
   appendIfCapacity,
 } from '../storeHelpers';
 import { decideHitFeedback } from '../hitFeedbackAggregator';
+import { isCurrentRoundIntroActive } from '../roundIntroStore';
 
 export type CombatSlice = Pick<
   GameState,
@@ -126,6 +128,30 @@ const getCachedBossRect = (): { left: number; top: number; width: number; height
   return cachedBossRect;
 };
 
+const ROSTER_ANCHOR_EDGE_GAP_PX = 4;
+const cachedRosterAnchors = new Map<string, { x: number; y: number; at: number }>();
+
+/**
+ * Every champion attack reads its roster card position; with a crowd that is dozens of
+ * getBoundingClientRect calls per frame, each forcing a layout while the DOM is changing.
+ * Roster cards barely move, so their anchor is reused for the same window as the boss rect.
+ */
+const getCachedAnchorPos = (anchorEl: HTMLElement, team: TeamType): { x: number; y: number } => {
+  const now = Date.now();
+  const cacheKey = `${anchorEl.id}:${team}`;
+  const cached = cachedRosterAnchors.get(cacheKey);
+  if (cached && now - cached.at < SUMMON_PERF_CONSTANTS.BOSS_RECT_CACHE_MS) return cached;
+
+  const rect = anchorEl.getBoundingClientRect();
+  const anchor = {
+    x: team === TEAM_KEY.BLG ? rect.right + ROSTER_ANCHOR_EDGE_GAP_PX : rect.left - ROSTER_ANCHOR_EDGE_GAP_PX,
+    y: rect.top + rect.height / 2,
+    at: now,
+  };
+  cachedRosterAnchors.set(cacheKey, anchor);
+  return anchor;
+};
+
 const resolveRosterAnchorScreenPos = (
   playerId: string | undefined,
   team: TeamType,
@@ -149,11 +175,7 @@ const resolveRosterAnchorScreenPos = (
   const anchorEl = cardEl || avatarEl || collapsedEl;
 
   if (anchorEl) {
-    const rect = anchorEl.getBoundingClientRect();
-    return {
-      x: team === TEAM_KEY.BLG ? rect.right + 4 : rect.left - 4,
-      y: rect.top + rect.height / 2,
-    };
+    return getCachedAnchorPos(anchorEl, team);
   }
 
   const playerIndex = playerId ? activeRoster.findIndex((p) => p.id === playerId) : 2;
@@ -276,7 +298,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
   triggerAutoProAttack: (team: TeamType, playerIndex: number) => {
     const state = get();
-    if (isBattleHalted(state)) {
+    if (isBattleHalted(state) || isCurrentRoundIntroActive()) {
       return;
     }
 
@@ -430,9 +452,10 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const rosterPlayer =
       (sourcePlayerId ? activeRoster.find((p) => p.id === sourcePlayerId) : undefined) ||
       findRosterPlayerInRoster(resolvedChampion, activeRoster);
-    const fallbackStart = resolveRosterAnchorScreenPos(rosterPlayer?.id, team, activeRoster);
-    const startX = customStart ? customStart.x : fallbackStart.x;
-    const startY = customStart ? customStart.y : fallbackStart.y;
+    // Champions pass their own screen position; only roster attacks need the roster card lookup
+    const arrowStart = customStart ?? resolveRosterAnchorScreenPos(rosterPlayer?.id, team, activeRoster);
+    const startX = arrowStart.x;
+    const startY = arrowStart.y;
 
     const bossRect = !customTarget ? getCachedBossRect() : null;
 
@@ -502,7 +525,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
   triggerBossAttack: (_type: 'ROAR' | 'LIGHTNING' = 'ROAR') => {
     const state = get();
-    if (isBattleHalted(state)) {
+    if (isBattleHalted(state) || isCurrentRoundIntroActive()) {
       return;
     }
 
@@ -757,7 +780,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     options?: DamageBossOptions
   ) => {
     const state = get();
-    if (isBattleHalted(state)) {
+    if (isBattleHalted(state) || isCurrentRoundIntroActive()) {
       return;
     }
 
@@ -915,7 +938,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
     if (isJustEnraged) {
       const themeConfig = getThemeConfig(state.gameTheme);
-      playSound(SFX_EVENT.BOSS_ENRAGE, { rateScale: themeConfig.audioPitchRate });
+      playBossVoice(state.gameTheme, BOSS_VOICE_KIND.ENRAGE);
       get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
       get().addLog(

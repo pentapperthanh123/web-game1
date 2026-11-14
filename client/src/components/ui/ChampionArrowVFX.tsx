@@ -366,7 +366,7 @@ const drawSkillGraphic = (
     }
 
     // -------------------------------------------------------------------------
-    // D. ROCKET MISSILE (Tên Lửa Siêu Khủng Khiếp - Jinx / Gumayusi)
+    // D. ROCKET MISSILE (Tên Lửa Siêu Khủng Khiếp - Jinx)
     // -------------------------------------------------------------------------
     case CHAMPION_SKILL_VFX_TYPE.ROCKET_MISSILE: {
       const scale = isCrit ? 1.35 : 1.0;

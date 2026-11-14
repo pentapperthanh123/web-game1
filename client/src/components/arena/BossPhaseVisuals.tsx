@@ -106,7 +106,7 @@ export const BossPhaseVisuals = ({
       {/* Active Energy Shield HUD Card (Positioned safely above Boss head, avoiding bottom leaderboard) */}
       {bossShield && (
         <div className="absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 w-52 sm:w-60 z-20 pointer-events-none">
-          <div className="bg-slate-950/90 border border-cyan-400/90 rounded-xl px-2.5 py-1.5 shadow-[0_0_20px_rgba(56,189,248,0.65)] backdrop-blur-md">
+          <div className="bg-slate-950/90 border border-cyan-400/90 rounded-xl px-2.5 py-1.5 shadow-[0_0_20px_rgba(56,189,248,0.65)]">
             <div className="flex items-center justify-between text-[9px] font-black uppercase text-cyan-300">
               <span className="flex items-center space-x-1">
                 <ShieldAlert className="w-3 h-3 text-cyan-400 animate-pulse" />

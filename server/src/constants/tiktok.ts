@@ -1,5 +1,8 @@
 import { TeamSlotKey } from './teams.js';
 
+/** Tokens show the champion art; viewers' TikTok profile photos only when an admin turns this on. */
+export const DEFAULT_USE_USER_AVATAR = false;
+
 export const TIKTOK_PIPELINE_CONSTANTS = {
   AFFINITY_TTL_MS: 4 * 60 * 60 * 1000,
   MAX_TRACKED_VIEWERS: 5000,
@@ -23,6 +26,15 @@ export const TIKTOK_PIPELINE_CONSTANTS = {
   DUEL_GIFT_DELTA_HIGH: 25.0,
   DUEL_GIFT_DELTA_MID: 10.0,
   DUEL_GIFT_DELTA_LOW: 3.0,
+} as const;
+
+/** Name used when a TikTok event carries neither nickname nor uniqueId. */
+export const VIEWER_FALLBACK_NAME = {
+  CHAT: 'Viewer',
+  GIFT: 'Đại Gia',
+  LIKE: 'Viewer',
+  FOLLOW: 'Follower',
+  SHARE: 'Sharer',
 } as const;
 
 export type AffinityResolutionSource = 'explicit' | 'affinity' | 'balanced_fallback';
@@ -74,6 +86,11 @@ export interface PipelineStatsSummary {
   followCount: number;
   shareCount: number;
   blockedAntiSpamCount: number;
+  /** Summon chat commands dropped by the per-viewer limits (incl. soft-muted viewers). */
+  blockedSummonChatCount: number;
+  softMutedViewerCount: number;
+  /** TikTok events dropped as duplicates (same msgId within the dedupe window). */
+  duplicateEventCount: number;
 }
 
 export interface SimulationResult {

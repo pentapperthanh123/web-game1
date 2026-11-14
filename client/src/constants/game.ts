@@ -696,6 +696,8 @@ export const GUEST_SIMULATION_CONSTANTS = {
 export const BOSS_ANIMATION_CONSTANTS = {
   HIT_DURATION_MS: 320,
   HEAVY_HIT_DURATION_MS: 440,
+  /** Hits closer together than this do not restart the recoil (crowds hit every frame). */
+  HIT_REACTION_MIN_INTERVAL_MS: 240,
   ATTACK_DURATION_MS: 750,
   ULTIMATE_ATTACK_DURATION_MS: 950,
   GROUND_SHOCKWAVE_DURATION_MS: 700,
@@ -721,6 +723,28 @@ export const BOSS_DEFEAT_CONSTANTS = {
   BARON_SECONDARY_COLOR: '#38bdf8',
   ELDER_DRAGON_DEFEAT_COLOR: '#f59e0b',
   ELDER_SECONDARY_COLOR: '#fef08a',
+} as const;
+
+export const FINISHER_BANNER_CONSTANTS = {
+  DISPLAY_DURATION_MS: 4000,
+  SHAKE_INTENSITY: 1.5,
+  PULSE_INTERVAL_MS: 300,
+} as const;
+
+export const VICTORY_CELEBRATION_CONSTANTS = {
+  AUTO_ADVANCE_SECONDS: 10,
+  CONFETTI_PARTICLE_COUNT: 65,
+  CONFETTI_MIN_SIZE: 5,
+  CONFETTI_MAX_SIZE: 12,
+  CONFETTI_GRAVITY: 1.2,
+  CONFETTI_TERMINAL_VELOCITY: 3.5,
+  CONFETTI_DRIFT: 0.35,
+} as const;
+
+export const PODIUM_HONOR_TITLES = {
+  KING: 'KING',
+  WAR_GOD: 'WAR_GOD',
+  VALIANT: 'VALIANT',
 } as const;
 
 export const BOSS_ENRAGED_CONSTANTS = {
@@ -867,7 +891,7 @@ export const COMBAT_VFX_CONSTANTS = {
     },
   },
   CHAMPION_MOVEMENT: {
-    TOKEN_SCALE: 0.62,
+    TOKEN_SCALE: 0.78,
     MIN_SPEED: 0.35,
     MAX_SPEED: 0.65,
     WANDER_INTERVAL_MIN_S: 3.5,
@@ -890,9 +914,9 @@ export const COMBAT_VFX_CONSTANTS = {
     VIEWPORT_SAFE_NDC_X: 0.86,
     VIEWPORT_SAFE_NDC_Y_MIN: -0.80,
     VIEWPORT_SAFE_NDC_Y_MAX: 0.65,
-    NAMEPLATE_WIDTH: 0.54,
-    NAMEPLATE_HEIGHT: 0.135,
-    NAMEPLATE_POS_Y: -0.28,
+    NAMEPLATE_WIDTH: 0.60,
+    NAMEPLATE_HEIGHT: 0.15,
+    NAMEPLATE_POS_Y: -0.29,
     NAMEPLATE_POS_Z: 0.04,
   },
   /** Level of detail for crowded fields: above ENTER the tokens drop to portrait + border + HP. */
@@ -1679,10 +1703,17 @@ export interface GiftTierConfig {
 
 export const GIFT_TIER_CONFIG: Readonly<Record<GiftTier, GiftTierConfig>> = {
   [GIFT_TIER.SMALL]: { minCoins: 0, meteorCount: 0, screenShake: 0, hasScreenFlash: false, bannerDurationMs: 0, bossStaggerMs: 0, burstIntensity: 0 },
-  [GIFT_TIER.MEDIUM]: { minCoins: 10, meteorCount: 3, screenShake: 0.45, hasScreenFlash: false, bannerDurationMs: 2500, bossStaggerMs: 0, burstIntensity: 1.5 },
-  [GIFT_TIER.BIG]: { minCoins: 99, meteorCount: 8, screenShake: 1.3, hasScreenFlash: true, bannerDurationMs: 4500, bossStaggerMs: 0, burstIntensity: 4 },
-  [GIFT_TIER.MEGA]: { minCoins: 1000, meteorCount: 16, screenShake: 2.2, hasScreenFlash: true, bannerDurationMs: 6500, bossStaggerMs: 1800, burstIntensity: 6 },
+  [GIFT_TIER.MEDIUM]: { minCoins: 10, meteorCount: 3, screenShake: 0.45, hasScreenFlash: false, bannerDurationMs: 3000, bossStaggerMs: 0, burstIntensity: 1.5 },
+  [GIFT_TIER.BIG]: { minCoins: 99, meteorCount: 8, screenShake: 1.3, hasScreenFlash: true, bannerDurationMs: 5000, bossStaggerMs: 0, burstIntensity: 4 },
+  [GIFT_TIER.MEGA]: { minCoins: 1000, meteorCount: 16, screenShake: 2.2, hasScreenFlash: true, bannerDurationMs: 8000, bossStaggerMs: 2500, burstIntensity: 6 },
 };
+
+/** Scaling factor for mega/ultra gifts above 1,000 coins: extends banner duration proportionally up to max limit. */
+export const GIFT_DURATION_SCALING = {
+  MEGA_BASE_MS: 8000,
+  MS_PER_1000_COINS: 1000,
+  MAX_BANNER_DURATION_MS: 15000,
+} as const;
 
 export const GIFT_METEOR_SPAWN = {
   RING_RADIUS_MIN: 3.5,
@@ -1733,10 +1764,12 @@ export const SQUAD_ENTRANCE_CONSTANTS = {
 
 /** Pre-round intro card (rules, how to join, gifts) shown when a new round is about to start. */
 export const ROUND_INTRO_CONSTANTS = {
-  TOTAL_MS: 10500,
-  PAGE_MS: 3500,
-  FADE_OUT_MS: 400,
-  PAGE_COUNT: 3,
+  TOTAL_MS: 15000,
+  TAB_MATCHUP_MS: 5000,
+  TAB_RULES_MS: 5000,
+  TAB_GIFTS_MS: 5000,
+  FADE_OUT_MS: 300,
+  HYPE_COUNTDOWN_SEC: 3,
 } as const;
 
 /** Participation guide panel: collapsed during battle, revealed periodically or when nobody is playing. */
@@ -1748,3 +1781,6 @@ export const GUIDE_AUTO_REVEAL_CONSTANTS = {
   /** A manual open/close by the operator wins over the auto rule for this long. */
   MANUAL_OVERRIDE_MS: 30000,
 } as const;
+
+/** Tokens show the champion art; viewers' TikTok profile photos only when an admin turns this on. */
+export const DEFAULT_USE_USER_AVATAR = false;

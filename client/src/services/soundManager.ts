@@ -65,6 +65,8 @@ const createChannel = (definition: SfxDefinition): SoundChannel => ({
 class SoundManager {
   private readonly channels = new Map<SfxEventName, SoundChannel>();
   private appliedMasterVolume: number | null = null;
+  /** Lowered while the AI caster speaks so the voice stays intelligible. */
+  private voiceDuckFactor = 1;
 
   constructor() {
     Howler.html5PoolSize = SOUND_MANAGER_CONSTANTS.HTML5_POOL_SIZE;
@@ -227,9 +229,15 @@ class SoundManager {
     }
   }
 
+  /** 1 = normal; lower values duck every SFX (e.g. while the caster talks). */
+  public setVoiceDuck(factor: number): void {
+    this.voiceDuckFactor = clampVolume(factor);
+    this.syncMasterVolume();
+  }
+
   /** Follows the master volume of the existing audio settings (HUD). */
   private syncMasterVolume(): void {
-    const masterVolume = clampVolume(audioService.volume);
+    const masterVolume = clampVolume(audioService.volume) * this.voiceDuckFactor;
     if (masterVolume === this.appliedMasterVolume) return;
     Howler.volume(masterVolume);
     this.appliedMasterVolume = masterVolume;

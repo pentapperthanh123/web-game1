@@ -29,6 +29,7 @@ import {
   DamageType,
   DEFAULT_DUEL_STATE,
   GAME_CONSTANTS,
+  DEFAULT_USE_USER_AVATAR,
   TEAM_KEY,
   TeamType,
 } from '../constants/game';
@@ -126,7 +127,7 @@ export const INITIAL_STATE = {
   autoProBattleConfig: getStoredAutoProBattleConfig(),
   autoSummonConfig: getStoredAutoSummonConfig(),
   championDamageMultiplier: CHAMPION_DAMAGE_CONSTANTS.DEFAULT_MULTIPLIER,
-  useUserAvatar: true,
+  useUserAvatar: DEFAULT_USE_USER_AVATAR,
   participationRuleConfig: {
     allowTeamOnlySummon: true,
     autoMatchSignatureTeam: true,

@@ -21,6 +21,7 @@ import { gameSocket } from '../../services/socket';
 import { findChampion } from '../../constants/champions';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
+import { useRoundIntroStore } from '../../store/roundIntroStore';
 
 type GuestDockTab = 'HEART' | 'SUMMON' | 'GIFT' | 'CHAT';
 
@@ -56,8 +57,13 @@ export const GuestSimulationDock: React.FC = () => {
   const bossHp = useGameStore((state) => state.bossHp);
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const roundWinner = useGameStore((state) => state.roundWinner);
+  const isIntroActive = useRoundIntroStore((state) => state.isActive);
   const isBattlePaused =
-    bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
+    isIntroActive ||
+    bossStatus === BOSS_STATUS.DEFEATED ||
+    bossHp <= 0 ||
+    isRoundIntermission ||
+    roundWinner !== null;
 
   const [activeTab, setActiveTab] = useState<GuestDockTab>('HEART');
   const [tapStreak, setTapStreak] = useState<number>(0);

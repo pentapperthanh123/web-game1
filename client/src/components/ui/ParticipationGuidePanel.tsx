@@ -217,7 +217,7 @@ export const ParticipationGuidePanel = () => {
   };
 
   return (
-    <aside className="relative z-[35] w-48 sm:w-52 max-w-full bg-slate-950/40 backdrop-blur-[2px] border border-white/15 rounded-xl p-1.5 shadow-lg pointer-events-auto select-none transition-all duration-300">
+    <aside className="relative z-[35] w-48 sm:w-52 max-w-full bg-slate-950/40 border border-white/15 rounded-xl p-1.5 shadow-lg pointer-events-auto select-none transition-all duration-300">
       {/* Header: Compact single title that automatically flips every 5 seconds */}
       <div className="flex items-center justify-between pb-1 border-b border-white/10 gap-1">
         <button

@@ -45,7 +45,7 @@ export const Boss3DPresence = () => {
               color="#facc15"
               transparent
               opacity={0.72}
-              side={THREE.DoubleSide}
+              side={THREE.DoubleSide} forceSinglePass
               blending={THREE.AdditiveBlending}
               depthWrite={false}
               toneMapped={false}

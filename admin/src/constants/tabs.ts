@@ -4,6 +4,7 @@ export const ADMIN_PORTAL_TAB = {
   INTERACTION: 'INTERACTION',
   BOSS_MAP: 'BOSS_MAP',
   OVERLAYS: 'OVERLAYS',
+  LIVE_OPS: 'LIVE_OPS',
   LOGS: 'LOGS',
   ALL: 'ALL',
 } as const;
@@ -25,6 +26,7 @@ export const ADMIN_PORTAL_TABS: readonly AdminPortalTabMeta[] = [
   { id: ADMIN_PORTAL_TAB.OVERLAYS, label: 'Ẩn/Hiện Section (Overlay)' },
   { id: ADMIN_PORTAL_TAB.INTERACTION, label: 'Tương Tác & Quà' },
   { id: ADMIN_PORTAL_TAB.BOSS_MAP, label: 'Boss & Bản Đồ' },
+  { id: ADMIN_PORTAL_TAB.LIVE_OPS, label: 'Live Ops & Kiểm Duyệt' },
   { id: ADMIN_PORTAL_TAB.LOGS, label: 'Nhật Ký Live' },
 ];
 

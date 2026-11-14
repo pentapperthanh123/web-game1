@@ -71,7 +71,7 @@ export const LikeCounter = () => {
               triggerHeartMilestoneHeal((Math.floor(totalCombinedLikes / threshold) + 1) * threshold);
             }
           }}
-          className={`flex flex-col px-2 py-1 rounded-lg bg-slate-950/35 border border-emerald-500/40 backdrop-blur-[1px] shadow-md text-[9px] w-full max-w-[136px] sm:w-36 ${
+          className={`flex flex-col px-2 py-1 rounded-lg bg-slate-950/35 border border-emerald-500/40 shadow-md text-[9px] w-full max-w-[136px] sm:w-36 ${
             isAdminModeActive ? 'cursor-pointer hover:border-emerald-400 hover:bg-emerald-950/40 transition active:scale-95' : ''
           }`}
           title={isAdminModeActive ? 'Admin: Nhấp để kích hoạt ngay Đại Hồi Phục!' : undefined}
@@ -99,7 +99,7 @@ export const LikeCounter = () => {
       <div className="flex items-center justify-end flex-wrap gap-1">
         {/* Left Team Likes */}
         <div
-          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-950/35 border backdrop-blur-[1px] shadow-md ${leftTheme.likeBadgeBorderClass}`}
+          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-950/35 border shadow-md ${leftTheme.likeBadgeBorderClass}`}
         >
           <Heart className={`w-3 h-3 fill-current animate-pulse ${leftTheme.textStrongClass}`} />
           <span
@@ -114,7 +114,7 @@ export const LikeCounter = () => {
 
         {/* Right Team Likes */}
         <div
-          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-950/35 border backdrop-blur-[1px] shadow-md ${rightTheme.likeBadgeBorderClass}`}
+          className={`flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-950/35 border shadow-md ${rightTheme.likeBadgeBorderClass}`}
         >
           <Heart className={`w-3 h-3 fill-current animate-pulse ${rightTheme.textStrongClass}`} />
           <span

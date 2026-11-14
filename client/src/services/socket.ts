@@ -2,7 +2,10 @@ import { io, Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
 import { OverlayVisibility, ParticipationRuleConfig } from '../types/game';
 import { TeamConfigState } from '../types/team';
-import { OVERLAY_SECTION, GameThemeType, TeamType } from '../constants/game';
+import { OVERLAY_SECTION, GameThemeType, TeamType, GAME_CONSTANTS, GIFT_TIER, GIFT_TIER_CONFIG } from '../constants/game';
+import { applyCasterConfig } from '../store/casterStore';
+import { hasSpeechNameField, registerSpeechName } from './caster/speechNameRegistry';
+import { announceFollow, announceShare, announceSmallGiftCombo } from './caster/casterDirector';
 import { sanitizeTeamConfigState } from '../constants/teams';
 import { buildAdminHeaders, resolveAdminToken } from './adminTokenStorage';
 import {
@@ -175,6 +178,7 @@ class GameSocketClient {
       // Listen for game events dispatched by Server or Admin Portal
       this.socket.on('game:summon', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (hasSpeechNameField(payload)) registerSpeechName(payload.summonerName, payload.speechName);
         useGameStore
           .getState()
           .summonMinion(
@@ -196,6 +200,7 @@ class GameSocketClient {
 
       this.socket.on('game:gift', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
+        if (hasSpeechNameField(payload)) registerSpeechName(payload.donorName, payload.speechName);
         useGameStore
           .getState()
           .triggerGiftExplosion(
@@ -208,24 +213,41 @@ class GameSocketClient {
             payload.isComboFinal,
             typeof payload.donorAvatarUrl === 'string' ? payload.donorAvatarUrl : undefined
           );
+        // Small-gift streaks have no banner; the caster thanks the donor once the streak ends
+        const isSmallGift = (payload.coins ?? 0) < GIFT_TIER_CONFIG[GIFT_TIER.MEDIUM].minCoins;
+        if (payload.isComboFinal && isSmallGift && payload.team) {
+          announceSmallGiftCombo(payload.donorName, payload.team, payload.giftName, payload.streakCount ?? 1);
+        }
       });
 
       this.socket.on('game:follow', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         if (payload?.userName && payload?.team && payload?.championName) {
+          if (hasSpeechNameField(payload)) registerSpeechName(payload.userName, payload.speechName);
           useGameStore
             .getState()
             .triggerFollowReward(payload.userName, payload.team, payload.championName, payload.furyGain);
+          announceFollow(payload.userName, payload.team, payload.championName);
         }
       });
 
       this.socket.on('game:share', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         if (payload?.userName && payload?.team) {
+          if (hasSpeechNameField(payload)) registerSpeechName(payload.userName, payload.speechName);
           useGameStore
             .getState()
             .triggerShareReward(payload.userName, payload.team, payload.damageAmount, payload.healAmount);
+          announceShare(
+            payload.userName,
+            payload.team,
+            payload.damageAmount ?? GAME_CONSTANTS.TIKTOK_ENGAGEMENT.SHARE_BURST_DAMAGE
+          );
         }
+      });
+
+      this.socket.on('game:caster-config', (payload) => {
+        applyCasterConfig(payload);
       });
 
       this.socket.on('game:like', (payload) => {

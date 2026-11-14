@@ -2,6 +2,7 @@ import type { Server } from 'socket.io';
 import type { WebcastPushConnection } from 'tiktok-live-connector';
 import type { TeamConfigState } from '../constants/teams.js';
 import type { SeriesFormatConfig, SilverScrapesDuelState } from '../constants/series.js';
+import type { CasterConfig, ChatLimitConfig } from '../constants/liveOps.js';
 
 export interface OverlayVisibility {
   chat: boolean;
@@ -67,7 +68,7 @@ export interface BossSkillConfig {
 export const DEFAULT_BOSS_SKILL_CONFIG: BossSkillConfig = {
   autoAttackEnabled: true,
   intervalMs: 4000,
-  damageMultiplier: 1.0,
+  damageMultiplier: 0.25,
   mode: 'RANDOM_WEIGHTED',
   randomIntervalEnabled: true,
 };
@@ -130,6 +131,8 @@ export interface ServerState {
   championDamageMultiplier: number;
   useUserAvatar: boolean;
   participationRuleConfig: ParticipationRuleConfig;
+  chatLimitConfig: ChatLimitConfig;
+  casterConfig: CasterConfig;
   tiktokUsername: string;
   connectionStatus: TikTokConnectionStatus;
   lastErrorMessage: string;

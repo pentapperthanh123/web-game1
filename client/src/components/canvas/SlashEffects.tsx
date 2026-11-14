@@ -115,13 +115,13 @@ export const SlashEffects = () => {
   return (
     <group>
       <instancedMesh ref={mainRef} args={[SHARED_SLASH_RING_1, undefined, SLASH_POOL_CAPACITY]} frustumCulled={false}>
-        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={coreRef} args={[SHARED_SLASH_RING_2, undefined, SLASH_POOL_CAPACITY]} frustumCulled={false}>
-        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={crossRef} args={[SHARED_SLASH_RING_CRIT, undefined, SLASH_POOL_CAPACITY]} frustumCulled={false}>
-        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={flareRef} args={[SHARED_OCTAHEDRON_FLARE, undefined, SLASH_POOL_CAPACITY]} frustumCulled={false}>
         <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />

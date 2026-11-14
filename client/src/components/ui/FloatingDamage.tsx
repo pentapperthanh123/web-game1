@@ -1,11 +1,17 @@
 import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { DAMAGE_TYPE, DamageType } from '../../constants/game';
+import { DamageType } from '../../constants/game';
 import { FloatingDamageText } from '../../types/game';
+import { DamageTextSprite, getDamageTextSprite } from './damageTextSprites';
 
 const CANVAS_WIDTH = 360;
 const CANVAS_HEIGHT = 240;
 const DAMAGE_LIFETIME_MS = 1000;
+/** On-screen cap: when full, new numbers are dropped (the store already merges bursts into "x N" totals). */
+const MAX_ACTIVE_PARTICLES = 24;
+const RISE_DISTANCE_PX = 46;
+const FADE_EXPONENT = 1.6;
+const POP = { GROW_END: 0.18, START_SCALE: 0.75, GROW_AMOUNT: 0.35, PEAK_SCALE: 1.1, SETTLE_AMOUNT: 0.18 } as const;
 
 interface CanvasDamageParticle {
   id: string;
@@ -16,7 +22,13 @@ interface CanvasDamageParticle {
   color: string;
   baseScale: number;
   createdAt: number;
+  sprite: DamageTextSprite;
 }
+
+const getPopScale = (progress: number): number => {
+  if (progress < POP.GROW_END) return POP.START_SCALE + (progress / POP.GROW_END) * POP.GROW_AMOUNT;
+  return POP.PEAK_SCALE - ((progress - POP.GROW_END) / (1 - POP.GROW_END)) * POP.SETTLE_AMOUNT;
+};
 
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
@@ -42,7 +54,10 @@ export const FloatingDamage = React.memo(() => {
         // Chỉ giữ lại số sát thương gây lên Quái vật (ẩn toàn bộ số hồi máu hoặc phụ trợ)
         if (!item.text || item.text.startsWith('+')) continue;
 
+        if (particlesRef.current.length >= MAX_ACTIVE_PARTICLES) break;
         if (!existingIds.has(item.id) && now - item.createdAt < DAMAGE_LIFETIME_MS) {
+          const sprite = getDamageTextSprite(item.text, item.damageType, item.color);
+          if (!sprite) continue;
           particlesRef.current.push({
             id: item.id,
             text: item.text,
@@ -52,6 +67,7 @@ export const FloatingDamage = React.memo(() => {
             color: item.color,
             baseScale: item.scale || 1.0,
             createdAt: item.createdAt || now,
+            sprite,
           });
         }
       }
@@ -89,63 +105,32 @@ export const FloatingDamage = React.memo(() => {
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       const now = Date.now();
-      const activeList: CanvasDamageParticle[] = [];
+      // Expired particles are compacted out in place (no per-frame array allocation)
+      const particles = particlesRef.current;
+      let activeCount = 0;
 
-      for (let i = 0; i < particlesRef.current.length; i++) {
-        const p = particlesRef.current[i];
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         const age = now - p.createdAt;
         if (age >= DAMAGE_LIFETIME_MS) continue;
 
-        activeList.push(p);
+        particles[activeCount++] = p;
 
         const progress = Math.min(1.0, age / DAMAGE_LIFETIME_MS);
-        const yOffset = -easeOutCubic(progress) * 46;
-        const opacity = Math.max(0, 1.0 - Math.pow(progress, 1.6));
+        const yOffset = -easeOutCubic(progress) * RISE_DISTANCE_PX;
+        const finalScale = p.baseScale * getPopScale(progress);
+        const { image, width, height } = p.sprite;
 
-        // Scale pop effect: expand slightly at birth, then settle
-        const scalePop =
-          progress < 0.18
-            ? 0.75 + (progress / 0.18) * 0.35
-            : 1.10 - ((progress - 0.18) / 0.82) * 0.18;
-        const finalScale = p.baseScale * scalePop;
-
-        ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.translate(p.x, p.y + yOffset);
-        ctx.scale(finalScale, finalScale);
-
-        // Typography styling per damage tier
-        let fontSize = 12;
-        let prefixTag = '';
-
-        if (p.damageType === DAMAGE_TYPE.ULTIMATE) {
-          fontSize = 15;
-          prefixTag = '🔥 ';
-        } else if (p.damageType === DAMAGE_TYPE.CRIT) {
-          fontSize = 13.5;
-          prefixTag = '⚡ ';
-        }
-
-        ctx.font = `900 ${fontSize}px system-ui, -apple-system, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        // High contrast black stroke for crystal-clear readability over vibrant arena
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(2, 6, 23, 0.95)';
-        ctx.lineJoin = 'round';
-        ctx.strokeText(`${prefixTag}${p.text}`, 0, 0);
-
-        // Vibrant inner text fill
-        ctx.fillStyle = p.color;
-        ctx.fillText(`${prefixTag}${p.text}`, 0, 0);
-
-        ctx.restore();
+        ctx.globalAlpha = Math.max(0, 1.0 - Math.pow(progress, FADE_EXPONENT));
+        ctx.setTransform(finalScale, 0, 0, finalScale, p.x, p.y + yOffset);
+        ctx.drawImage(image, -width / 2, -height / 2, width, height);
       }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
 
-      particlesRef.current = activeList;
+      particles.length = activeCount;
 
-      if (activeList.length > 0) {
+      if (activeCount > 0) {
         animFrameIdRef.current = requestAnimationFrame(render);
       } else {
         isLoopRunningRef.current = false;

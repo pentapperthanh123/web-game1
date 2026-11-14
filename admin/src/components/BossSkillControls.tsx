@@ -51,7 +51,7 @@ const BOSS_NAMES: Record<GameThemeType, string> = {
   VOID_TITAN: 'Thần Hư Vô Nguyên Thủy',
 };
 
-const DAMAGE_MULTIPLIER_OPTIONS = [0.5, 1.0, 1.5, 2.0] as const;
+const DAMAGE_MULTIPLIER_OPTIONS = [0.25, 0.5, 1.0, 1.5, 2.0] as const;
 
 const SKILL_VFX_LABELS: Record<BossSkillVfxType, string> = {
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: '🟢 Phun đạn',
@@ -365,9 +365,9 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
         <div>
           <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1.5">
             <span className="uppercase tracking-wider">Hệ số sát thương:</span>
-            <span className="text-rose-400 font-mono font-bold">{config.damageMultiplier.toFixed(1)}x</span>
+            <span className="text-rose-400 font-mono font-bold">{config.damageMultiplier.toFixed(2).replace(/\.?0+$/, '')}x</span>
           </div>
-          <div className="grid grid-cols-4 gap-1 mt-1">
+          <div className="grid grid-cols-5 gap-1 mt-1">
             {DAMAGE_MULTIPLIER_OPTIONS.map((mul) => (
               <button
                 key={mul}
@@ -383,7 +383,11 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
             ))}
           </div>
           <div className="text-[10px] text-slate-500 font-mono mt-1 text-center">
-            {config.damageMultiplier === 1.0 ? 'Sát thương chuẩn' : `Nhân ${config.damageMultiplier}x sát thương`}
+            {config.damageMultiplier === 1.0
+              ? 'Sát thương chuẩn (1.0x)'
+              : config.damageMultiplier === 0.25
+                ? 'Mặc định cân bằng (0.25x - Tướng trụ lâu)'
+                : `Nhân ${config.damageMultiplier}x sát thương`}
           </div>
         </div>
       </div>

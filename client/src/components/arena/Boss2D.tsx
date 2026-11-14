@@ -22,8 +22,8 @@ import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
 import { audioService } from '../../services/audioService';
-import { playSound } from '../../services/soundManager';
-import { SFX_EVENT } from '../../constants/sfx';
+import { playBossVoice } from '../../services/bossVoice';
+import { BOSS_VOICE_KIND } from '../../constants/sfx';
 import { BOSS_SKILL_VFX, BossSkillVfxType } from '../../types/bossSkill';
 import { BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
 import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
@@ -230,9 +230,7 @@ export const Boss2D = () => {
     const breathTimer = isDragon
       ? setTimeout(() => {
           setIsEntranceBreathActive(true);
-          playSound(SFX_EVENT.BOSS_ROAR, {
-            rateScale: themeConfig.audioPitchRate,
-          });
+          playBossVoice(gameTheme, BOSS_VOICE_KIND.ROAR);
         }, BOSS_ANIMATION_CONSTANTS.ENTRANCE_BREATH_DELAY_MS)
       : null;
 
@@ -245,7 +243,7 @@ export const Boss2D = () => {
       if (breathTimer) clearTimeout(breathTimer);
       clearTimeout(endTimer);
     };
-  }, [gameTheme, isDefeated, isDragon, themeConfig.audioPitchRate]);
+  }, [gameTheme, isDefeated, isDragon]);
 
   const shiftVerticalPatrolTier = useCallback(
     (preferredTier?: number) => {
@@ -290,8 +288,19 @@ export const Boss2D = () => {
   }, [bossHitTimestamp, bossAttackTimestamp, minions.length]);
 
   // Dynamic hit animation timer
+  const hitEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHitReactionAtRef = useRef(0);
+  useEffect(() => () => {
+    if (hitEndTimerRef.current) clearTimeout(hitEndTimerRef.current);
+  }, []);
+
   useEffect(() => {
     if (bossHitTimestamp === 0) return;
+    // A crowd lands hits every frame; restarting the recoil each time kept the boss stuck in its
+    // first (brightest, most expensive) keyframe and re-rendered this component at frame rate.
+    const now = Date.now();
+    if (now - lastHitReactionAtRef.current < BOSS_ANIMATION_CONSTANTS.HIT_REACTION_MIN_INTERVAL_MS) return;
+    lastHitReactionAtRef.current = now;
 
     setHitNonce((prev) => (prev + 1) % 1000);
     setIsHitActive(true);
@@ -301,7 +310,8 @@ export const Boss2D = () => {
       ? BOSS_ANIMATION_CONSTANTS.HEAVY_HIT_DURATION_MS
       : BOSS_ANIMATION_CONSTANTS.HIT_DURATION_MS;
 
-    const timer = setTimeout(() => {
+    if (hitEndTimerRef.current) clearTimeout(hitEndTimerRef.current);
+    hitEndTimerRef.current = setTimeout(() => {
       setIsHitActive(false);
     }, duration);
 
@@ -313,8 +323,6 @@ export const Boss2D = () => {
         updateFacingSide(true);
       }
     }
-
-    return () => clearTimeout(timer);
   }, [bossHitTimestamp, lastHitDamageType, lastHitTeam, updateFacingSide]);
 
   // Dynamic attack animation timer (faster recovery when enraged)
@@ -438,9 +446,8 @@ export const Boss2D = () => {
           latestState.roundWinner === null
         ) {
           const enragedNow = latestState.bossStatus === BOSS_STATUS.ENRAGED;
-          playSound(enragedNow ? SFX_EVENT.BOSS_ENRAGE : SFX_EVENT.BOSS_ROAR, {
-            rateScale: themeConfig.audioPitchRate,
-          });
+          const voiceKind = enragedNow ? BOSS_VOICE_KIND.ENRAGE : BOSS_VOICE_KIND.ROAR;
+          playBossVoice(latestState.gameTheme, voiceKind);
           setIsRoarActive(true);
           updateFacingSide('TOGGLE');
           shiftVerticalPatrolTier(0);
@@ -460,7 +467,7 @@ export const Boss2D = () => {
       if (roarTimer) clearTimeout(roarTimer);
       if (settleTimer) clearTimeout(settleTimer);
     };
-  }, [isBossAlive, themeConfig.audioPitchRate, updateFacingSide, shiftVerticalPatrolTier]);
+  }, [isBossAlive, updateFacingSide, shiftVerticalPatrolTier]);
 
   // Periodic Vertical Altitude Patrol (smooth glide across High / Mid / Low tiers)
   useEffect(() => {
@@ -618,7 +625,8 @@ export const Boss2D = () => {
         }
       >
         <div className={verticalMotionClass}>
-          <div className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-none`}>
+          {/* Follows the sprite's motion only; the filter keyframes would add a second filtered layer */}
+          <div className={`relative ${themeConfig.spriteSize} ${animationClass} boss-motion-only pointer-events-none`}>
             <BossSpeechBubble
               speech={isRoarActive || isDefeated || isSilverScrapesActive || isRoundIntroShown ? null : activeSpeech}
               themeConfig={themeConfig}

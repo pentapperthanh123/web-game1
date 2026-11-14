@@ -114,13 +114,13 @@ export const SummonGroundPortalsInstanced = () => {
   return (
     <group>
       <instancedMesh ref={outerRef} args={[SHARED_PORTAL_RING_1, undefined, PORTAL_POOL_CAPACITY]} frustumCulled={false}>
-        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={innerRef} args={[SHARED_PORTAL_RING_2, undefined, PORTAL_POOL_CAPACITY]} frustumCulled={false}>
-        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={pillarRef} args={[SHARED_PORTAL_CYLINDER, undefined, PORTAL_POOL_CAPACITY]} frustumCulled={false}>
-        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </instancedMesh>
     </group>
   );

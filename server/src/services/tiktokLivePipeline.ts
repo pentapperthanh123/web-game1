@@ -9,7 +9,11 @@ import {
   TikTokGiftInput,
   TikTokLikeInput,
   TikTokSocialInput,
+  VIEWER_FALLBACK_NAME,
 } from '../constants/tiktok.js';
+import { SUMMON_BLOCK_REASON, SummonBlockReason } from '../constants/liveOps.js';
+import type { ViewerTextModerator } from '../moderation/contentFilter.js';
+import type { ChatRateLimiter } from './chatRateLimiter.js';
 
 interface AffinityRecord {
   team: TeamSlotKey;
@@ -36,7 +40,27 @@ export interface TikTokPipelineDeps {
   getRandomChampionName: () => string;
   onDuelContribution: (team: TeamSlotKey, deltaPercent: number, event: DuelContributionPayload) => void;
   emit: (eventName: string, payload: unknown) => void;
+  /** Masks blocked names / chat and produces speech-safe names (spec 2.2). */
+  textModerator: ViewerTextModerator;
+  /** Per-viewer summon chat limits (spec 2.1). */
+  summonLimiter: Pick<ChatRateLimiter, 'checkSummon' | 'getStats' | 'reset'>;
+  getDuplicateEventCount?: () => number;
   nowFn?: () => number;
+}
+
+interface ViewerIdentity {
+  viewerKey: string;
+  /** Safe to show on screen (masked when blocked). */
+  displayName: string;
+  /** Safe to read aloud, or null = caster uses a team alias. */
+  speechName: string | null;
+}
+
+export interface ChatHandlingResult {
+  team?: TeamSlotKey;
+  championName?: string;
+  source?: AffinityResolutionSource;
+  blockedReason?: SummonBlockReason;
 }
 
 const trimOldestEntries = <K, V>(map: Map<K, V>, maxEntries: number): void => {
@@ -71,6 +95,24 @@ export class TikTokLivePipeline {
   private buildViewerKey(uniqueId?: string, nickname?: string): string {
     const raw = (uniqueId || nickname || 'viewer').trim().toLowerCase();
     return raw.replace(/^@+/, '') || 'viewer';
+  }
+
+  private resolveViewerIdentity(
+    input: { uniqueId?: string; nickname?: string },
+    fallbackName: string
+  ): ViewerIdentity {
+    const rawName = input.nickname || input.uniqueId || fallbackName;
+    return {
+      viewerKey: this.buildViewerKey(input.uniqueId, input.nickname),
+      displayName: this.deps.textModerator.toDisplayName(rawName) || fallbackName,
+      speechName: this.deps.textModerator.toSpeechName(rawName),
+    };
+  }
+
+  /** Rate-limited summons still show as plain chat; soft-muted viewers are hidden entirely. */
+  private emitBlockedSummonChat(displayName: string, displayText: string, reason?: SummonBlockReason): void {
+    if (reason === SUMMON_BLOCK_REASON.SOFT_MUTED) return;
+    this.deps.emit('game:chat', { userName: displayName, text: displayText });
   }
 
   private pickBalancedFallbackSlot(): TeamSlotKey {
@@ -183,6 +225,7 @@ export class TikTokLivePipeline {
     this.scoreBalance = { leftScore: 0, rightScore: 0 };
     this.shareCount = 0;
     this.blockedAntiSpamCount = 0;
+    this.deps.summonLimiter.reset();
   }
 
   public getStats(): PipelineStatsSummary {
@@ -215,21 +258,28 @@ export class TikTokLivePipeline {
       followCount: this.followedViewers.size,
       shareCount: this.shareCount,
       blockedAntiSpamCount: this.blockedAntiSpamCount,
+      ...this.deps.summonLimiter.getStats(now),
+      duplicateEventCount: this.deps.getDuplicateEventCount?.() ?? 0,
     };
   }
 
-  public handleChat(input: TikTokChatInput): {
-    team?: TeamSlotKey;
-    championName?: string;
-    source?: AffinityResolutionSource;
-  } {
+  public handleChat(input: TikTokChatInput): ChatHandlingResult {
     const comment = input.comment || '';
-    const displayName = input.nickname || input.uniqueId || 'Viewer';
-    const viewerKey = this.buildViewerKey(input.uniqueId, input.nickname);
+    const { viewerKey, displayName, speechName } = this.resolveViewerIdentity(input, VIEWER_FALLBACK_NAME.CHAT);
+    const displayText = this.deps.textModerator.maskChatText(comment);
     const parsed = this.deps.parseComment(comment);
     const rules = this.deps.getParticipationRules?.();
     const allowTeamOnly = rules?.allowTeamOnlySummon ?? true;
     const autoMatchSig = rules?.autoMatchSignatureTeam ?? true;
+    const isSummonCommand = Boolean(parsed.champion) || (Boolean(parsed.team) && allowTeamOnly);
+
+    if (isSummonCommand) {
+      const verdict = this.deps.summonLimiter.checkSummon(viewerKey, parsed.champion, this.now());
+      if (!verdict.isAllowed) {
+        this.emitBlockedSummonChat(displayName, displayText, verdict.reason);
+        return { blockedReason: verdict.reason };
+      }
+    }
 
     let effectiveTeam = parsed.team;
     let source: AffinityResolutionSource | undefined;
@@ -250,7 +300,7 @@ export class TikTokLivePipeline {
 
     this.deps.emit('game:chat', {
       userName: displayName,
-      text: comment,
+      text: displayText,
       team: effectiveTeam,
       championName: summonChampion,
     });
@@ -258,6 +308,7 @@ export class TikTokLivePipeline {
     if (summonChampion && effectiveTeam) {
       this.deps.emit('game:summon', {
         summonerName: displayName,
+        speechName,
         championName: summonChampion,
         team: effectiveTeam,
         userAvatarUrl: input.userAvatarUrl,
@@ -284,8 +335,7 @@ export class TikTokLivePipeline {
     reason?: string;
   } {
     const now = this.now();
-    const displayName = input.nickname || input.uniqueId || 'Đại Gia';
-    const viewerKey = this.buildViewerKey(input.uniqueId, input.nickname);
+    const { viewerKey, displayName, speechName } = this.resolveViewerIdentity(input, VIEWER_FALLBACK_NAME.GIFT);
     const giftName = input.giftName || 'Quà TikTok';
     const unitCoins = Math.max(1, input.diamondCount ?? TIKTOK_PIPELINE_CONSTANTS.DEFAULT_UNIT_COINS);
     const isStreakGift = input.giftType === TIKTOK_PIPELINE_CONSTANTS.STREAK_GIFT_TYPE;
@@ -327,6 +377,7 @@ export class TikTokLivePipeline {
 
     this.deps.emit('game:gift', {
       donorName: displayName,
+      speechName,
       giftName,
       team,
       coins: deltaCoins,
@@ -364,8 +415,7 @@ export class TikTokLivePipeline {
     source: AffinityResolutionSource;
     count: number;
   } {
-    const displayName = input.nickname || input.uniqueId || 'Viewer';
-    const viewerKey = this.buildViewerKey(input.uniqueId, input.nickname);
+    const { viewerKey, displayName } = this.resolveViewerIdentity(input, VIEWER_FALLBACK_NAME.LIKE);
     const clampedCount = Math.min(
       TIKTOK_PIPELINE_CONSTANTS.MAX_LIKE_BATCH_CLAMP,
       Math.max(1, input.likeCount ?? 1)
@@ -397,8 +447,7 @@ export class TikTokLivePipeline {
     championName?: string;
     reason?: string;
   } {
-    const displayName = input.nickname || input.uniqueId || 'Follower';
-    const viewerKey = this.buildViewerKey(input.uniqueId, input.nickname);
+    const { viewerKey, displayName, speechName } = this.resolveViewerIdentity(input, VIEWER_FALLBACK_NAME.FOLLOW);
 
     if (this.followedViewers.has(viewerKey)) {
       this.blockedAntiSpamCount += 1;
@@ -416,6 +465,7 @@ export class TikTokLivePipeline {
 
     this.deps.emit('game:follow', {
       userName: displayName,
+      speechName,
       team,
       championName,
       furyGain: TIKTOK_PIPELINE_CONSTANTS.FOLLOW_FURY_GAIN,
@@ -441,8 +491,7 @@ export class TikTokLivePipeline {
     reason?: string;
   } {
     const now = this.now();
-    const displayName = input.nickname || input.uniqueId || 'Sharer';
-    const viewerKey = this.buildViewerKey(input.uniqueId, input.nickname);
+    const { viewerKey, displayName, speechName } = this.resolveViewerIdentity(input, VIEWER_FALLBACK_NAME.SHARE);
     const lastShareAt = this.shareTimestamps.get(viewerKey);
 
     if (lastShareAt !== undefined && now - lastShareAt < TIKTOK_PIPELINE_CONSTANTS.SHARE_COOLDOWN_MS) {
@@ -458,6 +507,7 @@ export class TikTokLivePipeline {
 
     this.deps.emit('game:share', {
       userName: displayName,
+      speechName,
       team,
       damageAmount: TIKTOK_PIPELINE_CONSTANTS.SHARE_BURST_DAMAGE,
       healAmount: TIKTOK_PIPELINE_CONSTANTS.SHARE_HEAL_AMOUNT,

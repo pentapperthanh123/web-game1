@@ -10,7 +10,7 @@ import { TeamColorPalette, TeamProfile } from '../constants/teams';
 import { adminSocket, ParticipationRuleConfig } from '../services/socket';
 import { TeamLogo } from './TeamLogos';
 import { SummonQueueRulesControls } from './SummonQueueRulesControls';
-import { SUMMON_QUEUE_UI } from '../constants/summonQueue';
+import { DEFAULT_USE_USER_AVATAR, SUMMON_QUEUE_UI } from '../constants/summonQueue';
 
 const CHAMPION_DAMAGE_UI = {
   DEFAULT_MULTIPLIER: 1,
@@ -105,7 +105,7 @@ export function AdminSummonSection({
   const [championDamageMultiplier, setChampionDamageMultiplier] = useState<number>(
     CHAMPION_DAMAGE_UI.DEFAULT_MULTIPLIER
   );
-  const [useUserAvatar, setUseUserAvatar] = useState(true);
+  const [useUserAvatar, setUseUserAvatar] = useState(DEFAULT_USE_USER_AVATAR);
   const [participationRules, setParticipationRules] = useState<ParticipationRuleConfig>({
     allowTeamOnlySummon: true,
     autoMatchSignatureTeam: true,

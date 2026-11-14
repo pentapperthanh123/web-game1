@@ -18,6 +18,7 @@ import { PODIUM_SIZE, VictoryPodiumCard } from './victory/VictoryPodiumCard';
 import { VictoryWeeklyBoardCard } from './victory/VictoryWeeklyBoardCard';
 import { VictoryDamageSummaryCard } from './victory/VictoryDamageSummaryCard';
 import { VictoryActionControls } from './victory/VictoryActionControls';
+import { VictoryConfettiCanvas } from './victory/VictoryConfettiCanvas';
 import {
   VICTORY_CELEBRATION_STARS,
   resolveEffectiveWinner,
@@ -45,6 +46,7 @@ export const VictoryOverlay = () => {
   const matchQueue = useGameStore((state) => state.matchQueue);
   const activeTeams = useGameStore((state) => state.activeTeams);
   const gameTheme = useGameStore((state) => state.gameTheme);
+  const activeGiftBanner = useGameStore((state) => state.activeGiftBanner);
 
   const [isVictoryVisible, setIsVictoryVisible] = useState<boolean>(false);
   const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
@@ -62,16 +64,20 @@ export const VictoryOverlay = () => {
     // Silence combat synths and speech; the boss-defeat sting already playing keeps going
     audioService.setCombatMuted(true);
 
+    // If a mega/big gift banner is on screen celebrating the final hit or donor, give it time
+    const extraDelay = activeGiftBanner && (activeGiftBanner.tier === 'MEGA' || activeGiftBanner.tier === 'BIG') ? 3500 : 0;
+    const revealDelay = BOSS_DEFEAT_CONSTANTS.VICTORY_DELAY_MS + extraDelay;
+
     const revealTimer = setTimeout(() => {
       setIsVictoryVisible(true);
       playSound(SFX_EVENT.VICTORY);
-    }, BOSS_DEFEAT_CONSTANTS.VICTORY_DELAY_MS);
+    }, revealDelay);
 
     return () => {
       clearTimeout(revealTimer);
       audioService.setCombatMuted(false);
     };
-  }, [isDefeated]);
+  }, [isDefeated, activeGiftBanner]);
 
   if (!isDefeated || !isVictoryVisible) return null;
 
@@ -130,6 +136,7 @@ export const VictoryOverlay = () => {
       <div
         className={`absolute w-96 h-96 rounded-full blur-[100px] opacity-35 pointer-events-none ${winnerTheme.glowOrbClass}`}
       />
+      <VictoryConfettiCanvas winnerTheme={winnerTheme} />
 
       {VICTORY_CELEBRATION_STARS.map((star) => (
         <div
@@ -166,7 +173,11 @@ export const VictoryOverlay = () => {
         />
 
         {viewerTopPlayers.length > 0 ? (
-          <VictoryPodiumCard topPlayers={viewerTopPlayers} activeTeams={activeTeams} />
+          <VictoryPodiumCard
+            topPlayers={viewerTopPlayers}
+            activeTeams={activeTeams}
+            finisherPlayerName={finisherPlayerName}
+          />
         ) : (
           <VictoryMvpCard viewerMvp={null} proMvp={proMvp} activeTeams={activeTeams} />
         )}

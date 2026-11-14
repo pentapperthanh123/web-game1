@@ -2,316 +2,406 @@
   {
     "event": "CHAT_POP",
     "file": "CHAT_POP.mp3",
-    "bytes": 2525,
-    "sha1": "db1e07e5582d40f76b1c0c470c6fd335f75ade69",
+    "bytes": 5058,
+    "sha1": "b3ec4fe457ac79afeaf806ac56c131454de948de",
     "sourceUrl": "https://www.myinstants.com/media/sounds/bubble-pop.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.359Z"
+    "bundledAt": "2026-11-14T06:15:26.714Z"
   },
   {
     "event": "SCORE_UP",
     "file": "SCORE_UP.mp3",
-    "bytes": 33689,
-    "sha1": "7af9b12ba6a772ac4dc2a26211068e0faca36a4c",
+    "bytes": 10492,
+    "sha1": "b4067c2a572eeffa714f3cfea676d7f0c63e825a",
     "sourceUrl": "https://www.myinstants.com/media/sounds/magic-coins_RXOks55.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.360Z"
+    "bundledAt": "2026-11-14T06:15:26.716Z"
   },
   {
     "event": "LIKE_TAP",
     "file": "LIKE_TAP.mp3",
-    "bytes": 6539,
-    "sha1": "fa57dd4544704f47d7a57a39af974b07967a1225",
+    "bytes": 6747,
+    "sha1": "5c745e793109103ec0b9f906f507ba169de19bcd",
     "sourceUrl": "https://www.myinstants.com/media/sounds/click.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.361Z"
+    "bundledAt": "2026-11-14T06:15:26.716Z"
   },
   {
     "event": "SKILL_SMITE",
     "file": "SKILL_SMITE.mp3",
-    "bytes": 56317,
-    "sha1": "7d702895d87868aa9c0d4c138d60e89506ed359d",
+    "bytes": 49002,
+    "sha1": "ef7d56bce1ec3d701f9687f14d2a9826c324ae60",
     "sourceUrl": "https://www.myinstants.com/media/sounds/thunder-crack.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.361Z"
+    "bundledAt": "2026-11-14T06:15:26.717Z"
   },
   {
     "event": "BIG_DONATE",
     "file": "BIG_DONATE.mp3",
-    "bytes": 137322,
-    "sha1": "d74523e245b40e62a3175e05d645c819022e1b1c",
+    "bytes": 97790,
+    "sha1": "c1ec0619b215d33ec2ffe3ce4f3e1b407625c1e9",
     "sourceUrl": "https://www.myinstants.com/media/sounds/cinematic-boom-loud.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.361Z"
+    "bundledAt": "2026-11-14T06:15:26.717Z"
   },
   {
     "event": "COMBO_LEVEL_UP",
     "file": "COMBO_LEVEL_UP.mp3",
-    "bytes": 65201,
-    "sha1": "d83256ed4c8a10b490d292031fea607e411b2acc",
+    "bytes": 33061,
+    "sha1": "9754e41aca24989e42716c79f85fba0b5efbc486",
     "sourceUrl": "https://www.myinstants.com/media/sounds/orchestra-hit-hq.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.362Z"
+    "bundledAt": "2026-11-14T06:15:26.718Z"
   },
   {
     "event": "FOLLOW_NOTIFY",
     "file": "FOLLOW_NOTIFY.mp3",
-    "bytes": 36877,
-    "sha1": "92c9a8cf7da7dcf494b05ca9786f67769882a3bf",
+    "bytes": 14887,
+    "sha1": "7895824ea4419141c834b1bb890abd8d4864ca44",
     "sourceUrl": "https://www.myinstants.com/media/sounds/steam-achievement.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.362Z"
+    "bundledAt": "2026-11-14T06:15:26.718Z"
   },
   {
     "event": "ROUND_START",
     "file": "ROUND_START.mp3",
-    "bytes": 200738,
-    "sha1": "576b35ddc0a4f1681bbc1c94f8d3a54b81bebf30",
+    "bytes": 67806,
+    "sha1": "25884ccfe78cb1b35d2fb88eaae11289ebaa79da",
     "sourceUrl": "https://www.myinstants.com/media/sounds/gong-sfx.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.362Z"
+    "bundledAt": "2026-11-14T06:15:26.719Z"
   },
   {
     "event": "ROUND_END",
     "file": "ROUND_END.mp3",
-    "bytes": 42585,
-    "sha1": "4c3c238786a21e392175dfbcb4814752aeda2ab9",
+    "bytes": 36421,
+    "sha1": "705377a59939647aa138dd1c06c432bd1f6d45fa",
     "sourceUrl": "https://www.myinstants.com/media/sounds/announcer-congratulations.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.362Z"
+    "bundledAt": "2026-11-14T06:15:26.719Z"
   },
   {
     "event": "VICTORY",
     "file": "VICTORY.mp3",
-    "bytes": 150756,
-    "sha1": "9698cd5833ef3804639f8d93893c27c7e0f34a75",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/victory_2.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.363Z"
+    "bytes": 151104,
+    "sha1": "2b2d32034757f04269121702412052bbcc1e137d",
+    "sourceUrl": "LoL Nexus Explosion + Announcer Victory (Remastered)",
+    "status": "bundled",
+    "bundledAt": "2026-11-14T07:33:00.000Z"
   },
   {
     "event": "DEFEAT",
     "file": "DEFEAT.mp3",
-    "bytes": 271129,
-    "sha1": "1d73746dabb71f61d9f6ddf0b8de7433bae991f4",
+    "bytes": 131815,
+    "sha1": "98f069426ca81068e6303322b58f01d9aa272661",
     "sourceUrl": "https://www.myinstants.com/media/sounds/loud-dramatic-stinger.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.363Z"
+    "bundledAt": "2026-11-14T06:15:26.720Z"
   },
   {
     "event": "BOSS_ROAR",
     "file": "BOSS_ROAR.mp3",
-    "bytes": 76331,
-    "sha1": "aabc67c2d75e3a8d2a401b6c6ef8c604b82b6818",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/largepredatorsnarl.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.363Z"
+    "bytes": 98638,
+    "sha1": "38db2d367d50b52e44dee6839e7fb28fa9b5e221",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/mb-roar-1.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:29.921Z"
   },
   {
     "event": "BOSS_ENRAGE",
     "file": "BOSS_ENRAGE.mp3",
-    "bytes": 166309,
-    "sha1": "77131cdef9cf2bda9844f66e8b15b4c2c5dc792e",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/enraged-scream2.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.364Z"
+    "bytes": 69727,
+    "sha1": "5d13d1fbd5c627d48bce1eea717d4b75b58b4e04",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/big-monster-roar.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:30.673Z"
   },
   {
     "event": "BOSS_SHIELD",
     "file": "BOSS_SHIELD.mp3",
-    "bytes": 50093,
-    "sha1": "482d539024414952e17e60a2be5739e6c7ee4167",
+    "bytes": 48961,
+    "sha1": "fdaf0e35096bc4f164b2ac0e41e62041582822ec",
     "sourceUrl": "https://www.myinstants.com/media/sounds/casting-spell-buff_fr4Y6am.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.364Z"
+    "bundledAt": "2026-11-14T06:15:30.674Z"
   },
   {
     "event": "BOSS_SKILL",
     "file": "BOSS_SKILL.mp3",
-    "bytes": 19324,
-    "sha1": "efcaa74f606b5c2df7afa9a9d408ab6e35d5f9bd",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/boss-shockwave.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.364Z"
+    "bytes": 99056,
+    "sha1": "7b76fbd5e4324a6a2449cf7db93c6e91d6826d9f",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/hammer-impact.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:33.878Z"
   },
   {
     "event": "BOSS_ULTIMATE",
     "file": "BOSS_ULTIMATE.mp3",
-    "bytes": 127798,
-    "sha1": "3c4dddd06dfe80c73381e3936d74b04ac77ce425",
+    "bytes": 98000,
+    "sha1": "b2e7fc0de262805be53238f1d39bbcbbe39ae792",
     "sourceUrl": "https://www.myinstants.com/media/sounds/cinematic-boom-hq.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.364Z"
+    "bundledAt": "2026-11-14T06:15:33.879Z"
   },
   {
     "event": "BOSS_DEFEAT",
     "file": "BOSS_DEFEAT.mp3",
-    "bytes": 64608,
-    "sha1": "9c52a5a347e10d4ee422accbe5667d5bcac2e00b",
+    "bytes": 40585,
+    "sha1": "701df1c5bfd9cdbdd3ec8fe1b92a0afb6c843418",
     "sourceUrl": "https://www.myinstants.com/media/sounds/death-monster.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.364Z"
+    "bundledAt": "2026-11-14T06:15:33.879Z"
   },
   {
     "event": "CHAMPION_SUMMON",
     "file": "CHAMPION_SUMMON.mp3",
-    "bytes": 15717,
-    "sha1": "315d01719df7ba19a61df691c75d9629bfacb8c6",
+    "bytes": 15925,
+    "sha1": "97b6136efd722ffee0cf9279f141076d5732c5d2",
     "sourceUrl": "https://www.myinstants.com/media/sounds/teleport1_Cw1ot9l.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.364Z"
+    "bundledAt": "2026-11-14T06:15:33.879Z"
   },
   {
     "event": "CHAMPION_DEATH",
     "file": "CHAMPION_DEATH.mp3",
-    "bytes": 28349,
-    "sha1": "6722dfaca8ff508744d8408cd7b140ab60552dca",
+    "bytes": 25213,
+    "sha1": "dd93be0c4a0bf139c0a15d141deb5788f8788993",
     "sourceUrl": "https://www.myinstants.com/media/sounds/body-fall-sound-effect.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.365Z"
+    "bundledAt": "2026-11-14T06:15:33.880Z"
   },
   {
     "event": "CRIT_HIT",
     "file": "CRIT_HIT.mp3",
-    "bytes": 10691,
-    "sha1": "542e77e2f580ed5647cffed0e3896030a8bdb23b",
+    "bytes": 6312,
+    "sha1": "0e0f4d300ade5d44cdc29b2c5c9dc4e0d62220fa",
     "sourceUrl": "https://www.myinstants.com/media/sounds/sword-slash-1.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.365Z"
+    "bundledAt": "2026-11-14T06:15:33.880Z"
   },
   {
     "event": "TEAM_HEAL",
     "file": "TEAM_HEAL.mp3",
-    "bytes": 34833,
-    "sha1": "a2a1025cdfe25ee6a473d7e88cc05ce2f61f64d1",
+    "bytes": 25137,
+    "sha1": "9016d59b8c196ab77e80f26f230134debce901d3",
     "sourceUrl": "https://www.myinstants.com/media/sounds/casting-spell-heal.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.365Z"
+    "bundledAt": "2026-11-14T06:15:33.880Z"
   },
   {
     "event": "BOSS_PHASE_SHIFT",
     "file": "BOSS_PHASE_SHIFT.mp3",
-    "bytes": 70981,
-    "sha1": "18f32beb000d55744b47b48044edfef30eff2a12",
+    "bytes": 65337,
+    "sha1": "87b9ab4ca469d9958d9a8ce6733db22d5ecf4ec7",
     "sourceUrl": "https://www.myinstants.com/media/sounds/titan-transformation-lightning.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.365Z"
+    "bundledAt": "2026-11-14T06:15:33.880Z"
   },
   {
     "event": "BOSS_FIRE_BREATH",
     "file": "BOSS_FIRE_BREATH.mp3",
-    "bytes": 39123,
-    "sha1": "c1bc0e6f74940d9762dabc4191e04dd55f457a62",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/firebreath.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.365Z"
+    "bytes": 123524,
+    "sha1": "2734895a1798f8e63e2a48f01f87ea373c55473b",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/spell-fireball.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:35.377Z"
   },
   {
     "event": "BOSS_SPIKES",
     "file": "BOSS_SPIKES.mp3",
-    "bytes": 63737,
-    "sha1": "f15aaf737484c936d437d84dc54c748f8e50547d",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/sword-uhsheathe.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.366Z"
+    "bytes": 62830,
+    "sha1": "ab0dd4f01f7c26b7e0d0ed546f83a5b903b6a555",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/rock-wall-smash.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:35.503Z"
   },
   {
     "event": "BOSS_SWEEP",
     "file": "BOSS_SWEEP.mp3",
-    "bytes": 19441,
-    "sha1": "391279e0355fbb393e32dbe7bdf787b3bcf668c5",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/whoosh-dark.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.366Z"
+    "bytes": 74649,
+    "sha1": "1ba4c12c98af152c118fde072f5ee1a999ec266c",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/234555__electroviolence__swoosh-explosion.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:35.719Z"
   },
   {
     "event": "BOSS_LIGHTNING",
     "file": "BOSS_LIGHTNING.mp3",
-    "bytes": 56317,
-    "sha1": "7d702895d87868aa9c0d4c138d60e89506ed359d",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/thunder-crack.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.366Z"
+    "bytes": 107136,
+    "sha1": "ac59a80e85c49718dbf763f3d33029db83ac18cb",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/lightning-strike-cool.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:38.527Z"
   },
   {
     "event": "BOSS_METEOR",
     "file": "BOSS_METEOR.mp3",
-    "bytes": 19324,
-    "sha1": "efcaa74f606b5c2df7afa9a9d408ab6e35d5f9bd",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/boss-shockwave.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.366Z"
+    "bytes": 127341,
+    "sha1": "9732d2b54cd50a380633c645b8f2e25f7e966228",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/zapsplat_sound_design_cinematic_whoosh_into_impact_missle_like_explosion_001_2990_YkpTODt.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:40.261Z"
   },
   {
     "event": "BOSS_BEAM",
     "file": "BOSS_BEAM.mp3",
-    "bytes": 76752,
-    "sha1": "5b5239e113eb7d36f9881bb33aca0cf18b0df720",
+    "bytes": 38512,
+    "sha1": "81906ab76f98dfdad7ba4bd1ee5bdc64e13f3592",
     "sourceUrl": "https://www.myinstants.com/media/sounds/laser-eye-beam.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.366Z"
+    "bundledAt": "2026-11-14T06:15:40.263Z"
   },
   {
     "event": "BOSS_VORTEX",
     "file": "BOSS_VORTEX.mp3",
-    "bytes": 11212,
-    "sha1": "eee4a5afccb62922ac390d703a61f959454aab9e",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/whoosh-wind.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.367Z"
+    "bytes": 100608,
+    "sha1": "2d6e3cbcf3982da041ec67c75113d88edf008aeb",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/magic-teleport-whoosh.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:41.692Z"
   },
   {
     "event": "BOSS_CHARGE",
     "file": "BOSS_CHARGE.mp3",
-    "bytes": 68688,
-    "sha1": "31cdc907a274bf2743ce5dfaf596ad30c50b2b5d",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/endless-stampede.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.367Z"
+    "bytes": 101608,
+    "sha1": "804fbb33993dd1ac6ba93e74f9d465dd92884dab",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/dragon-lands.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:43.382Z"
   },
   {
     "event": "GIFT_MEDIUM",
     "file": "GIFT_MEDIUM.mp3",
-    "bytes": 137314,
-    "sha1": "b086da56a7d3cd962c625d0699930e925e7bcba6",
+    "bytes": 25223,
+    "sha1": "431ed8656e66b3d0a272c04346269d43cb61b65f",
     "sourceUrl": "https://www.myinstants.com/media/sounds/magic-chimes.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.367Z"
+    "bundledAt": "2026-11-14T06:15:43.382Z"
   },
   {
     "event": "GIFT_MEGA",
     "file": "GIFT_MEGA.mp3",
-    "bytes": 8691,
-    "sha1": "338cb749d13f779c8028f670abb96b1bf1f74e75",
+    "bytes": 32643,
+    "sha1": "cf3091e75b4b9d42015c49808a0f2a9cb511e0c3",
     "sourceUrl": "https://www.myinstants.com/media/sounds/hallelujahshort.swf.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.367Z"
+    "bundledAt": "2026-11-14T06:15:43.383Z"
   },
   {
     "event": "CHAMPION_DEATH_MULTI",
     "file": "CHAMPION_DEATH_MULTI.mp3",
-    "bytes": 19324,
-    "sha1": "efcaa74f606b5c2df7afa9a9d408ab6e35d5f9bd",
+    "bytes": 25201,
+    "sha1": "b782489e5b15d2fdc8a8054017041e365844b2bd",
     "sourceUrl": "https://www.myinstants.com/media/sounds/boss-shockwave.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.367Z"
+    "bundledAt": "2026-11-14T06:15:43.383Z"
   },
   {
     "event": "SIGNATURE_SUMMON",
     "file": "SIGNATURE_SUMMON.mp3",
-    "bytes": 49572,
-    "sha1": "4c51544aa5f5848b8a96dc944b708478a4cb8752",
+    "bytes": 25120,
+    "sha1": "b6144e2a2986eadca6afcf2925447b2c663103f6",
     "sourceUrl": "https://www.myinstants.com/media/sounds/level-up.mp3",
-    "status": "downloaded",
-    "bundledAt": "2026-11-13T08:27:53.561Z"
+    "status": "cached",
+    "bundledAt": "2026-11-14T06:15:43.383Z"
   },
   {
     "event": "WIPE",
     "file": "WIPE.mp3",
-    "bytes": 89371,
-    "sha1": "ab3f7bcf0fdd684f63ae37f5ff0dcd16094b336c",
+    "bytes": 65337,
+    "sha1": "bc58abc71692b3fcf3d918dcb225afa2749139a8",
     "sourceUrl": "https://www.myinstants.com/media/sounds/dramatic-sting.MP3",
     "status": "cached",
-    "bundledAt": "2026-11-13T08:27:53.562Z"
+    "bundledAt": "2026-11-14T06:15:43.384Z"
+  },
+  {
+    "event": "BOSS_ROAR_HERALD",
+    "file": "BOSS_ROAR_HERALD.mp3",
+    "bytes": 47526,
+    "sha1": "fbbbf152bcb6074ed631e4b857aaaa25044b6094",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/winter-monster-scream.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:43.527Z"
+  },
+  {
+    "event": "BOSS_ENRAGE_HERALD",
+    "file": "BOSS_ENRAGE_HERALD.mp3",
+    "bytes": 89878,
+    "sha1": "afe3a233f62e42e1bb949ce1b677f16ba5daf754",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/universal-monster-roar-1.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:44.385Z"
+  },
+  {
+    "event": "BOSS_ROAR_MOUNTAIN",
+    "file": "BOSS_ROAR_MOUNTAIN.mp3",
+    "bytes": 98638,
+    "sha1": "b7f8c20b0e405b7d8be9084f71845292b04abc22",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/rar-dragon.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:44.714Z"
+  },
+  {
+    "event": "BOSS_ENRAGE_MOUNTAIN",
+    "file": "BOSS_ENRAGE_MOUNTAIN.mp3",
+    "bytes": 130656,
+    "sha1": "e7e0b7506d97e4cc26b766d826bff85f659edbd4",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/giant-troll-roar.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:45.664Z"
+  },
+  {
+    "event": "BOSS_ROAR_STORM",
+    "file": "BOSS_ROAR_STORM.mp3",
+    "bytes": 53751,
+    "sha1": "9bef718afc4ed0c02d4e85e83387da540ac8e0d0",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/dragon4.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:45.763Z"
+  },
+  {
+    "event": "BOSS_ENRAGE_STORM",
+    "file": "BOSS_ENRAGE_STORM.mp3",
+    "bytes": 180811,
+    "sha1": "70f815851baf7e8ab5ae4fb97b2a85a6d42e8eda",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/dragon-roar-long.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:47.218Z"
+  },
+  {
+    "event": "BOSS_ROAR_ELDER",
+    "file": "BOSS_ROAR_ELDER.mp3",
+    "bytes": 106628,
+    "sha1": "662ad2f5828915362079484cf98eb16a12322058",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/dragon-roar-short.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:47.513Z"
+  },
+  {
+    "event": "BOSS_ENRAGE_ELDER",
+    "file": "BOSS_ENRAGE_ELDER.mp3",
+    "bytes": 124012,
+    "sha1": "aea6735dc3a2c341443fc7d3fa67c846f2099d2f",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/dragon-roar-sound-effect-2.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:48.682Z"
+  },
+  {
+    "event": "BOSS_ROAR_VOID",
+    "file": "BOSS_ROAR_VOID.mp3",
+    "bytes": 84720,
+    "sha1": "3630ac3051f8e6d7a4801a9a75ebd1359db6bea6",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/demon-roar.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:48.917Z"
+  },
+  {
+    "event": "BOSS_ENRAGE_VOID",
+    "file": "BOSS_ENRAGE_VOID.mp3",
+    "bytes": 173871,
+    "sha1": "12deaccab41d9ea66364d43f074b35a509be87c5",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/very-scary-scream-metallic-echo-monster.mp3",
+    "status": "downloaded",
+    "bundledAt": "2026-11-14T06:15:50.851Z"
   }
 ]

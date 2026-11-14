@@ -1,4 +1,4 @@
-import { GIFT_TIER, GIFT_TIER_CONFIG, GiftTier, GiftTierConfig } from '../constants/game';
+import { GIFT_DURATION_SCALING, GIFT_TIER, GIFT_TIER_CONFIG, GiftTier, GiftTierConfig } from '../constants/game';
 
 /** Tiers from highest to lowest so the first match wins. */
 const TIERS_DESCENDING: readonly GiftTier[] = [GIFT_TIER.MEGA, GIFT_TIER.BIG, GIFT_TIER.MEDIUM, GIFT_TIER.SMALL];
@@ -21,6 +21,23 @@ export const resolveGiftTier = (coins: number, totalCoins: number): GiftTier => 
 };
 
 export const getGiftTierConfig = (tier: GiftTier): GiftTierConfig => GIFT_TIER_CONFIG[tier];
+
+/**
+ * Calculates dynamic banner duration based on tier and coins.
+ * For gifts >= 1000 coins, the bigger the reward, the longer the celebration banner stays on screen.
+ */
+export const resolveBannerDurationMs = (tier: GiftTier, coins = 0): number => {
+  const baseDuration = GIFT_TIER_CONFIG[tier].bannerDurationMs;
+  if (tier !== GIFT_TIER.MEGA || coins <= 1000) {
+    return baseDuration;
+  }
+  const extraCoins = coins - 1000;
+  const extraTime = Math.floor(extraCoins / 1000) * GIFT_DURATION_SCALING.MS_PER_1000_COINS;
+  return Math.min(
+    GIFT_DURATION_SCALING.MAX_BANNER_DURATION_MS,
+    GIFT_DURATION_SCALING.MEGA_BASE_MS + extraTime
+  );
+};
 
 /** Rank for comparisons (MEGA > BIG > MEDIUM > SMALL). */
 export const getGiftTierRank = (tier: GiftTier): number => TIERS_DESCENDING.length - TIERS_DESCENDING.indexOf(tier);

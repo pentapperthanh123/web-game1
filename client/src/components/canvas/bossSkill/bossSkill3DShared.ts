@@ -218,7 +218,12 @@ export const ADDITIVE_MATERIAL_PROPS = {
   toneMapped: false,
 } as const;
 
-export const ADDITIVE_DOUBLE_SIDED_PROPS = { ...ADDITIVE_MATERIAL_PROPS, side: THREE.DoubleSide } as const;
+/**
+ * forceSinglePass: a transparent DoubleSide material is otherwise drawn twice (back, then front) and
+ * three.js flags it needsUpdate on each pass, re-resolving its shader program every frame. Additive
+ * glows look the same in either face order.
+ */
+export const ADDITIVE_DOUBLE_SIDED_PROPS = { ...ADDITIVE_MATERIAL_PROPS, side: THREE.DoubleSide, forceSinglePass: true } as const;
 
 export const createAdditiveMaterial = (color: string, opacity = 0.9): THREE.MeshBasicMaterial =>
   new THREE.MeshBasicMaterial({ ...ADDITIVE_DOUBLE_SIDED_PROPS, color, opacity });

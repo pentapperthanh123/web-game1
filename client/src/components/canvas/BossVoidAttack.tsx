@@ -319,7 +319,7 @@ export const BossVoidAttack = () => {
           opacity={0}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
-          side={THREE.DoubleSide}
+          side={THREE.DoubleSide} forceSinglePass
         />
       </mesh>
 
@@ -357,7 +357,7 @@ export const BossVoidAttack = () => {
                 opacity={0.8}
                 depthWrite={false}
                 blending={THREE.AdditiveBlending}
-                side={THREE.DoubleSide}
+                side={THREE.DoubleSide} forceSinglePass
               />
             </mesh>
           </group>
@@ -397,7 +397,7 @@ export const BossVoidAttack = () => {
           opacity={0.95}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
-          side={THREE.DoubleSide}
+          side={THREE.DoubleSide} forceSinglePass
         />
       </mesh>
     </group>

@@ -29,6 +29,7 @@ import { AdminMatchControlSection } from './components/AdminMatchControlSection'
 import { AdminBossMapSection } from './components/AdminBossMapSection';
 import { OverlayControls } from './components/OverlayControls';
 import { AdminEventLogSection } from './components/AdminEventLogSection';
+import { LiveOpsSection } from './components/liveOps/LiveOpsSection';
 
 export { detectSummonCommand } from './utils/commentCommand';
 
@@ -91,6 +92,7 @@ export function App() {
     activeTab === ADMIN_PORTAL_TAB.OVERLAYS ||
     activeTab === ADMIN_PORTAL_TAB.INTERACTION;
   const shouldShowLogs = isAllTab || activeTab === ADMIN_PORTAL_TAB.LOGS;
+  const shouldShowLiveOps = isAllTab || activeTab === ADMIN_PORTAL_TAB.LIVE_OPS;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-2.5 sm:p-4 md:p-8 font-sans">
@@ -238,6 +240,10 @@ export function App() {
             leftTag={leftTeam.shortTag}
             rightTag={rightTeam.shortTag}
           />
+        </div>
+
+        <div id="section-live-ops" className={`scroll-mt-24 ${shouldShowLiveOps ? 'block' : 'hidden'}`}>
+          <LiveOpsSection />
         </div>
 
         <AdminEventLogSection

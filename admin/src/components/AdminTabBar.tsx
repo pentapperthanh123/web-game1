@@ -9,6 +9,7 @@ import {
   Flame,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   ADMIN_PORTAL_TAB,
@@ -31,6 +32,7 @@ const TAB_ICON_MAP: Record<AdminPortalTabId, typeof Swords> = {
   [ADMIN_PORTAL_TAB.OVERLAYS]: Sliders,
   [ADMIN_PORTAL_TAB.INTERACTION]: Swords,
   [ADMIN_PORTAL_TAB.BOSS_MAP]: Compass,
+  [ADMIN_PORTAL_TAB.LIVE_OPS]: ShieldCheck,
   [ADMIN_PORTAL_TAB.LOGS]: MessageSquare,
 };
 

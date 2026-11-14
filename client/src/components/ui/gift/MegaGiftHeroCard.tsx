@@ -39,7 +39,7 @@ export const MegaGiftHeroCard = ({ banner, teamTheme, teamProfile }: MegaGiftHer
 
         <div className="relative mx-auto mt-2 w-20 h-20">
           <div
-            className="absolute left-1/2 top-1/2 w-24 h-24 rounded-full border-2 border-dashed animate-gift-ring-spin"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-dashed animate-gift-ring-spin"
             style={{ borderColor: MEGA_GOLD }}
           />
           <DonorAvatar name={banner.donorName} avatarUrl={banner.donorAvatarUrl} sizeClassName="w-20 h-20" ringColor={MEGA_GOLD} />

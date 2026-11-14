@@ -8,8 +8,20 @@ import {
 } from '../constants/tiktok.js';
 import { ServerContext } from '../types/serverState.js';
 import { TIKTOK_RECONNECT } from '../constants/tiktokReconnect.js';
+import { OPS_ALERT_KIND } from '../constants/liveOps.js';
+import { ModerationService } from '../moderation/moderationService.js';
 import { getErrorMessage, parseCommentCommand } from '../utils/payloadSanitizers.js';
+import { ChatRateLimiter } from './chatRateLimiter.js';
+import { createConnectionDowntimeTracker } from './connectionDowntimeTracker.js';
 import { DuelService } from './duelService.js';
+import {
+  buildTikTokEventKey,
+  EventDeduper,
+  TIKTOK_DEDUPE_EVENT_TYPE,
+  TikTokDedupeEventType,
+  TikTokEventIdentity,
+} from './eventDeduper.js';
+import { OpsAlertService } from './opsAlertService.js';
 import { TikTokLivePipeline } from './tiktokLivePipeline.js';
 
 const VALID_SIM_ACTIONS: readonly TikTokSimulationType[] = [
@@ -30,28 +42,55 @@ export interface TikTokConnectionService {
   disconnectOnShutdown: () => void;
 }
 
+export interface TikTokConnectionDeps {
+  moderation: ModerationService;
+  opsAlerts: OpsAlertService;
+}
+
 /**
  * Creates the TikTok Live connection, event pipeline, and simulation service.
  */
 export function createTikTokConnectionService(
   ctx: ServerContext,
-  duelService: DuelService
+  duelService: DuelService,
+  deps: TikTokConnectionDeps
 ): TikTokConnectionService {
+  const eventDeduper = new EventDeduper();
+  const downtimeTracker = createConnectionDowntimeTracker({
+    opsAlerts: deps.opsAlerts,
+    getUsername: () => ctx.state.tiktokUsername,
+  });
+
+  const parseCommentWithAliases = (comment: string) => {
+    const parsed = parseCommentCommand(comment, ctx.state.teamConfig.activeTeams);
+    if (parsed.champion) return parsed;
+    const aliasChampion = deps.moderation.findAliasChampion(comment);
+    return aliasChampion ? { ...parsed, champion: aliasChampion } : parsed;
+  };
+
   const tiktokPipeline = new TikTokLivePipeline({
     getActiveTeams: () => ctx.state.teamConfig.activeTeams,
     getParticipationRules: () => ctx.state.participationRuleConfig,
-    parseComment: (comment) => parseCommentCommand(comment, ctx.state.teamConfig.activeTeams),
+    parseComment: parseCommentWithAliases,
     getRandomChampionName: () => getRandomChampion().name,
     onDuelContribution: (team, deltaPercent, event) =>
       duelService.applyDuelContribution(team, deltaPercent, event),
     emit: (eventName, payload) => {
       ctx.io.emit(eventName, payload);
     },
+    textModerator: deps.moderation.createViewerTextModerator(() => ctx.state.casterConfig),
+    summonLimiter: new ChatRateLimiter(() => ctx.state.chatLimitConfig),
+    getDuplicateEventCount: () => eventDeduper.getDuplicateCount(),
   });
+
+  /** True when the connector delivered this exact event already (retry / reconnect replay). */
+  const isDuplicateEvent = (eventType: TikTokDedupeEventType, identity: TikTokEventIdentity): boolean =>
+    eventDeduper.isDuplicate(buildTikTokEventKey(eventType, identity), Date.now());
 
   const getStats = (): PipelineStatsSummary => tiktokPipeline.getStats();
 
   const resetStats = (): PipelineStatsSummary => {
+    eventDeduper.reset();
     tiktokPipeline.resetSessionTrackers();
     const stats = tiktokPipeline.getStats();
     ctx.io.emit('tiktok:pipeline-stats', stats);
@@ -83,11 +122,12 @@ export function createTikTokConnectionService(
           typeof src.userAvatarUrl === 'string' ? src.userAvatarUrl : undefined;
         const res = tiktokPipeline.handleChat({ uniqueId, nickname, userAvatarUrl, comment });
         outcome = {
-          accepted: true,
+          accepted: !res.blockedReason,
           action,
           team: res.team,
           source: res.source,
           championName: res.championName,
+          reason: res.blockedReason,
           stats: tiktokPipeline.getStats(),
         };
         break;
@@ -170,6 +210,7 @@ export function createTikTokConnectionService(
 
   const attachRoomListeners = (connection: WebcastPushConnection): void => {
     connection.on('chat', (data) => {
+      if (isDuplicateEvent(TIKTOK_DEDUPE_EVENT_TYPE.CHAT, data)) return;
       tiktokPipeline.handleChat({
         uniqueId: data.uniqueId,
         nickname: data.nickname,
@@ -180,6 +221,7 @@ export function createTikTokConnectionService(
     });
 
     connection.on('gift', (data) => {
+      if (isDuplicateEvent(TIKTOK_DEDUPE_EVENT_TYPE.GIFT, data)) return;
       tiktokPipeline.handleGift({
         uniqueId: data.uniqueId,
         nickname: data.nickname,
@@ -194,6 +236,7 @@ export function createTikTokConnectionService(
     });
 
     connection.on('like', (data) => {
+      if (isDuplicateEvent(TIKTOK_DEDUPE_EVENT_TYPE.LIKE, data)) return;
       tiktokPipeline.handleLike({
         uniqueId: data.uniqueId,
         nickname: data.nickname,
@@ -202,6 +245,7 @@ export function createTikTokConnectionService(
     });
 
     connection.on('follow', (data) => {
+      if (isDuplicateEvent(TIKTOK_DEDUPE_EVENT_TYPE.FOLLOW, data)) return;
       tiktokPipeline.handleFollow({
         uniqueId: data.uniqueId,
         nickname: data.nickname,
@@ -210,6 +254,7 @@ export function createTikTokConnectionService(
     });
 
     connection.on('share', (data) => {
+      if (isDuplicateEvent(TIKTOK_DEDUPE_EVENT_TYPE.SHARE, data)) return;
       tiktokPipeline.handleShare({
         uniqueId: data.uniqueId,
         nickname: data.nickname,
@@ -269,6 +314,7 @@ export function createTikTokConnectionService(
 
   const scheduleReconnect = (reason: string): void => {
     if (!reconnectState.isConnectionWanted || reconnectState.timer) return;
+    downtimeTracker.markDown(reason);
     releaseConnection();
     ctx.state.reconnectAttempt += 1;
     const delayMs = computeReconnectDelayMs(ctx.state.reconnectAttempt);
@@ -291,7 +337,9 @@ export function createTikTokConnectionService(
       if (isCurrent()) scheduleReconnect('TikTok connection dropped');
     });
     connection.on('streamEnd', () => {
-      if (isCurrent()) scheduleReconnect('TikTok stream ended');
+      if (!isCurrent()) return;
+      void deps.opsAlerts.sendOpsAlert(OPS_ALERT_KIND.STREAM_END, `@${ctx.state.tiktokUsername}`);
+      scheduleReconnect('TikTok stream ended');
     });
     connection.on('error', (err: unknown) => {
       console.error('[TikTok Live] Connection error event:', getErrorMessage(err, 'unknown'));
@@ -301,6 +349,7 @@ export function createTikTokConnectionService(
   const handleConnectSuccess = (connection: WebcastPushConnection, roomId: string): void => {
     if (ctx.state.tiktokConnection !== connection) return;
     cancelPendingReconnect();
+    downtimeTracker.markUp();
     ctx.state.connectionStatus = 'CONNECTED';
     ctx.state.lastErrorMessage = '';
     console.log(`[TikTok Live] Connected to room ID: ${roomId}`);
@@ -333,6 +382,7 @@ export function createTikTokConnectionService(
   const connectToRoom = (rawUsername: string): { cleanUsername: string } => {
     const cleanUsername = rawUsername.replace(/^@/, '').trim();
     cancelPendingReconnect();
+    downtimeTracker.cancel();
     reconnectState.isConnectionWanted = true;
 
     ctx.state.tiktokUsername = cleanUsername;
@@ -348,6 +398,7 @@ export function createTikTokConnectionService(
   const disconnectFromRoom = (): void => {
     reconnectState.isConnectionWanted = false;
     cancelPendingReconnect();
+    downtimeTracker.cancel();
     releaseConnection();
     ctx.state.connectionStatus = 'DISCONNECTED';
     ctx.state.tiktokUsername = '';
@@ -357,6 +408,7 @@ export function createTikTokConnectionService(
   const disconnectOnShutdown = (): void => {
     reconnectState.isConnectionWanted = false;
     cancelPendingReconnect();
+    downtimeTracker.cancel();
     releaseConnection();
   };
 

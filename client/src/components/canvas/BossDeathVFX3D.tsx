@@ -349,7 +349,7 @@ export const BossDeathVFX3D = () => {
           opacity={0.85}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
-          side={THREE.DoubleSide}
+          side={THREE.DoubleSide} forceSinglePass
         />
       </mesh>
 
@@ -361,7 +361,7 @@ export const BossDeathVFX3D = () => {
           opacity={0.98}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
-          side={THREE.DoubleSide}
+          side={THREE.DoubleSide} forceSinglePass
           toneMapped={false}
         />
       </mesh>
@@ -375,7 +375,7 @@ export const BossDeathVFX3D = () => {
           opacity={0.7}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
-          side={THREE.DoubleSide}
+          side={THREE.DoubleSide} forceSinglePass
         />
       </mesh>
 
@@ -387,7 +387,7 @@ export const BossDeathVFX3D = () => {
           opacity={0.9}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
-          side={THREE.DoubleSide}
+          side={THREE.DoubleSide} forceSinglePass
         />
       </mesh>
 
@@ -399,7 +399,7 @@ export const BossDeathVFX3D = () => {
           opacity={0.8}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
-          side={THREE.DoubleSide}
+          side={THREE.DoubleSide} forceSinglePass
         />
       </mesh>
 

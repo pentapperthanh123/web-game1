@@ -181,6 +181,7 @@ export const TAB_SECTION_ID_MAP: Partial<Record<AdminPortalTabId, string>> = {
   [ADMIN_PORTAL_TAB.OVERLAYS]: 'section-overlays',
   [ADMIN_PORTAL_TAB.BOSS_MAP]: 'section-boss-map',
   [ADMIN_PORTAL_TAB.LOGS]: 'section-logs',
+  [ADMIN_PORTAL_TAB.LIVE_OPS]: 'section-live-ops',
   [ADMIN_PORTAL_TAB.TEAMS]: 'section-teams',
   [ADMIN_PORTAL_TAB.SERIES_DUEL]: 'section-series-duel',
   [ADMIN_PORTAL_TAB.INTERACTION]: 'section-interaction',

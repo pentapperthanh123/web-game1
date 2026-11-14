@@ -33,6 +33,12 @@ export const TikTokEngagementStatsBar: React.FC<TikTokEngagementStatsBarProps> =
       <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-amber-300">
         Chặn Spam: {stats.blockedAntiSpamCount}
       </span>
+      <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-orange-300">
+        Chặn lệnh: {stats.blockedSummonChatCount ?? 0} · Tắt tiếng: {stats.softMutedViewerCount ?? 0}
+      </span>
+      <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300">
+        Trùng: {stats.duplicateEventCount ?? 0}
+      </span>
       <button
         type="button"
         onClick={onResetStats}

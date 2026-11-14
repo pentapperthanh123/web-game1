@@ -183,7 +183,7 @@ const RosterItem = ({
         }
       }}
       title={`${player.name} (${player.role}) • Tướng tủ: ${player.signatureChampion} • ${clickToAttackLabel}`}
-      className={`relative flex items-center space-x-1 px-1 py-0.5 rounded-md border backdrop-blur-sm transition-all duration-150 select-none ${
+      className={`relative flex items-center space-x-1 px-1 py-0.5 rounded-md border transition-all duration-150 select-none ${
         isBattlePaused
           ? 'cursor-not-allowed opacity-70 brightness-75'
           : 'cursor-pointer hover:brightness-110 active:brightness-125'

@@ -12,7 +12,10 @@ import {
   QueuedSummon,
   SummonPortalEntity,
 } from '../../types/game';
-import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
+import { deployQueuedMinions, holdQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
+import { deferUntilRoundStart, onRoundStart, runWhenRoundLive } from '../preRoundBuffer';
+import { isCurrentRoundIntroActive } from '../roundIntroStore';
+import i18n from '../../i18n';
 import { rebuildMinionCollections } from '../minionMapHelpers';
 import {
   COMBAT_VFX_CONSTANTS,
@@ -88,6 +91,9 @@ const scheduleBatchFlush = (callback: () => void, delayMs: number): void => {
 
 /** Creates the champion summon, TikTok gift, follow, and share reward slice. */
 export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (set, get) => {
+  // Summons made during the round intro wait in the queue; they start entering when the fight begins
+  onRoundStart(() => get().advanceSummonTurnQueue());
+
   const flushSummonBatch = () => {
     isSummonFlushScheduled = false;
     if (pendingSummonQueue.length === 0) return;
@@ -306,11 +312,8 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       const totalSupportDmg = teamAggregatedSupportDmg[slotTeam];
       if (totalSupportDmg > 0) {
         const teamShort = state.activeTeams[slotTeam]?.shortTag || slotTeam;
-        get().damageBoss(
-          totalSupportDmg,
-          slotTeam,
-          `Hội Quân (${teamShort})`,
-          DAMAGE_TYPE.NORMAL
+        runWhenRoundLive(() =>
+          get().damageBoss(totalSupportDmg, slotTeam, `Hội Quân (${teamShort})`, DAMAGE_TYPE.NORMAL)
         );
       }
     }
@@ -320,14 +323,9 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
 
     // Tự động kiểm tra và xuất trận lượt tướng theo tuần tự (delay giữa các lượt xuất hiện)
     const turnLimits = resolveSummonTurnLimits(state.participationRuleConfig);
-    const deployed = deployQueuedMinions(
-      nextMinions,
-      nextQueue,
-      state.lastSummonTurnTimestamps,
-      now,
-      state.activeTeams,
-      turnLimits
-    );
+    const deployed = isCurrentRoundIntroActive(now)
+      ? holdQueuedMinions(nextMinions, nextQueue, state.lastSummonTurnTimestamps)
+      : deployQueuedMinions(nextMinions, nextQueue, state.lastSummonTurnTimestamps, now, state.activeTeams, turnLimits);
     const finalMinions = deployed.nextMinions;
     const finalQueue = deployed.nextQueue;
     newPortals.push(...deployed.newPortals);
@@ -423,7 +421,8 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
 
     advanceSummonTurnQueue: () => {
       const state = get();
-      if (isBattleHalted(state)) return;
+      // The round-start listener resumes the queue once the intro card closes
+      if (isBattleHalted(state) || isCurrentRoundIntroActive()) return;
       const now = Date.now();
       const turnLimits = resolveSummonTurnLimits(state.participationRuleConfig);
       const deployed = deployQueuedMinions(
@@ -470,6 +469,22 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     isComboFinal = false,
     donorAvatarUrl?: string
   ) => {
+    const isDeferred = deferUntilRoundStart(() =>
+      get().triggerGiftExplosion(giftName, team, donorName, coins, streakCount, totalCoins, isComboFinal, donorAvatarUrl)
+    );
+    if (isDeferred) {
+      // Acknowledged now so the donor sees it landed; the explosion and damage happen at round start
+      get().addChatMessage(
+        donorName,
+        i18n.t('Gift.queuedForRoundStart', {
+          gift: giftName,
+          coins: totalCoins ?? coins,
+          defaultValue: 'Đã tặng {{gift}} ({{coins}} xu)! Quà sẽ kích hoạt khi vào trận ⚔️',
+        }),
+        team
+      );
+      return;
+    }
     const now = Date.now();
     const event: GiftEvent = {
       giftName,
@@ -507,6 +522,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     championName: string,
     furyGain = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.FOLLOW_FURY_GAIN
   ) => {
+    if (deferUntilRoundStart(() => get().triggerFollowReward(userName, team, championName, furyGain))) return;
     const state = get();
     const activeTeamProfile = state.activeTeams[team];
     const teamTag = activeTeamProfile?.shortTag || team;
@@ -540,6 +556,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     damageAmount = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.SHARE_BURST_DAMAGE,
     healAmount = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.SHARE_HEAL_AMOUNT
   ) => {
+    if (deferUntilRoundStart(() => get().triggerShareReward(userName, team, damageAmount, healAmount))) return;
     const state = get();
     const activeTeamProfile = state.activeTeams[team];
     const teamTag = activeTeamProfile?.shortTag || team;

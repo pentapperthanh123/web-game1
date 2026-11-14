@@ -39,7 +39,7 @@ const collectSquads = (portals: readonly SummonPortalEntity[], now: number): Squ
 };
 
 const createGlow = (): THREE.MeshBasicMaterial =>
-  new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
+  new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, forceSinglePass: true });
 
 /**
  * One wide team-colour pulse for a multi-champion turn: a ring expanding over the whole group plus a

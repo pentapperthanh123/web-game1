@@ -41,7 +41,8 @@ import {
   STATUS_EFFECT_CONSTANTS,
   STATUS_EFFECT_PRESENTATION,
 } from '../../constants/bossStatusEffects';
-import { BOSS_SKILL_VFX_SFX, SFX_EVENT } from '../../constants/sfx';
+import { BOSS_SKILL_VFX_SFX, BOSS_VOICE_KIND, SFX_EVENT } from '../../constants/sfx';
+import { playBossVoice } from '../../services/bossVoice';
 import { audioService } from '../../services/audioService';
 import { soundManager, playSound } from '../../services/soundManager';
 import { getLiveMinionPositionSnapshot, getLiveMinionScreenPos } from '../../services/minionPositionRegistry';
@@ -60,6 +61,7 @@ import {
   createInitialTeamHeartMomentum,
   isBattleHalted,
 } from '../storeHelpers';
+import { isCurrentRoundIntroActive } from '../roundIntroStore';
 import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
 import { createEmptyMinionCollections, rebuildMinionCollections } from '../minionMapHelpers';
 
@@ -133,7 +135,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
   tickBossMechanics: () => {
     const state = get();
     const now = Date.now();
-    if (isBattleHalted(state)) {
+    if (isBattleHalted(state) || isCurrentRoundIntroActive()) {
       return;
     }
 
@@ -145,7 +147,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
           ? BOSS_STATUS.ENRAGED
           : BOSS_STATUS.IDLE;
 
-      playSound(SFX_EVENT.BOSS_ROAR, { rateScale: getThemeConfig(state.gameTheme).audioPitchRate });
+      playBossVoice(state.gameTheme, BOSS_VOICE_KIND.ROAR);
       get().spawnParticleBurst([0, 0.5, 0.5], '#22c55e', 1.6);
       get().addLog(
         'BOSS',
@@ -167,7 +169,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
 
   healTeamChampions: (targetTeam, amount) => {
     const state = get();
-    if (state.minions.length === 0 || isBattleHalted(state)) {
+    if (state.minions.length === 0 || isBattleHalted(state) || isCurrentRoundIntroActive()) {
       return;
     }
 
@@ -190,7 +192,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
 
   triggerHeartMilestoneHeal: (milestoneCount: number) => {
     const state = get();
-    if (isBattleHalted(state)) {
+    if (isBattleHalted(state) || isCurrentRoundIntroActive()) {
       return;
     }
 
@@ -231,7 +233,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
 
   castBossSkill: (skillIndex) => {
     const state = get();
-    if (isBattleHalted(state)) {
+    if (isBattleHalted(state) || isCurrentRoundIntroActive()) {
       return;
     }
     if (Date.now() < state.bossStaggerUntil) return;
@@ -304,6 +306,8 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       get().triggerScreenShake(1.6);
       get().triggerScreenFlash(skill.color);
       playSound(SFX_EVENT.BOSS_ULTIMATE, { rateScale: themeConfig.audioPitchRate });
+      // The boss's own roar over the shared boom gives every ultimate its owner's voice
+      playBossVoice(state.gameTheme, BOSS_VOICE_KIND.ROAR);
     } else {
       get().triggerScreenShake(0.5);
     }
@@ -646,7 +650,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
 
     if (isJustEnraged) {
       const themeConfig = getThemeConfig(currentTheme);
-      playSound(SFX_EVENT.BOSS_ENRAGE, { rateScale: themeConfig.audioPitchRate });
+      playBossVoice(currentTheme, BOSS_VOICE_KIND.ENRAGE);
       get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
       get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
       get().addLog(

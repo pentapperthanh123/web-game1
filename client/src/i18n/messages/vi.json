@@ -80,7 +80,8 @@
     "comboStreak": "COMBO x{{count}}",
     "coinsGained": "+{{coins}} xu",
     "megaCrest": "ĐẠI GIA {{team}}",
-    "megaDamage": "+{{damage}} ST • BOSS BỊ ĐÁNH BẬT!"
+    "megaDamage": "+{{damage}} ST • BOSS BỊ ĐÁNH BẬT!",
+    "queuedForRoundStart": "Đã tặng {{gift}} ({{coins}} xu)! Quà sẽ kích hoạt khi vào trận ⚔️"
   },
   "Controls": {
     "title": "Bảng Giả Lập Tương Tác TikTok Live",
@@ -157,7 +158,22 @@
     "newSeries": "BẮT ĐẦU TRẬN ĐẤU MỚI",
     "seriesEndedNotice": "Loạt trận {{format}} đã kết thúc!",
     "roundIntermissionPrompt": "Nghỉ giữa hiệp - Sẵn sàng cho ván tiếp theo",
-    "nextQueuedMatch": "TRẬN TIẾP THEO: {{label}} ({{remaining}})"
+    "nextQueuedMatch": "TRẬN TIẾP THEO: {{label}} ({{remaining}})",
+    "finisherBannerTitle": "⚡ ĐÒN KẾT LIỄU QUYẾT ĐỊNH ⚡",
+    "finisherBannerSlay": "HẠ GỤC {{boss}}!",
+    "finisherBannerDesc": "Đem lại vinh quang & bùa lợi vô song cho phe {{team}}!",
+    "finisherVoice": "Chiến binh {{name}} đã tung đòn kết liễu {{boss}}!",
+    "autoAdvanceRound": "Tự động vào ván tiếp theo sau: {{seconds}}s",
+    "autoAdvanceNewSeries": "Tự động bắt đầu trận mới sau: {{seconds}}s",
+    "autoAdvanceQueuedMatch": "Tự động chuyển sang trận tiếp theo sau: {{seconds}}s",
+    "autoAdvancePause": "Tạm dừng",
+    "autoAdvanceResume": "Tiếp tục",
+    "pressKeyHint": "Nhấn Phím Cách (Space) để vào ngay",
+    "titleDamageKing": "VUA SÁT THƯƠNG",
+    "titleKingFinisher": "VUA SÁT THƯƠNG & KẾT LIỄU",
+    "titleWarGod": "CHIẾN THẦN",
+    "titleValiant": "DŨNG SĨ",
+    "titleFinisherBadge": "KẾT LIỄU"
   },
   "Milestone": {
     "healTitle": "ĐẠI HỒI PHỤC TOÀN BẢN ĐỒ!",
@@ -396,9 +412,19 @@
   },
   "RoundIntro": {
     "roundLabel": "Ván {{round}} sắp bắt đầu",
-    "titleRules": "📜 Luật chơi",
-    "titleJoin": "🎮 Cách tham gia",
-    "titleGifts": "🎁 Quà tặng",
+    "vsBoss": "Đối đầu {{boss}}",
+    "titleMatchup": "Đối đầu",
+    "titleRules": "Luật chơi",
+    "titleJoin": "Cách tham gia",
+    "titleGifts": "Quà tặng",
+    "buffNotice": "⭐ Buff Nộ",
+    "callToAction": "Chat tên tướng để xuất trận:",
+    "quickRule": "Thắng theo ST ván",
+    "quickGift": "1 xu = {{damage}} ST",
+    "quickHeart": "Thả tim nạp Nộ",
+    "ruleTeamsTitle": "Đại Chiến Sát Thương",
+    "ruleSeriesTitle": "Thể Thức {{format}}",
+    "ruleBossTitle": "Chiêu Thức Boss & Tiếp Viện",
     "ruleTeams": "Hai đội cùng đánh Boss, đội gây nhiều sát thương hơn thắng ván.",
     "ruleSeries": "Thể thức {{format}}: thắng {{wins}} ván để vô địch.",
     "ruleBoss": "Boss tung chiêu tiêu diệt tướng, triệu hồi liên tục để giữ sức ép!",
@@ -406,11 +432,310 @@
     "joinHeart": "Thả tim để tăng tốc Nộ, mỗi {{milestone}} tim hồi máu cả đội.",
     "joinSignature": "Chat trùng tướng tủ của tuyển thủ để buff Nộ cho tuyển thủ đó.",
     "giftDamage": "1 xu = {{damage}} sát thương lên Boss",
+    "giftTierTitle": {
+      "SMALL": "Hoa Hồng & Quà Nhỏ",
+      "MEDIUM": "Quà Tầm Trung",
+      "BIG": "Đại Lễ Vật",
+      "MEGA": "Thần Thoại"
+    },
     "giftTier": {
       "SMALL": "Từ {{coins}} xu: hồi máu + sát thương cho đội",
       "MEDIUM": "Từ {{coins}} xu: pháo hoa + 3 thiên thạch",
       "BIG": "Từ {{coins}} xu: cột sáng + 8 thiên thạch + banner tên bạn",
       "MEGA": "Từ {{coins}} xu: ĐẠI GIA - Boss bị choáng + 16 thiên thạch"
+    },
+    "skipButton": "Xung trận ngay"
+  },
+  "Caster": {
+    "subtitleLabel": "BLV Bão",
+    "anonymousName": "một chiến binh bí ẩn",
+    "score": "{{left}} - {{right}}",
+    "number": {
+      "thousands": "hơn {{value}} nghìn",
+      "millions": "hơn {{value}} triệu"
+    },
+    "lines": {
+      "SUMMON": [
+        "{{name}} tung {{champion}} vào sân cho {{team}}!",
+        "{{champion}} đã có mặt! Cảm ơn {{name}}!",
+        "{{team}} thêm quân: {{champion}} của {{name}}!",
+        "{{name}} gọi {{champion}} ra trận, {{team}} mạnh thêm rồi!",
+        "Chào mừng {{champion}} của {{name}} gia nhập {{team}}!",
+        "{{champion}} xuống đường! {{name}} chọn phe {{team}}!",
+        "Thêm một chiến binh cho {{team}}: {{name}} với {{champion}}!",
+        "{{name}} cầm {{champion}}, {{team}} có thêm hỏa lực!"
+      ],
+      "SUMMON_MERGED": [
+        "{{a}}, {{b}} và {{n}} người nữa xuống đường cho {{team}}!",
+        "Một làn sóng {{team}}! Dẫn đầu là {{a}} và {{b}}!",
+        "{{team}} được tiếp viện {{count}} tướng, cảm ơn {{a}}, {{b}} và mọi người!",
+        "{{a}} và {{b}} kéo theo cả đoàn quân {{team}} ra sân!",
+        "Cảm ơn {{a}}, {{b}} cùng các chiến binh {{team}}!",
+        "{{a}}, {{b}} và đồng đội: {{count}} tướng mới cho {{team}}!"
+      ],
+      "SUMMON_WAVE": [
+        "{{team}} đổ quân ồ ạt! {{count}} tướng vừa vào sân!",
+        "{{count}} chiến binh {{team}} cùng lúc ra trận, quá đông!",
+        "Viện binh cho {{team}}: thêm {{count}} tướng!",
+        "{{count}} tướng mới cho {{team}}, đấu trường nóng lên rồi!",
+        "{{team}} vừa được tiếp viện {{count}} tướng!",
+        "Fan {{team}} lên tiếng: {{count}} tướng xuất trận cùng lúc!"
+      ],
+      "FOLLOW": [
+        "Cảm ơn {{name}} đã follow! {{champion}} miễn phí cho {{team}}!",
+        "{{name}} vừa follow kênh, cảm ơn bạn! {{champion}} ra sân luôn!",
+        "Một follow, một tướng! Cảm ơn và chào mừng {{name}}!",
+        "Cảm ơn {{name}}! Follow của bạn mang {{champion}} về cho {{team}}!",
+        "Chào mừng {{name}} gia nhập gia đình! Nộ của {{team}} tăng vọt!",
+        "{{name}} follow rồi kìa! Cảm ơn bạn, {{team}} nhận quà ngay!"
+      ],
+      "SHARE": [
+        "Cảm ơn {{name}} đã chia sẻ! Boss lĩnh trọn {{dmg}} sát thương!",
+        "Cảm ơn {{name}} đã share! {{team}} được hồi máu!",
+        "Một lượt share từ {{name}}, cảm ơn bạn, boss đau điếng!",
+        "{{name}} lan tỏa trận đấu, cảm ơn nhé! {{team}} nhận buff ngay!",
+        "Share là có sát thương! Cảm ơn {{name}} rất nhiều!",
+        "Cảm ơn {{name}} đã giới thiệu trận đấu, {{team}} mạnh thêm!"
+      ],
+      "GIFT_COMBO": [
+        "Cảm ơn {{name}} đã thả liền {{count}} {{gift}}!",
+        "Chuỗi {{count}} {{gift}} từ {{name}}, cảm ơn bạn nhiều!",
+        "{{name}} tiếp tế {{count}} {{gift}} cho {{team}}, cảm ơn nhé!",
+        "Combo {{count}} {{gift}}! Cảm ơn {{name}} đã ủng hộ!",
+        "{{count}} {{gift}} từ {{name}}, {{team}} cảm ơn bạn!",
+        "Cảm ơn {{name}}! {{count}} {{gift}} đã vào sân cho {{team}}!",
+        "{{name}} ơi, cảm ơn {{count}} {{gift}} nha!",
+        "Cả {{team}} cảm ơn {{name}} vì chuỗi {{count}} {{gift}}!"
+      ],
+      "GIFT_MEDIUM": [
+        "Cảm ơn {{name}} đã tặng {{gift}}! Mưa thiên thạch!",
+        "{{name}} tiếp đạn cho {{team}}! Cảm ơn bạn nhé!",
+        "Cảm ơn {{name}}! {{gift}} nện thẳng vào boss!",
+        "{{gift}} từ {{name}}, cảm ơn nhiều! Boss đau rồi đấy!",
+        "Cảm ơn {{name}}, {{team}} lên tinh thần nhờ {{gift}}!",
+        "Ủng hộ cực đẹp! Cảm ơn {{name}} vì {{gift}}!",
+        "{{name}} gửi {{gift}} cho {{team}}, cảm ơn bạn!",
+        "Cảm ơn {{name}}! Thiên thạch đang rơi xuống đầu boss!"
+      ],
+      "GIFT_BIG": [
+        "Ôi cảm ơn {{name}}! {{gift}} cho {{team}}! Boss chao đảo!",
+        "Cảm ơn {{name}} quá! Đây là pha tiếp sức đỉnh cao!",
+        "{{gift}} từ {{name}}! Cảm ơn bạn, {{team}} được tiếp sức cực mạnh!",
+        "Quá đỉnh! Cảm ơn {{name}} đã gửi {{gift}} cho {{team}}!",
+        "Boss rung chuyển vì {{gift}}! Cảm ơn {{name}} rất nhiều!",
+        "Cả đấu trường cảm ơn {{name}} vì {{gift}}!",
+        "{{name}} ra tay rồi! Cảm ơn {{gift}}, {{team}} bùng nổ!",
+        "Một tràng pháo tay cho {{name}}! Cảm ơn {{gift}}!"
+      ],
+      "GIFT_MEGA": [
+        "KHÔNG THỂ TIN NỔI! Cảm ơn {{name}} đã gửi {{gift}}! Boss quỳ gối trước {{team}}!",
+        "Cả đấu trường rung chuyển! Cảm ơn {{name}} vì {{gift}}!",
+        "Highlight của ngày hôm nay! {{name}}, cảm ơn bạn rất nhiều!",
+        "Siêu phẩm! Cảm ơn {{name}} đã gánh {{team}} bằng {{gift}}!",
+        "Trời ơi {{name}}! {{gift}}! Cảm ơn bạn, boss choáng váng hoàn toàn!",
+        "Đại gia {{name}} xuất hiện! Cảm ơn {{gift}}, {{team}} ơi ăn mừng thôi!",
+        "Cảm ơn {{name}}! Một {{gift}} đi vào lịch sử trận đấu!",
+        "Xin cúi đầu cảm ơn {{name}}! {{gift}} quá khủng!"
+      ],
+      "BOSS_ENRAGE": [
+        "{{boss}} nổi điên rồi! Anh em giữ vững đội hình!",
+        "Cẩn thận! {{boss}} vào trạng thái cuồng nộ!",
+        "{{boss}} đỏ mắt rồi, sát thương tăng mạnh đấy!",
+        "Boss cuồng nộ! Cần thêm tướng ra sân ngay!",
+        "{{boss}} gầm lên giận dữ! Trận đấu căng thẳng rồi!",
+        "Báo động đỏ! {{boss}} đang điên cuồng phản công!"
+      ],
+      "BOSS_LOW_HP": [
+        "Chỉ còn chút nữa! Ai sẽ là người kết liễu?!",
+        "{{boss}} sắp gục rồi! Dồn sát thương nào anh em!",
+        "Máu boss gần cạn! Đòn kết liễu thuộc về ai?",
+        "Một chút nữa thôi! {{boss}} đang hấp hối!",
+        "Thời khắc quyết định! Tung hết sức vào {{boss}}!",
+        "{{boss}} lảo đảo rồi! Ai muốn ghi tên mình vào đòn kết liễu?"
+      ],
+      "BOSS_SKILL": [
+        "Né kịp không?!",
+        "{{skill}}! Cẩn thận anh em!",
+        "{{boss}} tung {{skill}}!",
+        "Chiêu mạnh đấy! Đội hình chịu được không?",
+        "{{skill}} quét qua đấu trường!",
+        "{{boss}} phản đòn bằng {{skill}}!"
+      ],
+      "BOSS_ULTIMATE": [
+        "{{boss}} tung tuyệt kỹ {{skill}}! Chống đỡ nào!",
+        "Tuyệt kỹ {{skill}}! Cả sân rung chuyển!",
+        "Nguy hiểm! {{boss}} dùng {{skill}}!",
+        "{{skill}} giáng xuống! Ai còn đứng vững?",
+        "Chiêu cuối của {{boss}}! Gọi thêm viện binh ngay!",
+        "{{skill}}! Đội hình hai bên tan tác, cần tiếp viện gấp!"
+      ],
+      "ROUND_INTRO_MATCHUP": [
+        "Ván {{round}}! Mục tiêu là {{boss}}, {{hp}} máu!",
+        "Ván {{round}}, {{teamA}} và {{teamB}} đấu {{boss}}!",
+        "Vào ván {{round}}! Nhiều sát thương hơn là thắng!",
+        "Ván {{round}} đây rồi! {{boss}} đã xuất hiện!"
+      ],
+      "COMEBACK": [
+        "Lội ngược dòng! {{team}} vượt lên rồi!",
+        "{{team}} qua mặt {{teamOther}} về sát thương! Không thể tin nổi!",
+        "Bảng sát thương đảo chiều! {{team}} đang dẫn trước!",
+        "{{teamOther}} bị bắt kịp rồi! {{team}} vươn lên!",
+        "Cú lật kèo! {{team}} chiếm lại thế chủ động!"
+      ],
+      "ROUND_WIN": [
+        "{{team}} thắng ván {{round}} nhờ gây nhiều sát thương hơn! Tỉ số series {{score}}!",
+        "Ván {{round}} thuộc về {{team}}! Tỉ số giờ là {{score}}!",
+        "{{boss}} đã gục! {{team}} dẫn đầu sát thương và giành ván này!",
+        "Chiến thắng cho {{team}}! Tỉ số series {{score}}, cảm ơn tất cả chiến binh!",
+        "{{team}} giành ván {{round}}! Bảng sát thương đã nói lên tất cả!"
+      ],
+      "MVP": [
+        "MVP ván này là {{name}} với {{dmg}} sát thương!",
+        "Chúc mừng {{name}}, sát thương cao nhất ván đấu!",
+        "{{name}} gánh team với {{dmg}} sát thương!",
+        "Vinh danh {{name}}, chiến binh xuất sắc nhất ván!",
+        "Không ai qua được {{name}}: {{dmg}} sát thương!"
+      ],
+      "SERIES_WIN": [
+        "{{team}} VÔ ĐỊCH! Tỉ số chung cuộc {{score}}!",
+        "Nhà vô địch đã lộ diện: {{team}}!",
+        "{{team}} lên ngôi! Chung cuộc {{score}}!",
+        "Chúc mừng {{team}}, nhà vô địch của series này!"
+      ],
+      "BANTER_GUIDE": [
+        "Gõ tên tướng kèm {{teamA}} hoặc {{teamB}}, ví dụ {{champion}} {{teamB}}, là ra sân ngay!",
+        "Muốn vào trận? Chỉ cần chat {{champion}} {{teamA}}!",
+        "Chọn phe đi anh em: chat {{teamA}} hoặc {{teamB}} là có tướng!",
+        "Chưa biết chơi? Gõ một tên tướng và tên đội là xong!",
+        "Mỗi tin nhắn hợp lệ là một tướng ra sân, gõ {{champion}} {{teamA}} thử xem!",
+        "Chat trùng tướng tủ của tuyển thủ để buff nộ cho họ nhé!",
+        "Người mới vào? Gõ {{champion}} kèm tên đội bạn thích là được!",
+        "Thả tim liên tục để nạp nộ, đủ mốc tim cả đội được hồi máu!"
+      ],
+      "BANTER_HYPE": [
+        "Không khí đang cực nóng! Anh em giữ nhịp nhé!",
+        "Trận này hay quá! Ai sẽ là người hùng hôm nay?",
+        "Tôi là BLV Bão, giọng AI dẫn trận, và tôi đang rất phấn khích!",
+        "Đấu trường CKTG chưa bao giờ hết nhiệt! Tiếp tục nào!",
+        "Mỗi tướng ra sân là một bước gần hơn tới chiến thắng!",
+        "Anh em chơi quá đẹp! Giữ vững phong độ nhé!"
+      ],
+      "BANTER_CTA": [
+        "Follow là có tướng miễn phí, share là boss ăn sát thương!",
+        "Thả tim để nạp nộ cho tuyển thủ của đội mình nhé!",
+        "Một lượt share là boss mất máu ngay, thử đi anh em!",
+        "Quà càng lớn, mưa thiên thạch càng dày!",
+        "Follow kênh để không bỏ lỡ trận nào nhé!",
+        "Rủ bạn bè vào xem, càng đông càng vui, boss càng đau!"
+      ],
+      "WIPE": [
+        "{{boss}} quét sạch đấu trường! {{count}} chiến binh gục ngã!",
+        "Thảm họa! Không còn ai đứng vững trước {{boss}}!",
+        "Đấu trường trống trơn! {{boss}} vừa xóa sổ toàn bộ đội hình!",
+        "{{count}} tướng bị hạ trong một đòn! {{boss}} quá đáng sợ!",
+        "Một pha càn quét kinh hoàng! Sân đấu giờ chỉ còn {{boss}}!"
+      ],
+      "BOSS_WIPE_TAUNT": [
+        "Hahaha! Lũ phàm nhân yếu ớt! Còn ai dám bước vào đấu trường của ta?",
+        "Quét sạch! Đó là tất cả những gì các ngươi có sao?",
+        "Ta là {{boss}}! Cứ gọi thêm quân, ta sẽ nghiền nát tất cả!",
+        "Yếu quá! {{teamA}} và {{teamB}}, mau gửi chiến binh mạnh hơn tới đây!",
+        "Đấu trường này thuộc về ta! Kẻ tiếp theo là ai?"
+      ],
+      "EMPTY_FIELD_RALLY": [
+        "Anh em ơi phản công ngay! Chat {{champion}} {{teamA}} hoặc {{champion}} {{teamB}} để gọi tướng trở lại!",
+        "Không được bỏ cuộc! Gõ tên tướng kèm {{teamA}} hoặc {{teamB}}, đấu trường đang cần các bạn!",
+        "Gọi viện binh mau! Mỗi tin nhắn là một tướng, mỗi món quà là một trận mưa thiên thạch!",
+        "Hồi sinh đội hình thôi! Chat tên tướng ngay, thả tim để nạp nộ cho tuyển thủ!",
+        "Ai sẽ là người đầu tiên quay lại? Gõ {{champion}} kèm tên đội của bạn!"
+      ],
+      "BANTER_EMPTY": [
+        "Sân đang trống! Chat tên tướng kèm {{teamA}} hoặc {{teamB}} để xuất trận ngay!",
+        "{{boss}} đang một mình ngạo nghễ! Ai ra tay dạy cho nó một bài học?",
+        "Chỉ cần gõ {{champion}} {{teamA}}, bạn sẽ có tướng trên sân trong vài giây!",
+        "Đội nào gọi tướng trước sẽ chiếm lợi thế! {{teamA}} hay {{teamB}} đây?",
+        "Một món quà nhỏ cũng đủ khiến {{boss}} đau! Ủng hộ đội bạn nhé!",
+        "Tuyển thủ đang đơn độc chống {{boss}}, fan đâu rồi, vào hỗ trợ ngay!",
+        "Follow để nhận tướng miễn phí, share để boss mất máu ngay lập tức!",
+        "Sân trống là cơ hội! Người vào đầu tiên sẽ được BLV xướng tên!"
+      ],
+      "BANTER_IDLE": [
+        "{{boss}} đang chờ đối thủ! Ai dám ra tay đầu tiên?",
+        "Đấu trường đang yên ắng, gõ tên tướng để khuấy động ngay!",
+        "{{teamA}} hay {{teamB}}, ai sẽ phá băng trận này?",
+        "Một tin nhắn thôi là có tướng ra sân, ai là người đầu tiên?",
+        "{{boss}} chưa bị ai làm phiền, buồn quá!"
+      ],
+      "ROUND_FINISHER": [
+        "Đòn kết liễu {{boss}} thuộc về {{name}} của {{team}}!",
+        "{{name}} bên {{team}} là người tung đòn cuối cùng!",
+        "Cú chốt hạ đẹp mắt của {{name}}!",
+        "Người ghi tên mình vào đòn kết liễu: {{name}}!"
+      ],
+      "BANTER_BOSS_HP": [
+        "{{boss}} chỉ còn {{hpPercent}} phần trăm máu, dồn sát thương nào anh em!",
+        "Máu của {{boss}} đã tụt xuống {{hpPercent}} phần trăm!",
+        "{{boss}} còn {{hpPercent}} phần trăm máu, ai sẽ là người kết liễu?",
+        "Cố lên anh em, {{boss}} chỉ còn {{hpPercent}} phần trăm thôi!"
+      ],
+      "BANTER_FIELD": [
+        "{{fieldCount}} tướng đang vây đánh {{boss}}, đấu trường rất sôi động!",
+        "Hiện có {{fieldCount}} chiến binh trên sân, quá đông vui!",
+        "{{fieldCount}} tướng cùng lúc ra tay, {{boss}} sắp không trụ nổi!",
+        "Đấu trường đang có {{fieldCount}} chiến binh, ai sẽ gánh team đây?"
+      ],
+      "BANTER_LEAD": [
+        "{{team}} đang dẫn trước về sát thương. Fan {{teamOther}} đâu rồi?!",
+        "{{teamOther}} đang bị bỏ lại phía sau, cần thêm tướng ra sân ngay!",
+        "{{team}} đang áp đảo, {{teamOther}} có lội ngược dòng được không?",
+        "Fan {{teamOther}} ơi, đội mình đang cần các bạn!",
+        "{{team}} gây nhiều sát thương hơn, {{teamOther}} cố lên!",
+        "{{teamOther}} chưa thua đâu! Thêm tướng là bắt kịp ngay!"
+      ],
+      "BANTER_SERIES": [
+        "Tỉ số series đang là {{score}}, ván {{round}} sẽ quyết định nhiều điều!",
+        "Series {{format}}, tỉ số {{score}}. Ván này ai thắng đây?",
+        "{{score}} sau những ván đã qua, cuộc đua vô địch đang rất căng!",
+        "Tỉ số {{score}}! Mỗi ván thắng đều quý như vàng trong series {{format}}!"
+      ],
+      "SERIES_OPENING": [
+        "Chào mừng đến Đại chiến CKTG! {{teamA}} đối đầu {{teamB}}!",
+        "Xin chào anh em! Series {{format}}, {{teamA}} gặp {{teamB}}!",
+        "Đại chiến bắt đầu! Thắng trước {{wins}} ván là vô địch!",
+        "BLV Bão xin chào! {{teamA}} và {{teamB}} cùng săn {{boss}}!"
+      ],
+      "ROUND_INTRO_STARS": [
+        "{{starA}} cầm {{champA}} đấu {{starB}} cầm {{champB}}! Chat {{champA}} {{teamA}} hoặc {{champB}} {{teamB}} để xuất trận!",
+        "Tâm điểm {{starA}} đối đầu {{starB}}! Gõ {{champA}} {{teamA}} hoặc {{champB}} {{teamB}} là vào trận!",
+        "{{champA}} của {{starA}} gặp {{champB}} của {{starB}}! Chat trùng tướng tủ để buff nộ cho tuyển thủ!",
+        "Kèo ngôi sao {{starA}} và {{starB}}! Gõ {{champA}} {{teamA}} hoặc {{champB}} {{teamB}}, một xu bằng {{damage}} sát thương!"
+      ],
+      "ROUND_GO": [
+        "Xung trận! Ván {{round}} chính thức bắt đầu!",
+        "Ba, hai, một, xung trận!",
+        "Vào trận! Gọi tướng ngay!",
+        "Bắt đầu! Đánh thôi anh em!"
+      ],
+      "PODIUM_THANKS": [
+        "Cảm ơn top ba ván này: {{a}}, {{b}} và {{c}}!",
+        "Bục vinh quang gọi tên {{a}}, {{b}} và {{c}}!",
+        "Xin chúc mừng {{a}}, {{b}} và {{c}}, ba chiến binh mạnh nhất ván!"
+      ],
+      "PRO_MVP": [
+        "Tuyển thủ xuất sắc nhất: {{name}} bên {{team}} với {{dmg}} sát thương!",
+        "{{name}} cầm {{champion}} là tuyển thủ nổi bật nhất ván!",
+        "Danh hiệu tuyển thủ hay nhất thuộc về {{name}} của {{team}}!"
+      ],
+      "SERIES_OUTRO": [
+        "Cảm ơn tất cả chiến binh đã đồng hành cùng {{team}} và đối thủ!",
+        "Một series tuyệt vời! Cảm ơn anh em đã chiến đấu hết mình!",
+        "Xin cảm ơn mọi người đã theo dõi và tham gia, hẹn gặp lại!"
+      ],
+      "NEXT_MATCH": [
+        "Trận tiếp theo: {{teamA}} đối đầu {{teamB}}, đừng rời đi nhé!",
+        "Sắp tới là {{teamA}} gặp {{teamB}}, chọn phe ngay từ bây giờ!",
+        "Tiếp theo trên sóng: {{teamA}} và {{teamB}}!"
+      ]
     }
   }
 }

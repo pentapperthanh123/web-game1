@@ -25,6 +25,7 @@ import {
 } from './summonShared';
 import { updateChampionEntranceAura } from './championEntranceAura';
 import { pickSpreadTargetInWing } from './championSpread';
+import { isCurrentRoundIntroActive } from '../../../store/roundIntroStore';
 
 
 const resolveCachedVfxRefs = (
@@ -35,7 +36,6 @@ const resolveCachedVfxRefs = (
   if (ai.cachedVfxRefs && ai.cachedVfxGroupId === tokenSubgroup.uuid) return ai.cachedVfxRefs;
 
   const refs: CachedChampionVfxRefs = {
-    ring: tokenSubgroup.getObjectByName('runic-ring') as THREE.Mesh | undefined,
     sigHaloMesh: tokenSubgroup.getObjectByName('signature-synergy-halo') as THREE.Mesh | undefined,
     haloMesh: tokenSubgroup.getObjectByName('celestial-halo') as THREE.Mesh | undefined,
     beamMesh: tokenSubgroup.getObjectByName('sky-beam') as THREE.Mesh | undefined,
@@ -151,7 +151,12 @@ export const stepChampionFrame = (
   ai.currentZ = THREE.MathUtils.lerp(ai.currentZ, ai.targetZ, lerpFactor);
 
   const isGraceActive = entranceAgeMs < GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
-  if (isBossAlive && !isGraceActive && elapsedTime >= ai.nextAttackTime && !ai.isAttacking) {
+  const isIntroActive = isCurrentRoundIntroActive(now);
+
+  if (isIntroActive) {
+    ai.isAttacking = false;
+    ai.nextAttackTime = Math.max(ai.nextAttackTime, elapsedTime + 0.5);
+  } else if (isBossAlive && !isGraceActive && elapsedTime >= ai.nextAttackTime && !ai.isAttacking) {
     ai.isAttacking = true;
     ai.hasFiredInThisAttack = false;
     ai.attackStartTime = elapsedTime;
@@ -202,7 +207,7 @@ export const stepChampionFrame = (
     entranceScale = prog < 0.6 ? 0.75 + (prog / 0.6) * 0.32 : 1.07 - ((prog - 0.6) * 0.07) / 0.4;
   }
 
-  if (isBossAlive && !isGraceActive && !ai.hasLanded) {
+  if (isBossAlive && !isGraceActive && !isIntroActive && !ai.hasLanded) {
     ai.hasLanded = true;
     const scrStart = project3DToScreen(ai.currentX, ai.currentY, ai.currentZ, camera, viewportW, viewportH);
     const openingDamage = Math.round(minion.dps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER);
@@ -254,7 +259,7 @@ export const stepChampionFrame = (
   }
 
   const isStunned = isMinionStunned(minion, Date.now());
-  if (isBossAlive && wasAttackingThisFrame && !ai.hasFiredInThisAttack && !isGraceActive && !isStunned) {
+  if (isBossAlive && wasAttackingThisFrame && !ai.hasFiredInThisAttack && !isGraceActive && !isStunned && !isIntroActive) {
     const attackProgress =
       (elapsedTime - ai.attackStartTime) / COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_DURATION_S;
     // `>=` with no upper bound: on a slow frame the attack may already be over, but it must still land
@@ -297,11 +302,6 @@ export const stepChampionFrame = (
   publishLivePosition(ai, minion, posX, posY, posZ, camera, viewportW, viewportH);
 
   const vfxRefs = resolveCachedVfxRefs(ai, champGroup.children[0] as THREE.Group | undefined);
-  if (vfxRefs.ring) {
-    const spinSpeed = ai.isAttacking ? 0.9 : 0.45;
-    vfxRefs.ring.rotation.z = elapsedTime * (minion.team === TEAM_KEY.BLG ? spinSpeed : -spinSpeed);
-  }
-
   if (vfxRefs.sigHaloMesh) {
     vfxRefs.sigHaloMesh.rotation.z = -elapsedTime * 2.1;
     vfxRefs.sigHaloMesh.scale.setScalar(1.05 + Math.sin(elapsedTime * 4.5) * 0.08);

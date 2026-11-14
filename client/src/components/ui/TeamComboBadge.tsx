@@ -110,7 +110,7 @@ export const TeamComboBadge: React.FC<{
     <div
       key={`${team}-${combo.count}`}
       style={{ boxShadow: tier.isHighTier ? undefined : theme.glowStyle }}
-      className={`flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border backdrop-blur-md animate-combo-punch select-none transition-all duration-200 shrink-0 ${tier.badgeContainerClass}`}
+      className={`flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border animate-combo-punch select-none transition-all duration-200 shrink-0 ${tier.badgeContainerClass}`}
     >
       <ComboTierIcons tierLevel={tier.tierLevel} />
 

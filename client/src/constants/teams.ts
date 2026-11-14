@@ -524,15 +524,15 @@ export const PRESET_TEAMS: TeamProfile[] = [
         avatarUrl: '/images/players/faker.png',
       },
       {
-        id: 't1-gumayusi',
-        name: 'Gumayusi',
+        id: 't1-peyz',
+        name: 'Peyz',
         role: 'ADC',
         roleName: PLAYER_ROLE_LABEL_VI.ADC,
-        signatureChampion: 'Jinx',
-        championKey: 'Jinx',
+        signatureChampion: 'Xayah',
+        championKey: 'Xayah',
         team: 'BLG',
         color: '#fb7185',
-        avatarUrl: '/images/players/gumayusi.png',
+        avatarUrl: '/images/players/peyz.png',
       },
       {
         id: 't1-keria',
@@ -1151,7 +1151,9 @@ const sanitizePlayer = (
       ? sanitizeMediaUrl(src.avatarUrl, fallbackAvatar)
       : fallbackAvatar;
 
-  if (fallbackAvatar.startsWith('/images/players/') && avatarUrl.includes('ddragon.leagueoflegends.com')) {
+  // Upgrade an old champion-art avatar to the bundled photo only for the very same player
+  const isSamePlayer = fallback.name.trim().toLowerCase() === name.toLowerCase();
+  if (isSamePlayer && fallbackAvatar.startsWith('/images/players/') && avatarUrl.includes('ddragon.leagueoflegends.com')) {
     avatarUrl = fallbackAvatar;
   }
 
@@ -1261,6 +1263,13 @@ export const sanitizeMatchQueue = (
   return result;
 };
 
+/** A saved team is cleaned against its own preset when it has one, never against another team's roster. */
+const findFallbackTeam = (raw: unknown, presets: TeamProfile[], defaultTeam: TeamProfile): TeamProfile => {
+  if (!raw || typeof raw !== 'object') return defaultTeam;
+  const rawId = (raw as Record<string, unknown>).id;
+  return presets.find((preset) => preset.id === rawId) ?? defaultTeam;
+};
+
 export const sanitizeTeamConfigState = (raw: unknown): TeamConfigState | null => {
   if (!raw || typeof raw !== 'object') {
     return null;
@@ -1268,8 +1277,8 @@ export const sanitizeTeamConfigState = (raw: unknown): TeamConfigState | null =>
   const defaults = createDefaultTeamConfig();
   const src = raw as Record<string, unknown>;
   const rawActive = (src.activeTeams || {}) as Record<string, unknown>;
-  const left = sanitizeTeamProfile(rawActive[TEAM_KEY.BLG], defaults.activeTeams[TEAM_KEY.BLG], TEAM_KEY.BLG);
-  const right = sanitizeTeamProfile(rawActive[TEAM_KEY.GENG], defaults.activeTeams[TEAM_KEY.GENG], TEAM_KEY.GENG);
+  const left = sanitizeTeamProfile(rawActive[TEAM_KEY.BLG], findFallbackTeam(rawActive[TEAM_KEY.BLG], defaults.teamCatalog, defaults.activeTeams[TEAM_KEY.BLG]), TEAM_KEY.BLG);
+  const right = sanitizeTeamProfile(rawActive[TEAM_KEY.GENG], findFallbackTeam(rawActive[TEAM_KEY.GENG], defaults.teamCatalog, defaults.activeTeams[TEAM_KEY.GENG]), TEAM_KEY.GENG);
 
   const rawCatalog = Array.isArray(src.teamCatalog) ? src.teamCatalog : [];
   const catalogMap = new Map<string, TeamProfile>();
@@ -1278,7 +1287,7 @@ export const sanitizeTeamConfigState = (raw: unknown): TeamConfigState | null =>
   }
   for (const item of rawCatalog) {
     if (catalogMap.size >= TEAM_DATA_LIMITS.MAX_CATALOG_ITEMS) break;
-    const cleanItem = sanitizeTeamProfile(item, defaults.activeTeams[TEAM_KEY.BLG], TEAM_KEY.BLG);
+    const cleanItem = sanitizeTeamProfile(item, findFallbackTeam(item, defaults.teamCatalog, defaults.activeTeams[TEAM_KEY.BLG]), TEAM_KEY.BLG);
     catalogMap.set(cleanItem.id, cleanItem);
   }
 

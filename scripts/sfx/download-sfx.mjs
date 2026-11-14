@@ -1,7 +1,7 @@
 // Bundles every sound used by the game into client/public/sfx so a live stream never depends on myinstants.com.
 // Reads client/src/constants/sfx.ts, downloads the first remote file of each event to
 // client/public/sfx/<EVENT>.<ext>, and writes manifest.json (bytes, sha1, source URL).
-// Usage: node scripts/sfx/download-sfx.mjs [--force]
+// Usage: node scripts/sfx/download-sfx.mjs [--force] [EVENT ...]  (listed events are always refetched)
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -14,6 +14,8 @@ const MANIFEST_FILE = path.join(OUTPUT_DIR, 'manifest.json');
 const MYINSTANTS_BASE = 'https://www.myinstants.com/media/sounds/';
 const REQUEST_TIMEOUT_MS = 20000;
 const isForced = process.argv.includes('--force');
+const forcedEvents = new Set(process.argv.slice(2).filter((arg) => !arg.startsWith('--')));
+const shouldRefetch = (eventName) => isForced || forcedEvents.has(eventName);
 
 /** `[SFX_EVENT.NAME]: { src: [fromMyinstants('file.mp3'), ...` → { NAME: ['file.mp3', ...] } */
 const parseEventSources = (source) => {
@@ -46,7 +48,7 @@ const bundleEvent = async (eventName, fileNames) => {
     const extension = path.extname(fileName).toLowerCase() || '.mp3';
     const targetFile = path.join(OUTPUT_DIR, `${eventName}${extension}`);
     const sourceUrl = `${MYINSTANTS_BASE}${fileName}`;
-    if (existsSync(targetFile) && !isForced) {
+    if (existsSync(targetFile) && !shouldRefetch(eventName)) {
       const buffer = readFileSync(targetFile);
       return { event: eventName, file: path.basename(targetFile), bytes: buffer.length, sha1: sha1(buffer), sourceUrl, status: 'cached' };
     }

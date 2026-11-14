@@ -35,7 +35,7 @@ export const LiveChatStream = () => {
             return (
               <div
                 key={msg.id}
-                className="flex items-start space-x-1.5 px-2 py-1 rounded-lg bg-slate-950/35 border border-white/15 backdrop-blur-[1px] animate-in fade-in slide-in-from-bottom-2 duration-200"
+                className="flex items-start space-x-1.5 px-2 py-1 rounded-lg bg-slate-950/35 border border-white/15 animate-in fade-in slide-in-from-bottom-2 duration-200"
               >
                 {/* Avatar Initial */}
                 <div

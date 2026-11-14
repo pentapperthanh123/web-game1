@@ -77,10 +77,10 @@ export const ShockwaveRings = () => {
   return (
     <group position={[0, -2.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       <instancedMesh ref={mainRef} args={[SHARED_MAIN_RING_GEO, undefined, SHOCKWAVE_POOL_CAPACITY]} frustumCulled={false}>
-        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={edgeRef} args={[SHARED_EDGE_RING_GEO, undefined, SHOCKWAVE_POOL_CAPACITY]} frustumCulled={false}>
-        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={1} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} forceSinglePass toneMapped={false} />
       </instancedMesh>
     </group>
   );
