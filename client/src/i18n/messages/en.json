@@ -1,7 +1,7 @@
 {
   "Game": {
     "subtitle": "TikTok Live Interactive 3D Game",
-    "bossName": "BARON NASHOR WORLDS",
+    "bossName": "BARON NASHOR",
     "hpLabel": "BOSS HP",
     "rageMode": "ENRAGED",
     "rageModeDetailed": "ENRAGED (+50% ATK SPD)",
@@ -107,11 +107,11 @@
     "signatureTag": "SIGNATURE · {{player}} (+25%)"
   },
   "BossTheme": {
-    "xuGia": "Rift Herald Worlds",
+    "xuGia": "Rift Herald",
     "rongNui": "Mountain Magma Dragon",
     "rongGia": "Storm Ancient Dragon",
-    "elderDragon": "Elder Dragon Worlds",
-    "baron": "Baron Nashor Worlds",
+    "elderDragon": "Elder Dragon",
+    "baron": "Baron Nashor",
     "voidTitan": "Primeval Void Titan"
   },
   "BossRound": {
@@ -446,8 +446,14 @@
     },
     "skipButton": "Deploy battle now"
   },
+  "BossSkills": {
+    "panelLabel": "Boss skills",
+    "hpMultiplier": "HP ×{{value}}"
+  },
   "Caster": {
+    "nameJoiner": " and ",
     "subtitleLabel": "Caster Storm",
+    "voiceUnlockHint": "Click the screen to turn on the caster voice",
     "anonymousName": "a mystery warrior",
     "score": "{{left}} - {{right}}",
     "number": {
@@ -466,12 +472,12 @@
         "{{name}} brings {{champion}}, more firepower for {{team}}!"
       ],
       "SUMMON_MERGED": [
-        "{{a}}, {{b}} and {{n}} more join {{team}}!",
-        "A wave of {{team}}! Led by {{a}} and {{b}}!",
-        "{{team}} gets {{count}} reinforcements, thanks {{a}}, {{b}} and everyone!",
-        "{{a}} and {{b}} bring a whole {{team}} army!",
-        "Thanks {{a}}, {{b}} and all the {{team}} warriors!",
-        "{{a}}, {{b}} and friends: {{count}} new champions for {{team}}!"
+        "{{names}} join {{team}}!",
+        "{{team}} reinforced! Thanks {{names}}!",
+        "Welcome {{names}} to {{team}}!",
+        "{{names}} enter the fight for {{team}}!",
+        "{{team}} reinforcements: {{names}}!",
+        "Thanks {{names}} for backing {{team}}!"
       ],
       "SUMMON_WAVE": [
         "{{team}} pours in! {{count}} champions just landed!",

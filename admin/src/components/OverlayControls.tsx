@@ -98,6 +98,12 @@ const buildSectionConfigs = (leftTag: string, rightTag: string): SectionConfig[]
     description: 'Hiển thị lời thoại phụ đề của bình luận viên và lời gầm của Boss trên màn hình',
     icon: Mic,
   },
+  {
+    key: 'bossSkills',
+    label: 'Bảng Chiêu Thức Boss (Dưới Thanh Máu)',
+    description: 'Hệ số HP và 4 chiêu của Boss đang chọn; chiêu vừa tung sẽ sáng lên, chiêu bị khóa sẽ mờ',
+    icon: Swords,
+  },
 ];
 
 export function OverlayControls({

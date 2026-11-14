@@ -28,7 +28,7 @@ export const GAME_CONSTANTS = {
   BOSS: {
     INITIAL_HP: 100000,
     MAX_HP: 100000,
-    NAME: 'Baron Nashor CKTG',
+    NAME: 'Baron Nashor',
     HIT_FLASH_DURATION_MS: 200,
     ROTATION_SPEED_IDLE: 0.8,
     ROTATION_SPEED_ENRAGED: 2.2,
@@ -348,7 +348,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     archetype: 'HERALD',
     nameVi: 'Hang Sứ Giả Khe Nứt',
     nameEn: 'Rift Herald Cave',
-    bossName: 'Sứ Giả Khe Nứt CKTG',
+    bossName: 'Sứ Giả Khe Nứt',
     roarTextVi: 'SỨ GIẢ KHE NỨT XUNG KÍCH!',
     roarTextEn: 'RIFT HERALD CHARGES!',
     backgroundImageWebp: '/images/arena_background_2d.webp',
@@ -400,7 +400,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     archetype: 'DRAGON',
     nameVi: 'Hang Rồng Núi Nham Thạch',
     nameEn: 'Mountain Drake Peak',
-    bossName: 'Rồng Núi Nham Thạch CKTG',
+    bossName: 'Rồng Núi Nham Thạch',
     roarTextVi: 'RỒNG NÚI THỔI LỬA ĐỊA CHẤN!',
     roarTextEn: 'MOUNTAIN DRAKE SEISMIC INFERNO!',
     backgroundImageWebp: '/images/arena_elder_dragon_2d.webp',
@@ -452,7 +452,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     archetype: 'DRAGON',
     nameVi: 'Hang Rồng Già Sấm Sét',
     nameEn: 'Storm Drake Lair',
-    bossName: 'Rồng Già Bão Tố CKTG',
+    bossName: 'Rồng Già Bão Tố',
     roarTextVi: 'RỒNG GIÀ PHÓNG SÉT THIÊN HÀ!',
     roarTextEn: 'STORM DRAKE LIGHTNING TEMPEST!',
     backgroundImageWebp: '/images/arena_elder_dragon_2d.webp',
@@ -504,7 +504,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     archetype: 'BARON',
     nameVi: 'Hang Baron Hư Không',
     nameEn: 'Baron Nashor Pit',
-    bossName: 'Baron Nashor CKTG',
+    bossName: 'Baron Nashor',
     roarTextVi: 'BARON GẦM RÚ HƯ KHÔNG!',
     roarTextEn: 'BARON NASHOR VOID ROAR!',
     backgroundImageWebp: '/images/arena_background_2d.webp',
@@ -556,7 +556,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
     archetype: 'DRAGON',
     nameVi: 'Hang Rồng Ngàn Tuổi',
     nameEn: 'Elder Dragon Pit',
-    bossName: 'Rồng Ngàn Tuổi CKTG',
+    bossName: 'Rồng Ngàn Tuổi',
     roarTextVi: 'LONG THẦN THỔI LỬA NGUYÊN TỐ!',
     roarTextEn: 'ELDER DRAGON INFERNAL BREATH!',
     backgroundImageWebp: '/images/arena_elder_dragon_2d.webp',
@@ -1047,6 +1047,7 @@ export const OVERLAY_SECTION = {
   HEART_MILESTONE: 'heartMilestone',
   MATCH_TITLE_BAR: 'matchTitleBar',
   CASTER_SUBTITLE: 'casterSubtitle',
+  BOSS_SKILLS: 'bossSkills',
 } as const;
 
 export type OverlaySectionKey = (typeof OVERLAY_SECTION)[keyof typeof OVERLAY_SECTION];
@@ -1062,6 +1063,7 @@ export const DEFAULT_OVERLAY_VISIBILITY = {
   heartMilestone: true,
   matchTitleBar: true,
   casterSubtitle: false,
+  bossSkills: false,
 } as const;
 
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';
@@ -1619,6 +1621,7 @@ export const ADMIN_CONSTANTS = {
     { key: 'heartMilestone', labelVi: 'Cơ Chế Đại Hồi Phục (0/200 Tim)', labelEn: 'Map-Wide Heart Milestone Heal' },
     { key: 'howToPlay', labelVi: 'Cách Tham Gia & Quà Tặng', labelEn: 'How to Play & Rewards' },
     { key: 'casterSubtitle', labelVi: 'Phụ Đề Bình Luận Viên (BLV Bão / Boss)', labelEn: 'AI Caster & Boss Subtitles' },
+    { key: 'bossSkills', labelVi: 'Bảng Chiêu Thức Boss (Hệ số HP + 4 chiêu)', labelEn: 'Boss Skill Panel (HP scale + 4 skills)' },
   ] as const,
 } as const;
 

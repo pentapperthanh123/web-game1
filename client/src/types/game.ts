@@ -278,6 +278,7 @@ export interface OverlayVisibility {
   heartMilestone: boolean;
   matchTitleBar: boolean;
   casterSubtitle: boolean;
+  bossSkills: boolean;
 }
 
 export interface AutoProBattleConfig {

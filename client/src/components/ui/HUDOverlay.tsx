@@ -10,6 +10,9 @@ import { DPSLeaderboard } from './DPSLeaderboard';
 import { GiftBanner } from './GiftBanner';
 import { FloatingDamage } from './FloatingDamage';
 import { CasterSubtitle } from './CasterSubtitle';
+import { BossSkillStatusPanel } from './bossSkills/BossSkillStatusPanel';
+import { BossSkillCastLayer } from './bossSkills/BossSkillCastLayer';
+import { CasterVoiceUnlockHint } from './CasterVoiceUnlockHint';
 import { LiveChatStream } from './LiveChatStream';
 import { KillFeed, WipeStamp } from './KillFeed';
 import { RoundIntroOverlay } from './roundIntro/RoundIntroOverlay';
@@ -158,6 +161,7 @@ export const HUDOverlay = () => {
     <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none overflow-hidden select-none">
       {/* Incandescent Flash on Ultimates */}
       <ScreenFlash />
+      <BossSkillCastLayer />
       <SwarmLegionCanvas />
       <ChampionArrowVFX />
 
@@ -269,6 +273,7 @@ export const HUDOverlay = () => {
         )}
 
         {overlayVisibility.bossHealth && <BossHealthBar />}
+        {overlayVisibility.bossSkills && <BossSkillStatusPanel />}
         {overlayVisibility.teamScores && <TeamScoreBoard />}
       </header>
 
@@ -290,6 +295,7 @@ export const HUDOverlay = () => {
       {/* Floating 3D & Combat Elements */}
       <FloatingDamage />
       {overlayVisibility.casterSubtitle && <CasterSubtitle />}
+      <CasterVoiceUnlockHint />
       <FinisherAnnouncementBanner />
       <VictoryOverlay />
       <SilverScrapesDuelOverlay />

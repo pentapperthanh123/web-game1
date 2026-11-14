@@ -8,13 +8,12 @@ import {
   ParticipationRuleConfig,
 } from '../../types/game';
 import {
-  BOSS_DIFFICULTY_SCALE,
   CHAMPION_DAMAGE_CONSTANTS,
   GAME_CONSTANTS,
-  GAME_THEME,
   GameThemeType,
   TeamType,
 } from '../../constants/game';
+import { getBossProfile } from '../../constants/bossProfiles';
 import {
   persistAutoProBattleConfig,
   persistAutoSummonConfig,
@@ -49,8 +48,8 @@ export const createUiAdminSlice: StateCreator<GameState, [], [], UiAdminSlice> =
 
   setGameTheme: (theme: GameThemeType) => {
     persistGameTheme(theme);
-    const difficulty = BOSS_DIFFICULTY_SCALE[theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
-    const newMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
+    // One atomic update: name, colours and skills follow `gameTheme` through `getBossProfile`
+    const newMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * getBossProfile(theme).hpMultiplier);
     set({
       gameTheme: theme,
       bossMaxHp: newMaxHp,

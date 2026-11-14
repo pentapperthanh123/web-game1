@@ -83,11 +83,11 @@
   {
     "event": "VICTORY",
     "file": "VICTORY.mp3",
-    "bytes": 151104,
-    "sha1": "2b2d32034757f04269121702412052bbcc1e137d",
-    "sourceUrl": "LoL Nexus Explosion + Announcer Victory (Remastered)",
+    "bytes": 135597,
+    "sha1": "d7eac8ac8216d95b6e55a3415ffcbd64cabacdd1",
+    "sourceUrl": "client/src/assets/victory-sound.mp3 (LoL Original Announcer Victory)",
     "status": "bundled",
-    "bundledAt": "2026-11-14T07:33:00.000Z"
+    "bundledAt": "2026-11-14T12:58:00.000Z"
   },
   {
     "event": "DEFEAT",

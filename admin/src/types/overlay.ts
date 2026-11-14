@@ -9,6 +9,7 @@ export interface OverlayVisibility {
   heartMilestone: boolean;
   matchTitleBar: boolean;
   casterSubtitle: boolean;
+  bossSkills: boolean;
 }
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -22,6 +23,7 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   heartMilestone: true,
   matchTitleBar: true,
   casterSubtitle: false,
+  bossSkills: false,
 };
 
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';

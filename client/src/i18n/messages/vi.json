@@ -1,7 +1,7 @@
 {
   "Game": {
     "subtitle": "TikTok Live Interactive Game 3D",
-    "bossName": "BARON NASHOR CKTG",
+    "bossName": "BARON NASHOR",
     "hpLabel": "MÁU BOSS",
     "rageMode": "CUỒNG NỘ",
     "rageModeDetailed": "CUỒNG NỘ (+50% TỐC ĐÁNH)",
@@ -107,11 +107,11 @@
     "signatureTag": "TƯỚNG TỦ · {{player}} (+25%)"
   },
   "BossTheme": {
-    "xuGia": "Sứ Giả Khe Nứt CKTG",
+    "xuGia": "Sứ Giả Khe Nứt",
     "rongNui": "Rồng Núi Nham Thạch",
     "rongGia": "Rồng Già Bão Tố",
-    "elderDragon": "Rồng Ngàn Tuổi CKTG",
-    "baron": "Baron Nashor CKTG",
+    "elderDragon": "Rồng Ngàn Tuổi",
+    "baron": "Baron Nashor",
     "voidTitan": "Thần Hư Vô Nguyên Thủy"
   },
   "BossRound": {
@@ -446,8 +446,14 @@
     },
     "skipButton": "Xung trận ngay"
   },
+  "BossSkills": {
+    "panelLabel": "Chiêu thức của Boss",
+    "hpMultiplier": "HP ×{{value}}"
+  },
   "Caster": {
+    "nameJoiner": " và ",
     "subtitleLabel": "BLV Bão",
+    "voiceUnlockHint": "Bấm vào màn hình để bật giọng bình luận viên",
     "anonymousName": "một chiến binh bí ẩn",
     "score": "{{left}} - {{right}}",
     "number": {
@@ -466,12 +472,12 @@
         "{{name}} cầm {{champion}}, {{team}} có thêm hỏa lực!"
       ],
       "SUMMON_MERGED": [
-        "{{a}}, {{b}} và {{n}} người nữa xuống đường cho {{team}}!",
-        "Một làn sóng {{team}}! Dẫn đầu là {{a}} và {{b}}!",
-        "{{team}} được tiếp viện {{count}} tướng, cảm ơn {{a}}, {{b}} và mọi người!",
-        "{{a}} và {{b}} kéo theo cả đoàn quân {{team}} ra sân!",
-        "Cảm ơn {{a}}, {{b}} cùng các chiến binh {{team}}!",
-        "{{a}}, {{b}} và đồng đội: {{count}} tướng mới cho {{team}}!"
+        "{{names}} xuống đường cho {{team}}!",
+        "{{team}} thêm quân! Cảm ơn {{names}}!",
+        "Chào mừng {{names}} gia nhập {{team}}!",
+        "{{names}} cùng ra trận cho {{team}}!",
+        "Viện binh {{team}} tới rồi: {{names}}!",
+        "Cảm ơn {{names}} đã tiếp sức cho {{team}}!"
       ],
       "SUMMON_WAVE": [
         "{{team}} đổ quân ồ ạt! {{count}} tướng vừa vào sân!",

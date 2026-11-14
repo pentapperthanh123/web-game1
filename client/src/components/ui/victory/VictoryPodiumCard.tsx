@@ -5,6 +5,7 @@ import { TeamType } from '../../../constants/game';
 import { getTeamTheme } from '../../../constants/teams';
 import { DPSPlayer } from '../../../types/game';
 import { TeamProfile } from '../../../types/team';
+import { DonorAvatar } from '../gift/giftShared';
 
 export const PODIUM_SIZE = 3;
 
@@ -92,15 +93,26 @@ const PodiumSlot = ({ player, rank, teamProfile, isFinisher }: PodiumSlotProps) 
   const style = RANK_STYLE[rank];
   const teamTheme = getTeamTheme(teamProfile?.colorTheme);
   const honorBadge = resolveHonorBadge(rank, isFinisher, (key, fallback) => t(key, fallback));
+  const avatarSize = rank === 0 ? 'w-10 h-10' : 'w-8 h-8';
 
   return (
     <div className="flex-1 min-w-0 flex flex-col items-center justify-end">
       <span className="text-base leading-none">{style.medal}</span>
 
+      {/* Donor / Player Avatar */}
+      <div className="mt-1 relative">
+        <DonorAvatar
+          name={player.userName}
+          avatarUrl={player.avatarUrl}
+          sizeClassName={avatarSize}
+          ringColor={teamTheme.primaryHex}
+        />
+      </div>
+
       {/* Honor MVP Title Badge */}
       <span
         className={clsx(
-          'mt-0.5 text-[6.5px] sm:text-[7.5px] font-black uppercase px-1 py-0.2 rounded border truncate max-w-full tracking-wide text-center',
+          'mt-1 text-[6.5px] sm:text-[7.5px] font-black uppercase px-1 py-0.2 rounded border truncate max-w-full tracking-wide text-center',
           honorBadge.badgeClass
         )}
       >
