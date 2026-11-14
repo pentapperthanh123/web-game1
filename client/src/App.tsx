@@ -22,6 +22,7 @@ import { getRandomChampion } from './constants/champions';
 import { gameSocket } from './services/socket'; // Auto-connects to Socket.io backend on port 4000
 import { getBossPhaseRule } from './constants/bossPhases';
 import { STATUS_EFFECT_CONSTANTS } from './constants/bossStatusEffects';
+import { useRoundIntroStore, isCurrentRoundIntroActive } from './store/roundIntroStore';
 
 export function App() {
   useMatchSnapshotPersistence();
@@ -50,9 +51,10 @@ export function App() {
   const nextFireAtRef = useRef<Record<string, number>>({});
   const autoUltQueuedRef = useRef<Set<string>>(new Set());
   const autoSummonTickRef = useRef(0);
+  const isIntroActive = useRoundIntroStore((state) => state.isActive);
   const isBossDefeated = bossStatus === BOSS_STATUS.DEFEATED;
   const isBossEnraged = bossStatus === BOSS_STATUS.ENRAGED;
-  const isBattlePaused = isBossDefeated || isRoundIntermission || roundWinner !== null;
+  const isBattlePaused = isIntroActive || isBossDefeated || isRoundIntermission || roundWinner !== null;
 
   // Enforce dynamic document title matching active teams
   useEffect(() => {
@@ -74,6 +76,7 @@ export function App() {
     const interval = setInterval(() => {
       const state = useGameStore.getState();
       if (
+        isCurrentRoundIntroActive() ||
         state.bossStatus === BOSS_STATUS.DEFEATED ||
         state.isRoundIntermission ||
         state.roundWinner !== null ||
@@ -116,6 +119,7 @@ export function App() {
       timerId = setTimeout(() => {
         const latestState = useGameStore.getState();
         if (
+          !isCurrentRoundIntroActive() &&
           latestState.bossStatus !== BOSS_STATUS.DEFEATED &&
           !latestState.isRoundIntermission &&
           latestState.roundWinner === null &&
@@ -166,6 +170,7 @@ export function App() {
     const intervalId = setInterval(() => {
       const currentState = useGameStore.getState();
       if (
+        isCurrentRoundIntroActive() ||
         currentState.bossStatus === BOSS_STATUS.DEFEATED ||
         currentState.bossHp <= 0 ||
         currentState.isRoundIntermission ||
@@ -222,6 +227,7 @@ export function App() {
     const intervalId = setInterval(() => {
       const state = useGameStore.getState();
       if (
+        isCurrentRoundIntroActive() ||
         state.bossStatus === BOSS_STATUS.DEFEATED ||
         state.bossHp <= 0 ||
         state.isRoundIntermission ||
@@ -286,6 +292,7 @@ export function App() {
             autoUltQueuedRef.current.delete(player.id);
             const currentState = useGameStore.getState();
             if (
+              isCurrentRoundIntroActive() ||
               currentState.bossStatus === BOSS_STATUS.DEFEATED ||
               currentState.bossHp <= 0 ||
               currentState.isRoundIntermission ||
@@ -312,6 +319,7 @@ export function App() {
     const intervalId = setInterval(() => {
       const currentState = useGameStore.getState();
       if (
+        isCurrentRoundIntroActive() ||
         currentState.bossStatus === BOSS_STATUS.DEFEATED ||
         currentState.bossHp <= 0 ||
         currentState.isRoundIntermission ||
@@ -395,8 +403,8 @@ export function App() {
         {/* Layer 3: Broadcast HUD Interface */}
         <HUDOverlay />
 
-        {/* Layer 4: Boss Speech Bubbles & Skill Callouts above all 3D particles/VFX */}
-        <div id="boss-notification-layer" className="absolute inset-0 pointer-events-none z-[50]" />
+        {/* Layer 4: Boss Speech Bubbles & Skill Callouts (below top-level toast/intro modals) */}
+        <div id="boss-notification-layer" className="absolute inset-0 pointer-events-none z-[30]" />
       </div>
     </main>
   );

@@ -17,6 +17,7 @@ import { bossSpeechManager, BossSpeechItem, resolveBossSpeechItem } from '../../
 import { BossHitMarks2D } from './BossHitMarks2D';
 import { BossAlertBanner } from './BossAlertBanner';
 import { BossSpeechBubble } from './BossSpeechBubble';
+import { useRoundIntroStore, isRoundIntroActive } from '../../store/roundIntroStore';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
@@ -171,6 +172,9 @@ export const Boss2D = () => {
   const isHerald = themeConfig.archetype === 'HERALD';
   const isDragon = themeConfig.archetype === 'DRAGON';
   const isSilverScrapesActive = useGameStore((state) => state.silverScrapesState.isActive);
+  const isRoundIntroShown = useRoundIntroStore(
+    (state) => state.isActive && isRoundIntroActive(state.shownAt, Date.now())
+  );
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
   const bossStaggerUntil = useGameStore((state) => state.bossStaggerUntil);
@@ -616,7 +620,7 @@ export const Boss2D = () => {
         <div className={verticalMotionClass}>
           <div className={`relative ${themeConfig.spriteSize} ${animationClass} pointer-events-none`}>
             <BossSpeechBubble
-              speech={isRoarActive || isDefeated || isSilverScrapesActive ? null : activeSpeech}
+              speech={isRoarActive || isDefeated || isSilverScrapesActive || isRoundIntroShown ? null : activeSpeech}
               themeConfig={themeConfig}
               isRestless={isRestless}
             />
