@@ -4,6 +4,7 @@ import { getTeamTheme } from '../../../constants/teams';
 import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS } from '../../../constants/game';
 import { MinionEntity } from '../../../types/game';
 import { TeamColorThemeId } from '../../../types/team';
+import { SessionTier } from '../../../constants/sessionLeaderboard';
 import { getActiveStatusEffects } from '../../../utils/statusEffects';
 import { ChampionEntranceAuraMeshes } from './ChampionEntranceAuraMeshes';
 import {
@@ -31,7 +32,7 @@ const GAUGE_STYLE = {
   BG_COLOR: '#020617',
   FURY_BORDER_FULL_OPACITY: 0.98,
   FURY_BORDER_IDLE_OPACITY: 0.72,
-  FURY_BORDER_IDLE_COLOR: '#f59e0b',
+  FURY_BORDER_IDLE_COLOR: '#1d4ed8',
 } as const;
 
 const HP_COLOR = { HEALTHY: '#10b981', WOUNDED: '#f59e0b', CRITICAL: '#ef4444' } as const;
@@ -46,6 +47,8 @@ export interface ChampionTokenProps {
   /** Crowded field: draw only portrait, border and HP (fewer draw calls). */
   isCompact: boolean;
   hasNameplate: boolean;
+  /** Live-session tier of the summoner: emblem on the nameplate. Passed in, never subscribed per token. */
+  sessionTier: SessionTier | undefined;
 }
 
 const getHpFillColor = (hpRatio: number): string => {
@@ -80,6 +83,7 @@ const areChampionTokenPropsEqual = (prev: ChampionTokenProps, next: ChampionToke
   const isLayoutEqual =
     prev.isCompact === next.isCompact &&
     prev.hasNameplate === next.hasNameplate &&
+    prev.sessionTier === next.sessionTier &&
     prev.colorThemeId === next.colorThemeId &&
     prev.shouldUseUserAvatar === next.shouldUseUserAvatar;
   if (!isLayoutEqual) return false;
@@ -87,7 +91,7 @@ const areChampionTokenPropsEqual = (prev: ChampionTokenProps, next: ChampionToke
 };
 
 export const ChampionToken = React.memo(
-  ({ minion, colorThemeId, shouldUseUserAvatar, isCompact, hasNameplate }: ChampionTokenProps) => {
+  ({ minion, colorThemeId, shouldUseUserAvatar, isCompact, hasNameplate, sessionTier }: ChampionTokenProps) => {
     const teamTheme = getTeamTheme(colorThemeId);
     const primaryColor = teamTheme.primaryHex;
     const critColor = teamTheme.critHex;
@@ -98,8 +102,15 @@ export const ChampionToken = React.memo(
     const signatureColor = GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR;
     const nameplateTexture = useMemo(() => {
       if (!hasNameplate) return null;
-      return getNameplateTexture(minion.championName, minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName);
-    }, [hasNameplate, minion.championName, minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName]);
+      return getNameplateTexture(
+        minion.championName,
+        minion.summonerName,
+        minion.team,
+        primaryColor,
+        minion.signaturePlayerName,
+        sessionTier
+      );
+    }, [hasNameplate, minion.championName, minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName, sessionTier]);
 
     const activeStatusEffect = getActiveStatusEffects(minion, Date.now())[0] ?? null;
 

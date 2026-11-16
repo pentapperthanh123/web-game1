@@ -6,6 +6,7 @@ import { playSound } from './soundManager';
 import { SFX_EVENT } from '../constants/sfx';
 import { useGameStore } from '../store/gameStore';
 import { triggerCombatDeployBanner } from '../store/combatDeployBannerStore';
+import { syncAmbience } from './arenaAmbience';
 
 /**
  * Triggers the immediate start of the round combat.
@@ -20,6 +21,7 @@ export const triggerStartRoundCombat = (): void => {
   casterQueue.clear();
   hideRoundIntro();
   audioService.setCombatMuted(false);
+  syncAmbience();
 
   // Play esports war drum, brass fanfare, and sword clash
   audioService.playCombatDeployBlastSound();

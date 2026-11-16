@@ -148,12 +148,15 @@ export const createInitialRosterFury = (
   return nextFury;
 };
 
-/** Returns the active heart tap fury multiplier if within the speed window. */
+/** Returns the active heart tap fury multiplier if within the speed window or under Battle Frenzy. */
 export const getActiveHeartFuryMultiplier = (
   momentum: TeamHeartMomentum | undefined,
   now: number
 ): number => {
   if (!momentum) return 1;
+  if (momentum.frenzyUntil && now < momentum.frenzyUntil) {
+    return Math.max(momentum.multiplier, GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_MAX);
+  }
   if (now - momentum.lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS) {
     return 1;
   }

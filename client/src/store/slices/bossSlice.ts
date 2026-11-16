@@ -17,6 +17,7 @@ import {
   BossSkillImpactPoint,
 } from '../../types/bossSkill';
 import {
+  BOSS_DEFEAT_CONSTANTS,
   BOSS_DIFFICULTY_SCALE,
   BOSS_ENRAGED_CONSTANTS,
   BOSS_MECHANICS_CONSTANTS,
@@ -617,6 +618,11 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     const isJustEnraged = !wasEnraged && isEnraged;
     const isDefeated = clampedHp <= 0;
     if (isDefeated) {
+      if (get().bossHp > 0) {
+        playSound(SFX_EVENT.BOSS_DEFEAT);
+        get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
+        get().triggerScreenFlash('#fbbf24');
+      }
       audioService.setCombatMuted(true);
       soundManager.stopAll();
     }

@@ -509,11 +509,33 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
 
     const result = runGiftExplosion(get, event, now);
     const isNowDefeated = get().bossStatus === BOSS_STATUS.DEFEATED || get().bossHp <= 0;
-    set((prev) => ({
-      activeMeteors: [...prev.activeMeteors.slice(-GIFT_METEOR_SPAWN.MAX_KEPT), ...result.meteors],
-      activeGiftBanner: isNowDefeated ? null : pickGiftBanner(prev.activeGiftBanner, result.banner, now),
-      bossStaggerUntil: Math.max(prev.bossStaggerUntil, result.bossStaggerUntil),
-    }));
+    set((prev) => {
+      const nextMomentum =
+        result.frenzyUntil && result.frenzyTeam
+          ? {
+              ...prev.teamHeartMomentum,
+              [result.frenzyTeam]: {
+                multiplier: Math.max(
+                  prev.teamHeartMomentum[result.frenzyTeam]?.multiplier ?? 1,
+                  GAME_CONSTANTS.MINION_FURY.HEART_TAP_MULTIPLIER_MAX
+                ),
+                lastTapAt: now,
+                burstCount: prev.teamHeartMomentum[result.frenzyTeam]?.burstCount ?? 0,
+                frenzyUntil: Math.max(
+                  prev.teamHeartMomentum[result.frenzyTeam]?.frenzyUntil ?? 0,
+                  result.frenzyUntil
+                ),
+              },
+            }
+          : prev.teamHeartMomentum;
+
+      return {
+        activeMeteors: [...prev.activeMeteors.slice(-GIFT_METEOR_SPAWN.MAX_KEPT), ...result.meteors],
+        activeGiftBanner: isNowDefeated ? null : pickGiftBanner(prev.activeGiftBanner, result.banner, now),
+        bossStaggerUntil: Math.max(prev.bossStaggerUntil, result.bossStaggerUntil),
+        teamHeartMomentum: nextMomentum,
+      };
+    });
     // Counted after the gift lands: a quest it completes rewards a damage burst, and that burst
     // must not land first and steal the killing blow from the gift (it hid the gift finisher).
     trackQuestProgress(get, team, QUEST_KIND.COINS, coins);

@@ -3,7 +3,7 @@ import type { GiftCatalogState, GiftConfigState } from '../constants/giftConfig.
 import type { Server } from 'socket.io';
 import type { WebcastPushConnection } from 'tiktok-live-connector';
 import type { TeamConfigState } from '../constants/teams.js';
-import type { SeriesFormatConfig, SilverScrapesDuelState } from '../constants/series.js';
+import type { GameThemeType, SeriesFormatConfig, SilverScrapesDuelState } from '../constants/series.js';
 import type { CasterConfig, ChatLimitConfig } from '../constants/liveOps.js';
 
 export interface OverlayVisibility {
@@ -51,13 +51,7 @@ export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
   'bossSkillBanner',
 ];
 
-export type GameThemeType =
-  | 'BARON'
-  | 'ELDER_DRAGON'
-  | 'XU_GIA'
-  | 'RONG_NUI'
-  | 'RONG_GIA'
-  | 'VOID_TITAN';
+export type { GameThemeType };
 
 export const VALID_GAME_THEMES = new Set<GameThemeType>([
   'BARON',
@@ -106,6 +100,8 @@ export interface ParticipationRuleConfig {
   summonTurnDelayMs?: number;
   /** Summoned champions attack this many times faster than the base interval (1 = base). */
   championAttackSpeedMultiplier?: number;
+  /** Regular time of a round before overtime; 0 = no time limit. */
+  roundDurationMs?: number;
 }
 
 export const SUMMON_QUEUE_LIMITS = {
@@ -120,6 +116,13 @@ export const SUMMON_QUEUE_LIMITS = {
   MAX_CHAMPION_ATTACK_SPEED_MULTIPLIER: 4,
 } as const;
 
+/** Mirrors client ROUND_CLOCK_CONSTANTS: 0 turns the round time limit off. */
+export const ROUND_DURATION_LIMITS = {
+  DEFAULT_MS: 240_000,
+  NO_LIMIT_MS: 0,
+  MAX_MS: 900_000,
+} as const;
+
 export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
   allowTeamOnlySummon: true,
   autoMatchSignatureTeam: true,
@@ -128,6 +131,7 @@ export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
   maxDeployPerTurn: SUMMON_QUEUE_LIMITS.DEFAULT_DEPLOY_PER_TURN,
   summonTurnDelayMs: SUMMON_QUEUE_LIMITS.DEFAULT_TURN_DELAY_MS,
   championAttackSpeedMultiplier: SUMMON_QUEUE_LIMITS.DEFAULT_CHAMPION_ATTACK_SPEED_MULTIPLIER,
+  roundDurationMs: ROUND_DURATION_LIMITS.DEFAULT_MS,
 };
 
 export type TikTokConnectionStatus =

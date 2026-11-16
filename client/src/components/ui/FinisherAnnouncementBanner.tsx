@@ -5,7 +5,7 @@ import { useGameStore } from '../../store/gameStore';
 import {
   BOSS_STATUS,
   FINISHER_BANNER_CONSTANTS,
-  GAME_CONSTANTS,
+  calculateGiftBaseDamage,
   getThemeConfig,
   isDonorFinisherCheck,
   TEAM_KEY,
@@ -63,7 +63,7 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
   });
 
   const calculatedDamage =
-    (finisherCoins ?? 0) * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN || 300000;
+    (finisherCoins ?? 0) > 0 ? calculateGiftBaseDamage(finisherCoins!) : 300000;
 
   useEffect(() => {
     if (bossStatus !== BOSS_STATUS.DEFEATED || bossDefeatedTimestamp <= 0) {

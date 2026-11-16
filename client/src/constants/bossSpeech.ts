@@ -75,7 +75,7 @@ export const BOSS_SPEECHES: Record<GameThemeType, Record<SpeechCategory, readonl
       { id: 'bn_a_7', text: 'Gai Hư Không đã sẵn sàng phóng thích hủy diệt đấu trường!', icon: 'swords' },
       { id: 'bn_a_8', text: 'Ai dám bén mảng vào hang đều sẽ phải trả giá bằng mạng sống!', icon: 'flame' },
       { id: 'bn_a_9', text: 'Đại Lôi Kích Hư Không sắp giáng xuống đầu những kẻ ngạo mạn!', icon: 'zap' },
-      { id: 'bn_a_10', text: 'Bóng tối vĩnh hằng sẽ bao trùm toàn bộ Summoner Rift!', icon: 'crown' },
+      { id: 'bn_a_10', text: "Bóng tối vĩnh hằng sẽ bao trùm toàn bộ Summoner's Rift!", icon: 'crown' },
     ],
     POKE: [
       { id: 'bn_p_1', text: 'Grừừ... Dám chọc vào vảy Hư Không sao?!', icon: 'flame' },
@@ -103,7 +103,7 @@ export const BOSS_SPEECHES: Record<GameThemeType, Record<SpeechCategory, readonl
       { id: 'xg_a_1', text: 'Cua khổng lồ Hư Không sẵn sàng húc đổ mọi chướng ngại vật!', icon: 'crown' },
       { id: 'xg_a_2', text: 'Vỏ giáp ngọc bích tỏa sáng rực rỡ trong hang Khe Nứt!', icon: 'flame' },
       { id: 'xg_a_3', text: 'Ai hạ được Sứ Giả sẽ nắm giữ lợi thế dẫn trước ván đấu!', icon: 'swords' },
-      { id: 'xg_a_4', text: 'Bước chân dũng mãnh rung chuyển cả Summoner Rift!', icon: 'zap' },
+      { id: 'xg_a_4', text: "Bước chân dũng mãnh rung chuyển cả Summoner's Rift!", icon: 'zap' },
       { id: 'xg_a_5', text: 'Đòn húc cuồng nộ sẽ san bằng tiền tuyến của kẻ địch!', icon: 'crown' },
     ],
     POKE: [

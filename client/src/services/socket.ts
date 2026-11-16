@@ -5,11 +5,13 @@ import { TeamConfigState } from '../types/team';
 import { OVERLAY_SECTION, GameThemeType, TeamType, GAME_CONSTANTS, GIFT_TIER, GIFT_TIER_CONFIG, TEAM_KEY } from '../constants/game';
 import { applyCasterConfig } from '../store/casterStore';
 import { hasSpeechNameField, registerSpeechName } from './caster/speechNameRegistry';
-import { announceFollow, announceShare, announceSmallGiftCombo } from './caster/casterDirector';
+import { announceFollow, announceShare } from './caster/casterDirector';
 import { setCasterWarmSender } from './caster/casterWarmChannel';
 import { startChampionshipTallyReporter } from './championshipTallyReporter';
 import { SERIES_PROGRESS_SOCKET_EVENT, startSeriesProgressReporter } from './seriesProgressReporter';
 import { CHAMPIONSHIP_TALLY_SOCKET_EVENT } from '../constants/championshipTally';
+import { SESSION_LEADERBOARD_SOCKET_EVENT } from '../constants/sessionLeaderboard';
+import { resetSessionLeaderboard } from '../store/sessionLeaderboardStore';
 import { GIFT_CONFIG_SOCKET_EVENT, GiftRulePayload, parseGiftRulePayload } from '../constants/giftConfig';
 import { applyGiftConfigPayload } from '../store/giftConfigStore';
 import { sanitizeTeamConfigState } from '../constants/teams';
@@ -20,6 +22,7 @@ import {
   usePlayerLeaderboardStore,
 } from '../store/playerLeaderboardStore';
 import { triggerStartRoundCombat } from './roundIntroActions';
+import { recordRoseGift } from '../store/roseGratitudeStore';
 
 export const LIVE_OPS_SOCKET_EVENT = {
   AUTH_ERROR: 'server:auth-error',
@@ -392,6 +395,10 @@ class GameSocketClient {
         useGameStore.getState().resetMatchupChampionships();
       });
 
+      this.socket.on(SESSION_LEADERBOARD_SOCKET_EVENT.RESET, () => {
+        resetSessionLeaderboard();
+      });
+
       this.socket.on('game:champion-damage-config', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         if (typeof payload?.multiplier === 'number') {
@@ -753,8 +760,8 @@ class GameSocketClient {
       );
 
       const isSmallGift = (gift.coins ?? 0) < GIFT_TIER_CONFIG[GIFT_TIER.MEDIUM].minCoins;
-      if (gift.isComboFinal && isSmallGift && gift.team) {
-        announceSmallGiftCombo(gift.donorName, gift.team, gift.giftName, gift.streakCount ?? 1);
+      if (isSmallGift && gift.team) {
+        recordRoseGift(gift.donorName, gift.team, gift.streakCount ?? 1, gift.donorAvatarUrl);
       }
     });
   }

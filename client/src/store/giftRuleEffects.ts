@@ -10,28 +10,49 @@ interface GiftEffectContext {
   rule: GiftRulePayload;
 }
 
-/** Each special gift effect; returns the boss stun deadline it sets (0 = none). */
-const EFFECT_HANDLERS: Readonly<Record<GiftEffect, (context: GiftEffectContext, now: number) => number>> = {
-  [GIFT_EFFECT.NONE]: () => 0,
+export interface GiftRuleEffectResult {
+  bossStunUntil: number;
+  frenzyDurationMs: number;
+}
+
+/** Each special gift effect; returns the boss stun deadline and frenzy duration it sets. */
+const EFFECT_HANDLERS: Readonly<Record<GiftEffect, (context: GiftEffectContext, now: number) => GiftRuleEffectResult>> = {
+  [GIFT_EFFECT.NONE]: () => ({ bossStunUntil: 0, frenzyDurationMs: 0 }),
   // Not a gift bypass: the one-champion-per-viewer rule applies, so a long combo cannot flood the field
   [GIFT_EFFECT.SUMMON_CHAMPION]: ({ get, team, donorName, donorAvatarUrl, rule }) => {
     if (rule.effectChampion) get().summonMinion(donorName, rule.effectChampion, team, false, donorAvatarUrl, true);
-    return 0;
+    return { bossStunUntil: 0, frenzyDurationMs: 0 };
   },
   [GIFT_EFFECT.HEAL_TEAM]: ({ get, team }) => {
     get().healTeamChampions(team, GIFT_EFFECT_TUNING.HEAL_AMOUNT);
-    return 0;
+    return { bossStunUntil: 0, frenzyDurationMs: 0 };
   },
-  [GIFT_EFFECT.STUN_BOSS]: (_context, now) => now + GIFT_EFFECT_TUNING.STUN_DURATION_MS,
+  [GIFT_EFFECT.STUN_BOSS]: (_context, now) => ({
+    bossStunUntil: now + GIFT_EFFECT_TUNING.STUN_DURATION_MS,
+    frenzyDurationMs: 0,
+  }),
   [GIFT_EFFECT.FULL_FURY]: ({ get, team }) => {
     const roster = get().activeTeams[team]?.roster ?? [];
     roster.forEach((pro) => get().addPlayerFury(pro.id, GIFT_EFFECT_TUNING.FURY_AMOUNT));
-    return 0;
+    return { bossStunUntil: 0, frenzyDurationMs: 0 };
+  },
+  [GIFT_EFFECT.BATTLE_FRENZY]: ({ get, team }) => {
+    const roster = get().activeTeams[team]?.roster ?? [];
+    roster.forEach((pro) => get().addPlayerFury(pro.id, GIFT_EFFECT_TUNING.FRENZY_FURY_AMOUNT));
+    get().healTeamChampions(team, GIFT_EFFECT_TUNING.FRENZY_HEAL_AMOUNT);
+    return { bossStunUntil: 0, frenzyDurationMs: GIFT_EFFECT_TUNING.FRENZY_DURATION_MS };
+  },
+  [GIFT_EFFECT.AEGIS_BARRIER]: ({ get, team }, now) => {
+    get().healTeamChampions(team, GIFT_EFFECT_TUNING.AEGIS_HEAL_AMOUNT);
+    return {
+      bossStunUntil: now + GIFT_EFFECT_TUNING.AEGIS_STUN_DURATION_MS,
+      frenzyDurationMs: 0,
+    };
   },
 };
 
-/** Runs the admin-configured effect of a gift; returns the boss stun deadline it asks for (0 = none). */
-export const applyGiftRuleEffect = (context: GiftEffectContext, now: number): number =>
+/** Runs the admin-configured effect of a gift; returns the boss stun deadline and frenzy duration. */
+export const applyGiftRuleEffect = (context: GiftEffectContext, now: number): GiftRuleEffectResult =>
   EFFECT_HANDLERS[context.rule.effect](context, now);
 
 export const resolveGiftDamageMultiplier = (rule: GiftRulePayload | undefined): number =>

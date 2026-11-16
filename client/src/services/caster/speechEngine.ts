@@ -63,6 +63,8 @@ class CasterSpeechEngine {
   private readonly clipUrls = new Map<string, Promise<string>>();
   private currentAudio: HTMLAudioElement | null = null;
   private finishCurrent: ((outcome: SpeechOutcome) => void) | null = null;
+  private currentDonateAudio: HTMLAudioElement | null = null;
+  private finishCurrentDonate: ((outcome: SpeechOutcome) => void) | null = null;
   private consecutiveFailures = 0;
   private suspendedUntil = 0;
   private isWaitingForGesture = false;
@@ -98,18 +100,45 @@ class CasterSpeechEngine {
 
   /** `deadlineAt` (epoch ms): speed the clip up just enough to finish by then. */
   public speak(text: string, lang: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
+    return this.speakMain(text, lang, onStart, deadlineAt);
+  }
+
+  /** Speaks general caster commentary lines (ducked if donate audio is currently playing). */
+  public speakMain(text: string, lang: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
     if (this.isSuspended(Date.now())) return Promise.resolve(SPEECH_OUTCOME.SUSPENDED);
     return waitForClip(this.getClipUrl(text, lang))
       .then((url) => {
         const isTooLate = deadlineAt !== undefined && Date.now() >= deadlineAt;
-        return isTooLate ? SPEECH_OUTCOME.EXPIRED : this.play(url, onStart, deadlineAt);
+        return isTooLate ? SPEECH_OUTCOME.EXPIRED : this.playMain(url, onStart, deadlineAt);
       })
       .catch((error: unknown) => this.handleClipError(text, lang, error));
   }
 
-  /** Cuts the line being spoken (used when a P1 line preempts). */
+  /** Dedicated donate voice channel that plays in parallel at full volume, ducking ongoing commentary. */
+  public speakDonate(text: string, lang: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
+    if (this.isSuspended(Date.now())) return Promise.resolve(SPEECH_OUTCOME.SUSPENDED);
+    return waitForClip(this.getClipUrl(text, lang))
+      .then((url) => {
+        const isTooLate = deadlineAt !== undefined && Date.now() >= deadlineAt;
+        return isTooLate ? SPEECH_OUTCOME.EXPIRED : this.playDonate(url, onStart, deadlineAt);
+      })
+      .catch((error: unknown) => this.handleClipError(text, lang, error));
+  }
+
+  /** Cuts the main commentary line being spoken. */
   public interrupt(): void {
     this.finishCurrent?.(SPEECH_OUTCOME.INTERRUPTED);
+  }
+
+  /** Cuts the donate line being spoken. */
+  public interruptDonate(): void {
+    this.finishCurrentDonate?.(SPEECH_OUTCOME.INTERRUPTED);
+  }
+
+  /** Cuts both commentary and donate lines. */
+  public interruptAll(): void {
+    this.finishCurrent?.(SPEECH_OUTCOME.INTERRUPTED);
+    this.finishCurrentDonate?.(SPEECH_OUTCOME.INTERRUPTED);
   }
 
   private getClipUrl(text: string, lang: string): Promise<string> {
@@ -152,11 +181,17 @@ class CasterSpeechEngine {
     oldest?.then((url) => URL.revokeObjectURL(url)).catch(() => undefined);
   }
 
-  private play(url: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
+  private updateSfxDuck(): void {
+    const isAnySpeaking = this.currentAudio !== null || this.currentDonateAudio !== null;
+    soundManager.setVoiceDuck(isAnySpeaking ? CASTER_SPEECH.SFX_DUCK_FACTOR : 1);
+  }
+
+  private playMain(url: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
     return new Promise<SpeechOutcome>((resolve) => {
       const audio = new Audio(url);
-      audio.volume = Math.min(1, audioService.volume * CASTER_SPEECH.VOICE_VOLUME);
-      // Both: loading a clip resets playbackRate to the default rate
+      const isDonateActive = this.currentDonateAudio !== null;
+      const duckFactor = isDonateActive ? CASTER_SPEECH.COMMENTARY_DUCK_WHILE_DONATE : 1;
+      audio.volume = Math.min(1, audioService.volume * CASTER_SPEECH.VOICE_VOLUME * duckFactor);
       audio.defaultPlaybackRate = CASTER_SPEECH.NORMAL_RATE;
       audio.playbackRate = CASTER_SPEECH.NORMAL_RATE;
       if (deadlineAt) {
@@ -171,7 +206,7 @@ class CasterSpeechEngine {
         audio.pause();
         this.currentAudio = null;
         this.finishCurrent = null;
-        soundManager.setVoiceDuck(1);
+        this.updateSfxDuck();
         this.trackOutcome(outcome);
         resolve(outcome);
       };
@@ -184,7 +219,62 @@ class CasterSpeechEngine {
       audio
         .play()
         .then(() => {
-          soundManager.setVoiceDuck(CASTER_SPEECH.SFX_DUCK_FACTOR);
+          this.updateSfxDuck();
+          onStart();
+        })
+        .catch((error: unknown) => {
+          const isAutoplayBlock = error instanceof DOMException && error.name === AUTOPLAY_ERROR_NAME;
+          if (isAutoplayBlock) this.waitForGesture();
+          finish(isAutoplayBlock ? SPEECH_OUTCOME.AUTOPLAY_BLOCKED : SPEECH_OUTCOME.FAILED);
+        });
+    });
+  }
+
+  private playDonate(url: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
+    return new Promise<SpeechOutcome>((resolve) => {
+      const audio = new Audio(url);
+      audio.volume = Math.min(1, audioService.volume * CASTER_SPEECH.DONATE_VOICE_VOLUME);
+      audio.defaultPlaybackRate = CASTER_SPEECH.NORMAL_RATE;
+      audio.playbackRate = CASTER_SPEECH.NORMAL_RATE;
+      if (deadlineAt) {
+        FIT_RATE_EVENTS.forEach((eventName) => audio.addEventListener(eventName, () => fitToDeadline(audio, deadlineAt)));
+      }
+      this.currentDonateAudio = audio;
+
+      // Duck commentary voice while donate voice is reading in parallel
+      if (this.currentAudio) {
+        this.currentAudio.volume = Math.min(
+          1,
+          audioService.volume * CASTER_SPEECH.VOICE_VOLUME * CASTER_SPEECH.COMMENTARY_DUCK_WHILE_DONATE
+        );
+      }
+
+      let watchdog: ReturnType<typeof setTimeout> | null = null;
+      const finish = (outcome: SpeechOutcome): void => {
+        if (this.currentDonateAudio !== audio) return;
+        if (watchdog) clearTimeout(watchdog);
+        audio.pause();
+        this.currentDonateAudio = null;
+        this.finishCurrentDonate = null;
+
+        // Restore commentary voice volume when donate voice finishes
+        if (this.currentAudio) {
+          this.currentAudio.volume = Math.min(1, audioService.volume * CASTER_SPEECH.VOICE_VOLUME);
+        }
+        this.updateSfxDuck();
+        this.trackOutcome(outcome);
+        resolve(outcome);
+      };
+      this.finishCurrentDonate = finish;
+
+      audio.addEventListener('ended', () => finish(SPEECH_OUTCOME.SPOKEN), { once: true });
+      audio.addEventListener('error', () => finish(SPEECH_OUTCOME.FAILED), { once: true });
+      watchdog = setTimeout(() => finish(SPEECH_OUTCOME.FAILED), CASTER_SPEECH.WATCHDOG_MS);
+
+      audio
+        .play()
+        .then(() => {
+          this.updateSfxDuck();
           onStart();
         })
         .catch((error: unknown) => {

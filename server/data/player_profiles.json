@@ -2,7 +2,7 @@
   "profiles": {
     "Hội Quân": {
       "userName": "Hội Quân",
-      "lastSeenAt": 1794759573412,
+      "lastSeenAt": 1794819417007,
       "periods": {
         "2026-W46": {
           "totalDamage": 54818,
@@ -10,13 +10,18 @@
           "mvpCount": 15
         },
         "2026-11": {
-          "totalDamage": 54818,
-          "roundsPlayed": 33,
+          "totalDamage": 57054,
+          "roundsPlayed": 35,
           "mvpCount": 15
+        },
+        "2026-W47": {
+          "totalDamage": 2236,
+          "roundsPlayed": 2,
+          "mvpCount": 0
         }
       },
-      "totalDamage": 54818,
-      "roundsPlayed": 33,
+      "totalDamage": 57054,
+      "roundsPlayed": 35,
       "mvpCount": 15
     },
     "Gamer_Pro_99_565": {
@@ -19265,6 +19270,44 @@
       "totalDamage": 117562,
       "roundsPlayed": 1,
       "mvpCount": 0
+    },
+    "🛡️ Tiên Phong T1": {
+      "userName": "🛡️ Tiên Phong T1",
+      "lastSeenAt": 1794823105247,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 47736,
+          "roundsPlayed": 3,
+          "mvpCount": 2
+        },
+        "2026-11": {
+          "totalDamage": 47736,
+          "roundsPlayed": 3,
+          "mvpCount": 2
+        }
+      },
+      "totalDamage": 47736,
+      "roundsPlayed": 3,
+      "mvpCount": 2
+    },
+    "⚔️ Tiên Phong GEN": {
+      "userName": "⚔️ Tiên Phong GEN",
+      "lastSeenAt": 1794823105247,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 41871,
+          "roundsPlayed": 3,
+          "mvpCount": 1
+        },
+        "2026-11": {
+          "totalDamage": 41871,
+          "roundsPlayed": 3,
+          "mvpCount": 1
+        }
+      },
+      "totalDamage": 41871,
+      "roundsPlayed": 3,
+      "mvpCount": 1
     }
   },
   "recentRoundIds": [
@@ -19383,6 +19426,9 @@
     "1794759397884-1",
     "1794759717852-1",
     "1794759717852-2",
-    "1794759717852-3"
+    "1794759717852-3",
+    "1794815090009-1",
+    "1794819113895-1",
+    "1794822906905-1"
   ]
 }

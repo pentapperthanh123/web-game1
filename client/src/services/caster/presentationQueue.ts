@@ -9,6 +9,7 @@ import {
   CasterPriority,
   CasterSignal,
   CasterVoice,
+  isDonateSignal,
 } from '../../constants/caster';
 import { BOSS_VOICE_KIND } from '../../constants/sfx';
 import { useGameStore } from '../../store/gameStore';
@@ -88,17 +89,22 @@ const byPriorityThenAge = (a: QueuedLine, b: QueuedLine): number =>
   a.priority - b.priority || a.createdAt - b.createdAt;
 
 /**
- * Priority ladder of spec 2.4: P1 interrupts, P2 jumps the line, P3 is FIFO,
- * P4 is spaced ≥ 4 s and merged per team, P5 only fills silence. Expired lines are dropped.
+ * Dual-channel Presentation Queue:
+ * - Channel 1 (Main Commentary): Priority ladder P1..P5 for general game events, summons & banter.
+ * - Channel 2 (Donate Voice): High-priority parallel channel for donation shoutouts that plays
+ *   simultaneously, ducking ongoing commentary so donors are never delayed or dropped.
  */
 class PresentationQueue {
-  private pending: QueuedLine[] = [];
-  private current: QueuedLine | null = null;
+  private pendingMain: QueuedLine[] = [];
+  private pendingDonate: QueuedLine[] = [];
+  private currentMain: QueuedLine | null = null;
+  private currentDonate: QueuedLine | null = null;
   private nextId = 1;
   private lastP4At = 0;
   private lastSummonTeam: TeamType | null = null;
   private lastSpeechEndAt = Date.now();
-  private pumpTimer: ReturnType<typeof setTimeout> | null = null;
+  private mainPumpTimer: ReturnType<typeof setTimeout> | null = null;
+  private donatePumpTimer: ReturnType<typeof setTimeout> | null = null;
 
   public enqueue(line: CasterLine): void {
     if (!useCasterStore.getState().isTtsEnabled) return;
@@ -106,21 +112,36 @@ class PresentationQueue {
     const text = toSpeakableText(line.text);
     if (!text) return;
     const queued: QueuedLine = { ...line, text, id: this.nextId++ };
-    this.pending.push(queued);
-    this.trimOverflow();
-    // Boss lines are a roar + caption: nothing to download
+
+    if (isDonateSignal(queued.signal)) {
+      this.pendingDonate.push(queued);
+      this.trimDonateOverflow();
+      casterSpeechEngine.prefetch(queued.text, getCasterLang());
+      this.scheduleDonatePump(0);
+      return;
+    }
+
+    this.pendingMain.push(queued);
+    this.trimMainOverflow();
     const isSpoken = queued.voice !== CASTER_VOICE.BOSS;
     if (isSpoken && queued.priority <= CASTER_QUEUE.PREFETCH_MAX_PRIORITY) {
       casterSpeechEngine.prefetch(queued.text, getCasterLang());
     }
     const isPreempting =
-      queued.priority === CASTER_PRIORITY.P1 && this.current !== null && this.current.priority !== CASTER_PRIORITY.P1;
+      queued.priority === CASTER_PRIORITY.P1 &&
+      this.currentMain !== null &&
+      this.currentMain.priority !== CASTER_PRIORITY.P1;
     if (isPreempting) casterSpeechEngine.interrupt();
-    this.schedulePump(0);
+    this.scheduleMainPump(0);
   }
 
   public isBusy(): boolean {
-    return this.current !== null || this.pending.length > 0;
+    return (
+      this.currentMain !== null ||
+      this.pendingMain.length > 0 ||
+      this.currentDonate !== null ||
+      this.pendingDonate.length > 0
+    );
   }
 
   public getSilenceMs(now: number): number {
@@ -129,58 +150,135 @@ class PresentationQueue {
 
   /** Drops queued (not yet spoken) lines of these signals; the line being spoken finishes. */
   public dropPending(signals: ReadonlySet<CasterSignal>): void {
-    this.pending = this.pending.filter((line) => !signals.has(line.signal));
+    this.pendingMain = this.pendingMain.filter((line) => !signals.has(line.signal));
+    this.pendingDonate = this.pendingDonate.filter((line) => !signals.has(line.signal));
   }
 
   public clear(): void {
-    this.pending = [];
-    casterSpeechEngine.interrupt();
+    this.pendingMain = [];
+    this.pendingDonate = [];
+    casterSpeechEngine.interruptAll();
   }
 
-  private trimOverflow(): void {
-    if (this.pending.length <= CASTER_QUEUE.MAX_PENDING_LINES) return;
-    // Drop the least important, oldest line
-    this.pending.sort(byPriorityThenAge);
-    this.pending.pop();
+  private trimMainOverflow(): void {
+    if (this.pendingMain.length <= CASTER_QUEUE.MAX_PENDING_LINES) return;
+    this.pendingMain.sort(byPriorityThenAge);
+    this.pendingMain.pop();
   }
 
-  private schedulePump(delayMs: number): void {
-    if (this.pumpTimer) clearTimeout(this.pumpTimer);
-    this.pumpTimer = setTimeout(() => {
-      this.pumpTimer = null;
-      this.pump();
+  private trimDonateOverflow(): void {
+    if (this.pendingDonate.length <= CASTER_QUEUE.MAX_PENDING_LINES) return;
+    this.pendingDonate.sort((a, b) => a.createdAt - b.createdAt);
+    this.pendingDonate.pop();
+  }
+
+  // ── Donate Voice Channel (Parallel) ───────────────────────────────────────────
+
+  private scheduleDonatePump(delayMs: number): void {
+    if (this.donatePumpTimer) clearTimeout(this.donatePumpTimer);
+    this.donatePumpTimer = setTimeout(() => {
+      this.donatePumpTimer = null;
+      this.pumpDonate();
     }, delayMs);
   }
 
-  private pump(): void {
-    if (this.current || casterSpeechEngine.isLocked()) return;
+  private pumpDonate(): void {
+    if (this.currentDonate || casterSpeechEngine.isLocked()) return;
     const now = Date.now();
-    this.pending = this.pending.filter(
+    this.pendingDonate = this.pendingDonate.filter(
+      (line) => now - line.createdAt < (line.ttlMs ?? CASTER_SPEECH.DONATE_TTL_MS)
+    );
+    if (this.pendingDonate.length === 0) return;
+    this.pendingDonate.sort((a, b) => a.createdAt - b.createdAt);
+
+    const next = this.pendingDonate.shift();
+    if (!next) return;
+    void this.speakDonate(next);
+  }
+
+  private async speakDonate(line: QueuedLine): Promise<void> {
+    this.currentDonate = line;
+    const showSubtitle = (): void =>
+      useCasterStore.setState({
+        donateSubtitle: {
+          id: line.id,
+          text: line.text,
+          priority: line.priority,
+          voice: CASTER_VOICE.CASTER,
+        },
+      });
+
+    const outcome = await casterSpeechEngine.speakDonate(
+      line.text,
+      getCasterLang(),
+      showSubtitle,
+      line.deadlineAt
+    );
+
+    if (outcome === SPEECH_OUTCOME.AUTOPLAY_BLOCKED) {
+      this.holdUntilDonateVoiceUnlocked(line);
+      return;
+    }
+
+    if (SUBTITLE_ONLY_OUTCOMES.has(outcome)) {
+      showSubtitle();
+      await wait(estimateSubtitleMs(line.text));
+    }
+
+    if (outcome !== SPEECH_OUTCOME.EXPIRED) await wait(CASTER_SPEECH.SUBTITLE_LINGER_MS);
+    if (useCasterStore.getState().donateSubtitle?.id === line.id) {
+      useCasterStore.setState({ donateSubtitle: null });
+    }
+
+    this.currentDonate = null;
+    this.scheduleDonatePump(CASTER_SPEECH.DONATE_GAP_MS);
+  }
+
+  private holdUntilDonateVoiceUnlocked(line: QueuedLine): void {
+    this.pendingDonate.unshift(line);
+    this.currentDonate = null;
+    void casterSpeechEngine.whenUnlocked().then(() => this.scheduleDonatePump(0));
+  }
+
+  // ── Main Commentary Channel ───────────────────────────────────────────────────
+
+  private scheduleMainPump(delayMs: number): void {
+    if (this.mainPumpTimer) clearTimeout(this.mainPumpTimer);
+    this.mainPumpTimer = setTimeout(() => {
+      this.mainPumpTimer = null;
+      this.pumpMain();
+    }, delayMs);
+  }
+
+  private pumpMain(): void {
+    if (this.currentMain || casterSpeechEngine.isLocked()) return;
+    const now = Date.now();
+    this.pendingMain = this.pendingMain.filter(
       (line) => now - line.createdAt < (line.ttlMs ?? CASTER_PRIORITY_TTL_MS[line.priority])
     );
-    if (this.pending.length === 0) return;
-    this.pending.sort(byPriorityThenAge);
+    if (this.pendingMain.length === 0) return;
+    this.pendingMain.sort(byPriorityThenAge);
 
-    const head = this.pending[0];
+    const head = this.pendingMain[0];
     const p4WaitMs = CASTER_QUEUE.MIN_P4_GAP_MS - (now - this.lastP4At);
     if (head.priority === CASTER_PRIORITY.P4 && p4WaitMs > 0) {
-      this.schedulePump(p4WaitMs);
+      this.scheduleMainPump(p4WaitMs);
       return;
     }
     const next = head.signal === CASTER_SIGNAL.SUMMON ? this.pickFairSummon(head) : head;
-    this.pending = this.pending.filter((line) => line.id !== next.id);
+    this.pendingMain = this.pendingMain.filter((line) => line.id !== next.id);
     if (next.signal !== CASTER_SIGNAL.SUMMON) {
-      void this.speak(next);
+      void this.speakMain(next);
       return;
     }
     this.lastSummonTeam = next.team ?? null;
-    void this.speak(this.mergeSummonWave(next));
+    void this.speakMain(this.mergeSummonWave(next));
   }
 
   /** Alternates teams: a flood on one side must not starve the other side's summon lines. */
   private pickFairSummon(head: QueuedLine): QueuedLine {
     if (head.team !== this.lastSummonTeam) return head;
-    const otherTeamLine = this.pending.find(
+    const otherTeamLine = this.pendingMain.find(
       (line) => line.signal === CASTER_SIGNAL.SUMMON && line.team !== this.lastSummonTeam
     );
     return otherTeamLine ?? head;
@@ -188,14 +286,15 @@ class PresentationQueue {
 
   /** Roll call: "A, B, C và D xuống đường cho T1!" names every queued summoner of that team. */
   private mergeSummonWave(first: QueuedLine): QueuedLine {
-    const sameTeam = this.pending.filter((line) => line.signal === CASTER_SIGNAL.SUMMON && line.team === first.team);
+    const sameTeam = this.pendingMain.filter(
+      (line) => line.signal === CASTER_SIGNAL.SUMMON && line.team === first.team
+    );
     if (sameTeam.length + 1 < CASTER_QUEUE.MERGE_SUMMON_THRESHOLD) return first;
 
     const rollCall = pickRollCall([first, ...sameTeam]);
-    // One viewer summoning several times (or names switched off) must not be read as "A và A"
     if (rollCall.names.length < CASTER_QUEUE.ROLLCALL_MIN_NAMES) return this.mergeAsCount(first, sameTeam);
 
-    this.pending = this.pending.filter((line) => !rollCall.lineIds.has(line.id));
+    this.pendingMain = this.pendingMain.filter((line) => !rollCall.lineIds.has(line.id));
     const text = composeCasterLine(CASTER_SIGNAL.SUMMON_MERGED, {
       names: joinSpokenNames(rollCall.names),
       count: rollCall.lineIds.size,
@@ -207,7 +306,7 @@ class PresentationQueue {
   /** "T1 thêm 5 tướng!" when there are no distinct names to read. */
   private mergeAsCount(first: QueuedLine, sameTeam: readonly QueuedLine[]): QueuedLine {
     const mergedIds = new Set(sameTeam.map((line) => line.id));
-    this.pending = this.pending.filter((line) => !mergedIds.has(line.id));
+    this.pendingMain = this.pendingMain.filter((line) => !mergedIds.has(line.id));
     const text = composeCasterLine(CASTER_SIGNAL.SUMMON_WAVE, {
       count: sameTeam.length + 1,
       team: first.teamTag ?? '',
@@ -215,8 +314,8 @@ class PresentationQueue {
     return text ? { ...first, signal: CASTER_SIGNAL.SUMMON_WAVE, text } : first;
   }
 
-  private async speak(line: QueuedLine): Promise<void> {
-    this.current = line;
+  private async speakMain(line: QueuedLine): Promise<void> {
+    this.currentMain = line;
     const voice = line.voice ?? CASTER_VOICE.CASTER;
     const showSubtitle = (): void =>
       useCasterStore.setState({ subtitle: { id: line.id, text: line.text, priority: line.priority, voice } });
@@ -224,9 +323,9 @@ class PresentationQueue {
       await this.showBossLine(line, showSubtitle);
       return;
     }
-    const outcome = await casterSpeechEngine.speak(line.text, getCasterLang(), showSubtitle, line.deadlineAt);
+    const outcome = await casterSpeechEngine.speakMain(line.text, getCasterLang(), showSubtitle, line.deadlineAt);
     if (outcome === SPEECH_OUTCOME.AUTOPLAY_BLOCKED) {
-      this.holdUntilVoiceUnlocked(line);
+      this.holdUntilMainVoiceUnlocked(line);
       return;
     }
 
@@ -234,39 +333,34 @@ class PresentationQueue {
       showSubtitle();
       await wait(estimateSubtitleMs(line.text));
     }
-    // A skipped (too late) line showed nothing, so the next one starts right away
     if (outcome !== SPEECH_OUTCOME.EXPIRED) await wait(CASTER_SPEECH.SUBTITLE_LINGER_MS);
     if (useCasterStore.getState().subtitle?.id === line.id) useCasterStore.setState({ subtitle: null });
 
-    this.current = null;
+    this.currentMain = null;
     this.lastSpeechEndAt = Date.now();
     if (line.priority === CASTER_PRIORITY.P4) this.lastP4At = this.lastSpeechEndAt;
-    this.schedulePump(CASTER_QUEUE.LINE_GAP_MS);
+    this.scheduleMainPump(CASTER_QUEUE.LINE_GAP_MS);
   }
 
-  /**
-   * Browser tab without a click yet: keep the line and carry on after the first click.
-   * Lines that went stale meanwhile are dropped by TTL, intro lines past their deadline are skipped.
-   */
-  private holdUntilVoiceUnlocked(line: QueuedLine): void {
-    this.pending.unshift(line);
-    this.current = null;
-    void casterSpeechEngine.whenUnlocked().then(() => this.schedulePump(0));
+  private holdUntilMainVoiceUnlocked(line: QueuedLine): void {
+    this.pendingMain.unshift(line);
+    this.currentMain = null;
+    void casterSpeechEngine.whenUnlocked().then(() => this.scheduleMainPump(0));
   }
 
   /** The boss roars with its own voice SFX while its line is shown as a caption. */
   private async showBossLine(line: QueuedLine, showSubtitle: () => void): Promise<void> {
     if (isCurrentRoundIntroActive()) {
-      this.current = null;
+      this.currentMain = null;
       return;
     }
     playBossVoice(useGameStore.getState().gameTheme, BOSS_VOICE_KIND.ROAR);
     showSubtitle();
     await wait(Math.max(BOSS_CAPTION.MIN_MS, line.text.length * BOSS_CAPTION.MS_PER_CHAR));
     if (useCasterStore.getState().subtitle?.id === line.id) useCasterStore.setState({ subtitle: null });
-    this.current = null;
+    this.currentMain = null;
     this.lastSpeechEndAt = Date.now();
-    this.schedulePump(CASTER_QUEUE.LINE_GAP_MS);
+    this.scheduleMainPump(CASTER_QUEUE.LINE_GAP_MS);
   }
 }
 

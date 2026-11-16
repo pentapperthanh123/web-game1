@@ -5,8 +5,9 @@ import { CHAMPION_HIT_FEEDBACK } from '../constants/bossSkillVfx';
 import { COMBAT_VFX_CONSTANTS, TEAM_KEY } from '../constants/game';
 import { emitChampionHit } from '../services/championHitFeedback';
 import { getLiveMinionPositionSnapshot, getLiveMinionScreenPos } from '../services/minionPositionRegistry';
-import { BOSS_STATUS_EFFECT, BossSkillDefinition } from '../types/bossSkill';
+import { BOSS_STATUS_EFFECT, BOSS_SKILL_VFX, BossSkillDefinition } from '../types/bossSkill';
 import { ActiveStatusEffect, DefeatedChampionEntity, GameState, MinionEntity } from '../types/game';
+import { audioService } from '../services/audioService';
 import { upsertStatusEffect } from '../utils/statusEffects';
 import { buildDefeatedChampion } from './bossSkillResolver';
 import { announceChampionDeaths } from './combatMomentStore';
@@ -140,6 +141,15 @@ export const applyBossSkillImpact = (set: SetGameState, get: GetGameState, impac
   if (outcome.hitCount === 0) return;
 
   const { skill, championDebuff } = impact;
+  if (
+    skill.vfxType === BOSS_SKILL_VFX.CHARGE_DASH ||
+    skill.vfxType === BOSS_SKILL_VFX.SEISMIC_SLAM ||
+    skill.vfxType === BOSS_SKILL_VFX.NOVA ||
+    skill.isUltimate
+  ) {
+    audioService.playShockwaveExplosion(skill.isUltimate ? 1.25 : 0.95, 1.0, true);
+  }
+
   if (championDebuff) {
     const presentation = STATUS_EFFECT_PRESENTATION[championDebuff.type];
     get().addLog('BOSS', `${presentation.icon} [${skill.vietnameseName}] gây ${presentation.labelVi} lên ${outcome.hitCount} tướng!`);

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Gift, Pause, Play, Swords, Trophy, Volume2 } from 'lucide-react';
-import { ROUND_INTRO_CONSTANTS, TEAM_KEY, getThemeConfig } from '../../../constants/game';
+import { ROUND_INTRO_CONSTANTS, TEAM_KEY, getBossThemeForRound, getThemeConfig } from '../../../constants/game';
 import { useGameStore } from '../../../store/gameStore';
 import {
+  isCompactRoundIntro,
   isRoundIntroActive,
+  resolveRoundIntroDurationMs,
   showRoundIntro,
   startIntroNarration,
   useRoundIntroStore,
@@ -19,6 +21,7 @@ import { stopAllBossVoices } from '../../../services/bossVoice';
 import { triggerStartRoundCombat } from '../../../services/roundIntroActions';
 import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../../utils/introStar';
 import { GiftsPage, MatchupPage, RulesPage } from './RoundIntroPages';
+import { CinematicEsportsIntro } from './CinematicEsportsIntro';
 
 type IntroTab = 'MATCHUP' | 'RULES' | 'GIFTS';
 const TICK_MS = 200;
@@ -44,7 +47,7 @@ const useIntroElapsed = (
       const nextElapsed = now - shownAt;
       setElapsed(nextElapsed);
 
-      if (nextElapsed >= totalMs || !isRoundIntroActive(shownAt, now, isManualHold)) {
+      if (nextElapsed >= totalMs || !isRoundIntroActive(shownAt, now, isManualHold, totalMs)) {
         onComplete();
       }
     }, TICK_MS);
@@ -55,8 +58,8 @@ const useIntroElapsed = (
   return isManualHold ? 0 : elapsed;
 };
 
-const resolveAutoTab = (elapsedMs: number): IntroTab => {
-  if (elapsedMs < ROUND_INTRO_CONSTANTS.TAB_MATCHUP_MS) {
+const resolveAutoTab = (elapsedMs: number, isCompact: boolean): IntroTab => {
+  if (isCompact || elapsedMs < ROUND_INTRO_CONSTANTS.TAB_MATCHUP_MS) {
     return 'MATCHUP';
   }
   if (elapsedMs < ROUND_INTRO_CONSTANTS.TAB_MATCHUP_MS + ROUND_INTRO_CONSTANTS.TAB_RULES_MS) {
@@ -81,6 +84,7 @@ export const RoundIntroOverlay = () => {
   const currentRound = useGameStore((state) => state.currentRound);
   const activeRound = Number(currentRound) || 1;
   const isManualHold = useRoundIntroStore((state) => state.isManualHold);
+  const introDurationMs = useRoundIntroStore((state) => state.durationMs);
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
   const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
   const gameTheme = useGameStore((state) => state.gameTheme);
@@ -110,6 +114,7 @@ export const RoundIntroOverlay = () => {
   }).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
 
   const [manualTab, setManualTab] = useState<IntroTab | null>(null);
+  const [isPlayingCinematic, setIsPlayingCinematic] = useState<boolean>(false);
   const prevRemainingSecRef = useRef<number>(ROUND_INTRO_CONSTANTS.TOTAL_MS / 1000);
   const hasPlayedMatchFoundRef = useRef<boolean>(false);
   const lastSpokenTabRef = useRef<IntroTab | null>(null);
@@ -120,22 +125,26 @@ export const RoundIntroOverlay = () => {
   const bossName = bossThemeConfig.bossName;
   const bossImage = bossThemeConfig.bossImagePng || bossThemeConfig.bossImageWebp;
 
-  const handleStartIntro = useCallback(() => {
-    setManualTab(null);
-    startIntroNarration(Date.now());
+  const handleCinematicComplete = useCallback(() => {
+    setIsPlayingCinematic(false);
+    startIntroNarration(Date.now(), resolveRoundIntroDurationMs(useGameStore.getState().currentRound));
     playSound(SFX_EVENT.ROUND_START);
   }, []);
 
+  const handleStartIntro = useCallback(() => {
+    setManualTab(null);
+    setIsPlayingCinematic(true);
+  }, []);
+
   const handleStartCombatNow = useCallback(() => {
+    setIsPlayingCinematic(false);
     triggerStartRoundCombat();
   }, []);
 
-  // Clean up any ongoing TTS speech when intro overlay is unmounted
+  // Clean up ongoing intro speech when intro overlay is unmounted
   useEffect(() => {
     return () => {
       narrationIdRef.current += 1;
-      audioService.cancelSpeech();
-      casterSpeechEngine.interrupt();
       audioService.setCombatMuted(false);
     };
   }, []);
@@ -159,7 +168,16 @@ export const RoundIntroOverlay = () => {
       state.currentRound === 1 &&
       (state.bo5Score[TEAM_KEY.BLG] ?? 0) === 0 &&
       (state.bo5Score[TEAM_KEY.GENG] ?? 0) === 0;
-    showRoundIntro(Date.now(), isRound1Initial);
+
+    // Ensure round 1 always initiates with the correct starting boss theme according to the series format
+    if (isRound1Initial) {
+      const correctTheme = getBossThemeForRound(1, state.seriesFormat);
+      if (state.gameTheme !== correctTheme) {
+        state.setGameTheme(correctTheme);
+      }
+    }
+
+    showRoundIntro(Date.now(), isRound1Initial, resolveRoundIntroDurationMs(state.currentRound));
   }, []);
 
   // Reset intro states when a new round intro is shown
@@ -167,6 +185,7 @@ export const RoundIntroOverlay = () => {
     hasPlayedMatchFoundRef.current = false;
     lastSpokenTabRef.current = null;
     setManualTab(null);
+    setIsPlayingCinematic(false);
   }, [shownAt]);
 
   // Silence the intro when Silver Scrapes starts; useSilverScrapesDuel hides the card and brings it back after the duel
@@ -181,7 +200,7 @@ export const RoundIntroOverlay = () => {
 
   // Keyboard shortcut: Space or Enter starts intro if waiting, or deploys combat if active
   useEffect(() => {
-    if (shownAt <= 0 || isSilverScrapesActive) return undefined;
+    if (shownAt <= 0 || isSilverScrapesActive || isPlayingCinematic) return undefined;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName;
@@ -201,11 +220,13 @@ export const RoundIntroOverlay = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [shownAt, isSilverScrapesActive, isManualHold, handleStartIntro, handleStartCombatNow]);
 
-  const totalMs = ROUND_INTRO_CONSTANTS.TOTAL_MS;
+  const totalMs = introDurationMs;
+  // Compact card (later rounds): matchup only; rules and gifts stay in the participation guide panel
+  const isCompact = !isManualHold && isCompactRoundIntro(totalMs);
   const elapsed = useIntroElapsed(shownAt, totalMs, isManualHold, handleStartCombatNow);
 
   // Determine current active tab (auto-rotation unless manually clicked)
-  const autoTab = resolveAutoTab(elapsed);
+  const autoTab = resolveAutoTab(elapsed, isCompact);
   const activeTab = manualTab ?? autoTab;
 
   // Trigger narration speech ONLY after start has been clicked (isManualHold is FALSE)
@@ -255,11 +276,17 @@ export const RoundIntroOverlay = () => {
 
     if (speechText) {
       narrationIdRef.current += 1;
-      const narrationId = narrationIdRef.current;
+      const currentNarrationId = narrationIdRef.current;
       audioService.cancelSpeech();
       casterSpeechEngine.interrupt();
       casterQueue.clear();
-      void speakIntroNarration(speechText, () => narrationIdRef.current === narrationId);
+      // On initial MATCHUP page, give 700ms breathing room for gong sound and visual entrance
+      const initialDelayMs = activeTab === 'MATCHUP' ? 700 : 0;
+      void speakIntroNarration(
+        speechText,
+        () => narrationIdRef.current === currentNarrationId,
+        initialDelayMs
+      );
     }
   }, [
     shownAt,
@@ -283,7 +310,8 @@ export const RoundIntroOverlay = () => {
   const remainingSec = Math.max(1, Math.ceil((totalMs - elapsed) / 1000));
 
   // Calculate story-style segmented progress percentages
-  const progressMatchup = calcTabProgress(elapsed, 0, ROUND_INTRO_CONSTANTS.TAB_MATCHUP_MS);
+  const matchupProgressMs = isCompact ? totalMs : ROUND_INTRO_CONSTANTS.TAB_MATCHUP_MS;
+  const progressMatchup = calcTabProgress(elapsed, 0, matchupProgressMs);
   const progressRules = calcTabProgress(
     elapsed,
     ROUND_INTRO_CONSTANTS.TAB_MATCHUP_MS,
@@ -312,19 +340,36 @@ export const RoundIntroOverlay = () => {
     setManualTab(tab);
   };
 
+  if (isPlayingCinematic) {
+    return (
+      <CinematicEsportsIntro
+        leftTeam={leftTeam}
+        rightTeam={rightTeam}
+        currentRound={activeRound}
+        seriesFormat={seriesFormat}
+        onComplete={handleCinematicComplete}
+      />
+    );
+  }
+
   return (
     <div
       className={`fixed inset-0 z-[65] pointer-events-auto flex flex-col items-center justify-center p-2 sm:p-4 select-none bg-slate-950/96 backdrop-blur-3xl transition-opacity duration-300 overflow-hidden ${
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* Background Cyber Ambient Lights */}
+      {/* Background Cyber Ambient Lights & Dual Stadium Spotlights */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-gradient-to-b from-amber-500/20 via-yellow-500/10 to-transparent blur-3xl opacity-80" />
-        <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[650px] h-[350px] bg-gradient-to-t from-blue-600/20 via-cyan-500/10 to-transparent blur-3xl opacity-70" />
+        {/* Left Team Spotlight */}
+        <div className="absolute -top-16 left-1/4 w-[320px] h-[750px] bg-gradient-to-b from-cyan-400/25 via-blue-600/10 to-transparent blur-3xl origin-top animate-spotlight-left pointer-events-none" />
+        {/* Right Team Spotlight */}
+        <div className="absolute -top-16 right-1/4 w-[320px] h-[750px] bg-gradient-to-b from-amber-400/25 via-yellow-600/10 to-transparent blur-3xl origin-top animate-spotlight-right pointer-events-none" />
+        {/* Ambient Stage Glows */}
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[400px] bg-gradient-to-b from-amber-500/25 via-yellow-500/15 to-transparent blur-3xl opacity-90" />
+        <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[680px] h-[380px] bg-gradient-to-t from-blue-600/25 via-cyan-500/15 to-transparent blur-3xl opacity-80" />
       </div>
 
-      <div className="relative z-10 w-full max-w-xl md:max-w-2xl h-[95vh] max-h-[850px] flex flex-col justify-between rounded-3xl border-2 border-amber-400/50 bg-slate-950/95 p-3.5 sm:p-5 shadow-[0_20px_70px_rgba(0,0,0,0.95),0_0_50px_rgba(245,158,11,0.35)] backdrop-blur-3xl animate-round-intro-in select-none overflow-hidden">
+      <div className="relative z-10 w-full max-w-xl md:max-w-2xl h-[95vh] max-h-[850px] flex flex-col justify-between rounded-3xl border-2 border-amber-400/70 bg-slate-950/95 p-3.5 sm:p-5 shadow-[0_20px_70px_rgba(0,0,0,0.95),0_0_55px_rgba(245,158,11,0.4)] backdrop-blur-3xl animate-round-intro-in animate-hextech-glow select-none overflow-hidden">
         {/* Top Header */}
         <div className="shrink-0 mb-2 border-b border-white/10 pb-2">
           <div className="flex flex-wrap items-center justify-between gap-y-1 gap-x-2">
@@ -354,7 +399,7 @@ export const RoundIntroOverlay = () => {
           </div>
 
           {/* Segmented Auto-Progress Bar */}
-          <div className="mt-2.5 grid grid-cols-3 gap-1.5 px-0.5">
+          <div className={`mt-2.5 grid ${isCompact ? 'grid-cols-1' : 'grid-cols-3'} gap-1.5 px-0.5`}>
             <div className="h-1 rounded-full bg-slate-800/80 overflow-hidden">
               <div
                 style={{
@@ -367,6 +412,8 @@ export const RoundIntroOverlay = () => {
                 className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 shadow-[0_0_6px_rgba(245,158,11,0.8)] transition-all duration-200"
               />
             </div>
+            {!isCompact && (
+            <>
             <div className="h-1 rounded-full bg-slate-800/80 overflow-hidden">
               <div
                 style={{
@@ -391,11 +438,13 @@ export const RoundIntroOverlay = () => {
                 className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 shadow-[0_0_6px_rgba(245,158,11,0.8)] transition-all duration-200"
               />
             </div>
+            </>
+            )}
           </div>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="shrink-0 mb-2 flex items-center justify-center gap-1.5">
+        {/* Tab Switcher (hidden on the compact card: it shows the matchup only) */}
+        <div className={`shrink-0 mb-2 items-center justify-center gap-1.5 ${isCompact ? 'hidden' : 'flex'}`}>
           <button
             type="button"
             onClick={() => handleTabClick('MATCHUP')}
@@ -489,10 +538,14 @@ export const RoundIntroOverlay = () => {
             <button
               type="button"
               onClick={handleStartIntro}
-              className="pointer-events-auto flex flex-1 h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_24px_rgba(245,158,11,0.6)] transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              className="relative overflow-hidden pointer-events-auto flex flex-1 h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_28px_rgba(245,158,11,0.7)] transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
             >
-              <Play className="h-4 w-4 fill-current shrink-0" />
-              <span className="whitespace-nowrap">
+              {/* Shimmer light beam */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[-20deg] animate-gold-shimmer" />
+              </div>
+              <Play className="h-4 w-4 fill-current shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="whitespace-nowrap font-black">
                 {startWorldsText}
               </span>
               <kbd className="hidden sm:inline-block rounded bg-slate-950/90 px-1.5 py-0.5 text-[9px] font-mono text-amber-300 border border-amber-400/40 shrink-0">
@@ -503,10 +556,13 @@ export const RoundIntroOverlay = () => {
             <button
               type="button"
               onClick={handleStartCombatNow}
-              className="pointer-events-auto flex flex-1 h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 via-amber-500 to-yellow-400 hover:from-rose-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_24px_rgba(245,158,11,0.6)] transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              className="relative overflow-hidden pointer-events-auto flex flex-1 h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 via-amber-500 to-yellow-400 hover:from-rose-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_28px_rgba(245,158,11,0.7)] transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
             >
-              <Swords className="h-4 w-4 shrink-0" />
-              <span className="whitespace-nowrap">
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[-20deg] animate-gold-shimmer" />
+              </div>
+              <Swords className="h-4 w-4 shrink-0 group-hover:rotate-12 transition-transform" />
+              <span className="whitespace-nowrap font-black">
                 {t('RoundIntro.skipButton', 'Xung trận ngay')}
               </span>
               <kbd className="hidden sm:inline-block rounded bg-slate-950/90 px-1.5 py-0.5 text-[9px] font-mono text-amber-300 border border-amber-400/40 shrink-0">

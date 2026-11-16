@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { GAME_CONSTANTS } from '../../../constants/game';
+import { calculateGiftBaseDamage } from '../../../constants/game';
 import { resolveAnnouncementCoins } from '../../../store/giftTier';
 import { GiftAnnouncement } from '../../../types/game';
 import './gift.css';
@@ -8,7 +8,7 @@ import './gift.css';
 export const resolveGiftCoins = resolveAnnouncementCoins;
 
 export const resolveGiftDamage = (banner: GiftAnnouncement): number =>
-  Math.round(resolveGiftCoins(banner) * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN * (banner.damageMultiplier ?? 1));
+  Math.round(calculateGiftBaseDamage(resolveGiftCoins(banner)) * (banner.damageMultiplier ?? 1));
 
 const INITIALS_LENGTH = 2;
 

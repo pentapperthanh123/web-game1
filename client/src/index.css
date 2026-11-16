@@ -928,47 +928,51 @@
   animation: wingGust 1.1s cubic-bezier(0.1, 0.85, 0.25, 1) forwards;
 }
 
-/* 7. Cinematic Boss Execution / Shatter Sequence (1.35s 3-Beat Execution) */
+/* 7. Cinematic Boss Execution / Shatter Sequence (LMHT CKTG Hit Stop & Soul Shatter) */
 @keyframes bossDefeatShatter {
   0% {
-    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
-    filter: brightness(3.2) contrast(1.85) saturate(2) drop-shadow(0 0 48px #ffffff);
-    opacity: 1;
-  }
-  8% {
-    transform: translate3d(-10px, -6px, 0) scale(1.06) rotate(-3deg);
-    filter: brightness(2.8) hue-rotate(-18deg) contrast(1.7) drop-shadow(0 0 65px #c084fc);
+    transform: translate3d(0, 0, 0) scale(1.05) rotate(0deg);
+    filter: brightness(3.8) contrast(2.2) saturate(2.4) drop-shadow(0 0 60px #fbbf24);
     opacity: 1;
   }
   16% {
-    transform: translate3d(10px, 6px, 0) scale(1.09) rotate(3deg);
-    filter: brightness(2.5) contrast(1.75) drop-shadow(0 0 70px #f43f5e);
+    /* Hit stop freeze: locks registering the fatal impact */
+    transform: translate3d(0, 0, 0) scale(1.05) rotate(0deg);
+    filter: brightness(3.6) contrast(2.2) saturate(2.2) drop-shadow(0 0 75px #f59e0b);
     opacity: 1;
   }
   26% {
-    transform: translate3d(-7px, 4px, 0) scale(1.12) rotate(-2deg);
-    filter: brightness(3) saturate(2.2) drop-shadow(0 0 80px #ffffff);
+    /* Energy fracture: violent tremor and prism dispersion */
+    transform: translate3d(-5px, -3px, 0) scale(1.08) rotate(-1.5deg);
+    filter: brightness(3.0) hue-rotate(-20deg) contrast(1.9) drop-shadow(0 0 85px #ffffff);
     opacity: 1;
   }
-  42% {
-    transform: translate3d(0, -6px, 0) scale(1.22) rotate(1deg);
-    filter: brightness(2.6) contrast(1.5) drop-shadow(0 0 90px #ffffff);
+  38% {
+    transform: translate3d(5px, 3px, 0) scale(1.06) rotate(1.5deg);
+    filter: brightness(3.2) contrast(1.8) drop-shadow(0 0 90px #f43f5e);
+    opacity: 1;
+  }
+  52% {
+    /* Core Nova: collapses into incandescent blinding energy */
+    transform: translate3d(0, 0, 0) scale(0.96) rotate(0deg);
+    filter: brightness(4.2) contrast(2.0) drop-shadow(0 0 110px #fbbf24);
     opacity: 0.95;
   }
-  68% {
-    transform: translate3d(0, -14px, 0) scale(1.38) rotate(-2deg);
-    filter: brightness(2.2) contrast(1.2) blur(3px) drop-shadow(0 0 70px #a855f7);
-    opacity: 0.35;
+  75% {
+    /* Soul streams upward and body disintegrates gracefully */
+    transform: translate3d(0, 16px, 0) scale(0.82);
+    filter: brightness(2.6) blur(2px) drop-shadow(0 0 60px #a855f7);
+    opacity: 0.5;
   }
   100% {
-    transform: translate3d(0, -24px, 0) scale(1.55) rotate(0deg);
-    filter: brightness(2.5) blur(8px);
+    transform: translate3d(0, 32px, 0) scale(0.65);
+    filter: brightness(2.0) blur(6px);
     opacity: 0;
   }
 }
 
 .animate-boss-defeat {
-  animation: bossDefeatShatter 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: bossDefeatShatter 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes defeatCoreFlash {
@@ -1617,5 +1621,256 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(245, 158, 11, 0.8);
+}
+
+/* Esports Worlds Opening Hextech & VS Clash Effects */
+@keyframes hextechGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.35), 0 0 60px rgba(217, 119, 6, 0.15), inset 0 0 20px rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(245, 158, 11, 0.65), 0 0 95px rgba(251, 191, 36, 0.35), inset 0 0 30px rgba(245, 158, 11, 0.22);
+    border-color: rgba(251, 191, 36, 0.95);
+  }
+}
+
+@keyframes vsShockwaveRing {
+  0% {
+    transform: translate(-50%, -50%) scale(0.65);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes spotlightSweepLeft {
+  0%, 100% {
+    transform: rotate(-18deg) scaleY(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: rotate(-8deg) scaleY(1.08);
+    opacity: 0.65;
+  }
+}
+
+@keyframes spotlightSweepRight {
+  0%, 100% {
+    transform: rotate(18deg) scaleY(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: rotate(8deg) scaleY(1.08);
+    opacity: 0.65;
+  }
+}
+
+@keyframes goldShimmerRay {
+  0% { transform: translateX(-150%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+
+.animate-hextech-glow {
+  animation: hextechGlowPulse 3s ease-in-out infinite;
+}
+
+.animate-vs-ring {
+  animation: vsShockwaveRing 2.2s cubic-bezier(0.2, 0.8, 0.3, 1) infinite;
+}
+
+.animate-spotlight-left {
+  animation: spotlightSweepLeft 6s ease-in-out infinite;
+}
+
+.animate-spotlight-right {
+  animation: spotlightSweepRight 6s ease-in-out infinite;
+}
+
+.animate-gold-shimmer {
+  animation: goldShimmerRay 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* =========================================================================
+   Esports Cinematic Slam Intro (Option A - Riot Worlds / LCK Opening Style)
+   ========================================================================= */
+
+@keyframes cinemaLetterboxTop {
+  0% { transform: translateY(-100%); }
+  12% { transform: translateY(0); }
+  86% { transform: translateY(0); }
+  100% { transform: translateY(-100%); }
+}
+
+@keyframes cinemaLetterboxBottom {
+  0% { transform: translateY(100%); }
+  12% { transform: translateY(0); }
+  86% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes kineticSlashLeft {
+  0% { transform: translateX(-120%) skewX(-16deg); opacity: 0; }
+  18% { transform: translateX(0) skewX(-16deg); opacity: 1; }
+  85% { transform: translateX(0) skewX(-16deg); opacity: 1; }
+  100% { transform: translateX(-120%) skewX(-16deg); opacity: 0; }
+}
+
+@keyframes kineticSlashRight {
+  0% { transform: translateX(120%) skewX(-16deg); opacity: 0; }
+  18% { transform: translateX(0) skewX(-16deg); opacity: 1; }
+  85% { transform: translateX(0) skewX(-16deg); opacity: 1; }
+  100% { transform: translateX(120%) skewX(-16deg); opacity: 0; }
+}
+
+@keyframes cardSlamLeft {
+  0% { transform: translate3d(-120%, 0, 0) scale(0.85); opacity: 0; }
+  18% { transform: translate3d(-35%, 0, 0) scale(0.95); opacity: 0.9; }
+  26% { transform: translate3d(12px, 0, 0) scale(1.05); opacity: 1; }
+  32% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  88% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  100% { transform: translate3d(-60px, 0, 0) scale(0.92); opacity: 0; }
+}
+
+@keyframes cardSlamRight {
+  0% { transform: translate3d(120%, 0, 0) scale(0.85); opacity: 0; }
+  18% { transform: translate3d(35%, 0, 0) scale(0.95); opacity: 0.9; }
+  26% { transform: translate3d(-12px, 0, 0) scale(1.05); opacity: 1; }
+  32% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  88% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  100% { transform: translate3d(60px, 0, 0) scale(0.92); opacity: 0; }
+}
+
+@keyframes screenShakeHard {
+  0%, 26% { transform: translate3d(0, 0, 0); }
+  28% { transform: translate3d(-8px, 6px, 0) rotate(-0.8deg); }
+  30% { transform: translate3d(9px, -7px, 0) rotate(0.9deg); }
+  32% { transform: translate3d(-6px, -4px, 0) rotate(-0.5deg); }
+  34% { transform: translate3d(5px, 4px, 0) rotate(0.4deg); }
+  36% { transform: translate3d(-3px, 2px, 0); }
+  39% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes impactWhiteFlash {
+  0%, 26% { opacity: 0; }
+  28% { opacity: 0.92; }
+  34% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes vsSlamBadge {
+  0%, 22% { transform: scale(3.2); opacity: 0; }
+  27% { transform: scale(0.88); opacity: 1; }
+  32% { transform: scale(1.12); opacity: 1; }
+  38% { transform: scale(1); opacity: 1; }
+  88% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+@keyframes roundTitleRecoil {
+  0%, 25% { transform: translateY(30px) scale(0.85); opacity: 0; }
+  30% { transform: translateY(-4px) scale(1.06); opacity: 1; }
+  36% { transform: translateY(0) scale(1); opacity: 1; }
+  88% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(15px) scale(0.92); opacity: 0; }
+}
+
+@keyframes cinemaLetterboxTop {
+  0% { transform: translateY(-100%); }
+  12% { transform: translateY(0); }
+  88% { transform: translateY(0); }
+  100% { transform: translateY(-100%); }
+}
+
+@keyframes cinemaLetterboxBottom {
+  0% { transform: translateY(100%); }
+  12% { transform: translateY(0); }
+  88% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes kineticSlashLeft {
+  0% { transform: translateX(-60%) skewX(-20deg); opacity: 0; }
+  18% { transform: translateX(0) skewX(-20deg); opacity: 0.65; }
+  88% { transform: translateX(0) skewX(-20deg); opacity: 0.65; }
+  100% { transform: translateX(-30%) skewX(-20deg); opacity: 0; }
+}
+
+@keyframes kineticSlashRight {
+  0% { transform: translateX(60%) skewX(-20deg); opacity: 0; }
+  18% { transform: translateX(0) skewX(-20deg); opacity: 0.65; }
+  88% { transform: translateX(0) skewX(-20deg); opacity: 0.65; }
+  100% { transform: translateX(30%) skewX(-20deg); opacity: 0; }
+}
+
+@keyframes emberDrift {
+  0% { transform: translateY(0) translateX(0) scale(0.6); opacity: 0; }
+  25% { opacity: 0.9; }
+  75% { opacity: 0.9; }
+  100% { transform: translateY(-140px) translateX(15px) scale(1.2); opacity: 0; }
+}
+
+@keyframes fissureSeamGlow {
+  0%, 100% { opacity: 0.45; filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.6)); }
+  50% { opacity: 0.95; filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.95)); }
+}
+
+.animate-cinema-bar-top {
+  animation: cinemaLetterboxTop 3.5s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
+.animate-cinema-bar-bottom {
+  animation: cinemaLetterboxBottom 3.5s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
+.animate-kinetic-slash-left {
+  animation: kineticSlashLeft 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-kinetic-slash-right {
+  animation: kineticSlashRight 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-card-slam-left {
+  animation: cardSlamLeft 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-card-slam-right {
+  animation: cardSlamRight 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-screen-shake-hard {
+  animation: screenShakeHard 3.5s ease-out forwards;
+}
+
+.animate-impact-flash {
+  animation: impactWhiteFlash 3.5s ease-out forwards;
+}
+
+.animate-vs-slam-badge {
+  animation: vsSlamBadge 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-round-title-recoil {
+  animation: roundTitleRecoil 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fissure-glow {
+  animation: fissureSeamGlow 2s ease-in-out infinite;
+}
+
+.animate-ember-1 {
+  animation: emberDrift 2.4s ease-out infinite;
+}
+
+.animate-ember-2 {
+  animation: emberDrift 3.1s ease-out 0.6s infinite;
+}
+
+.animate-ember-3 {
+  animation: emberDrift 2.7s ease-out 1.2s infinite;
 }
 

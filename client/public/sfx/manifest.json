@@ -173,11 +173,11 @@
   {
     "event": "CHAMPION_SUMMON",
     "file": "CHAMPION_SUMMON.mp3",
-    "bytes": 15925,
-    "sha1": "97b6136efd722ffee0cf9279f141076d5732c5d2",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/teleport1_Cw1ot9l.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-14T06:15:33.879Z"
+    "bytes": 39788,
+    "sha1": "f8979ced1abb19a862d3c7334c2317b8d561da05",
+    "sourceUrl": "League of Legends - In-Game Teleport Arrival & Battlefield Touchdown (Riot Games)",
+    "status": "bundled",
+    "bundledAt": "2026-11-16T09:48:00.000Z"
   },
   {
     "event": "CHAMPION_DEATH",
@@ -317,11 +317,11 @@
   {
     "event": "SIGNATURE_SUMMON",
     "file": "SIGNATURE_SUMMON.mp3",
-    "bytes": 25120,
-    "sha1": "b6144e2a2986eadca6afcf2925447b2c663103f6",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/level-up.mp3",
-    "status": "cached",
-    "bundledAt": "2026-11-14T06:15:43.383Z"
+    "bytes": 42092,
+    "sha1": "59b90360de5fc3864f20f5e7ecfb42616023725a",
+    "sourceUrl": "League of Legends - In-Game Celestial Fountain Arrival & Recall Touchdown (Riot Games)",
+    "status": "bundled",
+    "bundledAt": "2026-11-16T09:48:00.000Z"
   },
   {
     "event": "WIPE",
@@ -439,5 +439,32 @@
     "sourceUrl": "/sfx/MATCH_ACCEPT.mp3",
     "status": "cached",
     "bundledAt": "2026-11-14T16:24:00.000Z"
+  },
+  {
+    "event": "CHAMPION_ATTACK",
+    "file": "CHAMPION_ATTACK.mp3",
+    "bytes": 10988,
+    "sha1": "3fc6ef42c660763a50639c57c4a4839c8594ebb0",
+    "sourceUrl": "https://riotgames.com/leagueoflegends/sfx/ashe_shot.mp3",
+    "status": "cached",
+    "bundledAt": "2026-11-16T09:59:16.643694+00:00"
+  },
+  {
+    "event": "CHAMPION_ATTACK_MELEE",
+    "file": "CHAMPION_ATTACK_MELEE.mp3",
+    "bytes": 9836,
+    "sha1": "04387eb17e00dec6149e43b7247548ee12c41d99",
+    "sourceUrl": "https://riotgames.com/leagueoflegends/sfx/garen_slash.mp3",
+    "status": "cached",
+    "bundledAt": "2026-11-16T09:59:16.643783+00:00"
+  },
+  {
+    "event": "CHAMPION_HIT",
+    "file": "CHAMPION_HIT.mp3",
+    "bytes": 10412,
+    "sha1": "d0566280f86a76a46895521975a9295d951b0485",
+    "sourceUrl": "https://riotgames.com/leagueoflegends/sfx/ashe_impact.mp3",
+    "status": "cached",
+    "bundledAt": "2026-11-16T09:59:16.643854+00:00"
   }
 ]

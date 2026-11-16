@@ -1,28 +1,29 @@
 import React from 'react';
 import { Flame, Zap, Swords, MessageSquare, Crown } from 'lucide-react';
 import { BossSpeechItem } from '../../constants/bossSpeech';
-import { BOSS_HEALTH_BAR_LAYOUT, BossThemeConfig } from '../../constants/game';
+import { BossThemeConfig, GameThemeType, getBossSpeechBubbleAnchorClass } from '../../constants/game';
 
 interface BossSpeechBubbleProps {
   speech: BossSpeechItem | null;
   themeConfig: BossThemeConfig;
+  gameTheme: GameThemeType;
   isRestless: boolean;
-  /** The boss HP bar is shown right above the boss: sit above it. */
+  /** Whether the boss name/HP HUD is active above/around the boss. */
   isAboveHealthBar: boolean;
 }
 
 const renderSpeechIcon = (iconType: BossSpeechItem['icon']) => {
   switch (iconType) {
     case 'flame':
-      return <Flame className="w-2.5 h-2.5 text-amber-300/90 shrink-0 animate-pulse" />;
+      return <Flame className="w-3.5 h-3.5 text-amber-300 shrink-0 stroke-[2.2] animate-pulse drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]" />;
     case 'zap':
-      return <Zap className="w-2.5 h-2.5 text-yellow-200/90 shrink-0 animate-bounce" />;
+      return <Zap className="w-3.5 h-3.5 text-yellow-300 shrink-0 stroke-[2.2] drop-shadow-[0_0_4px_rgba(253,224,71,0.8)]" />;
     case 'swords':
-      return <Swords className="w-2.5 h-2.5 text-cyan-300/90 shrink-0" />;
+      return <Swords className="w-3.5 h-3.5 text-cyan-300 shrink-0 stroke-[2.2] drop-shadow-[0_0_4px_rgba(103,232,249,0.8)]" />;
     case 'crown':
-      return <Crown className="w-2.5 h-2.5 text-amber-200/90 shrink-0" />;
+      return <Crown className="w-3.5 h-3.5 text-amber-200 shrink-0 stroke-[2.2] drop-shadow-[0_0_4px_rgba(253,230,138,0.8)]" />;
     default:
-      return <MessageSquare className="w-2.5 h-2.5 text-purple-200/90 shrink-0" />;
+      return <MessageSquare className="w-3.5 h-3.5 text-purple-200 shrink-0 stroke-[2.2] drop-shadow-[0_0_4px_rgba(233,213,255,0.8)]" />;
   }
 };
 
@@ -31,11 +32,9 @@ const RESTLESS_BUBBLE_THEME =
 const RESTLESS_TAIL_THEME = 'border-t-rose-400';
 
 export const BossSpeechBubble: React.FC<BossSpeechBubbleProps> = React.memo(
-  ({ speech, themeConfig, isRestless, isAboveHealthBar }) => {
+  ({ speech, themeConfig, gameTheme, isRestless, isAboveHealthBar }) => {
     if (!speech) return null;
-    const topClass = isAboveHealthBar
-      ? BOSS_HEALTH_BAR_LAYOUT.SPEECH_BUBBLE_TOP_CLASS
-      : BOSS_HEALTH_BAR_LAYOUT.SPEECH_BUBBLE_DEFAULT_TOP_CLASS;
+    const anchorClass = getBossSpeechBubbleAnchorClass(gameTheme, isAboveHealthBar);
 
     // Distinct theme colors based on Boss type and emotional state
     const bubbleThemeClass = isRestless
@@ -47,14 +46,14 @@ export const BossSpeechBubble: React.FC<BossSpeechBubbleProps> = React.memo(
       : themeConfig.bubbleTailThemeClass;
 
     return (
-      <div className={`absolute ${topClass} left-1/2 -translate-x-1/2 pointer-events-none z-50 select-none w-max max-w-[200px] sm:max-w-[250px]`}>
+      <div className={anchorClass}>
         <div className="animate-speech-bubble opacity-100">
           {/* Main Comic Dialogue Pill */}
           <div
-            className={`px-3 py-1.5 rounded-xl border-2 text-[9.5px] sm:text-[10.5px] font-bold tracking-normal flex items-center space-x-1.5 shadow-2xl ${bubbleThemeClass}`}
+            className={`px-3 py-1.5 rounded-xl border-2 text-[10px] sm:text-[11px] font-bold tracking-normal flex items-center gap-2 shadow-2xl backdrop-blur-sm ${bubbleThemeClass}`}
           >
             {renderSpeechIcon(speech.icon)}
-            <span className="leading-tight drop-shadow text-center">{speech.text}</span>
+            <span className="leading-tight drop-shadow text-center text-balance">{speech.text}</span>
           </div>
 
           {/* Downward Speech Bubble Tail pointing straight to monster's head */}

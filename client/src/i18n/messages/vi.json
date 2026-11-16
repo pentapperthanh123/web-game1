@@ -19,6 +19,8 @@
     "titleTallyTooltip": "{{left}} {{leftTitles}} - {{rightTitles}} {{right}} (số lần vô địch {{format}} khi đối đầu)"
   },
   "HUD": {
+    "chatTitle": "Bình Luận TikTok Live",
+    "chatListening": "Đang lắng nghe bình luận từ phòng live...",
     "leaderboardTitle": "TOP 5 SÁT THƯƠNG",
     "noPlayersYet": "Chưa có sát thương, hãy chat tên tướng!",
     "rank": "Hạng",
@@ -62,18 +64,24 @@
     "guideGiftHeartBadge": "+{{dmg}} ST / tim",
     "guideGiftHeartDesc": "+{{dmg}} ST/tim • Tốc Nộ x{{mult}} • Mốc {{milestone}}♥ Đại Hồi Phục",
     "guideGiftCookieTitle": "Bánh Quy (10 xu)",
-    "guideGiftCookieBadge": "+1,200 ST",
+    "guideGiftCookieBadge": "+1,300 ST",
     "guideGiftCookieDesc": "Bão Thiên Thạch công phá +1,200 Sát Thương",
     "guideGiftWatergunTitle": "Súng Nước (50 xu)",
-    "guideGiftWatergunBadge": "+6,000 ST",
+    "guideGiftWatergunBadge": "+9,000 ST",
     "guideGiftWatergunDesc": "+6,000 ST • Mở khóa Tướng Tinh Anh VIP",
     "guideGiftWorldHeartTitle": "Tim CKTG (199 xu)",
-    "guideGiftWorldHeartBadge": "+23,880 ST",
+    "guideGiftWorldHeartBadge": "+50,000 ST",
     "guideGiftWorldHeartDesc": "Hồi +50 HP toàn đội & gây +23,880 Sát Thương",
     "guideGiftDragonTitle": "Rồng Thần (1,000 xu)",
-    "guideGiftDragonBadge": "+120,000 ST",
+    "guideGiftDragonBadge": "+260,000 ST",
     "guideGiftDragonDesc": "Siêu Thiên Thạch chấn động toàn bản đồ +120,000 ST",
-    "guideSummonCmdDynamic": "{{leftChamp}} {{leftTag}} • {{rightChamp}} {{rightTag}} • Random {{leftTag}}"
+    "guideSummonCmdDynamic": "{{leftChamp}} {{leftTag}} • {{rightChamp}} {{rightTag}} • Random {{leftTag}}",
+    "guideGiftSunglassesTitle": "Kính Mát (30 xu)",
+    "guideGiftSunglassesBadge": "+4,800 ST",
+    "guideGiftSunglassesDesc": "Kích hoạt Cuồng Nộ (+40% tốc đánh, nạp nộ & 8 thiên thạch)!",
+    "guideGiftCrownTitle": "Vương Miện (99 xu)",
+    "guideGiftCrownBadge": "+22,000 ST",
+    "guideGiftCrownDesc": "Làm choáng Boss 2.5s, hồi phục toàn phe & vinh danh VIP!"
   },
   "Gift": {
     "sentLabel": "ĐÃ TẶNG",
@@ -85,7 +93,14 @@
     "mythicCrest": "SIÊU ĐẠI GIA {{team}}",
     "legendCrest": "HUYỀN THOẠI {{team}}",
     "megaDamage": "+{{damage}} ST • BOSS BỊ ĐÁNH BẬT!",
-    "queuedForRoundStart": "Đã tặng {{gift}} ({{coins}} xu)! Quà sẽ kích hoạt khi vào trận ⚔️"
+    "queuedForRoundStart": "Đã tặng {{gift}} ({{coins}} xu)! Quà sẽ kích hoạt khi vào trận ⚔️",
+    "roseThanks": "CẢM ƠN HOA HỒNG",
+    "roseGiver": "Cảm ơn {{name}}!",
+    "roseCount": "+{{count}} Hoa Hồng 🌹"
+  },
+  "IdleRally": {
+    "doubleTapToHeart": "Chạm 2 lần để thả tim tiếp viện!",
+    "typeToSummon": "Chat tên tướng kèm {{teamA}} hoặc {{teamB}} để xung trận ngay!"
   },
   "Controls": {
     "title": "Bảng Giả Lập Tương Tác TikTok Live",
@@ -132,6 +147,7 @@
     "phase3Label": "CUỒNG NỘ TỐI THƯỢNG"
   },
   "Victory": {
+    "objectiveSecured": "TIÊU DIỆT MỤC TIÊU LỚN • OBJECTIVE SECURED",
     "bossDefeatedDynamic": "{{bossName}} ĐÃ BỊ TIÊU DIỆT!",
     "bossDefeated": "BARON NASHOR ĐÃ BỊ TIÊU DIỆT!",
     "bossDefeatedElder": "RỒNG NGÀN TUỔI ĐÃ BỊ TIÊU DIỆT!",
@@ -312,6 +328,11 @@
     "queueTurnDelayValue": "{{seconds}}s ({{ms}}ms)",
     "championAttackSpeedLabel": "Tốc độ đánh của tướng triệu hồi",
     "championAttackSpeedValue": "{{multiplier}} tốc độ gốc",
+    "roundTimerLabel": "Thời lượng mỗi ván",
+    "roundTimerOff": "Tắt",
+    "roundTimerMinutes": "{{minutes}}p",
+    "roundTimerUnlimited": "Không giới hạn",
+    "roundTimerValue": "{{minutes}} phút + {{overtime}}s hiệp phụ",
     "resetMatchupTitles": "Xoá số lần vô địch cặp này",
     "resetMatchupTitlesDone": "Đã xoá số lần vô địch của cặp đấu hiện tại!",
     "matchupTitlesLabel": "Số lần vô địch (đối đầu):"
@@ -383,11 +404,12 @@
     "winnerTitle": "🏆 {{winner}} CHIẾN THẮNG 1V1 SILVER SCRAPES!",
     "winnerBuffDesc": "Đoạt Chiến Công Đầu! Toàn đội {{winner}} nhận bùa lợi +20% Sát Thương trong 90s đầu Ván quyết định!",
     "idleHint": "Mọi tương tác Thả Tim, Chat gọi tướng & Tặng Quà đều lập tức nạp năng lượng đẩy lùi đối thủ!",
-    "guideTitle": "Cách đẩy chưởng",
+    "guideTitle": "CÁCH ĐẨY CHƯỞNG (QUYẾT ĐỊNH THẮNG THUA)",
     "guideHeart": "Thả tim",
     "guideChat": "Chat gọi tướng",
     "guideShare": "Follow & Chia sẻ",
     "guideGift": "Tặng quà",
+    "superPowerBadge": "SIÊU LỰC",
     "leading": "Đang áp đảo",
     "winnerBadge": "Chiến thắng",
     "versus": "VS"
@@ -441,8 +463,37 @@
     "ambienceOn": "Bật nhạc nền",
     "ambienceOff": "Tắt nhạc nền"
   },
+  "SessionTier": {
+    "SILVER": "Bạc",
+    "GOLD": "Vàng",
+    "PLATINUM": "Bạch Kim",
+    "EMERALD": "Lục Bảo",
+    "DIAMOND": "Kim Cương",
+    "MASTER": "Cao Thủ",
+    "GRANDMASTER": "Đại Cao Thủ",
+    "CHALLENGER": "Thách Đấu"
+  },
+  "SessionBoard": {
+    "tierUpTitle": "{{name}} thăng hạng",
+    "title": "TOP PHIÊN LIVE",
+    "toggle": "Thu gọn / mở bảng xếp hạng",
+    "giftRibbon": "ra tay!",
+    "takeoverTitle": "{{name}} soán ngôi Thách Đấu!",
+    "takeoverSubtitle": "Vượt mặt {{previous}} — ai giành lại ngôi đầu?"
+  },
+  "RoundClock": {
+    "overtimeLog": "⏰ HIỆP PHỤ {{seconds}}s! Boss suy yếu — sát thương tăng dần, ai sẽ kết liễu?",
+    "timeUpLog": "⏱️ HẾT GIỜ! Đội gây nhiều sát thương hơn thắng ván.",
+    "timeUpFinisher": "⏱️ Hết giờ",
+    "overtimeLabel": "Hiệp phụ",
+    "overtimeMultiplier": "x{{multiplier}} ST"
+  },
   "RoundIntro": {
     "roundLabel": "Ván {{round}} sắp bắt đầu",
+    "clashTitle": "VÁN {{round}} • KHAI CHIẾN!",
+    "broadcastHeading": "KỲ CHUNG KẾT THẾ GIỚI • ĐỐI ĐẦU ĐỈNH CAO",
+    "skipHint": "Bỏ qua (ESC hoặc Space)",
+    "skipCinematic": "Bỏ qua",
     "worldsOpeningTitle": "KỲ CHUNG KẾT THẾ GIỚI • VÁN {{round}}",
     "readyBadge": "CHỜ BẮT ĐẦU",
     "readyBox": "SẴN SÀNG",
@@ -508,6 +559,7 @@
   "Caster": {
     "nameJoiner": " và ",
     "subtitleLabel": "BLV Bão",
+    "donateLabel": "Vinh Danh",
     "voiceUnlockHint": "Bấm vào màn hình để bật giọng bình luận viên",
     "anonymousName": "một chiến binh bí ẩn",
     "score": "{{left}} - {{right}}",
@@ -569,7 +621,9 @@
         "{{count}} {{gift}} từ {{name}}, {{team}} cảm ơn bạn!",
         "Cảm ơn {{name}}! {{count}} {{gift}} đã vào sân cho {{team}}!",
         "{{name}} ơi, cảm ơn {{count}} {{gift}} nha!",
-        "Cả {{team}} cảm ơn {{name}} vì chuỗi {{count}} {{gift}}!"
+        "Cả {{team}} cảm ơn {{name}} vì chuỗi {{count}} {{gift}}!",
+        "Cảm ơn {{name}} đã tặng hoa hồng tiếp sức cho {{team}}!",
+        "{{count}} bông hoa hồng từ {{name}}, {{team}} xin cảm ơn rất nhiều!"
       ],
       "GIFT_MEDIUM": [
         "Cảm ơn {{name}} đã tặng {{gift}}! Mưa thiên thạch!",
@@ -776,10 +830,11 @@
         "Kèo ngôi sao {{starA}} và {{starB}}! Gõ tướng bạn yêu thích kèm tên đội, một xu bằng {{damage}} sát thương!"
       ],
       "ROUND_GO": [
-        "Xung trận! Ván {{round}} chính thức bắt đầu!",
-        "Ba, hai, một, xung trận!",
-        "Vào trận! Gọi tướng ngay!",
-        "Bắt đầu! Đánh thôi anh em!"
+        "Toàn quân xung trận! San bằng đấu trường, tiêu diệt {{boss}}!",
+        "Đại chiến bùng nổ! Ván {{round}} chính thức bắt đầu, toàn lực xung trận!",
+        "Hồi còi xuất trận đã điểm! Khí thế ngút trời, quyết chiến tới cùng!",
+        "Gươm giáo sẵn sàng! Toàn quân xuất kích, đoạt lấy vinh quang!",
+        "Tiếng gọi chiến trận vang dội! Toàn đội xung trận, tiêu diệt quái thú!"
       ],
       "PODIUM_THANKS": [
         "Cảm ơn top ba ván này: {{a}}, {{b}} và {{c}}!",
@@ -875,7 +930,9 @@
       "SUMMON_CHAMPION": "Gọi {{champion}}",
       "HEAL_TEAM": "Hồi máu cả đội",
       "STUN_BOSS": "Làm choáng boss",
-      "FULL_FURY": "Đầy Nộ tuyển thủ"
+      "FULL_FURY": "Đầy Nộ tuyển thủ",
+      "BATTLE_FRENZY": "Cuồng nộ chiến trường (+40% tốc đánh & nộ)",
+      "AEGIS_BARRIER": "Lá chắn Aegis (Hồi phục & Choáng boss)"
     }
   }
 }

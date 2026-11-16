@@ -7,6 +7,7 @@ import {
 } from '../constants/game';
 import { GameState } from '../types/game';
 import { getQuestDamageMultiplier } from './communityQuestStore';
+import { getOvertimeDamageMultiplier } from './roundClockStore';
 
 /**
  * Which multipliers apply to which kind of hit. Before, every multiplier hit every source, so the
@@ -58,6 +59,11 @@ export const scaleBossDamage = (
   const isWeakPointHit =
     WEAK_POINT_SOURCES.has(source) && state.bossWeakPoint !== null && now < state.bossWeakPoint.expiresAt;
   const weakPointMultiplier = isWeakPointHit ? BOSS_MECHANICS_CONSTANTS.WEAK_POINT.DAMAGE_MULTIPLIER : NO_MULTIPLIER;
-  const scaled = Math.max(1, Math.round(amount * championMultiplier * teamBuffMultiplier * weakPointMultiplier));
+  // Overtime weakens the boss for every source and both teams alike, so the race stays fair
+  const overtimeMultiplier = getOvertimeDamageMultiplier();
+  const scaled = Math.max(
+    1,
+    Math.round(amount * championMultiplier * teamBuffMultiplier * weakPointMultiplier * overtimeMultiplier)
+  );
   return { amount: scaled, isWeakPointHit };
 };

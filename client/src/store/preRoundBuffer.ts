@@ -1,4 +1,3 @@
-import { ROUND_INTRO_CONSTANTS } from '../constants/game';
 import { isCurrentRoundIntroActive, useRoundIntroStore } from './roundIntroStore';
 
 /**
@@ -46,7 +45,7 @@ const startRound = (): void => {
 
 const armFallback = (shownAt: number): void => {
   if (fallbackTimer) clearTimeout(fallbackTimer);
-  const remainingMs = shownAt + ROUND_INTRO_CONSTANTS.TOTAL_MS - Date.now();
+  const remainingMs = shownAt + useRoundIntroStore.getState().durationMs - Date.now();
   fallbackTimer = setTimeout(startRound, Math.max(0, remainingMs) + PRE_ROUND_BUFFER.FALLBACK_MARGIN_MS);
 };
 

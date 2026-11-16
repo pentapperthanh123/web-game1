@@ -109,10 +109,14 @@ const playCue = (get: () => GameState, cue: UltimateFeedbackCue, pitchRate: numb
   // The round can end while the ultimate is still playing out
   if (isBattleHalted(get())) return;
   if (cue.kind === ULTIMATE_CUE_KIND.SOUND) {
-    playSound(cue.event, { rateScale: pitchRate, volumeScale: BOSS_ULTIMATE_FEEDBACK.LAYER_SOUND_VOLUME_SCALE });
+    playSound(cue.event, {
+      rateScale: pitchRate,
+      volumeScale: BOSS_ULTIMATE_FEEDBACK.LAYER_SOUND_VOLUME_SCALE,
+      bypassCombatMute: true,
+    });
     return;
   }
-  audioService.playQuakeImpact(cue.intensity, pitchRate);
+  audioService.playQuakeImpact(cue.intensity, pitchRate, true);
   get().triggerScreenShake(cue.intensity);
 };
 
@@ -124,7 +128,7 @@ export const playBossUltimateFeedback = (get: () => GameState, skill: BossSkillD
   const plan = buildUltimateFeedbackPlan(skill);
   get().triggerScreenShake(BOSS_ULTIMATE_FEEDBACK.CAST_SHAKE_INTENSITY);
   get().triggerScreenRumble(BOSS_ULTIMATE_FEEDBACK.RUMBLE_INTENSITY * plan.quakeWeight, plan.rumbleDurationMs);
-  audioService.playQuakeRumble(plan.rumbleDurationMs / MS_PER_SECOND, plan.quakeWeight, pitchRate);
+  audioService.playQuakeRumble(plan.rumbleDurationMs / MS_PER_SECOND, plan.quakeWeight, pitchRate, true);
   plan.cues.forEach((cue) => {
     setTimeout(() => playCue(get, cue, pitchRate), cue.atMs);
   });

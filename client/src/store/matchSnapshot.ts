@@ -3,6 +3,7 @@ import { GAME_THEME, GameThemeType, MATCH_SNAPSHOT_CONSTANTS, TEAM_KEY, TeamType
 import { DPSPlayer, GameState } from '../types/game';
 import { useGameStore } from './gameStore';
 import { isBattleHalted } from './storeHelpers';
+import { restoreRoundClock, useRoundClockStore } from './roundClockStore';
 
 /**
  * Mid-round state of the fight, saved to localStorage so an OBS / browser reload
@@ -22,6 +23,8 @@ interface MatchSnapshot {
   teamScoreBLG: number;
   teamScoreGENG: number;
   leaderboard: DPSPlayer[];
+  /** Live fight time of the round, so a reload does not restart the round clock. */
+  roundElapsedMs?: number;
 }
 
 const LOG_PREFIX = '[MatchSnapshot]';
@@ -50,6 +53,7 @@ const buildSnapshot = (state: GameState): MatchSnapshot => {
     teamScoreBLG: leftScore,
     teamScoreGENG: rightScore,
     leaderboard: state.leaderboard,
+    roundElapsedMs: useRoundClockStore.getState().elapsedMs,
   };
 };
 
@@ -119,6 +123,7 @@ export const restoreMatchSnapshot = (): boolean => {
     teamScoreGENG: rightScore,
     leaderboard: snapshot.leaderboard,
   });
+  restoreRoundClock(snapshot.currentRound, snapshot.roundElapsedMs ?? 0);
   state.addLog('SYSTEM', `♻️ Khôi phục trận đấu đang diễn ra (Ván ${snapshot.currentRound}, Boss ${snapshot.bossHp.toLocaleString()} HP)`);
   return true;
 };

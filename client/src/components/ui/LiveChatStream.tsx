@@ -2,10 +2,16 @@ import { useRef, useEffect } from 'react';
 import { MessageSquare, Sparkles, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { getTeamTheme } from '../../constants/teams';
+import { getCanonicalViewerName, useSessionLeaderboardStore } from '../../store/sessionLeaderboardStore';
+import { SessionTierBadge } from './session/SessionTierBadge';
+import { useTranslation } from 'react-i18next';
 
 export const LiveChatStream = () => {
   const chatMessages = useGameStore((state) => state.chatMessages);
   const activeTeams = useGameStore((state) => state.activeTeams);
+  // One subscription for all lines; the map only changes when someone changes tier
+  const sessionTierByName = useSessionLeaderboardStore((state) => state.tierByName);
+  const { t } = useTranslation();
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat box internally without ever hijacking window scroll
@@ -19,18 +25,19 @@ export const LiveChatStream = () => {
     <aside className="relative z-[35] w-full sm:w-64 max-w-full max-h-36 sm:max-h-48 flex flex-col space-y-1 pointer-events-auto pr-0.5 sm:pr-1 select-none">
       <div className="flex items-center space-x-1.5 pb-0.5 text-[10px] font-black uppercase text-slate-400 shrink-0">
         <MessageSquare className="w-3 h-3 text-cyan-400" />
-        <span>Bình Luận TikTok Live</span>
+        <span>{t('HUD.chatTitle', 'Bình Luận TikTok Live')}</span>
       </div>
 
       <div ref={chatContainerRef} className="space-y-1 overflow-y-auto pr-1 flex-1">
         {chatMessages.length === 0 ? (
           <div className="text-[10px] text-slate-500 italic py-1">
-            Đang lắng nghe bình luận từ phòng live...
+            {t('HUD.chatListening', 'Đang lắng nghe bình luận từ phòng live...')}
           </div>
         ) : (
           chatMessages.map((msg) => {
             const teamProfile = msg.team ? activeTeams[msg.team] : undefined;
             const teamTheme = teamProfile ? getTeamTheme(teamProfile.colorTheme) : null;
+            const sessionTier = sessionTierByName[getCanonicalViewerName(msg.userName)];
 
             return (
               <div
@@ -49,6 +56,7 @@ export const LiveChatStream = () => {
                 {/* Content */}
                 <div className="flex-1 min-w-0 text-[10px] leading-tight">
                   <div className="flex items-center space-x-1">
+                    <SessionTierBadge tier={sessionTier} />
                     <span className="font-bold text-slate-300 truncate max-w-[80px]">
                       {msg.userName}
                     </span>

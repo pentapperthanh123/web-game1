@@ -27,7 +27,7 @@ interface QueueOptionRowProps {
   onSelect: (value: number) => void;
 }
 
-const QueueOptionRow: React.FC<QueueOptionRowProps> = ({
+export const QueueOptionRow: React.FC<QueueOptionRowProps> = ({
   options,
   selectedValue,
   activeClassName,

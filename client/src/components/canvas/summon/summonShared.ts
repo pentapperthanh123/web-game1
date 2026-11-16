@@ -1,5 +1,14 @@
 import * as THREE from 'three';
 import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, TEAM_KEY, TeamType } from '../../../constants/game';
+import {
+  SESSION_TIER,
+  SESSION_TIER_EMBLEM_PATHS,
+  SESSION_TIER_EMBLEM_VIEWBOX,
+  SESSION_TIER_STYLE,
+  SessionTier,
+  isSessionTierAtLeast,
+} from '../../../constants/sessionLeaderboard';
+import { toCanonicalViewerName } from '../../../store/roundDamageTracker';
 
 export const tempProjVec = new THREE.Vector3();
 const tempRayOrigin = new THREE.Vector3();
@@ -136,9 +145,9 @@ export const SHARED_NAMEPLATE_GEO = new THREE.PlaneGeometry(
   COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.NAMEPLATE_HEIGHT
 );
 
-export const FURY_COLOR_EMPTY = '#334155';
-export const FURY_COLOR_CHARGING = '#f59e0b';
-export const FURY_COLOR_FULL = '#fde047';
+export const FURY_COLOR_EMPTY = '#0f172a';
+export const FURY_COLOR_CHARGING = '#2563eb';
+export const FURY_COLOR_FULL = '#38bdf8';
 
 export const getFuryFillColor = (furyRatio: number): string => {
   if (furyRatio >= 1) return FURY_COLOR_FULL;
@@ -149,8 +158,12 @@ export const getFuryFillColor = (furyRatio: number): string => {
 export const getMinionAttackSpeedFactor = (
   momentumMultiplier: number,
   lastTapAt: number,
-  now: number
+  now: number,
+  frenzyUntil?: number
 ): number => {
+  if (frenzyUntil && now < frenzyUntil) {
+    return GAME_CONSTANTS.MINION_FURY.HEART_TAP_ATTACK_SPEED_MAX;
+  }
   if (now - lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS) {
     return 1;
   }
@@ -190,7 +203,83 @@ const NAMEPLATE_STYLE = {
   MIN_TRUNCATED_LENGTH: 3,
   FALLBACK_NAME: 'Viewer',
   SIGNATURE_PREFIX: '★ ',
+  /** Session tiers: emblem at the left of the pill, tier-coloured border (thicker from Diamond up). */
+  HIGH_TIER_BORDER_WIDTH: 6,
+  EMBLEM_SIZE: 46,
+  EMBLEM_INSET_X: 12,
+  EMBLEM_BODY_STROKE: 1.4,
+  EMBLEM_DETAIL_STROKE: 0.9,
+  EMBLEM_DETAIL_COLOR: 'rgba(255, 255, 255, 0.55)',
 } as const;
+
+interface NameplateLook {
+  label: string;
+  accentColor: string;
+  isGoldText: boolean;
+  borderWidth: number;
+  tier?: SessionTier;
+}
+
+/** Session tier wins over the signature look: the emblem is what viewers climb (and pay) for. */
+const resolveNameplateLook = (
+  cleanName: string,
+  primaryColor: string,
+  sigTag: string,
+  sessionTier: SessionTier | undefined
+): NameplateLook => {
+  if (sessionTier) {
+    const isHighTier = isSessionTierAtLeast(sessionTier, SESSION_TIER.DIAMOND);
+    return {
+      // Canonical name: an elite gift summon is labelled "👑 An"; the emblem replaces that prefix
+      label: `@${toCanonicalViewerName(cleanName)}`,
+      accentColor: SESSION_TIER_STYLE[sessionTier].light,
+      isGoldText: isSessionTierAtLeast(sessionTier, SESSION_TIER.MASTER),
+      borderWidth: isHighTier ? NAMEPLATE_STYLE.HIGH_TIER_BORDER_WIDTH : NAMEPLATE_STYLE.BORDER_WIDTH,
+      tier: sessionTier,
+    };
+  }
+  const isSignature = sigTag.length > 0;
+  return {
+    label: isSignature ? `${NAMEPLATE_STYLE.SIGNATURE_PREFIX}@${cleanName}` : `@${cleanName}`,
+    accentColor: isSignature ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor,
+    isGoldText: isSignature,
+    borderWidth: NAMEPLATE_STYLE.BORDER_WIDTH,
+  };
+};
+
+/** Same emblem as the DOM badge (shared SVG paths), drawn with Path2D at the left of the pill. */
+const drawTierEmblem = (ctx: CanvasRenderingContext2D, tier: SessionTier): void => {
+  const style = SESSION_TIER_STYLE[tier];
+  const paths = SESSION_TIER_EMBLEM_PATHS[style.shape];
+  const scale = NAMEPLATE_STYLE.EMBLEM_SIZE / SESSION_TIER_EMBLEM_VIEWBOX;
+  const top = (NAMEPLATE_STYLE.CANVAS_HEIGHT - NAMEPLATE_STYLE.EMBLEM_SIZE) / 2;
+  const gradient = ctx.createLinearGradient(0, 0, 0, SESSION_TIER_EMBLEM_VIEWBOX);
+  gradient.addColorStop(0, style.light);
+  gradient.addColorStop(1, style.dark);
+
+  ctx.save();
+  ctx.translate(NAMEPLATE_STYLE.EMBLEM_INSET_X, top);
+  ctx.scale(scale, scale);
+  ctx.lineJoin = 'round';
+  if (paths.crown) {
+    const crown = new Path2D(paths.crown);
+    ctx.fillStyle = style.light;
+    ctx.fill(crown);
+    ctx.strokeStyle = style.dark;
+    ctx.lineWidth = NAMEPLATE_STYLE.EMBLEM_DETAIL_STROKE;
+    ctx.stroke(crown);
+  }
+  const body = new Path2D(paths.body);
+  ctx.fillStyle = gradient;
+  ctx.fill(body);
+  ctx.strokeStyle = style.dark;
+  ctx.lineWidth = NAMEPLATE_STYLE.EMBLEM_BODY_STROKE;
+  ctx.stroke(body);
+  ctx.strokeStyle = NAMEPLATE_STYLE.EMBLEM_DETAIL_COLOR;
+  ctx.lineWidth = NAMEPLATE_STYLE.EMBLEM_DETAIL_STROKE;
+  ctx.stroke(new Path2D(paths.detail));
+  ctx.restore();
+};
 
 const buildNameplateFont = (fontSize: number): string =>
   `${NAMEPLATE_STYLE.FONT_WEIGHT} ${fontSize}px ${NAMEPLATE_STYLE.FONT_FAMILY}`;
@@ -222,21 +311,26 @@ const traceNameplatePill = (ctx: CanvasRenderingContext2D): void => {
   ctx.rect(inset, inset, pillWidth, pillHeight);
 };
 
-const drawNameplate = (ctx: CanvasRenderingContext2D, label: string, accentColor: string, isSignature: boolean): void => {
+const drawNameplate = (ctx: CanvasRenderingContext2D, look: NameplateLook): void => {
+  const { label, accentColor, isGoldText } = look;
   ctx.clearRect(0, 0, NAMEPLATE_STYLE.CANVAS_WIDTH, NAMEPLATE_STYLE.CANVAS_HEIGHT);
 
   // Solid dark pill with one crisp accent border (no blurred glow: blur turns to mush when minified)
   traceNameplatePill(ctx);
   ctx.fillStyle = NAMEPLATE_STYLE.BACKGROUND;
   ctx.fill();
-  ctx.lineWidth = NAMEPLATE_STYLE.BORDER_WIDTH;
+  ctx.lineWidth = look.borderWidth;
   ctx.strokeStyle = accentColor;
   ctx.stroke();
 
+  // With an emblem the text is centred in the space right of it
+  const emblemSpace = look.tier ? NAMEPLATE_STYLE.EMBLEM_INSET_X + NAMEPLATE_STYLE.EMBLEM_SIZE : 0;
+  if (look.tier) drawTierEmblem(ctx, look.tier);
+
   // Centred name with a dark outline instead of a soft shadow, so glyph edges stay hard
-  const maxTextWidth = NAMEPLATE_STYLE.CANVAS_WIDTH - NAMEPLATE_STYLE.TEXT_INSET_X * 2;
+  const maxTextWidth = NAMEPLATE_STYLE.CANVAS_WIDTH - NAMEPLATE_STYLE.TEXT_INSET_X * 2 - emblemSpace;
   const fittedLabel = fitNameplateText(ctx, label, maxTextWidth);
-  const textX = NAMEPLATE_STYLE.CANVAS_WIDTH / 2;
+  const textX = (NAMEPLATE_STYLE.CANVAS_WIDTH + emblemSpace) / 2;
   const textY = NAMEPLATE_STYLE.CANVAS_HEIGHT / 2 + NAMEPLATE_STYLE.TEXT_BASELINE_SHIFT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -244,7 +338,7 @@ const drawNameplate = (ctx: CanvasRenderingContext2D, label: string, accentColor
   ctx.lineWidth = NAMEPLATE_STYLE.TEXT_OUTLINE_WIDTH;
   ctx.strokeStyle = NAMEPLATE_STYLE.TEXT_OUTLINE_COLOR;
   ctx.strokeText(fittedLabel, textX, textY);
-  ctx.fillStyle = isSignature ? NAMEPLATE_STYLE.SIGNATURE_TEXT_COLOR : NAMEPLATE_STYLE.TEXT_COLOR;
+  ctx.fillStyle = isGoldText ? NAMEPLATE_STYLE.SIGNATURE_TEXT_COLOR : NAMEPLATE_STYLE.TEXT_COLOR;
   ctx.fillText(fittedLabel, textX, textY);
 };
 
@@ -253,11 +347,12 @@ export const getNameplateTexture = (
   summonerName: string,
   team: string,
   primaryColor: string,
-  signaturePlayerName?: string
+  signaturePlayerName?: string,
+  sessionTier?: SessionTier
 ): THREE.CanvasTexture => {
   const cleanName = (summonerName || NAMEPLATE_STYLE.FALLBACK_NAME).trim().replace(/^@+/, '');
   const sigTag = signaturePlayerName ? signaturePlayerName.trim() : '';
-  const cacheKey = `${team}_${primaryColor}_${cleanName}_${sigTag}`;
+  const cacheKey = `${team}_${primaryColor}_${cleanName}_${sigTag}_${sessionTier ?? ''}`;
   const existing = nameplateTextureCache.get(cacheKey);
   if (existing) {
     return existing;
@@ -276,12 +371,7 @@ export const getNameplateTexture = (
   canvas.height = NAMEPLATE_STYLE.CANVAS_HEIGHT;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    const isSignature = sigTag.length > 0;
-    const label = isSignature
-      ? `${NAMEPLATE_STYLE.SIGNATURE_PREFIX}@${cleanName}`
-      : `@${cleanName}`;
-    const accentColor = isSignature ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor;
-    drawNameplate(ctx, label, accentColor, isSignature);
+    drawNameplate(ctx, resolveNameplateLook(cleanName, primaryColor, sigTag, sessionTier));
   }
 
   const texture = new THREE.CanvasTexture(canvas);

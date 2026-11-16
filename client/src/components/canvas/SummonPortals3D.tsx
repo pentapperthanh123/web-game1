@@ -3,7 +3,7 @@ import { getCombatTimeScale } from '../../store/combatMomentStore';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, COMBAT_VFX_CONSTANTS, GAME_CONSTANTS } from '../../constants/game';
+import { BOSS_STATUS, COMBAT_VFX_CONSTANTS } from '../../constants/game';
 import { MinionEntity } from '../../types/game';
 import {
   liveMinionPositionMap,
@@ -18,29 +18,21 @@ import { ChampionToken } from './summon/ChampionToken';
 import { allocSlot, freeSlot } from '../../workers/physicsSharedBuffer';
 import { DefeatedChampionToken } from './summon/DefeatedChampionToken';
 import { CHAMPION_DEFAULT_MAX_HP } from '../../constants/bossSkills';
+import { getCanonicalViewerName, useSessionLeaderboardStore } from '../../store/sessionLeaderboardStore';
 
 export { liveMinionPositionMap, getLiveMinionPosition, project3DToScreen };
 
 const activeMinionIdsSet = new Set<string>();
 
 /**
- * Smart Spotlight Curation: Prevents visual clutter & overlapping nameplates on crowded fields.
- * - Field <= 6: All champions display their nameplate.
- * - Field > 6: Nameplate appears during key moments (first 4.5s of arrival, VIP/Signature, and full fury ultimate).
+ * Continuous Nameplate Display: All champions always display their nameplate throughout
+ * their battlefield lifetime, ensuring continuous visibility and preventing 3D mesh churn.
  */
 const shouldShowNameplate = (
-  minion: MinionEntity,
-  totalLivingCount: number,
-  now: number
-): boolean => {
-  const lod = COMBAT_VFX_CONSTANTS.CROWD_LOD;
-  if (totalLivingCount <= lod.NAMEPLATE_MAX_UNCROWDED_COUNT) return true;
-  if (minion.isSignatureSynergy) return true;
-  if (now - (minion.createdAt || 0) < lod.NAMEPLATE_NEW_SUMMON_WINDOW_MS) return true;
-  const maxFury = minion.maxFury || GAME_CONSTANTS.MINION_FURY.MAX_FURY;
-  if ((minion.fury ?? 0) >= maxFury) return true;
-  return false;
-};
+  _minion: MinionEntity,
+  _totalLivingCount: number,
+  _now: number
+): boolean => true;
 
 /** Hysteresis so the field does not flip between detail levels around the threshold. */
 const useCompactCrowdMode = (championCount: number): boolean => {
@@ -59,6 +51,8 @@ export const SummonPortals3D = () => {
   const activeDefeatedChampions = useGameStore((state) => state.activeDefeatedChampions);
   // One subscription for the whole field; tokens used to subscribe one by one (2 x N listeners per store update)
   const activeTeams = useGameStore((state) => state.activeTeams);
+  // Session tiers for the nameplate emblems; the map is replaced only when someone changes tier
+  const sessionTierByName = useSessionLeaderboardStore((state) => state.tierByName);
   const shouldUseUserAvatar = useGameStore((state) => state.useUserAvatar);
   // Unlimited floor: all living champions actively fight on the battlefield
   const visibleMinions = useMemo(() => {
@@ -137,6 +131,7 @@ export const SummonPortals3D = () => {
               shouldUseUserAvatar={shouldUseUserAvatar}
               isCompact={isCompact}
               hasNameplate={shouldShowNameplate(minion, visibleMinions.length, Date.now())}
+              sessionTier={sessionTierByName[getCanonicalViewerName(minion.summonerName)]}
             />
           </group>
         ))}

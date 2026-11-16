@@ -2,6 +2,7 @@ import type { Socket } from 'socket.io';
 import {
   DECIDER_DUEL_DURATION_SEC,
   DuelLaneKey,
+  getBossThemeForRound,
   getSeriesFormatSpecs,
   isDeciderRound,
   isStaleNextRoundRequest,
@@ -53,8 +54,11 @@ export function registerTeamAndSeriesHandlers(
       series.blgScore = 0;
       series.gengScore = 0;
       series.currentRound = 1;
+      const theme = getBossThemeForRound(1, series.format);
+      ctx.state.gameTheme = theme;
       saveSeriesConfigToDisk(series);
       ctx.io.emit('game:series-format', series);
+      ctx.io.emit('game:theme', { theme });
       duelService.stopDuel();
     } else if (payload?.action === 'nextRound') {
       if (isStaleNextRoundRequest(series.currentRound, payload.fromRound)) {
@@ -64,8 +68,11 @@ export function registerTeamAndSeriesHandlers(
         return;
       }
       series.currentRound = Math.min(series.maxRounds, series.currentRound + 1);
+      const theme = getBossThemeForRound(series.currentRound, series.format);
+      ctx.state.gameTheme = theme;
       saveSeriesConfigToDisk(series);
       ctx.io.emit('game:series-format', series);
+      ctx.io.emit('game:theme', { theme });
       // Overlays move to exactly this round instead of adding +1 to what they already received
       ctx.io.emit('game:bo5-control', { ...payload, currentRound: series.currentRound });
       // Automatic series flow: the overlay reports results, then asks for the next round
@@ -79,8 +86,11 @@ export function registerTeamAndSeriesHandlers(
       series.blgScore = nextBlg;
       series.gengScore = nextGeng;
       series.currentRound = nextRound;
+      const theme = getBossThemeForRound(series.currentRound, series.format);
+      ctx.state.gameTheme = theme;
       saveSeriesConfigToDisk(series);
       ctx.io.emit('game:series-format', series);
+      ctx.io.emit('game:theme', { theme });
       startDeciderDuelIfNeeded();
     }
     ctx.io.emit('game:bo5-control', payload);
@@ -101,8 +111,11 @@ export function registerTeamAndSeriesHandlers(
     if (Number.isInteger(playedRound) && playedRound >= 1) {
       series.currentRound = Math.min(series.maxRounds, playedRound);
     }
+    const theme = getBossThemeForRound(series.currentRound, series.format);
+    ctx.state.gameTheme = theme;
     saveSeriesConfigToDisk(series);
     ctx.io.emit('game:series-format', series);
+    ctx.io.emit('game:theme', { theme });
   });
 
   socket.on('admin:set-series-format', (payload: { format: SeriesFormat; resetScore?: boolean }) => {
@@ -111,18 +124,22 @@ export function registerTeamAndSeriesHandlers(
 
     const specs = getSeriesFormatSpecs(format);
     const resetScore = Boolean(payload?.resetScore);
+    const targetRound = resetScore
+      ? 1
+      : Math.min(specs.maxRounds, ctx.state.seriesConfig.currentRound);
     ctx.state.seriesConfig = {
       format,
       targetWins: specs.targetWins,
       maxRounds: specs.maxRounds,
       blgScore: resetScore ? 0 : Math.min(specs.targetWins, ctx.state.seriesConfig.blgScore),
       gengScore: resetScore ? 0 : Math.min(specs.targetWins, ctx.state.seriesConfig.gengScore),
-      currentRound: resetScore
-        ? 1
-        : Math.min(specs.maxRounds, ctx.state.seriesConfig.currentRound),
+      currentRound: targetRound,
     };
+    const theme = getBossThemeForRound(targetRound, format);
+    ctx.state.gameTheme = theme;
     saveSeriesConfigToDisk(ctx.state.seriesConfig);
     ctx.io.emit('game:series-format', ctx.state.seriesConfig);
+    ctx.io.emit('game:theme', { theme });
   });
 
   socket.on('admin:silver-scrapes-duel', (payload: SilverScrapesDuelPayload) => {

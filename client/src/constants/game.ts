@@ -687,12 +687,59 @@ export const UI_CONSTANTS = {
   GHOST_HP_DELAY_MS: 350,
 } as const;
 
+export interface GiftCoinDamageMilestone {
+  readonly coins: number;
+  readonly damage: number;
+}
+
+/** Milestone damage table for TikTok gifts: escalating damage multiplier with higher coin values. */
+export const GIFT_COIN_DAMAGE_TABLE: readonly GiftCoinDamageMilestone[] = [
+  { coins: 1, damage: 120 },
+  { coins: 10, damage: 1300 },
+  { coins: 30, damage: 4800 },
+  { coins: 50, damage: 9000 },
+  { coins: 99, damage: 22000 },
+  { coins: 199, damage: 50000 },
+  { coins: 1000, damage: 260000 },
+  { coins: 2500, damage: 700000 },
+] as const;
+
+/**
+ * Calculates progressive base damage dealt by gifts with bonus damage milestones.
+ * Linearly interpolates between milestones so custom or intermediate coin values scale smoothly.
+ */
+export const calculateGiftBaseDamage = (coins: number): number => {
+  if (coins <= 0) return 0;
+  const table = GIFT_COIN_DAMAGE_TABLE;
+  if (coins <= table[0].coins) {
+    return Math.round(coins * table[0].damage);
+  }
+  const lastIndex = table.length - 1;
+  if (coins >= table[lastIndex].coins) {
+    const rate = table[lastIndex].damage / table[lastIndex].coins;
+    return Math.round(coins * rate);
+  }
+  for (let i = 0; i < lastIndex; i += 1) {
+    const current = table[i];
+    const next = table[i + 1];
+    if (coins === current.coins) return current.damage;
+    if (coins === next.coins) return next.damage;
+    if (coins > current.coins && coins < next.coins) {
+      const progress = (coins - current.coins) / (next.coins - current.coins);
+      return Math.round(current.damage + progress * (next.damage - current.damage));
+    }
+  }
+  return Math.round(coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN);
+};
+
 export const GUEST_SIMULATION_CONSTANTS = {
   DEFAULT_NAME: 'Khách_VIP_88',
   GIFTS: [
     { id: 'rose', name: 'Hoa Hồng 🌹', coins: 1, label: 'Thường', icon: '🌹', color: '#f43f5e' },
     { id: 'cookie', name: 'Bánh Quy 🍪', coins: 10, label: 'Thường', icon: '🍪', color: '#f59e0b' },
+    { id: 'sunglasses', name: 'Kính Mát 🕶️', coins: 30, label: 'Hiếm', icon: '🕶️', color: '#8b5cf6' },
     { id: 'watergun', name: 'Súng Nước 🔫', coins: 50, label: 'Hiếm', icon: '🔫', color: '#06b6d4' },
+    { id: 'crown', name: 'Vương Miện 👑', coins: 99, label: 'VIP', icon: '👑', color: '#eab308' },
     { id: 'heart_worlds', name: 'Trái Tim CKTG 💖', coins: 199, label: 'Hiếm', icon: '💖', color: '#ec4899' },
     { id: 'dragon', name: 'Rồng Thần CKTG 🐉', coins: 1000, label: 'VIP', icon: '🐉', color: '#eab308' },
     { id: 'phoenix', name: 'Phượng Hoàng Lửa 🔥', coins: 2500, label: 'VIP', icon: '🔥', color: '#ef4444' },
@@ -851,9 +898,31 @@ export const BOSS_HEALTH_BAR_LAYOUT = {
   } as Partial<Record<GameThemeType, string>>,
   ALERT_BANNER_TOP_CLASS: '-top-[6rem]',
   ALERT_BANNER_DEFAULT_TOP_CLASS: '-top-14 sm:-top-16',
+  SPEECH_BUBBLE_ANCHOR_CLASS: 'absolute left-1/2 -translate-x-1/2 pointer-events-none z-50 select-none w-max max-w-[260px] sm:max-w-[320px]',
+  SPEECH_BUBBLE_BOTTOM_CLASS_BY_THEME: {
+    [GAME_THEME.XU_GIA]: 'bottom-[calc(81%+26px)]',
+  } as Partial<Record<GameThemeType, string>>,
+  DEFAULT_SPEECH_BUBBLE_BOTTOM_CLASS: 'bottom-[calc(100%+24px)]',
+  SPEECH_BUBBLE_NO_NAME_BOTTOM_CLASS_BY_THEME: {
+    [GAME_THEME.XU_GIA]: 'bottom-[82%]',
+  } as Partial<Record<GameThemeType, string>>,
+  DEFAULT_SPEECH_BUBBLE_NO_NAME_BOTTOM_CLASS: 'bottom-[102%]',
   SPEECH_BUBBLE_TOP_CLASS: '-top-[5.5rem] sm:-top-[6.25rem]',
   SPEECH_BUBBLE_DEFAULT_TOP_CLASS: '-top-[4.5rem] sm:-top-[5rem]',
 } as const;
+
+export const getBossSpeechBubbleAnchorClass = (theme: GameThemeType, isNameVisible: boolean): string => {
+  if (isNameVisible) {
+    const bottomClass =
+      BOSS_HEALTH_BAR_LAYOUT.SPEECH_BUBBLE_BOTTOM_CLASS_BY_THEME[theme] ??
+      BOSS_HEALTH_BAR_LAYOUT.DEFAULT_SPEECH_BUBBLE_BOTTOM_CLASS;
+    return `${BOSS_HEALTH_BAR_LAYOUT.SPEECH_BUBBLE_ANCHOR_CLASS} ${bottomClass}`;
+  }
+  const noNameBottomClass =
+    BOSS_HEALTH_BAR_LAYOUT.SPEECH_BUBBLE_NO_NAME_BOTTOM_CLASS_BY_THEME[theme] ??
+    BOSS_HEALTH_BAR_LAYOUT.DEFAULT_SPEECH_BUBBLE_NO_NAME_BOTTOM_CLASS;
+  return `${BOSS_HEALTH_BAR_LAYOUT.SPEECH_BUBBLE_ANCHOR_CLASS} ${noNameBottomClass}`;
+};
 
 export const getBossNameAnchorClass = (theme: GameThemeType): string =>
   `${BOSS_HEALTH_BAR_LAYOUT.NAME_ANCHOR_CLASS} ${
@@ -1538,6 +1607,49 @@ export const getChampionSkillVFX = (
   };
 };
 
+const MELEE_CHAMPION_KEYWORDS: readonly string[] = [
+  'jax',
+  'yone',
+  'yasuo',
+  'aatrox',
+  'renekton',
+  'ksante',
+  "k'sante",
+  'lee sin',
+  'leesin',
+  'garen',
+  'darius',
+  'sett',
+  'xin zhao',
+  'fiora',
+  'irelia',
+  'riven',
+  'akali',
+  'zed',
+  'katarina',
+  'sylas',
+  'vi',
+  'jarvan',
+  'wukong',
+  'talon',
+  'ekko',
+];
+
+export const isMeleeChampionName = (championName: string): boolean => {
+  const normalized = championName.trim().toLowerCase();
+  const config = CHAMPION_VFX_MAP[normalized];
+  if (config) {
+    return (
+      config.type === CHAMPION_SKILL_VFX_TYPE.BLADE_SLASH ||
+      config.type === CHAMPION_SKILL_VFX_TYPE.DARKIN_BLADE ||
+      config.type === CHAMPION_SKILL_VFX_TYPE.NTOFO_SLAM ||
+      config.type === CHAMPION_SKILL_VFX_TYPE.MELEE_LEAP ||
+      config.type === CHAMPION_SKILL_VFX_TYPE.SPINNING_LANTERN
+    );
+  }
+  return MELEE_CHAMPION_KEYWORDS.some((k) => normalized.includes(k));
+};
+
 export const AUTO_PRO_STORAGE_KEY = 'lol_auto_pro_battle_config';
 
 export const AUTO_PRO_BATTLE_CONSTANTS = {
@@ -1608,6 +1720,20 @@ export const AUDIO_SFX_CONSTANTS = {
   IMPACT_THROTTLE_MS: 90,
   WHOOSH_THROTTLE_MS: 40,
   HEART_CHIME_THROTTLE_MS: 70,
+  CHAMPION_ATTACK_SFX: {
+    AERO_START_FREQ: 2400,
+    AERO_END_FREQ: 850,
+    AERO_DUR_S: 0.08,
+    PLUCK_START_FREQ: 220,
+    PLUCK_END_FREQ: 80,
+    PLUCK_DUR_S: 0.045,
+    MELEE_START_FREQ: 1600,
+    MELEE_END_FREQ: 520,
+    MELEE_DUR_S: 0.09,
+    HIT_BASS_START: 130,
+    HIT_BASS_END: 42,
+    HIT_CRACK_FREQ: 1450,
+  },
   /** Rolling window used to measure how many combat hits are firing per second. */
   DENSITY_WINDOW_MS: 1000,
   /** Hits per window at which combat sounds start spacing out and getting quieter. */
@@ -1829,7 +1955,7 @@ export interface GiftTierConfig {
 export const GIFT_TIER_CONFIG: Readonly<Record<GiftTier, GiftTierConfig>> = {
   [GIFT_TIER.SMALL]: { minCoins: 0, meteorCount: 1, screenShake: 0, hasScreenFlash: false, bannerDurationMs: 0, bossStaggerMs: 0, burstIntensity: 0 },
   [GIFT_TIER.MEDIUM]: { minCoins: 10, meteorCount: 5, screenShake: 0.65, hasScreenFlash: true, bannerDurationMs: 4500, bossStaggerMs: 0, burstIntensity: 2.5 },
-  [GIFT_TIER.BIG]: { minCoins: 99, meteorCount: 12, screenShake: 1.8, hasScreenFlash: true, bannerDurationMs: 7000, bossStaggerMs: 0, burstIntensity: 6 },
+  [GIFT_TIER.BIG]: { minCoins: 99, meteorCount: 12, screenShake: 1.8, hasScreenFlash: true, bannerDurationMs: 7000, bossStaggerMs: 2500, burstIntensity: 6 },
   [GIFT_TIER.MEGA]: { minCoins: 1000, meteorCount: 24, screenShake: 2.8, hasScreenFlash: true, bannerDurationMs: 10000, bossStaggerMs: 2500, burstIntensity: 9 },
 };
 
@@ -1849,6 +1975,8 @@ export const GIFT_METEOR_SPAWN = {
   STAGGER_MS: 90,
   FALL_DURATION_S: 0.65,
   MAX_KEPT: 24,
+  FRENZY_METEOR_COUNT: 8,
+  FRENZY_MIN_COINS: 30,
 } as const;
 
 /** Combo level-up sound climbs in pitch with the combo tier (NORMAL, GREAT, SUPER, HYPER). */
@@ -1888,13 +2016,53 @@ export const SQUAD_ENTRANCE_CONSTANTS = {
 
 /** Pre-round intro card (rules, how to join, gifts) shown when a new round is about to start. */
 export const ROUND_INTRO_CONSTANTS = {
-  TOTAL_MS: 38000,
-  TAB_MATCHUP_MS: 8000,
-  TAB_RULES_MS: 21000,
-  TAB_GIFTS_MS: 9000,
+  TOTAL_MS: 42000,
+  TAB_MATCHUP_MS: 10000,
+  TAB_RULES_MS: 22000,
+  TAB_GIFTS_MS: 10000,
+  /** Later rounds show only the matchup: passers-by leave during a long card; rules live in the guide panel. */
+  COMPACT_TOTAL_MS: 12000,
+  /** Rounds up to this one get the full card (matchup, rules, gifts); later rounds get the compact one. */
+  FULL_INTRO_LAST_ROUND: 1,
   FADE_OUT_MS: 300,
   HYPE_COUNTDOWN_SEC: 5,
-  TTS_SPEECH_RATE: 1.35,
+  TTS_SPEECH_RATE: 1.08,
+} as const;
+
+/** Round clock phases: regular time, then overtime (boss weakens), then the round is decided on damage. */
+export const ROUND_CLOCK_PHASE = {
+  REGULAR: 'REGULAR',
+  OVERTIME: 'OVERTIME',
+  TIME_UP: 'TIME_UP',
+} as const;
+export type RoundClockPhase = (typeof ROUND_CLOCK_PHASE)[keyof typeof ROUND_CLOCK_PHASE];
+
+/**
+ * Round time limit, so a quiet room never leaves the boss stuck at the auto-pro HP floor.
+ * The clock only runs while the fight is live (not during the intro, the duel or between rounds).
+ */
+export const ROUND_CLOCK_CONSTANTS = {
+  /** 0 = no time limit (the old behaviour). */
+  NO_LIMIT_MS: 0,
+  DEFAULT_ROUND_DURATION_MS: 240_000,
+  MAX_ROUND_DURATION_MS: 900_000,
+  ROUND_DURATION_OPTIONS_MS: [0, 180_000, 240_000, 300_000, 420_000],
+  OVERTIME_DURATION_MS: 45_000,
+  /** Every step of overtime the boss takes OVERTIME_DAMAGE_STEP_BONUS more damage (x1.9 at the end). */
+  OVERTIME_STEP_MS: 5_000,
+  OVERTIME_DAMAGE_STEP_BONUS: 0.1,
+  /** The clock appears on screen only for the last minute of regular time and during overtime. */
+  VISIBLE_REMAINING_MS: 60_000,
+  /** A tick sound plays every second of the last seconds of each phase. */
+  WARNING_TICK_REMAINING_MS: 10_000,
+  TICK_MS: 250,
+  /** A frozen / throttled page must not jump the clock by minutes at once. */
+  MAX_TICK_DELTA_MS: 1_000,
+  MS_PER_SECOND: 1_000,
+  SECONDS_PER_MINUTE: 60,
+  OVERTIME_FLASH_COLOR: '#f43f5e',
+  OVERTIME_SHAKE: 0.8,
+  TIME_UP_FLASH_COLOR: '#fbbf24',
 } as const;
 
 /** Participation guide panel: collapsed during battle, revealed periodically or when nobody is playing. */
@@ -1917,3 +2085,12 @@ export const DEFAULT_USE_USER_AVATAR = false;
  */
 export const DEV_CONTROLS_QUERY_PARAM = 'dev';
 export const DEBUG_CONTROLS_QUERY_PARAM = 'debug';
+
+/** Rose gift gratitude announcement constants (toast UI, caster debounce, audio throttle). */
+export const ROSE_GRATITUDE_CONSTANTS = {
+  TOAST_DURATION_MS: 2500,
+  CASTER_DEBOUNCE_MS: 1500,
+  CHIME_THROTTLE_MS: 120,
+  MAX_ACTIVE_TOASTS: 2,
+  DEFAULT_ROSE_NAME: 'Hoa Hồng',
+} as const;

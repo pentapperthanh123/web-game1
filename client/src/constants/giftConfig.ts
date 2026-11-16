@@ -7,6 +7,8 @@ export const GIFT_EFFECT = {
   HEAL_TEAM: 'HEAL_TEAM',
   STUN_BOSS: 'STUN_BOSS',
   FULL_FURY: 'FULL_FURY',
+  BATTLE_FRENZY: 'BATTLE_FRENZY',
+  AEGIS_BARRIER: 'AEGIS_BARRIER',
 } as const;
 export type GiftEffect = (typeof GIFT_EFFECT)[keyof typeof GIFT_EFFECT];
 
@@ -40,6 +42,13 @@ export const GIFT_EFFECT_TUNING = {
   HEAL_AMOUNT: 100,
   /** FULL_FURY fills the pros' bar completely. */
   FURY_AMOUNT: 100,
+  /** BATTLE_FRENZY: Fury boost and duration for team momentum. */
+  FRENZY_FURY_AMOUNT: 60,
+  FRENZY_HEAL_AMOUNT: 60,
+  FRENZY_DURATION_MS: 6000,
+  /** AEGIS_BARRIER: Heal amount and boss stun duration. */
+  AEGIS_HEAL_AMOUNT: 100,
+  AEGIS_STUN_DURATION_MS: 2500,
   MIN_DAMAGE_MULTIPLIER: 0,
   MAX_DAMAGE_MULTIPLIER: 5,
   DEFAULT_DAMAGE_MULTIPLIER: 1,

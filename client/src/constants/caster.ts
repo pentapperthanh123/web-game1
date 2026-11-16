@@ -79,9 +79,9 @@ export const CASTER_SIGNAL_PRIORITY: Readonly<Record<CasterSignal, CasterPriorit
   [CASTER_SIGNAL.SUMMON_WAVE]: CASTER_PRIORITY.P4,
   [CASTER_SIGNAL.FOLLOW]: CASTER_PRIORITY.P3,
   [CASTER_SIGNAL.SHARE]: CASTER_PRIORITY.P3,
-  [CASTER_SIGNAL.GIFT_COMBO]: CASTER_PRIORITY.P4,
-  [CASTER_SIGNAL.GIFT_MEDIUM]: CASTER_PRIORITY.P3,
-  [CASTER_SIGNAL.GIFT_BIG]: CASTER_PRIORITY.P2,
+  [CASTER_SIGNAL.GIFT_COMBO]: CASTER_PRIORITY.P1,
+  [CASTER_SIGNAL.GIFT_MEDIUM]: CASTER_PRIORITY.P1,
+  [CASTER_SIGNAL.GIFT_BIG]: CASTER_PRIORITY.P1,
   [CASTER_SIGNAL.GIFT_MEGA]: CASTER_PRIORITY.P1,
   [CASTER_SIGNAL.BOSS_ENRAGE]: CASTER_PRIORITY.P2,
   [CASTER_SIGNAL.BOSS_LOW_HP]: CASTER_PRIORITY.P2,
@@ -144,6 +144,14 @@ export const CASTER_INTRO_SIGNALS: ReadonlySet<CasterSignal> = new Set([
   CASTER_SIGNAL.ROUND_INTRO_STARS,
 ]);
 
+/** True when the signal represents viewer donation / gift acknowledgment. */
+export const isDonateSignal = (signal: CasterSignal): boolean =>
+  signal === CASTER_SIGNAL.GIFT_COMBO ||
+  signal === CASTER_SIGNAL.GIFT_MEDIUM ||
+  signal === CASTER_SIGNAL.GIFT_BIG ||
+  signal === CASTER_SIGNAL.GIFT_MEGA ||
+  signal === CASTER_SIGNAL.GIFT_FINISHER_CALLOUT;
+
 /** Lines older than their TTL are dropped: a late line about a past event is worse than silence. */
 export const CASTER_PRIORITY_TTL_MS: Readonly<Record<CasterPriority, number>> = {
   [CASTER_PRIORITY.P1]: 30_000,
@@ -157,7 +165,7 @@ export const CASTER_QUEUE = {
   /** Large enough to keep a whole summon wave waiting for its roll call. */
   MAX_PENDING_LINES: 80,
   /** Short breath between two summon lines: every summoner gets named, so they follow closely. */
-  MIN_P4_GAP_MS: 1_500,
+  MIN_P4_GAP_MS: 700,
   /** ≥ this many queued summons of one team are merged into one roll-call line naming everyone. */
   MERGE_SUMMON_THRESHOLD: 2,
   /** Names of one roll-call line stay under this length (server TTS limit is 180 chars per line);
@@ -169,7 +177,7 @@ export const CASTER_QUEUE = {
   SUMMON_NAME_TTL_MS: 45_000,
   SPOKEN_NAME_SEPARATOR: ', ',
   /** Pause between two lines. */
-  LINE_GAP_MS: 350,
+  LINE_GAP_MS: 160,
   /** Higher priorities are prefetched as soon as they are queued (P1..P3). */
   PREFETCH_MAX_PRIORITY: CASTER_PRIORITY.P3,
 } as const;
@@ -185,16 +193,24 @@ export const CASTER_SPEECH = {
   VOICE_VOLUME: 1,
   /** Game SFX volume multiplier while the caster is talking. */
   SFX_DUCK_FACTOR: 0.45,
+  /** Duck factor for commentary voice while a donate voice is reading in parallel. */
+  COMMENTARY_DUCK_WHILE_DONATE: 0.2,
+  /** Donate voice volume scale. */
+  DONATE_VOICE_VOLUME: 1,
+  /** Gap between back-to-back donate lines (ms). */
+  DONATE_GAP_MS: 120,
+  /** TTL for queued donate lines (30 seconds) so donations are never dropped. */
+  DONATE_TTL_MS: 30_000,
   /** Subtitle-only mode shows a line for about this long per character. */
-  SUBTITLE_MS_PER_CHAR: 65,
-  SUBTITLE_MIN_MS: 1_800,
-  SUBTITLE_LINGER_MS: 600,
+  SUBTITLE_MS_PER_CHAR: 55,
+  SUBTITLE_MIN_MS: 1_400,
+  SUBTITLE_LINGER_MS: 280,
   HTTP_DISABLED: 403,
   HTTP_BLOCKED: 422,
   /** Lines with a deadline are sped up just enough to end on time (pitch is preserved). */
-  MAX_FIT_RATE: 1.9,
-  /** Every line plays at this speed (the Google voice is slow at 1x); pitch is preserved by the browser. */
-  NORMAL_RATE: 1.6,
+  MAX_FIT_RATE: 1.55,
+  /** Every line plays at rapid esports commentary speed; pitch is preserved by the browser. */
+  NORMAL_RATE: 1.38,
   /** Server marks clips made with the fallback voice; they are dropped from the cache after this,
    *  so the next time the line is needed the upgraded (Edge / Azure) clip is fetched. */
   VOICE_HEADER: 'X-Caster-Voice',
@@ -212,7 +228,7 @@ export const CASTER_VOICE_MAX_CHARS = 180;
 /** The intro card lasts ROUND_INTRO_CONSTANTS.TOTAL_MS; its lines must end while it is on screen. */
 export const CASTER_INTRO_TIMING = {
   /** The welcome / matchup line ends around the first card tab. */
-  FIRST_LINE_END_MS: 8_000,
+  FIRST_LINE_END_MS: 10_000,
   /** The star duel + chat commands line ends just before the card closes. */
   LAST_LINE_END_BEFORE_CLOSE_MS: 500,
 } as const;
@@ -220,36 +236,36 @@ export const CASTER_INTRO_TIMING = {
 export const CASTER_BANTER = {
   TICK_MS: 1_000,
   /** No summon or gift for this long = idle room (spec state IDLE). */
-  IDLE_AFTER_MS: 90_000,
-  ACTIVE_SILENCE_MS: 22_000,
-  IDLE_SILENCE_MIN_MS: 25_000,
-  IDLE_SILENCE_MAX_MS: 40_000,
+  IDLE_AFTER_MS: 8_000,
+  ACTIVE_SILENCE_MS: 4_500,
+  IDLE_SILENCE_MIN_MS: 3_500,
+  IDLE_SILENCE_MAX_MS: 6_500,
   /** No champion alive: the caster keeps rallying viewers much more often. */
-  EMPTY_FIELD_SILENCE_MS: 10_000,
+  EMPTY_FIELD_SILENCE_MS: 2_500,
 } as const;
 
-/** Weighted banter groups (spec 5.3). BANTER_IDLE only joins the draw when the room is idle. */
+/** Weighted banter groups (spec 5.3). Guide & CTA have top weights for viewer interaction. */
 export const CASTER_BANTER_WEIGHTS: ReadonlyArray<readonly [CasterSignal, number]> = [
-  [CASTER_SIGNAL.BANTER_GUIDE, 20],
-  [CASTER_SIGNAL.BANTER_LEAD, 15],
-  [CASTER_SIGNAL.BANTER_BOSS_HP, 15],
-  [CASTER_SIGNAL.BANTER_CTA, 12],
-  [CASTER_SIGNAL.BANTER_HYPE, 12],
+  [CASTER_SIGNAL.BANTER_GUIDE, 22],
+  [CASTER_SIGNAL.BANTER_CTA, 18],
+  [CASTER_SIGNAL.BANTER_HYPE, 16],
+  [CASTER_SIGNAL.BANTER_LEAD, 14],
+  [CASTER_SIGNAL.BANTER_BOSS_HP, 12],
   [CASTER_SIGNAL.BANTER_FIELD, 10],
   [CASTER_SIGNAL.BANTER_SERIES, 8],
-  [CASTER_SIGNAL.BANTER_IDLE, 8],
+  [CASTER_SIGNAL.BANTER_IDLE, 6],
 ];
 
 /** Facts a data-driven banter line needs before it may be said. */
 export const CASTER_BANTER_RULES = {
   /** "N champions on the field" / hype lines need a real crowd. */
-  MIN_FIELD_COUNT: 5,
+  MIN_FIELD_COUNT: 2,
   /** "Boss has X % left" only after the boss has taken real damage. */
-  MAX_BOSS_HP_RATIO: 0.95,
+  MAX_BOSS_HP_RATIO: 0.98,
   /** "Team X is ahead" needs a lead of at least this share of total damage. */
-  MIN_LEAD_RATIO: 0.1,
+  MIN_LEAD_RATIO: 0.05,
   /** Lead lines also need some fighting first. */
-  MIN_TOTAL_DAMAGE: 2_000,
+  MIN_TOTAL_DAMAGE: 1_000,
 } as const;
 
 /** Banter while the field is empty (after a wipe or before anyone joined). */
@@ -274,11 +290,11 @@ export const BOSS_CAPTION = {
 
 export const CASTER_EVENT_RULES = {
   /** Boss HP ratio for the "almost dead" line, once per round. */
-  LOW_HP_RATIO: 0.1,
+  LOW_HP_RATIO: 0.15,
   /** Share of normal boss skills that get a line. */
-  BOSS_SKILL_LINE_CHANCE: 0.25,
-  /** Small-gift streak length worth a P4 line when the streak ends. */
-  MIN_SMALL_COMBO_COUNT: 5,
+  BOSS_SKILL_LINE_CHANCE: 0.6,
+  /** Small-gift streak length worth a line when the streak ends. */
+  MIN_SMALL_COMBO_COUNT: 1,
   /** Recent variants of a signal that are not reused. */
   RECENT_VARIANTS_TO_AVOID: 3,
   MAX_TRACKED_PORTALS: 400,
@@ -287,11 +303,11 @@ export const CASTER_EVENT_RULES = {
   /** Podium thanks need a full top 3. */
   PODIUM_SIZE: 3,
   /** A damage-lead change counts as a comeback only after this much total team damage... */
-  COMEBACK_MIN_TOTAL_DAMAGE: 5_000,
+  COMEBACK_MIN_TOTAL_DAMAGE: 3_000,
   /** ...and only if the team that lost the lead had been ahead by at least this share. */
-  COMEBACK_MIN_PEAK_LEAD_RATIO: 0.2,
+  COMEBACK_MIN_PEAK_LEAD_RATIO: 0.12,
   /** ...and at most once per this window. */
-  COMEBACK_COOLDOWN_MS: 30_000,
+  COMEBACK_COOLDOWN_MS: 15_000,
   /** Percent scale for the boss HP status line. */
   PERCENT: 100,
   /** At least this many champions must fall at once for the field-wiped sequence. */

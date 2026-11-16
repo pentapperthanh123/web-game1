@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
@@ -160,7 +161,7 @@ const useIsBeforeDeadline = (deadline: number): boolean => {
   return isBefore;
 };
 
-export const Boss2D = () => {
+export const Boss2D = React.memo(() => {
   const { t } = useTranslation();
   const bossStatus = useGameStore((state) => state.bossStatus);
   const bossHp = useGameStore((state) => state.bossHp);
@@ -189,7 +190,7 @@ export const Boss2D = () => {
   const isDragon = themeConfig.archetype === 'DRAGON';
   const isSilverScrapesActive = useGameStore((state) => state.silverScrapesState.isActive);
   const isRoundIntroShown = useRoundIntroStore(
-    (state) => state.isActive && isRoundIntroActive(state.shownAt, Date.now(), state.isManualHold)
+    (state) => state.isActive && isRoundIntroActive(state.shownAt, Date.now(), state.isManualHold, state.durationMs)
   );
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
@@ -238,6 +239,13 @@ export const Boss2D = () => {
   const [verticalTierIndex, setVerticalTierIndex] = useState<number>(1);
   const [activeSpeech, setActiveSpeech] = useState<BossSpeechItem | null>(null);
   const [notificationPortalEl, setNotificationPortalEl] = useState<HTMLElement | null>(null);
+
+  // Clear speech immediately when Silver Scrapes 1v1 duel starts
+  useEffect(() => {
+    if (isSilverScrapesActive && activeSpeech !== null) {
+      setActiveSpeech(null);
+    }
+  }, [isSilverScrapesActive, activeSpeech]);
 
   const isSkillVfxWindowOpen = useSkillVfxWindow(activeBossSkillBanner);
   const isMouthBreathSkill =
@@ -388,6 +396,12 @@ export const Boss2D = () => {
     }
 
     setIsRoarActive(true);
+
+    if (themeConfig.archetype === 'HERALD' && !activeBossSkillBanner) {
+      audioService.playShockwaveExplosion(1.0, themeConfig.audioPitchRate, true);
+      playBossVoice(gameTheme, BOSS_VOICE_KIND.ROAR);
+    }
+
     // Cho phép quái vật tấn công từ độ cao hiện tại mà không bị ép đè sát đáy sàn đấu
     const baseDuration = activeBossSkillBanner?.isUltimate
       ? BOSS_ANIMATION_CONSTANTS.ULTIMATE_ATTACK_DURATION_MS
@@ -402,8 +416,10 @@ export const Boss2D = () => {
   }, [
     bossAttackTimestamp,
     bossAttackTargetTeam,
-    activeBossSkillBanner?.isUltimate,
-    activeBossSkillBanner?.vfxType,
+    activeBossSkillBanner,
+    gameTheme,
+    themeConfig.archetype,
+    themeConfig.audioPitchRate,
     isEnraged,
     updateFacingSide,
     shiftVerticalPatrolTier,
@@ -412,7 +428,7 @@ export const Boss2D = () => {
   // Periodic Ambient Idle Lifecycle Loop with non-repeating speech queue and cooldown
   useEffect(() => {
     const idleInterval = setInterval(() => {
-      if (isDefeated || isHitActive || isRoarActive || isPoked) {
+      if (isDefeated || isHitActive || isRoarActive || isPoked || useGameStore.getState().silverScrapesState.isActive) {
         return;
       }
 
@@ -657,7 +673,7 @@ export const Boss2D = () => {
   const dynamicShadowOpacity = isDefeated ? 0 : Number((0.68 - shadowHeightFactor * 0.35).toFixed(3));
   const dynamicShadowBlurPx = (6 + shadowHeightFactor * 12).toFixed(1);
 
-  const bossNotificationOverlay = (
+  const bossNotificationOverlay = isSilverScrapesActive ? null : (
     <div
       className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none flex items-center justify-center`}
     >
@@ -698,6 +714,7 @@ export const Boss2D = () => {
             <BossSpeechBubble
               speech={isRoarActive || isDefeated || isSilverScrapesActive || isRoundIntroShown ? null : activeSpeech}
               themeConfig={themeConfig}
+              gameTheme={gameTheme}
               isRestless={isRestless}
               isAboveHealthBar={isHealthBarVisible}
             />
@@ -880,4 +897,6 @@ export const Boss2D = () => {
       {notificationPortalEl ? createPortal(bossNotificationOverlay, notificationPortalEl) : bossNotificationOverlay}
     </>
   );
-};
+});
+
+Boss2D.displayName = 'Boss2D';

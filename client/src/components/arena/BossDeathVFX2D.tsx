@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Skull, Swords } from 'lucide-react';
+import { Swords, Trophy } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import {
   FINISHER_BANNER_CONSTANTS,
-  GAME_THEME,
+  getThemeConfig,
   isDonorFinisherCheck,
   TEAM_KEY,
 } from '../../constants/game';
@@ -49,64 +49,98 @@ export const BossDeathVFX2D = () => {
 
   if (bossDefeatedTimestamp === 0 || !hasImpacted) return null;
 
-  const isElder = gameTheme === GAME_THEME.ELDER_DRAGON;
-
   const effectiveTeam = finisherTeam || roundWinner || TEAM_KEY.BLG;
   const winningTeamProfile = activeTeams[effectiveTeam];
   const finisherTheme = getTeamTheme(winningTeamProfile?.colorTheme);
   const teamAccentColor = finisherTheme.primaryHex;
   const teamTag = winningTeamProfile?.shortTag || effectiveTeam;
-  const bossNameShort = isElder
-    ? t('Victory.elderShort', 'RỒNG NGÀN TUỔI')
-    : t('Victory.baronShort', 'BARON NASHOR');
+
+  const bossThemeConfig = getThemeConfig(gameTheme);
+  const bossName = bossThemeConfig.bossName;
 
   return (
     <div
       key={bossDefeatedTimestamp}
       className="absolute inset-0 pointer-events-none z-20 overflow-visible"
     >
-      {/* Grand LoL Esports Broadcast Slain Banner (Visual explosion handled via BossDeathVFX3D) */}
-      <div className="absolute left-1/2 top-[18%] sm:top-[22%] animate-execution-banner w-max max-w-[94vw] z-30 pointer-events-none flex flex-col items-center select-none">
-        <div
-          style={{
-            boxShadow: `0 0 35px ${teamAccentColor}, 0 0 70px rgba(0,0,0,0.95)`,
-            borderColor: teamAccentColor,
-          }}
-          className="relative flex items-center gap-2.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-2xl border-2 backdrop-blur-xl bg-slate-950/92 overflow-hidden"
-        >
-          {/* Subtle animated slash light beam across the banner */}
-          <div
-            style={{
-              background: `linear-gradient(90deg, transparent, ${teamAccentColor}60, transparent)`,
-            }}
-            className="absolute inset-0 animate-defeat-slash-sweep pointer-events-none"
-          />
-
-          {/* Team Logo Badge */}
-          <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shrink-0 rounded-xl bg-slate-900/90 border border-white/30 shadow-md">
-            <TeamLogo teamSlot={effectiveTeam} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+      {/* Grand LoL Esports Broadcast Slain Banner */}
+      <div className="absolute left-1/2 top-[16%] sm:top-[20%] animate-execution-banner w-max max-w-[94vw] z-30 pointer-events-none flex flex-col items-center select-none">
+        {/* Symmetrical Winged Hextech Golden Container */}
+        <div className="relative flex items-center justify-center">
+          {/* Left Wing Ornament */}
+          <div className="hidden sm:flex -mr-2 items-center pointer-events-none z-10 opacity-90">
+            <div className="w-8 h-12 bg-gradient-to-l from-amber-400/80 via-amber-500/40 to-transparent skew-x-[25deg] rounded-l-lg border-l-2 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]" />
+            <div className="w-3 h-8 bg-amber-400/60 skew-x-[25deg] border-l border-amber-200" />
           </div>
 
-          <div className="flex flex-col items-start leading-tight min-w-0">
-            <div className="flex items-center gap-1.5">
-              <Skull className="w-4 h-4 text-rose-400 animate-pulse shrink-0" />
-              <h2
-                style={{ textShadow: `0 0 14px ${teamAccentColor}` }}
-                className="text-xs sm:text-base font-black uppercase tracking-wider text-white truncate"
-              >
-                {teamTag} {t('Victory.slainBadge', 'ĐÃ HẠ GỤC')} {bossNameShort}!
-              </h2>
+          {/* Core Slain Card */}
+          <div
+            style={{
+              borderColor: `${teamAccentColor}`,
+              boxShadow: `0 0 35px ${teamAccentColor}90, 0 0 80px rgba(0,0,0,0.95), inset 0 0 20px ${teamAccentColor}30`,
+              background: `linear-gradient(135deg, rgba(2, 6, 23, 0.98) 0%, ${teamAccentColor}20 50%, rgba(2, 6, 23, 0.98) 100%)`,
+            }}
+            className="relative flex items-center gap-3 sm:gap-4 px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-2xl sm:rounded-3xl border-2 backdrop-blur-2xl overflow-hidden shadow-2xl"
+          >
+            {/* Shimmer light beam sweeping across */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/25 to-transparent skew-x-[-20deg] animate-gold-shimmer" />
             </div>
 
-            {finisherPlayerName && (
-              <div className="flex items-center gap-1.5 mt-0.5 text-[10px] sm:text-xs font-bold text-amber-300">
-                <Swords className="w-3 h-3 text-amber-400 shrink-0" />
-                <span className="text-slate-300 font-semibold">{t('Victory.finisherBlow', 'Đòn Kết Liễu')}:</span>
-                <span className="text-amber-200 font-black px-1.5 py-0.2 rounded bg-amber-950/60 border border-amber-500/40 truncate max-w-[150px] sm:max-w-[200px]">
-                  {finisherPlayerName}
-                </span>
+            {/* Top Ornamental Golden Border Notch */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-0.5 bg-gradient-to-r from-transparent via-amber-300 to-transparent shadow-[0_0_8px_#fbbf24]" />
+
+            {/* Team Logo in 3D Embossed Shield */}
+            <div
+              className="relative w-10 h-10 sm:w-13 sm:h-13 flex items-center justify-center shrink-0 rounded-2xl bg-slate-950 border-2 shadow-xl"
+              style={{
+                borderColor: teamAccentColor,
+                boxShadow: `0 0 16px ${teamAccentColor}80`,
+              }}
+            >
+              <TeamLogo
+                teamSlot={effectiveTeam}
+                teamProfile={winningTeamProfile}
+                className="w-7 h-7 sm:w-9 sm:h-9 object-contain drop-shadow"
+              />
+            </div>
+
+            {/* Banner Text Details */}
+            <div className="flex flex-col items-start leading-tight min-w-0">
+              {/* Eyebrow Label */}
+              <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-amber-300 mb-0.5">
+                <Trophy className="w-3 h-3 text-amber-400 shrink-0 animate-pulse" />
+                <span>{t('Victory.objectiveSecured', 'TIÊU DIỆT MỤC TIÊU LỚN')}</span>
               </div>
-            )}
+
+              {/* Main Headline */}
+              <h2 className="text-xs sm:text-base md:text-lg font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 drop-shadow-[0_2px_8px_rgba(245,158,11,0.8)] truncate max-w-[260px] sm:max-w-md">
+                {teamTag} {t('Victory.slainBadge', 'ĐÃ HẠ GỤC')} {bossName.toUpperCase()}!
+              </h2>
+
+              {/* Finisher Credit Badge */}
+              {finisherPlayerName && (
+                <div className="flex items-center gap-1.5 mt-1 text-[9.5px] sm:text-[11px] font-bold text-amber-300">
+                  <Swords className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span className="text-slate-300 font-semibold">{t('Victory.finisherBlow', 'Đòn Kết Liễu')}:</span>
+                  <span
+                    className="text-amber-100 font-black px-2 py-0.5 rounded-md border truncate max-w-[160px] sm:max-w-[220px] shadow-sm"
+                    style={{
+                      backgroundColor: `${teamAccentColor}35`,
+                      borderColor: `${teamAccentColor}80`,
+                    }}
+                  >
+                    {finisherPlayerName}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Wing Ornament */}
+          <div className="hidden sm:flex -ml-2 items-center pointer-events-none z-10 opacity-90">
+            <div className="w-3 h-8 bg-amber-400/60 skew-x-[-25deg] border-r border-amber-200" />
+            <div className="w-8 h-12 bg-gradient-to-r from-amber-400/80 via-amber-500/40 to-transparent skew-x-[-25deg] rounded-r-lg border-r-2 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]" />
           </div>
         </div>
       </div>

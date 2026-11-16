@@ -5,15 +5,17 @@ import {
   GAME_CONSTANTS,
   GIFT_METEOR_SPAWN,
   GIFT_TIER,
+  GIFT_TIER_CONFIG,
   GiftTier,
   TeamType,
+  calculateGiftBaseDamage,
 } from '../constants/game';
 import { getTeamTheme } from '../constants/teams';
 import { playSound } from '../services/soundManager';
 import { audioService } from '../services/audioService';
 import { GameState, GiftAnnouncement, MeteorEntity } from '../types/game';
 import { GIFT_FIREWORK, GIFT_SOUND_LAYERS, GIFT_STREAK_PITCH, GiftSoundLayer } from '../constants/giftPresentation';
-import type { GiftRulePayload } from '../constants/giftConfig';
+import { GIFT_EFFECT, GIFT_EFFECT_TUNING, type GiftRulePayload } from '../constants/giftConfig';
 import { applyGiftRuleEffect, resolveGiftDamageMultiplier } from './giftRuleEffects';
 import { getGiftTierConfig, getMegaGradeConfig, isGiftTierAtLeast, resolveFireworkShellCount, resolveGiftTier } from './giftTier';
 
@@ -76,6 +78,9 @@ export const buildGiftMeteors = (count: number, color: string, now: number, seed
   });
 
 const resolveMeteorCount = (tier: GiftTier, coins: number): number => {
+  if (coins >= GIFT_METEOR_SPAWN.FRENZY_MIN_COINS && coins < GIFT_TIER_CONFIG[GIFT_TIER.BIG].minCoins) {
+    return GIFT_METEOR_SPAWN.FRENZY_METEOR_COUNT;
+  }
   const baseCount = getGiftTierConfig(tier).meteorCount;
   return tier === GIFT_TIER.MEGA ? baseCount + getMegaGradeConfig(coins).bonusMeteorCount : baseCount;
 };
@@ -142,10 +147,12 @@ const applyGiftImpact = (get: () => GameState, event: GiftEvent, tier: GiftTier,
   const config = getGiftTierConfig(tier);
   const theme = getTeamTheme(get().activeTeams[event.team]?.colorTheme);
   const damageType = isGiftTierAtLeast(tier, GIFT_TIER.BIG) ? DAMAGE_TYPE.ULTIMATE : DAMAGE_TYPE.NORMAL;
+  const baseDamage = calculateGiftBaseDamage(event.coins);
+  const totalDamage = Math.round(baseDamage * resolveGiftDamageMultiplier(event.rule));
 
   get().healTeamChampions(event.team, GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_HEAL_AMOUNT);
   get().damageBoss(
-    Math.round(event.coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN * resolveGiftDamageMultiplier(event.rule)),
+    totalDamage,
     event.team,
     `${event.donorName} (${event.giftName})`,
     damageType,
@@ -168,7 +175,7 @@ const applyGiftImpact = (get: () => GameState, event: GiftEvent, tier: GiftTier,
 const logGift = (get: () => GameState, event: GiftEvent, isQuietTick: boolean): void => {
   const teamTag = get().activeTeams[event.team]?.shortTag || event.team;
   const streakLabel = event.streakCount > 1 ? ` x${event.streakCount}` : '';
-  const damage = event.coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN;
+  const damage = Math.round(calculateGiftBaseDamage(event.coins) * resolveGiftDamageMultiplier(event.rule));
   get().addLog('GIFT', `💎 ${event.donorName} tặng [${event.giftName}${streakLabel}] (+${event.coins} xu) phe ${teamTag} gây +${damage.toLocaleString()} ST!`, event.team);
   if (!isQuietTick || event.isComboFinal) {
     get().addChatMessage(event.donorName, `Đã tặng ${event.giftName}${streakLabel} (+${damage.toLocaleString()} DMG)!`, event.team);
@@ -180,6 +187,8 @@ export interface GiftExplosionResult {
   banner: GiftAnnouncement | null;
   meteors: MeteorEntity[];
   bossStaggerUntil: number;
+  frenzyUntil?: number;
+  frenzyTeam?: TeamType;
 }
 
 /** Runs the whole gift reaction (sound, rewards, VFX inputs); the slice commits the returned state. */
@@ -197,9 +206,49 @@ export const runGiftExplosion = (get: () => GameState, event: GiftEvent, now: nu
   const furyGain = resolveGiftFuryGain(event.coins);
   roster.forEach((pro) => get().addPlayerFury(pro.id, furyGain));
   if (shouldSummonElite(event)) summonEliteChampion(get, event);
-  const ruleStunUntil = event.rule && !hasKilledBoss
-    ? applyGiftRuleEffect({ get, team: event.team, donorName: event.donorName, donorAvatarUrl: event.donorAvatarUrl, rule: event.rule }, now)
-    : 0;
+
+  // Innate milestone effects:
+  // Mốc 30 xu (Kính Mát): BATTLE_FRENZY (+40% attack speed, fury boost, light heal, 8 meteors)
+  const isFrenzyMilestone = event.coins === 30 || event.rule?.effect === GIFT_EFFECT.BATTLE_FRENZY;
+  // Mốc 99 xu (Vương Miện): AEGIS_BARRIER (Full team heal + 2.5s boss stagger + VIP fanfare)
+  const isAegisMilestone = event.coins === 99 || event.rule?.effect === GIFT_EFFECT.AEGIS_BARRIER;
+
+  let ruleStunUntil = 0;
+  let frenzyUntil: number | undefined;
+
+  if (event.rule && !hasKilledBoss) {
+    const ruleResult = applyGiftRuleEffect(
+      { get, team: event.team, donorName: event.donorName, donorAvatarUrl: event.donorAvatarUrl, rule: event.rule },
+      now
+    );
+    ruleStunUntil = ruleResult.bossStunUntil;
+    if (ruleResult.frenzyDurationMs > 0) {
+      frenzyUntil = now + ruleResult.frenzyDurationMs;
+    }
+  }
+
+  if (isFrenzyMilestone && !hasKilledBoss) {
+    frenzyUntil = Math.max(frenzyUntil ?? 0, now + GIFT_EFFECT_TUNING.FRENZY_DURATION_MS);
+    roster.forEach((pro) => get().addPlayerFury(pro.id, GIFT_EFFECT_TUNING.FRENZY_FURY_AMOUNT));
+    get().healTeamChampions(event.team, GIFT_EFFECT_TUNING.FRENZY_HEAL_AMOUNT);
+    const teamTag = get().activeTeams[event.team]?.shortTag || event.team;
+    get().addLog(
+      'GIFT',
+      `🕶️ [CUỒNG NỘ CHIẾN TRƯỜNG] ${event.donorName} kích hoạt BATTLE FRENZY (+40% tốc đánh, nạp nộ & hồi phục) cho phe ${teamTag}!`,
+      event.team
+    );
+  }
+
+  if (isAegisMilestone && !hasKilledBoss) {
+    get().healTeamChampions(event.team, GIFT_EFFECT_TUNING.AEGIS_HEAL_AMOUNT);
+    const teamTag = get().activeTeams[event.team]?.shortTag || event.team;
+    get().addLog(
+      'GIFT',
+      `👑 [LÁ CHẮN AEGIS & CHOÁNG BOSS] ${event.donorName} tặng Vương Miện khống chế Boss 2.5s & hồi phục toàn phe ${teamTag}!`,
+      event.team
+    );
+  }
+
   logGift(get, event, isQuietTick);
 
   const hasBanner = config.bannerDurationMs > 0 && !isQuietTick;
@@ -209,5 +258,7 @@ export const runGiftExplosion = (get: () => GameState, event: GiftEvent, now: nu
     banner: hasBanner ? buildGiftAnnouncement(event, tier, now) : null,
     meteors,
     bossStaggerUntil: Math.max(tierStaggerUntil, ruleStunUntil),
+    frenzyUntil,
+    frenzyTeam: frenzyUntil ? event.team : undefined,
   };
 };

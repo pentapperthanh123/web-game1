@@ -181,7 +181,7 @@ export const stepChampionFrame = (
     ];
     const teamMomentum = store.teamHeartMomentum[minion.team];
     const heartTapSpeedFactor = teamMomentum
-      ? getMinionAttackSpeedFactor(teamMomentum.multiplier, teamMomentum.lastTapAt, now)
+      ? getMinionAttackSpeedFactor(teamMomentum.multiplier, teamMomentum.lastTapAt, now, teamMomentum.frenzyUntil)
       : 1;
     const attackSpeedFactor =
       heartTapSpeedFactor * resolveChampionAttackSpeedMultiplier(store.participationRuleConfig);

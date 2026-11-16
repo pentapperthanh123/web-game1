@@ -1,5 +1,28 @@
 export type SeriesFormat = 'BO1' | 'BO3' | 'BO5';
 
+export type GameThemeType =
+  | 'BARON'
+  | 'ELDER_DRAGON'
+  | 'XU_GIA'
+  | 'RONG_NUI'
+  | 'RONG_GIA'
+  | 'VOID_TITAN';
+
+export const SERIES_BOSS_MAP: Record<SeriesFormat, readonly GameThemeType[]> = {
+  BO1: ['BARON'],
+  BO3: ['XU_GIA', 'ELDER_DRAGON', 'BARON'],
+  BO5: ['XU_GIA', 'RONG_NUI', 'RONG_GIA', 'BARON', 'VOID_TITAN'],
+};
+
+export function getBossThemeForRound(
+  round: number,
+  seriesFormat: SeriesFormat = 'BO5'
+): GameThemeType {
+  const list = SERIES_BOSS_MAP[seriesFormat] ?? SERIES_BOSS_MAP.BO5;
+  const idx = Math.max(0, Math.min(round - 1, list.length - 1));
+  return list[idx] ?? 'BARON';
+}
+
 export interface SeriesFormatConfig {
   format: SeriesFormat;
   targetWins: number;

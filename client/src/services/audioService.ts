@@ -69,7 +69,7 @@ interface TtsQueueItem {
 
 export const TTS_CONSTANTS = {
   MAX_QUEUE: 3,
-  DEFAULT_RATE: 1.25,
+  DEFAULT_RATE: 1.08,
 } as const;
 
 /**
@@ -405,14 +405,14 @@ class AudioSynthesizerService {
     const out = this.getOutputNode(pan);
     const vol = this.volume * (isCrit ? 1.3 : 1.0);
 
-    // Layer A: Heroic Landing Ground Thud
+    // Layer A: Heroic Landing Ground Thud (Sub-bass impact)
     const thudOsc = ctx.createOscillator();
     const thudGain = ctx.createGain();
     thudOsc.type = 'triangle';
-    thudOsc.frequency.setValueAtTime(220, t);
-    thudOsc.frequency.exponentialRampToValueAtTime(38, t + 0.22);
+    thudOsc.frequency.setValueAtTime(160, t);
+    thudOsc.frequency.exponentialRampToValueAtTime(32, t + 0.22);
 
-    thudGain.gain.setValueAtTime(0.48 * vol, t);
+    thudGain.gain.setValueAtTime(0.52 * vol, t);
     thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
 
     thudOsc.connect(thudGain);
@@ -420,26 +420,26 @@ class AudioSynthesizerService {
     thudOsc.start(t);
     thudOsc.stop(t + 0.24);
 
-    // Layer B: Runic Warp Whoosh
-    const whooshOsc = ctx.createOscillator();
-    const whooshGain = ctx.createGain();
-    whooshOsc.type = 'sine';
-    whooshOsc.frequency.setValueAtTime(680, t);
-    whooshOsc.frequency.exponentialRampToValueAtTime(140, t + 0.18);
+    // Layer B: Teleport Arcane Touchdown Surge (In-game spatial vortex surge, zero whistle)
+    const warpOsc = ctx.createOscillator();
+    const warpGain = ctx.createGain();
+    warpOsc.type = 'triangle';
+    warpOsc.frequency.setValueAtTime(280, t);
+    warpOsc.frequency.exponentialRampToValueAtTime(80, t + 0.18);
 
-    whooshGain.gain.setValueAtTime(0.25 * vol, t);
-    whooshGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    warpGain.gain.setValueAtTime(0.38 * vol, t);
+    warpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
 
-    whooshOsc.connect(whooshGain);
-    whooshGain.connect(out);
-    whooshOsc.start(t);
-    whooshOsc.stop(t + 0.18);
+    warpOsc.connect(warpGain);
+    warpGain.connect(out);
+    warpOsc.start(t);
+    warpOsc.stop(t + 0.2);
 
-    // Layer C: Radiant Team Fanfare Triad
+    // Layer C: Radiant Team Harmonic Resonance (Warm low-mid arcane tone, no high-pitch whistle)
     const freqs =
       team === TEAM_KEY.BLG
-        ? [587.33, 880.0, 1174.66] // D5, A5, D6 cyan radiance
-        : [659.25, 987.77, 1318.51]; // E5, B5, E6 gold victory
+        ? [146.83, 220.0, 293.66] // D3, A3, D4 warm cyan radiance
+        : [164.81, 246.94, 329.63]; // E3, B3, E4 warm gold mythic chime
 
     freqs.forEach((freq, idx) => {
       const noteOsc = ctx.createOscillator();
@@ -962,15 +962,16 @@ class AudioSynthesizerService {
     // Layer A: Punchy Low-End Sub Kick Thump
     const bassOsc = ctx.createOscillator();
     const bassGain = ctx.createGain();
-    const startBass = isUltimate ? 240 : isCritical ? 210 : 165;
-    const endBass = isUltimate ? 24 : isCritical ? 34 : 40;
-    const duration = isUltimate ? 0.35 : isCritical ? 0.22 : 0.12;
+    const cfg = AUDIO_SFX_CONSTANTS.CHAMPION_ATTACK_SFX;
+    const startBass = isUltimate ? 240 : isCritical ? 210 : cfg.HIT_BASS_START;
+    const endBass = isUltimate ? 24 : isCritical ? 34 : cfg.HIT_BASS_END;
+    const duration = isUltimate ? 0.35 : isCritical ? 0.22 : 0.07;
 
     bassOsc.type = 'triangle';
     bassOsc.frequency.setValueAtTime(startBass * (0.96 + Math.random() * 0.08), t);
     bassOsc.frequency.exponentialRampToValueAtTime(endBass, t + duration);
 
-    bassGain.gain.setValueAtTime((isUltimate ? 0.52 : isCritical ? 0.42 : 0.28) * vol, t);
+    bassGain.gain.setValueAtTime((isUltimate ? 0.52 : isCritical ? 0.42 : 0.22) * vol, t);
     bassGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
     bassOsc.connect(bassGain);
@@ -978,20 +979,25 @@ class AudioSynthesizerService {
     bassOsc.start(t);
     bassOsc.stop(t + duration);
 
-    // Layer B: Crunchy Flesh/Armor Impact Bite
-    const midOsc = ctx.createOscillator();
-    const midGain = ctx.createGain();
-    midOsc.type = 'sawtooth';
-    midOsc.frequency.setValueAtTime(340 * (0.92 + Math.random() * 0.16), t);
-    midOsc.frequency.exponentialRampToValueAtTime(55, t + 0.08);
+    // Layer B: Crisp Physical Flesh/Armor Impact Bite (Replaced harsh sawtooth with filtered impact transient)
+    const hitNoise = ctx.createBufferSource();
+    hitNoise.buffer = this.getNoiseBuffer(ctx);
+    const hitFilter = ctx.createBiquadFilter();
+    const hitGain = ctx.createGain();
 
-    midGain.gain.setValueAtTime(0.14 * vol, t);
-    midGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    hitFilter.type = 'bandpass';
+    hitFilter.frequency.setValueAtTime(cfg.HIT_CRACK_FREQ * (0.94 + Math.random() * 0.12), t);
+    hitFilter.frequency.exponentialRampToValueAtTime(320, t + 0.05);
+    hitFilter.Q.value = 1.6;
 
-    midOsc.connect(midGain);
-    midGain.connect(out);
-    midOsc.start(t);
-    midOsc.stop(t + 0.08);
+    hitGain.gain.setValueAtTime(0.18 * vol, t);
+    hitGain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+
+    hitNoise.connect(hitFilter);
+    hitFilter.connect(hitGain);
+    hitGain.connect(out);
+    hitNoise.start(t);
+    hitNoise.stop(t + 0.055);
 
     // Layer C & D: Visceral Crit Armor-Crack Snap + Crisp Dual-Harmonic Strike (no beepy sine droop)
     if (isCritical || isUltimate) {
@@ -1042,29 +1048,44 @@ class AudioSynthesizerService {
 
     const t = ctx.currentTime;
     const out = this.getOutputNode(0);
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
+    const vol = (isCrit ? 0.28 : 0.18) * this.volume;
+    const cfg = AUDIO_SFX_CONSTANTS.CHAMPION_ATTACK_SFX;
 
-    osc.type = 'sawtooth';
-    const pitch = (isCrit ? 720 : 540) * (0.94 + Math.random() * 0.12);
-    osc.frequency.setValueAtTime(pitch, t);
-    osc.frequency.exponentialRampToValueAtTime(65, t + 0.12);
+    // Layer A: Fast blade air slicing whoosh
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.getNoiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
 
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1450, t);
-    filter.frequency.exponentialRampToValueAtTime(380, t + 0.12);
-    filter.Q.value = 1.9;
+    filter.frequency.setValueAtTime(cfg.MELEE_START_FREQ * (0.95 + Math.random() * 0.1), t);
+    filter.frequency.exponentialRampToValueAtTime(cfg.MELEE_END_FREQ, t + cfg.MELEE_DUR_S);
+    filter.Q.value = 2.2;
 
-    gain.gain.setValueAtTime((isCrit ? 0.32 : 0.2) * this.volume, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(vol * 0.8, t + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + cfg.MELEE_DUR_S);
 
-    osc.connect(filter);
+    noise.connect(filter);
     filter.connect(gain);
     gain.connect(out);
+    noise.start(t);
+    noise.stop(t + cfg.MELEE_DUR_S);
 
+    // Layer B: Subtle metallic steel edge ring
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1150 * (0.96 + Math.random() * 0.08), t);
+    osc.frequency.exponentialRampToValueAtTime(320, t + 0.06);
+
+    oscGain.gain.setValueAtTime(vol * 0.35, t);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+
+    osc.connect(oscGain);
+    oscGain.connect(out);
     osc.start(t);
-    osc.stop(t + 0.12);
+    osc.stop(t + 0.06);
   }
 
   // 6. Combo Milestone Hype Fanfare (Combo x10, x25, x50, x100)
@@ -1102,7 +1123,7 @@ class AudioSynthesizerService {
     });
   }
 
-  // 7. Procedural Attack Whoosh
+  // 7. Procedural Attack Whoosh (Physical bowstring snap & aerodynamic projectile release)
   public playAttackWhoosh(isCrit = false, isMelee = false): void {
     if (!this.isAudioEnabled || this.isCombatMuted) return;
     const gate = this.whooshGate.request(performance.now());
@@ -1118,21 +1139,44 @@ class AudioSynthesizerService {
 
     const t = ctx.currentTime;
     const out = this.getOutputNode(0);
-    const osc = ctx.createOscillator();
+    const vol = (isCrit ? 0.22 : 0.14) * this.volume * gate.gainScale;
+    const cfg = AUDIO_SFX_CONSTANTS.CHAMPION_ATTACK_SFX;
+
+    // Layer A: Aerodynamic air displacement / projectile whoosh (filtered noise transient, zero laser chirp)
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.getNoiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
     const gain = ctx.createGain();
-    const baseFreq = (isCrit ? 1180 : 880) * (0.92 + Math.random() * 0.16);
 
-    osc.type = isCrit ? 'sawtooth' : 'triangle';
-    osc.frequency.setValueAtTime(baseFreq, t);
-    osc.frequency.exponentialRampToValueAtTime(170, t + 0.1);
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(cfg.AERO_START_FREQ * (0.95 + Math.random() * 0.1), t);
+    filter.frequency.exponentialRampToValueAtTime(cfg.AERO_END_FREQ, t + cfg.AERO_DUR_S);
+    filter.Q.value = 2.0;
 
-    gain.gain.setValueAtTime((isCrit ? 0.24 : 0.15) * this.volume * gate.gainScale, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(vol * 0.85, t + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + cfg.AERO_DUR_S);
 
-    osc.connect(gain);
+    noise.connect(filter);
+    filter.connect(gain);
     gain.connect(out);
-    osc.start(t);
-    osc.stop(t + 0.1);
+    noise.start(t);
+    noise.stop(t + cfg.AERO_DUR_S);
+
+    // Layer B: Subtle acoustic bowstring snap / projectile release transient
+    const pluckOsc = ctx.createOscillator();
+    const pluckGain = ctx.createGain();
+    pluckOsc.type = 'triangle';
+    pluckOsc.frequency.setValueAtTime(cfg.PLUCK_START_FREQ * (0.96 + Math.random() * 0.08), t);
+    pluckOsc.frequency.exponentialRampToValueAtTime(cfg.PLUCK_END_FREQ, t + cfg.PLUCK_DUR_S);
+
+    pluckGain.gain.setValueAtTime(vol * 0.65, t);
+    pluckGain.gain.exponentialRampToValueAtTime(0.001, t + cfg.PLUCK_DUR_S);
+
+    pluckOsc.connect(pluckGain);
+    pluckGain.connect(out);
+    pluckOsc.start(t);
+    pluckOsc.stop(t + cfg.PLUCK_DUR_S);
   }
 
   // Backward-compatible alias for existing callers
@@ -1216,8 +1260,9 @@ class AudioSynthesizerService {
    * holds for the whole skill and dies out, with rock cracks scattered on top.
    * `intensity` 0..1 = how hard the skill hits the ground; `pitchRate` = the boss's own pitch.
    */
-  public playQuakeRumble(durationS: number, intensity = 1, pitchRate = 1): void {
-    if (!this.isAudioEnabled || this.isCombatMuted) return;
+  public playQuakeRumble(durationS: number, intensity = 1, pitchRate = 1, bypassCombatMute = false): void {
+    if (!this.isAudioEnabled) return;
+    if (this.isCombatMuted && !bypassCombatMute) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1309,8 +1354,9 @@ class AudioSynthesizerService {
   }
 
   /** One heavy ground hit (a slam / nova / meteor layer landing, or the ultimate's damage). */
-  public playQuakeImpact(intensity = 1, pitchRate = 1): void {
-    if (!this.isAudioEnabled || this.isCombatMuted) return;
+  public playQuakeImpact(intensity = 1, pitchRate = 1, bypassCombatMute = false): void {
+    if (!this.isAudioEnabled) return;
+    if (this.isCombatMuted && !bypassCombatMute) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1344,6 +1390,75 @@ class AudioSynthesizerService {
     thudGain.connect(out);
     thud.start(startAt);
     thud.stop(startAt + QUAKE_SFX.IMPACT_NOISE_DURATION_S);
+  }
+
+  /**
+   * Visceral Shockwave Blast & Explosion for Rift Herald (Sứ Giả Khe Nứt) Charge and Ground Detonation.
+   * Features:
+   * 1. Sub-bass seismic frequency drop (175Hz -> 26Hz) for seismic ground displacement.
+   * 2. Resonant ground-blast lowpass noise rupture with Q=3.2 over 0.7s.
+   * 3. Void crackle sawtooth snap for high-energy spatial shockwave blast.
+   */
+  public playShockwaveExplosion(intensity = 1, pitchRate = 1, bypassCombatMute = false): void {
+    if (!this.isAudioEnabled) return;
+    if (this.isCombatMuted && !bypassCombatMute) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
+    const vol = this.volume * Math.min(1.25, Math.max(0.2, intensity));
+
+    // 1. Deep Sub Seismic Drop (thump & displacement)
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    const subDuration = 0.65;
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(175 * pitchRate, t);
+    subOsc.frequency.exponentialRampToValueAtTime(26 * pitchRate, t + subDuration);
+
+    subGain.gain.setValueAtTime(0.75 * vol, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + subDuration);
+
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(t);
+    subOsc.stop(t + subDuration + 0.05);
+
+    // 2. Heavy Ground Blast Noise Burst
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = this.getNoiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.Q.setValueAtTime(3.2, t);
+    filter.frequency.setValueAtTime(880 * pitchRate, t);
+    filter.frequency.exponentialRampToValueAtTime(85 * pitchRate, t + 0.55);
+
+    const noiseGain = ctx.createGain();
+    const noiseDuration = 0.7;
+    noiseGain.gain.setValueAtTime(0.65 * vol, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + noiseDuration);
+
+    noiseSource.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(out);
+    noiseSource.start(t);
+    noiseSource.stop(t + noiseDuration + 0.05);
+
+    // 3. Crackling Void Shatter Snap
+    const snapOsc = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+    snapOsc.type = 'sawtooth';
+    snapOsc.frequency.setValueAtTime(420 * pitchRate, t);
+    snapOsc.frequency.exponentialRampToValueAtTime(45 * pitchRate, t + 0.18);
+
+    snapGain.gain.setValueAtTime(0.35 * vol, t);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+    snapOsc.connect(snapGain);
+    snapGain.connect(out);
+    snapOsc.start(t);
+    snapOsc.stop(t + 0.2);
   }
 
   // 9. Procedural Victory Sound
@@ -1549,7 +1664,59 @@ class AudioSynthesizerService {
     this.playBossRoarSound(pitch, true);
   }
 
-  // 11d. Esports Match / Round Start Horn Triad
+  // 11c. High-Velocity Aerodynamic Cinematic Whoosh & Tension Drone (Opening Build-up)
+  public playCinematicWhoosh(): void {
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
+    const vol = this.volume;
+
+    // Filtered aerodynamic air whoosh building up tension to impact
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.getNoiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(220, t);
+    filter.frequency.exponentialRampToValueAtTime(1400, t + 1.1);
+    filter.Q.setValueAtTime(2.5, t);
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.35 * vol, t + 0.95);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 1.15);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(out);
+    noise.start(t);
+    noise.stop(t + 1.18);
+
+    // Low rising drone tension
+    const droneOsc = ctx.createOscillator();
+    const droneGain = ctx.createGain();
+    droneOsc.type = 'sawtooth';
+    droneOsc.frequency.setValueAtTime(55, t);
+    droneOsc.frequency.exponentialRampToValueAtTime(110, t + 1.1);
+    const droneFilter = ctx.createBiquadFilter();
+    droneFilter.type = 'lowpass';
+    droneFilter.frequency.setValueAtTime(180, t);
+
+    droneGain.gain.setValueAtTime(0.001, t);
+    droneGain.gain.linearRampToValueAtTime(0.25 * vol, t + 0.9);
+    droneGain.gain.exponentialRampToValueAtTime(0.001, t + 1.15);
+
+    droneOsc.connect(droneFilter);
+    droneFilter.connect(droneGain);
+    droneGain.connect(out);
+    droneOsc.start(t);
+    droneOsc.stop(t + 1.18);
+  }
+
+  // 11d. Epic Worlds Brass Fanfare & Taiko War Drums (Esports Opening Ceremony)
   public playRoundStartSound(): void {
     this.setCombatMuted(false);
     if (!this.isAudioEnabled) return;
@@ -1558,28 +1725,145 @@ class AudioSynthesizerService {
 
     const t = ctx.currentTime;
     const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
-    const notes = [293.66, 440.0, 587.33]; // D4 - A4 - D5
+    const vol = this.volume;
 
-    notes.forEach((freq, idx) => {
-      const osc = ctx.createOscillator();
+    // ── 1. Thunderous Double-Strike Taiko War Drum ─────────────────────────────
+    const taikoHits = [
+      { startOffset: 0, startFreq: 175, endFreq: 42, gainVal: 0.82, dur: 0.85 },
+      { startOffset: 0.12, startFreq: 130, endFreq: 36, gainVal: 0.68, dur: 0.95 },
+    ];
+
+    taikoHits.forEach((hit) => {
+      const hitTime = t + hit.startOffset;
+
+      // Click transient (stick on drum skin)
+      const clickOsc = ctx.createOscillator();
+      const clickGain = ctx.createGain();
+      clickOsc.type = 'triangle';
+      clickOsc.frequency.setValueAtTime(1350, hitTime);
+      clickOsc.frequency.exponentialRampToValueAtTime(160, hitTime + 0.015);
+      clickGain.gain.setValueAtTime(0.3 * vol, hitTime);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, hitTime + 0.018);
+      clickOsc.connect(clickGain);
+      clickGain.connect(out);
+      clickOsc.start(hitTime);
+      clickOsc.stop(hitTime + 0.02);
+
+      // Resonant wooden drum shell body
+      const drumOsc = ctx.createOscillator();
+      const drumFilter = ctx.createBiquadFilter();
+      const drumGain = ctx.createGain();
+
+      drumOsc.type = 'sine';
+      drumOsc.frequency.setValueAtTime(hit.startFreq, hitTime);
+      drumOsc.frequency.exponentialRampToValueAtTime(hit.endFreq, hitTime + hit.dur);
+
+      drumFilter.type = 'lowpass';
+      drumFilter.frequency.setValueAtTime(240, hitTime);
+      drumFilter.Q.setValueAtTime(3.2, hitTime);
+
+      drumGain.gain.setValueAtTime(0.001, hitTime);
+      drumGain.gain.linearRampToValueAtTime(hit.gainVal * vol, hitTime + 0.02);
+      drumGain.gain.exponentialRampToValueAtTime(0.001, hitTime + hit.dur);
+
+      drumOsc.connect(drumFilter);
+      drumFilter.connect(drumGain);
+      drumGain.connect(out);
+      drumOsc.start(hitTime);
+      drumOsc.stop(hitTime + hit.dur + 0.05);
+    });
+
+    // Deep seismic sub-bass rumble
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(45, t);
+    subOsc.frequency.exponentialRampToValueAtTime(32, t + 1.4);
+    subGain.gain.setValueAtTime(0.001, t);
+    subGain.gain.linearRampToValueAtTime(0.55 * vol, t + 0.05);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 1.45);
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(t);
+    subOsc.stop(t + 1.5);
+
+    // ── 2. Steel Clash & High Shield Strike Accent ─────────────────────────────
+    const clashOsc1 = ctx.createOscillator();
+    const clashOsc2 = ctx.createOscillator();
+    const clashGain = ctx.createGain();
+
+    clashOsc1.type = 'sawtooth';
+    clashOsc2.type = 'triangle';
+    clashOsc1.frequency.setValueAtTime(1400, t + 0.02);
+    clashOsc1.frequency.exponentialRampToValueAtTime(320, t + 0.28);
+    clashOsc2.frequency.setValueAtTime(2200, t + 0.02);
+    clashOsc2.frequency.exponentialRampToValueAtTime(540, t + 0.32);
+
+    clashGain.gain.setValueAtTime(0.001, t);
+    clashGain.gain.setValueAtTime(0.32 * vol, t + 0.02);
+    clashGain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+    clashOsc1.connect(clashGain);
+    clashOsc2.connect(clashGain);
+    clashGain.connect(out);
+    clashOsc1.start(t + 0.02);
+    clashOsc2.start(t + 0.02);
+    clashOsc1.stop(t + 0.38);
+    clashOsc2.stop(t + 0.38);
+
+    // ── 3. Epic Worlds Brass Horn Fanfare (Acoustic Chorus & Resonant Swell) ──
+    const hornFanfare = [
+      { freq: 146.83, delay: 0.06, dur: 0.9, level: 0.28 },  // D3 (low horn foundation)
+      { freq: 220.00, delay: 0.16, dur: 0.85, level: 0.26 }, // A3 (herald call)
+      { freq: 293.66, delay: 0.26, dur: 1.15, level: 0.35 }, // D4 (fanfare chord)
+      { freq: 369.99, delay: 0.30, dur: 1.15, level: 0.33 }, // F#4 (triumphant major third)
+      { freq: 440.00, delay: 0.34, dur: 1.25, level: 0.38 }, // A4 (soaring fifth)
+      { freq: 587.33, delay: 0.38, dur: 1.35, level: 0.30 }, // D5 (crowning octave peak)
+    ];
+
+    hornFanfare.forEach((note) => {
+      const startTime = t + note.delay;
+
+      // Dual detuned oscillators for authentic stadium brass ensemble
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
-      const startTime = t + idx * 0.09;
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, startTime);
+      osc1.type = 'sawtooth';
+      osc2.type = 'triangle';
+      osc1.frequency.setValueAtTime(note.freq, startTime);
+      osc2.frequency.setValueAtTime(note.freq * 1.004, startTime);
 
+      // Acoustic brass formant filter sweep
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(450, startTime);
+      filter.frequency.exponentialRampToValueAtTime(2200, startTime + 0.08);
+      filter.frequency.exponentialRampToValueAtTime(750, startTime + note.dur);
+      filter.Q.setValueAtTime(2.4, startTime);
+
+      // Heroic brass swell attack and warm acoustic sustain
       gain.gain.setValueAtTime(0.001, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.24 * this.volume, startTime + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.42);
+      gain.gain.exponentialRampToValueAtTime(note.level * vol, startTime + 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + note.dur);
 
-      osc.connect(gain);
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
       gain.connect(out);
-      osc.start(startTime);
-      osc.stop(startTime + 0.45);
+
+      osc1.start(startTime);
+      osc2.start(startTime);
+      osc1.stop(startTime + note.dur + 0.05);
+      osc2.stop(startTime + note.dur + 0.05);
     });
   }
 
-  /** Esports war drum & metallic slam when combat commences immediately. */
+  /**
+   * Heroic Esports War Drum & Ancient Battle Horn Fanfare when combat commences immediately.
+   * Features a thunderous double-strike Taiko war drum, resonant brass battle horn swell,
+   * high-impact steel clash, and cinematic shockwave rumble.
+   */
   public playCombatDeployBlastSound(): void {
     this.setCombatMuted(false);
     if (!this.isAudioEnabled) return;
@@ -1590,61 +1874,95 @@ class AudioSynthesizerService {
     const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const vol = this.volume;
 
-    // 1. Heavy War Gong / Sub Bass Slam (D2 -> Sub)
-    const subOsc = ctx.createOscillator();
-    const subGain = ctx.createGain();
-    subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(140, t);
-    subOsc.frequency.exponentialRampToValueAtTime(32, t + 0.55);
+    // 1. Double-Strike Cinematic War Drum (Taiko Impact)
+    const drumHits = [
+      { startOffset: 0, startFreq: 160, endFreq: 38, gainVal: 0.75, dur: 0.7 },
+      { startOffset: 0.11, startFreq: 120, endFreq: 30, gainVal: 0.6, dur: 0.8 },
+    ];
+    drumHits.forEach((hit) => {
+      const hitTime = t + hit.startOffset;
+      const subOsc = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(hit.startFreq, hitTime);
+      subOsc.frequency.exponentialRampToValueAtTime(hit.endFreq, hitTime + hit.dur * 0.8);
 
-    subGain.gain.setValueAtTime(0.6 * vol, t);
-    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+      subGain.gain.setValueAtTime(hit.gainVal * vol, hitTime);
+      subGain.gain.exponentialRampToValueAtTime(0.001, hitTime + hit.dur);
 
-    subOsc.connect(subGain);
-    subGain.connect(out);
-    subOsc.start(t);
-    subOsc.stop(t + 0.68);
+      subOsc.connect(subGain);
+      subGain.connect(out);
+      subOsc.start(hitTime);
+      subOsc.stop(hitTime + hit.dur + 0.05);
+    });
 
-    // 2. High-impact Metallic Sword Clash
+    // 2. High-Impact Metallic Steel Clash & Anvil Resonance
     const clashOsc1 = ctx.createOscillator();
     const clashOsc2 = ctx.createOscillator();
     const clashGain = ctx.createGain();
     clashOsc1.type = 'sawtooth';
     clashOsc2.type = 'triangle';
-    clashOsc1.frequency.setValueAtTime(880, t);
-    clashOsc1.frequency.exponentialRampToValueAtTime(220, t + 0.22);
-    clashOsc2.frequency.setValueAtTime(1320, t);
-    clashOsc2.frequency.exponentialRampToValueAtTime(330, t + 0.28);
+    clashOsc1.frequency.setValueAtTime(960, t + 0.02);
+    clashOsc1.frequency.exponentialRampToValueAtTime(240, t + 0.25);
+    clashOsc2.frequency.setValueAtTime(1440, t + 0.02);
+    clashOsc2.frequency.exponentialRampToValueAtTime(360, t + 0.32);
 
-    clashGain.gain.setValueAtTime(0.35 * vol, t);
-    clashGain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+    clashGain.gain.setValueAtTime(0.001, t);
+    clashGain.gain.setValueAtTime(0.38 * vol, t + 0.02);
+    clashGain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
 
     clashOsc1.connect(clashGain);
     clashOsc2.connect(clashGain);
     clashGain.connect(out);
-    clashOsc1.start(t);
-    clashOsc2.start(t);
-    clashOsc1.stop(t + 0.35);
-    clashOsc2.stop(t + 0.35);
+    clashOsc1.start(t + 0.02);
+    clashOsc2.start(t + 0.02);
+    clashOsc1.stop(t + 0.4);
+    clashOsc2.stop(t + 0.4);
 
-    // 3. Triumphant Battle Horn Triad (D4 - F#4 - A4 - D5 fanfare)
-    const fanfareNotes = [293.66, 369.99, 440.0, 587.33];
-    fanfareNotes.forEach((freq, idx) => {
-      const osc = ctx.createOscillator();
+    // 3. Heroic Ancient Battle Horn Fanfare (Brass Timbre with Harmonics)
+    // Horn notes: Low D3 foundation -> A3 call -> Soaring D4 - F#4 - A4 triumphant charge
+    const hornNotes = [
+      { freq: 146.83, delay: 0.04, dur: 0.85, level: 0.32 },
+      { freq: 220.0, delay: 0.14, dur: 0.8, level: 0.3 },
+      { freq: 293.66, delay: 0.24, dur: 0.75, level: 0.35 },
+      { freq: 369.99, delay: 0.34, dur: 0.75, level: 0.35 },
+      { freq: 440.0, delay: 0.44, dur: 0.85, level: 0.38 },
+    ];
+
+    hornNotes.forEach((note) => {
+      const startTime = t + note.delay;
+
+      // Dual detuned oscillators for authentic brass chorus body
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
-      const startTime = t + 0.05 + idx * 0.07;
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, startTime);
+      osc1.type = 'sawtooth';
+      osc2.type = 'triangle';
+      osc1.frequency.setValueAtTime(note.freq, startTime);
+      osc2.frequency.setValueAtTime(note.freq * 1.004, startTime);
 
+      // Warm brass horn filter sweep
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400, startTime);
+      filter.frequency.exponentialRampToValueAtTime(650, startTime + note.dur);
+      filter.Q.setValueAtTime(2.2, startTime);
+
+      // Swelling heroic attack & resonant sustain
       gain.gain.setValueAtTime(0.001, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.28 * vol, startTime + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.55);
+      gain.gain.exponentialRampToValueAtTime(note.level * vol, startTime + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + note.dur);
 
-      osc.connect(gain);
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
       gain.connect(out);
-      osc.start(startTime);
-      osc.stop(startTime + 0.6);
+
+      osc1.start(startTime);
+      osc2.start(startTime);
+      osc1.stop(startTime + note.dur + 0.05);
+      osc2.stop(startTime + note.dur + 0.05);
     });
   }
 

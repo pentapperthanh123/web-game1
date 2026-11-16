@@ -124,8 +124,8 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       rosterPlayerFury: createInitialRosterFury(state.activeTeams),
       lastFuryUltimatePlayerId: null,
     });
-    // After the store update: the intro and the caster read the round from currentRound
-    showRoundIntro(Date.now(), false);
+    // After the store update: hold on the intro screen so host/admin can introduce the new round
+    showRoundIntro(Date.now(), true);
   },
 
   resetMatchupChampionships: () => {
@@ -224,18 +224,17 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       const nextBlg = resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score.BLG);
       const nextGeng = resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score.GENG);
       const isEnded = nextBlg >= specs.TARGET_WINS || nextGeng >= specs.TARGET_WINS;
-      const round1Theme = getBossThemeForRound(1, format);
-      const difficulty = BOSS_DIFFICULTY_SCALE[round1Theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
-      const round1MaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
+      const targetRound = resetScore ? 1 : Math.min(specs.MAX_ROUNDS, state.currentRound);
+      const targetTheme = getBossThemeForRound(targetRound, format);
+      const difficulty = BOSS_DIFFICULTY_SCALE[targetTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+      const targetMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
 
-      if (resetScore) {
-        persistGameTheme(round1Theme);
-      }
+      persistGameTheme(targetTheme);
 
       return {
-        gameTheme: resetScore ? round1Theme : state.gameTheme,
-        bossMaxHp: resetScore ? round1MaxHp : state.bossMaxHp,
-        bossHp: resetScore ? round1MaxHp : state.bossHp,
+        gameTheme: targetTheme,
+        bossMaxHp: targetMaxHp,
+        bossHp: targetMaxHp,
         seriesFormat: format,
         bo5TargetWins: specs.TARGET_WINS,
         seriesMaxRounds: specs.MAX_ROUNDS,
@@ -243,7 +242,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
           [TEAM_KEY.BLG]: nextBlg,
           [TEAM_KEY.GENG]: nextGeng,
         },
-        currentRound: resetScore ? 1 : Math.min(specs.MAX_ROUNDS, state.currentRound),
+        currentRound: targetRound,
         isSeriesEnded: isEnded,
         seriesWinner: resolveSeriesWinner(isEnded, nextBlg, specs.TARGET_WINS),
       };
@@ -256,6 +255,12 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     // On the victory screen the round number stays the one just played: only an explicit nextRound
     // (startNextRound) moves it. Changing it here made this overlay's own countdown skip a round.
     const isBetweenRounds = get().roundWinner !== null;
+    const targetRound = isBetweenRounds ? get().currentRound : config.currentRound;
+    const targetTheme = getBossThemeForRound(targetRound, config.format);
+    const difficulty = BOSS_DIFFICULTY_SCALE[targetTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+    const targetMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
+
+    persistGameTheme(targetTheme);
     set({
       seriesFormat: config.format,
       bo5TargetWins: config.targetWins,
@@ -264,7 +269,10 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
         [TEAM_KEY.BLG]: config.blgScore,
         [TEAM_KEY.GENG]: config.gengScore,
       },
-      currentRound: isBetweenRounds ? get().currentRound : config.currentRound,
+      currentRound: targetRound,
+      gameTheme: targetTheme,
+      bossMaxHp: targetMaxHp,
+      bossHp: get().bossHp >= get().bossMaxHp ? targetMaxHp : Math.min(get().bossHp, targetMaxHp),
       isSeriesEnded: isEnded,
       seriesWinner: resolveSeriesWinner(isEnded, config.blgScore, config.targetWins),
     });
@@ -293,9 +301,13 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     const isEnded = clampedBlg >= targetWins || clampedGeng >= targetWins;
     const seriesWinner = resolveSeriesWinner(isEnded, clampedBlg, targetWins);
     const nextRound = currentRound ?? Math.min(state.seriesMaxRounds, clampedBlg + clampedGeng + 1);
+    const nextTheme = getBossThemeForRound(nextRound, state.seriesFormat);
+    const difficulty = BOSS_DIFFICULTY_SCALE[nextTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+    const nextMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
     const leftTag = state.activeTeams[TEAM_KEY.BLG].shortTag;
     const rightTag = state.activeTeams[TEAM_KEY.GENG].shortTag;
 
+    persistGameTheme(nextTheme);
     get().addLog(
       'SYSTEM',
       `⚙️ Cập nhật điểm ${state.seriesFormat}: ${leftTag} ${clampedBlg} - ${clampedGeng} ${rightTag} (Ván ${nextRound})`
@@ -306,6 +318,9 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
         [TEAM_KEY.GENG]: clampedGeng,
       },
       currentRound: nextRound,
+      gameTheme: nextTheme,
+      bossMaxHp: nextMaxHp,
+      bossHp: nextMaxHp,
       isSeriesEnded: isEnded,
       seriesWinner,
     });

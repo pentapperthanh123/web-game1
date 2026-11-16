@@ -211,6 +211,27 @@
 }
 .animate-gift-exit { animation: giftExit 0.45s cubic-bezier(0.4, 0, 1, 1) both; }
 
+/* Mini Rose Gratitude Toast Animations (Center Drop-In) */
+@keyframes roseToastSlideIn {
+  0% { transform: translateY(-16px) scale(0.88); opacity: 0; }
+  70% { transform: translateY(2px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes roseToastSlideOut {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-12px) scale(0.92); opacity: 0; }
+}
+
+@keyframes roseBounce {
+  0%, 100% { transform: translateY(0) rotate(-6deg) scale(1); }
+  50% { transform: translateY(-4px) rotate(8deg) scale(1.15); }
+}
+
+.animate-rose-toast-in { animation: roseToastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-rose-toast-out { animation: roseToastSlideOut 0.3s cubic-bezier(0.4, 0, 1, 1) both; }
+.animate-rose-bounce { animation: roseBounce 1.2s ease-in-out infinite; }
+
 /*
  * No prefers-reduced-motion override here on purpose: this page is a broadcast overlay captured by OBS,
  * and the gift celebration is the content. Honouring the streaming PC's OS "animation effects" switch

@@ -128,7 +128,9 @@ export interface GiftPreset {
 export const GIFT_PRESETS: GiftPreset[] = [
   { name: 'Hoa Hồng 🌹', coins: 1, label: 'Thường' },
   { name: 'Bánh Quy 🍪', coins: 10, label: 'Thường' },
+  { name: 'Kính Mát 🕶️', coins: 30, label: 'Hiếm' },
   { name: 'Súng Nước 🔫', coins: 50, label: 'Hiếm' },
+  { name: 'Vương Miện 👑', coins: 99, label: 'VIP' },
   { name: 'Trái Tim CKTG 💖', coins: 199, label: 'Hiếm' },
   { name: 'Rồng Thần CKTG 🐉', coins: 1000, label: 'VIP' },
   { name: 'Phượng Hoàng Lửa 🔥', coins: 2500, label: 'VIP' },

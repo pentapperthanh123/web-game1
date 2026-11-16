@@ -1,4 +1,4 @@
-import { type ComponentType } from 'react';
+import React, { type ComponentType } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { THEME_CONFIGS, GAME_THEME, TEAM_KEY, GameThemeType } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
@@ -33,7 +33,7 @@ const PaintedBackdrop = ({ imageWebp, imagePng, altText }: PaintedBackdropProps)
   </picture>
 );
 
-export const ArenaBackground2D = () => {
+export const ArenaBackground2D = React.memo(() => {
   const gameTheme = useGameStore((state) => state.gameTheme);
   const activeTeams = useGameStore((state) => state.activeTeams);
 
@@ -96,4 +96,6 @@ export const ArenaBackground2D = () => {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(2,6,23,0.7)_85%,rgba(2,6,23,0.95)_100%)] pointer-events-none" />
     </div>
   );
-};
+});
+
+ArenaBackground2D.displayName = 'ArenaBackground2D';

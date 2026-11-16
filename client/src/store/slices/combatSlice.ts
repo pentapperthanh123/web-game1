@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { resolveComboSoundRate } from '../../constants/game';
 import { recordRoundDamage } from '../roundDamageTracker';
+import { recordSessionDamage } from '../sessionLeaderboardStore';
 import { trackQuestProgress } from '../communityQuestRewards';
 import { scaleBossDamage } from '../bossDamageScaling';
 import { QUEST_KIND } from '../../constants/game';
@@ -34,12 +35,14 @@ import {
   CHAMPION_SKILL_VFX_TYPE,
   COMBAT_VFX_CONSTANTS,
   DAMAGE_SOURCE,
+  DamageSource,
   DAMAGE_TYPE,
   DamageType,
   GAME_CONSTANTS,
   GAME_THEME,
   SUMMON_PERF_CONSTANTS,
   getChampionSkillVFX,
+  isMeleeChampionName,
   getThemeConfig,
   TEAM_KEY,
   TeamType,
@@ -69,12 +72,15 @@ import {
 import { pickScreenRumble } from '../screenRumble';
 import { decideHitFeedback } from '../hitFeedbackAggregator';
 import { isCurrentRoundIntroActive } from '../roundIntroStore';
+import { isRoundOvertimeActive } from '../roundClockStore';
+import i18n from '../../i18n';
 
 export type CombatSlice = Pick<
   GameState,
   | 'addPlayerFury'
   | 'consumeMinionAttackFury'
   | 'triggerAutoProAttack'
+  | 'endRoundByTimeout'
   | 'spawnFlyingArrow'
   | 'spawnProjectile'
   | 'damageBoss'
@@ -259,6 +265,23 @@ const scheduleFuryFlush = (
 };
 
 /** Creates the combat damage, fury, projectiles, likes, and screen VFX slice. */
+/** Rally hits are a team pool ("Hội Quân (T1)"), not one viewer: they never enter the session board. */
+const SESSION_EXCLUDED_SOURCES: ReadonlySet<DamageSource> = new Set([DAMAGE_SOURCE.RALLY]);
+
+/** Feeds the live-session board with the team tag / colour of the hit (the session spans several matchups). */
+const recordViewerSessionDamage = (
+  state: GameState,
+  playerName: string,
+  team: TeamType,
+  amount: number,
+  options: DamageBossOptions | undefined
+): void => {
+  if (options?.excludeFromLeaderboard) return;
+  if (options?.source && SESSION_EXCLUDED_SOURCES.has(options.source)) return;
+  const teamProfile = state.activeTeams[team];
+  recordSessionDamage(playerName, teamProfile?.shortTag ?? team, teamProfile?.colorTheme, amount);
+};
+
 export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (set, get) => ({
   addPlayerFury: (playerId: string, amount: number) => {
     set((prev) => {
@@ -311,7 +334,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const prevFury = state.rosterPlayerFury[player.id] ?? 0;
     const isFullFury = prevFury >= GAME_CONSTANTS.PRO_FURY.MAX_FURY;
 
-    const bossFloorHp = Math.ceil(state.bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT);
+    // In overtime the pros may finish the boss, so a quiet room still gets a decided round
+    const proHpFloorPercent = isRoundOvertimeActive() ? 0 : AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT;
+    const bossFloorHp = Math.ceil(state.bossMaxHp * proHpFloorPercent);
     if (!isFullFury && state.bossHp <= bossFloorHp) {
       return;
     }
@@ -403,10 +428,37 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           excludeFromLeaderboard: true,
           proPlayer: player,
           suppressCombo: true,
-          minHpFloorPercent: AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT,
+          minHpFloorPercent: proHpFloorPercent,
         }
       );
     }, AUTO_PRO_BATTLE_CONSTANTS.FLYING_ARROW_HIT_DELAY_MS);
+  },
+
+  endRoundByTimeout: () => {
+    const state = get();
+    if (isBattleHalted(state) || state.bossHp <= 0) return;
+
+    const scores = state.teamScores || {
+      [TEAM_KEY.BLG]: state.teamScoreBLG,
+      [TEAM_KEY.GENG]: state.teamScoreGENG,
+    };
+    // Same tie rule as a boss kill (damageBoss): left team wins a draw
+    const leadingTeam = (scores[TEAM_KEY.BLG] || 0) >= (scores[TEAM_KEY.GENG] || 0) ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+    // The shield would absorb the finishing blow; time is up, so it goes away first
+    set({ bossShield: null });
+    get().damageBoss(
+      state.bossHp,
+      leadingTeam,
+      i18n.t('RoundClock.timeUpFinisher', '⏱️ Hết giờ'),
+      DAMAGE_TYPE.ULTIMATE,
+      {
+        source: DAMAGE_SOURCE.EXTERNAL,
+        isPreScaled: true,
+        excludeFromLeaderboard: true,
+        excludeFromScore: true,
+        suppressCombo: true,
+      }
+    );
   },
 
   spawnFlyingArrow: (
@@ -425,12 +477,25 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const activeTeamsList = Object.values(currentState.activeTeams);
     const resolvedChampion =
       findSignatureChampionByPlayer(championName, activeTeamsList) || championName;
+    const isMelee = isMeleeChampionName(resolvedChampion);
     const skillVfx = getChampionSkillVFX(resolvedChampion, isCrit);
-    const attackVfxType = isCrit ? skillVfx.type : CHAMPION_SKILL_VFX_TYPE.BASIC_ATTACK;
-    const attackSkillName = isCrit ? skillVfx.skillName : 'Đòn Đánh Thường';
+    const attackVfxType = isCrit
+      ? skillVfx.type
+      : isMelee
+        ? CHAMPION_SKILL_VFX_TYPE.BLADE_SLASH
+        : CHAMPION_SKILL_VFX_TYPE.ARROW;
+    const attackSkillName = isCrit
+      ? skillVfx.skillName
+      : isMelee
+        ? 'Nhát Chém Thường'
+        : 'Đòn Đánh Thường';
+
+    if (!isCrit) {
+      playSound(isMelee ? SFX_EVENT.CHAMPION_ATTACK_MELEE : SFX_EVENT.CHAMPION_ATTACK);
+    }
 
     audioService.playChampionSkillSound(
-      isCrit ? skillVfx.type : CHAMPION_SKILL_VFX_TYPE.ARROW,
+      attackVfxType,
       isCrit,
       team
     );
@@ -519,14 +584,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       return;
     }
 
-    audioService.playHitSound();
-
     const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
     const waveColor = isEnraged ? '#ef4444' : '#a855f7';
     const shakeIntensity = isEnraged ? 0.95 : 0.65;
+    const pitchRate = getThemeConfig(state.gameTheme).audioPitchRate;
 
     get().triggerScreenShake(shakeIntensity);
     get().triggerScreenFlash(isEnraged ? '#dc2626' : '#7c3aed');
+
+    audioService.playShockwaveExplosion(isEnraged ? 1.25 : 0.95, pitchRate, true);
+    playBossVoice(state.gameTheme, isEnraged ? BOSS_VOICE_KIND.ENRAGE : BOSS_VOICE_KIND.ROAR);
 
     const newWave: ShockwaveEntity = {
       id: `boss-wave-${Date.now()}`,
@@ -736,7 +803,10 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       return;
     }
 
-    if (shouldPlaySound) audioService.playLaserSound();
+    if (shouldPlaySound) {
+      playSound(SFX_EVENT.CHAMPION_ATTACK);
+      audioService.playAttackWhoosh(isCrit, false);
+    }
 
     const [baseTargetX, baseTargetY, baseTargetZ] = customTarget ?? COMBAT_VFX_CONSTANTS.BOSS_TARGET;
     const newProj: ProjectileEntity = {
@@ -824,6 +894,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       };
       const nextScoreBLG = nextTeamScores[TEAM_KEY.BLG];
       const nextScoreGENG = nextTeamScores[TEAM_KEY.GENG];
+      recordViewerSessionDamage(state, playerName, team, absorbedDamage, options);
       const nextViewerBoard = options?.excludeFromLeaderboard
         ? state.leaderboard
         : updateLeaderboardList(state.leaderboard, playerName, team, absorbedDamage);
@@ -907,7 +978,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     if (hpLost <= 0) return;
     const effectiveDamage = options?.hpDamageCap ? scaledAmount : hpLost;
 
-    audioService.playDamageImpactSound(effectiveDamageType, effectiveDamageType === DAMAGE_TYPE.CRIT);
+    const isCritHit = effectiveDamageType === DAMAGE_TYPE.CRIT;
+    playSound(isCritHit ? SFX_EVENT.CRIT_HIT : SFX_EVENT.CHAMPION_HIT);
+    audioService.playDamageImpactSound(effectiveDamageType, isCritHit);
 
     const difficulty = BOSS_DIFFICULTY_SCALE[state.gameTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
     const enrageThreshold = difficulty.enrageThreshold;
@@ -963,13 +1036,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       [TEAM_KEY.BLG]: state.teamScoreBLG,
       [TEAM_KEY.GENG]: state.teamScoreGENG,
     };
-    const nextTeamScores = {
-      ...currentScores,
-      [team]: (currentScores[team] || 0) + effectiveDamage,
-    };
+    const nextTeamScores = options?.excludeFromScore
+      ? currentScores
+      : {
+          ...currentScores,
+          [team]: (currentScores[team] || 0) + effectiveDamage,
+        };
     const newBLGScore = nextTeamScores[TEAM_KEY.BLG];
     const newGENGScore = nextTeamScores[TEAM_KEY.GENG];
     if (!options?.excludeFromLeaderboard) recordRoundDamage(playerName, team, effectiveDamage);
+    recordViewerSessionDamage(state, playerName, team, effectiveDamage, options);
     const topLeaderboard = options?.excludeFromLeaderboard
       ? state.leaderboard
       : updateLeaderboardList(state.leaderboard, playerName, team, effectiveDamage);
@@ -1122,7 +1198,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       if (!isDonorFinisher) {
         playSound(SFX_EVENT.BOSS_DEFEAT, { rateScale: themeConfig.audioPitchRate });
         get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
-        get().triggerScreenFlash(teamPalette.primary);
+        get().triggerScreenFlash('#fbbf24');
 
         newShockwaves.push(
           {

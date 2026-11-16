@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../../store/gameStore';
 import { audioService } from '../../../services/audioService';
-import { hideRoundIntro, isCurrentRoundIntroActive, showRoundIntro } from '../../../store/roundIntroStore';
+import {
+  hideRoundIntro,
+  isCurrentRoundIntroActive,
+  resolveRoundIntroDurationMs,
+  showRoundIntro,
+} from '../../../store/roundIntroStore';
 import { playSound, stopSound } from '../../../services/soundManager';
 import { stopAllBossVoices } from '../../../services/bossVoice';
 import { SFX_EVENT } from '../../../constants/sfx';
@@ -94,8 +99,8 @@ export const useSilverScrapesDuel = (): SilverScrapesDuelView => {
     wasRenderedRef.current = shouldRender;
     if (shouldRender || !wasRendered || !isIntroPendingRef.current) return;
     isIntroPendingRef.current = false;
-    const isRoundStillPending = useGameStore.getState().roundWinner === null;
-    if (isRoundStillPending) showRoundIntro(Date.now(), false);
+    const { roundWinner, currentRound } = useGameStore.getState();
+    if (roundWinner === null) showRoundIntro(Date.now(), false, resolveRoundIntroDurationMs(currentRound));
   }, [shouldRender]);
 
   return { shouldRender, isFadingOut, isClashFlashing, dismiss };

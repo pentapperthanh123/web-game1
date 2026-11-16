@@ -90,7 +90,11 @@ class SoundManager {
       eventName !== SFX_EVENT.SILVER_SCRAPES &&
       eventName !== SFX_EVENT.BOSS_DEFEAT &&
       eventName !== SFX_EVENT.MATCH_FOUND &&
-      eventName !== SFX_EVENT.MATCH_ACCEPT
+      eventName !== SFX_EVENT.MATCH_ACCEPT &&
+      eventName !== SFX_EVENT.BOSS_CHARGE &&
+      eventName !== SFX_EVENT.BOSS_ULTIMATE &&
+      eventName !== SFX_EVENT.BOSS_SKILL &&
+      eventName !== SFX_EVENT.BOSS_SPIKES
     ) {
       return;
     }

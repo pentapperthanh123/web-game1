@@ -14,6 +14,10 @@ export const GIFT_EFFECT = {
   STUN_BOSS: 'STUN_BOSS',
   /** Fills the fury of every pro of the donor's team (next attack is an ultimate). */
   FULL_FURY: 'FULL_FURY',
+  /** Boosts attack speed +40% & fury for the donor's team. */
+  BATTLE_FRENZY: 'BATTLE_FRENZY',
+  /** Staggers boss & restores whole team. */
+  AEGIS_BARRIER: 'AEGIS_BARRIER',
 } as const;
 export type GiftEffect = (typeof GIFT_EFFECT)[keyof typeof GIFT_EFFECT];
 

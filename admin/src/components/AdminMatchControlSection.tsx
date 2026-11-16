@@ -3,6 +3,7 @@ import { SeriesFormatConfig } from '../constants/series';
 import { TeamColorPalette, TeamProfile } from '../constants/teams';
 import { Bo5Score } from '../hooks/useAdminSocketSync';
 import { ChampionshipTallyControl } from './ChampionshipTallyControl';
+import { SessionLeaderboardControl } from './SessionLeaderboardControl';
 
 interface AdminMatchControlSectionProps {
   visible: boolean;
@@ -160,6 +161,7 @@ export function AdminMatchControlSection({
         </div>
 
         <ChampionshipTallyControl leftTeam={leftTeam} rightTeam={rightTeam} />
+        <SessionLeaderboardControl />
 
         <div className="pt-2 border-t border-slate-800 space-y-2">
           <div className="flex items-center justify-between">

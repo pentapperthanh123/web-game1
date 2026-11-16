@@ -10,6 +10,7 @@ import {
   ChampionshipTallyReport,
   isChampionshipTallyReport,
 } from '../constants/championshipTally';
+import { SESSION_LEADERBOARD_EVENT } from '../constants/sessionLeaderboard';
 import { io, Socket } from 'socket.io-client';
 import { OverlayVisibility } from '../types/overlay';
 import { BossSkillConfig } from '../types/bossSkill';
@@ -76,6 +77,7 @@ export interface ParticipationRuleConfig {
   summonTurnDelayMs?: number;
   /** Summoned champions attack this many times faster than the base interval (1 = base). */
   championAttackSpeedMultiplier?: number;
+  roundDurationMs?: number;
 }
 
 export interface TikTokPipelineStats {
@@ -602,6 +604,11 @@ class AdminSocketService {
     };
   }
 
+  /** Asks every overlay to start a new live-session damage board. */
+  public emitResetSessionLeaderboard(): void {
+    this.emit(SESSION_LEADERBOARD_EVENT.RESET, {});
+  }
+
   /** Asks every overlay to clear the series titles of the matchup it is showing. */
   public emitResetChampionshipTally(): void {
     this.emit(CHAMPIONSHIP_TALLY_EVENT.RESET, {});
@@ -672,6 +679,10 @@ class AdminSocketService {
             typeof payload.championAttackSpeedMultiplier === 'number'
               ? payload.championAttackSpeedMultiplier
               : SUMMON_QUEUE_UI.DEFAULT_ATTACK_SPEED_MULTIPLIER,
+          roundDurationMs:
+            typeof payload.roundDurationMs === 'number'
+              ? payload.roundDurationMs
+              : SUMMON_QUEUE_UI.DEFAULT_ROUND_DURATION_MS,
         });
       }
     };

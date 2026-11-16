@@ -5,6 +5,8 @@ export const GIFT_EFFECT = {
   HEAL_TEAM: 'HEAL_TEAM',
   STUN_BOSS: 'STUN_BOSS',
   FULL_FURY: 'FULL_FURY',
+  BATTLE_FRENZY: 'BATTLE_FRENZY',
+  AEGIS_BARRIER: 'AEGIS_BARRIER',
 } as const;
 export type GiftEffect = (typeof GIFT_EFFECT)[keyof typeof GIFT_EFFECT];
 
@@ -53,6 +55,8 @@ export const GIFT_EFFECT_OPTIONS: readonly { value: GiftEffect; label: string }[
   { value: GIFT_EFFECT.HEAL_TEAM, label: 'Hồi máu cả đội' },
   { value: GIFT_EFFECT.STUN_BOSS, label: 'Làm choáng boss' },
   { value: GIFT_EFFECT.FULL_FURY, label: 'Đầy Nộ tuyển thủ' },
+  { value: GIFT_EFFECT.BATTLE_FRENZY, label: 'Cuồng nộ (+40% tốc đánh & nộ)' },
+  { value: GIFT_EFFECT.AEGIS_BARRIER, label: 'Lá chắn Aegis (Hồi phục & Choáng boss)' },
 ];
 
 export const GIFT_CONFIG_UI = {

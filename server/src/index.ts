@@ -5,7 +5,7 @@ import cors from 'cors';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { DEFAULT_DUEL_STATE } from './constants/series.js';
+import { DEFAULT_DUEL_STATE, getBossThemeForRound } from './constants/series.js';
 import { registerConfigRoutes } from './routes/configRoutes.js';
 import { registerPlayerLeaderboardRoutes } from './routes/playerLeaderboardRoutes.js';
 import { registerTikTokRoutes } from './routes/tiktokRoutes.js';
@@ -68,12 +68,18 @@ const initialTikTokUsername = (process.env.TIKTOK_USERNAME || DEFAULT_TIKTOK_USE
   .trim()
   .replace(/^@+/, '');
 
+const initialSeriesConfig = loadSeriesConfigFromDisk();
+const initialGameTheme = getBossThemeForRound(
+  initialSeriesConfig.currentRound,
+  initialSeriesConfig.format
+);
+
 const state: ServerState = {
   overlayVisibility: loadOverlayVisibilityFromDisk(),
   teamConfig: loadTeamConfigFromDisk(),
-  seriesConfig: loadSeriesConfigFromDisk(),
+  seriesConfig: initialSeriesConfig,
   silverScrapesDuelState: { ...DEFAULT_DUEL_STATE },
-  gameTheme: 'BARON',
+  gameTheme: initialGameTheme,
   bossSkillConfig: { ...DEFAULT_BOSS_SKILL_CONFIG },
   autoProBattleConfig: { ...DEFAULT_AUTO_PRO_BATTLE_CONFIG },
   championDamageMultiplier: 1,

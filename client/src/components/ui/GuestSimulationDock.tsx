@@ -16,12 +16,14 @@ import {
   BOSS_STATUS,
   GUEST_SIMULATION_CONSTANTS,
   TEAM_KEY,
+  calculateGiftBaseDamage,
 } from '../../constants/game';
 import { gameSocket } from '../../services/socket';
 import { findChampion } from '../../constants/champions';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
 import { useRoundIntroStore } from '../../store/roundIntroStore';
+import { recordRoseGift } from '../../store/roseGratitudeStore';
 
 type GuestDockTab = 'HEART' | 'SUMMON' | 'GIFT' | 'CHAT';
 
@@ -149,9 +151,13 @@ export const GuestSimulationDock: React.FC = () => {
       showToastSuccess(t('HUD.roundEndedNotice', 'Ván đấu đã kết thúc, đang nghỉ giữa hiệp!'));
       return;
     }
-    triggerGiftExplosion(gift.name, guestTeam, guestName, gift.coins);
+    triggerGiftExplosion(gift.name, guestTeam, guestName, gift.coins, 1, gift.coins, true);
+    if (gift.coins < 10) {
+      recordRoseGift(guestName, guestTeam, 1);
+    }
     gameSocket.sendGift(gift.name, guestTeam, guestName, gift.coins);
-    showToastSuccess(`Đã tặng [${gift.name}] (+${(gift.coins * 120).toLocaleString()} ST)!`);
+    const damage = calculateGiftBaseDamage(gift.coins);
+    showToastSuccess(`Đã tặng [${gift.name}] (+${damage.toLocaleString()} ST)!`);
   };
 
   // 4. Thao tác Gửi bình luận (Chat)

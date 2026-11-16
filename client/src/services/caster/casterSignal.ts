@@ -2,8 +2,10 @@ import {
   CASTER_DUEL_SIGNALS,
   CASTER_INTRO_SIGNALS,
   CASTER_SIGNAL_PRIORITY,
+  CASTER_SPEECH,
   CasterSignal,
   CasterVoice,
+  isDonateSignal,
 } from '../../constants/caster';
 import { TeamType } from '../../constants/game';
 import { useCasterStore } from '../../store/casterStore';
@@ -30,8 +32,10 @@ export interface CasterSignalMeta {
   deadlineAt?: number;
 }
 
-/** During the duel only its own lines are said; during the intro card only the intro lines. */
+/** During the duel only its own lines are said; during the intro card only the intro lines.
+ * Donate / gift shoutouts are ALWAYS allowed in any state so viewer contributions are never silenced. */
 const isSignalAllowedNow = (signal: CasterSignal): boolean => {
+  if (isDonateSignal(signal)) return true;
   const isDuelActive = useGameStore.getState().silverScrapesState.isActive;
   if (isDuelActive) return CASTER_DUEL_SIGNALS.has(signal);
   if (isCurrentRoundIntroActive()) return CASTER_INTRO_SIGNALS.has(signal);
@@ -44,6 +48,7 @@ export const castCasterSignal = (signal: CasterSignal, slots: CasterSlots, meta:
   if (!isSignalAllowedNow(signal)) return;
   const text = composeCasterLine(signal, slots);
   if (!text) return;
+  const ttlMs = meta.ttlMs ?? (isDonateSignal(signal) ? CASTER_SPEECH.DONATE_TTL_MS : undefined);
   casterQueue.enqueue({
     signal,
     priority: CASTER_SIGNAL_PRIORITY[signal],
@@ -53,7 +58,7 @@ export const castCasterSignal = (signal: CasterSignal, slots: CasterSlots, meta:
     teamTag: meta.team ? getTeamTag(meta.team) : undefined,
     speakerName: meta.speakerName,
     voice: meta.voice,
-    ttlMs: meta.ttlMs,
+    ttlMs,
     deadlineAt: meta.deadlineAt,
   });
 };

@@ -31,6 +31,9 @@ export const SFX_EVENT = {
   BOSS_DEFEAT: 'BOSS_DEFEAT',
   CHAMPION_SUMMON: 'CHAMPION_SUMMON',
   CHAMPION_DEATH: 'CHAMPION_DEATH',
+  CHAMPION_ATTACK: 'CHAMPION_ATTACK',
+  CHAMPION_ATTACK_MELEE: 'CHAMPION_ATTACK_MELEE',
+  CHAMPION_HIT: 'CHAMPION_HIT',
   CRIT_HIT: 'CRIT_HIT',
   TEAM_HEAL: 'TEAM_HEAL',
   BOSS_PHASE_SHIFT: 'BOSS_PHASE_SHIFT',
@@ -315,12 +318,36 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
 
   // ── Champions ─────────────────────────────────────────────────────────
   [SFX_EVENT.CHAMPION_SUMMON]: {
-    src: [fromMyinstants('teleport1_Cw1ot9l.mp3'), fromMyinstants('vwoop.mp3')], // 0.9 s
-    volume: 0.5,
+    src: [fromLocal('CHAMPION_SUMMON.mp3')], // In-Game Teleport Arrival & Battlefield Touchdown
+    volume: 0.75,
     category: SFX_CATEGORY.COMBAT,
     maxVoices: 3,
-    throttleMs: 140,
-    rateJitter: 0.1,
+    throttleMs: 160,
+    rateJitter: 0.04,
+  },
+  [SFX_EVENT.CHAMPION_ATTACK]: {
+    src: [fromLocal('CHAMPION_ATTACK.mp3'), fromMyinstants('arrow-whoosh.mp3')],
+    volume: 0.35,
+    category: SFX_CATEGORY.COMBAT,
+    maxVoices: 4,
+    throttleMs: 100,
+    rateJitter: 0.08,
+  },
+  [SFX_EVENT.CHAMPION_ATTACK_MELEE]: {
+    src: [fromLocal('CHAMPION_ATTACK_MELEE.mp3'), fromMyinstants('sword-slash-1.mp3')],
+    volume: 0.35,
+    category: SFX_CATEGORY.COMBAT,
+    maxVoices: 4,
+    throttleMs: 100,
+    rateJitter: 0.08,
+  },
+  [SFX_EVENT.CHAMPION_HIT]: {
+    src: [fromLocal('CHAMPION_HIT.mp3'), fromMyinstants('hit-sound-effect-1.mp3')],
+    volume: 0.38,
+    category: SFX_CATEGORY.COMBAT,
+    maxVoices: 4,
+    throttleMs: 90,
+    rateJitter: 0.06,
   },
   [SFX_EVENT.CHAMPION_DEATH]: {
     src: [fromMyinstants('body-fall-sound-effect.mp3'), fromMyinstants('male-grunt.mp3')], // 1.7 s
@@ -417,12 +444,12 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.05,
   },
   [SFX_EVENT.BOSS_CHARGE]: {
-    src: [fromMyinstants('dragon-lands.mp3'), fromMyinstants('endless-stampede.mp3')], // heavy body slam
-    volume: 0.7,
+    src: [fromMyinstants('boss-shockwave.mp3'), fromMyinstants('dragon-lands.mp3'), fromMyinstants('endless-stampede.mp3')], // heavy shockwave body slam
+    volume: 0.8,
     category: SFX_CATEGORY.BOSS,
-    maxVoices: 1,
-    throttleMs: 500,
-    rateJitter: 0,
+    maxVoices: 2,
+    throttleMs: 300,
+    rateJitter: 0.04,
   },
 
   // ── Added for the tiered gift / kill / entrance pass (files refined by the audio task) ──
@@ -452,12 +479,12 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.05,
   },
   [SFX_EVENT.SIGNATURE_SUMMON]: {
-    src: [fromMyinstants('level-up.mp3'), fromMyinstants('teleport1_Cw1ot9l.mp3')],
-    volume: 0.6,
+    src: [fromLocal('SIGNATURE_SUMMON.mp3'), fromLocal('CHAMPION_SUMMON.mp3')],
+    volume: 0.8,
     category: SFX_CATEGORY.COMBAT,
     maxVoices: 2,
     throttleMs: 200,
-    rateJitter: 0.05,
+    rateJitter: 0.03,
   },
   [SFX_EVENT.WIPE]: {
     src: [fromMyinstants('aced-league-of-legends-sound.mp3'), fromMyinstants('dramatic-sting.MP3')],
@@ -573,7 +600,7 @@ export const SFX_DEFINITIONS = { ...REMOTE_SFX_DEFINITIONS };
   SFX_DEFINITIONS[eventName] = withLocalSource(eventName, REMOTE_SFX_DEFINITIONS[eventName]);
 });
 
-/** Extra layer per VFX archetype; SEISMIC_SLAM / NOVA rely on the generic BOSS_SKILL / BOSS_ULTIMATE sound. */
+/** Extra layer per VFX archetype: heavy shockwaves & slams map to BOSS_CHARGE. */
 export const BOSS_SKILL_VFX_SFX: Readonly<Partial<Record<BossSkillVfxType, SfxEventName>>> = {
   [BOSS_SKILL_VFX.FIRE_BREATH]: SFX_EVENT.BOSS_FIRE_BREATH,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: SFX_EVENT.BOSS_FIRE_BREATH,
@@ -585,6 +612,8 @@ export const BOSS_SKILL_VFX_SFX: Readonly<Partial<Record<BossSkillVfxType, SfxEv
   [BOSS_SKILL_VFX.VORTEX]: SFX_EVENT.BOSS_VORTEX,
   [BOSS_SKILL_VFX.CHARGE_DASH]: SFX_EVENT.BOSS_CHARGE,
   [BOSS_SKILL_VFX.CHAIN_LIGHTNING]: SFX_EVENT.BOSS_LIGHTNING,
+  [BOSS_SKILL_VFX.SEISMIC_SLAM]: SFX_EVENT.BOSS_CHARGE,
+  [BOSS_SKILL_VFX.NOVA]: SFX_EVENT.BOSS_CHARGE,
 };
 
 export const BOSS_VOICE_KIND = {

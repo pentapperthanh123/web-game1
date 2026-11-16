@@ -1,3 +1,4 @@
+import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { CameraRig } from './CameraRig';
 import { ChampionBarrage } from './ChampionBarrage';
@@ -16,7 +17,7 @@ import { BossDeathVFX3D } from './BossDeathVFX3D';
 import { Boss3DPresence } from './Boss3DPresence';
 import { GAME_CONSTANTS } from '../../constants/game';
 
-export const GameCanvas = () => {
+export const GameCanvas = React.memo(() => {
   return (
     <div className="absolute inset-0 w-full h-full pointer-events-none z-20">
       <Canvas
@@ -52,4 +53,6 @@ export const GameCanvas = () => {
       </Canvas>
     </div>
   );
-};
+});
+
+GameCanvas.displayName = 'GameCanvas';

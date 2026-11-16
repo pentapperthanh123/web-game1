@@ -15,6 +15,8 @@ interface CasterState {
   isNameReadingEnabled: boolean;
   /** Line currently being spoken (shown as a caption in sync with the voice). */
   subtitle: CasterSubtitle | null;
+  /** Donate line currently being spoken in parallel (displayed with highlight badge). */
+  donateSubtitle: CasterSubtitle | null;
   /** Browser tab refused autoplay: lines wait until the page is clicked once (never happens in OBS). */
   isVoiceLocked: boolean;
 }
@@ -24,6 +26,7 @@ export const useCasterStore = create<CasterState>(() => ({
   isTtsEnabled: false,
   isNameReadingEnabled: true,
   subtitle: null,
+  donateSubtitle: null,
   isVoiceLocked: false,
 }));
 

@@ -6,6 +6,9 @@ import { HUDOverlay } from './components/ui/HUDOverlay';
 import { useGameStore } from './store/gameStore';
 import { useScreenRumbleAmplitudePx } from './hooks/useScreenRumbleAmplitude';
 import { useMatchSnapshotPersistence } from './store/matchSnapshot';
+import { useRoundClockTicker } from './store/roundClockTicker';
+import { useSessionLeaderboardPersistence } from './store/sessionLeaderboardStore';
+import { VANGUARD_ACTOR_LABEL } from './constants/sessionLeaderboard';
 import {
   SIMULATION_PRESETS,
   BOSS_STATUS,
@@ -42,6 +45,8 @@ const resolveScreenMotionClass = (isRumbling: boolean, isShaking: boolean): stri
 
 export function App() {
   useMatchSnapshotPersistence();
+  useRoundClockTicker();
+  useSessionLeaderboardPersistence();
   const isSimulationActive = useGameStore((state) => state.isSimulationActive);
   const botSpeedMs = useGameStore((state) => state.botSpeedMs);
   const autoProBattleConfig = useGameStore((state) => state.autoProBattleConfig);
@@ -200,7 +205,10 @@ export function App() {
         return;
       }
 
-      const botSlot = Math.random() < 0.5 ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+      const currentTeamKeys = Object.keys(currentState.activeTeams) as TeamType[];
+      const botSlot = currentTeamKeys.length > 0
+        ? currentTeamKeys[Math.floor(Math.random() * currentTeamKeys.length)]
+        : TEAM_KEY.BLG;
       const slotRoster = currentState.activeTeams[botSlot]?.roster ?? [];
       const randomProChamp =
         slotRoster.length > 0 && Math.random() < 0.65
@@ -230,8 +238,11 @@ export function App() {
       return;
     }
 
-    const leftRoster = activeTeams[TEAM_KEY.BLG]?.roster ?? [];
-    const rightRoster = activeTeams[TEAM_KEY.GENG]?.roster ?? [];
+    const activeTeamKeys = Object.keys(activeTeams) as TeamType[];
+    const leftTeamKey = activeTeamKeys[0] ?? TEAM_KEY.BLG;
+    const rightTeamKey = activeTeamKeys[1] ?? TEAM_KEY.GENG;
+    const leftRoster = activeTeams[leftTeamKey]?.roster ?? [];
+    const rightRoster = activeTeams[rightTeamKey]?.roster ?? [];
     const allPlayers = [...leftRoster, ...rightRoster];
     const baseIntervalMs =
       autoProBattleConfig.intervalMs || AUTO_PRO_BATTLE_CONSTANTS.DEFAULT_INTERVAL_MS;
@@ -239,7 +250,7 @@ export function App() {
 
     allPlayers.forEach((player, idx) => {
       const slotRoster = activeTeams[player.team]?.roster ?? [];
-      const teamOffset = player.team === TEAM_KEY.BLG ? 0 : Math.round(AUTO_PRO_BATTLE_CONSTANTS.INITIAL_STAGGER_MS / 2);
+      const teamOffset = player.team === leftTeamKey ? 0 : Math.round(AUTO_PRO_BATTLE_CONSTANTS.INITIAL_STAGGER_MS / 2);
       const laneIndex = idx % Math.max(1, slotRoster.length);
       nextFireAtRef.current[player.id] =
         startNow + laneIndex * AUTO_PRO_BATTLE_CONSTANTS.INITIAL_STAGGER_MS + teamOffset;
@@ -262,7 +273,8 @@ export function App() {
       }
 
       const now = Date.now();
-      for (const team of [TEAM_KEY.BLG, TEAM_KEY.GENG]) {
+      const currentTeamKeys = Object.keys(state.activeTeams) as TeamType[];
+      for (const team of currentTeamKeys) {
         const roster = state.activeTeams[team]?.roster ?? [];
         for (let playerIndex = 0; playerIndex < roster.length; playerIndex++) {
           const player = roster[playerIndex];
@@ -273,8 +285,11 @@ export function App() {
 
           const roleFactor = AUTO_PRO_BATTLE_CONSTANTS.ROLE_COOLDOWN_FACTOR[player.role] ?? 1.0;
           const jitter = 0.85 + Math.random() * 0.3;
+          const teamMomentum = state.teamHeartMomentum[team];
+          const isFrenzy = Boolean(teamMomentum?.frenzyUntil && now < teamMomentum.frenzyUntil);
+          const frenzyFactor = isFrenzy ? 0.6 : 1.0;
           nextFireAtRef.current[player.id] =
-            now + Math.round(baseIntervalMs * roleFactor * jitter);
+            now + Math.round(baseIntervalMs * roleFactor * jitter * frenzyFactor);
         }
       }
     }, AUTO_PRO_BATTLE_CONSTANTS.TICK_MS);
@@ -299,7 +314,7 @@ export function App() {
 
     const checkAndTriggerUlts = (rosterPlayerFury: Record<string, number>) => {
       const state = useGameStore.getState();
-      const teams: TeamType[] = [TEAM_KEY.BLG, TEAM_KEY.GENG];
+      const teams: TeamType[] = Object.keys(state.activeTeams) as TeamType[];
       let staggerDelay = 0;
 
       for (const team of teams) {
@@ -382,7 +397,10 @@ export function App() {
 
         let targetTeam = autoSummonConfig.team;
         if (autoSummonConfig.alternateTeams) {
-          targetTeam = tickIdx % 2 === 0 ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+          const teamKeys = Object.keys(useGameStore.getState().activeTeams) as TeamType[];
+          const leftKey = teamKeys[0] ?? TEAM_KEY.BLG;
+          const rightKey = teamKeys[1] ?? TEAM_KEY.GENG;
+          targetTeam = tickIdx % 2 === 0 ? leftKey : rightKey;
         }
 
         const championName = autoSummonConfig.randomChampions
@@ -422,6 +440,50 @@ export function App() {
     isBattlePaused,
     summonMinionsBatch,
   ]);
+
+  // Auto Vanguard Skirmish: Keeps the battlefield populated and fighting when viewers are not summoning
+  useEffect(() => {
+    if (isBattlePaused) return;
+
+    const intervalId = setInterval(() => {
+      const state = useGameStore.getState();
+      if (
+        isCurrentRoundIntroActive() ||
+        state.bossStatus === BOSS_STATUS.DEFEATED ||
+        state.bossHp <= 0 ||
+        state.isRoundIntermission ||
+        state.roundWinner !== null
+      ) {
+        return;
+      }
+
+      // If arena has fewer than 2 active minions, deploy vanguard skirmishers to clash with boss
+      if (state.minions.length < 2) {
+        const teamKeys = Object.keys(state.activeTeams) as TeamType[];
+        if (teamKeys.length === 0) return;
+
+        const leftTeam = teamKeys[0] ?? TEAM_KEY.BLG;
+        const rightTeam = teamKeys[1] ?? TEAM_KEY.GENG;
+        const leftProfile = state.activeTeams[leftTeam];
+        const rightProfile = state.activeTeams[rightTeam];
+
+        const leftRoster = leftProfile?.roster ?? [];
+        const rightRoster = rightProfile?.roster ?? [];
+        const leftChamp = leftRoster[Math.floor(Math.random() * leftRoster.length)]?.signatureChampion || 'Garen';
+        const rightChamp = rightRoster[Math.floor(Math.random() * rightRoster.length)]?.signatureChampion || 'Darius';
+
+        const leftTag = leftProfile?.shortTag || leftTeam;
+        const rightTag = rightProfile?.shortTag || rightTeam;
+
+        summonMinion(`🛡️ ${VANGUARD_ACTOR_LABEL} ${leftTag}`, leftChamp, leftTeam, false);
+        setTimeout(() => {
+          summonMinion(`⚔️ ${VANGUARD_ACTOR_LABEL} ${rightTag}`, rightChamp, rightTeam, false);
+        }, 1200);
+      }
+    }, 4500);
+
+    return () => clearInterval(intervalId);
+  }, [isBattlePaused, summonMinion]);
 
   return (
     <main className="fixed inset-0 w-full h-full bg-slate-950 overflow-hidden font-sans select-none">

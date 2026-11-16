@@ -19,6 +19,8 @@
     "titleTallyTooltip": "{{left}} {{leftTitles}} - {{rightTitles}} {{right}} ({{format}} titles head-to-head)"
   },
   "HUD": {
+    "chatTitle": "TikTok Live Comments",
+    "chatListening": "Listening to live room comments...",
     "leaderboardTitle": "TOP 5 DAMAGE",
     "noPlayersYet": "No damage yet, chat champion name to attack!",
     "rank": "Rank",
@@ -62,18 +64,24 @@
     "guideGiftHeartBadge": "+{{dmg}} DMG / tap",
     "guideGiftHeartDesc": "+{{dmg}} DMG/tap • x{{mult}} Fury speed • Global Heal at {{milestone}}♥",
     "guideGiftCookieTitle": "Cookie (10 Coins)",
-    "guideGiftCookieBadge": "+1,200 DMG",
+    "guideGiftCookieBadge": "+1,300 DMG",
     "guideGiftCookieDesc": "Meteor Shower dealing +1,200 Damage",
     "guideGiftWatergunTitle": "Water Gun (50 Coins)",
-    "guideGiftWatergunBadge": "+6,000 DMG",
+    "guideGiftWatergunBadge": "+9,000 DMG",
     "guideGiftWatergunDesc": "+6,000 DMG • Summon an Elite Champion",
     "guideGiftWorldHeartTitle": "Worlds Heart (199 Coins)",
-    "guideGiftWorldHeartBadge": "+23,880 DMG",
+    "guideGiftWorldHeartBadge": "+50,000 DMG",
     "guideGiftWorldHeartDesc": "Heal +50 HP to all team champions & deal +23,880 DMG",
     "guideGiftDragonTitle": "Elder Dragon (1,000 Coins)",
-    "guideGiftDragonBadge": "+120,000 DMG",
+    "guideGiftDragonBadge": "+260,000 DMG",
     "guideGiftDragonDesc": "Massive Cosmic Earthquake dealing +120,000 DMG",
-    "guideSummonCmdDynamic": "{{leftChamp}} {{leftTag}} • {{rightChamp}} {{rightTag}} • Random {{leftTag}}"
+    "guideSummonCmdDynamic": "{{leftChamp}} {{leftTag}} • {{rightChamp}} {{rightTag}} • Random {{leftTag}}",
+    "guideGiftSunglassesTitle": "Sunglasses (30 coins)",
+    "guideGiftSunglassesBadge": "+4,800 DMG",
+    "guideGiftSunglassesDesc": "Triggers Battle Frenzy (+40% attack speed, fury boost & 8 meteors)!",
+    "guideGiftCrownTitle": "Crown (99 coins)",
+    "guideGiftCrownBadge": "+22,000 DMG",
+    "guideGiftCrownDesc": "Stuns Boss for 2.5s, heals whole team & VIP honor!"
   },
   "Gift": {
     "sentLabel": "SENT GIFT",
@@ -85,7 +93,14 @@
     "mythicCrest": "{{team}} MYTHIC PATRON",
     "legendCrest": "{{team}} LEGENDARY PATRON",
     "megaDamage": "+{{damage}} DMG • BOSS KNOCKED BACK!",
-    "queuedForRoundStart": "Sent {{gift}} ({{coins}} coins)! It will fire when the round starts ⚔️"
+    "queuedForRoundStart": "Sent {{gift}} ({{coins}} coins)! It will fire when the round starts ⚔️",
+    "roseThanks": "ROSE APPRECIATION",
+    "roseGiver": "Thank you {{name}}!",
+    "roseCount": "+{{count}} Roses 🌹"
+  },
+  "IdleRally": {
+    "doubleTapToHeart": "Double-tap screen to send heart reinforcement!",
+    "typeToSummon": "Chat champion name with {{teamA}} or {{teamB}} to deploy!"
   },
   "Controls": {
     "title": "TikTok Live Simulator Panel",
@@ -132,6 +147,7 @@
     "phase3Label": "APOCALYPSE ENRAGE"
   },
   "Victory": {
+    "objectiveSecured": "OBJECTIVE SECURED • EPIC MONSTER SLAIN",
     "bossDefeatedDynamic": "{{bossName}} HAS BEEN SLAIN!",
     "bossDefeated": "BARON NASHOR HAS BEEN SLAIN!",
     "bossDefeatedElder": "ELDER DRAGON HAS BEEN SLAIN!",
@@ -312,6 +328,11 @@
     "queueTurnDelayValue": "{{seconds}}s ({{ms}}ms)",
     "championAttackSpeedLabel": "Summoned champion attack speed",
     "championAttackSpeedValue": "{{multiplier}} base speed",
+    "roundTimerLabel": "Round duration",
+    "roundTimerOff": "Off",
+    "roundTimerMinutes": "{{minutes}}m",
+    "roundTimerUnlimited": "No limit",
+    "roundTimerValue": "{{minutes}} min + {{overtime}}s overtime",
     "resetMatchupTitles": "Reset this matchup's titles",
     "resetMatchupTitlesDone": "Matchup titles cleared!",
     "matchupTitlesLabel": "Head-to-head titles:"
@@ -383,11 +404,12 @@
     "winnerTitle": "🏆 {{winner}} WINS 1V1 SILVER SCRAPES!",
     "winnerBuffDesc": "First Blood Claimed! Team {{winner}} receives +20% Damage for 90s in the Decider Game!",
     "idleHint": "All Likes, Summon Chats & Gifts immediately fuel the energy beam to push back opponents!",
-    "guideTitle": "How to push",
+    "guideTitle": "HOW TO PUSH (DECIDE THE WINNER)",
     "guideHeart": "Send hearts",
     "guideChat": "Chat a champion",
     "guideShare": "Follow & Share",
     "guideGift": "Send gifts",
+    "superPowerBadge": "MEGA PUSH",
     "leading": "Winning",
     "winnerBadge": "Winner",
     "versus": "VS"
@@ -441,8 +463,37 @@
     "ambienceOn": "Turn on ambience",
     "ambienceOff": "Turn off ambience"
   },
+  "SessionTier": {
+    "SILVER": "Silver",
+    "GOLD": "Gold",
+    "PLATINUM": "Platinum",
+    "EMERALD": "Emerald",
+    "DIAMOND": "Diamond",
+    "MASTER": "Master",
+    "GRANDMASTER": "Grandmaster",
+    "CHALLENGER": "Challenger"
+  },
+  "SessionBoard": {
+    "tierUpTitle": "{{name}} promoted to",
+    "title": "LIVE SESSION TOP",
+    "toggle": "Collapse / expand leaderboard",
+    "giftRibbon": "strikes!",
+    "takeoverTitle": "{{name}} seizes Challenger!",
+    "takeoverSubtitle": "Overtook {{previous}} — who takes the top spot back?"
+  },
+  "RoundClock": {
+    "overtimeLog": "⏰ OVERTIME {{seconds}}s! The boss weakens — damage keeps rising, who lands the kill?",
+    "timeUpLog": "⏱️ TIME UP! The team with more damage wins the round.",
+    "timeUpFinisher": "⏱️ Time up",
+    "overtimeLabel": "Overtime",
+    "overtimeMultiplier": "x{{multiplier}} DMG"
+  },
   "RoundIntro": {
     "roundLabel": "Round {{round}} is about to start",
+    "clashTitle": "ROUND {{round}} • CLASH!",
+    "broadcastHeading": "WORLDS CHAMPIONSHIP • CLASH OF TITANS",
+    "skipHint": "Skip (ESC or Space)",
+    "skipCinematic": "Skip",
     "worldsOpeningTitle": "WORLD CHAMPIONSHIP • ROUND {{round}}",
     "readyBadge": "READY TO START",
     "readyBox": "READY",
@@ -508,6 +559,7 @@
   "Caster": {
     "nameJoiner": " and ",
     "subtitleLabel": "Caster Storm",
+    "donateLabel": "Donation Honor",
     "voiceUnlockHint": "Click the screen to turn on the caster voice",
     "anonymousName": "a mystery warrior",
     "score": "{{left}} - {{right}}",
@@ -569,7 +621,9 @@
         "{{count}} {{gift}} from {{name}}, {{team}} thanks you!",
         "Thank you {{name}}! {{count}} {{gift}} for {{team}}!",
         "{{name}}, thanks a lot for {{count}} {{gift}}!",
-        "All of {{team}} thanks {{name}} for {{count}} {{gift}}!"
+        "All of {{team}} thanks {{name}} for {{count}} {{gift}}!",
+        "Thank you {{name}} for sending roses to support {{team}}!",
+        "{{count}} roses from {{name}}, big thanks from {{team}}!"
       ],
       "GIFT_MEDIUM": [
         "Thank you {{name}} for the {{gift}}! Meteor shower!",
@@ -776,10 +830,11 @@
         "Star duel between {{teamA}} and {{teamB}}! Type any champion with your team, one coin is {{damage}} damage!"
       ],
       "ROUND_GO": [
-        "Fight! Round {{round}} is on!",
-        "Three, two, one, fight!",
-        "Go! Summon your champions!",
-        "Battle on! Let us go!"
+        "All forces charge! Tear through the arena and vanquish {{boss}}!",
+        "The battle erupts! Round {{round}} officially begins, charge forth!",
+        "The war horns sound! Fight with all your might for ultimate glory!",
+        "Blades ready! All champions deploy, conquer the battlefield!",
+        "The call to battle echoes! Advance together and slay the beast!"
       ],
       "PODIUM_THANKS": [
         "Thanks to this round's top three: {{a}}, {{b}} and {{c}}!",
@@ -875,7 +930,9 @@
       "SUMMON_CHAMPION": "Summons {{champion}}",
       "HEAL_TEAM": "Heals the team",
       "STUN_BOSS": "Stuns the boss",
-      "FULL_FURY": "Full pro fury"
+      "FULL_FURY": "Full pro fury",
+      "BATTLE_FRENZY": "Battle Frenzy (+40% attack speed & fury)",
+      "AEGIS_BARRIER": "Aegis Barrier (Recovery & Boss Stun)"
     }
   }
 }

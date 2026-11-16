@@ -54,6 +54,8 @@ export interface TeamHeartMomentum {
   multiplier: number;
   lastTapAt: number;
   burstCount: number;
+  /** Active deadline for Battle Frenzy gift buff (overrides cooldown & maxes momentum). */
+  frenzyUntil?: number;
 }
 
 export interface DPSPlayer {
@@ -320,6 +322,8 @@ export interface ParticipationRuleConfig {
   summonTurnDelayMs?: number;
   /** Summoned champions attack this many times faster than the base interval (1 = base). */
   championAttackSpeedMultiplier?: number;
+  /** Regular time of a round before overtime; 0 = no time limit. */
+  roundDurationMs?: number;
 }
 
 export type BossWeakPointSpot = 'left-horn' | 'core-chest' | 'right-claw';
@@ -349,6 +353,8 @@ export interface DamageBossOptions {
   proPlayer?: RosterPlayer;
   suppressCombo?: boolean;
   minHpFloorPercent?: number;
+  /** The hit removes boss HP but adds nothing to the team score (time-up finish keeps the damage race as it was). */
+  excludeFromScore?: boolean;
   donorAvatarUrl?: string;
   giftName?: string;
   coins?: number;
@@ -577,6 +583,8 @@ export interface GameState {
     damageType?: DamageType,
     options?: DamageBossOptions
   ) => void;
+  /** Overtime ran out: the boss falls and the team with more damage wins the round. */
+  endRoundByTimeout: () => void;
   summonMinion: (
     summonerName: string,
     championName: string,

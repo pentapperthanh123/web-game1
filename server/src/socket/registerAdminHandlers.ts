@@ -9,6 +9,7 @@ import {
   OverlayVisibility,
   ParticipationRuleConfig,
   ServerContext,
+  ROUND_DURATION_LIMITS,
   SUMMON_QUEUE_LIMITS,
   VALID_GAME_THEMES,
 } from '../types/serverState.js';
@@ -239,6 +240,13 @@ export function registerAdminHandlers(
           payload.championAttackSpeedMultiplier,
           SUMMON_QUEUE_LIMITS.MIN_CHAMPION_ATTACK_SPEED_MULTIPLIER,
           SUMMON_QUEUE_LIMITS.MAX_CHAMPION_ATTACK_SPEED_MULTIPLIER
+        );
+      }
+      if (typeof payload?.roundDurationMs === 'number' && Number.isFinite(payload.roundDurationMs)) {
+        next.roundDurationMs = clampRounded(
+          payload.roundDurationMs,
+          ROUND_DURATION_LIMITS.NO_LIMIT_MS,
+          ROUND_DURATION_LIMITS.MAX_MS
         );
       }
       ctx.state.participationRuleConfig = next;

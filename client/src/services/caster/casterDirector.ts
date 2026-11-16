@@ -204,7 +204,6 @@ const announceNewSummons = (state: GameState, memory: DirectorMemory): void => {
 };
 
 const announceGiftBanner = (state: GameState, memory: DirectorMemory): void => {
-  if (isCurrentRoundIntroActive()) return;
   const banner = state.activeGiftBanner;
   if (!banner || banner.id === memory.lastGiftBannerId) return;
   memory.lastGiftBannerId = banner.id;

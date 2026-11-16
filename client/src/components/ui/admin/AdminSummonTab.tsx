@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Sparkles, Swords, Flame, Play, Square, ShieldAlert, Search } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
 import { SummonQueueRulesPanel } from './SummonQueueRulesPanel';
+import { RoundTimerRulePanel } from './RoundTimerRulePanel';
 import {
   AUTO_SUMMON_CONSTANTS,
   CHAMPION_DAMAGE_CONSTANTS,
@@ -364,6 +365,7 @@ export const AdminSummonTab: React.FC = () => {
           </span>
 
           <SummonQueueRulesPanel />
+          <RoundTimerRulePanel />
 
           {(
             [

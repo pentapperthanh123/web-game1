@@ -90,9 +90,9 @@ export const AZURE_TTS = {
   OUTPUT_FORMAT: 'audio-24khz-48kbitrate-mono-mp3',
   DEFAULT_VOICE: { [CASTER_TTS_LANG.VI]: 'vi-VN-HoaiMyNeural', [CASTER_TTS_LANG.EN]: 'en-US-AndrewNeural' },
   LOCALE: { [CASTER_TTS_LANG.VI]: 'vi-VN', [CASTER_TTS_LANG.EN]: 'en-US' },
-  /** Persona "BLV Bão": a bit faster and higher than default. */
-  PROSODY_RATE: '+12%',
-  PROSODY_PITCH: '+4%',
+  /** Persona "BLV Bão": energetic, natural esports pacing. */
+  PROSODY_RATE: '+28%',
+  PROSODY_PITCH: '+2%',
 } as const;
 
 /**
@@ -105,8 +105,8 @@ export const EDGE_TTS = {
   MODULE: 'edge_tts',
   /** NamMinh (male) caster voice; set EDGE_TTS_VOICE_VI=vi-VN-HoaiMyNeural for the female voice. */
   DEFAULT_VOICE: { [CASTER_TTS_LANG.VI]: 'vi-VN-NamMinhNeural', [CASTER_TTS_LANG.EN]: 'en-US-AndrewNeural' },
-  /** Caster persona: a bit faster than default. */
-  RATE: '+12%',
+  /** Caster persona: natural, crisp esports pacing. */
+  RATE: '+28%',
   /** With a fallback voice: the primary is used only if it answers within this grace. */
   PRIMARY_GRACE_MS: 1_200,
   /** Per attempt; a late answer is still cached for the next time the line is needed. */

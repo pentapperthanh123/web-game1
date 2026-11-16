@@ -8,6 +8,7 @@ import { TeamScoreBoard } from './TeamScoreBoard';
 import { DPSLeaderboard } from './DPSLeaderboard';
 import { ChampionDamageNumbers } from './ChampionDamageNumbers';
 import { GiftBanner } from './GiftBanner';
+import { MiniRoseToast } from './gift/MiniRoseToast';
 import { FloatingDamage } from './FloatingDamage';
 import { CasterSubtitle } from './CasterSubtitle';
 import { BossSkillStatusPanel } from './bossSkills/BossSkillStatusPanel';
@@ -20,6 +21,7 @@ import { CombatDeployBanner } from './roundIntro/CombatDeployBanner';
 import { LikeCounter } from './LikeCounter';
 import { ParticipationGuidePanel } from './ParticipationGuidePanel';
 import { FinisherAnnouncementBanner } from './FinisherAnnouncementBanner';
+import { ArenaIdleRallyCTA } from './ArenaIdleRallyCTA';
 import { VictoryOverlay } from './VictoryOverlay';
 import { SilverScrapesDuelOverlay } from './SilverScrapesDuelOverlay';
 import { GuestSimulationDock } from './GuestSimulationDock';
@@ -32,6 +34,9 @@ import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
 import { BossPhaseShiftBanner } from '../arena/BossPhaseShiftBanner';
 import { BossSkillBanner } from './BossSkillBanner';
+import { RoundClockBadge } from './RoundClockBadge';
+import { SessionTakeoverBanner } from './session/SessionTakeoverBanner';
+import { SessionTierUpBanner } from './session/SessionTierUpBanner';
 import {
   AUTO_PRO_BATTLE_CONSTANTS,
   DEBUG_CONTROLS_QUERY_PARAM,
@@ -193,17 +198,24 @@ export const HUDOverlay = () => {
           style={{ top: `${headerBottomOffset + 10}px` }}
           className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-[46] pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
         >
+          {/* First in the stack: the round clock stays on top, toasts flow below it */}
+          <RoundClockBadge />
           <BossPhaseShiftBanner themeConfig={getThemeConfig(gameTheme)} />
           <BossEnragedEntranceBanner themeConfig={getThemeConfig(gameTheme)} />
           <BossSkillBanner />
           <GiftBanner />
+          <MiniRoseToast />
           <HeartMilestoneBanner />
+          <SessionTakeoverBanner />
+          <SessionTierUpBanner />
           <WipeStamp />
+          <ArenaIdleRallyCTA />
         </div>
       )}
 
       {/* Top Section: Esports Broadcast Header & Scores */}
-      <header ref={headerRef} className="relative z-[35] space-y-0.5 sm:space-y-1 shrink-0 pt-1 sm:pt-1.5">
+      {!isSilverScrapesActive && (
+        <header ref={headerRef} className="relative z-[35] space-y-0.5 sm:space-y-1 shrink-0 pt-1 sm:pt-1.5">
         {overlayVisibility.matchTitleBar && (
           <div className="flex items-center justify-center space-x-1.5 pt-0.5">
             <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 mb-1 shadow-md">
@@ -309,11 +321,14 @@ export const HUDOverlay = () => {
 
         {overlayVisibility.bossSkills && <BossSkillStatusPanel />}
         {overlayVisibility.teamScores && <TeamScoreBoard />}
-      </header>
+        </header>
+      )}
 
       {/* Dynamic Non-Overlapping Left & Right Team Side Wings */}
-      <div
-        style={{ top: `${headerBottomOffset}px` }}
+      {!isSilverScrapesActive && (
+        <>
+          <div
+            style={{ top: `${headerBottomOffset}px` }}
         className="absolute left-1 sm:left-1.5 z-[36] pointer-events-none flex flex-col items-start gap-1.5 transition-[top] duration-200"
       >
         {overlayVisibility.teamRosters && <TeamRosterBar side="left" isInFlow />}
@@ -325,6 +340,8 @@ export const HUDOverlay = () => {
       >
         {overlayVisibility.teamRosters && <TeamRosterBar side="right" isInFlow />}
       </div>
+    </>
+  )}
 
       {/* Floating 3D & Combat Elements */}
       {!isSilverScrapesActive && (
@@ -343,10 +360,9 @@ export const HUDOverlay = () => {
       <GuestSimulationDock />
       <AdminControlModal />
 
-      {/* Center 3D viewport remains 100% unobstructed for Baron Nashor */}
-
       {/* Bottom Section: Left (DPS + Live Chat), Right (Participation Guide + Like Counter) */}
-      <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0 w-full min-w-0">
+      {!isSilverScrapesActive && (
+        <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0 w-full min-w-0">
         <div className="flex items-end justify-between w-full min-w-0 px-0.5 sm:px-1 gap-1.5 sm:gap-2">
           <div className="flex flex-col items-start space-y-1.5 pointer-events-auto min-w-0 w-[50%] max-w-[196px] sm:w-auto sm:max-w-[54%]">
             {overlayVisibility.leaderboard && <DPSLeaderboard />}
@@ -362,7 +378,8 @@ export const HUDOverlay = () => {
 
         {/* Viewer Call-to-Action when Auto-Pro is holding without viewers */}
         <ClutchStatusBadge />
-      </footer>
+        </footer>
+      )}
     </div>
   );
 };

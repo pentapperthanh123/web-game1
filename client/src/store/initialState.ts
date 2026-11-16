@@ -24,12 +24,16 @@ import {
   SummonPortalEntity,
 } from '../types/game';
 import {
+  BOSS_DIFFICULTY_SCALE,
   BOSS_STATUS,
   CHAMPION_DAMAGE_CONSTANTS,
   DamageType,
   DEFAULT_DUEL_STATE,
   GAME_CONSTANTS,
+  GAME_THEME,
+  getBossThemeForRound,
   DEFAULT_USE_USER_AVATAR,
+  ROUND_CLOCK_CONSTANTS,
   TEAM_KEY,
   TeamType,
 } from '../constants/game';
@@ -43,18 +47,22 @@ import {
   getStoredAutoProBattleConfig,
   getStoredAutoSummonConfig,
   getStoredBossSkillConfig,
-  getStoredGameTheme,
   getStoredOverlayVisibility,
   getStoredTeamConfig,
 } from './storeStorage';
 import { getStoredChampionshipTally } from './championshipTally';
 
 const initialTeamConfig = getStoredTeamConfig();
+const initialSeriesFormat: SeriesFormat = 'BO5';
+const initialRound = 1;
+const initialTheme = getBossThemeForRound(initialRound, initialSeriesFormat);
+const initialDifficulty = BOSS_DIFFICULTY_SCALE[initialTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+const initialMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * initialDifficulty.hpMultiplier);
 
 /** Initial state snapshot for the Zustand game store. */
 export const INITIAL_STATE = {
-  bossHp: GAME_CONSTANTS.BOSS.INITIAL_HP,
-  bossMaxHp: GAME_CONSTANTS.BOSS.MAX_HP,
+  bossHp: initialMaxHp,
+  bossMaxHp: initialMaxHp,
   bossStatus: BOSS_STATUS.IDLE,
   bossHitTimestamp: 0,
   bossAttackTimestamp: 0,
@@ -116,7 +124,7 @@ export const INITIAL_STATE = {
   botSpeedMs: 1200,
   overlayVisibility: getStoredOverlayVisibility(),
   activeFlyingArrows: [] as FlyingArrowEntity[],
-  gameTheme: getStoredGameTheme(),
+  gameTheme: initialTheme,
   bossSkillConfig: getStoredBossSkillConfig(),
   activeBossSkillBanner: null as ActiveBossSkillBanner | null,
   activeHeartMilestoneBanner: null as HeartMilestoneBanner | null,
@@ -150,6 +158,7 @@ export const INITIAL_STATE = {
     maxDeployPerTurn: GAME_CONSTANTS.SUMMON_RULES.MAX_DEPLOY_PER_TURN,
     summonTurnDelayMs: GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS,
     championAttackSpeedMultiplier: GAME_CONSTANTS.SUMMON_RULES.CHAMPION_ATTACK_SPEED_MULTIPLIER,
+    roundDurationMs: ROUND_CLOCK_CONSTANTS.DEFAULT_ROUND_DURATION_MS,
   },
   activeTeams: initialTeamConfig.activeTeams,
   teamCatalog: initialTeamConfig.teamCatalog,

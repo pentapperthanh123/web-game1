@@ -1,0 +1,94 @@
+# ==============================================================================
+# Antigravity Ignore (.antigravityignore)
+# Tells Antigravity IDE and AI Agent what files/directories to NEVER index or read.
+# ==============================================================================
+
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Build & Bundler Outputs
+dist/
+**/dist/
+build/
+**/build/
+out/
+**/out/
+.turbo/
+.cache/
+.temp/
+tmp/
+temp/
+scratch/
+
+# Large Game 3D Models & Binary Assets (Prevent context token explosion)
+*.glb
+*.gltf
+*.bin
+*.fbx
+*.obj
+*.dae
+
+# Audio & Media Assets
+*.mp3
+*.wav
+*.ogg
+*.aac
+*.flac
+*.mp4
+*.webm
+*.avi
+
+# Image Files
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.bmp
+*.ico
+*.svg
+*.psd
+
+# Compressed Archives
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Large Lockfiles & Package Maps (Agent reads package.json instead)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Python Virtual Environments & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+server/.tts-venv/
+server/data/tts-cache/
+
+# Git & Session Internals
+.git/
+.agents/.session/
+.claude/
+.cursor/
+
+# Logs & Temporary Files
+*.log
+logs/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Non-standard documentation files
+.agents/workflows/README.md
+
+# System & OS Files
+.DS_Store
+Thumbs.db

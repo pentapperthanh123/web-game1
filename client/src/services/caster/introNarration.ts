@@ -47,13 +47,23 @@ const splitAtLevel = (text: string, level: number): string[] => {
 export const splitSpeechChunks = (text: string): string[] => splitAtLevel(text.trim(), 0);
 
 /**
- * Speaks one intro line in voice-sized parts, back to back. `isStillCurrent` turns false when the
- * intro moves on (tab change, duel, card closed); the remaining parts are then dropped.
+ * Speaks one intro line in voice-sized parts, back to back.
+ * `isStillCurrent` turns false when the intro moves on (tab change, duel, card closed); the remaining parts are then dropped.
+ * `initialDelayMs` introduces a resilient breathing room (e.g. for the round gong) without being cancelled by React re-renders.
  */
-export const speakIntroNarration = async (text: string, isStillCurrent: () => boolean): Promise<void> => {
+export const speakIntroNarration = async (
+  text: string,
+  isStillCurrent: () => boolean,
+  initialDelayMs = 0
+): Promise<void> => {
   const lang = getCasterLang();
   const chunks = splitSpeechChunks(text);
   chunks.forEach((chunk) => casterSpeechEngine.prefetch(chunk, lang));
+
+  if (initialDelayMs > 0) {
+    await new Promise<void>((resolve) => setTimeout(resolve, initialDelayMs));
+    if (!isStillCurrent()) return;
+  }
 
   for (const chunk of chunks) {
     await casterSpeechEngine.prepare(chunk, lang);

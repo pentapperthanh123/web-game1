@@ -52,57 +52,67 @@ export const MatchupPage = ({
   return (
     <div className="space-y-2.5 select-none">
       {/* Target Boss Spotlight Header */}
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/50 via-purple-950/40 to-rose-950/50 p-2 sm:p-2.5 shadow-md">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="relative overflow-hidden flex items-center justify-between gap-3 rounded-2xl border border-rose-500/50 bg-gradient-to-r from-rose-950/60 via-purple-950/50 to-rose-950/60 p-2 sm:p-2.5 shadow-[0_0_20px_rgba(244,63,94,0.25)]">
+        {/* Shimmer light ray */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-20deg] animate-gold-shimmer" />
+        </div>
+        <div className="relative z-10 flex items-center gap-2.5 min-w-0">
           <div className="relative shrink-0">
             <img
               src={bossImage || '/images/boss_baron_2d.png'}
               alt={bossName}
-              className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border border-rose-400/60 object-cover shadow-[0_0_12px_rgba(244,63,94,0.4)]"
+              className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border-2 border-rose-400/80 object-cover shadow-[0_0_16px_rgba(244,63,94,0.6)]"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).src = '/images/boss_baron_2d.png';
               }}
             />
-            <div className="absolute -bottom-1 -right-1 rounded-full bg-rose-600 px-1 py-0.2 text-[8px] font-black text-white shadow">
+            <div className="absolute -bottom-1 -right-1 rounded-full bg-gradient-to-r from-rose-600 to-amber-500 px-1.5 py-0.2 text-[8px] font-black text-white shadow-[0_0_8px_rgba(244,63,94,0.8)]">
               BOSS
             </div>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs sm:text-[13px] font-black uppercase tracking-wide text-rose-200 truncate">
+              <span className="text-xs sm:text-[13px] font-black uppercase tracking-wide bg-gradient-to-r from-rose-200 via-amber-200 to-rose-300 bg-clip-text text-transparent truncate drop-shadow">
                 {t('RoundIntro.vsBoss', 'Mục tiêu: {{boss}}', { boss: bossName })}
               </span>
-              <span className="rounded bg-rose-500/25 px-1.5 py-0.5 text-[8.5px] font-black text-rose-300 border border-rose-500/40 shrink-0">
+              <span className="rounded bg-rose-500/30 px-1.5 py-0.5 text-[8.5px] font-black text-rose-300 border border-rose-500/50 shadow-sm shrink-0">
                 {bossMaxHp ? `${bossMaxHp.toLocaleString()} HP` : '100,000 HP'}
               </span>
             </div>
-            <p className="text-[9px] sm:text-[9.5px] text-slate-300 truncate mt-0.5 font-medium">
+            <p className="text-[9px] sm:text-[9.5px] text-slate-300 truncate mt-0.5 font-medium flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5 text-amber-400" />
               {t('RoundIntro.bossHazard', 'Hiểm hoạ diện rộng • S+')}
             </p>
           </div>
         </div>
-        <div className="shrink-0 flex flex-col items-end">
-          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[8.5px] sm:text-[9px] font-mono font-bold text-amber-300 border border-amber-400/40 whitespace-nowrap">
+        <div className="relative z-10 shrink-0 flex flex-col items-end">
+          <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[8.5px] sm:text-[9px] font-mono font-bold text-amber-300 border border-amber-400/50 shadow-[0_0_10px_rgba(245,158,11,0.3)] whitespace-nowrap">
             {seriesFormat || 'BO5'}
           </span>
         </div>
       </div>
 
       {/* Featured Star Mid-lane Duel (Captains / Key Duel) */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="relative flex items-center justify-between gap-2">
         {/* Left Team Star */}
         <div
           style={{
-            borderColor: `${leftTheme.primaryHex}60`,
-            background: `linear-gradient(135deg, ${leftTheme.primaryHex}20 0%, rgba(2, 6, 23, 0.9) 100%)`,
+            borderColor: `${leftTheme.primaryHex}80`,
+            background: `linear-gradient(135deg, ${leftTheme.primaryHex}25 0%, rgba(2, 6, 23, 0.95) 100%)`,
+            boxShadow: `0 0 16px ${leftTheme.primaryHex}35`,
           }}
-          className="flex flex-1 items-center gap-2 rounded-2xl border p-2 shadow-md min-w-0"
+          className="relative overflow-hidden flex flex-1 items-center gap-2 rounded-2xl border p-2 min-w-0"
         >
-          <div className="relative shrink-0">
+          {/* Shimmer line */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-20deg] animate-gold-shimmer" />
+          </div>
+          <div className="relative shrink-0 z-10">
             <img
               src={leftStar.avatarUrl || getChampionAvatarUrl(leftStar.signatureChampion, leftTeamKey)}
               alt={leftStar.name}
-              className="h-10 w-10 sm:h-11 sm:w-11 rounded-full border-2 object-cover shadow-sm"
+              className="h-10 w-10 sm:h-11 sm:w-11 rounded-full border-2 object-cover shadow-[0_0_10px_rgba(0,0,0,0.8)]"
               style={{ borderColor: leftTheme.primaryHex }}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).src = getChampionAvatarUrl(
@@ -112,80 +122,96 @@ export const MatchupPage = ({
               }}
             />
             <div
-              className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-950 border"
+              className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-950 border shadow-sm"
               style={{ borderColor: leftTheme.primaryHex }}
             >
               <TeamLogo teamProfile={leftTeam} className="w-3 h-3 object-contain" />
             </div>
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 z-10">
             <p
-              className="truncate text-xs sm:text-[13px] font-black uppercase tracking-wide"
+              className="truncate text-xs sm:text-[13px] font-black uppercase tracking-wide drop-shadow"
               style={{ color: leftTheme.primaryHex }}
             >
               {leftStar.name}
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               <span
-                className="inline-block rounded px-1.5 py-0.5 text-[8.5px] font-extrabold uppercase tracking-wide"
+                className="inline-block rounded px-1.5 py-0.5 text-[8.5px] font-extrabold uppercase tracking-wide shadow-sm"
                 style={{
-                  backgroundColor: `${leftTheme.primaryHex}25`,
+                  backgroundColor: `${leftTheme.primaryHex}30`,
                   color: leftTheme.primaryHex,
-                  border: `1px solid ${leftTheme.primaryHex}40`,
+                  border: `1px solid ${leftTheme.primaryHex}50`,
                 }}
               >
                 {leftTeam.shortTag}
               </span>
-              <span className="text-[9px] text-slate-300 font-semibold truncate">
+              <span className="text-[9px] text-slate-200 font-semibold truncate">
                 {leftStar.signatureChampion}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Center VS Crest */}
-        <div className="flex shrink-0 flex-col items-center justify-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-400/80 bg-gradient-to-br from-amber-500/50 via-amber-600/40 to-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.6)]">
-            <span className="text-xs font-black italic tracking-tighter text-amber-200">VS</span>
+        {/* Center VS Clash Centerpiece */}
+        <div className="relative flex shrink-0 flex-col items-center justify-center px-1">
+          {/* Shockwave Energy Rings */}
+          <div className="absolute -inset-1.5 rounded-full border border-amber-400/60 animate-vs-ring pointer-events-none" />
+          <div className="absolute -inset-3.5 rounded-full border border-yellow-300/40 animate-vs-ring [animation-delay:1.1s] pointer-events-none" />
+
+          {/* Floating Embers */}
+          <div className="absolute -top-3 w-1.5 h-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_#f59e0b] animate-ping opacity-60 pointer-events-none" />
+          <div className="absolute -bottom-2 w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_6px_#facc15] animate-pulse opacity-70 pointer-events-none" />
+
+          {/* 3D Golden Hextech VS Crest */}
+          <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-amber-300 bg-gradient-to-br from-amber-400 via-amber-600 to-slate-950 shadow-[0_0_24px_rgba(245,158,11,0.85),inset_0_0_10px_rgba(251,191,36,0.6)]">
+            <span className="text-xs sm:text-[13px] font-black italic tracking-wider text-slate-950 drop-shadow-[0_1px_2px_rgba(255,255,255,0.7)]">
+              VS
+            </span>
           </div>
         </div>
 
         {/* Right Team Star */}
         <div
           style={{
-            borderColor: `${rightTheme.primaryHex}60`,
-            background: `linear-gradient(225deg, ${rightTheme.primaryHex}20 0%, rgba(2, 6, 23, 0.9) 100%)`,
+            borderColor: `${rightTheme.primaryHex}80`,
+            background: `linear-gradient(225deg, ${rightTheme.primaryHex}25 0%, rgba(2, 6, 23, 0.95) 100%)`,
+            boxShadow: `0 0 16px ${rightTheme.primaryHex}35`,
           }}
-          className="flex flex-1 items-center gap-2 rounded-2xl border p-2 shadow-md min-w-0"
+          className="relative overflow-hidden flex flex-1 items-center gap-2 rounded-2xl border p-2 min-w-0"
         >
-          <div className="min-w-0 flex-1 text-right">
+          {/* Shimmer line */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-20deg] animate-gold-shimmer" />
+          </div>
+          <div className="min-w-0 flex-1 text-right z-10">
             <p
-              className="truncate text-xs sm:text-[13px] font-black uppercase tracking-wide"
+              className="truncate text-xs sm:text-[13px] font-black uppercase tracking-wide drop-shadow"
               style={{ color: rightTheme.primaryHex }}
             >
               {rightStar.name}
             </p>
             <div className="flex items-center justify-end gap-1 mt-0.5">
-              <span className="text-[9px] text-slate-300 font-semibold truncate">
+              <span className="text-[9px] text-slate-200 font-semibold truncate">
                 {rightStar.signatureChampion}
               </span>
               <span
-                className="inline-block rounded px-1.5 py-0.5 text-[8.5px] font-extrabold uppercase tracking-wide"
+                className="inline-block rounded px-1.5 py-0.5 text-[8.5px] font-extrabold uppercase tracking-wide shadow-sm"
                 style={{
-                  backgroundColor: `${rightTheme.primaryHex}25`,
+                  backgroundColor: `${rightTheme.primaryHex}30`,
                   color: rightTheme.primaryHex,
-                  border: `1px solid ${rightTheme.primaryHex}40`,
+                  border: `1px solid ${rightTheme.primaryHex}50`,
                 }}
               >
                 {rightTeam.shortTag}
               </span>
             </div>
           </div>
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 z-10">
             <img
               src={rightStar.avatarUrl || getChampionAvatarUrl(rightStar.signatureChampion, rightTeamKey)}
               alt={rightStar.name}
-              className="h-10 w-10 sm:h-11 sm:w-11 rounded-full border-2 object-cover shadow-sm"
+              className="h-10 w-10 sm:h-11 sm:w-11 rounded-full border-2 object-cover shadow-[0_0_10px_rgba(0,0,0,0.8)]"
               style={{ borderColor: rightTheme.primaryHex }}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).src = getChampionAvatarUrl(
@@ -195,7 +221,7 @@ export const MatchupPage = ({
               }}
             />
             <div
-              className="absolute -bottom-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-950 border"
+              className="absolute -bottom-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-950 border shadow-sm"
               style={{ borderColor: rightTheme.primaryHex }}
             >
               <TeamLogo teamProfile={rightTeam} className="w-3 h-3 object-contain" />

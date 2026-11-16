@@ -4,6 +4,9 @@ import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY, TeamType, COMBAT_VFX_CONSTANTS } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { SummonPortalEntity } from '../../types/game';
+import { SESSION_TIER, SESSION_TIER_STYLE, isSessionTierAtLeast } from '../../constants/sessionLeaderboard';
+import { useSessionTier } from '../../store/sessionLeaderboardStore';
+import { SessionTierBadge } from './session/SessionTierBadge';
 
 const ChampionPortrait = ({
   avatarUrl,
@@ -48,8 +51,13 @@ const SummonSpotlightCard = ({
   const theme = getTeamTheme(teamProfile?.colorTheme);
   const isRight = side === 'right';
   const isSignature = Boolean(portal.isSignatureSynergy && portal.signaturePlayerName);
-  const cardBorderClass = isSignature ? 'border-amber-400/90 ring-1 ring-amber-400/50' : `${theme.borderClass} border`;
-  const cardShadowStyle = isSignature ? '0 0 10px rgba(251,191,36,0.5)' : theme.glowStyle;
+  const sessionTier = useSessionTier(portal.summonerName);
+  // Diamond and up: the entrance glows in the tier colour and shows the tier name
+  const isHighTier = isSessionTierAtLeast(sessionTier, SESSION_TIER.DIAMOND);
+  const cardBorderClass = isSignature || isHighTier ? 'border-amber-400/90 ring-1 ring-amber-400/50' : `${theme.borderClass} border`;
+  const rankGlowStyle = sessionTier && isHighTier ? `0 0 12px ${SESSION_TIER_STYLE[sessionTier].light}` : null;
+  const signatureGlowStyle = isSignature ? '0 0 10px rgba(251,191,36,0.5)' : theme.glowStyle;
+  const cardShadowStyle = rankGlowStyle ?? signatureGlowStyle;
   const nameColorClass = isSignature ? 'text-amber-300' : 'text-white';
 
   return (
@@ -81,9 +89,12 @@ const SummonSpotlightCard = ({
             <Crown className="w-2.5 h-2.5 text-amber-300 fill-current shrink-0" />
           )}
         </div>
-        <p className={`text-[8px] sm:text-[8.5px] font-bold text-amber-300 truncate mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,1)] ${isRight ? 'text-right' : 'text-left'}`}>
-          @{portal.summonerName.replace(/^@+/, '')}
-        </p>
+        <div className={`flex items-center gap-0.5 mt-0.5 min-w-0 ${isRight ? 'flex-row-reverse' : ''}`}>
+          <SessionTierBadge tier={sessionTier} hasLabel={isHighTier} />
+          <p className={`text-[8px] sm:text-[8.5px] font-bold text-amber-300 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,1)] ${isRight ? 'text-right' : 'text-left'}`}>
+            @{portal.summonerName.replace(/^@+/, '')}
+          </p>
+        </div>
       </div>
     </div>
   );
