@@ -9,14 +9,12 @@ import { Vortex2D } from './Vortex2D';
 import { ChargeDash2D } from './ChargeDash2D';
 import { SeismicSlam2D } from './SeismicSlam2D';
 import { Nova2D } from './Nova2D';
-import { FireBreath2D } from './FireBreath2D';
 
 /**
  * Archetypes whose 3D effect lands exactly on the hurt champions (bolts, orbs, spikes, chain lightning)
  * have no 2D copy: the 2D layer cannot follow champion positions and would show hits where nobody is hurt.
  */
 const VFX_COMPONENT_MAP: Readonly<Partial<Record<BossSkillVfxType, React.FC<SkillVfx2DProps>>>> = {
-  [BOSS_SKILL_VFX.FIRE_BREATH]: FireBreath2D,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: CrescentSweep2D,
   [BOSS_SKILL_VFX.METEOR_RAIN]: MeteorRain2D,
   [BOSS_SKILL_VFX.BEAM]: Beam2D,

@@ -1,7 +1,12 @@
 import { audioService } from './audioService';
 import { casterSpeechEngine } from './caster/speechEngine';
 import { casterQueue } from './caster/presentationQueue';
-import { hideRoundIntro } from '../store/roundIntroStore';
+import {
+  hideRoundIntro,
+  isCurrentRoundIntroActive,
+  playIntroCinematic,
+  useRoundIntroStore,
+} from '../store/roundIntroStore';
 import { playSound } from './soundManager';
 import { SFX_EVENT } from '../constants/sfx';
 import { useGameStore } from '../store/gameStore';
@@ -34,4 +39,20 @@ export const triggerStartRoundCombat = (): void => {
   const store = useGameStore.getState();
   store.triggerScreenFlash('#f59e0b');
   store.triggerScreenShake(0.95);
+};
+
+/**
+ * "Bắt đầu ván đấu" behaves the same wherever it is pressed (intro card button, Space/Enter, the admin
+ * portal, the overlay's own admin tab): a waiting card plays the cinematic and then the narrated intro;
+ * an intro that is already narrating jumps straight into combat. Presses during the cinematic are ignored.
+ */
+export const requestRoundStart = (): void => {
+  const intro = useRoundIntroStore.getState();
+  if (intro.isCinematicPlaying) return;
+  const isWaitingToStart = intro.isManualHold && isCurrentRoundIntroActive();
+  if (isWaitingToStart) {
+    playIntroCinematic();
+    return;
+  }
+  triggerStartRoundCombat();
 };

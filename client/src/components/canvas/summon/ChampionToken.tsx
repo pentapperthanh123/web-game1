@@ -26,7 +26,7 @@ import { SHARED_TOKEN_BODY_GEO, createTokenBodyMaterial, syncTokenBodyMaterial }
 const TOKEN_FACE_SIDE = THREE.FrontSide;
 
 const STATUS_RING_OPACITY = 0.7;
-const SIGNATURE_HALO_OPACITY = 0.85;
+export const SIGNATURE_HALO_OPACITY = 0.85;
 
 const GAUGE_STYLE = {
   BG_COLOR: '#020617',
@@ -161,7 +161,7 @@ export const ChampionToken = React.memo(
         )}
 
         {isSignature && (
-          <mesh name="signature-synergy-halo" position={[0, 0, -0.025]} geometry={SHARED_SIGNATURE_HALO_GEO}>
+          <mesh name="signature-synergy-halo" visible={false} position={[0, 0, -0.025]} geometry={SHARED_SIGNATURE_HALO_GEO}>
             <meshBasicMaterial color={signatureColor} transparent opacity={SIGNATURE_HALO_OPACITY} blending={THREE.AdditiveBlending} depthWrite={false} side={TOKEN_FACE_SIDE} />
           </mesh>
         )}

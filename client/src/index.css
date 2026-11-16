@@ -1083,15 +1083,15 @@
     transform: translate(-50%, -24px) scale(0.7);
     opacity: 0;
   }
-  14% {
+  6% {
     transform: translate(-50%, 0) scale(1.06);
     opacity: 1;
   }
-  24% {
+  12% {
     transform: translate(-50%, 0) scale(1);
     opacity: 1;
   }
-  86% {
+  90% {
     transform: translate(-50%, 0) scale(1);
     opacity: 1;
   }
@@ -1102,7 +1102,7 @@
 }
 
 .animate-execution-banner {
-  animation: executionBannerPop 2.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: executionBannerPop 8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes comboPunch {

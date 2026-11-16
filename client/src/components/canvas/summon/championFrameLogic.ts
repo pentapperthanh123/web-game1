@@ -24,7 +24,8 @@ import {
   randomInRange,
   tempProjVec,
 } from './summonShared';
-import { updateChampionEntranceAura } from './championEntranceAura';
+import { ENTRANCE_AURA, updateChampionEntranceAura } from './championEntranceAura';
+import { SIGNATURE_HALO_OPACITY } from './ChampionToken';
 import { pickSpreadTargetInWing } from './championSpread';
 import { isCurrentRoundIntroActive } from '../../../store/roundIntroStore';
 import { resolveChampionAttackSpeedMultiplier } from '../../../store/summonQueueHelper';
@@ -324,8 +325,17 @@ export const stepChampionFrame = (
 
   const vfxRefs = resolveCachedVfxRefs(ai, champGroup.children[0] as THREE.Group | undefined);
   if (vfxRefs.sigHaloMesh) {
-    vfxRefs.sigHaloMesh.rotation.z = -elapsedTime * 2.1;
-    vfxRefs.sigHaloMesh.scale.setScalar(1.05 + Math.sin(elapsedTime * 4.5) * 0.08);
+    if (entranceAgeMs >= 0 && entranceAgeMs < ENTRANCE_AURA.TOTAL_MS) {
+      const haloFade = Math.pow(1 - entranceAgeMs / ENTRANCE_AURA.TOTAL_MS, 1.5);
+      vfxRefs.sigHaloMesh.rotation.z = -elapsedTime * 2.1;
+      vfxRefs.sigHaloMesh.scale.setScalar(1.05 + Math.sin(elapsedTime * 4.5) * 0.08);
+      if (vfxRefs.sigHaloMesh.material instanceof THREE.MeshBasicMaterial) {
+        vfxRefs.sigHaloMesh.material.opacity = SIGNATURE_HALO_OPACITY * haloFade;
+      }
+      vfxRefs.sigHaloMesh.visible = true;
+    } else if (vfxRefs.sigHaloMesh.visible) {
+      vfxRefs.sigHaloMesh.visible = false;
+    }
   }
 
   const isSquadMember = (minion.entranceSquadSize ?? 1) >= SQUAD_ENTRANCE_CONSTANTS.MIN_SIZE;

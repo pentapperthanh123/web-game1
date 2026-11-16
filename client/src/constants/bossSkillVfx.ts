@@ -2,7 +2,7 @@ import { BOSS_SKILL_VFX, BossSkillVfxParams, BossSkillVfxType } from '../types/b
 
 /** How long each archetype stays on screen after the cast (2D + 3D share this). */
 export const BOSS_SKILL_VFX_DURATION_MS: Readonly<Record<BossSkillVfxType, number>> = {
-  [BOSS_SKILL_VFX.FIRE_BREATH]: 1500,
+  [BOSS_SKILL_VFX.FIRE_BREATH]: 1800,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: 1100,
   [BOSS_SKILL_VFX.GROUND_SPIKES]: 1200,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: 900,
@@ -10,6 +10,7 @@ export const BOSS_SKILL_VFX_DURATION_MS: Readonly<Record<BossSkillVfxType, numbe
   [BOSS_SKILL_VFX.METEOR_RAIN]: 2200,
   [BOSS_SKILL_VFX.BEAM]: 1400,
   [BOSS_SKILL_VFX.VORTEX]: 1800,
+  [BOSS_SKILL_VFX.VOID_MAELSTROM]: 2600,
   [BOSS_SKILL_VFX.CHARGE_DASH]: 900,
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: 1300,
   [BOSS_SKILL_VFX.NOVA]: 1900,
@@ -36,7 +37,7 @@ export const getSkillVfxWindowMs = (vfxType: BossSkillVfxType, params?: BossSkil
  * knocked out before anything has touched it.
  */
 export const BOSS_SKILL_VFX_IMPACT_RATIO: Readonly<Record<BossSkillVfxType, number>> = {
-  [BOSS_SKILL_VFX.FIRE_BREATH]: 0.3,
+  [BOSS_SKILL_VFX.FIRE_BREATH]: 0.4,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: 0.55,
   [BOSS_SKILL_VFX.GROUND_SPIKES]: 0.26,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: 0.2,
@@ -44,6 +45,7 @@ export const BOSS_SKILL_VFX_IMPACT_RATIO: Readonly<Record<BossSkillVfxType, numb
   [BOSS_SKILL_VFX.METEOR_RAIN]: 0.5,
   [BOSS_SKILL_VFX.BEAM]: 0.3,
   [BOSS_SKILL_VFX.VORTEX]: 0.35,
+  [BOSS_SKILL_VFX.VOID_MAELSTROM]: 0.36,
   [BOSS_SKILL_VFX.CHARGE_DASH]: 0.42,
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: 0.16,
   [BOSS_SKILL_VFX.NOVA]: 0.3,
@@ -97,6 +99,7 @@ export const BOSS_SKILL_VFX_HIT_AREA: Readonly<Record<BossSkillVfxType, BossSkil
   [BOSS_SKILL_VFX.CHARGE_DASH]: BOSS_SKILL_HIT_AREA.SIDE_NEAREST,
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: BOSS_SKILL_HIT_AREA.CENTER,
   [BOSS_SKILL_VFX.VORTEX]: BOSS_SKILL_HIT_AREA.CENTER,
+  [BOSS_SKILL_VFX.VOID_MAELSTROM]: BOSS_SKILL_HIT_AREA.CENTER,
   [BOSS_SKILL_VFX.GROUND_SPIKES]: BOSS_SKILL_HIT_AREA.ARENA,
   [BOSS_SKILL_VFX.METEOR_RAIN]: BOSS_SKILL_HIT_AREA.ARENA,
   [BOSS_SKILL_VFX.NOVA]: BOSS_SKILL_HIT_AREA.ARENA,
@@ -122,6 +125,7 @@ export const BOSS_SKILL_VFX_DEFAULT_COUNT: Readonly<Record<BossSkillVfxType, num
   [BOSS_SKILL_VFX.METEOR_RAIN]: 6,
   [BOSS_SKILL_VFX.BEAM]: 1,
   [BOSS_SKILL_VFX.VORTEX]: 3,
+  [BOSS_SKILL_VFX.VOID_MAELSTROM]: 3,
   [BOSS_SKILL_VFX.CHARGE_DASH]: 5,
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: 3,
   [BOSS_SKILL_VFX.NOVA]: 10,
@@ -153,6 +157,7 @@ export const BOSS_SKILL_VFX_ANIMATION_CLASS: Readonly<Record<BossSkillVfxType, s
   [BOSS_SKILL_VFX.METEOR_RAIN]: 'animate-boss-sky-call',
   [BOSS_SKILL_VFX.BEAM]: 'animate-boss-beam-rise',
   [BOSS_SKILL_VFX.VORTEX]: 'animate-boss-vortex-hover',
+  [BOSS_SKILL_VFX.VOID_MAELSTROM]: 'animate-boss-vortex-hover',
   [BOSS_SKILL_VFX.CHARGE_DASH]: 'animate-herald-charge',
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: 'animate-boss-slam-center',
   [BOSS_SKILL_VFX.NOVA]: 'animate-boss-slam-center',

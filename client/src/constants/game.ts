@@ -790,7 +790,7 @@ export const BOSS_DEFEAT_CONSTANTS = {
 } as const;
 
 export const FINISHER_BANNER_CONSTANTS = {
-  DISPLAY_DURATION_MS: 1600,
+  DISPLAY_DURATION_MS: 8000,
   GIFT_FINISHER_DURATION_MS: 11500,
   /** Must match the avatarStrike keyframes duration in gift.css. */
   AVATAR_STRIKE_DURATION_MS: 4800,
@@ -811,16 +811,16 @@ export const FINISHER_BANNER_CONSTANTS = {
  */
 export const DEFEAT_SHOWCASE_TIMELINE = {
   /** BossDeathVFX3D: imploding core, sky pillar, blast rings and soul streams. */
-  DEATH_VFX_3D_MS: 1850,
+  DEATH_VFX_3D_MS: 3000,
   /** BossDeathVFX2D "boss defeated" banner — `executionBannerPop` in index.css. */
-  EXECUTION_BANNER_MS: 2700,
+  EXECUTION_BANNER_MS: 8000,
   /** BossDefeatedCrest2D fade-in — its `delay-[850ms] duration-700` classes. */
   CREST_REVEAL_DELAY_MS: 850,
   CREST_REVEAL_MS: 700,
   /** Time the crest stays fully visible so viewers can take it in. */
-  CREST_HOLD_MS: 1200,
+  CREST_HOLD_MS: 6000,
   /** Short breath between the last effect ending and the victory screen. */
-  SETTLE_MS: 300,
+  SETTLE_MS: 500,
 } as const;
 
 /** Delay from the killing blow to the victory screen: after every death effect has finished. */
@@ -840,7 +840,9 @@ export const isDonorFinisherCheck = (
 ): boolean => Boolean(finisherGiftName) || (finisherCoins ?? 0) > 0;
 
 export const VICTORY_CELEBRATION_CONSTANTS = {
-  AUTO_ADVANCE_SECONDS: 25,
+  /** The victory screen moves on by itself: nobody can click the overlay inside OBS. */
+  AUTO_ADVANCE_SECONDS: 10,
+  COUNTDOWN_TICK_MS: 1000,
   CONFETTI_PARTICLE_COUNT: 65,
   CONFETTI_MIN_SIZE: 5,
   CONFETTI_MAX_SIZE: 12,

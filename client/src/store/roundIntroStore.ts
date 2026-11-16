@@ -7,6 +7,8 @@ interface RoundIntroState {
   isManualHold: boolean;
   /** How long the narrated card runs once started (full card for the opening round, compact later). */
   durationMs: number;
+  /** The esports cinematic that plays between "start" and the narrated card. */
+  isCinematicPlaying: boolean;
 }
 
 /** The opening round explains everything; later rounds only show the matchup so the fight returns fast. */
@@ -26,6 +28,7 @@ export const useRoundIntroStore = create<RoundIntroState>(() => ({
   isActive: true,
   isManualHold: true,
   durationMs: ROUND_INTRO_CONSTANTS.TOTAL_MS,
+  isCinematicPlaying: false,
 }));
 
 /**
@@ -38,7 +41,29 @@ export const showRoundIntro = (
   isManualHold = false,
   durationMs: number = ROUND_INTRO_CONSTANTS.TOTAL_MS
 ): void => {
-  useRoundIntroStore.setState({ shownAt: now, isActive: true, isManualHold, durationMs });
+  useRoundIntroStore.setState({ shownAt: now, isActive: true, isManualHold, durationMs, isCinematicPlaying: false });
+};
+
+/**
+ * Opens a round with the "VÁN X • KHAI CHIẾN!" cinematic straight away; the narrated card follows by
+ * itself when it ends. For rounds that start without an operator press (the decider after Silver
+ * Scrapes, the overlay opened mid-series); a held card plays it on "Bắt đầu" instead.
+ */
+export const playRoundIntroCinematic = (
+  now = Date.now(),
+  durationMs: number = ROUND_INTRO_CONSTANTS.TOTAL_MS
+): void => {
+  // Held while the cinematic plays, so nothing starts before the narrated card
+  useRoundIntroStore.setState({ shownAt: now, isActive: true, isManualHold: true, durationMs, isCinematicPlaying: true });
+};
+
+/** Plays the cinematic; when it ends the overlay calls `startIntroNarration`. */
+export const playIntroCinematic = (): void => {
+  useRoundIntroStore.setState({ isCinematicPlaying: true });
+};
+
+export const endIntroCinematic = (): void => {
+  useRoundIntroStore.setState({ isCinematicPlaying: false });
 };
 
 /** Initiates automated voice intro & countdown after operator explicitly clicks start. */
@@ -47,7 +72,7 @@ export const startIntroNarration = (now = Date.now(), durationMs: number = ROUND
 };
 
 export const hideRoundIntro = (): void => {
-  useRoundIntroStore.setState({ shownAt: 0, isActive: false, isManualHold: false });
+  useRoundIntroStore.setState({ shownAt: 0, isActive: false, isManualHold: false, isCinematicPlaying: false });
 };
 
 export const isRoundIntroActive = (

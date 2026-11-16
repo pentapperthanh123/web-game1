@@ -6,7 +6,7 @@ import { TEAM_KEY, TeamType } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamColorPalette } from '../../types/team';
 import { TeamLogo } from '../icons/TeamLogos';
-import { TeamComboBadge } from './TeamComboBadge';
+import { TeamComboBadge, MIN_COMBO_DISPLAY_COUNT } from './TeamComboBadge';
 import { SummonSpotlight } from './SummonShowcase';
 import { MatchupTitleTally } from './MatchupTitleTally';
 import { TeamLiveStatusRow } from './TeamLiveStatusRow';
@@ -129,26 +129,40 @@ const TugOfWarBar = React.memo(
 TugOfWarBar.displayName = 'TugOfWarBar';
 
 /**
- * Isolated Floating Overlaid Combos.
- * Only re-renders when combos change.
+ * Isolated Left Team Combo Slot.
+ * Only re-renders when BLG combo changes.
  */
-const OverlaidCombos = React.memo(() => {
-  const blgCombo = useGameStore((state) => state.teamCombos[TEAM_KEY.BLG]);
-  const gengCombo = useGameStore((state) => state.teamCombos[TEAM_KEY.GENG]);
-
+const LeftTeamComboSlot = React.memo(() => {
+  const combo = useGameStore((state) => state.teamCombos[TEAM_KEY.BLG]);
+  if (!combo || combo.count < MIN_COMBO_DISPLAY_COUNT) {
+    return null;
+  }
   return (
-    <div className="absolute -top-3 sm:-top-3.5 inset-x-0 flex items-center justify-between px-0.5 pointer-events-none z-30">
-      <div className="flex-1 flex justify-start items-center min-w-0 pr-1">
-        <TeamComboBadge team={TEAM_KEY.BLG} combo={blgCombo} />
-      </div>
-      <div className="flex-1 flex justify-end items-center min-w-0 pl-1">
-        <TeamComboBadge team={TEAM_KEY.GENG} combo={gengCombo} />
-      </div>
+    <div className="mt-1 flex items-center min-h-[18px]">
+      <TeamComboBadge team={TEAM_KEY.BLG} combo={combo} />
     </div>
   );
 });
 
-OverlaidCombos.displayName = 'OverlaidCombos';
+LeftTeamComboSlot.displayName = 'LeftTeamComboSlot';
+
+/**
+ * Isolated Right Team Combo Slot.
+ * Only re-renders when GENG combo changes.
+ */
+const RightTeamComboSlot = React.memo(() => {
+  const combo = useGameStore((state) => state.teamCombos[TEAM_KEY.GENG]);
+  if (!combo || combo.count < MIN_COMBO_DISPLAY_COUNT) {
+    return null;
+  }
+  return (
+    <div className="mt-1 flex items-center justify-end min-h-[18px]">
+      <TeamComboBadge team={TEAM_KEY.GENG} combo={combo} />
+    </div>
+  );
+});
+
+RightTeamComboSlot.displayName = 'RightTeamComboSlot';
 
 export const TeamScoreBoard = React.memo(() => {
   const { t } = useTranslation();
@@ -163,121 +177,135 @@ export const TeamScoreBoard = React.memo(() => {
   const rightTheme = getTeamTheme(rightTeam.colorTheme);
 
   return (
-    <div className="w-full max-w-lg mx-auto px-2 sm:px-3 mt-1.5 sm:mt-2 pointer-events-auto select-none">
+    <div className="relative w-full max-w-lg mx-auto px-2 sm:px-3 mt-1.5 sm:mt-2 pointer-events-auto select-none">
       {/* Dynamic Team Headers */}
-      <div className="flex items-center justify-between min-h-[32px] sm:min-h-[36px]">
+      <div className="flex items-stretch justify-between min-h-[36px] sm:min-h-[40px]">
         {/* Left Team Block */}
         <div
-          className={`relative z-40 flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-1 justify-start ${leftTheme.textStrongClass}`}
+          className={`relative z-40 flex flex-col justify-between items-start min-w-0 flex-1 self-stretch ${leftTheme.textStrongClass}`}
         >
-          {/* Compact Summon Spotlight positioned above damage display to never cover the team logo */}
-          <div className="absolute -top-5 sm:-top-5.5 left-[36px] sm:left-[40px] z-50 pointer-events-none">
-            <SummonSpotlight side="left" />
+          {/* Top row: Logo & Damage info */}
+          <div className="relative flex items-center space-x-1.5 sm:space-x-2">
+            <div
+              style={{ boxShadow: leftTheme.glowStyle }}
+              className={`relative shrink-0 p-0.5 rounded-md border ${leftTheme.bgSoftClass} ${leftTheme.borderSoftClass}`}
+            >
+              <TeamLogo teamProfile={leftTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+
+            <TeamDmgDisplay
+              team={TEAM_KEY.BLG}
+              shortTag={leftTeam.shortTag}
+              leftTheme={leftTheme}
+              rightTheme={rightTheme}
+            />
           </div>
 
-          <div
-            style={{ boxShadow: leftTheme.glowStyle }}
-            className={`relative shrink-0 p-0.5 rounded-md border ${leftTheme.bgSoftClass} ${leftTheme.borderSoftClass}`}
-          >
-            <TeamLogo teamProfile={leftTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
-          </div>
-
-          <TeamDmgDisplay
-            team={TEAM_KEY.BLG}
-            shortTag={leftTeam.shortTag}
-            leftTheme={leftTheme}
-            rightTheme={rightTheme}
-          />
+          {/* Bottom row: Combo Badge */}
+          <LeftTeamComboSlot />
         </div>
 
         {/* Center Series Format & VS Crest */}
-        <div className="flex flex-col items-center px-1 sm:px-1.5 shrink-0 z-10">
-          <div className="text-[8px] font-black tracking-widest text-slate-300 uppercase bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full mb-1 shadow flex items-center space-x-1">
-            <Swords className="w-2.5 h-2.5 text-amber-400" />
-            <span>
-              {t('Game.roundLabel', 'VÁN {{round}} / {{format}}', {
-                round: currentRound,
-                format: seriesFormat,
-              })}
-            </span>
-          </div>
-
-          {/* Win Pips + Score */}
-          <div className="flex items-center space-x-1.5 bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-md shadow-inner">
-            {/* Left Win Pips */}
-            <div
-              className="flex items-center space-x-1"
-              title={`${leftTeam.shortTag} thắng ${bo5Score[TEAM_KEY.BLG]} ván`}
-            >
-              {Array.from({ length: bo5TargetWins }).map((_, i) => (
-                <span
-                  key={`left-pip-${i}`}
-                  className={`w-2 h-2 rotate-45 border transition-all ${
-                    i < bo5Score[TEAM_KEY.BLG]
-                      ? leftTheme.winPipActiveClass
-                      : 'bg-slate-900 border-slate-700'
-                  }`}
-                />
-              ))}
+        <div className="flex flex-col items-center justify-between px-1 sm:px-1.5 shrink-0 z-10 self-stretch">
+          <div className="flex flex-col items-center">
+            <div className="text-[8px] font-black tracking-widest text-slate-300 uppercase bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full mb-1 shadow flex items-center space-x-1">
+              <Swords className="w-2.5 h-2.5 text-amber-400" />
+              <span>
+                {t('Game.roundLabel', 'VÁN {{round}} / {{format}}', {
+                  round: currentRound,
+                  format: seriesFormat,
+                })}
+              </span>
             </div>
 
-            {/* Score */}
-            <span className="font-mono text-xs font-black text-white px-0.5">
-              {bo5Score[TEAM_KEY.BLG]} - {bo5Score[TEAM_KEY.GENG]}
-            </span>
+            {/* Win Pips + Score */}
+            <div className="flex items-center space-x-1.5 bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-md shadow-inner">
+              {/* Left Win Pips */}
+              <div
+                className="flex items-center space-x-1"
+                title={`${leftTeam.shortTag} thắng ${bo5Score[TEAM_KEY.BLG]} ván`}
+              >
+                {Array.from({ length: bo5TargetWins }).map((_, i) => (
+                  <span
+                    key={`left-pip-${i}`}
+                    className={`w-2 h-2 rotate-45 border transition-all ${
+                      i < bo5Score[TEAM_KEY.BLG]
+                        ? leftTheme.winPipActiveClass
+                        : 'bg-slate-900 border-slate-700'
+                    }`}
+                  />
+                ))}
+              </div>
 
-            {/* Right Win Pips */}
-            <div
-              className="flex items-center space-x-1"
-              title={`${rightTeam.shortTag} thắng ${bo5Score[TEAM_KEY.GENG]} ván`}
-            >
-              {Array.from({ length: bo5TargetWins }).map((_, i) => (
-                <span
-                  key={`right-pip-${i}`}
-                  className={`w-2 h-2 rotate-45 border transition-all ${
-                    i < bo5Score[TEAM_KEY.GENG]
-                      ? rightTheme.winPipActiveClass
-                      : 'bg-slate-900 border-slate-700'
-                  }`}
-                />
-              ))}
+              {/* Score */}
+              <span className="font-mono text-xs font-black text-white px-0.5">
+                {bo5Score[TEAM_KEY.BLG]} - {bo5Score[TEAM_KEY.GENG]}
+              </span>
+
+              {/* Right Win Pips */}
+              <div
+                className="flex items-center space-x-1"
+                title={`${rightTeam.shortTag} thắng ${bo5Score[TEAM_KEY.GENG]} ván`}
+              >
+                {Array.from({ length: bo5TargetWins }).map((_, i) => (
+                  <span
+                    key={`right-pip-${i}`}
+                    className={`w-2 h-2 rotate-45 border transition-all ${
+                      i < bo5Score[TEAM_KEY.GENG]
+                        ? rightTheme.winPipActiveClass
+                        : 'bg-slate-900 border-slate-700'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
+
           <MatchupTitleTally />
         </div>
 
         {/* Right Team Block */}
         <div
-          className={`relative z-40 flex items-center space-x-1.5 sm:space-x-2 text-right flex-row-reverse space-x-reverse min-w-0 flex-1 justify-start ${rightTheme.textStrongClass}`}
+          className={`relative z-40 flex flex-col justify-between items-end min-w-0 flex-1 self-stretch ${rightTheme.textStrongClass}`}
         >
-          {/* Compact Summon Spotlight positioned above damage display to never cover the team logo or audio button */}
-          <div className="absolute -top-5 sm:-top-5.5 right-[48px] sm:right-[54px] z-50 pointer-events-none">
-            <SummonSpotlight side="right" />
+          {/* Top row: Logo & Damage info */}
+          <div className="relative flex items-center space-x-1.5 sm:space-x-2 text-right flex-row-reverse space-x-reverse">
+            <div
+              style={{ boxShadow: rightTheme.glowStyle }}
+              className={`relative shrink-0 p-0.5 rounded-md border ${rightTheme.bgSoftClass} ${rightTheme.borderSoftClass}`}
+            >
+              <TeamLogo teamProfile={rightTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+
+            <TeamDmgDisplay
+              team={TEAM_KEY.GENG}
+              shortTag={rightTeam.shortTag}
+              leftTheme={leftTheme}
+              rightTheme={rightTheme}
+            />
           </div>
 
-          <div
-            style={{ boxShadow: rightTheme.glowStyle }}
-            className={`relative shrink-0 p-0.5 rounded-md border ${rightTheme.bgSoftClass} ${rightTheme.borderSoftClass}`}
-          >
-            <TeamLogo teamProfile={rightTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
-          </div>
-
-          <TeamDmgDisplay
-            team={TEAM_KEY.GENG}
-            shortTag={rightTeam.shortTag}
-            leftTheme={leftTheme}
-            rightTheme={rightTheme}
-          />
+          {/* Bottom row: Combo Badge */}
+          <RightTeamComboSlot />
         </div>
       </div>
 
-      {/* Cyberpunk Battle Tug-of-War Bar with Floating Overlaid Combos */}
-      <div className="relative w-full mt-0.5 sm:mt-1">
-        <OverlaidCombos />
+      {/* Cyberpunk Battle Tug-of-War Bar */}
+      <div className="relative w-full mt-1 sm:mt-1.5">
         <TugOfWarBar leftTheme={leftTheme} rightTheme={rightTheme} />
       </div>
 
       <TeamLiveStatusRow />
+
+      {/* Dynamic Summon Spotlight on Left & Right wings right below the scoreboard */}
+      <div className="absolute top-full mt-1.5 inset-x-1 sm:inset-x-2 flex items-start justify-between pointer-events-none z-40">
+        <div className="flex-1 flex justify-start items-start">
+          <SummonSpotlight side="left" />
+        </div>
+        <div className="flex-1 flex justify-end items-start">
+          <SummonSpotlight side="right" />
+        </div>
+      </div>
     </div>
   );
 });

@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { resetRoundDamage } from '../roundDamageTracker';
-import { showRoundIntro } from '../roundIntroStore';
+import { playRoundIntroCinematic, resolveRoundIntroDurationMs, showRoundIntro } from '../roundIntroStore';
 import { resetCommunityQuests } from '../communityQuestStore';
 import { clearMatchSnapshot } from '../matchSnapshot';
 import { clearMatchupTitles, persistChampionshipTally } from '../championshipTally';
@@ -124,8 +124,9 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       rosterPlayerFury: createInitialRosterFury(state.activeTeams),
       lastFuryUltimatePlayerId: null,
     });
-    // After the store update: hold on the intro screen so host/admin can introduce the new round
-    showRoundIntro(Date.now(), true);
+    // After the store update: the next round opens by itself (cinematic, then the narrated card), so a
+    // live show never stalls when nobody can click the OBS overlay. A new series still waits for "Bắt đầu".
+    playRoundIntroCinematic(Date.now(), resolveRoundIntroDurationMs(get().currentRound));
   },
 
   resetMatchupChampionships: () => {

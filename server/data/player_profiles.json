@@ -2,7 +2,7 @@
   "profiles": {
     "Hội Quân": {
       "userName": "Hội Quân",
-      "lastSeenAt": 1794819417007,
+      "lastSeenAt": 1794846518962,
       "periods": {
         "2026-W46": {
           "totalDamage": 54818,
@@ -10,18 +10,18 @@
           "mvpCount": 15
         },
         "2026-11": {
-          "totalDamage": 57054,
-          "roundsPlayed": 35,
+          "totalDamage": 59772,
+          "roundsPlayed": 44,
           "mvpCount": 15
         },
         "2026-W47": {
-          "totalDamage": 2236,
-          "roundsPlayed": 2,
+          "totalDamage": 4954,
+          "roundsPlayed": 11,
           "mvpCount": 0
         }
       },
-      "totalDamage": 57054,
-      "roundsPlayed": 35,
+      "totalDamage": 59772,
+      "roundsPlayed": 44,
       "mvpCount": 15
     },
     "Gamer_Pro_99_565": {
@@ -311,7 +311,7 @@
     },
     "Gamer_Pro_99_294": {
       "userName": "Gamer_Pro_99_294",
-      "lastSeenAt": 1794732229808,
+      "lastSeenAt": 1794840043969,
       "periods": {
         "2026-W46": {
           "totalDamage": 2044,
@@ -319,13 +319,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 2044,
-          "roundsPlayed": 5,
+          "totalDamage": 2371,
+          "roundsPlayed": 6,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 327,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 2044,
-      "roundsPlayed": 5,
+      "totalDamage": 2371,
+      "roundsPlayed": 6,
       "mvpCount": 0
     },
     "Gamer_Pro_99_200": {
@@ -957,7 +962,7 @@
     },
     "Đại_Gia_TikTok": {
       "userName": "Đại_Gia_TikTok",
-      "lastSeenAt": 1794760205810,
+      "lastSeenAt": 1794845975994,
       "periods": {
         "2026-W46": {
           "totalDamage": 17468450,
@@ -965,14 +970,19 @@
           "mvpCount": 67
         },
         "2026-11": {
-          "totalDamage": 17468450,
-          "roundsPlayed": 68,
-          "mvpCount": 67
+          "totalDamage": 25968248,
+          "roundsPlayed": 72,
+          "mvpCount": 70
+        },
+        "2026-W47": {
+          "totalDamage": 8499798,
+          "roundsPlayed": 4,
+          "mvpCount": 3
         }
       },
-      "totalDamage": 17468450,
-      "roundsPlayed": 68,
-      "mvpCount": 67
+      "totalDamage": 25968248,
+      "roundsPlayed": 72,
+      "mvpCount": 70
     },
     "Gamer_Pro_99_735": {
       "userName": "Gamer_Pro_99_735",
@@ -2705,7 +2715,7 @@
     },
     "Gamer_Pro_99_406": {
       "userName": "Gamer_Pro_99_406",
-      "lastSeenAt": 1794758380779,
+      "lastSeenAt": 1794840043969,
       "periods": {
         "2026-W46": {
           "totalDamage": 1504,
@@ -2713,13 +2723,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 1504,
-          "roundsPlayed": 3,
+          "totalDamage": 1720,
+          "roundsPlayed": 4,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 216,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 1504,
-      "roundsPlayed": 3,
+      "totalDamage": 1720,
+      "roundsPlayed": 4,
       "mvpCount": 0
     },
     "Gamer_Pro_99_991": {
@@ -2857,7 +2872,7 @@
     },
     "Gamer_Pro_99_945": {
       "userName": "Gamer_Pro_99_945",
-      "lastSeenAt": 1794673566561,
+      "lastSeenAt": 1794840043969,
       "periods": {
         "2026-W46": {
           "totalDamage": 630,
@@ -2865,13 +2880,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 630,
-          "roundsPlayed": 2,
+          "totalDamage": 829,
+          "roundsPlayed": 3,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 199,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 630,
-      "roundsPlayed": 2,
+      "totalDamage": 829,
+      "roundsPlayed": 3,
       "mvpCount": 0
     },
     "Gamer_Pro_99_350": {
@@ -3408,7 +3428,7 @@
     },
     "Gamer_Pro_99": {
       "userName": "Gamer_Pro_99",
-      "lastSeenAt": 1794759573412,
+      "lastSeenAt": 1794847324094,
       "periods": {
         "2026-W46": {
           "totalDamage": 5116,
@@ -3416,13 +3436,18 @@
           "mvpCount": 1
         },
         "2026-11": {
-          "totalDamage": 5116,
-          "roundsPlayed": 6,
+          "totalDamage": 5925,
+          "roundsPlayed": 7,
           "mvpCount": 1
+        },
+        "2026-W47": {
+          "totalDamage": 809,
+          "roundsPlayed": 1,
+          "mvpCount": 0
         }
       },
-      "totalDamage": 5116,
-      "roundsPlayed": 6,
+      "totalDamage": 5925,
+      "roundsPlayed": 7,
       "mvpCount": 1
     },
     "Mid_Diff_VN_479": {
@@ -4510,7 +4535,7 @@
     },
     "Gamer_Pro_99_164": {
       "userName": "Gamer_Pro_99_164",
-      "lastSeenAt": 1794732136195,
+      "lastSeenAt": 1794840043969,
       "periods": {
         "2026-W46": {
           "totalDamage": 2081,
@@ -4518,13 +4543,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 2081,
-          "roundsPlayed": 4,
+          "totalDamage": 2332,
+          "roundsPlayed": 5,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 251,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 2081,
-      "roundsPlayed": 4,
+      "totalDamage": 2332,
+      "roundsPlayed": 5,
       "mvpCount": 0
     },
     "Gamer_Pro_99_140": {
@@ -5365,7 +5395,7 @@
     },
     "Gamer_Pro_99_953": {
       "userName": "Gamer_Pro_99_953",
-      "lastSeenAt": 1794725522732,
+      "lastSeenAt": 1794845975994,
       "periods": {
         "2026-W46": {
           "totalDamage": 569,
@@ -5373,13 +5403,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 569,
-          "roundsPlayed": 2,
+          "totalDamage": 1303,
+          "roundsPlayed": 3,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 734,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 569,
-      "roundsPlayed": 2,
+      "totalDamage": 1303,
+      "roundsPlayed": 3,
       "mvpCount": 0
     },
     "Gamer_Pro_99_709": {
@@ -5403,7 +5438,7 @@
     },
     "Gamer_Pro_99_380": {
       "userName": "Gamer_Pro_99_380",
-      "lastSeenAt": 1794731088004,
+      "lastSeenAt": 1794840043969,
       "periods": {
         "2026-W46": {
           "totalDamage": 878,
@@ -5411,13 +5446,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 878,
-          "roundsPlayed": 2,
+          "totalDamage": 1153,
+          "roundsPlayed": 3,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 275,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 878,
-      "roundsPlayed": 2,
+      "totalDamage": 1153,
+      "roundsPlayed": 3,
       "mvpCount": 0
     },
     "Gamer_Pro_99_876": {
@@ -5783,7 +5823,7 @@
     },
     "Gamer_Pro_99_976": {
       "userName": "Gamer_Pro_99_976",
-      "lastSeenAt": 1794755654819,
+      "lastSeenAt": 1794840043969,
       "periods": {
         "2026-W46": {
           "totalDamage": 1141,
@@ -5791,13 +5831,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 1141,
-          "roundsPlayed": 3,
+          "totalDamage": 1463,
+          "roundsPlayed": 4,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 322,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 1141,
-      "roundsPlayed": 3,
+      "totalDamage": 1463,
+      "roundsPlayed": 4,
       "mvpCount": 0
     },
     "Gamer_Pro_99_850": {
@@ -11236,7 +11281,7 @@
     },
     "Gamer_Pro_99_710": {
       "userName": "Gamer_Pro_99_710",
-      "lastSeenAt": 1794670003802,
+      "lastSeenAt": 1794840043969,
       "periods": {
         "2026-W46": {
           "totalDamage": 395,
@@ -11244,13 +11289,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 395,
-          "roundsPlayed": 2,
+          "totalDamage": 709,
+          "roundsPlayed": 3,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 314,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 395,
-      "roundsPlayed": 2,
+      "totalDamage": 709,
+      "roundsPlayed": 3,
       "mvpCount": 0
     },
     "Gamer_Pro_99_168": {
@@ -12357,7 +12407,7 @@
     },
     "Gamer_Pro_99_591": {
       "userName": "Gamer_Pro_99_591",
-      "lastSeenAt": 1794670003802,
+      "lastSeenAt": 1794840043969,
       "periods": {
         "2026-W46": {
           "totalDamage": 160,
@@ -12365,13 +12415,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 160,
+          "totalDamage": 427,
+          "roundsPlayed": 2,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 267,
           "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 160,
-      "roundsPlayed": 1,
+      "totalDamage": 427,
+      "roundsPlayed": 2,
       "mvpCount": 0
     },
     "Gamer_Pro_99_379": {
@@ -16955,7 +17010,7 @@
     },
     "Gamer_Pro_99_640": {
       "userName": "Gamer_Pro_99_640",
-      "lastSeenAt": 1794730514586,
+      "lastSeenAt": 1794847324094,
       "periods": {
         "2026-W46": {
           "totalDamage": 963,
@@ -16963,13 +17018,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 963,
+          "totalDamage": 1381,
+          "roundsPlayed": 2,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 418,
           "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 963,
-      "roundsPlayed": 1,
+      "totalDamage": 1381,
+      "roundsPlayed": 2,
       "mvpCount": 0
     },
     "Gamer_Pro_99_207": {
@@ -19083,7 +19143,7 @@
     },
     "Gamer_Pro_99_128": {
       "userName": "Gamer_Pro_99_128",
-      "lastSeenAt": 1794759573412,
+      "lastSeenAt": 1794847324094,
       "periods": {
         "2026-W46": {
           "totalDamage": 1476,
@@ -19091,13 +19151,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 1476,
+          "totalDamage": 2026,
+          "roundsPlayed": 2,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 550,
           "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 1476,
-      "roundsPlayed": 1,
+      "totalDamage": 2026,
+      "roundsPlayed": 2,
       "mvpCount": 0
     },
     "Gamer_Pro_99_619": {
@@ -19273,41 +19338,1067 @@
     },
     "🛡️ Tiên Phong T1": {
       "userName": "🛡️ Tiên Phong T1",
-      "lastSeenAt": 1794823105247,
+      "lastSeenAt": 1794847324094,
       "periods": {
         "2026-W47": {
-          "totalDamage": 47736,
-          "roundsPlayed": 3,
-          "mvpCount": 2
+          "totalDamage": 128447,
+          "roundsPlayed": 20,
+          "mvpCount": 7
         },
         "2026-11": {
-          "totalDamage": 47736,
-          "roundsPlayed": 3,
-          "mvpCount": 2
+          "totalDamage": 128447,
+          "roundsPlayed": 20,
+          "mvpCount": 7
         }
       },
-      "totalDamage": 47736,
-      "roundsPlayed": 3,
-      "mvpCount": 2
+      "totalDamage": 128447,
+      "roundsPlayed": 20,
+      "mvpCount": 7
     },
     "⚔️ Tiên Phong GEN": {
       "userName": "⚔️ Tiên Phong GEN",
-      "lastSeenAt": 1794823105247,
+      "lastSeenAt": 1794847324094,
       "periods": {
         "2026-W47": {
-          "totalDamage": 41871,
-          "roundsPlayed": 3,
-          "mvpCount": 1
+          "totalDamage": 113992,
+          "roundsPlayed": 20,
+          "mvpCount": 7
         },
         "2026-11": {
-          "totalDamage": 41871,
-          "roundsPlayed": 3,
-          "mvpCount": 1
+          "totalDamage": 113992,
+          "roundsPlayed": 20,
+          "mvpCount": 7
         }
       },
-      "totalDamage": 41871,
+      "totalDamage": 113992,
+      "roundsPlayed": 20,
+      "mvpCount": 7
+    },
+    "Đại_Gia_TikTok777": {
+      "userName": "Đại_Gia_TikTok777",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 8520200,
+          "roundsPlayed": 3,
+          "mvpCount": 3
+        },
+        "2026-11": {
+          "totalDamage": 8520200,
+          "roundsPlayed": 3,
+          "mvpCount": 3
+        }
+      },
+      "totalDamage": 8520200,
       "roundsPlayed": 3,
-      "mvpCount": 1
+      "mvpCount": 3
+    },
+    "ThanhLong_CKTG_812": {
+      "userName": "ThanhLong_CKTG_812",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 773,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 773,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 773,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_757": {
+      "userName": "Support_God_757",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 735,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 735,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 735,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Jungle_Carry_379": {
+      "userName": "Jungle_Carry_379",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 715,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 715,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 715,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_714": {
+      "userName": "Esports_VIP_88_714",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 709,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 709,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 709,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Baron_Stealer_885": {
+      "userName": "Baron_Stealer_885",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 696,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 696,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 696,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Mid_Diff_VN_596": {
+      "userName": "Mid_Diff_VN_596",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 679,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 679,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 679,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Mid_Diff_VN_741": {
+      "userName": "Mid_Diff_VN_741",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 657,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 657,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 657,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Baron_Stealer_597": {
+      "userName": "Baron_Stealer_597",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 643,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 643,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 643,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Jungle_Carry_734": {
+      "userName": "Jungle_Carry_734",
+      "lastSeenAt": 1794845975994,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 607,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 607,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 607,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ADC_Crit_99_929": {
+      "userName": "ADC_Crit_99_929",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1152,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1152,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1152,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_139": {
+      "userName": "Esports_VIP_88_139",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 736,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 736,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 736,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_586": {
+      "userName": "Esports_VIP_88_586",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 733,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 733,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 733,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_252": {
+      "userName": "Worlds_Legend_252",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 721,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 721,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 721,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Baron_Stealer_974": {
+      "userName": "Baron_Stealer_974",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 670,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 670,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 670,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ThanhLong_CKTG_503": {
+      "userName": "ThanhLong_CKTG_503",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 657,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 657,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 657,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ThanhLong_CKTG_860": {
+      "userName": "ThanhLong_CKTG_860",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 622,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 622,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 622,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_645": {
+      "userName": "Support_God_645",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 591,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 591,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 591,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_712": {
+      "userName": "Support_God_712",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 563,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 563,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 563,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "HuyHuyenThoai_642": {
+      "userName": "HuyHuyenThoai_642",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 556,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 556,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 556,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "HuyHuyenThoai_370": {
+      "userName": "HuyHuyenThoai_370",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 531,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 531,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 531,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_333": {
+      "userName": "Esports_VIP_88_333",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 517,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 517,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 517,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Pentakill_Pro_282": {
+      "userName": "Pentakill_Pro_282",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 512,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 512,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 512,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Baron_Stealer_770": {
+      "userName": "Baron_Stealer_770",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 506,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 506,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 506,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Pentakill_Pro_743": {
+      "userName": "Pentakill_Pro_743",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 487,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 487,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 487,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_951": {
+      "userName": "Support_God_951",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 486,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 486,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 486,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ThanhLong_CKTG_829": {
+      "userName": "ThanhLong_CKTG_829",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 482,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 482,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 482,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Gamer_Pro_99_941": {
+      "userName": "Gamer_Pro_99_941",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 473,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 473,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 473,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_403": {
+      "userName": "Support_God_403",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 452,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 452,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 452,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ThanhLong_CKTG_933": {
+      "userName": "ThanhLong_CKTG_933",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 430,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 430,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 430,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_537": {
+      "userName": "Support_God_537",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 428,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 428,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 428,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_779": {
+      "userName": "Worlds_Legend_779",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 418,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 418,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 418,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_581": {
+      "userName": "Esports_VIP_88_581",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 391,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 391,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 391,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Top1_ThachDau_260": {
+      "userName": "Top1_ThachDau_260",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 390,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 390,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 390,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_584": {
+      "userName": "Esports_VIP_88_584",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 385,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 385,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 385,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_174": {
+      "userName": "Support_God_174",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 385,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 385,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 385,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Top1_ThachDau_862": {
+      "userName": "Top1_ThachDau_862",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 385,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 385,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 385,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Jungle_Carry_664": {
+      "userName": "Jungle_Carry_664",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 384,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 384,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 384,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Mid_Diff_VN_561": {
+      "userName": "Mid_Diff_VN_561",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 383,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 383,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 383,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_543": {
+      "userName": "Worlds_Legend_543",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 379,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 379,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 379,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Top1_ThachDau_337": {
+      "userName": "Top1_ThachDau_337",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 374,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 374,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 374,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_862": {
+      "userName": "Esports_VIP_88_862",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 371,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 371,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 371,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Baron_Stealer_325": {
+      "userName": "Baron_Stealer_325",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 371,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 371,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 371,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_590": {
+      "userName": "Worlds_Legend_590",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 371,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 371,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 371,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_387": {
+      "userName": "Worlds_Legend_387",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 364,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 364,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 364,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_244": {
+      "userName": "Esports_VIP_88_244",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 357,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 357,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 357,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Baron_Stealer_212": {
+      "userName": "Baron_Stealer_212",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 355,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 355,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 355,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Top1_ThachDau_990": {
+      "userName": "Top1_ThachDau_990",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 351,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 351,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 351,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Jungle_Carry_681": {
+      "userName": "Jungle_Carry_681",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 350,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 350,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 350,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Baron_Stealer_680": {
+      "userName": "Baron_Stealer_680",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 348,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 348,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 348,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_543": {
+      "userName": "Esports_VIP_88_543",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 345,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 345,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 345,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Mid_Diff_VN_447": {
+      "userName": "Mid_Diff_VN_447",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 340,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 340,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 340,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_483": {
+      "userName": "Worlds_Legend_483",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 337,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 337,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 337,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_542": {
+      "userName": "Worlds_Legend_542",
+      "lastSeenAt": 1794847324094,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 320,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 320,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 320,
+      "roundsPlayed": 1,
+      "mvpCount": 0
     }
   },
   "recentRoundIds": [
@@ -19429,6 +20520,25 @@
     "1794759717852-3",
     "1794815090009-1",
     "1794819113895-1",
-    "1794822906905-1"
+    "1794822906905-1",
+    "1794838639055-1",
+    "1794838639055-2",
+    "1794839351919-3",
+    "1794839705920-1",
+    "1794840383314-1",
+    "1794841471018-1",
+    "1794841952398-2",
+    "1794842169047-1",
+    "1794842961305-1",
+    "1794843588423-1",
+    "1794844157095-2",
+    "1794844350878-3",
+    "1794844674317-1",
+    "1794845538949-1",
+    "1794845580556-1",
+    "1794845706296-1",
+    "1794846248446-1",
+    "1794846518962-1",
+    "1794847062986-1"
   ]
 }

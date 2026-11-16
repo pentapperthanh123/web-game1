@@ -30,27 +30,13 @@ interface VoidSpike {
   rotationY: number;
 }
 
-const resolveShockwaveColor = (
-  isCataclysm: boolean,
-  isAcidSpit: boolean,
-  isTailSweep: boolean,
-  defaultColor: string
-): string => {
-  if (isCataclysm) return '#ef4444';
-  if (isAcidSpit) return '#22c55e';
-  if (isTailSweep) return '#d946ef';
-  return defaultColor;
-};
-
 // Singletons for Shared Geometries & Materials
 const SHARED_ACID_GEO = new THREE.SphereGeometry(0.09, 12, 12);
 const SHARED_ACID_RING_GEO = new THREE.RingGeometry(0.12, 0.42, 24);
 const SHARED_SPIKE_GEO = new THREE.ConeGeometry(0.16, 1.1, 6);
 const SHARED_SWEEP_GEO = new THREE.TorusGeometry(2.5, 0.09, 8, 36, Math.PI * 0.75);
-const SHARED_CATACLYSM_RING_GEO = new THREE.RingGeometry(0.8, 1.25, 48);
 
 export const BossVoidAttack = () => {
-  const shockRingRef = useRef<THREE.Mesh>(null);
   const lightningGroupRef = useRef<THREE.Group>(null);
   const acidGroupRef = useRef<THREE.Group>(null);
   const spikesGroupRef = useRef<THREE.Group>(null);
@@ -117,43 +103,20 @@ export const BossVoidAttack = () => {
       activeBossSkillBanner !== null &&
       Date.now() - activeBossSkillBanner.timestamp < BOSS_SKILL_VFX_DURATION_MS[activeBossSkillBanner.vfxType];
     if (isSkillVfxActive) {
-      [shockRingRef, lightningGroupRef, acidGroupRef, spikesGroupRef, tailSweepRef].forEach((ref) => {
+      [lightningGroupRef, acidGroupRef, spikesGroupRef, tailSweepRef].forEach((ref) => {
         if (ref.current) ref.current.visible = false;
       });
       return;
     }
 
     const timeSinceAttack = (Date.now() - bossAttackTimestamp) / 1000;
-    const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
     const activeSkillId = activeBossSkillBanner?.skillId || '';
     const isCataclysm = activeSkillId === 'baron_void_cataclysm';
     const isAcidSpit = activeSkillId === 'baron_acid_spit';
     const isVoidSpikes = activeSkillId === 'baron_void_spikes';
     const isTailSweep = activeSkillId === 'baron_tail_sweep';
 
-    // 1. Shockwave Ring (Used for Cataclysm & General Roar)
-    if (shockRingRef.current) {
-      const ringDuration = isCataclysm ? 1.2 : isEnraged ? 0.9 : 0.7;
-      if (timeSinceAttack < ringDuration) {
-        const progress = timeSinceAttack / ringDuration;
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        const maxRad = isCataclysm ? 10.5 : isEnraged ? 8.5 : 6.5;
-        const currentRadius = 0.5 + easeOut * maxRad;
-
-        shockRingRef.current.visible = true;
-        shockRingRef.current.scale.set(currentRadius, currentRadius, 1);
-
-        const mat = shockRingRef.current.material as THREE.MeshBasicMaterial;
-        mat.opacity = (1 - progress) * 0.95;
-        mat.color.set(
-          resolveShockwaveColor(isCataclysm, isAcidSpit, isTailSweep, themeConfig.colors.primaryHex)
-        );
-      } else {
-        shockRingRef.current.visible = false;
-      }
-    }
-
-    // 2. Void Lightning Arcs (Cataclysm & General Strike)
+    // 1. Void Lightning Arcs (Cataclysm & General Strike)
     if (lightningGroupRef.current) {
       const lightningDuration = isCataclysm ? 0.75 : 0.45;
       if (timeSinceAttack < lightningDuration && (isCataclysm || (!isAcidSpit && !isVoidSpikes && !isTailSweep))) {
@@ -305,25 +268,7 @@ export const BossVoidAttack = () => {
 
   return (
     <group position={[0, 0, 0]}>
-      {/* 1. Dynamic Shockwave Ring */}
-      <mesh
-        ref={shockRingRef}
-        position={[0, 0.45, 0.1]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        visible={false}
-        geometry={SHARED_CATACLYSM_RING_GEO}
-      >
-        <meshBasicMaterial
-          color="#a855f7"
-          transparent
-          opacity={0}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          side={THREE.DoubleSide} forceSinglePass
-        />
-      </mesh>
-
-      {/* 2. Void Lightning Discharge Lines */}
+      {/* 1. Void Lightning Discharge Lines */}
       <group ref={lightningGroupRef} visible={false}>
         {lineObjects.map((lineObj, i) => (
           <primitive key={`bolt-${i}`} object={lineObj} />

@@ -21,7 +21,7 @@ import {
   sanitizePlayerLeaderboard,
   usePlayerLeaderboardStore,
 } from '../store/playerLeaderboardStore';
-import { triggerStartRoundCombat } from './roundIntroActions';
+import { requestRoundStart } from './roundIntroActions';
 import { recordRoseGift } from '../store/roseGratitudeStore';
 
 export const LIVE_OPS_SOCKET_EVENT = {
@@ -365,7 +365,7 @@ class GameSocketClient {
         if (payload.action === 'reset') store.resetBO5Match();
         if (payload.action === 'nextRound') applyServerNextRound(payload.currentRound);
         if (payload.action === 'setScore') store.setBO5Score(payload.blg, payload.geng, payload.currentRound);
-        if (payload.action === 'startRound') triggerStartRoundCombat();
+        if (payload.action === 'startRound') requestRoundStart();
       });
 
       this.socket.on('game:boss-skill-config', (payload) => {

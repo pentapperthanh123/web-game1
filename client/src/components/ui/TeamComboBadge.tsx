@@ -28,7 +28,7 @@ const getComboTierPresentation = (
       tagText: t(COMBO_TIER_CONFIG.HYPER.tagKey, COMBO_TIER_CONFIG.HYPER.tagFallback),
       compactTagText: 'HYPER',
       badgeContainerClass:
-        'bg-gradient-to-r from-fuchsia-950/95 via-purple-950/95 to-amber-950/95 border-amber-300 text-yellow-200 shadow-[0_0_28px_rgba(234,179,8,0.85)] ring-2 ring-yellow-400/60 animate-combo-flame',
+        'bg-gradient-to-r from-fuchsia-950/95 via-purple-950/95 to-amber-950/95 border-amber-300 text-yellow-200 shadow-[0_0_14px_rgba(234,179,8,0.7)] ring-1 ring-yellow-400/50 animate-combo-flame',
       isHighTier: true,
       tierLevel: 4,
     };
@@ -39,7 +39,7 @@ const getComboTierPresentation = (
       tagText: t(COMBO_TIER_CONFIG.SUPER.tagKey, COMBO_TIER_CONFIG.SUPER.tagFallback),
       compactTagText: 'SUPER',
       badgeContainerClass:
-        'bg-gradient-to-r from-rose-950/95 via-red-950/95 to-orange-950/95 border-rose-400 text-rose-200 shadow-[0_0_22px_rgba(244,63,94,0.75)] ring-1 ring-rose-400/50 animate-combo-flame',
+        'bg-gradient-to-r from-rose-950/95 via-red-950/95 to-orange-950/95 border-rose-400 text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.6)] ring-1 ring-rose-400/40 animate-combo-flame',
       isHighTier: true,
       tierLevel: 3,
     };
@@ -50,7 +50,7 @@ const getComboTierPresentation = (
       tagText: t(COMBO_TIER_CONFIG.GREAT.tagKey, COMBO_TIER_CONFIG.GREAT.tagFallback),
       compactTagText: 'GREAT',
       badgeContainerClass:
-        'bg-gradient-to-r from-amber-950/90 to-orange-950/90 border-amber-400 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.65)] ring-1 ring-amber-400/40 animate-combo-flame',
+        'bg-gradient-to-r from-amber-950/90 to-orange-950/90 border-amber-400 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.5)] ring-1 ring-amber-400/30 animate-combo-flame',
       isHighTier: false,
       tierLevel: 2,
     };
@@ -60,7 +60,7 @@ const getComboTierPresentation = (
     tagText: t(COMBO_TIER_CONFIG.NORMAL.tagKey, COMBO_TIER_CONFIG.NORMAL.tagFallback),
     compactTagText: 'COMBO',
     badgeContainerClass:
-      'bg-slate-950/90 border-cyan-400/70 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.45)]',
+      'bg-slate-950/90 border-cyan-400/70 text-cyan-200 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
     isHighTier: false,
     tierLevel: 1,
   };
@@ -70,8 +70,8 @@ const ComboTierIcons = ({ tierLevel }: { tierLevel: 1 | 2 | 3 | 4 }) => {
   if (tierLevel === 4) {
     return (
       <span className="flex items-center gap-0.5 shrink-0">
-        <Crown className="w-3.5 h-3.5 text-yellow-300 fill-current animate-pulse" />
-        <Flame className="w-3.5 h-3.5 text-fuchsia-400 fill-current animate-bounce" />
+        <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-300 fill-current animate-pulse" />
+        <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-fuchsia-400 fill-current animate-bounce" />
       </span>
     );
   }
@@ -79,17 +79,17 @@ const ComboTierIcons = ({ tierLevel }: { tierLevel: 1 | 2 | 3 | 4 }) => {
   if (tierLevel === 3) {
     return (
       <span className="flex items-center gap-0.5 shrink-0">
-        <Flame className="w-3.5 h-3.5 text-rose-400 fill-current animate-pulse" />
-        <Zap className="w-3 h-3 text-amber-300 fill-current" />
+        <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-rose-400 fill-current animate-pulse" />
+        <Zap className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-amber-300 fill-current" />
       </span>
     );
   }
 
   if (tierLevel === 2) {
-    return <Flame className="w-3.5 h-3.5 text-orange-400 fill-current animate-bounce shrink-0" />;
+    return <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-400 fill-current animate-bounce shrink-0" />;
   }
 
-  return <Zap className="w-3 h-3 text-cyan-300 fill-current shrink-0" />;
+  return <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-300 fill-current shrink-0" />;
 };
 
 export const TeamComboBadge: React.FC<{
@@ -110,21 +110,21 @@ export const TeamComboBadge: React.FC<{
     <div
       key={`${team}-${combo.count}`}
       style={{ boxShadow: tier.isHighTier ? undefined : theme.glowStyle }}
-      className={`flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border animate-combo-punch select-none transition-all duration-200 shrink-0 ${tier.badgeContainerClass}`}
+      className={`flex items-center gap-0.5 sm:gap-1 px-1.5 py-0 sm:px-2 h-4 sm:h-[18px] rounded-full border animate-combo-punch select-none transition-all duration-200 shrink-0 leading-none ${tier.badgeContainerClass}`}
     >
       <ComboTierIcons tierLevel={tier.tierLevel} />
 
-      <div className="flex items-center gap-0.5 sm:gap-1">
-        <span className="text-[8px] sm:text-[10px] font-black tracking-wider uppercase whitespace-nowrap">
-          <span className="hidden md:inline">{teamTag} {tier.tagText}</span>
-          <span className="hidden sm:inline md:hidden">{tier.compactTagText}</span>
+      <div className="flex items-center gap-0.5">
+        <span className="text-[7px] sm:text-[8px] font-black tracking-wider uppercase whitespace-nowrap">
+          <span className="hidden lg:inline">{teamTag} {tier.tagText}</span>
+          <span className="hidden md:inline lg:hidden">{tier.compactTagText}</span>
         </span>
-        <span className="px-1 py-0.2 rounded-full bg-white/20 font-mono font-black text-[8px] sm:text-[10px] text-white shadow-inner">
+        <span className="px-1 py-0.5 rounded-full bg-white/20 font-mono font-black text-[7px] sm:text-[8px] text-white shadow-inner leading-none">
           x{combo.count}
         </span>
       </div>
 
-      <span className="text-[8px] sm:text-[10px] font-mono font-black text-amber-200 whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+      <span className="text-[7.5px] sm:text-[8.5px] font-mono font-black text-amber-200 whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] leading-none">
         -{combo.damage.toLocaleString()}
       </span>
     </div>

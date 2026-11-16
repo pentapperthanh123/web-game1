@@ -7,10 +7,6 @@ interface BossEntranceBreathVFXProps {
   gameTheme: GameThemeType;
   /** Enraged art is a different drawing: the jaw sits elsewhere and may face the other way. */
   isEnragedArtShown: boolean;
-  isSkillCast?: boolean;
-  castKey?: number;
-  overrideColor?: string;
-  overrideSecondaryColor?: string;
 }
 
 /** Flame look per dragon. Jaw position and facing live in constants/bossSpriteAnchors.ts. */
@@ -54,21 +50,18 @@ const EMBER_OFFSETS = [
 ] as const;
 
 export const BossEntranceBreathVFX: React.FC<BossEntranceBreathVFXProps> = React.memo(
-  ({ isActive, gameTheme, isEnragedArtShown, isSkillCast = false, castKey = 0, overrideColor, overrideSecondaryColor }) => {
+  ({ isActive, gameTheme, isEnragedArtShown }) => {
     const spec = DRAGON_MOUTH_SPECS[gameTheme];
     if (!isActive || !spec) return null;
     const anchors = getBossSpriteAnchors(gameTheme, isEnragedArtShown);
 
-    const midColor = overrideSecondaryColor || spec.midColor;
-    const outerColor = overrideColor || spec.outerColor;
-    const gradId = `dragon-mouth-fire-${gameTheme}-${isSkillCast ? castKey : 'entry'}`;
-    const sizeClass = isSkillCast
-      ? 'w-40 sm:w-52 h-20 sm:h-24'
-      : 'w-32 sm:w-40 h-16 sm:h-20';
+    const { midColor, outerColor } = spec;
+    const gradId = `dragon-mouth-fire-${gameTheme}`;
+    const sizeClass = 'w-32 sm:w-40 h-16 sm:h-20';
 
     return (
       <div
-        key={`${gameTheme}-${isSkillCast ? castKey : 'entry'}`}
+        key={gameTheme}
         aria-hidden="true"
         style={{
           left: `${anchors.mouth.leftPercent}%`,

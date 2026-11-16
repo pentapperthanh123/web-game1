@@ -205,3 +205,7 @@ export function getMainGridClassName(activeTab: AdminPortalTabId): string {
       return 'hidden';
   }
 }
+
+/** Same behaviour as the overlay's own start button (see client requestRoundStart). */
+export const START_ROUND_BUTTON_HINT =
+  'Lần 1: chạy cinematic + giới thiệu ván (đọc luật, đếm ngược) • Bấm lại khi đang giới thiệu: xung trận ngay';

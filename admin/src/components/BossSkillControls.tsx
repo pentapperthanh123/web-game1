@@ -61,6 +61,7 @@ const SKILL_VFX_LABELS: Record<BossSkillVfxType, string> = {
   [BOSS_SKILL_VFX.METEOR_RAIN]: '☄️ Mưa thiên thạch',
   [BOSS_SKILL_VFX.BEAM]: '🔦 Tia năng lượng',
   [BOSS_SKILL_VFX.VORTEX]: '🌀 Lốc xoáy',
+  [BOSS_SKILL_VFX.VOID_MAELSTROM]: '🕳️ Hố đen hư không',
   [BOSS_SKILL_VFX.CHARGE_DASH]: '🐗 Húc lao',
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: '💥 Địa chấn',
   [BOSS_SKILL_VFX.NOVA]: '🌟 Nova hủy diệt',

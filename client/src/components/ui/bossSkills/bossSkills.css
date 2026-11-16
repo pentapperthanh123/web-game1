@@ -103,6 +103,16 @@
   animation: bossUltimateCallout 2400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Dark cinematic band behind the callout so it reads over HUD panels, nameplates and bright VFX. */
+.boss-ultimate-callout-band {
+  position: absolute;
+  inset: -10px -18%;
+  z-index: -1;
+  background: linear-gradient(90deg, transparent, rgba(2, 6, 23, 0.82) 22%, rgba(2, 6, 23, 0.82) 78%, transparent);
+  border-top: 1px solid var(--boss-skill-color);
+  border-bottom: 1px solid var(--boss-skill-color);
+}
+
 .boss-ultimate-callout-name {
   text-shadow:
     0 0 12px var(--boss-skill-color),

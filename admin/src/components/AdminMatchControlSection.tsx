@@ -1,4 +1,5 @@
 import { Activity, Crown, Play, Square } from 'lucide-react';
+import { START_ROUND_BUTTON_HINT } from '../constants/adminPortal';
 import { SeriesFormatConfig } from '../constants/series';
 import { TeamColorPalette, TeamProfile } from '../constants/teams';
 import { Bo5Score } from '../hooks/useAdminSocketSync';
@@ -137,6 +138,7 @@ export function AdminMatchControlSection({
             <button
               type="button"
               onClick={() => onBo5Control('startRound')}
+              title={START_ROUND_BUTTON_HINT}
               className="py-1.5 px-2 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-[10.5px] font-black transition active:scale-95 shadow flex items-center justify-center gap-1 cursor-pointer"
             >
               <Play className="w-3 h-3 fill-current shrink-0" />

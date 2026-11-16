@@ -145,6 +145,7 @@ const hideAllAuraMeshes = (refs: CachedChampionVfxRefs): void => {
   hideMesh(refs.landingMesh);
   hideMesh(refs.landingFlashMesh);
   hideMesh(refs.haloMesh);
+  hideMesh(refs.sigHaloMesh);
 };
 
 /** Drives every entrance-aura mesh of a champion token for the current frame. */

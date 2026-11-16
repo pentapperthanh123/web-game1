@@ -81,7 +81,7 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
           : `absolute ${!topOffset ? 'top-[124px] sm:top-[132px]' : ''} ${
               isLeft ? 'left-1 sm:left-1.5' : 'right-1 sm:right-1.5'
             } transition-[top] duration-200`
-      } flex flex-col space-y-0.5 pointer-events-auto z-[36] select-none w-[70px] sm:w-[84px]`}
+      } flex flex-col space-y-0.5 pointer-events-auto z-[36] select-none w-[100px] sm:w-[116px]`}
     >
       {/* Sleek Ultra-Compact Pro Player Cards */}
       {roster.map((player, playerIndex) => {
@@ -183,7 +183,7 @@ const RosterItem = ({
         }
       }}
       title={`${player.name} (${player.role}) • Tướng tủ: ${player.signatureChampion} • ${clickToAttackLabel}`}
-      className={`relative flex items-center space-x-1 px-1 py-0.5 rounded-md border transition-all duration-150 select-none ${
+      className={`w-full relative flex items-center space-x-1 sm:space-x-1.5 px-1.5 py-0.5 rounded-md border transition-all duration-150 select-none ${
         isBattlePaused
           ? 'cursor-not-allowed opacity-70 brightness-75'
           : 'cursor-pointer hover:brightness-110 active:brightness-125'
@@ -228,11 +228,11 @@ const RosterItem = ({
       {/* Compact Player Name & Hairline Fury Progress */}
       <div className={`text-[8px] sm:text-[8.5px] leading-none min-w-0 flex-1 ${isLeft ? 'text-left' : 'text-right'}`}>
         <div
-          className={`font-black text-slate-100 flex items-center gap-0.5 truncate ${
+          className={`font-black text-slate-100 flex items-center gap-1 min-w-0 ${
             isLeft ? 'justify-start' : 'justify-end'
           }`}
         >
-          <span className="truncate">{player.name}</span>
+          <span className="truncate min-w-0">{player.name}</span>
           {count > 0 && (
             <span
               className={`text-[6.5px] px-0.5 rounded font-mono font-black shrink-0 ${teamTheme.bgBadgeClass}`}

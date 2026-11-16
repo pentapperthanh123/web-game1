@@ -5,7 +5,7 @@ import {
   hideRoundIntro,
   isCurrentRoundIntroActive,
   resolveRoundIntroDurationMs,
-  showRoundIntro,
+  playRoundIntroCinematic,
 } from '../../../store/roundIntroStore';
 import { playSound, stopSound } from '../../../services/soundManager';
 import { stopAllBossVoices } from '../../../services/bossVoice';
@@ -100,7 +100,8 @@ export const useSilverScrapesDuel = (): SilverScrapesDuelView => {
     if (shouldRender || !wasRendered || !isIntroPendingRef.current) return;
     isIntroPendingRef.current = false;
     const { roundWinner, currentRound } = useGameStore.getState();
-    if (roundWinner === null) showRoundIntro(Date.now(), false, resolveRoundIntroDurationMs(currentRound));
+    // The decider opens like every other round: cinematic, then the narrated card
+    if (roundWinner === null) playRoundIntroCinematic(Date.now(), resolveRoundIntroDurationMs(currentRound));
   }, [shouldRender]);
 
   return { shouldRender, isFadingOut, isClashFlashing, dismiss };

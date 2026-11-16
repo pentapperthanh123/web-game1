@@ -1,9 +1,11 @@
 import { GAME_THEME, GameThemeType } from './game';
 
 /**
- * Anchor points measured on each boss sprite, as percentages of the square sprite
- * box the <img> is drawn into with `object-contain` (letterboxing of non-square
- * art is already folded into the numbers). Measured on 2026-11-13 with a pixel grid.
+ * Anchor points measured on each boss sprite, as percentages of the sprite box the
+ * <img> is drawn into with `object-contain` (the theme's `spriteSize`). Most boxes are
+ * square for square art; Elder Dragon's box has the art's own wide aspect, so its numbers
+ * are relative to the art without letterboxing. Measured with a pixel grid (Elder Dragon
+ * re-measured 2026-11-16 after its jaw marker was found in the throat).
  *
  * Normal and enraged art are different drawings: the head can sit elsewhere and
  * even face the other way, so each form has its own anchors and facing.
@@ -39,17 +41,18 @@ export const BOSS_ANCHOR_ELEMENT_ID = {
 const CENTER_CORE: SpriteAnchorPoint = { leftPercent: 50, topPercent: 52 };
 
 export const BOSS_SPRITE_ANCHORS: Readonly<Record<GameThemeType, BossSpriteAnchorSet>> = {
+  // Wide art in a box of the same aspect (spriteSize 244x135): no letterbox, so these are % of the art itself
   [GAME_THEME.ELDER_DRAGON]: {
     normal: {
-      mouth: { leftPercent: 58.6, topPercent: 39.3 },
-      eye: { leftPercent: 56.5, topPercent: 34.5 },
-      core: { leftPercent: 50, topPercent: 52 },
+      mouth: { leftPercent: 58.6, topPercent: 30.6 },
+      eye: { leftPercent: 56.5, topPercent: 22.0 },
+      core: { leftPercent: 50, topPercent: 53.6 },
       isNativeFacingRight: true,
     },
     enraged: {
-      mouth: { leftPercent: 32.8, topPercent: 45.5 },
-      eye: { leftPercent: 35.5, topPercent: 39.5 },
-      core: { leftPercent: 44, topPercent: 58 },
+      mouth: { leftPercent: 32.8, topPercent: 41.9 },
+      eye: { leftPercent: 35.5, topPercent: 31.2 },
+      core: { leftPercent: 44, topPercent: 64.3 },
       isNativeFacingRight: false,
     },
   },

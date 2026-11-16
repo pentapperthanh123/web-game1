@@ -132,6 +132,16 @@ export const resolveImpactSpot = (
   fallbackZ: number
 ): BossSkillImpactPoint => impactPoints[index] ?? [fallbackX, fallbackZ];
 
+/** Up to `maxCount` of the points, spread evenly over the list when there are more than that. */
+export const pickSpreadPoints = (points: readonly BossSkillImpactPoint[], maxCount: number): BossSkillImpactPoint[] => {
+  const step = Math.max(1, points.length / maxCount);
+  const picked: BossSkillImpactPoint[] = [];
+  for (let index = 0; index < points.length && picked.length < maxCount; index += step) {
+    picked.push(points[Math.floor(index)]);
+  }
+  return picked;
+};
+
 /** 0..1 progress since the cast; > 1 once finished. */
 export const computeProgress = (startedAt: number, durationMs: number): number =>
   (Date.now() - startedAt) / durationMs;

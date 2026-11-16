@@ -30,10 +30,13 @@ import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
 import { audioService } from '../../services/audioService';
 import { playBossVoice } from '../../services/bossVoice';
 import { BOSS_VOICE_KIND } from '../../constants/sfx';
-import { BOSS_SKILL_VFX, BossSkillVfxType } from '../../types/bossSkill';
-import { BOSS_CHARGE_ANIMATION_CLASS, BOSS_SKILL_VFX_ANIMATION_CLASS } from '../../constants/bossSkillVfx';
+import { ActiveBossSkillBanner, BOSS_SKILL_VFX, BossSkillVfxType } from '../../types/bossSkill';
+import {
+  BOSS_CHARGE_ANIMATION_CLASS,
+  BOSS_SKILL_VFX_ANIMATION_CLASS,
+  getSkillVfxWindowMs,
+} from '../../constants/bossSkillVfx';
 import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
-import { useSkillVfxWindow } from './skillVfx/skillVfxShared';
 import { BossEntranceBreathVFX } from './BossEntranceBreathVFX';
 import { BossSpriteAnchorMarkers } from './BossSpriteAnchorMarkers';
 import '../ui/gift/gift.css';
@@ -148,6 +151,10 @@ const getAnimationClass = (
 
 const BOSS_KNOCKBACK_CLASS = 'animate-boss-knockback';
 
+/** Skills whose fire leaves the jaw (FireBreath3D tracks it), so the boss must keep facing its target. */
+const isMouthBreathBanner = (banner: ActiveBossSkillBanner | null | undefined): banner is ActiveBossSkillBanner =>
+  banner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH || Boolean(banner?.vfxParams?.isMouthBreath);
+
 /** True until `deadline` passes; re-renders once when it does. */
 const useIsBeforeDeadline = (deadline: number): boolean => {
   const [isBefore, setIsBefore] = useState(() => Date.now() < deadline);
@@ -247,12 +254,8 @@ export const Boss2D = React.memo(() => {
     }
   }, [isSilverScrapesActive, activeSpeech]);
 
-  const isSkillVfxWindowOpen = useSkillVfxWindow(activeBossSkillBanner);
-  const isMouthBreathSkill =
-    activeBossSkillBanner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH ||
-    Boolean(activeBossSkillBanner?.vfxParams?.isMouthBreath);
-  const isSkillFireBreathActive = !isDefeated && isSkillVfxWindowOpen && isMouthBreathSkill;
-  const isDragonMouthFireActive = isDragon && !isDefeated && (isEntranceBreathActive || isSkillFireBreathActive);
+  // Skill breaths are drawn in 3D (FireBreath3D, tracking the jaw); the 2D jaw flame is only the entrance roar
+  const isDragonMouthFireActive = isDragon && !isDefeated && isEntranceBreathActive;
 
   useEffect(() => {
     setNotificationPortalEl(document.getElementById('boss-notification-layer'));
@@ -263,6 +266,8 @@ export const Boss2D = React.memo(() => {
   const lastActivityTimestampRef = useRef(Date.now());
   const lastSpeechTimestampRef = useRef<number>(0);
   const lastFlipTimestampRef = useRef<number>(0);
+  /** While a breath plays the boss keeps facing its target: the 3D jet follows the jaw. */
+  const facingLockedUntilRef = useRef<number>(0);
   const pokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -322,6 +327,7 @@ export const Boss2D = React.memo(() => {
 
   const updateFacingSide = useCallback((targetFacingRight: boolean | 'TOGGLE', bypassCooldown = false) => {
     const now = Date.now();
+    if (now < facingLockedUntilRef.current) return;
     if (!bypassCooldown && now - lastFlipTimestampRef.current < BOSS_IDLE_CONSTANTS.FLIP_COOLDOWN_MS) {
       return;
     }
@@ -384,15 +390,22 @@ export const Boss2D = React.memo(() => {
   useEffect(() => {
     if (bossAttackTimestamp === 0) return;
 
-    const shouldBypassFlipCooldown =
-      activeBossSkillBanner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH ||
-      Boolean(activeBossSkillBanner?.vfxParams?.isMouthBreath);
+    // The cast and its banner share a timestamp; later basic attacks during the breath do not
+    const breathBanner =
+      activeBossSkillBanner?.timestamp === bossAttackTimestamp && isMouthBreathBanner(activeBossSkillBanner)
+        ? activeBossSkillBanner
+        : null;
+    if (breathBanner) facingLockedUntilRef.current = 0;
+    const shouldBypassFlipCooldown = breathBanner !== null;
     if (bossAttackTargetTeam === TEAM_KEY.BLG) {
       updateFacingSide(false, shouldBypassFlipCooldown);
     } else if (bossAttackTargetTeam === TEAM_KEY.GENG) {
       updateFacingSide(true, shouldBypassFlipCooldown);
     } else if (bossAttackTargetTeam === 'ALL') {
       updateFacingSide('TOGGLE');
+    }
+    if (breathBanner) {
+      facingLockedUntilRef.current = Date.now() + getSkillVfxWindowMs(breathBanner.vfxType, breathBanner.vfxParams);
     }
 
     setIsRoarActive(true);
@@ -836,14 +849,6 @@ export const Boss2D = React.memo(() => {
                         isActive={isDragonMouthFireActive}
                         gameTheme={gameTheme}
                         isEnragedArtShown={isEnragedArtShown}
-                        isSkillCast={isSkillFireBreathActive}
-                        castKey={activeBossSkillBanner?.timestamp}
-                        overrideColor={isSkillFireBreathActive ? activeBossSkillBanner?.color : undefined}
-                        overrideSecondaryColor={
-                          isSkillFireBreathActive
-                            ? activeBossSkillBanner?.vfxParams?.secondaryColor
-                            : undefined
-                        }
                       />
                     )}
 

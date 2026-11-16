@@ -1,4 +1,5 @@
 import { Radio, RotateCcw, ExternalLink, Play } from 'lucide-react';
+import { START_ROUND_BUTTON_HINT } from '../constants/adminPortal';
 
 interface AdminHeaderProps {
   onResetBoss: () => void;
@@ -33,6 +34,7 @@ export function AdminHeader({ onResetBoss, onStartMatch }: AdminHeaderProps) {
           <button
             type="button"
             onClick={onStartMatch}
+            title={START_ROUND_BUTTON_HINT}
             className="shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs flex items-center space-x-1.5 transition shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95 cursor-pointer"
           >
             <Play className="w-3.5 h-3.5 fill-current shrink-0" />

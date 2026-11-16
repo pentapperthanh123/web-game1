@@ -4,8 +4,11 @@ import { BookOpen, Gift, Pause, Play, Swords, Trophy, Volume2 } from 'lucide-rea
 import { ROUND_INTRO_CONSTANTS, TEAM_KEY, getBossThemeForRound, getThemeConfig } from '../../../constants/game';
 import { useGameStore } from '../../../store/gameStore';
 import {
+  endIntroCinematic,
   isCompactRoundIntro,
   isRoundIntroActive,
+  playIntroCinematic,
+  playRoundIntroCinematic,
   resolveRoundIntroDurationMs,
   showRoundIntro,
   startIntroNarration,
@@ -18,7 +21,7 @@ import { speakIntroNarration } from '../../../services/caster/introNarration';
 import { casterQueue } from '../../../services/caster/presentationQueue';
 import { SFX_EVENT } from '../../../constants/sfx';
 import { stopAllBossVoices } from '../../../services/bossVoice';
-import { triggerStartRoundCombat } from '../../../services/roundIntroActions';
+import { requestRoundStart, triggerStartRoundCombat } from '../../../services/roundIntroActions';
 import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../../utils/introStar';
 import { GiftsPage, MatchupPage, RulesPage } from './RoundIntroPages';
 import { CinematicEsportsIntro } from './CinematicEsportsIntro';
@@ -114,7 +117,8 @@ export const RoundIntroOverlay = () => {
   }).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
 
   const [manualTab, setManualTab] = useState<IntroTab | null>(null);
-  const [isPlayingCinematic, setIsPlayingCinematic] = useState<boolean>(false);
+  // In the store so the admin portal's "Bắt đầu ván đấu" (socket) starts the same cinematic as this card
+  const isPlayingCinematic = useRoundIntroStore((state) => state.isCinematicPlaying);
   const prevRemainingSecRef = useRef<number>(ROUND_INTRO_CONSTANTS.TOTAL_MS / 1000);
   const hasPlayedMatchFoundRef = useRef<boolean>(false);
   const lastSpokenTabRef = useRef<IntroTab | null>(null);
@@ -126,18 +130,17 @@ export const RoundIntroOverlay = () => {
   const bossImage = bossThemeConfig.bossImagePng || bossThemeConfig.bossImageWebp;
 
   const handleCinematicComplete = useCallback(() => {
-    setIsPlayingCinematic(false);
+    endIntroCinematic();
     startIntroNarration(Date.now(), resolveRoundIntroDurationMs(useGameStore.getState().currentRound));
     playSound(SFX_EVENT.ROUND_START);
   }, []);
 
   const handleStartIntro = useCallback(() => {
     setManualTab(null);
-    setIsPlayingCinematic(true);
+    playIntroCinematic();
   }, []);
 
   const handleStartCombatNow = useCallback(() => {
-    setIsPlayingCinematic(false);
     triggerStartRoundCombat();
   }, []);
 
@@ -161,7 +164,7 @@ export const RoundIntroOverlay = () => {
   }, [shownAt]);
 
   // First load of the overlay counts as the start of the current round.
-  // For round 1 (0-0), default to manual hold so host/admin explicitly initiates the match.
+  // Round 1 (0-0) waits for the host/admin to press start; later rounds open with the cinematic at once.
   useEffect(() => {
     const state = useGameStore.getState();
     const isRound1Initial =
@@ -177,7 +180,12 @@ export const RoundIntroOverlay = () => {
       }
     }
 
-    showRoundIntro(Date.now(), isRound1Initial, resolveRoundIntroDurationMs(state.currentRound));
+    const introDurationMs = resolveRoundIntroDurationMs(state.currentRound);
+    if (isRound1Initial) {
+      showRoundIntro(Date.now(), true, introDurationMs);
+      return;
+    }
+    playRoundIntroCinematic(Date.now(), introDurationMs);
   }, []);
 
   // Reset intro states when a new round intro is shown
@@ -185,7 +193,6 @@ export const RoundIntroOverlay = () => {
     hasPlayedMatchFoundRef.current = false;
     lastSpokenTabRef.current = null;
     setManualTab(null);
-    setIsPlayingCinematic(false);
   }, [shownAt]);
 
   // Silence the intro when Silver Scrapes starts; useSilverScrapesDuel hides the card and brings it back after the duel
@@ -208,17 +215,14 @@ export const RoundIntroOverlay = () => {
 
       if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault();
-        if (isManualHold) {
-          handleStartIntro();
-        } else {
-          handleStartCombatNow();
-        }
+        setManualTab(null);
+        requestRoundStart();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [shownAt, isSilverScrapesActive, isManualHold, handleStartIntro, handleStartCombatNow]);
+  }, [shownAt, isSilverScrapesActive, isPlayingCinematic]);
 
   const totalMs = introDurationMs;
   // Compact card (later rounds): matchup only; rules and gifts stay in the participation guide panel

@@ -14,17 +14,21 @@ import { ChargeDash3D } from './ChargeDash3D';
 import { SeismicSlam3D } from './SeismicSlam3D';
 import { Nova3D } from './Nova3D';
 import { ChainLightning3D } from './ChainLightning3D';
+import { FireBreath3D } from './FireBreath3D';
+import { VoidMaelstrom3D } from './VoidMaelstrom3D';
 
 type SkillVfx3DComponent = (props: SkillVfx3DProps) => ReactElement;
 
 /** METEOR_RAIN has no entry: the store spawns `activeMeteors`, which `MeteorShower3D` renders. */
 const VFX_COMPONENT_MAP: Readonly<Partial<Record<BossSkillVfxType, SkillVfx3DComponent>>> = {
+  [BOSS_SKILL_VFX.FIRE_BREATH]: FireBreath3D,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: ProjectileArc3D,
   [BOSS_SKILL_VFX.GROUND_SPIKES]: GroundSpikes3D,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: CrescentSweep3D,
   [BOSS_SKILL_VFX.LIGHTNING_STRIKE]: LightningStrike3D,
   [BOSS_SKILL_VFX.BEAM]: Beam3D,
   [BOSS_SKILL_VFX.VORTEX]: Vortex3D,
+  [BOSS_SKILL_VFX.VOID_MAELSTROM]: VoidMaelstrom3D,
   [BOSS_SKILL_VFX.CHARGE_DASH]: ChargeDash3D,
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: SeismicSlam3D,
   [BOSS_SKILL_VFX.NOVA]: Nova3D,
@@ -36,17 +40,45 @@ interface SkillVfxLayerMountProps {
   Component: SkillVfx3DComponent;
 }
 
+/**
+ * Frames the page paints before a cast's 3D effects mount. The first WebGL frame of a heavy ultimate
+ * (shader compiles, many meshes) can block the main thread for a long time; the DOM callout
+ * ("CHIÊU CUỐI!" + skill name) must reach the compositor first so its transform/opacity animation
+ * keeps playing through that stall instead of being skipped.
+ */
+const PAINT_FRAMES_BEFORE_MOUNT = 2;
+
+/** Runs `callback` after `frameCount` animation frames; returns a cancel function. */
+const runAfterFrames = (frameCount: number, callback: () => void): (() => void) => {
+  let frameId = 0;
+  const waitFrames = (framesLeft: number): void => {
+    frameId = requestAnimationFrame(() => {
+      if (framesLeft <= 1) {
+        callback();
+        return;
+      }
+      waitFrames(framesLeft - 1);
+    });
+  };
+  waitFrames(frameCount);
+  return () => cancelAnimationFrame(frameId);
+};
+
 /** Mounts one archetype (main VFX or extra layer) only while its own clip plays. */
 const SkillVfxLayerMount = ({ vfxProps, Component }: SkillVfxLayerMountProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const startInMs = Math.max(0, vfxProps.startedAt - Date.now());
-    const startTimer = setTimeout(() => setIsPlaying(true), startInMs);
+    let cancelFrames: (() => void) | null = null;
+    const startTimer = setTimeout(() => {
+      cancelFrames = runAfterFrames(PAINT_FRAMES_BEFORE_MOUNT, () => setIsPlaying(true));
+    }, startInMs);
     const endTimer = setTimeout(() => setIsPlaying(false), startInMs + vfxProps.durationMs);
     return () => {
       clearTimeout(startTimer);
       clearTimeout(endTimer);
+      cancelFrames?.();
     };
   }, [vfxProps.startedAt, vfxProps.durationMs]);
 

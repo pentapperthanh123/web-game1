@@ -8,10 +8,9 @@ import { gameSocket } from '../../../services/socket';
 import { getMatchupTitleCount } from '../../../store/championshipTally';
 import {
   useRoundIntroStore,
-  startIntroNarration,
   showRoundIntro,
 } from '../../../store/roundIntroStore';
-import { triggerStartRoundCombat } from '../../../services/roundIntroActions';
+import { requestRoundStart, triggerStartRoundCombat } from '../../../services/roundIntroActions';
 
 export const AdminMatchTab: React.FC = () => {
   const { t } = useTranslation();
@@ -178,7 +177,7 @@ export const AdminMatchTab: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                startIntroNarration();
+                requestRoundStart();
                 showFeedback(
                   t('Admin.introStartedFeedback', 'Đã bắt đầu giới thiệu ván và đọc thể thức!')
                 );

@@ -13,6 +13,8 @@ export const BOSS_SKILL_VFX = {
   METEOR_RAIN: 'METEOR_RAIN',
   BEAM: 'BEAM',
   VORTEX: 'VORTEX',
+  /** High-tier vortex (Baron, Void Titan): a black hole with an accretion disk that drains the champions. */
+  VOID_MAELSTROM: 'VOID_MAELSTROM',
   CHARGE_DASH: 'CHARGE_DASH',
   SEISMIC_SLAM: 'SEISMIC_SLAM',
   NOVA: 'NOVA',

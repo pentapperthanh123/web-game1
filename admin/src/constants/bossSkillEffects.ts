@@ -49,7 +49,7 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
     vfxParams: { secondaryColor: '#f0abfc', scale: 1.1 },
   },
   baron_void_cataclysm: {
-    vfxType: BOSS_SKILL_VFX.VORTEX,
+    vfxType: BOSS_SKILL_VFX.VOID_MAELSTROM,
     vfxParams: {
       secondaryColor: '#a855f7',
       scale: 1.7,
@@ -57,7 +57,6 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
       layers: [
         { vfxType: BOSS_SKILL_VFX.GROUND_SPIKES, delayMs: 500, count: 16, scale: 1.5, secondaryColor: '#c084fc' },
         { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 900, count: 8, scale: 1.3, color: '#c084fc', secondaryColor: '#f0abfc' },
-        { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 1300, scale: 1.6 },
       ],
     },
     statusEffect: { type: BOSS_STATUS_EFFECT.POISON, ...DOT.MEDIUM },
@@ -206,13 +205,12 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
     statusEffect: { type: BOSS_STATUS_EFFECT.LIFESTEAL, ...LIFESTEAL.BEAM },
   },
   void_singularity_crush: {
-    vfxType: BOSS_SKILL_VFX.VORTEX,
+    vfxType: BOSS_SKILL_VFX.VOID_MAELSTROM,
     vfxParams: {
       secondaryColor: '#38bdf8',
       scale: 1.85,
       layers: [
         { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 300, count: 6, scale: 1.25, color: '#c084fc', secondaryColor: '#38bdf8' },
-        { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 650, scale: 1.4, secondaryColor: '#9333ea' },
       ],
     },
     statusEffect: { type: BOSS_STATUS_EFFECT.LIFESTEAL, ...LIFESTEAL.VORTEX },
@@ -237,7 +235,7 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
       scale: 2.2,
       durationScale: 1.6,
       layers: [
-        { vfxType: BOSS_SKILL_VFX.VORTEX, delayMs: 0, scale: 2.0, secondaryColor: '#c084fc' },
+        { vfxType: BOSS_SKILL_VFX.VOID_MAELSTROM, delayMs: 0, scale: 2.0, secondaryColor: '#c084fc' },
         { vfxType: BOSS_SKILL_VFX.GROUND_SPIKES, delayMs: 400, count: 18, scale: 1.7, secondaryColor: '#f0abfc' },
         { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 800, count: 10, scale: 1.5, color: '#38bdf8', secondaryColor: '#ffffff' },
         { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 1200, scale: 2.4, secondaryColor: '#9333ea' },

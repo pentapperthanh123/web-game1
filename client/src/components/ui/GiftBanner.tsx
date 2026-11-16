@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react';
 import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
 import { BOSS_STATUS, GIFT_TIER, GiftTier } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
@@ -11,9 +10,6 @@ import { MediumGiftPill } from './gift/MediumGiftPill';
 import { BigGiftBanner } from './gift/BigGiftBanner';
 import { MegaGiftHeroCard } from './gift/MegaGiftHeroCard';
 import './gift/gift.css';
-import { useSessionTier } from '../../store/sessionLeaderboardStore';
-import { SessionTierBadge } from './session/SessionTierBadge';
-import { SESSION_TIER, isSessionTierAtLeast } from '../../constants/sessionLeaderboard';
 
 interface GiftPresentationProps {
   banner: GiftAnnouncement;
@@ -35,14 +31,10 @@ const GIFT_BANNER_EXIT_MS = 450;
 
 /** Picks the presentation for the gift tier, plays its exit animation, then dismisses it. */
 export const GiftBanner = () => {
-  const { t } = useTranslation();
   const bossStatus = useGameStore((state) => state.bossStatus);
   const activeGiftBanner = useGameStore((state) => state.activeGiftBanner);
   const dismissGiftBanner = useGameStore((state) => state.dismissGiftBanner);
   const teamProfile = useGameStore((state) => (activeGiftBanner ? state.activeTeams[activeGiftBanner.team] : undefined));
-  const donorSessionTier = useSessionTier(activeGiftBanner?.donorName);
-  // Only high tiers get the ribbon, so small gifts stay quiet
-  const hasTierRibbon = isSessionTierAtLeast(donorSessionTier, SESSION_TIER.DIAMOND);
 
   const [leavingBannerId, setLeavingBannerId] = useState<string | null>(null);
 
@@ -73,13 +65,6 @@ export const GiftBanner = () => {
         leavingBannerId === activeGiftBanner.id && 'animate-gift-exit'
       )}
     >
-      {/* Ribbon above any gift tier's card: a Diamond+ donor of the session is shown as such */}
-      {hasTierRibbon && (
-        <div className="flex items-center gap-1 text-[9px] font-black text-amber-200 drop-shadow">
-          <SessionTierBadge tier={donorSessionTier} hasLabel />
-          <span>{t('SessionBoard.giftRibbon', 'ra tay!')}</span>
-        </div>
-      )}
       <Presentation
         key={activeGiftBanner.id}
         banner={activeGiftBanner}

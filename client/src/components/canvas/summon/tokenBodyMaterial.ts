@@ -35,9 +35,9 @@ export const TOKEN_BODY_LAYOUT = {
 } as const;
 
 export const TOKEN_BODY_OPACITY = {
-  BACKING_DISC: 0.22,
+  BACKING_DISC: 0.0,
   BORDER: 0.88,
-  RUNIC_RING: 0.35,
+  RUNIC_RING: 0.0,
   SATELLITE: 0.0,
   HP_BG: 0.95,
   HP_BORDER: 0.88,
