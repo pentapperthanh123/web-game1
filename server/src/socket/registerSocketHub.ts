@@ -4,6 +4,8 @@ import { PlayerProfileService } from '../services/playerProfileService.js';
 import { TikTokConnectionService } from '../services/tiktokConnectionService.js';
 import { ServerContext } from '../types/serverState.js';
 import { registerAdminHandlers } from './registerAdminHandlers.js';
+import { registerChampionshipTallyHandlers } from './registerChampionshipTallyHandlers.js';
+import { registerGiftConfigHandlers } from './registerGiftConfigHandlers.js';
 import { registerTeamAndSeriesHandlers } from './registerTeamAndSeriesHandlers.js';
 import { registerTikTokHandlers } from './registerTikTokHandlers.js';
 
@@ -44,6 +46,8 @@ export function registerSocketHub(
     });
 
     registerAdminHandlers(socket, ctx, duelService);
+    registerChampionshipTallyHandlers(socket, ctx);
+    registerGiftConfigHandlers(socket, ctx);
     registerTeamAndSeriesHandlers(socket, ctx, duelService);
     registerTikTokHandlers(socket, tiktokService);
     playerProfileService.registerSocketHandlers(socket);

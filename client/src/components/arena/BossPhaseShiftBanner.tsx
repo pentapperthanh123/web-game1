@@ -1,22 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Zap, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { BOSS_PHASE, BOSS_PHASE_SHIFT_BANNER_MS } from '../../constants/bossPhases';
-import { BossThemeConfig } from '../../constants/game';
+import { BOSS_STATUS, BossThemeConfig } from '../../constants/game';
 
 interface BossPhaseShiftBannerProps {
   themeConfig: BossThemeConfig;
 }
 
-/** Clean esports callout when the boss escalates to phase 2 / 3 without blocking lineups. */
+/** Clean esports callout when the boss escalates to phase 2 / 3 without blocking the arena. */
 export const BossPhaseShiftBanner: React.FC<BossPhaseShiftBannerProps> = React.memo(({ themeConfig }) => {
   const { t } = useTranslation();
   const bossPhase = useGameStore((state) => state.bossPhase);
   const bossPhaseChangedAt = useGameStore((state) => state.bossPhaseChangedAt);
+  const bossStatus = useGameStore((state) => state.bossStatus);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    if (bossPhaseChangedAt === 0 || bossPhase === BOSS_PHASE.ONE) {
+    // If the boss is enraged or in phase 1, do not show phase shift banner to avoid overlapping with enraged alert
+    if (bossPhaseChangedAt === 0 || bossPhase === BOSS_PHASE.ONE || bossStatus === BOSS_STATUS.ENRAGED) {
       setIsVisible(false);
       return;
     }
@@ -28,9 +31,9 @@ export const BossPhaseShiftBanner: React.FC<BossPhaseShiftBannerProps> = React.m
     setIsVisible(true);
     const timer = setTimeout(() => setIsVisible(false), remainingMs);
     return () => clearTimeout(timer);
-  }, [bossPhaseChangedAt, bossPhase]);
+  }, [bossPhaseChangedAt, bossPhase, bossStatus]);
 
-  if (!isVisible) return null;
+  if (!isVisible || bossStatus === BOSS_STATUS.ENRAGED) return null;
 
   const accentColor =
     bossPhase === BOSS_PHASE.THREE ? themeConfig.colors.enragedHex : themeConfig.colors.secondaryHex;
@@ -39,37 +42,41 @@ export const BossPhaseShiftBanner: React.FC<BossPhaseShiftBannerProps> = React.m
   return (
     <div
       key={bossPhaseChangedAt}
-      className="w-full max-w-xs sm:max-w-sm pointer-events-none select-none animate-phase-shift-banner px-2 mx-auto flex flex-col items-center"
+      className="w-full max-w-sm pointer-events-none select-none animate-in fade-in slide-in-from-top-2 duration-200 px-2 mx-auto flex justify-center"
     >
+      {/* Slim Esports Ribbon Ticker: Only 28px height, never blocks the 3D Boss */}
       <div
-        className="w-full px-4 py-2 rounded-xl border bg-slate-950/92 backdrop-blur-md text-center shadow-2xl transition-all"
+        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border bg-slate-950/95 backdrop-blur-md shadow-lg"
         style={{
           borderColor: accentColor,
-          boxShadow: `0 0 24px ${accentColor}55`,
+          boxShadow: `0 0 16px ${accentColor}66`,
         }}
       >
-        <div className="flex items-center justify-center space-x-1.5 mb-0.5">
-          <span
-            className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-900/90 border tracking-wider"
-            style={{ borderColor: `${accentColor}88`, color: accentColor }}
-          >
+        <span
+          className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-slate-900/90 border tracking-wider shrink-0"
+          style={{ borderColor: `${accentColor}88`, color: accentColor }}
+        >
+          {isPhase3
+            ? t('BossPhase.phase3Badge', 'GIAI ĐOẠN 3')
+            : t('BossPhase.phase2Badge', 'GIAI ĐOẠN 2')}
+        </span>
+
+        <span className="text-[10.5px] sm:text-[11px] font-black text-white uppercase tracking-wider drop-shadow truncate flex items-center gap-1">
+          {isPhase3 ? (
+            <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
+          ) : (
+            <Zap className="w-3 h-3 text-cyan-300 shrink-0" />
+          )}
+          <span>
             {isPhase3
-              ? t('BossPhase.phase3Badge', 'GIAI ĐOẠN 3')
-              : t('BossPhase.phase2Badge', 'GIAI ĐOẠN 2')}
+              ? t('BossPhase.titlePhase3Short', 'QUÁI VẬT TẬN THẾ')
+              : t('BossPhase.titlePhase2Short', 'QUÁI VẬT THỨC TỈNH')}
           </span>
-        </div>
+        </span>
 
-        <div className="text-sm sm:text-base font-black text-white uppercase tracking-wider drop-shadow-md">
-          {isPhase3
-            ? t('BossPhase.titlePhase3', '🔥 QUÁI VẬT TẬN THẾ 🔥')
-            : t('BossPhase.titlePhase2', '⚡ QUÁI VẬT THỨC TỈNH ⚡')}
-        </div>
-
-        <div className="text-[10px] sm:text-xs font-semibold text-slate-300 mt-0.5">
-          {isPhase3
-            ? t('BossPhase.hintPhase3', 'Sát thương +20% · Ra chiêu nhanh hơn · Hiệu ứng kéo dài')
-            : t('BossPhase.hintPhase2', 'Chiêu cuối đã được mở khóa!')}
-        </div>
+        <span className="text-[9px] font-bold text-slate-300 shrink-0">
+          • {isPhase3 ? '+20% SÁT THƯƠNG' : 'MỞ KHÓA CHIÊU CUỐI!'}
+        </span>
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ import {
   DAMAGE_TYPE,
   BOSS_ANIMATION_CONSTANTS,
   BOSS_IDLE_CONSTANTS,
+  FINISHER_BANNER_CONSTANTS,
+  isDonorFinisherCheck,
   getBossHealthBarAnchorClass,
   getBossNameAnchorClass,
   TeamType,
@@ -20,7 +22,7 @@ import { BossHitMarks2D } from './BossHitMarks2D';
 import { BossAlertBanner } from './BossAlertBanner';
 import { BossSpeechBubble } from './BossSpeechBubble';
 import { BossHealthBar, BossNameTag } from '../ui/BossHealthBar';
-import { useRoundIntroStore, isRoundIntroActive } from '../../store/roundIntroStore';
+import { useRoundIntroStore, isRoundIntroActive, isCurrentRoundIntroActive } from '../../store/roundIntroStore';
 import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
@@ -38,6 +40,7 @@ import { getBossSpriteAnchors } from '../../constants/bossSpriteAnchors';
 
 const getAnimationClass = (
   isDefeated: boolean,
+  isAwaitingStrike: boolean,
   isPoked: boolean,
   isRoarActive: boolean,
   isRecentlyHit: boolean,
@@ -53,6 +56,9 @@ const getAnimationClass = (
   vfxType?: BossSkillVfxType
 ): string => {
   if (isDefeated) {
+    if (isAwaitingStrike) {
+      return 'animate-boss-critical-stun pointer-events-none';
+    }
     return 'animate-boss-defeat pointer-events-none';
   }
   const archetypeClass = vfxType ? BOSS_SKILL_VFX_ANIMATION_CLASS[vfxType] : null;
@@ -159,7 +165,8 @@ export const Boss2D = () => {
   const bossStatus = useGameStore((state) => state.bossStatus);
   const bossHp = useGameStore((state) => state.bossHp);
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
-  const minions = useGameStore((state) => state.minions);
+  // Subscribe only to length to avoid re-renders on every minion position tick
+  const minionCount = useGameStore((state) => state.minions.length);
   const bossHitTimestamp = useGameStore((state) => state.bossHitTimestamp);
   const bossAttackTimestamp = useGameStore((state) => state.bossAttackTimestamp);
   const gameTheme = useGameStore((state) => state.gameTheme);
@@ -173,15 +180,44 @@ export const Boss2D = () => {
   const bossWeakPoint = useGameStore((state) => state.bossWeakPoint);
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const roundWinner = useGameStore((state) => state.roundWinner);
+  const finisherGiftName = useGameStore((state) => state.finisherGiftName);
+  const finisherCoins = useGameStore((state) => state.finisherCoins);
+  const bossDefeatedTimestamp = useGameStore((state) => state.bossDefeatedTimestamp);
 
   const themeConfig = getThemeConfig(gameTheme);
   const isHerald = themeConfig.archetype === 'HERALD';
   const isDragon = themeConfig.archetype === 'DRAGON';
   const isSilverScrapesActive = useGameStore((state) => state.silverScrapesState.isActive);
   const isRoundIntroShown = useRoundIntroStore(
-    (state) => state.isActive && isRoundIntroActive(state.shownAt, Date.now())
+    (state) => state.isActive && isRoundIntroActive(state.shownAt, Date.now(), state.isManualHold)
   );
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
+  const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
+
+  const [hasStrikeImpacted, setHasStrikeImpacted] = useState<boolean>(() => {
+    if (!isDefeated || !isDonorFinisher) return true;
+    return Date.now() - bossDefeatedTimestamp >= FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS;
+  });
+
+  useEffect(() => {
+    if (!isDefeated || !isDonorFinisher) {
+      setHasStrikeImpacted(true);
+      return;
+    }
+    const elapsed = Date.now() - bossDefeatedTimestamp;
+    const remaining = FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS - elapsed;
+    if (remaining <= 0) {
+      setHasStrikeImpacted(true);
+      return;
+    }
+    setHasStrikeImpacted(false);
+    const timer = setTimeout(() => {
+      setHasStrikeImpacted(true);
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [isDefeated, isDonorFinisher, bossDefeatedTimestamp]);
+
+  const isAwaitingStrike = isDefeated && isDonorFinisher && !hasStrikeImpacted;
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
   const bossStaggerUntil = useGameStore((state) => state.bossStaggerUntil);
   const isKnockedBack = useIsBeforeDeadline(bossStaggerUntil);
@@ -235,6 +271,7 @@ export const Boss2D = () => {
 
     const breathTimer = isDragon
       ? setTimeout(() => {
+          if (isCurrentRoundIntroActive()) return;
           setIsEntranceBreathActive(true);
           playBossVoice(gameTheme, BOSS_VOICE_KIND.ROAR);
         }, BOSS_ANIMATION_CONSTANTS.ENTRANCE_BREATH_DELAY_MS)
@@ -261,6 +298,10 @@ export const Boss2D = () => {
         for (let idx = 0; idx < verticalTiers.length; idx += 1) {
           if (idx !== prev) {
             candidateTiers.push(idx);
+            // Ưu tiên các tier bay/trồi lên vùng trống phía trên để quái vật di chuyển linh hoạt
+            if (verticalTiers[idx] < 0) {
+              candidateTiers.push(idx);
+            }
           }
         }
         if (candidateTiers.length === 0) return prev;
@@ -268,7 +309,7 @@ export const Boss2D = () => {
         return candidateTiers[pickedIndex] ?? prev;
       });
     },
-    [verticalTiers.length]
+    [verticalTiers]
   );
 
   const updateFacingSide = useCallback((targetFacingRight: boolean | 'TOGGLE', bypassCooldown = false) => {
@@ -287,11 +328,11 @@ export const Boss2D = () => {
 
   // Mark activity whenever combat events fire
   useEffect(() => {
-    if (bossHitTimestamp > 0 || bossAttackTimestamp > 0 || minions.length > 0) {
+    if (bossHitTimestamp > 0 || bossAttackTimestamp > 0 || minionCount > 0) {
       lastActivityTimestampRef.current = Date.now();
       setIsRestless(false);
     }
-  }, [bossHitTimestamp, bossAttackTimestamp, minions.length]);
+  }, [bossHitTimestamp, bossAttackTimestamp, minionCount]);
 
   // Dynamic hit animation timer
   const hitEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -301,35 +342,35 @@ export const Boss2D = () => {
   }, []);
 
   useEffect(() => {
-    if (bossHitTimestamp === 0) return;
-    // A crowd lands hits every frame; restarting the recoil each time kept the boss stuck in its
-    // first (brightest, most expensive) keyframe and re-rendered this component at frame rate.
+    if (bossHitTimestamp === 0 || isDefeated) return;
+
+    // Super Armor: normal attacks deal damage and sparks without shaking the boss body
+    const isHeavy =
+      lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
+    if (!isHeavy) return;
+
+    // Heavy Hit Cooldown: prevent jitter spasms when multiple ultimates land together
     const now = Date.now();
-    if (now - lastHitReactionAtRef.current < BOSS_ANIMATION_CONSTANTS.HIT_REACTION_MIN_INTERVAL_MS) return;
+    if (now - lastHitReactionAtRef.current < BOSS_ANIMATION_CONSTANTS.HEAVY_HIT_COOLDOWN_MS) {
+      return;
+    }
     lastHitReactionAtRef.current = now;
 
     setHitNonce((prev) => (prev + 1) % 1000);
     setIsHitActive(true);
-    const isHeavy =
-      lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
-    const duration = isHeavy
-      ? BOSS_ANIMATION_CONSTANTS.HEAVY_HIT_DURATION_MS
-      : BOSS_ANIMATION_CONSTANTS.HIT_DURATION_MS;
 
     if (hitEndTimerRef.current) clearTimeout(hitEndTimerRef.current);
     hitEndTimerRef.current = setTimeout(() => {
       setIsHitActive(false);
-    }, duration);
+    }, BOSS_ANIMATION_CONSTANTS.HEAVY_HIT_DURATION_MS);
 
     // Turn toward attacker on heavy Crit or Ultimate hits (guarded by flip cooldown)
-    if (isHeavy) {
-      if (lastHitTeam === TEAM_KEY.BLG) {
-        updateFacingSide(false);
-      } else if (lastHitTeam === TEAM_KEY.GENG) {
-        updateFacingSide(true);
-      }
+    if (lastHitTeam === TEAM_KEY.BLG) {
+      updateFacingSide(false);
+    } else if (lastHitTeam === TEAM_KEY.GENG) {
+      updateFacingSide(true);
     }
-  }, [bossHitTimestamp, lastHitDamageType, lastHitTeam, updateFacingSide]);
+  }, [bossHitTimestamp, lastHitDamageType, lastHitTeam, isDefeated, updateFacingSide]);
 
   // Dynamic attack animation timer (faster recovery when enraged)
   useEffect(() => {
@@ -347,7 +388,7 @@ export const Boss2D = () => {
     }
 
     setIsRoarActive(true);
-    shiftVerticalPatrolTier(0);
+    // Cho phép quái vật tấn công từ độ cao hiện tại mà không bị ép đè sát đáy sàn đấu
     const baseDuration = activeBossSkillBanner?.isUltimate
       ? BOSS_ANIMATION_CONSTANTS.ULTIMATE_ATTACK_DURATION_MS
       : BOSS_ANIMATION_CONSTANTS.ATTACK_DURATION_MS;
@@ -377,7 +418,7 @@ export const Boss2D = () => {
 
       const now = Date.now();
       const idleDuration = now - lastActivityTimestampRef.current;
-      const isNoMinionsOnField = minions.length === 0;
+      const isNoMinionsOnField = minionCount === 0;
       const canSpeak = now - lastSpeechTimestampRef.current >= BOSS_IDLE_CONSTANTS.SPEECH_COOLDOWN_MS;
 
       // Check Restless Impatient Threshold (> 9.0s with zero active champions)
@@ -428,7 +469,7 @@ export const Boss2D = () => {
     }, BOSS_IDLE_CONSTANTS.AMBIENT_ACTION_INTERVAL_MS);
 
     return () => clearInterval(idleInterval);
-  }, [isDefeated, isHitActive, isRoarActive, isPoked, minions.length, gameTheme, themeConfig.audioPitchRate]);
+  }, [isDefeated, isHitActive, isRoarActive, isPoked, minionCount, gameTheme, themeConfig.audioPitchRate]);
 
   // Periodic Living Boss Roar Loop (roars every 12-20s even during ongoing pro pokes)
   const isBossAlive = !isDefeated && bossHp > 0;
@@ -449,14 +490,16 @@ export const Boss2D = () => {
           latestState.bossStatus !== BOSS_STATUS.DEFEATED &&
           latestState.bossHp > 0 &&
           !latestState.isRoundIntermission &&
-          latestState.roundWinner === null
+          latestState.roundWinner === null &&
+          !latestState.silverScrapesState.isActive &&
+          !isCurrentRoundIntroActive()
         ) {
           const enragedNow = latestState.bossStatus === BOSS_STATUS.ENRAGED;
           const voiceKind = enragedNow ? BOSS_VOICE_KIND.ENRAGE : BOSS_VOICE_KIND.ROAR;
           playBossVoice(latestState.gameTheme, voiceKind);
           setIsRoarActive(true);
           updateFacingSide('TOGGLE');
-          shiftVerticalPatrolTier(0);
+          shiftVerticalPatrolTier();
 
           if (settleTimer) clearTimeout(settleTimer);
           settleTimer = setTimeout(() => {
@@ -568,6 +611,7 @@ export const Boss2D = () => {
 
   const baseAnimationClass = getAnimationClass(
     isDefeated,
+    isAwaitingStrike,
     isPoked,
     isRoarActive,
     isHitActive,
@@ -585,21 +629,21 @@ export const Boss2D = () => {
   // MEGA gift knock-back overrides the idle/attack animation while the boss is staggered
   const animationClass = isKnockedBack ? BOSS_KNOCKBACK_CLASS : baseAnimationClass;
 
-  // Dynamic 2.5D perspective tilt reacting to hit side & pokes
+  // Dynamic 2.5D perspective tilt reacting to heavy impact recoil & user pokes
   let tiltYDeg = 0;
   let tiltXDeg = 0;
   if (isHitActive && !isDefeated) {
     const isHeavyHit =
       lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
-    const hitStrength = isHeavyHit ? 11 : 6;
+    const hitStrength = isHeavyHit ? 5 : 0;
     if (lastHitTeam === TEAM_KEY.BLG) {
       tiltYDeg = hitStrength;
     } else if (lastHitTeam === TEAM_KEY.GENG) {
       tiltYDeg = -hitStrength;
     }
-    tiltXDeg = isHeavyHit ? -8 : -4;
+    tiltXDeg = isHeavyHit ? -3 : 0;
   } else if (isPoked && !isDefeated) {
-    tiltXDeg = -10;
+    tiltXDeg = -6;
   }
 
   const verticalOffsetPx = isDefeated ? 0 : (verticalTiers[verticalTierIndex] ?? 0);
@@ -607,12 +651,18 @@ export const Boss2D = () => {
   const groundShadowAnimationClass = isDefeated ? '' : themeConfig.groundShadowClass;
   const shouldMirrorBody = spriteAnchors.isNativeFacingRight ? !isFacingRight : isFacingRight;
 
+  // Ground shadow dynamically contracts and diffuses as monster ascends, expands and sharpens as it descends
+  const shadowHeightFactor = Math.max(0, Math.min(1, (-verticalOffsetPx) / 160));
+  const dynamicShadowScale = (1 - shadowHeightFactor * 0.35).toFixed(3);
+  const dynamicShadowOpacity = isDefeated ? 0 : Number((0.68 - shadowHeightFactor * 0.35).toFixed(3));
+  const dynamicShadowBlurPx = (6 + shadowHeightFactor * 12).toFixed(1);
+
   const bossNotificationOverlay = (
     <div
       className={`absolute left-1/2 ${themeConfig.containerPosition} -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none flex items-center justify-center`}
     >
       <BossAlertBanner
-        isRoarActive={isRoarActive}
+        isRoarActive={isRoarActive && !isSilverScrapesActive}
         themeConfig={themeConfig}
         activeBossSkillBanner={activeBossSkillBanner}
         gameTheme={gameTheme}
@@ -670,7 +720,13 @@ export const Boss2D = () => {
 
         {/* 2. Realistic Ground Contact Shadow under Monster */}
         <div
-          className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 rounded-[50%] blur-md pointer-events-none ${groundShadowAnimationClass}`}
+          style={{
+            transform: `translate3d(0, 0, 0) scale(${dynamicShadowScale})`,
+            opacity: dynamicShadowOpacity,
+            filter: `blur(${dynamicShadowBlurPx}px)`,
+            transition: `transform ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms cubic-bezier(0.37, 0, 0.63, 1), opacity ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms ease, filter ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms ease`,
+          }}
+          className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 rounded-[50%] pointer-events-none ${groundShadowAnimationClass}`}
         />
 
         {/* 8. Vertical Altitude Patrol + Cave Entrance Swoop + Uninterrupted Hover/Coil Wrapper */}
@@ -726,6 +782,7 @@ export const Boss2D = () => {
                         src={themeConfig.bossImagePng}
                         alt={themeConfig.bossName}
                         className={`w-full h-full object-contain filter contrast-110 brightness-105 ${themeConfig.spriteFilterClass}`}
+                        style={{ backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
                         loading="eager"
                         draggable={false}
                       />
@@ -748,6 +805,7 @@ export const Boss2D = () => {
                           src={themeConfig.bossEnragedImagePng}
                           alt={`${themeConfig.bossName} (Nộ)`}
                           className={`w-full h-full object-contain filter contrast-125 brightness-110 drop-shadow-[0_0_32px_${themeConfig.colors.enragedHex}]`}
+                          style={{ backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
                           loading="eager"
                           draggable={false}
                         />

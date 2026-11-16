@@ -1,3 +1,5 @@
+import { refreshGiftCatalog } from './giftCatalogService.js';
+import { findGiftRule } from '../utils/giftConfigSanitizer.js';
 import { WebcastPushConnection } from 'tiktok-live-connector';
 import { getRandomChampion } from '../constants/champions.js';
 import {
@@ -31,6 +33,31 @@ const VALID_SIM_ACTIONS: readonly TikTokSimulationType[] = [
   'follow',
   'share',
 ];
+
+function formatTikTokErrorMessage(rawMessage: string, username: string): string {
+  if (rawMessage.includes('19881007') || rawMessage.includes('user_not_found')) {
+    return `Kênh @${username} chưa phát Live (hoặc không tìm thấy TikTok ID)`;
+  }
+  if (rawMessage.includes('LIVE has ended') || rawMessage.includes('offline')) {
+    return `Kênh @${username} hiện đang không phát Live (LIVE has ended)`;
+  }
+  if (rawMessage.includes('blocked') || rawMessage.includes('SlardarWAF')) {
+    return `TikTok chặn truy cập tạm thời (cần thử lại sau)`;
+  }
+  return rawMessage;
+}
+
+function cleanTikTokInput(input: string): { cleanUsername: string; directRoomId?: string } {
+  const trimmed = input.trim();
+  const urlMatch = trimmed.match(/tiktok\.com\/@([^/?#]+)/i);
+  if (urlMatch) {
+    return { cleanUsername: urlMatch[1] };
+  }
+  if (/^\d{15,22}$/.test(trimmed)) {
+    return { cleanUsername: trimmed, directRoomId: trimmed };
+  }
+  return { cleanUsername: trimmed.replace(/^@+/, '') };
+}
 
 export interface TikTokConnectionService {
   getStats: () => PipelineStatsSummary;
@@ -71,6 +98,7 @@ export function createTikTokConnectionService(
   const tiktokPipeline = new TikTokLivePipeline({
     getActiveTeams: () => ctx.state.teamConfig.activeTeams,
     getParticipationRules: () => ctx.state.participationRuleConfig,
+    findGiftRule: (giftId, giftName) => findGiftRule(ctx.state.giftConfig, giftId, giftName),
     parseComment: parseCommentWithAliases,
     getRandomChampionName: () => getRandomChampion().name,
     onDuelContribution: (team, deltaPercent, event) =>
@@ -225,6 +253,7 @@ export function createTikTokConnectionService(
       tiktokPipeline.handleGift({
         uniqueId: data.uniqueId,
         nickname: data.nickname,
+        userAvatarUrl: data.profilePictureUrl,
         giftId: data.giftId,
         giftName: data.giftName,
         diamondCount: data.diamondCount,
@@ -274,6 +303,7 @@ export function createTikTokConnectionService(
       username: ctx.state.tiktokUsername,
       attempt: ctx.state.reconnectAttempt,
       nextRetryAt: ctx.state.nextRetryAt,
+      error: ctx.state.lastErrorMessage || undefined,
       ...extra,
     });
   };
@@ -310,7 +340,7 @@ export function createTikTokConnectionService(
   };
 
   // Forward declaration so openConnection and scheduleReconnect can reference each other.
-  let openConnection: (username: string) => void = () => undefined;
+  let openConnection: (username: string, directRoomId?: string) => void = () => undefined;
 
   const scheduleReconnect = (reason: string): void => {
     if (!reconnectState.isConnectionWanted || reconnectState.timer) return;
@@ -354,16 +384,19 @@ export function createTikTokConnectionService(
     ctx.state.lastErrorMessage = '';
     console.log(`[TikTok Live] Connected to room ID: ${roomId}`);
     emitStatus({ roomId });
+    // Real gift names / prices / icons for the admin gift config
+    void refreshGiftCatalog(ctx);
   };
 
   const handleConnectFailure = (connection: WebcastPushConnection, err: unknown): void => {
     if (ctx.state.tiktokConnection !== connection) return;
-    const message = getErrorMessage(err, 'Failed to connect to TikTok Live room');
-    console.error('[TikTok Live] Connection error:', message);
-    scheduleReconnect(message);
+    const rawMessage = getErrorMessage(err, 'Failed to connect to TikTok Live room');
+    const userFriendlyError = formatTikTokErrorMessage(rawMessage, ctx.state.tiktokUsername);
+    console.error(`[TikTok Live] Connection error: ${rawMessage}`);
+    scheduleReconnect(userFriendlyError);
   };
 
-  openConnection = (username: string): void => {
+  openConnection = (username: string, directRoomId?: string): void => {
     releaseConnection();
     const connection = new WebcastPushConnection(username, {
       processInitialData: false,
@@ -374,13 +407,13 @@ export function createTikTokConnectionService(
     attachRoomListeners(connection);
     attachLifecycleListeners(connection);
     connection
-      .connect()
+      .connect(directRoomId)
       .then((roomState) => handleConnectSuccess(connection, roomState.roomId))
       .catch((err: unknown) => handleConnectFailure(connection, err));
   };
 
   const connectToRoom = (rawUsername: string): { cleanUsername: string } => {
-    const cleanUsername = rawUsername.replace(/^@/, '').trim();
+    const { cleanUsername, directRoomId } = cleanTikTokInput(rawUsername);
     cancelPendingReconnect();
     downtimeTracker.cancel();
     reconnectState.isConnectionWanted = true;
@@ -391,7 +424,7 @@ export function createTikTokConnectionService(
     emitStatus();
 
     resetStats();
-    openConnection(cleanUsername);
+    openConnection(cleanUsername, directRoomId);
     return { cleanUsername };
   };
 
@@ -401,7 +434,7 @@ export function createTikTokConnectionService(
     downtimeTracker.cancel();
     releaseConnection();
     ctx.state.connectionStatus = 'DISCONNECTED';
-    ctx.state.tiktokUsername = '';
+    ctx.state.lastErrorMessage = '';
     emitStatus();
   };
 

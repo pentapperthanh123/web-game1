@@ -1,13 +1,14 @@
-import { Radio, RotateCcw, ExternalLink } from 'lucide-react';
+import { Radio, RotateCcw, ExternalLink, Play } from 'lucide-react';
 
 interface AdminHeaderProps {
   onResetBoss: () => void;
+  onStartMatch?: () => void;
 }
 
 /**
- * Top portal header with title, OBS Game View link, and quick Boss reset button.
+ * Top portal header with title, OBS Game View link, quick match start, and quick Boss reset button.
  */
-export function AdminHeader({ onResetBoss }: AdminHeaderProps) {
+export function AdminHeader({ onResetBoss, onStartMatch }: AdminHeaderProps) {
   return (
     <header className="flex flex-col md:flex-row md:items-center justify-between pb-3.5 sm:pb-5 border-b border-slate-800 gap-3 sm:gap-4">
       <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
@@ -28,6 +29,17 @@ export function AdminHeader({ onResetBoss }: AdminHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full md:w-auto">
+        {onStartMatch && (
+          <button
+            type="button"
+            onClick={onStartMatch}
+            className="shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs flex items-center space-x-1.5 transition shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95 cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+            <span>Bắt Đầu Ván Đấu</span>
+          </button>
+        )}
+
         <a
           href="http://localhost:8000"
           target="_blank"

@@ -5,36 +5,39 @@
  * while the inner layer spins reads as a disc seen at an angle.
  */
 const SINGULARITY = {
-  /** Vertical centre, just above the boss sprite centre (boss container sits at 64%). */
-  CENTER_TOP: '60%',
-  HALO_SIZE: '130vmin',
-  DISC_SIZE: '112vmin',
-  DISC_TILT_SCALE_Y: 0.28,
-  DISC_TILT_ROTATE: '-8deg',
+  /** Vertical centre, just behind the Void Titan torso and head. */
+  CENTER_TOP: '58%',
+  HALO_SIZE: '140vmin',
+  DISC_SIZE: '120vmin',
+  DISC_TILT_SCALE_Y: 0.35,
+  DISC_TILT_ROTATE: '-14deg',
   /** Large enough that the Titan's body sits on pure black, outlined by the bright horizon. */
-  CORE_SIZE: '50vmin',
+  CORE_SIZE: '52vmin',
 } as const;
 
 /**
- * Warm gold/white light around a black core: the complement of the Titan's violet,
- * so the boss silhouette separates from the backdrop instead of melting into it.
+ * Deep cosmic void palette: neon violet, quantum cyan, and brilliant starlight
+ * framing a pitch-black gravitational core.
  */
 const VOID_COLORS = {
-  HALO_INNER: 'rgba(251, 191, 36, 0.16)',
-  HALO_OUTER: 'rgba(14, 116, 144, 0.14)',
-  HORIZON: '#fff7e0',
-  HORIZON_GLOW: 'rgba(251, 191, 36, 0.45)',
-  HORIZON_INNER: 'rgba(0, 0, 0, 0.95)',
-  /** Thin bright photon ring right at the edge of the shadow. */
-  PHOTON_RING: 'rgba(255, 247, 224, 0.85)',
+  HALO_INNER: 'rgba(168, 85, 247, 0.25)',
+  HALO_MID: 'rgba(56, 189, 248, 0.18)',
+  HALO_OUTER: 'rgba(15, 5, 29, 0.4)',
+  HORIZON: '#c084fc',
+  HORIZON_CYAN: '#38bdf8',
+  HORIZON_GLOW: 'rgba(192, 132, 252, 0.6)',
+  HORIZON_OUTER_GLOW: 'rgba(56, 189, 248, 0.4)',
+  HORIZON_INNER: 'rgba(3, 1, 12, 0.98)',
+  PHOTON_RING: 'rgba(255, 255, 255, 0.95)',
+  PHOTON_RING_CYAN: 'rgba(56, 189, 248, 0.9)',
 } as const;
 
 const ACCRETION_GRADIENT =
-  'conic-gradient(from 0deg, rgba(255,247,224,0) 0deg, rgba(255,247,224,0.95) 40deg, rgba(251,191,36,0.8) 95deg, rgba(234,88,12,0) 150deg, rgba(253,224,171,0.7) 200deg, rgba(255,255,255,0.9) 255deg, rgba(103,232,249,0.35) 310deg, rgba(255,247,224,0) 360deg)';
-const ACCRETION_RING_MASK = 'radial-gradient(circle, transparent 33%, black 38%, black 58%, transparent 71%)';
+  'conic-gradient(from 0deg, rgba(192,132,252,0) 0deg, rgba(240,171,252,0.95) 45deg, rgba(168,85,247,0.85) 100deg, rgba(126,34,206,0.15) 150deg, rgba(56,189,248,0.8) 210deg, rgba(255,255,255,0.95) 260deg, rgba(192,132,252,0.85) 315deg, rgba(192,132,252,0) 360deg)';
+const ACCRETION_RING_MASK = 'radial-gradient(circle, transparent 34%, black 39%, black 58%, transparent 72%)';
 const OUTER_DUST_GRADIENT =
-  'conic-gradient(from 90deg, rgba(125,211,252,0) 0deg, rgba(125,211,252,0.3) 70deg, rgba(125,211,252,0) 140deg, rgba(253,186,116,0.28) 230deg, rgba(125,211,252,0) 300deg)';
-const OUTER_DUST_MASK = 'radial-gradient(circle, transparent 55%, black 62%, black 70%, transparent 78%)';
+  'conic-gradient(from 90deg, rgba(56,189,248,0) 0deg, rgba(56,189,248,0.5) 75deg, rgba(192,132,252,0.45) 150deg, rgba(147,51,234,0.15) 220deg, rgba(56,189,248,0.4) 300deg)';
+const OUTER_DUST_MASK = 'radial-gradient(circle, transparent 52%, black 58%, black 72%, transparent 82%)';
 
 const centeredStyle = (size: string) => ({
   left: '50%',
@@ -76,8 +79,8 @@ const EventHorizon = () => (
     <div
       className="absolute inset-0 rounded-full arena-horizon-pulse"
       style={{
-        background: `radial-gradient(circle, #000 0 62%, ${VOID_COLORS.HORIZON_INNER} 69%, ${VOID_COLORS.PHOTON_RING} 70.5%, transparent 74%)`,
-        boxShadow: `0 0 18px 2px ${VOID_COLORS.HORIZON}, 0 0 70px 18px ${VOID_COLORS.HORIZON_GLOW}, 0 0 140px 40px ${VOID_COLORS.HALO_INNER}`,
+        background: `radial-gradient(circle, #020008 0 58%, ${VOID_COLORS.HORIZON_INNER} 67%, ${VOID_COLORS.PHOTON_RING} 69.5%, ${VOID_COLORS.PHOTON_RING_CYAN} 71%, transparent 75%)`,
+        boxShadow: `0 0 20px 4px ${VOID_COLORS.HORIZON}, 0 0 60px 18px ${VOID_COLORS.HORIZON_GLOW}, 0 0 110px 35px ${VOID_COLORS.HORIZON_OUTER_GLOW}, 0 0 160px 50px ${VOID_COLORS.HALO_INNER}`,
       }}
     />
   </div>
@@ -89,7 +92,7 @@ export const VoidSingularity = () => (
       className="absolute rounded-full"
       style={{
         ...centeredStyle(SINGULARITY.HALO_SIZE),
-        background: `radial-gradient(circle, ${VOID_COLORS.HALO_INNER} 0%, ${VOID_COLORS.HALO_OUTER} 40%, transparent 70%)`,
+        background: `radial-gradient(circle, ${VOID_COLORS.HALO_INNER} 0%, ${VOID_COLORS.HALO_MID} 35%, ${VOID_COLORS.HALO_OUTER} 60%, transparent 75%)`,
       }}
     />
     <AccretionDisc isFrontHalf={false} />

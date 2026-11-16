@@ -55,6 +55,20 @@ export const resolveSummonTurnLimits = (
   summonTurnDelayMs: config?.summonTurnDelayMs ?? GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS,
 });
 
+/** Admin-configured attack speed of summoned champions, clamped to the supported range. */
+export const resolveChampionAttackSpeedMultiplier = (
+  config: Partial<ParticipationRuleConfig> | undefined
+): number => {
+  const multiplier = config?.championAttackSpeedMultiplier;
+  if (typeof multiplier !== 'number' || !Number.isFinite(multiplier)) {
+    return GAME_CONSTANTS.SUMMON_RULES.CHAMPION_ATTACK_SPEED_MULTIPLIER;
+  }
+  return Math.min(
+    GAME_CONSTANTS.SUMMON_RULES.MAX_CHAMPION_ATTACK_SPEED_MULTIPLIER,
+    Math.max(GAME_CONSTANTS.SUMMON_RULES.MIN_CHAMPION_ATTACK_SPEED_MULTIPLIER, multiplier)
+  );
+};
+
 interface DeployedChampion {
   minion: MinionEntity;
   portal: SummonPortalEntity;
@@ -97,7 +111,6 @@ const buildDeployedChampion = (
     orbitAngle: Math.random() * Math.PI * 2,
     verticalOffset: 0,
     createdAt: now,
-    lifetimeMs: GAME_CONSTANTS.MINIONS.LIFETIME_MS,
     dps: baseDps,
     hp: CHAMPION_DEFAULT_MAX_HP,
     maxHp: CHAMPION_DEFAULT_MAX_HP,

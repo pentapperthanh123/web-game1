@@ -24,11 +24,11 @@ const KillRow = ({ entry }: { entry: DefeatedChampionEntity }) => {
   const colorTheme = useGameStore((state) => state.activeTeams[entry.team]?.colorTheme);
   const teamTheme = getTeamTheme(colorTheme);
   return (
-    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-950/80 border border-rose-500/30 text-[9px] leading-none animate-in fade-in slide-in-from-right-2 duration-200 max-w-full">
-      <span className="shrink-0">💀</span>
+    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950/95 border border-rose-500/60 text-[11px] sm:text-xs leading-tight animate-in fade-in slide-in-from-right-2 duration-200 max-w-full shadow-lg">
+      <span className="shrink-0 text-xs">💀</span>
       <span className={`font-black truncate ${teamTheme.textClass}`}>{entry.championName}</span>
-      <span className="text-slate-400 truncate">@{entry.summonerName}</span>
-      <span className="text-rose-300/90 truncate">
+      <span className="text-amber-300 font-bold truncate">@{entry.summonerName}</span>
+      <span className="text-rose-200 font-semibold truncate">
         {t('KillFeed.byKiller', { defaultValue: '— {{killer}}', killer: entry.killerName })}
       </span>
     </div>
@@ -55,22 +55,36 @@ export const KillFeed = React.memo(() => {
 });
 KillFeed.displayName = 'KillFeed';
 
-/** "QUÉT SẠCH" stamp after a boss action kills several champions at once. */
+/** "QUÉT SẠCH / ACE" stamp after the arena is cleared of champions or an instant wipe occurs. */
 export const WipeStamp = React.memo(() => {
   const { t } = useTranslation();
   const wipeAt = useCombatMomentStore((state) => state.wipeAt);
   const wipeKillCount = useCombatMomentStore((state) => state.wipeKillCount);
-  const now = useNow(KILL_FEED_TICK_MS);
+  const now = useNow(100);
   const isVisible = wipeAt > 0 && now - wipeAt < COMBAT_MOMENT_CONSTANTS.WIPE_STAMP_MS;
   if (!isVisible) return null;
 
   return (
-    <div key={wipeAt} className="pointer-events-none select-none animate-wipe-stamp text-center">
-      <div className="text-2xl font-black tracking-widest text-rose-400 drop-shadow-[0_0_14px_rgba(244,63,94,0.85)] [-webkit-text-stroke:1px_#fff1f2]">
-        {t('KillFeed.wipeTitle', 'QUÉT SẠCH!')}
-      </div>
-      <div className="text-[11px] font-bold text-rose-100">
-        {t('KillFeed.wipeSubtitle', { defaultValue: '{{count}} tướng gục ngã', count: wipeKillCount })}
+    <div key={wipeAt} className="pointer-events-none select-none animate-wipe-stamp text-center my-1 transform-gpu">
+      <div className="relative inline-flex flex-col items-center px-6 py-2 rounded-2xl bg-slate-950/95 border-2 border-rose-500 shadow-[0_0_40px_rgba(244,63,94,0.75),inset_0_1px_2px_rgba(255,255,255,0.3)]">
+        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-32 h-0.5 bg-gradient-to-r from-transparent via-rose-300 to-transparent" />
+        <div className="flex items-center gap-2.5">
+          <span className="text-[11px] font-black px-2 py-0.5 rounded bg-rose-600 text-white tracking-widest shadow-md">
+            ACE
+          </span>
+          <span className="text-2xl sm:text-3xl font-black tracking-widest text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] [text-shadow:0_0_20px_rgba(244,63,94,1),0_2px_4px_rgba(0,0,0,0.95)]">
+            {t('KillFeed.wipeTitle', 'QUÉT SẠCH!')}
+          </span>
+          <span className="text-[11px] font-black px-2 py-0.5 rounded bg-rose-600 text-white tracking-widest shadow-md">
+            ACE
+          </span>
+        </div>
+        <div className="mt-1 text-xs font-bold text-rose-200 drop-shadow-sm flex items-center gap-1.5">
+          <span className="inline-block w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+          {wipeKillCount > 0
+            ? t('KillFeed.wipeSubtitle', { defaultValue: '{{count}} tướng gục ngã — Sàn đấu trống!', count: wipeKillCount })
+            : t('KillFeed.wipeEmptyField', 'Toàn bộ tướng đã gục ngã — Sàn đấu trống!')}
+        </div>
       </div>
     </div>
   );

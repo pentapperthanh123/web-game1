@@ -1,10 +1,13 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { TEAM_KEY, TeamType, BossThemeConfig } from '../../constants/game';
+import {
+  FINISHER_BANNER_CONSTANTS,
+  isDonorFinisherCheck,
+  TEAM_KEY,
+  TeamType,
+  BossThemeConfig,
+} from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
-import { TeamLogo } from '../icons/TeamLogos';
 import { BossMythicCrest } from '../icons/BossMythicCrest';
 
 interface BossDefeatedCrest2DProps {
@@ -15,27 +18,44 @@ const COMPASS_CARDINAL_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
 
 export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.memo(
   ({ themeConfig }) => {
-    const { t } = useTranslation();
-    const finisherPlayerName = useGameStore((state) => state.finisherPlayerName);
     const finisherTeam = useGameStore((state) => state.finisherTeam);
+    const finisherGiftName = useGameStore((state) => state.finisherGiftName);
+    const finisherCoins = useGameStore((state) => state.finisherCoins);
     const roundWinner = useGameStore((state) => state.roundWinner);
     const bossDefeatedTimestamp = useGameStore((state) => state.bossDefeatedTimestamp);
     const activeTeams = useGameStore((state) => state.activeTeams);
 
-    if (bossDefeatedTimestamp === 0) return null;
+    const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
+
+    const [hasImpacted, setHasImpacted] = useState<boolean>(() => {
+      if (!isDonorFinisher) return true;
+      return Date.now() - bossDefeatedTimestamp >= FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS;
+    });
+
+    useEffect(() => {
+      if (!isDonorFinisher || bossDefeatedTimestamp <= 0) {
+        setHasImpacted(true);
+        return;
+      }
+      const elapsed = Date.now() - bossDefeatedTimestamp;
+      const remaining = FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS - elapsed;
+      if (remaining <= 0) {
+        setHasImpacted(true);
+        return;
+      }
+      setHasImpacted(false);
+      const timer = setTimeout(() => {
+        setHasImpacted(true);
+      }, remaining);
+      return () => clearTimeout(timer);
+    }, [isDonorFinisher, bossDefeatedTimestamp]);
+
+    if (bossDefeatedTimestamp === 0 || !hasImpacted) return null;
 
     const winnerTeam: TeamType = (finisherTeam || roundWinner || TEAM_KEY.BLG) as TeamType;
     const winnerProfile = activeTeams[winnerTeam];
     const teamTheme = getTeamTheme(winnerProfile?.colorTheme);
-    const teamLabel = winnerProfile?.shortTag || winnerTeam;
     const glowHex = `${teamTheme.primaryHex}80`;
-
-    const buffTitle = themeConfig.defeatBuffTitle
-      ? themeConfig.defeatBuffTitle.replace('{{team}}', teamLabel)
-      : t('Victory.genericBuffClaimed', 'BÙA LỢI {{boss}} THUỘC VỀ {{team}}', {
-          boss: themeConfig.bossName,
-          team: teamLabel,
-        });
 
     return (
       <div
@@ -132,47 +152,6 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
                 className="absolute inset-1.5 rounded-full opacity-40 animate-pulse pointer-events-none"
               />
               <BossMythicCrest themeConfig={themeConfig} teamTheme={teamTheme} size="lg" />
-            </div>
-          </div>
-
-          {/* Broadcast Victory Buff Banner */}
-          <div
-            style={{
-              borderColor: teamTheme.primaryHex,
-              boxShadow: `0 0 35px ${teamTheme.primaryHex}45, inset 0 0 16px ${teamTheme.primaryHex}20`,
-            }}
-            className="mt-3 flex flex-col items-center px-4 sm:px-6 py-2.5 rounded-2xl border-2 bg-slate-950/95 backdrop-blur-xl max-w-[92vw] sm:max-w-md shadow-2xl space-y-1.5"
-          >
-            {/* Team Logo, Tag & Buff Title */}
-            <div className="flex items-center space-x-2">
-              <TeamLogo
-                teamProfile={winnerProfile}
-                className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 object-contain drop-shadow"
-              />
-              <span
-                className={`text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${teamTheme.badgePillClass}`}
-              >
-                {teamLabel}
-              </span>
-              <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] text-center">
-                {buffTitle}
-              </span>
-            </div>
-
-            {/* Finisher Viewer Shoutout */}
-            {finisherPlayerName && (
-              <div className="flex items-center space-x-1.5 text-[9.5px] sm:text-[10.5px] font-bold text-slate-300">
-                <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0 animate-pulse" />
-                <span className="text-slate-400">{t('Victory.finisherLabel', 'Kết liễu bởi')}:</span>
-                <span className={`font-black ${teamTheme.textStrongClass} truncate max-w-[200px]`}>
-                  {finisherPlayerName}
-                </span>
-              </div>
-            )}
-
-            {/* Buff Perks Description */}
-            <div className="flex items-center space-x-1 text-[8.5px] sm:text-[9.5px] font-semibold text-cyan-300/90 tracking-wide text-center pt-1 border-t border-slate-800/80 w-full justify-center">
-              <span>{t('Victory.buffPerks', 'Toàn bộ tướng được cường hóa sức mạnh vô song!')}</span>
             </div>
           </div>
         </div>

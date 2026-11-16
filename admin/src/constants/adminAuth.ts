@@ -31,3 +31,6 @@ export const TIKTOK_RECONNECT_TEXT = {
 
 export const COUNTDOWN_TICK_MS = 1000;
 export const MS_PER_SECOND = 1000;
+
+export const DEFAULT_TIKTOK_USERNAME = 'bap.media.lifestyle99';
+

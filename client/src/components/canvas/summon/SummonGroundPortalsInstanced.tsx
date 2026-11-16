@@ -27,8 +27,9 @@ export const SummonGroundPortalsInstanced = () => {
     const pillarMesh = pillarRef.current;
     if (!outerMesh || !innerMesh || !pillarMesh) return;
 
-    const portals = useGameStore.getState().activeSummonPortals;
-    if (portals.length === 0) {
+    const { activeSummonPortals: portals, bossStatus, bossHp } = useGameStore.getState();
+    const isDefeated = bossStatus === 'DEFEATED' || bossHp <= 0;
+    if (isDefeated || portals.length === 0) {
       if (outerMesh.count !== 0) {
         outerMesh.count = 0;
         innerMesh.count = 0;

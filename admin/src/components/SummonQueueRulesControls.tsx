@@ -5,9 +5,12 @@ const OPTION_BUTTON_BASE = 'flex-1 py-1 rounded text-[10px] font-bold font-mono 
 const OPTION_BUTTON_IDLE = 'bg-slate-800 text-slate-400 hover:text-white';
 const DEPLOY_OPTION_ACTIVE = 'bg-cyan-500 text-slate-950 font-black';
 const DELAY_OPTION_ACTIVE = 'bg-amber-500 text-slate-950 font-black';
+const ATTACK_SPEED_OPTION_ACTIVE = 'bg-rose-500 text-slate-950 font-black';
 
 const formatSeconds = (ms: number): string =>
   (ms / SUMMON_QUEUE_UI.MS_PER_SECOND).toFixed(SUMMON_QUEUE_UI.SECONDS_FRACTION_DIGITS);
+
+const formatMultiplier = (multiplier: number): string => `x${multiplier}`;
 
 interface QueueOptionRowProps {
   options: readonly number[];
@@ -43,6 +46,7 @@ interface SummonQueueRulesControlsProps {
 export function SummonQueueRulesControls({ rules, onPatch }: SummonQueueRulesControlsProps) {
   const deployPerTurn = rules.maxDeployPerTurn ?? SUMMON_QUEUE_UI.DEFAULT_DEPLOY_PER_TURN;
   const turnDelayMs = rules.summonTurnDelayMs ?? SUMMON_QUEUE_UI.DEFAULT_TURN_DELAY_MS;
+  const attackSpeedMultiplier = rules.championAttackSpeedMultiplier ?? SUMMON_QUEUE_UI.DEFAULT_ATTACK_SPEED_MULTIPLIER;
 
   return (
     <>
@@ -76,6 +80,22 @@ export function SummonQueueRulesControls({ rules, onPatch }: SummonQueueRulesCon
           activeClassName={DELAY_OPTION_ACTIVE}
           formatLabel={(ms) => `${formatSeconds(ms)}s`}
           onSelect={(ms) => onPatch({ summonTurnDelayMs: ms })}
+        />
+      </div>
+
+      <div className="p-2 rounded-lg bg-slate-900 border border-slate-700/80 space-y-1">
+        <div className="flex items-center justify-between gap-2 text-[11px]">
+          <span className="text-slate-300 font-semibold">Tốc độ đánh của tướng triệu hồi</span>
+          <span className="font-mono font-bold text-rose-400 shrink-0">
+            {formatMultiplier(attackSpeedMultiplier)} tốc độ gốc
+          </span>
+        </div>
+        <QueueOptionRow
+          options={SUMMON_QUEUE_UI.ATTACK_SPEED_OPTIONS}
+          selectedValue={attackSpeedMultiplier}
+          activeClassName={ATTACK_SPEED_OPTION_ACTIVE}
+          formatLabel={formatMultiplier}
+          onSelect={(multiplier) => onPatch({ championAttackSpeedMultiplier: multiplier })}
         />
       </div>
     </>

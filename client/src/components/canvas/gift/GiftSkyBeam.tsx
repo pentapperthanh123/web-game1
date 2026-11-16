@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GIFT_TIER } from '../../../constants/game';
+import { getMegaGradeConfig, resolveAnnouncementCoins } from '../../../store/giftTier';
 import { BOSS_ANCHOR_ELEMENT_ID } from '../../../constants/bossSpriteAnchors';
 import { resolveBossAnchorWorld } from '../bossSkill/bossSkill3DShared';
 import {
@@ -44,6 +45,8 @@ export const GiftSkyBeam = () => {
   const raysRef = useRef<THREE.Group>(null);
   const ringRefs = useRef<(THREE.Mesh | null)[]>([]);
   const lastBannerIdRef = useRef<string | null>(null);
+  /** MEGA grade multiplier on beam width and ring reach, refreshed once per banner. */
+  const gradeScaleRef = useRef(1);
   const materials = useMemo(
     () => ({
       beamOuter: createGlowMaterial(GIFT_VFX_LAYOUT.CORE_WHITE),
@@ -65,6 +68,7 @@ export const GiftSkyBeam = () => {
     const isMega = active.banner.tier === GIFT_TIER.MEGA;
     if (lastBannerIdRef.current !== active.banner.id) {
       lastBannerIdRef.current = active.banner.id;
+      gradeScaleRef.current = isMega ? getMegaGradeConfig(resolveAnnouncementCoins(active.banner)).beamScale : 1;
       const colors = resolveGiftTeamColors(active.banner.team);
       materials.beamOuter.color.set(isMega ? GIFT_VFX_LAYOUT.MEGA_GOLD : colors.primary);
       materials.ring.color.set(colors.secondary);
@@ -74,14 +78,14 @@ export const GiftSkyBeam = () => {
 
     const { progress } = active;
     const beamLevel = Math.min(phase(progress, 0, TIMELINE.BEAM_IN_END), 1 - phase(progress, TIMELINE.BEAM_IN_END, TIMELINE.BEAM_OUT_END));
-    const beamWidth = (isMega ? SIZE.MEGA_BEAM_SCALE : 1) * (0.6 + 0.4 * beamLevel);
+    const beamWidth = (isMega ? SIZE.MEGA_BEAM_SCALE : 1) * gradeScaleRef.current * (0.6 + 0.4 * beamLevel);
     group.children[0].scale.set(beamWidth, 1, beamWidth);
     group.children[1].scale.set(beamWidth, 1, beamWidth);
     materials.beamOuter.opacity = beamLevel * OPACITY.BEAM_OUTER;
     materials.beamCore.opacity = beamLevel * OPACITY.BEAM_CORE;
     materials.core.opacity = pulseWindow(progress, 0, TIMELINE.BEAM_OUT_END) * OPACITY.CORE;
 
-    const ringMax = isMega ? SIZE.RING_MAX_MEGA : SIZE.RING_MAX_BIG;
+    const ringMax = (isMega ? SIZE.RING_MAX_MEGA : SIZE.RING_MAX_BIG) * gradeScaleRef.current;
     ringRefs.current.forEach((ring, index) => {
       if (!ring) return;
       const start = TIMELINE.RING_START + index * TIMELINE.RING_STAGGER;

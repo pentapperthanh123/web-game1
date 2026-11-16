@@ -72,72 +72,73 @@
       ]
     },
     "GENG": {
-      "id": "preset-blg",
-      "name": "Bilibili Gaming",
-      "shortTag": "BLG",
+      "id": "preset-geng",
+      "name": "Gen.G Esports",
+      "shortTag": "GEN",
       "aliases": [
-        "BLG",
-        "BILIBILI"
+        "GEN",
+        "GENG",
+        "GEN.G"
       ],
       "autoSyncRosterAliases": true,
-      "colorTheme": "cyan",
-      "logoUrl": "/images/teams/blg.png",
+      "colorTheme": "amber",
+      "logoUrl": "/images/teams/geng.svg",
       "isPreset": true,
       "roster": [
         {
-          "id": "geng-preset-blg-top-0",
-          "name": "Bin",
+          "id": "geng-preset-geng-top-0",
+          "name": "Kiin",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "Jax",
-          "championKey": "Jax",
+          "signatureChampion": "K'Sante",
+          "championKey": "KSante",
           "team": "GENG",
-          "color": "#38bdf8",
-          "avatarUrl": "/images/players/bin.png"
+          "color": "#f59e0b",
+          "avatarUrl": "/images/players/kiin.png"
         },
         {
-          "id": "geng-preset-blg-jug-1",
-          "name": "Xun",
+          "id": "geng-preset-geng-jug-1",
+          "name": "Canyon",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Xin Zhao",
-          "championKey": "XinZhao",
+          "signatureChampion": "Nidalee",
+          "championKey": "Nidalee",
           "team": "GENG",
-          "color": "#06b6d4",
-          "avatarUrl": "/images/players/xun.png"
+          "color": "#fbbf24",
+          "avatarUrl": "/images/players/canyon.png"
         },
         {
-          "id": "geng-preset-blg-mid-2",
-          "name": "Knight",
+          "id": "geng-preset-geng-mid-2",
+          "name": "Chovy",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "Ahri",
-          "championKey": "Ahri",
+          "signatureChampion": "Yone",
+          "championKey": "Yone",
           "team": "GENG",
-          "color": "#60a5fa",
-          "avatarUrl": "/images/players/knight.png"
+          "color": "#eab308",
+          "avatarUrl": "/images/players/chovy.png"
         },
         {
-          "id": "geng-preset-blg-adc-3",
-          "name": "Elk",
+          "id": "geng-preset-geng-adc-3",
+          "name": "Ruler",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Kalista",
-          "championKey": "Kalista",
+          "signatureChampion": "Ezreal",
+          "championKey": "Ezreal",
           "team": "GENG",
-          "color": "#22d3ee",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kalista.png"
+          "color": "#f97316",
+          "avatarUrl": "/images/players/ruler.png"
         },
         {
-          "id": "geng-preset-blg-sup-4",
-          "name": "ON",
+          "id": "geng-preset-geng-sup-4",
+          "name": "Duro",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Rakan",
-          "championKey": "Rakan",
+          "signatureChampion": "Nautilus",
+          "championKey": "Nautilus",
           "team": "GENG",
-          "color": "#34d399",
-          "avatarUrl": "/images/players/on.png"
+          "color": "#d97706",
+          "avatarUrl": "/images/players/duro.png"
         }
       ]
     }
@@ -191,14 +192,14 @@
         },
         {
           "id": "blg-preset-blg-adc-3",
-          "name": "Elk",
+          "name": "Viper",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Kalista",
-          "championKey": "Kalista",
+          "signatureChampion": "Kai'Sa",
+          "championKey": "Kaisa",
           "team": "BLG",
           "color": "#22d3ee",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Kalista.png"
+          "avatarUrl": "/images/players/viper.png"
         },
         {
           "id": "blg-preset-blg-sup-4",

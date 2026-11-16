@@ -9,6 +9,8 @@ import {
   AUDIO_SFX_CONSTANTS,
 } from '../constants/game';
 import { AudioDensityGate } from './audioDensityGate';
+import { QUAKE_SFX } from '../constants/bossUltimateFeedback';
+import { isCurrentRoundIntroActive } from '../store/roundIntroStore';
 
 export const AUDIO_BUS = {
   /** Stingers, fanfares, boss voice: never ducked. */
@@ -17,6 +19,23 @@ export const AUDIO_BUS = {
   COMBAT: 'COMBAT',
 } as const;
 export type AudioBus = (typeof AUDIO_BUS)[keyof typeof AUDIO_BUS];
+
+/** Synth firework for big gifts: a noise crack, then a few falling sparkle pings. */
+const FIREWORK_SFX = {
+  CRACK_GAIN: 0.22,
+  CRACK_DURATION_S: 0.32,
+  CRACK_FILTER_START_HZ: 5200,
+  CRACK_FILTER_END_HZ: 900,
+  SPARKLE_COUNT: 4,
+  SPARKLE_GAIN: 0.07,
+  SPARKLE_BASE_HZ: 2400,
+  SPARKLE_SPREAD_HZ: 1800,
+  SPARKLE_FIRST_DELAY_S: 0.08,
+  SPARKLE_STEP_S: 0.07,
+  SPARKLE_DURATION_S: 0.18,
+  PAN_SPREAD: 0.7,
+  SILENCE_GAIN: 0.001,
+} as const;
 
 const resolveTeamPan = (team: TeamType | undefined, width: number): number => {
   if (team === TEAM_KEY.BLG) return -width;
@@ -39,8 +58,18 @@ const BGM_SEQUENCE = {
   SUB_S: 0.2,
 } as const;
 
-const TTS_CONSTANTS = {
+export interface SpeakOptions {
+  rate?: number;
+}
+
+interface TtsQueueItem {
+  text: string;
+  rate: number;
+}
+
+export const TTS_CONSTANTS = {
   MAX_QUEUE: 3,
+  DEFAULT_RATE: 1.25,
 } as const;
 
 /**
@@ -82,7 +111,7 @@ class AudioSynthesizerService {
   }
 
   private isSpeaking = false;
-  private ttsQueue: string[] = [];
+  private ttsQueue: TtsQueueItem[] = [];
   private lastRoarSoundTime = 0;
   private lastComboSoundTime = 0;
   private lastHeartChimeTime = 0;
@@ -203,7 +232,7 @@ class AudioSynthesizerService {
   // 1. Procedural Dragon Roar & Elemental Flame/Void Attack (Dynamic per Boss Theme)
   public playBossRoarSound(pitchRateOrElder: number | boolean = 1.0, isEnraged = false): void {
     const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
-    if (!this.isAudioEnabled || this.isCombatMuted) return;
+    if (!this.isAudioEnabled || this.isCombatMuted || isCurrentRoundIntroActive()) return;
     const now = performance.now();
     if (now - this.lastRoarSoundTime < 600) return;
     this.lastRoarSoundTime = now;
@@ -340,7 +369,7 @@ class AudioSynthesizerService {
 
     const t = ctx.currentTime;
     const out = this.getOutputNode(0);
-    const vol = this.volume * 0.42;
+    const vol = this.volume * 0.12;
 
     const noise = ctx.createBufferSource();
     noise.buffer = this.getNoiseBuffer(ctx);
@@ -1142,6 +1171,181 @@ class AudioSynthesizerService {
     });
   }
 
+  /** Firework burst layered under BIG / MEGA gift shells (panned randomly so a volley feels wide). */
+  public playFireworkBurst(): void {
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const startAt = ctx.currentTime;
+    const pan = (Math.random() * 2 - 1) * FIREWORK_SFX.PAN_SPREAD;
+    const out = this.getOutputNode(pan, AUDIO_BUS.MASTER);
+
+    const crack = ctx.createBufferSource();
+    crack.buffer = this.getNoiseBuffer(ctx);
+    const crackFilter = ctx.createBiquadFilter();
+    crackFilter.type = 'bandpass';
+    crackFilter.frequency.setValueAtTime(FIREWORK_SFX.CRACK_FILTER_START_HZ, startAt);
+    crackFilter.frequency.exponentialRampToValueAtTime(FIREWORK_SFX.CRACK_FILTER_END_HZ, startAt + FIREWORK_SFX.CRACK_DURATION_S);
+    const crackGain = ctx.createGain();
+    crackGain.gain.setValueAtTime(FIREWORK_SFX.CRACK_GAIN * this.volume, startAt);
+    crackGain.gain.exponentialRampToValueAtTime(FIREWORK_SFX.SILENCE_GAIN, startAt + FIREWORK_SFX.CRACK_DURATION_S);
+    crack.connect(crackFilter);
+    crackFilter.connect(crackGain);
+    crackGain.connect(out);
+    crack.start(startAt);
+    crack.stop(startAt + FIREWORK_SFX.CRACK_DURATION_S);
+
+    for (let index = 0; index < FIREWORK_SFX.SPARKLE_COUNT; index += 1) {
+      const pingAt = startAt + FIREWORK_SFX.SPARKLE_FIRST_DELAY_S + index * FIREWORK_SFX.SPARKLE_STEP_S;
+      const ping = ctx.createOscillator();
+      const pingGain = ctx.createGain();
+      ping.type = 'sine';
+      ping.frequency.setValueAtTime(FIREWORK_SFX.SPARKLE_BASE_HZ + Math.random() * FIREWORK_SFX.SPARKLE_SPREAD_HZ, pingAt);
+      pingGain.gain.setValueAtTime(FIREWORK_SFX.SPARKLE_GAIN * this.volume, pingAt);
+      pingGain.gain.exponentialRampToValueAtTime(FIREWORK_SFX.SILENCE_GAIN, pingAt + FIREWORK_SFX.SPARKLE_DURATION_S);
+      ping.connect(pingGain);
+      pingGain.connect(out);
+      ping.start(pingAt);
+      ping.stop(pingAt + FIREWORK_SFX.SPARKLE_DURATION_S);
+    }
+  }
+
+  /**
+   * Sustained earthquake under a boss ultimate: a shuddering low noise bed + drone that swells in,
+   * holds for the whole skill and dies out, with rock cracks scattered on top.
+   * `intensity` 0..1 = how hard the skill hits the ground; `pitchRate` = the boss's own pitch.
+   */
+  public playQuakeRumble(durationS: number, intensity = 1, pitchRate = 1): void {
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const lengthS = Math.max(QUAKE_SFX.MIN_DURATION_S, durationS);
+    const startAt = ctx.currentTime;
+    const endAt = startAt + lengthS;
+    const releaseAt = startAt + lengthS * (1 - QUAKE_SFX.RELEASE_RATIO);
+    const level = intensity * this.volume;
+
+    const envelope = ctx.createGain();
+    envelope.gain.setValueAtTime(QUAKE_SFX.SILENCE_GAIN, startAt);
+    envelope.gain.linearRampToValueAtTime(1, startAt + QUAKE_SFX.ATTACK_S);
+    envelope.gain.setValueAtTime(1, releaseAt);
+    envelope.gain.exponentialRampToValueAtTime(QUAKE_SFX.SILENCE_GAIN, endAt);
+    envelope.connect(this.getOutputNode(0, AUDIO_BUS.MASTER));
+
+    // Tremolo: the bed shudders instead of sounding like steady wind
+    const tremolo = ctx.createGain();
+    tremolo.gain.setValueAtTime(1 - QUAKE_SFX.TREMOLO_DEPTH / 2, startAt);
+    const tremoloLfo = ctx.createOscillator();
+    const tremoloDepth = ctx.createGain();
+    tremoloLfo.frequency.setValueAtTime(QUAKE_SFX.TREMOLO_HZ, startAt);
+    tremoloDepth.gain.setValueAtTime(QUAKE_SFX.TREMOLO_DEPTH / 2, startAt);
+    tremoloLfo.connect(tremoloDepth);
+    tremoloDepth.connect(tremolo.gain);
+    tremolo.connect(envelope);
+    tremoloLfo.start(startAt);
+    tremoloLfo.stop(endAt);
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.getNoiseBuffer(ctx);
+    noise.loop = true;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(QUAKE_SFX.NOISE_CUTOFF_HZ * pitchRate, startAt);
+    noiseFilter.frequency.exponentialRampToValueAtTime(QUAKE_SFX.NOISE_CUTOFF_END_HZ * pitchRate, endAt);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(QUAKE_SFX.NOISE_GAIN * level, startAt);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(tremolo);
+    noise.start(startAt);
+    noise.stop(endAt);
+
+    this.startQuakeDrone(ctx, tremolo, 'sine', QUAKE_SFX.SUB_HZ * pitchRate, QUAKE_SFX.SUB_GAIN * level, startAt, endAt);
+    this.startQuakeDrone(ctx, tremolo, 'triangle', QUAKE_SFX.HARMONIC_HZ * pitchRate, QUAKE_SFX.HARMONIC_GAIN * level, startAt, endAt);
+    this.scheduleQuakeDebris(ctx, startAt, releaseAt - startAt, level);
+  }
+
+  private startQuakeDrone(
+    ctx: AudioContext,
+    destination: AudioNode,
+    waveform: OscillatorType,
+    frequencyHz: number,
+    gainValue: number,
+    startAt: number,
+    endAt: number
+  ): void {
+    const drone = ctx.createOscillator();
+    const droneGain = ctx.createGain();
+    drone.type = waveform;
+    drone.frequency.setValueAtTime(frequencyHz, startAt);
+    droneGain.gain.setValueAtTime(gainValue, startAt);
+    drone.connect(droneGain);
+    droneGain.connect(destination);
+    drone.start(startAt);
+    drone.stop(endAt);
+  }
+
+  /** Short band-passed noise cracks at random moments and pan positions (rock breaking, debris). */
+  private scheduleQuakeDebris(ctx: AudioContext, startAt: number, spanS: number, level: number): void {
+    const debrisCount = Math.round(spanS * QUAKE_SFX.DEBRIS_PER_SECOND);
+    for (let index = 0; index < debrisCount; index += 1) {
+      const crackAt = startAt + Math.random() * spanS;
+      const crack = ctx.createBufferSource();
+      crack.buffer = this.getNoiseBuffer(ctx);
+      const crackFilter = ctx.createBiquadFilter();
+      crackFilter.type = 'bandpass';
+      crackFilter.frequency.setValueAtTime(QUAKE_SFX.DEBRIS_MIN_HZ + Math.random() * QUAKE_SFX.DEBRIS_SPREAD_HZ, crackAt);
+      const crackGain = ctx.createGain();
+      crackGain.gain.setValueAtTime(QUAKE_SFX.DEBRIS_GAIN * level, crackAt);
+      crackGain.gain.exponentialRampToValueAtTime(QUAKE_SFX.SILENCE_GAIN, crackAt + QUAKE_SFX.DEBRIS_DURATION_S);
+      crack.connect(crackFilter);
+      crackFilter.connect(crackGain);
+      crackGain.connect(this.getOutputNode((Math.random() * 2 - 1) * QUAKE_SFX.DEBRIS_PAN_SPREAD, AUDIO_BUS.MASTER));
+      crack.start(crackAt, Math.random());
+      crack.stop(crackAt + QUAKE_SFX.DEBRIS_DURATION_S);
+    }
+  }
+
+  /** One heavy ground hit (a slam / nova / meteor layer landing, or the ultimate's damage). */
+  public playQuakeImpact(intensity = 1, pitchRate = 1): void {
+    if (!this.isAudioEnabled || this.isCombatMuted) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const startAt = ctx.currentTime;
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
+    const level = Math.min(1, intensity) * this.volume;
+
+    const thump = ctx.createOscillator();
+    const thumpGain = ctx.createGain();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(QUAKE_SFX.IMPACT_START_HZ * pitchRate, startAt);
+    thump.frequency.exponentialRampToValueAtTime(QUAKE_SFX.IMPACT_END_HZ * pitchRate, startAt + QUAKE_SFX.IMPACT_DURATION_S);
+    thumpGain.gain.setValueAtTime(QUAKE_SFX.IMPACT_GAIN * level, startAt);
+    thumpGain.gain.exponentialRampToValueAtTime(QUAKE_SFX.SILENCE_GAIN, startAt + QUAKE_SFX.IMPACT_DURATION_S);
+    thump.connect(thumpGain);
+    thumpGain.connect(out);
+    thump.start(startAt);
+    thump.stop(startAt + QUAKE_SFX.IMPACT_DURATION_S);
+
+    const thud = ctx.createBufferSource();
+    thud.buffer = this.getNoiseBuffer(ctx);
+    const thudFilter = ctx.createBiquadFilter();
+    thudFilter.type = 'lowpass';
+    thudFilter.frequency.setValueAtTime(QUAKE_SFX.IMPACT_NOISE_START_HZ, startAt);
+    thudFilter.frequency.exponentialRampToValueAtTime(QUAKE_SFX.IMPACT_NOISE_END_HZ, startAt + QUAKE_SFX.IMPACT_NOISE_DURATION_S);
+    const thudGain = ctx.createGain();
+    thudGain.gain.setValueAtTime(QUAKE_SFX.IMPACT_NOISE_GAIN * level, startAt);
+    thudGain.gain.exponentialRampToValueAtTime(QUAKE_SFX.SILENCE_GAIN, startAt + QUAKE_SFX.IMPACT_NOISE_DURATION_S);
+    thud.connect(thudFilter);
+    thudFilter.connect(thudGain);
+    thudGain.connect(out);
+    thud.start(startAt);
+    thud.stop(startAt + QUAKE_SFX.IMPACT_NOISE_DURATION_S);
+  }
+
   // 9. Procedural Victory Sound
   public playVictoryFanfare(): void {
     if (!this.isAudioEnabled) return;
@@ -1375,6 +1579,75 @@ class AudioSynthesizerService {
     });
   }
 
+  /** Esports war drum & metallic slam when combat commences immediately. */
+  public playCombatDeployBlastSound(): void {
+    this.setCombatMuted(false);
+    if (!this.isAudioEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
+    const vol = this.volume;
+
+    // 1. Heavy War Gong / Sub Bass Slam (D2 -> Sub)
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(140, t);
+    subOsc.frequency.exponentialRampToValueAtTime(32, t + 0.55);
+
+    subGain.gain.setValueAtTime(0.6 * vol, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+
+    subOsc.connect(subGain);
+    subGain.connect(out);
+    subOsc.start(t);
+    subOsc.stop(t + 0.68);
+
+    // 2. High-impact Metallic Sword Clash
+    const clashOsc1 = ctx.createOscillator();
+    const clashOsc2 = ctx.createOscillator();
+    const clashGain = ctx.createGain();
+    clashOsc1.type = 'sawtooth';
+    clashOsc2.type = 'triangle';
+    clashOsc1.frequency.setValueAtTime(880, t);
+    clashOsc1.frequency.exponentialRampToValueAtTime(220, t + 0.22);
+    clashOsc2.frequency.setValueAtTime(1320, t);
+    clashOsc2.frequency.exponentialRampToValueAtTime(330, t + 0.28);
+
+    clashGain.gain.setValueAtTime(0.35 * vol, t);
+    clashGain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+
+    clashOsc1.connect(clashGain);
+    clashOsc2.connect(clashGain);
+    clashGain.connect(out);
+    clashOsc1.start(t);
+    clashOsc2.start(t);
+    clashOsc1.stop(t + 0.35);
+    clashOsc2.stop(t + 0.35);
+
+    // 3. Triumphant Battle Horn Triad (D4 - F#4 - A4 - D5 fanfare)
+    const fanfareNotes = [293.66, 369.99, 440.0, 587.33];
+    fanfareNotes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = t + 0.05 + idx * 0.07;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.28 * vol, startTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.55);
+
+      osc.connect(gain);
+      gain.connect(out);
+      osc.start(startTime);
+      osc.stop(startTime + 0.6);
+    });
+  }
+
   // 11e. Subtle Tactile UI Toggle Click
   public playUiToggleSound(isEnabled = true): void {
     if (!this.isAudioEnabled) return;
@@ -1472,7 +1745,7 @@ class AudioSynthesizerService {
   }
 
   public playBeamBurstSound(isUltimate = false): void {
-    if (!this.isAudioEnabled || this.isCombatMuted) return;
+    if (!this.isAudioEnabled) return;
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -1499,12 +1772,22 @@ class AudioSynthesizerService {
   public cancelSpeech(): void {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
     }
     this.ttsQueue = [];
     this.isSpeaking = false;
   }
 
-  public speak(text: string): void {
+  public speakImmediate(text: string, options: SpeakOptions = {}): void {
+    this.cancelSpeech();
+    window.setTimeout(() => {
+      this.speak(text, options);
+    }, 30);
+  }
+
+  public speak(text: string, options: SpeakOptions = {}): void {
     if (!this.isTtsEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return;
     }
@@ -1515,25 +1798,48 @@ class AudioSynthesizerService {
     if (this.ttsQueue.length >= TTS_CONSTANTS.MAX_QUEUE) {
       this.ttsQueue.shift();
     }
-    this.ttsQueue.push(sanitized);
+    const rate = options.rate ?? TTS_CONSTANTS.DEFAULT_RATE;
+    this.ttsQueue.push({ text: sanitized, rate });
     this.processTtsQueue();
   }
 
   private processTtsQueue(): void {
     if (this.isSpeaking || this.ttsQueue.length === 0) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      this.isSpeaking = false;
+      return;
+    }
 
-    const text = this.ttsQueue.shift();
-    if (!text) return;
+    const item = this.ttsQueue.shift();
+    if (!item) return;
 
+    const { text, rate } = item;
     this.isSpeaking = true;
+    const isEn =
+      /^[a-zA-Z0-9\s.,!?:;'"()-]+$/.test(text) &&
+      !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(text);
+
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'vi-VN';
-    utterance.rate = 1.15;
+    utterance.lang = isEn ? 'en-US' : 'vi-VN';
+    utterance.rate = rate;
     utterance.volume = this.volume;
+
+    // Pick a natural voice matching language if installed in browser
+    const voices = window.speechSynthesis.getVoices();
+    const targetPrefix = isEn ? 'en' : 'vi';
+    const matchedVoice = voices.find((v) => v.lang.toLowerCase().startsWith(targetPrefix));
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
+    } else if (!isEn) {
+      // STRICT: Never allow the OS default English voice (e.g. Microsoft David) to spell Vietnamese phonetically
+      this.isSpeaking = false;
+      this.processTtsQueue();
+      return;
+    }
 
     utterance.onend = () => {
       this.isSpeaking = false;
-      setTimeout(() => this.processTtsQueue(), 250);
+      setTimeout(() => this.processTtsQueue(), 150);
     };
 
     utterance.onerror = () => {
@@ -1541,6 +1847,9 @@ class AudioSynthesizerService {
       this.processTtsQueue();
     };
 
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
     window.speechSynthesis.speak(utterance);
   }
 }

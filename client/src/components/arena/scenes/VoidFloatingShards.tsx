@@ -21,10 +21,10 @@ const SHARDS: readonly ShardSpec[] = [
 ];
 
 const SHARD_COLORS = {
-  ROCK_TOP: '#0f1b2b',
-  ROCK_BOTTOM: '#02060c',
-  RIM: '#67e8f9',
-  CRYSTAL: '#a5f3fc',
+  ROCK_TOP: '#140c24',
+  ROCK_BOTTOM: '#030108',
+  RIM: '#c084fc',
+  CRYSTAL: '#e879f9',
   CRYSTAL_CORE: '#ffffff',
 } as const;
 
@@ -63,7 +63,7 @@ export const VoidFloatingShards = () => (
           width: `${shard.widthVmin}vmin`,
           opacity: shard.opacity,
           transform: shard.isMirrored ? 'scaleX(-1)' : undefined,
-          filter: 'drop-shadow(0 0 10px rgba(103, 232, 249, 0.3))',
+          filter: 'drop-shadow(0 0 10px rgba(192, 132, 252, 0.35))',
         }}
       >
         <div

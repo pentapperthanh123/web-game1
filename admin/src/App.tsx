@@ -1,3 +1,5 @@
+import { ServerConnectionBanner } from './components/ServerConnectionBanner';
+import { AdminGiftConfigSection } from './components/giftConfig/AdminGiftConfigSection';
 import { useCallback, useState } from 'react';
 import { getTeamTheme } from './constants/teams';
 import {
@@ -87,6 +89,7 @@ export function App() {
   const shouldShowSeriesDuel = isAllTab || activeTab === ADMIN_PORTAL_TAB.SERIES_DUEL;
   const shouldShowInteraction = isAllTab || activeTab === ADMIN_PORTAL_TAB.INTERACTION;
   const shouldShowBossMap = isAllTab || activeTab === ADMIN_PORTAL_TAB.BOSS_MAP;
+  const shouldShowGiftConfig = isAllTab || activeTab === ADMIN_PORTAL_TAB.GIFTS;
   const shouldShowOverlays =
     isAllTab ||
     activeTab === ADMIN_PORTAL_TAB.OVERLAYS ||
@@ -97,7 +100,11 @@ export function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-2.5 sm:p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        <AdminHeader onResetBoss={actions.handleResetBoss} />
+        <ServerConnectionBanner />
+        <AdminHeader
+          onResetBoss={actions.handleResetBoss}
+          onStartMatch={() => socketSync.handleBo5Control('startRound')}
+        />
 
         {/* Section Navigation Tabs (Top-most & Sticky) */}
         <div className="sticky top-0 sm:top-2 z-40">
@@ -123,6 +130,7 @@ export function App() {
           tiktokUsername={socketSync.tiktokUsername}
           tiktokStatus={socketSync.tiktokStatus}
           tiktokRoomId={socketSync.tiktokRoomId}
+          tiktokError={socketSync.tiktokError}
           reconnectAttempt={socketSync.reconnectAttempt}
           nextRetryAt={socketSync.nextRetryAt}
           isConnecting={socketSync.isConnecting}
@@ -222,6 +230,8 @@ export function App() {
             onBotSpeedChange={autoRunner.setBotSpeed}
           />
         </div>
+
+        <AdminGiftConfigSection visible={shouldShowGiftConfig} leftTeam={leftTeam} rightTeam={rightTeam} />
 
         <AdminBossMapSection
           visible={shouldShowBossMap}

@@ -3,7 +3,8 @@ import { getCombatTimeScale } from '../../store/combatMomentStore';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
-import { BOSS_STATUS, COMBAT_VFX_CONSTANTS } from '../../constants/game';
+import { BOSS_STATUS, COMBAT_VFX_CONSTANTS, GAME_CONSTANTS } from '../../constants/game';
+import { MinionEntity } from '../../types/game';
 import {
   liveMinionPositionMap,
   getLiveMinionPosition,
@@ -21,6 +22,25 @@ import { CHAMPION_DEFAULT_MAX_HP } from '../../constants/bossSkills';
 export { liveMinionPositionMap, getLiveMinionPosition, project3DToScreen };
 
 const activeMinionIdsSet = new Set<string>();
+
+/**
+ * Smart Spotlight Curation: Prevents visual clutter & overlapping nameplates on crowded fields.
+ * - Field <= 6: All champions display their nameplate.
+ * - Field > 6: Nameplate appears during key moments (first 4.5s of arrival, VIP/Signature, and full fury ultimate).
+ */
+const shouldShowNameplate = (
+  minion: MinionEntity,
+  totalLivingCount: number,
+  now: number
+): boolean => {
+  const lod = COMBAT_VFX_CONSTANTS.CROWD_LOD;
+  if (totalLivingCount <= lod.NAMEPLATE_MAX_UNCROWDED_COUNT) return true;
+  if (minion.isSignatureSynergy) return true;
+  if (now - (minion.createdAt || 0) < lod.NAMEPLATE_NEW_SUMMON_WINDOW_MS) return true;
+  const maxFury = minion.maxFury || GAME_CONSTANTS.MINION_FURY.MAX_FURY;
+  if ((minion.fury ?? 0) >= maxFury) return true;
+  return false;
+};
 
 /** Hysteresis so the field does not flip between detail levels around the threshold. */
 const useCompactCrowdMode = (championCount: number): boolean => {
@@ -45,7 +65,6 @@ export const SummonPortals3D = () => {
     return minions.filter((m) => (m.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0);
   }, [minions]);
   const isCompact = useCompactCrowdMode(visibleMinions.length);
-  const nameplateStartIndex = visibleMinions.length - COMBAT_VFX_CONSTANTS.CROWD_LOD.COMPACT_NAMEPLATE_BUDGET;
 
   useFrame((state, delta) => {
     const championsGroup = championsGroupRef.current;
@@ -109,7 +128,7 @@ export const SummonPortals3D = () => {
       <SquadEntrancePulse3D />
 
       <group ref={championsGroupRef}>
-        {visibleMinions.map((minion, index) => (
+        {visibleMinions.map((minion) => (
           // Stable key: switching to compact mode only changes uniforms, it must not remount every token
           <group key={minion.id} position={minion.spawnPosition}>
             <ChampionToken
@@ -117,7 +136,7 @@ export const SummonPortals3D = () => {
               colorThemeId={activeTeams[minion.team]?.colorTheme}
               shouldUseUserAvatar={shouldUseUserAvatar}
               isCompact={isCompact}
-              hasNameplate={!isCompact || index >= nameplateStartIndex}
+              hasNameplate={shouldShowNameplate(minion, visibleMinions.length, Date.now())}
             />
           </group>
         ))}

@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Heart, RefreshCw, FastForward, RotateCcw, Check, Trophy } from 'lucide-react';
+import { Heart, RefreshCw, FastForward, RotateCcw, Check, Trophy, Play, Swords } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
 import { ADMIN_CONSTANTS, TEAM_KEY } from '../../../constants/game';
 import { getTeamTheme } from '../../../constants/teams';
 import { gameSocket } from '../../../services/socket';
 import { getMatchupTitleCount } from '../../../store/championshipTally';
+import {
+  useRoundIntroStore,
+  startIntroNarration,
+  showRoundIntro,
+} from '../../../store/roundIntroStore';
+import { triggerStartRoundCombat } from '../../../services/roundIntroActions';
 
 export const AdminMatchTab: React.FC = () => {
   const { t } = useTranslation();
@@ -13,6 +19,8 @@ export const AdminMatchTab: React.FC = () => {
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const bo5Score = useGameStore((state) => state.bo5Score);
   const currentRound = useGameStore((state) => state.currentRound);
+  const isIntroActive = useRoundIntroStore((state) => state.isActive);
+  const isIntroManualHold = useRoundIntroStore((state) => state.isManualHold);
   const setBossHp = useGameStore((state) => state.setBossHp);
   const resetBoss = useGameStore((state) => state.resetBoss);
   const startNextRound = useGameStore((state) => state.startNextRound);
@@ -54,8 +62,9 @@ export const AdminMatchTab: React.FC = () => {
   };
 
   const handleNextRound = () => {
+    const finishedRound = useGameStore.getState().currentRound;
     startNextRound();
-    gameSocket.sendBO5Control('nextRound');
+    gameSocket.requestNextRound(finishedRound);
     showFeedback('Đã bắt đầu ván đấu mới!');
   };
 
@@ -132,6 +141,94 @@ export const AdminMatchTab: React.FC = () => {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Section: Match Intro & Start Narration */}
+      <div className="p-3 rounded-xl bg-gradient-to-r from-amber-950/40 via-slate-900/80 to-amber-950/40 border border-amber-500/40 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-1.5 font-bold text-amber-300">
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span>{t('Admin.introControlTitle', 'Điều Khiển Màn Hình Giới Thiệu & Bắt Đầu')}</span>
+          </div>
+          {isIntroActive && (
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                isIntroManualHold
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-400/50 animate-pulse'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
+              }`}
+            >
+              {isIntroManualHold
+                ? t('Admin.introWaiting', 'Chờ Bắt Đầu')
+                : t('Admin.introRunning', 'Đang Giới Thiệu')}
+            </span>
+          )}
+        </div>
+
+        <p className="text-[11px] text-slate-300">
+          {t(
+            'Admin.introControlDesc',
+            'Mới đầu chiếu giới thiệu 2 đội tuyển và danh sách tuyển thủ. Bấm Bắt đầu để Caster đọc thể thức và đếm ngược xung trận.'
+          )}
+        </p>
+
+        <div className="flex flex-wrap gap-2 pt-1">
+          {isIntroActive && isIntroManualHold && (
+            <button
+              type="button"
+              onClick={() => {
+                startIntroNarration();
+                showFeedback(
+                  t('Admin.introStartedFeedback', 'Đã bắt đầu giới thiệu ván và đọc thể thức!')
+                );
+              }}
+              className="flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black hover:brightness-110 transition active:scale-95 shadow-md"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>
+                {t('Admin.startIntroSpeechBtn', '▶ Bắt đầu ván {{round}} (Đọc thể thức)', {
+                  round: currentRound,
+                })}
+              </span>
+            </button>
+          )}
+
+          {isIntroActive && !isIntroManualHold && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerStartRoundCombat();
+                showFeedback(t('Admin.combatStartedFeedback', 'Đã bắt đầu trận đấu ngay!'));
+              }}
+              className="flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-lg bg-gradient-to-r from-rose-600 to-amber-500 text-slate-950 font-black hover:brightness-110 transition active:scale-95 shadow-md"
+            >
+              <Swords className="w-3.5 h-3.5" />
+              <span>{t('Admin.skipIntroBtn', '⚔️ Xung trận ngay (Bỏ qua giới thiệu)')}</span>
+            </button>
+          )}
+
+          {!isIntroActive && (
+            <button
+              type="button"
+              onClick={() => {
+                showRoundIntro(Date.now(), true);
+                showFeedback(
+                  t('Admin.reopenIntroFeedback', 'Đã mở màn hình giới thiệu ván {{round}}!', {
+                    round: currentRound,
+                  })
+                );
+              }}
+              className="flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-lg bg-slate-800 border border-slate-700 text-amber-300 font-bold hover:bg-slate-700 transition active:scale-95"
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>
+                {t('Admin.reopenIntroBtn', 'Chiếu lại màn hình giới thiệu ván {{round}}', {
+                  round: currentRound,
+                })}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 

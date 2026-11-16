@@ -6,6 +6,7 @@ import {
   TeamType,
   CHAMPION_SKILL_VFX_TYPE,
   ChampionSkillVFXType,
+  GAME_CONSTANTS,
 } from '../../constants/game';
 
 // -----------------------------------------------------------------------------
@@ -1026,7 +1027,7 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
 
     const resize = () => {
       if (!canvas) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      const dpr = Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.DPR_MAX);
       const width = window.innerWidth;
       const height = window.innerHeight;
       canvas.width = Math.round(width * dpr);

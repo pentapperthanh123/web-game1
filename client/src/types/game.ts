@@ -1,10 +1,11 @@
-import { TeamType, BossStatusType, DamageType, GameThemeType, ChampionSkillVFXType, GiftTier } from '../constants/game';
+import type { GiftRulePayload } from '../constants/giftConfig';
+import { TeamType, BossStatusType, DamageType, DamageSource, GameThemeType, ChampionSkillVFXType, GiftTier } from '../constants/game';
 export type { GameThemeType };
 import type { ChampionshipTally } from '../store/championshipTally';
 import { RosterPlayer } from '../constants/roster';
 import {
   BossSkillConfig,
-  BossSkillDefinition,
+  BossSkillImpactPoint,
   ActiveBossSkillBanner,
   BossPhase,
   BossStatusEffectType,
@@ -38,7 +39,6 @@ export interface MinionEntity {
   orbitAngle: number;
   verticalOffset: number;
   createdAt: number;
-  lifetimeMs: number;
   dps: number;
   hp: number;
   maxHp: number;
@@ -199,6 +199,8 @@ export interface GiftAnnouncement {
   streakCount?: number;
   totalCoins?: number;
   isComboFinal?: boolean;
+  /** Admin per-gift damage multiplier (1 when the gift has no rule). */
+  damageMultiplier?: number;
   timestamp: number;
 }
 
@@ -267,6 +269,16 @@ export interface AdminEventLog {
   team?: TeamType;
 }
 
+/** A wave of boss meteors (the METEOR_RAIN archetype, as a skill's main VFX or one of its layers). */
+export interface BossMeteorRainRequest {
+  color: string;
+  glowColor?: string;
+  count: number;
+  /** Epoch ms the first meteor starts falling. */
+  startAt: number;
+  impactPoints: readonly BossSkillImpactPoint[];
+}
+
 export interface OverlayVisibility {
   chat: boolean;
   leaderboard: boolean;
@@ -279,6 +291,7 @@ export interface OverlayVisibility {
   matchTitleBar: boolean;
   casterSubtitle: boolean;
   bossSkills: boolean;
+  bossSkillBanner: boolean;
 }
 
 export interface AutoProBattleConfig {
@@ -305,6 +318,8 @@ export interface ParticipationRuleConfig {
   /** Number of queued champions entering the arena per turn (arena floor is unlimited). */
   maxDeployPerTurn?: number;
   summonTurnDelayMs?: number;
+  /** Summoned champions attack this many times faster than the base interval (1 = base). */
+  championAttackSpeedMultiplier?: number;
 }
 
 export type BossWeakPointSpot = 'left-horn' | 'core-chest' | 'right-claw';
@@ -324,10 +339,19 @@ export interface BossWeakPointState {
 }
 
 export interface DamageBossOptions {
+  /** Origin of the hit; decides which multipliers apply. Omitted = EXTERNAL (no multipliers). */
+  source?: DamageSource;
+  /** Already multiplied (shield overflow re-entering damageBoss): apply no multiplier again. */
+  isPreScaled?: boolean;
+  /** Max boss HP this hit may remove; the full amount still counts for score and leaderboard. */
+  hpDamageCap?: number;
   excludeFromLeaderboard?: boolean;
   proPlayer?: RosterPlayer;
   suppressCombo?: boolean;
   minHpFloorPercent?: number;
+  donorAvatarUrl?: string;
+  giftName?: string;
+  coins?: number;
 }
 
 export interface TeamComboState {
@@ -380,8 +404,14 @@ export interface GameState {
   bossStaggerUntil: number;
   screenShakeTimestamp: number;
   screenShakeIntensity: number;
+  /** Sustained quake (boss ultimates): runs beside the short shake kick, see `store/screenRumble.ts`. */
+  screenRumbleStartedAt: number;
+  screenRumbleDurationMs: number;
+  screenRumbleIntensity: number;
   screenFlashColor: string | null;
   screenFlashTimestamp: number;
+  teamScores: Record<TeamType, number>;
+  teamLikes: Record<TeamType, number>;
   teamScoreBLG: number;
   teamScoreGENG: number;
   totalLikesBLG: number;
@@ -432,6 +462,9 @@ export interface GameState {
   lastWeakPointSpawnTimestamp: number;
   finisherPlayerName: string | null;
   finisherTeam: TeamType | null;
+  finisherAvatarUrl: string | null;
+  finisherGiftName: string | null;
+  finisherCoins: number | null;
   autoProBattleConfig: AutoProBattleConfig;
   autoSummonConfig: AutoSummonConfig;
   championDamageMultiplier: number;
@@ -502,7 +535,8 @@ export interface GameState {
   setGuestTeam: (team: TeamType) => void;
   setGuestName: (name: string) => void;
   setAdminMode: (active: boolean) => void;
-  startNextRound: () => void;
+  /** Moves to `targetRound` when given (server-synced), otherwise to the round after the current one. */
+  startNextRound: (targetRound?: number) => void;
   resetBO5Match: () => void;
   /** Clears the title count of the two teams currently on stage. */
   resetMatchupChampionships: () => void;
@@ -514,7 +548,7 @@ export interface GameState {
   /** Re-derives the boss phase from HP and fires the phase-shift presentation on change. */
   syncBossPhase: () => void;
   healBoss: (amount: number, sourceLabel: string) => void;
-  spawnBossMeteorRain: (skill: BossSkillDefinition, now: number) => void;
+  spawnBossMeteorRain: (request: BossMeteorRainRequest) => void;
   healTeamChampions: (team: TeamType | 'GEN' | 'ALL', amount: number) => void;
   clearBossSkillBanner: () => void;
   hitWeakPoint: (playerName?: string) => void;
@@ -570,7 +604,8 @@ export interface GameState {
     streakCount?: number,
     totalCoins?: number,
     isComboFinal?: boolean,
-    donorAvatarUrl?: string
+    donorAvatarUrl?: string,
+    giftRule?: GiftRulePayload
   ) => void;
   triggerFollowReward: (
     userName: string,
@@ -596,6 +631,7 @@ export interface GameState {
   spawnSlash: (position: [number, number, number], color: string, isCrit?: boolean) => void;
   spawnParticleBurst: (origin: [number, number, number], color: string, intensity: number) => void;
   triggerScreenShake: (intensity?: number) => void;
+  triggerScreenRumble: (intensity: number, durationMs: number) => void;
   triggerScreenFlash: (color: string) => void;
   triggerBossAttack: (type?: 'ROAR' | 'LIGHTNING') => void;
   resetBoss: () => void;

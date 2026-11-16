@@ -3,13 +3,12 @@ import { CHAMPION_DEFAULT_MAX_HP } from '../constants/bossSkills';
 import { TEAM_KEY, TeamType } from '../constants/game';
 
 /**
- * Kiểm tra xem tướng có đang còn sống và chưa hết hạn không.
+ * A champion is on the field for as long as it has HP. There is no time limit:
+ * the only way a champion leaves mid-round is being knocked out (HP reaching 0).
  */
-export const isMinionLiving = (minion: MinionEntity | undefined, now: number): boolean => {
+export const isMinionLiving = (minion: MinionEntity | undefined): boolean => {
   if (!minion) return false;
-  const isHpAlive = (minion.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0;
-  const isNotExpired = now - minion.createdAt < minion.lifetimeMs;
-  return isHpAlive && isNotExpired;
+  return (minion.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0;
 };
 
 /**
@@ -31,8 +30,7 @@ export const createEmptyMinionCollections = () => ({
  * Sync từ 1 mảng minions sang Map & Sets & livingCount.
  */
 export const rebuildMinionCollections = (
-  minions: MinionEntity[],
-  now: number
+  minions: MinionEntity[]
 ): {
   minionMap: Map<string, MinionEntity>;
   minionIdsByTeam: Record<TeamType, Set<string>>;
@@ -52,7 +50,7 @@ export const rebuildMinionCollections = (
     const minion = minions[i];
     minionMap.set(minion.id, minion);
     minionIdsByTeam[minion.team].add(minion.id);
-    if (isMinionLiving(minion, now)) {
+    if (isMinionLiving(minion)) {
       livingCountByTeam[minion.team] += 1;
     }
   }
@@ -69,12 +67,11 @@ export const upsertMinionToCollections = (
     minionIdsByTeam: Record<TeamType, Set<string>>;
     livingCountByTeam: Record<TeamType, number>;
   },
-  minion: MinionEntity,
-  now: number
+  minion: MinionEntity
 ): void => {
   const existing = collections.minionMap.get(minion.id);
-  const wasAlive = isMinionLiving(existing, now);
-  const isNowAlive = isMinionLiving(minion, now);
+  const wasAlive = isMinionLiving(existing);
+  const isNowAlive = isMinionLiving(minion);
 
   collections.minionMap.set(minion.id, minion);
   collections.minionIdsByTeam[minion.team].add(minion.id);
@@ -95,13 +92,12 @@ export const removeMinionFromCollections = (
     minionIdsByTeam: Record<TeamType, Set<string>>;
     livingCountByTeam: Record<TeamType, number>;
   },
-  minionId: string,
-  now: number
+  minionId: string
 ): MinionEntity | undefined => {
   const existing = collections.minionMap.get(minionId);
   if (!existing) return undefined;
 
-  if (isMinionLiving(existing, now)) {
+  if (isMinionLiving(existing)) {
     collections.livingCountByTeam[existing.team] = Math.max(
       0,
       collections.livingCountByTeam[existing.team] - 1

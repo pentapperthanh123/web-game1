@@ -21,14 +21,16 @@ export const resolveEffectiveWinner = (
   isSeriesEnded: boolean,
   seriesWinner: TeamType | null,
   roundWinner: TeamType | null,
-  bo5Score: { BLG: number; GENG: number },
-  teamScoreBLG: number,
-  teamScoreGENG: number
+  bo5Score: Record<TeamType, number> | { BLG: number; GENG: number },
+  leftScore: number,
+  rightScore: number
 ): TeamType => {
   if (isSeriesEnded) {
     if (seriesWinner) return seriesWinner;
-    return bo5Score.BLG >= bo5Score.GENG ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+    const scoreLeft = bo5Score[TEAM_KEY.BLG] ?? 0;
+    const scoreRight = bo5Score[TEAM_KEY.GENG] ?? 0;
+    return scoreLeft >= scoreRight ? TEAM_KEY.BLG : TEAM_KEY.GENG;
   }
   if (roundWinner) return roundWinner;
-  return teamScoreBLG >= teamScoreGENG ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+  return leftScore >= rightScore ? TEAM_KEY.BLG : TEAM_KEY.GENG;
 };

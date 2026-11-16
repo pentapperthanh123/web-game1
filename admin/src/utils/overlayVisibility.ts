@@ -16,6 +16,7 @@ export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
   'heartMilestone',
   'casterSubtitle',
   'bossSkills',
+  'bossSkillBanner',
 ];
 
 export const TOTAL_OVERLAY_SECTIONS = OVERLAY_VISIBILITY_KEYS.length;

@@ -103,9 +103,9 @@ export const BossPhaseVisuals = ({
 
   return (
     <>
-      {/* Active Energy Shield HUD Card (Positioned safely above Boss head, avoiding bottom leaderboard) */}
+      {/* Active Energy Shield HUD Card (Positioned safely above Boss head & name tag to prevent overlap) */}
       {bossShield && (
-        <div className="absolute -top-12 sm:-top-14 left-1/2 -translate-x-1/2 w-52 sm:w-60 z-20 pointer-events-none">
+        <div className="absolute -top-24 sm:-top-28 left-1/2 -translate-x-1/2 w-52 sm:w-60 z-20 pointer-events-none">
           <div className="bg-slate-950/90 border border-cyan-400/90 rounded-xl px-2.5 py-1.5 shadow-[0_0_20px_rgba(56,189,248,0.65)]">
             <div className="flex items-center justify-between text-[9px] font-black uppercase text-cyan-300">
               <span className="flex items-center space-x-1">
@@ -136,7 +136,7 @@ export const BossPhaseVisuals = ({
 
       {/* Shield Shattered Stun Callout */}
       {!bossShield && showShieldBrokenNotice && (
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none whitespace-nowrap">
+        <div className="absolute -top-16 sm:-top-18 left-1/2 -translate-x-1/2 z-30 pointer-events-none whitespace-nowrap">
           <span className="px-2.5 py-0.5 rounded-full bg-amber-500/95 text-slate-950 text-[10px] font-black uppercase shadow-[0_0_18px_#f59e0b] animate-bounce">
             {t('BossInteractive.shieldBroken', '💥 VỠ KHIÊN! +4,000 ST CHOÁNG!')}
           </span>

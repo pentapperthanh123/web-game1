@@ -1,7 +1,17 @@
 import { StateCreator } from 'zustand';
 import { GameState } from '../../types/game';
 import { QueuedMatchup, TeamConfigState, TeamProfile } from '../../types/team';
-import { BOSS_STATUS, TEAM_KEY, TeamType } from '../../constants/game';
+import {
+  BOSS_DIFFICULTY_SCALE,
+  BOSS_STATUS,
+  GAME_CONSTANTS,
+  GAME_THEME,
+  getBossThemeForRound,
+  TEAM_KEY,
+  TeamType,
+} from '../../constants/game';
+import { clearMatchSnapshot } from '../matchSnapshot';
+import { showRoundIntro } from '../roundIntroStore';
 import { BOSS_PHASE } from '../../constants/bossPhases';
 import { SFX_EVENT } from '../../constants/sfx';
 import { playSound } from '../../services/soundManager';
@@ -50,13 +60,20 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
     const rightTag = sanitized.activeTeams[TEAM_KEY.GENG].shortTag;
 
     if (resetMatch) {
+      clearMatchSnapshot();
+      const round1Theme = getBossThemeForRound(1, state.seriesFormat);
+      const difficulty = BOSS_DIFFICULTY_SCALE[round1Theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
+      const round1MaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
+
       playSound(SFX_EVENT.ROUND_START);
-      get().addLog('SYSTEM', `⚔️ Đổi cặp đấu mới: ${leftTag} vs ${rightTag} (Reset BO5)!`);
+      get().addLog('SYSTEM', `⚔️ Đổi cặp đấu mới: ${leftTag} vs ${rightTag} (Reset ${state.seriesFormat})!`);
       set({
         activeTeams: sanitized.activeTeams,
         teamCatalog: sanitized.teamCatalog,
         matchQueue: sanitized.matchQueue,
-        bossHp: state.bossMaxHp,
+        gameTheme: round1Theme,
+        bossMaxHp: round1MaxHp,
+        bossHp: round1MaxHp,
         bossStatus: BOSS_STATUS.IDLE,
         bo5Score: { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 },
         currentRound: 1,
@@ -64,6 +81,14 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
         isRoundIntermission: false,
         isSeriesEnded: false,
         seriesWinner: null,
+        teamScores: {
+          [TEAM_KEY.BLG]: 0,
+          [TEAM_KEY.GENG]: 0,
+        },
+        teamLikes: {
+          [TEAM_KEY.BLG]: 0,
+          [TEAM_KEY.GENG]: 0,
+        },
         teamScoreBLG: 0,
         teamScoreGENG: 0,
         totalLikesBLG: 0,
@@ -103,10 +128,15 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
         lastWeakPointSpawnTimestamp: 0,
         finisherPlayerName: null,
         finisherTeam: null,
+        finisherAvatarUrl: null,
+        finisherGiftName: null,
+        finisherCoins: null,
         rosterAttackTimestamps: {},
         rosterPlayerFury: createInitialRosterFury(sanitized.activeTeams),
         lastFuryUltimatePlayerId: null,
       });
+      // After the store update: the intro and the caster read the round from currentRound
+      showRoundIntro(Date.now(), true);
       return;
     }
 

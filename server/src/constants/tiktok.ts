@@ -3,6 +3,9 @@ import { TeamSlotKey } from './teams.js';
 /** Tokens show the champion art; viewers' TikTok profile photos only when an admin turns this on. */
 export const DEFAULT_USE_USER_AVATAR = false;
 
+/** Default TikTok account username to connect (without leading @). */
+export const DEFAULT_TIKTOK_USERNAME = 'bap.media.lifestyle99';
+
 export const TIKTOK_PIPELINE_CONSTANTS = {
   AFFINITY_TTL_MS: 4 * 60 * 60 * 1000,
   MAX_TRACKED_VIEWERS: 5000,
@@ -56,6 +59,8 @@ export interface TikTokChatInput {
 export interface TikTokGiftInput {
   uniqueId?: string;
   nickname?: string;
+  /** Donor's profile picture: shown on the gift card and the gift-finisher cinematic. */
+  userAvatarUrl?: string;
   giftId?: string | number;
   giftName?: string;
   diamondCount?: number;

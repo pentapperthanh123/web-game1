@@ -1,0 +1,13 @@
+{
+  "chatLimitConfig": {
+    "summonCooldownMs": 30000,
+    "maxSummonsPerMinute": 8,
+    "sameChampionRepeatMs": 30000,
+    "softMuteTrigger": 15,
+    "softMuteMs": 300000
+  },
+  "casterConfig": {
+    "isTtsEnabled": true,
+    "isNameReadingEnabled": true
+  }
+}

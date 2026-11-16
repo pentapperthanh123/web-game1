@@ -1,0 +1,64 @@
+import { CASTER_VOICE_MAX_CHARS } from '../../constants/caster';
+import { getCasterLang } from './casterComposer';
+import { toVoiceText } from './casterVoiceText';
+import { SPEECH_OUTCOME, SpeechOutcome, casterSpeechEngine } from './speechEngine';
+
+/** Split points, from the most natural pause to the last resort. */
+const SENTENCE_BREAK = /(?<=[.!?:])\s+/;
+const CLAUSE_BREAK = /(?<=[,;])\s+/;
+const WORD_BREAK = /\s+/;
+const SPLIT_LEVELS: readonly RegExp[] = [SENTENCE_BREAK, CLAUSE_BREAK, WORD_BREAK];
+
+/** These outcomes mean nothing more can play right now, so the rest of the line is dropped. */
+const STOP_OUTCOMES: ReadonlySet<SpeechOutcome> = new Set([
+  SPEECH_OUTCOME.INTERRUPTED,
+  SPEECH_OUTCOME.AUTOPLAY_BLOCKED,
+  SPEECH_OUTCOME.SUSPENDED,
+]);
+
+const NOOP = (): void => undefined;
+
+/** The server measures the spoken form (numbers and tags expanded), not the caption. */
+const fitsVoiceLimit = (text: string): boolean => toVoiceText(text).length <= CASTER_VOICE_MAX_CHARS;
+
+/** Greedily joins parts back together while each chunk still fits the voice limit. */
+const packParts = (parts: readonly string[]): string[] =>
+  parts.reduce<string[]>((chunks, part) => {
+    const lastIndex = chunks.length - 1;
+    const joined = lastIndex >= 0 ? `${chunks[lastIndex]} ${part}` : part;
+    if (lastIndex >= 0 && fitsVoiceLimit(joined)) {
+      chunks[lastIndex] = joined;
+      return chunks;
+    }
+    chunks.push(part);
+    return chunks;
+  }, []);
+
+const splitAtLevel = (text: string, level: number): string[] => {
+  if (fitsVoiceLimit(text) || level >= SPLIT_LEVELS.length) return [text];
+  const parts = text
+    .split(SPLIT_LEVELS[level])
+    .filter(Boolean)
+    .flatMap((part) => splitAtLevel(part, level + 1));
+  return packParts(parts);
+};
+
+/** Long intro lines (e.g. the rules) exceed the voice limit; they are cut at sentence, then clause, then word breaks. */
+export const splitSpeechChunks = (text: string): string[] => splitAtLevel(text.trim(), 0);
+
+/**
+ * Speaks one intro line in voice-sized parts, back to back. `isStillCurrent` turns false when the
+ * intro moves on (tab change, duel, card closed); the remaining parts are then dropped.
+ */
+export const speakIntroNarration = async (text: string, isStillCurrent: () => boolean): Promise<void> => {
+  const lang = getCasterLang();
+  const chunks = splitSpeechChunks(text);
+  chunks.forEach((chunk) => casterSpeechEngine.prefetch(chunk, lang));
+
+  for (const chunk of chunks) {
+    await casterSpeechEngine.prepare(chunk, lang);
+    if (!isStillCurrent()) return;
+    const outcome = await casterSpeechEngine.speak(chunk, lang, NOOP);
+    if (STOP_OUTCOMES.has(outcome) || !isStillCurrent()) return;
+  }
+};

@@ -15,6 +15,13 @@ export interface PlaySoundOptions {
   volumeScale?: number;
   /** Per-call playback-rate multiplier (pitch/speed). */
   rateScale?: number;
+  /** Whether the sound should loop until stopped. */
+  loop?: boolean;
+  /**
+   * Plays even while combat audio is muted (after the boss dies). Only for the scripted boss-defeat
+   * cinematic, whose sounds must stay in sync with its visuals.
+   */
+  bypassCombatMute?: boolean;
 }
 
 interface SoundChannel {
@@ -77,8 +84,13 @@ class SoundManager {
     if (!audioService.isAudioEnabled) return;
     if (
       audioService.isCombatMuted &&
+      !options.bypassCombatMute &&
       eventName !== SFX_EVENT.VICTORY &&
-      eventName !== SFX_EVENT.ROUND_START
+      eventName !== SFX_EVENT.ROUND_START &&
+      eventName !== SFX_EVENT.SILVER_SCRAPES &&
+      eventName !== SFX_EVENT.BOSS_DEFEAT &&
+      eventName !== SFX_EVENT.MATCH_FOUND &&
+      eventName !== SFX_EVENT.MATCH_ACCEPT
     ) {
       return;
     }
@@ -100,6 +112,9 @@ class SoundManager {
     this.trimVoices(channel, howl);
     const voiceId = howl.play();
     channel.activeVoiceIds.push(voiceId);
+    if (options.loop) {
+      howl.loop(true, voiceId);
+    }
     this.applyVoiceSettings(channel.definition, howl, voiceId, options);
     if (channel.definition.duckCombatMs) audioService.duckCombat(channel.definition.duckCombatMs);
   }
@@ -128,6 +143,15 @@ class SoundManager {
 
   public stopAll(): void {
     Howler.stop();
+  }
+
+  /** Stops all active voices of a specific sound effect. */
+  public stopSound(eventName: SfxEventName): void {
+    const channel = this.channels.get(eventName);
+    if (!channel || !channel.howl) return;
+    channel.howl.stop();
+    channel.activeVoiceIds = [];
+    channel.hasPendingPlay = false;
   }
 
   public unloadAll(): void {
@@ -253,4 +277,8 @@ export const soundManager = new SoundManager();
  */
 export const playSound = (eventName: SfxEventName, options?: PlaySoundOptions): void => {
   soundManager.playSound(eventName, options);
+};
+
+export const stopSound = (eventName: SfxEventName): void => {
+  soundManager.stopSound(eventName);
 };

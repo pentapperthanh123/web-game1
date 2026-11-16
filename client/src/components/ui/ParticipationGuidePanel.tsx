@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
@@ -12,6 +12,8 @@ import {
 import { GAME_CONSTANTS, TEAM_KEY } from '../../constants/game';
 import { useGameStore } from '../../store/gameStore';
 import { useGuideAutoReveal } from './useGuideAutoReveal';
+import { pickOverlayGiftRules, useGiftConfigStore } from '../../store/giftConfigStore';
+import { ConfiguredGiftRows } from './gift/ConfiguredGiftRows';
 
 type GuidePanelTab = 'RULES' | 'REWARDS';
 
@@ -44,8 +46,8 @@ interface RewardItemConfig {
   badgeParams: Record<string, number | string>;
 }
 
-const GIFT_DAMAGE_PER_COIN = 120;
-const LIKE_DAMAGE_PER_HEART = 15;
+const GIFT_DAMAGE_PER_COIN = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN;
+const LIKE_DAMAGE_PER_HEART = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.HEART_DAMAGE;
 const AUTO_SWITCH_INTERVAL_MS = 5000;
 const USER_PAUSE_AUTO_SWITCH_MS = 10000;
 
@@ -124,7 +126,7 @@ const REWARD_ITEMS: readonly RewardItemConfig[] = [
     titleKey: 'HUD.guideGiftHeartTitle',
     titleFallback: 'Thả Tim (1♥)',
     badgeKey: 'HUD.guideGiftHeartBadge',
-    badgeFallback: '+15 ST / tim',
+    badgeFallback: '+{{dmg}} ST / tim',
     badgeParams: { dmg: LIKE_DAMAGE_PER_HEART },
   },
   {
@@ -180,6 +182,9 @@ export const ParticipationGuidePanel = () => {
   const leftChamp = leftTeam.roster[2]?.signatureChampion || leftTeam.roster[0]?.signatureChampion || 'Ahri';
   const rightChamp = rightTeam.roster[2]?.signatureChampion || rightTeam.roster[0]?.signatureChampion || 'Yone';
   const [activeTab, setActiveTab] = useState<GuidePanelTab>('RULES');
+  const giftRules = useGiftConfigStore((state) => state.rules);
+  const overlayGiftRules = useMemo(() => pickOverlayGiftRules(giftRules), [giftRules]);
+  const hasConfiguredGifts = overlayGiftRules.length > 0;
   const { isExpanded, toggleExpanded } = useGuideAutoReveal();
   const isCollapsed = !isExpanded;
   const isUserInteractingRef = useRef<boolean>(false);
@@ -302,7 +307,14 @@ export const ParticipationGuidePanel = () => {
           )}
 
           {/* TAB 2: QUY ĐỔI QUÀ & DAMAGE (Compact 1-line dense rows, 0 scrolling) */}
-          {activeTab === 'REWARDS' && (
+          {activeTab === 'REWARDS' && hasConfiguredGifts && (
+            <div className="space-y-0.5">
+              <ConfiguredGiftRows rules={overlayGiftRules} />
+            </div>
+          )}
+
+          {/* Fallback when the admin has not picked any gift to show yet */}
+          {activeTab === 'REWARDS' && !hasConfiguredGifts && (
             <div className="space-y-0.5">
               {REWARD_ITEMS.map((item) => (
                 <div

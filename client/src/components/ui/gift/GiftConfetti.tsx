@@ -1,7 +1,7 @@
 import React from 'react';
 
-/** Seeded so every MEGA gift shows the same balanced burst (no layout jitter between renders). */
-const CONFETTI_COUNT = 24;
+/** Seeded so every gift shows the same balanced burst (no layout jitter between renders). */
+const DEFAULT_CONFETTI_COUNT = 24;
 const CONFETTI_SEED = 4271;
 const MAX_DRIFT_PX = 90;
 const MAX_SPIN_DEG = 720;
@@ -25,9 +25,9 @@ const createRandom = (seed: number) => {
   };
 };
 
-const buildPieces = (colors: readonly string[]): ConfettiPiece[] => {
+const buildPieces = (colors: readonly string[], count: number): ConfettiPiece[] => {
   const random = createRandom(CONFETTI_SEED);
-  return Array.from({ length: CONFETTI_COUNT }, (_, index) => ({
+  return Array.from({ length: count }, (_, index) => ({
     leftPercent: random() * 100,
     driftPx: (random() * 2 - 1) * MAX_DRIFT_PX,
     spinDeg: (random() * 2 - 1) * MAX_SPIN_DEG,
@@ -38,11 +38,13 @@ const buildPieces = (colors: readonly string[]): ConfettiPiece[] => {
 
 interface GiftConfettiProps {
   colors: readonly string[];
+  /** More pieces for bigger gifts. */
+  count?: number;
 }
 
-export const GiftConfetti = React.memo(({ colors }: GiftConfettiProps) => (
+export const GiftConfetti = React.memo(({ colors, count = DEFAULT_CONFETTI_COUNT }: GiftConfettiProps) => (
   <div className="absolute inset-x-0 top-0 h-0 overflow-visible pointer-events-none">
-    {buildPieces(colors).map((piece, index) => (
+    {buildPieces(colors, count).map((piece, index) => (
       <span
         key={index}
         className="absolute top-0 rounded-[1px] animate-gift-confetti"

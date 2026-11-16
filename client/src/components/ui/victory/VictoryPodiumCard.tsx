@@ -15,17 +15,17 @@ const PODIUM_VISUAL_ORDER = [1, 0, 2] as const;
 const RANK_STYLE: Record<number, { medal: string; pedestal: string; name: string }> = {
   0: {
     medal: '🥇',
-    pedestal: 'h-12 bg-gradient-to-t from-amber-600/60 to-amber-300/30 border-amber-300/70',
+    pedestal: 'h-7 bg-gradient-to-t from-amber-600/60 to-amber-300/30 border-amber-300/70',
     name: 'text-amber-200 font-black',
   },
   1: {
     medal: '🥈',
-    pedestal: 'h-9 bg-gradient-to-t from-slate-500/50 to-slate-200/20 border-slate-300/60',
+    pedestal: 'h-5 bg-gradient-to-t from-slate-500/50 to-slate-200/20 border-slate-300/60',
     name: 'text-slate-100 font-bold',
   },
   2: {
     medal: '🥉',
-    pedestal: 'h-7 bg-gradient-to-t from-orange-800/50 to-orange-400/20 border-orange-400/60',
+    pedestal: 'h-3.5 bg-gradient-to-t from-orange-800/50 to-orange-400/20 border-orange-400/60',
     name: 'text-orange-200 font-bold',
   },
 };
@@ -93,14 +93,14 @@ const PodiumSlot = ({ player, rank, teamProfile, isFinisher }: PodiumSlotProps) 
   const style = RANK_STYLE[rank];
   const teamTheme = getTeamTheme(teamProfile?.colorTheme);
   const honorBadge = resolveHonorBadge(rank, isFinisher, (key, fallback) => t(key, fallback));
-  const avatarSize = rank === 0 ? 'w-10 h-10' : 'w-8 h-8';
+  const avatarSize = rank === 0 ? 'w-8 h-8' : 'w-7 h-7';
 
   return (
     <div className="flex-1 min-w-0 flex flex-col items-center justify-end">
-      <span className="text-base leading-none">{style.medal}</span>
+      <span className="text-sm leading-none">{style.medal}</span>
 
       {/* Donor / Player Avatar */}
-      <div className="mt-1 relative">
+      <div className="mt-0.5 relative">
         <DonorAvatar
           name={player.userName}
           avatarUrl={player.avatarUrl}
@@ -112,21 +112,21 @@ const PodiumSlot = ({ player, rank, teamProfile, isFinisher }: PodiumSlotProps) 
       {/* Honor MVP Title Badge */}
       <span
         className={clsx(
-          'mt-1 text-[6.5px] sm:text-[7.5px] font-black uppercase px-1 py-0.2 rounded border truncate max-w-full tracking-wide text-center',
+          'mt-0.5 text-[6px] sm:text-[7px] font-black uppercase px-1 py-0.2 rounded border truncate max-w-full tracking-wide text-center',
           honorBadge.badgeClass
         )}
       >
         {honorBadge.label}
       </span>
 
-      <div className={clsx('text-[10px] truncate max-w-full px-0.5 mt-0.5', style.name)}>
+      <div className={clsx('text-[9px] truncate max-w-full px-0.5 mt-0.5', style.name)}>
         {player.userName}
       </div>
-      <div className="text-[9px] font-mono font-bold text-emerald-300">
+      <div className="text-[8.5px] font-mono font-bold text-emerald-300">
         {player.totalDamage.toLocaleString()}
       </div>
       <span
-        className={clsx('mt-0.5 text-[7.5px] font-black px-1 rounded', teamTheme.badgePillClass)}
+        className={clsx('mt-0.5 text-[7px] font-black px-1 rounded', teamTheme.badgePillClass)}
       >
         {teamProfile?.shortTag ?? player.team}
       </span>
@@ -153,12 +153,12 @@ export const VictoryPodiumCard = ({
   if (!champion) return null;
 
   return (
-    <div className="p-3 rounded-2xl bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-900/90 border border-amber-500/40 shadow-xl space-y-1.5">
-      <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[11px] font-black text-amber-300 uppercase tracking-wider">
-        <Crown className="w-3.5 h-3.5 fill-current text-amber-400 shrink-0" />
+    <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-900/90 border border-amber-500/40 shadow-lg space-y-1">
+      <div className="flex items-center justify-center gap-1.5 text-[9.5px] sm:text-[10px] font-black text-amber-300 uppercase tracking-wider">
+        <Crown className="w-3 h-3 fill-current text-amber-400 shrink-0" />
         <span>{t('LiveHud.podiumTitle', 'TOP 3 CHIẾN BINH CỦA VÁN')}</span>
       </div>
-      <div className="flex items-end gap-1.5">
+      <div className="flex items-end gap-1">
         {PODIUM_VISUAL_ORDER.map((rank) => {
           const player = topPlayers[rank];
           if (!player) return <div key={rank} className="flex-1" />;

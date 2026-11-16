@@ -1,3 +1,15 @@
+import {
+  GIFT_CONFIG_EVENT,
+  GiftCatalogState,
+  GiftRule,
+  isGiftCatalogState,
+  isGiftRuleList,
+} from '../constants/giftConfig';
+import {
+  CHAMPIONSHIP_TALLY_EVENT,
+  ChampionshipTallyReport,
+  isChampionshipTallyReport,
+} from '../constants/championshipTally';
 import { io, Socket } from 'socket.io-client';
 import { OverlayVisibility } from '../types/overlay';
 import { BossSkillConfig } from '../types/bossSkill';
@@ -62,6 +74,8 @@ export interface ParticipationRuleConfig {
   /** Champions entering the arena per turn (arena floor is unlimited). */
   maxDeployPerTurn?: number;
   summonTurnDelayMs?: number;
+  /** Summoned champions attack this many times faster than the base interval (1 = base). */
+  championAttackSpeedMultiplier?: number;
 }
 
 export interface TikTokPipelineStats {
@@ -121,6 +135,13 @@ class AdminSocketService {
   private teamConfigListeners: ((config: TeamConfigState) => void)[] = [];
   private latestSeriesConfig: SeriesFormatConfig = DEFAULT_SERIES_CONFIG;
   private seriesConfigListeners: ((config: SeriesFormatConfig) => void)[] = [];
+  /** Last series-title counts reported by the overlay (null until one arrives). */
+  private latestChampionshipTally: ChampionshipTallyReport | null = null;
+  private championshipTallyListeners: ((report: ChampionshipTallyReport) => void)[] = [];
+  private latestGiftRules: GiftRule[] = [];
+  private giftRuleListeners: ((rules: GiftRule[]) => void)[] = [];
+  private latestGiftCatalog: GiftCatalogState = { items: [], fetchedAt: 0, error: null };
+  private giftCatalogListeners: ((catalog: GiftCatalogState) => void)[] = [];
   private latestPipelineStats: TikTokPipelineStats = {
     trackedAffinityCount: 0,
     leftAffinityCount: 0,
@@ -135,6 +156,9 @@ class AdminSocketService {
   private latestLiveOpsState: LiveOpsAdminState | null = null;
   private liveOpsListeners: ((state: LiveOpsAdminState) => void)[] = [];
   public isConnected = false;
+  /** False until the first connection attempt finishes, so the warning does not flash on page load. */
+  private hasEverTried = false;
+  private connectionListeners: ((isConnected: boolean) => void)[] = [];
 
   constructor() {
     // 1. Initialize BroadcastChannel for local offline sync
@@ -160,14 +184,17 @@ class AdminSocketService {
       });
 
       this.socket.on('connect', () => {
-        this.isConnected = true;
+        this.setConnected(true);
         console.log('[Admin Socket] Connected to Backend Server on port 4000');
       });
 
       this.socket.on('disconnect', () => {
-        this.isConnected = false;
+        this.setConnected(false);
         console.log('[Admin Socket] Disconnected from Backend Server');
       });
+
+      // First connection attempt failed (server not started): report it too
+      this.socket.on('connect_error', () => this.setConnected(false));
 
       this.socket.on('game:team-config', (payload: unknown) => {
         const cleanConfig = sanitizeTeamConfigState(payload);
@@ -175,6 +202,24 @@ class AdminSocketService {
           this.latestTeamConfig = cleanConfig;
           this.notifyTeamConfigListeners(cleanConfig);
         }
+      });
+
+      this.socket.on(GIFT_CONFIG_EVENT.CONFIG, (payload: unknown) => {
+        if (!isGiftRuleList(payload)) return;
+        this.latestGiftRules = payload.rules;
+        this.giftRuleListeners.forEach((cb) => cb(payload.rules));
+      });
+
+      this.socket.on(GIFT_CONFIG_EVENT.CATALOG, (payload: unknown) => {
+        if (!isGiftCatalogState(payload)) return;
+        this.latestGiftCatalog = payload;
+        this.giftCatalogListeners.forEach((cb) => cb(payload));
+      });
+
+      this.socket.on(CHAMPIONSHIP_TALLY_EVENT.REPORT, (payload: unknown) => {
+        if (!isChampionshipTallyReport(payload)) return;
+        this.latestChampionshipTally = payload;
+        this.championshipTallyListeners.forEach((cb) => cb(payload));
       });
 
       this.socket.on('game:overlay-visibility', (payload: unknown) => {
@@ -507,6 +552,70 @@ class AdminSocketService {
     this.emit('admin:silver-scrapes-duel', { action, lane, duration });
   }
 
+  private setConnected(isConnected: boolean): void {
+    // The first result is always reported: listeners start out assuming "connected"
+    const isFirstReport = !this.hasEverTried;
+    this.hasEverTried = true;
+    if (!isFirstReport && this.isConnected === isConnected) {
+      return;
+    }
+    this.isConnected = isConnected;
+    this.connectionListeners.forEach((cb) => cb(isConnected));
+  }
+
+  /** Game server reachability; called immediately once the first attempt has finished. */
+  public onConnectionChange(callback: (isConnected: boolean) => void): () => void {
+    if (this.hasEverTried) callback(this.isConnected);
+    this.connectionListeners.push(callback);
+    return () => {
+      this.connectionListeners = this.connectionListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  public getServerUrl(): string {
+    return SERVER_URL;
+  }
+
+  /** Replaces the whole gift rule list (the server validates, saves and broadcasts it). */
+  public emitGiftConfig(rules: GiftRule[]): void {
+    this.emit(GIFT_CONFIG_EVENT.SAVE, { rules });
+  }
+
+  /** Reloads the connected live room's gift list. */
+  public emitFetchGiftCatalog(): void {
+    this.emit(GIFT_CONFIG_EVENT.FETCH_CATALOG, {});
+  }
+
+  public onGiftRules(callback: (rules: GiftRule[]) => void): () => void {
+    callback(this.latestGiftRules);
+    this.giftRuleListeners.push(callback);
+    return () => {
+      this.giftRuleListeners = this.giftRuleListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  public onGiftCatalog(callback: (catalog: GiftCatalogState) => void): () => void {
+    callback(this.latestGiftCatalog);
+    this.giftCatalogListeners.push(callback);
+    return () => {
+      this.giftCatalogListeners = this.giftCatalogListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  /** Asks every overlay to clear the series titles of the matchup it is showing. */
+  public emitResetChampionshipTally(): void {
+    this.emit(CHAMPIONSHIP_TALLY_EVENT.RESET, {});
+  }
+
+  /** Current titles as reported by the overlay; called immediately with the last known value. */
+  public onChampionshipTally(callback: (report: ChampionshipTallyReport) => void): () => void {
+    if (this.latestChampionshipTally) callback(this.latestChampionshipTally);
+    this.championshipTallyListeners.push(callback);
+    return () => {
+      this.championshipTallyListeners = this.championshipTallyListeners.filter((cb) => cb !== callback);
+    };
+  }
+
   public emitChampionDamageConfig(multiplier: number): void {
     this.emit('admin:champion-damage-config', { multiplier });
   }
@@ -559,6 +668,10 @@ class AdminSocketService {
             typeof payload.summonTurnDelayMs === 'number'
               ? payload.summonTurnDelayMs
               : SUMMON_QUEUE_UI.DEFAULT_TURN_DELAY_MS,
+          championAttackSpeedMultiplier:
+            typeof payload.championAttackSpeedMultiplier === 'number'
+              ? payload.championAttackSpeedMultiplier
+              : SUMMON_QUEUE_UI.DEFAULT_ATTACK_SPEED_MULTIPLIER,
         });
       }
     };

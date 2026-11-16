@@ -1,3 +1,4 @@
+import type { GiftRule, GiftRulePayload } from '../constants/giftConfig.js';
 import { ActiveTeamsMap, TeamSlotKey } from '../constants/teams.js';
 import type { ParticipationRuleConfig } from '../types/serverState.js';
 import {
@@ -33,9 +34,17 @@ export interface DuelContributionPayload {
   description: string;
 }
 
+const toGiftRulePayload = (rule: GiftRule): GiftRulePayload => ({
+  damageMultiplier: rule.damageMultiplier,
+  effect: rule.effect,
+  effectChampion: rule.effectChampion,
+});
+
 export interface TikTokPipelineDeps {
   getActiveTeams: () => ActiveTeamsMap;
   getParticipationRules?: () => ParticipationRuleConfig;
+  /** Admin gift rule for this gift (team, damage multiplier, special effect), if any. */
+  findGiftRule?: (giftId: string | number | undefined, giftName: string | undefined) => GiftRule | null;
   parseComment: (comment: string) => { team?: TeamSlotKey; champion?: string };
   getRandomChampionName: () => string;
   onDuelContribution: (team: TeamSlotKey, deltaPercent: number, event: DuelContributionPayload) => void;
@@ -341,7 +350,9 @@ export class TikTokLivePipeline {
     const isStreakGift = input.giftType === TIKTOK_PIPELINE_CONSTANTS.STREAK_GIFT_TYPE;
     const rawRepeatCount = Math.max(1, input.repeatCount ?? 1);
 
-    const { team, source, shouldRemind } = this.resolveViewerTeam(viewerKey, input.explicitTeam);
+    // A gift bound to a team ("Rose = T1") decides the side, whatever the viewer chatted before
+    const giftRule = this.deps.findGiftRule?.(input.giftId, input.giftName) ?? null;
+    const { team, source, shouldRemind } = this.resolveViewerTeam(viewerKey, giftRule?.team ?? input.explicitTeam);
 
     let deltaCount = rawRepeatCount;
     if (isStreakGift) {
@@ -377,6 +388,7 @@ export class TikTokLivePipeline {
 
     this.deps.emit('game:gift', {
       donorName: displayName,
+      donorAvatarUrl: input.userAvatarUrl,
       speechName,
       giftName,
       team,
@@ -385,6 +397,7 @@ export class TikTokLivePipeline {
       totalCoins,
       isComboFinal: Boolean(input.repeatEnd),
       affinitySource: source,
+      giftRule: giftRule ? toGiftRulePayload(giftRule) : undefined,
     });
 
     this.emitFallbackReminderIfNeeded(displayName, team, shouldRemind);

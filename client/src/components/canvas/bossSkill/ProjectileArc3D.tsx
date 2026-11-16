@@ -12,6 +12,7 @@ import {
   easeOutCubic,
   fitStagger,
   phaseProgress,
+  resolveImpactSpot,
   resolveLandingX,
   seededValues,
   setMaterialOpacity,
@@ -127,16 +128,20 @@ const Projectile = ({ target, seed, color, secondaryColor, scale, startedAt, dur
 };
 
 /** Glowing orbs with fading trails lobbed from the boss mouth; landing spots are telegraphed, then burst. */
-export const ProjectileArc3D = ({ color, secondaryColor, scale, count, direction, startedAt, durationMs, mouthOrigin }: SkillVfx3DProps) => {
+export const ProjectileArc3D = ({ color, secondaryColor, scale, count, direction, startedAt, durationMs, mouthOrigin, impactPoints }: SkillVfx3DProps) => {
   const targets = useMemo(() => {
     const randoms = seededValues(startedAt, count * 2);
     const stagger = fitStagger(MAX_STAGGER, PROJECTILE_SPAN, count);
-    return Array.from({ length: count }, (_, index) => ({
-      x: resolveLandingX(direction, randoms[index * 2]),
-      z: (randoms[index * 2 + 1] - 0.5) * TARGET_Z_SPREAD,
-      offset: index * stagger,
-    }));
-  }, [startedAt, count, direction]);
+    return Array.from({ length: count }, (_, index) => {
+      const [x, z] = resolveImpactSpot(
+        impactPoints,
+        index,
+        resolveLandingX(direction, randoms[index * 2]),
+        (randoms[index * 2 + 1] - 0.5) * TARGET_Z_SPREAD
+      );
+      return { x, z, offset: index * stagger };
+    });
+  }, [startedAt, count, direction, impactPoints]);
 
   return (
     <group>

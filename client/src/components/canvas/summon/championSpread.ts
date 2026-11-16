@@ -12,7 +12,7 @@ export const WING_SCREEN_LAYOUT = {
   NDC_X_INNER: 0.26,
   NDC_X_OUTER: 0.82,
   NDC_Y_MIN: -0.72,
-  NDC_Y_MAX: 0.42,
+  NDC_Y_MAX: 0.08,
   /** Random candidates per pick; the least crowded one wins (best-candidate sampling). */
   CANDIDATE_COUNT: 7,
   /** Pixel distance at which another champion no longer counts as crowding. */

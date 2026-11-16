@@ -30,7 +30,7 @@ const DUST_LAYER: StarLayerConfig = {
   count: 190,
   minRadius: 0.12,
   maxRadius: 0.3,
-  colors: ['#e0f2fe', '#bae6fd', '#fef3c7', '#ffffff'],
+  colors: ['#e0f2fe', '#bae6fd', '#f5d0fe', '#ffffff'],
 };
 
 const BRIGHT_LAYER: StarLayerConfig = {
@@ -38,7 +38,7 @@ const BRIGHT_LAYER: StarLayerConfig = {
   count: 38,
   minRadius: 0.35,
   maxRadius: 0.65,
-  colors: ['#ffffff', '#fde68a', '#a5f3fc'],
+  colors: ['#ffffff', '#c084fc', '#a5f3fc', '#f0abfc'],
 };
 
 const buildStars = (config: StarLayerConfig): StarSpec[] => {

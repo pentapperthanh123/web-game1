@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { GameState } from '../../types/game';
 import { BOSS_ATTACK_BANNER_DURATION_MS } from '../../constants/bossSkills';
+import { getSkillVfxWindowMs } from '../../constants/bossSkillVfx';
 import {
   AUTO_PRO_BATTLE_CONSTANTS,
   COMBAT_VFX_CONSTANTS,
@@ -24,7 +25,8 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
       COMBAT_VFX_CONSTANTS.SUMMON.SPOTLIGHT_DURATION_MS
     );
 
-    const activeMinions = state.minions.filter((m) => now - m.createdAt < m.lifetimeMs);
+    // Champions never time out: they only leave the field when knocked out (see bossSkillImpact)
+    const activeMinions = state.minions;
     const activeHearts = state.activeHearts.filter((h) => now - h.createdAt < 3200);
     const activeProj = state.activeProjectiles.filter(
       (p) => now - p.createdAt < COMBAT_VFX_CONSTANTS.DAMAGE.PROJECTILE_DURATION_MS + 180
@@ -54,7 +56,11 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
     const isFlashActive = state.screenFlashColor !== null && now - state.screenFlashTimestamp < 450;
     const isBannerActive =
       state.activeBossSkillBanner !== null &&
-      now - state.activeBossSkillBanner.timestamp <= BOSS_ATTACK_BANNER_DURATION_MS;
+      now - state.activeBossSkillBanner.timestamp <=
+        Math.max(
+          BOSS_ATTACK_BANNER_DURATION_MS,
+          getSkillVfxWindowMs(state.activeBossSkillBanner.vfxType, state.activeBossSkillBanner.vfxParams)
+        );
     const isHeartMilestoneBannerActive =
       state.activeHeartMilestoneBanner !== null &&
       now - state.activeHeartMilestoneBanner.timestamp <= GAME_CONSTANTS.HEART_MILESTONE.BANNER_DURATION_MS;
@@ -174,7 +180,7 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
     }
 
     const collections = hasMinionsChanged || finalMinions.length !== state.minions.length
-      ? rebuildMinionCollections(finalMinions, now)
+      ? rebuildMinionCollections(finalMinions)
       : null;
 
     set({

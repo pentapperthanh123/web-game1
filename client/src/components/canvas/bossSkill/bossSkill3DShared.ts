@@ -1,7 +1,16 @@
 import { useEffect } from 'react';
 import * as THREE from 'three';
-import { ActiveBossSkillBanner, BossSkillVfxType } from '../../../types/bossSkill';
-import { BOSS_SKILL_VFX_DEFAULT_COUNT, BOSS_SKILL_VFX_DURATION_MS } from '../../../constants/bossSkillVfx';
+import {
+  ActiveBossSkillBanner,
+  BossSkillImpactPoint,
+  BossSkillVfxLayer,
+  BossSkillVfxType,
+} from '../../../types/bossSkill';
+import {
+  BOSS_SKILL_VFX_DEFAULT_COUNT,
+  BOSS_SKILL_VFX_DURATION_MS,
+  getSkillVfxDurationMs,
+} from '../../../constants/bossSkillVfx';
 import { TEAM_KEY } from '../../../constants/game';
 import { BOSS_ANCHOR_ELEMENT_ID } from '../../../constants/bossSpriteAnchors';
 import { unprojectScreenToWorld } from '../summon/summonShared';
@@ -24,9 +33,12 @@ export interface SkillVfx3DProps {
   eyeOrigin: Vec3Tuple;
   /** Where body-centred bursts gather; the jaw for mouth-breath skills. */
   coreOrigin: Vec3Tuple;
+  /** Floor positions (x, z) of the champions this cast hurts; effects land on them first. */
+  impactPoints: readonly BossSkillImpactPoint[];
 }
 
 export type SkillVfxStyleProps = Omit<SkillVfx3DProps, 'mouthOrigin' | 'eyeOrigin' | 'coreOrigin'>;
+export type { BossSkillImpactPoint };
 
 /** World anchors shared by every archetype (match BossVoidAttack / champion wings). */
 export const BOSS_3D_ANCHORS = {
@@ -44,6 +56,7 @@ export const GROUND_DECAL_LIFT = 0.03;
 export const FLAT_ON_GROUND: readonly [number, number, number] = [-Math.PI / 2, 0, 0];
 
 const DEFAULT_SCALE = 1;
+const NO_IMPACT_POINTS: readonly BossSkillImpactPoint[] = [];
 const LANDING_SPREAD = 1.6;
 const CENTER_LANDING_SPREAD = 2.4;
 const SEED_MODULUS = 233280;
@@ -93,8 +106,31 @@ export const buildSkillVfxStyleProps = (banner: ActiveBossSkillBanner, vfxType: 
   count: banner.vfxParams?.count ?? BOSS_SKILL_VFX_DEFAULT_COUNT[vfxType],
   direction: resolveDirection3D(banner.targetTeam),
   startedAt: banner.timestamp,
-  durationMs: BOSS_SKILL_VFX_DURATION_MS[vfxType],
+  durationMs: getSkillVfxDurationMs(vfxType, banner.vfxParams),
+  impactPoints: banner.impactPoints ?? NO_IMPACT_POINTS,
 });
+
+/** Props of one extra layer of a cast: same anchors and targets, its own look and timing. */
+export const buildSkillVfxLayerProps = (mainProps: SkillVfx3DProps, layer: BossSkillVfxLayer): SkillVfx3DProps => ({
+  ...mainProps,
+  color: layer.color ?? mainProps.color,
+  secondaryColor: layer.secondaryColor ?? mainProps.secondaryColor,
+  scale: layer.scale ?? DEFAULT_SCALE,
+  count: layer.count ?? BOSS_SKILL_VFX_DEFAULT_COUNT[layer.vfxType],
+  startedAt: mainProps.startedAt + (layer.delayMs ?? 0),
+  durationMs: BOSS_SKILL_VFX_DURATION_MS[layer.vfxType],
+});
+
+/**
+ * Floor spot of the `index`-th element of an effect: on a hurt champion while there are any left,
+ * otherwise the archetype's own random spot.
+ */
+export const resolveImpactSpot = (
+  impactPoints: readonly BossSkillImpactPoint[],
+  index: number,
+  fallbackX: number,
+  fallbackZ: number
+): BossSkillImpactPoint => impactPoints[index] ?? [fallbackX, fallbackZ];
 
 /** 0..1 progress since the cast; > 1 once finished. */
 export const computeProgress = (startedAt: number, durationMs: number): number =>

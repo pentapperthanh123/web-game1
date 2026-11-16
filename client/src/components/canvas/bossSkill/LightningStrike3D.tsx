@@ -15,6 +15,7 @@ import {
   fitStagger,
   opacityLayer,
   phaseProgress,
+  resolveImpactSpot,
   resolveLandingX,
   seededValues,
   setMaterialOpacity,
@@ -125,16 +126,20 @@ const LightningBolt = ({ strike, seed, color, secondaryColor, scale, startedAt, 
 };
 
 /** Sky-to-ground lightning on the attacked wing: telegraphed, layered ribbon bolts with impact bursts. */
-export const LightningStrike3D = ({ color, secondaryColor, scale, count, direction, startedAt, durationMs }: SkillVfx3DProps) => {
+export const LightningStrike3D = ({ color, secondaryColor, scale, count, direction, startedAt, durationMs, impactPoints }: SkillVfx3DProps) => {
   const strikes = useMemo(() => {
     const stagger = fitStagger(STAGGER, STRIKE_SPAN, count);
     const randoms = seededValues(startedAt, count * 2);
-    return Array.from({ length: count }, (_, index) => ({
-      x: resolveLandingX(direction, randoms[index * 2]),
-      z: (randoms[index * 2 + 1] - 0.5) * STRIKE_Z_SPREAD,
-      offset: index * stagger,
-    }));
-  }, [startedAt, count, direction]);
+    return Array.from({ length: count }, (_, index) => {
+      const [x, z] = resolveImpactSpot(
+        impactPoints,
+        index,
+        resolveLandingX(direction, randoms[index * 2]),
+        (randoms[index * 2 + 1] - 0.5) * STRIKE_Z_SPREAD
+      );
+      return { x, z, offset: index * stagger };
+    });
+  }, [startedAt, count, direction, impactPoints]);
 
   return (
     <group>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { GameState } from '../types/game';
-import { BOSS_STATUS, OVERLAY_STORAGE_KEY } from '../constants/game';
+import { BOSS_STATUS, DAMAGE_SOURCE, DAMAGE_TYPE, OVERLAY_STORAGE_KEY } from '../constants/game';
 import { gameBus } from '../services/eventBus';
 import { INITIAL_STATE } from './initialState';
 import { createTeamConfigSlice } from './slices/teamConfigSlice';
@@ -39,7 +39,9 @@ if (typeof window !== 'undefined') {
         );
         break;
       case 'DAMAGE_BOSS':
-        store.damageBoss(event.payload.amount, event.payload.team, event.payload.playerName);
+        store.damageBoss(event.payload.amount, event.payload.team, event.payload.playerName, DAMAGE_TYPE.NORMAL, {
+          source: DAMAGE_SOURCE.EXTERNAL,
+        });
         break;
       case 'ADD_LIKE':
         store.addLikes(event.payload.count, event.payload.team, event.payload.userName);

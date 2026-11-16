@@ -3,7 +3,7 @@ import { ActiveBossSkillBanner, BossSkillVfxType } from '../../../types/bossSkil
 import {
   BOSS_SKILL_VFX_2D_MAX_OPACITY,
   BOSS_SKILL_VFX_DEFAULT_COUNT,
-  BOSS_SKILL_VFX_DURATION_MS,
+  getSkillVfxDurationMs,
 } from '../../../constants/bossSkillVfx';
 import { TEAM_KEY } from '../../../constants/game';
 
@@ -67,7 +67,7 @@ export const useSkillVfxWindow = (banner: ActiveBossSkillBanner | null): boolean
       setIsActive(false);
       return;
     }
-    const remainingMs = BOSS_SKILL_VFX_DURATION_MS[banner.vfxType] - (Date.now() - banner.timestamp);
+    const remainingMs = getSkillVfxDurationMs(banner.vfxType, banner.vfxParams) - (Date.now() - banner.timestamp);
     if (remainingMs <= 0) {
       setIsActive(false);
       return;

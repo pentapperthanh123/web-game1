@@ -1,15 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Trophy, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { getTeamTheme } from '../../constants/teams';
+import { DPSPlayer } from '../../types/game';
+
+const LEADERBOARD_UI_THROTTLE_MS = 250;
 
 export const DPSLeaderboard = () => {
   const { t } = useTranslation();
-  const leaderboard = useGameStore((state) => state.leaderboard);
-  const minions = useGameStore((state) => state.minions);
+  // Subscribe only to primitive length to avoid re-renders on every minion positional / HP tick
+  const minionCount = useGameStore((state) => state.minions.length);
   const activeTeams = useGameStore((state) => state.activeTeams);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Throttle leaderboard state updates to 250ms to protect OBS frame budget
+  const [displayLeaderboard, setDisplayLeaderboard] = useState<DPSPlayer[]>(() =>
+    useGameStore.getState().leaderboard.slice(0, 3)
+  );
+
+  useEffect(() => {
+    let lastUpdateAt = 0;
+    let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const unsub = useGameStore.subscribe((state) => {
+      const now = Date.now();
+      const top3 = state.leaderboard.slice(0, 3);
+
+      if (now - lastUpdateAt >= LEADERBOARD_UI_THROTTLE_MS) {
+        lastUpdateAt = now;
+        setDisplayLeaderboard(top3);
+      } else if (!pendingTimeout) {
+        pendingTimeout = setTimeout(() => {
+          pendingTimeout = null;
+          lastUpdateAt = Date.now();
+          setDisplayLeaderboard(useGameStore.getState().leaderboard.slice(0, 3));
+        }, LEADERBOARD_UI_THROTTLE_MS - (now - lastUpdateAt));
+      }
+    });
+
+    return () => {
+      unsub();
+      if (pendingTimeout) clearTimeout(pendingTimeout);
+    };
+  }, []);
 
   return (
     <aside className="relative z-[35] w-full sm:w-60 max-w-full bg-slate-950/20 border border-white/15 rounded-xl p-1.5 sm:p-2 shadow-sm pointer-events-auto select-none transition-all duration-300">
@@ -24,7 +58,7 @@ export const DPSLeaderboard = () => {
         <div className="flex items-center space-x-1.5 text-[10px] text-cyan-400 font-mono shrink-0">
           <div className="flex items-center space-x-0.5">
             <Users className="w-3 h-3" />
-            <span>{minions.length}</span>
+            <span>{minionCount}</span>
           </div>
           <button
             type="button"
@@ -40,12 +74,12 @@ export const DPSLeaderboard = () => {
       {/* Players List (Collapsible) */}
       {!isCollapsed && (
         <div className="space-y-1">
-          {leaderboard.length === 0 ? (
+          {displayLeaderboard.length === 0 ? (
             <p className="text-[9px] text-slate-400 italic py-0.5 text-center">
               {t('HUD.noPlayersYet', 'Chat tên tướng để tấn công!')}
             </p>
           ) : (
-            leaderboard.slice(0, 3).map((player, index) => {
+            displayLeaderboard.map((player, index) => {
               const teamProfile = activeTeams[player.team];
               const teamTheme = getTeamTheme(teamProfile?.colorTheme);
               return (

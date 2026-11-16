@@ -19,7 +19,7 @@ import {
   resolveCorsOrigin,
 } from './security/adminAuth.js';
 import { OPS_ALERT_KIND } from './constants/liveOps.js';
-import { DEFAULT_USE_USER_AVATAR } from './constants/tiktok.js';
+import { DEFAULT_TIKTOK_USERNAME, DEFAULT_USE_USER_AVATAR } from './constants/tiktok.js';
 import { createModerationService } from './moderation/moderationService.js';
 import { createDuelService } from './services/duelService.js';
 import { createLiveOpsService } from './services/liveOpsService.js';
@@ -28,6 +28,7 @@ import { createPlayerProfileService } from './services/playerProfileService.js';
 import { createTikTokConnectionService } from './services/tiktokConnectionService.js';
 import { registerSocketHub } from './socket/registerSocketHub.js';
 import {
+  loadGiftConfigFromDisk,
   loadLiveOpsConfigFromDisk,
   loadOverlayVisibilityFromDisk,
   loadSeriesConfigFromDisk,
@@ -63,6 +64,9 @@ const io = new Server(httpServer, {
 installSocketAdminAuth(io);
 
 const liveOpsConfig = loadLiveOpsConfigFromDisk();
+const initialTikTokUsername = (process.env.TIKTOK_USERNAME || DEFAULT_TIKTOK_USERNAME)
+  .trim()
+  .replace(/^@+/, '');
 
 const state: ServerState = {
   overlayVisibility: loadOverlayVisibilityFromDisk(),
@@ -73,11 +77,14 @@ const state: ServerState = {
   bossSkillConfig: { ...DEFAULT_BOSS_SKILL_CONFIG },
   autoProBattleConfig: { ...DEFAULT_AUTO_PRO_BATTLE_CONFIG },
   championDamageMultiplier: 1,
+  championshipTally: null,
+  giftConfig: loadGiftConfigFromDisk(),
+  giftCatalog: { items: [], fetchedAt: 0, error: null },
   useUserAvatar: DEFAULT_USE_USER_AVATAR,
   participationRuleConfig: { ...DEFAULT_PARTICIPATION_RULE_CONFIG },
   chatLimitConfig: liveOpsConfig.chatLimitConfig,
   casterConfig: liveOpsConfig.casterConfig,
-  tiktokUsername: '',
+  tiktokUsername: initialTikTokUsername,
   connectionStatus: 'DISCONNECTED',
   lastErrorMessage: '',
   reconnectAttempt: 0,
@@ -117,4 +124,9 @@ attachServerLifecycle(httpServer, io, PORT, () => {
 httpServer.listen(PORT, () => {
   logServerListeningBanner(PORT);
   void opsAlerts.sendOpsAlert(OPS_ALERT_KIND.SERVER_START);
+
+  if (process.env.AUTO_CONNECT_TIKTOK === 'true' && initialTikTokUsername) {
+    console.log(`[TikTok Live] AUTO_CONNECT_TIKTOK is enabled. Auto-connecting to @${initialTikTokUsername}...`);
+    tiktokService.connectToRoom(initialTikTokUsername);
+  }
 });

@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand';
 import { announceChampionDeaths } from '../combatMomentStore';
 import {
   ActiveStatusEffect,
+  BossMeteorRainRequest,
   DefeatedChampionEntity,
   GameState,
   HeartMilestoneBanner,
@@ -12,6 +13,8 @@ import {
   ActiveBossSkillBanner,
   BOSS_SKILL_VFX,
   BOSS_STATUS_EFFECT,
+  BossSkillDefinition,
+  BossSkillImpactPoint,
 } from '../../types/bossSkill';
 import {
   BOSS_DIFFICULTY_SCALE,
@@ -25,6 +28,7 @@ import {
   GAME_THEME,
   getThemeConfig,
   TEAM_KEY,
+  DAMAGE_SOURCE,
 } from '../../constants/game';
 import {
   BOSS_SKILL_STORAGE_KEY,
@@ -35,6 +39,8 @@ import { BOSS_PHASE, BOSS_PHASE_RULES, getBossPhaseRule, resolveBossPhase } from
 import {
   BOSS_METEOR_RAIN_CONSTANTS,
   BOSS_PHASE_SHIFT_SHAKE_INTENSITY,
+  CHAMPION_HIT_FEEDBACK,
+  getSkillImpactDelayMs,
 } from '../../constants/bossSkillVfx';
 import {
   DAMAGE_OVER_TIME_EFFECTS,
@@ -43,17 +49,15 @@ import {
 } from '../../constants/bossStatusEffects';
 import { BOSS_SKILL_VFX_SFX, BOSS_VOICE_KIND, SFX_EVENT } from '../../constants/sfx';
 import { playBossVoice } from '../../services/bossVoice';
+import { playBossUltimateFeedback } from '../bossUltimateFeedback';
 import { audioService } from '../../services/audioService';
 import { soundManager, playSound } from '../../services/soundManager';
-import { getLiveMinionPositionSnapshot, getLiveMinionScreenPos } from '../../services/minionPositionRegistry';
-import { upsertStatusEffect } from '../../utils/statusEffects';
+import { getLiveMinionPositionSnapshot } from '../../services/minionPositionRegistry';
 import {
   buildChampionStatusEffect,
   buildDefeatedChampion,
   pickBossSkillIndex,
-  pickSkillTargets,
-  pickZoneBreathTargets,
-  resolveSkillTargetTeam,
+  pickSkillHit,
 } from '../bossSkillResolver';
 import {
   createInitialRosterFury,
@@ -61,6 +65,12 @@ import {
   createInitialTeamHeartMomentum,
   isBattleHalted,
 } from '../storeHelpers';
+import {
+  PendingBossSkillImpact,
+  applyBossSkillImpact,
+  resolveChampionWorldPosition,
+  showChampionDamage,
+} from '../bossSkillImpact';
 import { isCurrentRoundIntroActive } from '../roundIntroStore';
 import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
 import { createEmptyMinionCollections, rebuildMinionCollections } from '../minionMapHelpers';
@@ -101,6 +111,36 @@ const resolveEnragedEntranceTimestamp = (
 };
 
 /** Creates the boss skills, phases, status effects, healing, and HP control slice. */
+/** One request per METEOR_RAIN archetype of the skill (its main VFX and/or any layer). */
+const getMeteorRainRequests = (
+  skill: BossSkillDefinition,
+  now: number,
+  impactPoints: readonly BossSkillImpactPoint[]
+): BossMeteorRainRequest[] => {
+  const mainRequest: BossMeteorRainRequest[] =
+    skill.vfxType === BOSS_SKILL_VFX.METEOR_RAIN
+      ? [
+          {
+            color: skill.color,
+            glowColor: skill.vfxParams?.secondaryColor,
+            count: skill.vfxParams?.count ?? BOSS_METEOR_RAIN_CONSTANTS.DEFAULT_COUNT,
+            startAt: now,
+            impactPoints,
+          },
+        ]
+      : [];
+  const layerRequests = (skill.vfxParams?.layers ?? [])
+    .filter((layer) => layer.vfxType === BOSS_SKILL_VFX.METEOR_RAIN)
+    .map((layer) => ({
+      color: layer.color ?? skill.color,
+      glowColor: layer.secondaryColor ?? skill.vfxParams?.secondaryColor,
+      count: layer.count ?? BOSS_METEOR_RAIN_CONSTANTS.DEFAULT_COUNT,
+      startAt: now + (layer.delayMs ?? 0),
+      impactPoints,
+    }));
+  return [...mainRequest, ...layerRequests];
+};
+
 export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set, get) => ({
   setBossSkillConfig: (config) => {
     set((state) => {
@@ -125,11 +165,12 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       return;
     }
 
-    const dominantTeam =
-      state.teamScoreBLG >= state.teamScoreGENG ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+    const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
+    const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
+    const dominantTeam = leftScore >= rightScore ? TEAM_KEY.BLG : TEAM_KEY.GENG;
     const baseDamage = BOSS_MECHANICS_CONSTANTS.WEAK_POINT.POKE_BASE_DAMAGE;
     set({ bossWeakPoint: null });
-    get().damageBoss(baseDamage, dominantTeam, playerName, DAMAGE_TYPE.CRIT);
+    get().damageBoss(baseDamage, dominantTeam, playerName, DAMAGE_TYPE.CRIT, { source: DAMAGE_SOURCE.WEAK_POINT_POKE });
   },
 
   tickBossMechanics: () => {
@@ -266,25 +307,18 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     const bossName = themeConfig.bossName;
 
     const currentMinions = state.minions;
-    const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
-    const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
-
     const gracePeriodMs = GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
     const vulnerableMinions = currentMinions.filter(
       (m) => now - (m.createdAt || 0) >= gracePeriodMs
     );
-    const isZoneBreath = skill.vfxType === BOSS_SKILL_VFX.FIRE_BREATH;
-    const zoneBreathSelection = isZoneBreath
-      ? pickZoneBreathTargets(vulnerableMinions)
-      : null;
-    const targetedMinionIds = zoneBreathSelection
-      ? zoneBreathSelection.targetedMinionIds
-      : pickSkillTargets(vulnerableMinions, skill.targetCount);
-    const targetTeam = zoneBreathSelection
-      ? zoneBreathSelection.targetTeam
-      : resolveSkillTargetTeam(currentMinions, targetedMinionIds, skill.isUltimate);
+    // Damage follows the area the effect is drawn in (attacked wing / around the boss / whole arena)
+    const skillHit = pickSkillHit(
+      vulnerableMinions,
+      skill,
+      (minion) => getLiveMinionPositionSnapshot(minion.id) || minion.spawnPosition
+    );
+    const { targetedMinionIds, targetTeam } = skillHit;
     const championDebuff = buildChampionStatusEffect(skill.statusEffect, skill.id, phase, now);
-    const isLifesteal = skill.statusEffect?.type === BOSS_STATUS_EFFECT.LIFESTEAL;
 
     const banner: ActiveBossSkillBanner = {
       skillId: skill.id,
@@ -295,15 +329,18 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       isUltimate: skill.isUltimate,
       bossName,
       timestamp: now,
+      iconName: skill.iconName,
       targetTeam,
       vfxType: skill.vfxType,
       vfxParams: skill.vfxParams,
       statusEffectType: skill.statusEffect?.type,
+      impactPoints: skillHit.impactPoints,
     };
 
     const archetypeSound = BOSS_SKILL_VFX_SFX[skill.vfxType];
     if (skill.isUltimate) {
-      get().triggerScreenShake(1.6);
+      // Opening kick, a rumble as long as the VFX, one sample per layer and a thump per ground hit
+      playBossUltimateFeedback(get, skill, themeConfig.audioPitchRate);
       get().triggerScreenFlash(skill.color);
       playSound(SFX_EVENT.BOSS_ULTIMATE, { rateScale: themeConfig.audioPitchRate });
       // The boss's own roar over the shared boom gives every ultimate its owner's voice
@@ -318,115 +355,49 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       playSound(SFX_EVENT.BOSS_SKILL, { rateScale: themeConfig.audioPitchRate });
     }
 
-    if (skill.vfxType === BOSS_SKILL_VFX.METEOR_RAIN) {
-      get().spawnBossMeteorRain(skill, now);
-    }
-
-    const remainingMinions: MinionEntity[] = [];
-    const newDefeatedChampions: DefeatedChampionEntity[] = [];
-    let totalDamageDealt = 0;
-
-    currentMinions.forEach((minion) => {
-      if (now - (minion.createdAt || 0) < gracePeriodMs) {
-        remainingMinions.push(minion);
-        return;
-      }
-
-      if (!targetedMinionIds.has(minion.id)) {
-        remainingMinions.push(minion);
-        return;
-      }
-
-      const curHp = minion.hp ?? minion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
-      const nextHp = curHp - actualDamage;
-      totalDamageDealt += Math.min(curHp, actualDamage);
-
-      const livePos = getLiveMinionScreenPos(minion.id) || getLiveMinionScreenPos(minion.championName);
-      const posX = livePos ? livePos.x : (minion.team === TEAM_KEY.BLG ? screenW * 0.25 : screenW * 0.75);
-      const posY = livePos ? livePos.y : screenH * 0.65;
-
-      const liveWorldPos = getLiveMinionPositionSnapshot(minion.id) || minion.spawnPosition;
-      get().spawnParticleBurst(liveWorldPos, skill.color, skill.isUltimate ? 2.0 : 1.0);
-
-      if (nextHp > 0) {
-        const statusEffects = championDebuff
-          ? upsertStatusEffect(minion.statusEffects, championDebuff)
-          : minion.statusEffects;
-        remainingMinions.push({ ...minion, hp: nextHp, statusEffects });
-        return;
-      }
-
-      newDefeatedChampions.push(
-        buildDefeatedChampion(minion, liveWorldPos, posX, posY, bossName, now)
-      );
-      get().addLog(
-        'BOSS',
-        `💀 [${bossName}] dùng [${skill.vietnameseName}] hạ gục ${minion.championName} của ${minion.summonerName}!`,
-        minion.team
-      );
-    });
-
-    if (championDebuff && targetedMinionIds.size > 0) {
-      const presentation = STATUS_EFFECT_PRESENTATION[championDebuff.type];
-      get().addLog(
-        'BOSS',
-        `${presentation.icon} [${skill.vietnameseName}] gây ${presentation.labelVi} lên ${targetedMinionIds.size} tướng!`
-      );
-    }
-
-    // Tự động xuất trận tiếp viện từ hàng đợi nếu có tướng bị hạ gục
-    announceChampionDeaths(newDefeatedChampions.length, now);
-    const deployed = deployQueuedMinions(
-      remainingMinions,
-      state.summonQueue,
-      state.lastSummonTurnTimestamps,
-      now,
-      state.activeTeams,
-      resolveSummonTurnLimits(state.participationRuleConfig)
+    getMeteorRainRequests(skill, now, skillHit.impactPoints).forEach((request) =>
+      get().spawnBossMeteorRain(request)
     );
 
-    const skillCollections = rebuildMinionCollections(deployed.nextMinions, now);
-    set((prev) => ({
+    set({
       bossAttackTimestamp: now,
       bossAttackTargetTeam: targetTeam,
       activeBossSkillBanner: banner,
       bossSkillRotationIndex: (state.bossSkillRotationIndex + 1) % skills.length,
-      minions: deployed.nextMinions,
-      ...skillCollections,
-      summonQueue: deployed.nextQueue,
-      lastSummonTurnTimestamps: deployed.nextLastTurnTimestamps,
-      activeSummonPortals: [
-        ...prev.activeSummonPortals,
-        ...deployed.newPortals,
-      ],
-      activeDefeatedChampions: [...prev.activeDefeatedChampions, ...newDefeatedChampions].slice(
-        -COMBAT_VFX_CONSTANTS.SUMMON.MAX_ACTIVE_DEFEATED
-      ),
-    }));
+    });
 
-    if (isLifesteal && totalDamageDealt > 0) {
-      const healAmount = Math.round(totalDamageDealt * (skill.statusEffect?.ratio ?? 0));
-      get().healBoss(healAmount, skill.vietnameseName);
-    }
+    // Damage lands when the effect reaches the champions, never at the cast itself
+    const pendingImpact: PendingBossSkillImpact = {
+      skill,
+      damage: actualDamage,
+      targetedMinionIds,
+      championDebuff,
+      bossName,
+    };
+    setTimeout(
+      () => applyBossSkillImpact(set, get, pendingImpact),
+      getSkillImpactDelayMs(skill.vfxType, skill.vfxParams)
+    );
   },
 
-  spawnBossMeteorRain: (skill, now) => {
-    const count = skill.vfxParams?.count ?? BOSS_METEOR_RAIN_CONSTANTS.DEFAULT_COUNT;
+  spawnBossMeteorRain: ({ color, glowColor, count, startAt, impactPoints }) => {
     const newMeteors: MeteorEntity[] = Array.from({ length: count }, (_, index) => {
-      const targetX = (Math.random() - 0.5) * BOSS_METEOR_RAIN_CONSTANTS.SPREAD_X;
-      const targetZ = (Math.random() - 0.5) * BOSS_METEOR_RAIN_CONSTANTS.SPREAD_Z;
+      // The first meteors fall on the champions the skill hurts, the rest scatter over the arena
+      const impactPoint = impactPoints[index];
+      const targetX = impactPoint ? impactPoint[0] : (Math.random() - 0.5) * BOSS_METEOR_RAIN_CONSTANTS.SPREAD_X;
+      const targetZ = impactPoint ? impactPoint[1] : (Math.random() - 0.5) * BOSS_METEOR_RAIN_CONSTANTS.SPREAD_Z;
       return {
-        id: `boss-meteor-${now}-${index}`,
+        id: `boss-meteor-${startAt}-${index}`,
         start: [
           targetX + (Math.random() - 0.5) * 2,
           BOSS_METEOR_RAIN_CONSTANTS.START_HEIGHT,
           targetZ - 2,
         ],
         target: [targetX, BOSS_METEOR_RAIN_CONSTANTS.GROUND_Y, targetZ],
-        color: skill.color,
-        glowColor: skill.vfxParams?.secondaryColor,
+        color,
+        glowColor,
         coreColor: '#ffffff',
-        createdAt: now + index * BOSS_METEOR_RAIN_CONSTANTS.STAGGER_MS,
+        createdAt: startAt + index * BOSS_METEOR_RAIN_CONSTANTS.STAGGER_MS,
         duration: BOSS_METEOR_RAIN_CONSTANTS.FALL_DURATION_S,
       };
     });
@@ -483,8 +454,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     const state = get();
     if (state.minions.length === 0) return;
     const now = Date.now();
-    const screenW = typeof window !== 'undefined' ? window.innerWidth : 720;
-    const screenH = typeof window !== 'undefined' ? window.innerHeight : 1280;
     const bossName = getThemeConfig(state.gameTheme).bossName;
 
     const remainingMinions: MinionEntity[] = [];
@@ -499,6 +468,8 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       }
 
       let nextHp = minion.hp ?? minion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
+      let tickDamageTaken = 0;
+      let tickColor: string = CHAMPION_HIT_FEEDBACK.DAMAGE_COLOR;
       const nextEffects: ActiveStatusEffect[] = [];
 
       effects.forEach((effect) => {
@@ -516,8 +487,14 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
         hasChanges = true;
         const tickDamage = effect.tickDamage ?? 0;
         nextHp -= tickDamage;
+        tickDamageTaken += tickDamage;
+        tickColor = effect.color;
         nextEffects.push({ ...effect, lastTickAt: now });
       });
+
+      // Every burn / poison tick shows its number on the champion, so the HP loss is never silent
+      const screenPoint =
+        tickDamageTaken > 0 ? showChampionDamage(minion, tickDamageTaken, nextHp <= 0, tickColor, now) : null;
 
       if (nextHp > 0) {
         remainingMinions.push({ ...minion, hp: nextHp, statusEffects: nextEffects });
@@ -525,17 +502,9 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       }
 
       hasChanges = true;
-      const livePos = getLiveMinionScreenPos(minion.id);
-      const worldPos = getLiveMinionPositionSnapshot(minion.id) || minion.spawnPosition;
+      const defeatPoint = screenPoint ?? showChampionDamage(minion, 0, true, tickColor, now);
       newDefeatedChampions.push(
-        buildDefeatedChampion(
-          minion,
-          worldPos,
-          livePos ? livePos.x : screenW * 0.5,
-          livePos ? livePos.y : screenH * 0.65,
-          bossName,
-          now
-        )
+        buildDefeatedChampion(minion, resolveChampionWorldPosition(minion), defeatPoint.x, defeatPoint.y, bossName, now)
       );
       get().addLog(
         'BOSS',
@@ -547,7 +516,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     if (!hasChanges) return;
 
     // Tự động xuất trận tiếp viện từ hàng đợi nếu có tướng gục ngã vì hiệu ứng
-    announceChampionDeaths(newDefeatedChampions.length, now);
+    announceChampionDeaths(newDefeatedChampions.length, now, remainingMinions.length);
     const deployed = deployQueuedMinions(
       remainingMinions,
       state.summonQueue,
@@ -557,7 +526,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       resolveSummonTurnLimits(state.participationRuleConfig)
     );
 
-    const effectCollections = rebuildMinionCollections(deployed.nextMinions, now);
+    const effectCollections = rebuildMinionCollections(deployed.nextMinions);
     set((prev) => ({
       minions: deployed.nextMinions,
       ...effectCollections,
@@ -587,6 +556,10 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       bossStatus: BOSS_STATUS.IDLE,
       isRoundIntermission: false,
       roundWinner: null,
+      teamScores: {
+        [TEAM_KEY.BLG]: 0,
+        [TEAM_KEY.GENG]: 0,
+      },
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
@@ -624,6 +597,9 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
+      finisherAvatarUrl: null,
+      finisherGiftName: null,
+      finisherCoins: null,
       rosterAttackTimestamps: {},
       rosterPlayerFury: createInitialRosterFury(state.activeTeams),
       lastFuryUltimatePlayerId: null,

@@ -1,12 +1,14 @@
 import React from 'react';
 import { Flame, Zap, Swords, MessageSquare, Crown } from 'lucide-react';
 import { BossSpeechItem } from '../../constants/bossSpeech';
-import { BossThemeConfig } from '../../constants/game';
+import { BOSS_HEALTH_BAR_LAYOUT, BossThemeConfig } from '../../constants/game';
 
 interface BossSpeechBubbleProps {
   speech: BossSpeechItem | null;
   themeConfig: BossThemeConfig;
   isRestless: boolean;
+  /** The boss HP bar is shown right above the boss: sit above it. */
+  isAboveHealthBar: boolean;
 }
 
 const renderSpeechIcon = (iconType: BossSpeechItem['icon']) => {
@@ -29,8 +31,11 @@ const RESTLESS_BUBBLE_THEME =
 const RESTLESS_TAIL_THEME = 'border-t-rose-400';
 
 export const BossSpeechBubble: React.FC<BossSpeechBubbleProps> = React.memo(
-  ({ speech, themeConfig, isRestless }) => {
+  ({ speech, themeConfig, isRestless, isAboveHealthBar }) => {
     if (!speech) return null;
+    const topClass = isAboveHealthBar
+      ? BOSS_HEALTH_BAR_LAYOUT.SPEECH_BUBBLE_TOP_CLASS
+      : BOSS_HEALTH_BAR_LAYOUT.SPEECH_BUBBLE_DEFAULT_TOP_CLASS;
 
     // Distinct theme colors based on Boss type and emotional state
     const bubbleThemeClass = isRestless
@@ -42,7 +47,7 @@ export const BossSpeechBubble: React.FC<BossSpeechBubbleProps> = React.memo(
       : themeConfig.bubbleTailThemeClass;
 
     return (
-      <div className="absolute -top-7 sm:-top-8 left-1/2 -translate-x-1/2 pointer-events-none z-50 select-none w-max max-w-[200px] sm:max-w-[250px]">
+      <div className={`absolute ${topClass} left-1/2 -translate-x-1/2 pointer-events-none z-50 select-none w-max max-w-[200px] sm:max-w-[250px]`}>
         <div className="animate-speech-bubble opacity-100">
           {/* Main Comic Dialogue Pill */}
           <div

@@ -11,8 +11,9 @@ export const COMBAT_MOMENT_CONSTANTS = {
   WIPE_MIN_KILLS: 5,
   /** 2 deaths or fewer use the single death sound; more use the layered multi-kill sound. */
   MULTI_KILL_MIN: 3,
-  WIPE_STAMP_MS: 1600,
-  SLOW_MOTION_MS: 250,
+  WIPE_STAMP_MS: 2200,
+  WIPE_COOLDOWN_MS: 3000,
+  SLOW_MOTION_MS: 300,
   SLOW_MOTION_SCALE: 0.3,
 } as const;
 
@@ -23,14 +24,31 @@ interface CombatMomentState {
 
 export const useCombatMomentStore = create<CombatMomentState>(() => ({ wipeAt: 0, wipeKillCount: 0 }));
 
-/** One sound per boss action instead of one per death, tiered by how many fell. */
-export const announceChampionDeaths = (killCount: number, now: number): void => {
+/** Triggered when the arena runs out of champions or an instant 5+ kill wipe happens. */
+export const triggerFieldWipe = (killCount = 0, now = Date.now()): void => {
+  const currentWipeAt = useCombatMomentStore.getState().wipeAt;
+  if (now - currentWipeAt < COMBAT_MOMENT_CONSTANTS.WIPE_COOLDOWN_MS) return;
+  useCombatMomentStore.setState({ wipeAt: now, wipeKillCount: killCount });
+  playSound(SFX_EVENT.WIPE);
+};
+
+/**
+ * One sound per boss action instead of one per death, tiered by how many fell.
+ * "QUÉT SẠCH / ACE" (Wipe) ONLY triggers when ALL champions on the field are defeated (remainingMinionsCount === 0).
+ */
+export const announceChampionDeaths = (
+  killCount: number,
+  now: number,
+  remainingMinionsCount?: number
+): void => {
   if (killCount <= 0) return;
-  if (killCount >= COMBAT_MOMENT_CONSTANTS.WIPE_MIN_KILLS) {
-    useCombatMomentStore.setState({ wipeAt: now, wipeKillCount: killCount });
-    playSound(SFX_EVENT.WIPE);
+
+  // "QUÉT SẠCH" (ACE): CHỈ xuất hiện khi toàn bộ tướng trên sàn đã bị tiêu diệt sạch (sàn đấu trống)
+  if (remainingMinionsCount !== undefined && remainingMinionsCount === 0) {
+    triggerFieldWipe(killCount, now);
     return;
   }
+
   if (killCount >= COMBAT_MOMENT_CONSTANTS.MULTI_KILL_MIN) {
     playSound(SFX_EVENT.CHAMPION_DEATH_MULTI);
     return;

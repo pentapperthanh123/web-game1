@@ -4,35 +4,36 @@ import { VoidSingularity } from './VoidSingularity';
 import { VoidFloatingShards } from './VoidFloatingShards';
 
 /**
- * Primordial Void realm — a full replacement for the cave painting:
- * deep-space nebula → starfield → floating islands → black hole behind the Titan →
- * an abyssal mist sea with a slow rune circle the champions fight on.
+ * Primordial Void realm — a cosmic abyss where the Void Titan reigns:
+ * deep cosmic nebula → sparkling starfield → floating void shards → singularity →
+ * abyssal mist floor with a glowing dual-ring void rune array.
  */
 const VOID_REALM_COLORS = {
-  SPACE_CENTER: '#06121f',
-  SPACE_EDGE: '#01040a',
-  NEBULA_BLUE: 'rgba(30, 64, 175, 0.38)',
-  NEBULA_TEAL: 'rgba(13, 148, 136, 0.32)',
-  NEBULA_CYAN: 'rgba(8, 145, 178, 0.28)',
-  NEBULA_AMBER: 'rgba(180, 83, 9, 0.16)',
-  ABYSS_MIST: 'rgba(8, 47, 73, 0.72)',
-  ABYSS_FLOOR: 'rgba(1, 4, 10, 0.95)',
-  RUNE: 'rgba(103, 232, 249, 0.4)',
-  GALAXY_BAND: 'rgba(186, 230, 253, 0.14)',
-  GALAXY_CORE: 'rgba(240, 249, 255, 0.2)',
+  SPACE_CENTER: '#09031a',
+  SPACE_EDGE: '#020008',
+  NEBULA_PURPLE: 'rgba(126, 34, 206, 0.32)',
+  NEBULA_VIOLET: 'rgba(168, 85, 247, 0.26)',
+  NEBULA_CYAN: 'rgba(6, 182, 212, 0.22)',
+  NEBULA_MAGENTA: 'rgba(217, 70, 239, 0.18)',
+  ABYSS_MIST: 'rgba(15, 7, 34, 0.78)',
+  ABYSS_FLOOR: 'rgba(2, 0, 7, 0.98)',
+  RUNE_PRIMARY: 'rgba(192, 132, 252, 0.65)',
+  RUNE_CYAN: 'rgba(56, 189, 248, 0.55)',
+  GALAXY_BAND: 'rgba(192, 132, 252, 0.16)',
+  GALAXY_CORE: 'rgba(240, 171, 252, 0.25)',
 } as const;
 
 const NEBULA_CLOUDS = [
-  { left: '-20%', top: '2%', size: '95vmax', color: VOID_REALM_COLORS.NEBULA_BLUE, delayS: 0 },
-  { left: '35%', top: '-10%', size: '80vmax', color: VOID_REALM_COLORS.NEBULA_TEAL, delayS: -7 },
-  { left: '-30%', top: '45%', size: '70vmax', color: VOID_REALM_COLORS.NEBULA_CYAN, delayS: -12 },
-  { left: '55%', top: '35%', size: '60vmax', color: VOID_REALM_COLORS.NEBULA_AMBER, delayS: -4 },
+  { left: '-20%', top: '2%', size: '95vmax', color: VOID_REALM_COLORS.NEBULA_PURPLE, delayS: 0 },
+  { left: '35%', top: '-10%', size: '80vmax', color: VOID_REALM_COLORS.NEBULA_CYAN, delayS: -7 },
+  { left: '-30%', top: '45%', size: '70vmax', color: VOID_REALM_COLORS.NEBULA_MAGENTA, delayS: -12 },
+  { left: '55%', top: '35%', size: '60vmax', color: VOID_REALM_COLORS.NEBULA_VIOLET, delayS: -4 },
 ] as const;
 
 const COSMIC_MOTES = buildRisingParticles({
   seed: 2099,
-  count: 18,
-  colors: ['#a5f3fc', '#ffffff', '#fde68a', '#7dd3fc'],
+  count: 22,
+  colors: ['#c084fc', '#38bdf8', '#f0abfc', '#ffffff', '#e879f9'],
   minSizePx: 1.5,
   maxSizePx: 3.5,
   minDurationS: 14,
@@ -81,11 +82,16 @@ const AbyssFloor = () => (
     />
     <div className="absolute left-1/2 top-[80%] w-[110vmin] h-[110vmin]" style={{ transform: 'translate(-50%, -50%) scaleY(0.24)' }}>
       <svg viewBox="0 0 200 200" className="w-full h-full arena-rune-spin">
-        <circle cx="100" cy="100" r="96" fill="none" stroke={VOID_REALM_COLORS.RUNE} strokeWidth="1.2" />
-        <circle cx="100" cy="100" r="84" fill="none" stroke={VOID_REALM_COLORS.RUNE} strokeWidth="0.8" strokeDasharray="6 4 1 4" />
-        <circle cx="100" cy="100" r="62" fill="none" stroke={VOID_REALM_COLORS.RUNE} strokeWidth="0.6" strokeDasharray="2 6" />
-        <polygon points="100,18 171,141 29,141" fill="none" stroke={VOID_REALM_COLORS.RUNE} strokeWidth="0.7" />
-        <polygon points="100,182 29,59 171,59" fill="none" stroke={VOID_REALM_COLORS.RUNE} strokeWidth="0.7" />
+        <circle cx="100" cy="100" r="96" fill="none" stroke={VOID_REALM_COLORS.RUNE_PRIMARY} strokeWidth="1.2" />
+        <circle cx="100" cy="100" r="88" fill="none" stroke={VOID_REALM_COLORS.RUNE_CYAN} strokeWidth="0.8" strokeDasharray="4 6" />
+        <circle cx="100" cy="100" r="76" fill="none" stroke={VOID_REALM_COLORS.RUNE_PRIMARY} strokeWidth="0.8" strokeDasharray="8 4 2 4" />
+        <circle cx="100" cy="100" r="62" fill="none" stroke={VOID_REALM_COLORS.RUNE_CYAN} strokeWidth="0.6" strokeDasharray="2 6" />
+        <polygon points="100,16 173,142 27,142" fill="none" stroke={VOID_REALM_COLORS.RUNE_PRIMARY} strokeWidth="0.8" />
+        <polygon points="100,184 27,58 173,58" fill="none" stroke={VOID_REALM_COLORS.RUNE_PRIMARY} strokeWidth="0.8" />
+        <polygon points="100,28 162,136 38,136" fill="none" stroke={VOID_REALM_COLORS.RUNE_CYAN} strokeWidth="0.5" strokeDasharray="3 3" />
+        <polygon points="100,172 38,64 162,64" fill="none" stroke={VOID_REALM_COLORS.RUNE_CYAN} strokeWidth="0.5" strokeDasharray="3 3" />
+        <circle cx="100" cy="100" r="16" fill="none" stroke={VOID_REALM_COLORS.RUNE_PRIMARY} strokeWidth="1" />
+        <circle cx="100" cy="100" r="6" fill={VOID_REALM_COLORS.RUNE_CYAN} />
       </svg>
     </div>
   </>

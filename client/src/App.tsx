@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import { ArenaBackground2D } from './components/arena/ArenaBackground2D';
 import { Boss2D } from './components/arena/Boss2D';
 import { GameCanvas } from './components/canvas/GameCanvas';
 import { HUDOverlay } from './components/ui/HUDOverlay';
 import { useGameStore } from './store/gameStore';
+import { useScreenRumbleAmplitudePx } from './hooks/useScreenRumbleAmplitude';
 import { useMatchSnapshotPersistence } from './store/matchSnapshot';
 import {
   SIMULATION_PRESETS,
@@ -24,6 +25,20 @@ import { startCasterDirector } from './services/caster/casterDirector';
 import { getBossPhaseRule } from './constants/bossPhases';
 import { STATUS_EFFECT_CONSTANTS } from './constants/bossStatusEffects';
 import { useRoundIntroStore, isCurrentRoundIntroActive } from './store/roundIntroStore';
+
+/** Read by the `screenRumble` keyframes in index.css. */
+const SCREEN_RUMBLE_CSS_VAR = '--screen-rumble-px';
+const SCREEN_MOTION_CLASS = {
+  RUMBLE: 'animate-screen-rumble',
+  SHAKE: 'animate-screen-shake',
+  NONE: '',
+} as const;
+
+const resolveScreenMotionClass = (isRumbling: boolean, isShaking: boolean): string => {
+  if (isRumbling) return SCREEN_MOTION_CLASS.RUMBLE;
+  if (isShaking) return SCREEN_MOTION_CLASS.SHAKE;
+  return SCREEN_MOTION_CLASS.NONE;
+};
 
 export function App() {
   useMatchSnapshotPersistence();
@@ -47,7 +62,6 @@ export function App() {
   const bossSkillConfig = useGameStore((state) => state.bossSkillConfig);
   const activeTeams = useGameStore((state) => state.activeTeams);
   const gameTheme = useGameStore((state) => state.gameTheme);
-  const rosterPlayerFury = useGameStore((state) => state.rosterPlayerFury);
 
   const nextFireAtRef = useRef<Record<string, number>>({});
   const autoUltQueuedRef = useRef<Set<string>>(new Set());
@@ -111,7 +125,7 @@ export function App() {
         : 1.0;
       const phaseIntervalMultiplier = getBossPhaseRule(state.bossPhase).intervalMultiplier;
       const baseInterval =
-        ((bossSkillConfig.intervalMs || 4000) * speedMultiplier * phaseIntervalMultiplier) /
+        ((bossSkillConfig.intervalMs || 10000) * speedMultiplier * phaseIntervalMultiplier) /
         phaseSpeedMultiplier;
       const nextDelay = bossSkillConfig.randomIntervalEnabled
         ? Math.round(baseInterval * (0.7 + Math.random() * 0.6))
@@ -155,6 +169,9 @@ export function App() {
   }, []);
 
   const isScreenShaking = Date.now() - screenShakeTimestamp < 350;
+  const screenRumblePx = useScreenRumbleAmplitudePx();
+  // A running quake wins over the short kick: both animate the same transform
+  const screenMotionClass = resolveScreenMotionClass(screenRumblePx > 0, isScreenShaking);
 
   // Background entity cleanup & Boss Phase/Shield/WeakPoint tick
   useEffect(() => {
@@ -273,43 +290,62 @@ export function App() {
   ]);
 
   // Auto-cast ultimate skill whenever any pro player's power (fury) reaches 100%
+  // Subscribes via useGameStore.subscribe to prevent entire App component re-renders
   useEffect(() => {
     if (isBattlePaused) {
       autoUltQueuedRef.current.clear();
       return;
     }
 
-    const state = useGameStore.getState();
-    const teams: TeamType[] = [TEAM_KEY.BLG, TEAM_KEY.GENG];
-    let staggerDelay = 0;
+    const checkAndTriggerUlts = (rosterPlayerFury: Record<string, number>) => {
+      const state = useGameStore.getState();
+      const teams: TeamType[] = [TEAM_KEY.BLG, TEAM_KEY.GENG];
+      let staggerDelay = 0;
 
-    for (const team of teams) {
-      const roster = state.activeTeams[team]?.roster ?? [];
-      roster.forEach((player, playerIndex) => {
-        const fury = state.rosterPlayerFury[player.id] ?? 0;
-        if (fury >= GAME_CONSTANTS.PRO_FURY.MAX_FURY && !autoUltQueuedRef.current.has(player.id)) {
-          autoUltQueuedRef.current.add(player.id);
-          const currentDelay = staggerDelay;
-          staggerDelay += 350;
+      for (const team of teams) {
+        const roster = state.activeTeams[team]?.roster ?? [];
+        roster.forEach((player, playerIndex) => {
+          const fury = rosterPlayerFury[player.id] ?? 0;
+          if (fury >= GAME_CONSTANTS.PRO_FURY.MAX_FURY && !autoUltQueuedRef.current.has(player.id)) {
+            autoUltQueuedRef.current.add(player.id);
+            const currentDelay = staggerDelay;
+            staggerDelay += 350;
 
-          setTimeout(() => {
-            autoUltQueuedRef.current.delete(player.id);
-            const currentState = useGameStore.getState();
-            if (
-              isCurrentRoundIntroActive() ||
-              currentState.bossStatus === BOSS_STATUS.DEFEATED ||
-              currentState.bossHp <= 0 ||
-              currentState.isRoundIntermission ||
-              currentState.roundWinner !== null
-            ) {
-              return;
-            }
-            triggerAutoProAttack(team, playerIndex);
-          }, 250 + currentDelay);
-        }
-      });
-    }
-  }, [rosterPlayerFury, isBattlePaused, triggerAutoProAttack]);
+            setTimeout(() => {
+              autoUltQueuedRef.current.delete(player.id);
+              const currentState = useGameStore.getState();
+              if (
+                isCurrentRoundIntroActive() ||
+                currentState.bossStatus === BOSS_STATUS.DEFEATED ||
+                currentState.bossHp <= 0 ||
+                currentState.isRoundIntermission ||
+                currentState.roundWinner !== null
+              ) {
+                return;
+              }
+              triggerAutoProAttack(team, playerIndex);
+              // Advance next normal auto-attack cooldown so ult and normal attacks never overlap
+              if (nextFireAtRef.current) {
+                nextFireAtRef.current[player.id] = Date.now() + 1500;
+              }
+            }, 250 + currentDelay);
+          }
+        });
+      }
+    };
+
+    // Check initial state
+    checkAndTriggerUlts(useGameStore.getState().rosterPlayerFury);
+
+    // Subscribe to store updates without re-rendering App component
+    const unsubscribe = useGameStore.subscribe((state, prevState) => {
+      if (state.rosterPlayerFury !== prevState.rosterPlayerFury) {
+        checkAndTriggerUlts(state.rosterPlayerFury);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [isBattlePaused, triggerAutoProAttack]);
 
   // Continuous Auto-Summon Loop configured from Admin Panel
   useEffect(() => {
@@ -391,9 +427,8 @@ export function App() {
     <main className="fixed inset-0 w-full h-full bg-slate-950 overflow-hidden font-sans select-none">
       {/* 100% Fullscreen on all mobile devices and browsers, zero letterboxing */}
       <div
-        className={`relative w-full h-full overflow-hidden bg-slate-950 transition-transform ${
-          isScreenShaking ? 'animate-screen-shake' : ''
-        }`}
+        style={{ [SCREEN_RUMBLE_CSS_VAR]: `${screenRumblePx}px` } as CSSProperties}
+        className={`relative w-full h-full overflow-hidden bg-slate-950 transition-transform ${screenMotionClass}`}
       >
         {/* Layer 0: High-Resolution 2D Arena Background */}
         <ArenaBackground2D />

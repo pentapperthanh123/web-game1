@@ -7,6 +7,9 @@ export const SUMMON_QUEUE_UI = {
   DEFAULT_TURN_DELAY_MS: 1300,
   DEPLOY_PER_TURN_OPTIONS: [1, 3, 5, 8, 10, 15],
   TURN_DELAY_OPTIONS_MS: [800, 1300, 2000, 3000],
+  /** Summoned champions attack this many times faster than the base interval (1 = base). */
+  DEFAULT_ATTACK_SPEED_MULTIPLIER: 1.5,
+  ATTACK_SPEED_OPTIONS: [1, 1.5, 2, 2.5, 3],
   MS_PER_SECOND: 1000,
   SECONDS_FRACTION_DIGITS: 1,
 } as const;

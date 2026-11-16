@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boss SFX Audition</title>
+<style>
+  :root { --bg: #0d1117; --panel: #161b22; --ink: #e6edf3; --muted: #8b949e; --accent: #f0883e; --ok: #3fb950; --line: #30363d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0 16px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .card h2 { font-size: 16px; margin: 0; }
+  .card .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  button { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: #21262d; color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.voice { border-color: #6e4a1f; }
+  button.ult { border-color: #8b2b2b; }
+  button.all { background: #1f3a24; border-color: var(--ok); }
+  button.playing { background: var(--accent); color: #111; }
+  .file { color: var(--muted); font-size: 11px; }
+  label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+</style>
+</head>
+<body>
+  <h1>Nghe thử âm thanh Boss</h1>
+  <div class="muted">
+    Phát đúng file trong <code>/sfx/</code>, đúng âm lượng mix và tốc độ (cao độ) như trong game.
+    Chế độ "Bản cũ" phát file gốc từ myinstants (chưa chuẩn hoá âm lượng) để so sánh.
+  </div>
+
+  <div class="toolbar">
+    <label><input id="old-toggle" type="checkbox"> Bản cũ (trước khi thay)</label>
+    <label>Âm lượng tổng <input id="master" type="range" min="0" max="1" step="0.05" value="0.8"></label>
+    <button id="stop-button" type="button">Dừng tất cả</button>
+  </div>
+
+  <div id="bosses" class="grid"></div>
+
+<script>
+(() => {
+  const LOCAL_SFX_BASE = '/sfx/';
+  const MYINSTANTS_BASE = 'https://www.myinstants.com/media/sounds/';
+  const SEQUENCE_GAP_MS = 3200;
+  const VOICE_KIND = { ROAR: 'ROAR', ENRAGE: 'ENRAGE' };
+
+  /** Mixed volume (definition volume × category level), copied from constants/sfx.ts. */
+  const MIX_VOLUME = {
+    BOSS_ROAR: 0.665, BOSS_ENRAGE: 0.9, BOSS_SKILL: 0.712, BOSS_ULTIMATE: 1,
+    BOSS_FIRE_BREATH: 0.665, BOSS_SPIKES: 0.617, BOSS_SWEEP: 0.665, BOSS_LIGHTNING: 0.712,
+    BOSS_METEOR: 0.665, BOSS_BEAM: 0.712, BOSS_VORTEX: 0.617, BOSS_CHARGE: 0.665,
+    BOSS_ROAR_HERALD: 0.95, BOSS_ENRAGE_HERALD: 0.9, BOSS_ROAR_MOUNTAIN: 0.665, BOSS_ENRAGE_MOUNTAIN: 0.9,
+    BOSS_ROAR_STORM: 0.665, BOSS_ENRAGE_STORM: 0.9, BOSS_ROAR_ELDER: 0.665, BOSS_ENRAGE_ELDER: 0.9,
+    BOSS_ROAR_VOID: 0.712, BOSS_ENRAGE_VOID: 0.9,
+  };
+
+  /** Sources before the 2026-11-14 swap. Every boss shared one roar / enrage, bent by the theme pitch. */
+  const OLD_SOURCES = {
+    BOSS_ROAR: 'largepredatorsnarl.mp3', BOSS_ENRAGE: 'enraged-scream2.mp3', BOSS_SKILL: 'boss-shockwave.mp3',
+    BOSS_FIRE_BREATH: 'firebreath.mp3', BOSS_SPIKES: 'sword-uhsheathe.mp3', BOSS_SWEEP: 'whoosh-dark.mp3',
+    BOSS_LIGHTNING: 'thunder-crack.mp3', BOSS_METEOR: 'boss-shockwave.mp3', BOSS_VORTEX: 'whoosh-wind.mp3',
+    BOSS_CHARGE: 'endless-stampede.mp3',
+  };
+
+  /** Snapshot of BOSS_VOICE_SFX, THEME_CONFIGS.audioPitchRate and BOSS_SKILL_VFX_SFX. */
+  const BOSSES = [
+    { name: 'Sứ Giả Khe Nứt', pitch: 1.25, voice: { ROAR: 'BOSS_ROAR_HERALD', ENRAGE: 'BOSS_ENRAGE_HERALD', rate: 1.1 },
+      skills: [['Cú Húc Sứ Giả', 'BOSS_CHARGE'], ['Quét Móng Vuốt', 'BOSS_SWEEP'], ['Tia Sáng Mắt Hư Không', 'BOSS_BEAM'], ['Địa Chấn Khe Nứt', null, true]] },
+    { name: 'Rồng Núi Nham Thạch', pitch: 0.9, voice: { ROAR: 'BOSS_ROAR_MOUNTAIN', ENRAGE: 'BOSS_ENRAGE_MOUNTAIN', rate: 0.92 },
+      skills: [['Phun Lửa Nham Thạch', 'BOSS_FIRE_BREATH'], ['Lở Đá Nham Thạch', 'BOSS_METEOR'], ['Gầm Rú Địa Chấn', 'BOSS_SKILL'], ['Núi Lửa Phun Trào', null, true]] },
+    { name: 'Rồng Già Bão Tố', pitch: 1.05, voice: { ROAR: 'BOSS_ROAR_STORM', ENRAGE: 'BOSS_ENRAGE_STORM', rate: 1.05 },
+      skills: [['Tia Sét Bão Tố', 'BOSS_LIGHTNING'], ['Lốc Xoáy Bão Sét', 'BOSS_VORTEX'], ['Cơn Thịnh Nộ Của Bão', null, true]] },
+    { name: 'Rồng Ngàn Tuổi', pitch: 1, voice: { ROAR: 'BOSS_ROAR_ELDER', ENRAGE: 'BOSS_ENRAGE_ELDER', rate: 1 },
+      skills: [['Phun Lửa Cổ Đại', 'BOSS_FIRE_BREATH'], ['Cơn Bão Cánh Long Thần', 'BOSS_SWEEP'], ['Mưa Thiên Thạch Cổ Đại', 'BOSS_METEOR'], ['Long Nộ Thiêu Rụi', null, true]] },
+    { name: 'Baron Nashor', pitch: 1, voice: { ROAR: 'BOSS_ROAR', ENRAGE: 'BOSS_ENRAGE', rate: 0.95 },
+      skills: [['Axit Hư Không', 'BOSS_FIRE_BREATH'], ['Gai Độc Hư Không', 'BOSS_SPIKES'], ['Quét Đuôi Hư Không', 'BOSS_SWEEP'], ['Đại Địa Chấn Hư Không', null, true]] },
+    { name: 'Thần Hư Vô Nguyên Thủy', pitch: 0.78, voice: { ROAR: 'BOSS_ROAR_VOID', ENRAGE: 'BOSS_ENRAGE_VOID', rate: 0.88 },
+      skills: [['Tia Hủy Diệt Hư Không', 'BOSS_BEAM'], ['Nghiền Nát Kỳ Dị', 'BOSS_VORTEX'], ['Sụp Đổ Không Gian', 'BOSS_SPIKES'], ['Khải Huyền Diệt Vong', null, true]] },
+  ];
+
+  const oldToggle = document.getElementById('old-toggle');
+  const masterSlider = document.getElementById('master');
+  const activeAudios = new Set();
+  const pendingTimers = new Set();
+
+  const isOldMode = () => oldToggle.checked;
+
+  const resolveUrl = (eventName) => {
+    if (isOldMode() && OLD_SOURCES[eventName]) return `${MYINSTANTS_BASE}${OLD_SOURCES[eventName]}`;
+    return `${LOCAL_SFX_BASE}${eventName}.mp3`;
+  };
+
+  /** HTML audio with pitch tied to rate, like Howler's Web Audio playback in the game. */
+  const playEvent = (eventName, rate) => {
+    const audio = new Audio(resolveUrl(eventName));
+    audio.preservesPitch = false;
+    audio.playbackRate = rate;
+    audio.volume = Math.min(1, (MIX_VOLUME[eventName] ?? 1) * Number(masterSlider.value));
+    audio.addEventListener('ended', () => activeAudios.delete(audio));
+    activeAudios.add(audio);
+    audio.play().catch((error) => console.warn(`[SfxAudition] ${eventName}: ${error.message}`));
+  };
+
+  /** Old build: one shared roar pitched by theme. New build: the boss's own voice at its own rate. */
+  const playVoice = (boss, kind) => {
+    if (isOldMode()) {
+      playEvent(kind === VOICE_KIND.ROAR ? 'BOSS_ROAR' : 'BOSS_ENRAGE', boss.pitch);
+      return;
+    }
+    playEvent(boss.voice[kind], boss.voice.rate);
+  };
+
+  const playSkill = (boss, [, archetypeEvent, isUltimate]) => {
+    if (isUltimate) {
+      playEvent('BOSS_ULTIMATE', boss.pitch);
+      if (!isOldMode()) playVoice(boss, VOICE_KIND.ROAR);
+    }
+    if (archetypeEvent) playEvent(archetypeEvent, boss.pitch);
+  };
+
+  const stopAll = () => {
+    pendingTimers.forEach((timer) => clearTimeout(timer));
+    pendingTimers.clear();
+    activeAudios.forEach((audio) => audio.pause());
+    activeAudios.clear();
+  };
+
+  const playSequence = (steps) => {
+    stopAll();
+    steps.forEach((step, index) => {
+      const timer = setTimeout(() => { pendingTimers.delete(timer); step(); }, index * SEQUENCE_GAP_MS);
+      pendingTimers.add(timer);
+    });
+  };
+
+  const createButton = (label, className, onClick, fileHint) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = className;
+    button.textContent = label;
+    if (fileHint) button.title = fileHint;
+    button.addEventListener('click', onClick);
+    return button;
+  };
+
+  const renderBoss = (boss) => {
+    const card = document.createElement('section');
+    card.className = 'card';
+    const title = document.createElement('h2');
+    title.textContent = boss.name;
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = `Cao độ chiêu ×${boss.pitch} · giọng ×${boss.voice.rate}`;
+
+    const voiceRow = document.createElement('div');
+    voiceRow.className = 'row';
+    voiceRow.append(
+      createButton('🗣️ Gầm', 'voice', () => playVoice(boss, VOICE_KIND.ROAR), boss.voice.ROAR),
+      createButton('😡 Cuồng nộ', 'voice', () => playVoice(boss, VOICE_KIND.ENRAGE), boss.voice.ENRAGE),
+    );
+
+    const skillRow = document.createElement('div');
+    skillRow.className = 'row';
+    boss.skills.forEach((skill) => {
+      const [skillName, archetypeEvent, isUltimate] = skill;
+      const label = isUltimate ? `💥 ${skillName}` : skillName;
+      skillRow.append(createButton(label, isUltimate ? 'ult' : '', () => playSkill(boss, skill), archetypeEvent ?? 'BOSS_ULTIMATE'));
+    });
+
+    const allRow = document.createElement('div');
+    allRow.className = 'row';
+    allRow.append(createButton('▶ Nghe cả bộ', 'all', () => playSequence([
+      () => playVoice(boss, VOICE_KIND.ROAR),
+      ...boss.skills.map((skill) => () => playSkill(boss, skill)),
+      () => playVoice(boss, VOICE_KIND.ENRAGE),
+    ])));
+
+    card.append(title, meta, voiceRow, skillRow, allRow);
+    return card;
+  };
+
+  document.getElementById('bosses').append(...BOSSES.map(renderBoss));
+  document.getElementById('stop-button').addEventListener('click', stopAll);
+})();
+</script>
+</body>
+</html>

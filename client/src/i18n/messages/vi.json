@@ -8,6 +8,8 @@
     "rageWarningTitle": "CẢNH BÁO: BARON CUỒNG NỘ!",
     "rageWarningDragonTitle": "CẢNH BÁO: RỒNG NGÀN TUỔI CUỒNG NỘ!",
     "rageWarningSubtitle": "MÁU DƯỚI 35% — SÁT THƯƠNG & TỐC ĐÁNH TĂNG VỌT!",
+    "enragedBadge": "CUỒNG NỘ",
+    "enragedStatsShort": "MÁU < 35% (+50% ST & TỐC ĐÁNH)",
     "defeated": "ĐÃ BỊ HẠ GỤC!",
     "damageContribution": "Đóng góp sát thương",
     "vs": "ĐỐI ĐẦU",
@@ -57,8 +59,8 @@
     "guideGiftRoseBadge": "+120 ST",
     "guideGiftRoseDesc": "+120 Sát Thương • Nạp +{{fury}}% Nộ toàn phe",
     "guideGiftHeartTitle": "Thả Tim (1♥)",
-    "guideGiftHeartBadge": "+15 ST / tim",
-    "guideGiftHeartDesc": "+15 ST/tim • Tốc Nộ x{{mult}} • Mốc {{milestone}}♥ Đại Hồi Phục",
+    "guideGiftHeartBadge": "+{{dmg}} ST / tim",
+    "guideGiftHeartDesc": "+{{dmg}} ST/tim • Tốc Nộ x{{mult}} • Mốc {{milestone}}♥ Đại Hồi Phục",
     "guideGiftCookieTitle": "Bánh Quy (10 xu)",
     "guideGiftCookieBadge": "+1,200 ST",
     "guideGiftCookieDesc": "Bão Thiên Thạch công phá +1,200 Sát Thương",
@@ -80,6 +82,8 @@
     "comboStreak": "COMBO x{{count}}",
     "coinsGained": "+{{coins}} xu",
     "megaCrest": "ĐẠI GIA {{team}}",
+    "mythicCrest": "SIÊU ĐẠI GIA {{team}}",
+    "legendCrest": "HUYỀN THOẠI {{team}}",
     "megaDamage": "+{{damage}} ST • BOSS BỊ ĐÁNH BẬT!",
     "queuedForRoundStart": "Đã tặng {{gift}} ({{coins}} xu)! Quà sẽ kích hoạt khi vào trận ⚔️"
   },
@@ -148,7 +152,7 @@
     "roundWinAction": "CHIẾN THẮNG VÁN {{round}}!",
     "seriesChampion": "🏆 {{team}} VÔ ĐỊCH CKTG 2026 {{format}}!",
     "seriesChampionAction": "VÔ ĐỊCH CKTG {{format}}!",
-    "seriesScore": "TỈ SỐ CHUNG CUỘC {{format}}: {{blg}} - {{geng}}",
+    "seriesScore": "TỈ SỐ CHUNG CUỘC {{format}}: {{team1}} {{score1}} - {{score2}} {{team2}}",
     "bo5Score": "TỈ SỐ {{format}} HIỆN TẠI",
     "mvpTitle": "MVP CỦA TRẬN ĐẤU",
     "proMvpTitle": "MVP TUYỂN THỦ",
@@ -160,8 +164,14 @@
     "roundIntermissionPrompt": "Nghỉ giữa hiệp - Sẵn sàng cho ván tiếp theo",
     "nextQueuedMatch": "TRẬN TIẾP THEO: {{label}} ({{remaining}})",
     "finisherBannerTitle": "⚡ ĐÒN KẾT LIỄU QUYẾT ĐỊNH ⚡",
+    "finisherGiftTitle": "⚡ ĐÒN KẾT LIỄU QUYẾT ĐỊNH TỪ QUÀ TẶNG ⚡",
+    "finisherTycoon": "ĐẠI GIA {{team}}",
+    "finisherStrike": "ĐÒN KẾT LIỄU!",
+    "finisherBossCrushed": "DỨT ĐIỂM HOÀN TOÀN TRẬN ĐẤU!",
     "finisherBannerSlay": "HẠ GỤC {{boss}}!",
     "finisherBannerDesc": "Đem lại vinh quang & bùa lợi vô song cho phe {{team}}!",
+    "finisherGiftDesc": "Cú ném quà thần sầu dứt điểm trận đấu — Mang về chiến thắng cho phe {{team}}!",
+    "finisherGiftDamage": "DỨT ĐIỂM HOÀN TOÀN TRẬN ĐẤU!",
     "finisherVoice": "Chiến binh {{name}} đã tung đòn kết liễu {{boss}}!",
     "autoAdvanceRound": "Tự động vào ván tiếp theo sau: {{seconds}}s",
     "autoAdvanceNewSeries": "Tự động bắt đầu trận mới sau: {{seconds}}s",
@@ -205,6 +215,16 @@
   "Admin": {
     "title": "Bảng Quản Trị Trận Đấu",
     "tabMatch": "Trận Đấu & Boss",
+    "introControlTitle": "Điều Khiển Màn Hình Giới Thiệu & Bắt Đầu",
+    "introControlDesc": "Mới đầu chiếu giới thiệu 2 đội tuyển và danh sách tuyển thủ. Bấm Bắt đầu để Caster đọc thể thức và đếm ngược xung trận.",
+    "introWaiting": "Chờ Bắt Đầu",
+    "introRunning": "Đang Giới Thiệu",
+    "startIntroSpeechBtn": "▶ Bắt đầu ván {{round}} (Đọc thể thức)",
+    "skipIntroBtn": "⚔️ Xung trận ngay (Bỏ qua giới thiệu)",
+    "reopenIntroBtn": "Chiếu lại màn hình giới thiệu ván {{round}}",
+    "introStartedFeedback": "Đã bắt đầu giới thiệu ván và đọc thể thức!",
+    "combatStartedFeedback": "Đã bắt đầu trận đấu ngay!",
+    "reopenIntroFeedback": "Đã mở màn hình giới thiệu ván {{round}}!",
     "tabThemeSkills": "Bản Đồ & Kỹ Năng",
     "tabSummon": "Triệu Hồi",
     "tabSimulation": "Bot & Tự Đánh",
@@ -259,7 +279,7 @@
     "userAvatarModeOn": "BẬT (Avatar Người Dùng)",
     "userAvatarModeOff": "TẮT (Avatar Tướng)",
     "participationRulesTitle": "Luật Tham Gia & Hàng Đợi Xuất Trận:",
-    "ruleTeamOnlyLabel": "Gõ Team (T1/GenG) ra quân ngay",
+    "ruleTeamOnlyLabel": "Gõ tên Team ({{team1}}/{{team2}}) ra quân ngay",
     "ruleAutoSigLabel": "Gõ Tướng tự khớp Team Tủ",
     "ruleLockTeamLabel": "Khóa Team sau khi chọn",
     "ruleEvolveLabel": "Gõ Tướng khác để Tiến Hóa",
@@ -290,6 +310,8 @@
     "queueDeployPerTurnValue": "{{count}} tướng / lượt",
     "queueTurnDelayLabel": "Thời gian giữa các lượt xuất hiện",
     "queueTurnDelayValue": "{{seconds}}s ({{ms}}ms)",
+    "championAttackSpeedLabel": "Tốc độ đánh của tướng triệu hồi",
+    "championAttackSpeedValue": "{{multiplier}} tốc độ gốc",
     "resetMatchupTitles": "Xoá số lần vô địch cặp này",
     "resetMatchupTitlesDone": "Đã xoá số lần vô địch của cặp đấu hiện tại!",
     "matchupTitlesLabel": "Số lần vô địch (đối đầu):"
@@ -357,10 +379,18 @@
     "lastStand": "LÁ CHẮN TỬ THỦ (GIỚI HẠN 95%)",
     "clashPrompt": "Tap Tim & Donate Để Đẩy Chưởng",
     "draw": "KẾT QUẢ HÒA CÂN NÃO!",
-    "drawDesc": "Hai bên ngang tài ngang sức — Cả 2 đội nhận +10% Sát Thương đầu ván!",
+    "drawDesc": "Hai bên ngang tài ngang sức — không đội nào nhận bùa lợi, mọi thứ quyết định ở ván đấu!",
     "winnerTitle": "🏆 {{winner}} CHIẾN THẮNG 1V1 SILVER SCRAPES!",
     "winnerBuffDesc": "Đoạt Chiến Công Đầu! Toàn đội {{winner}} nhận bùa lợi +20% Sát Thương trong 90s đầu Ván quyết định!",
-    "idleHint": "Mọi tương tác Thả Tim, Chat gọi tướng & Tặng Quà đều lập tức nạp năng lượng đẩy lùi đối thủ!"
+    "idleHint": "Mọi tương tác Thả Tim, Chat gọi tướng & Tặng Quà đều lập tức nạp năng lượng đẩy lùi đối thủ!",
+    "guideTitle": "Cách đẩy chưởng",
+    "guideHeart": "Thả tim",
+    "guideChat": "Chat gọi tướng",
+    "guideShare": "Follow & Chia sẻ",
+    "guideGift": "Tặng quà",
+    "leading": "Đang áp đảo",
+    "winnerBadge": "Chiến thắng",
+    "versus": "VS"
   },
   "BossPhase": {
     "shiftTitle": "BOSS THỨC TỈNH",
@@ -404,7 +434,8 @@
   "KillFeed": {
     "byKiller": "— {{killer}}",
     "wipeTitle": "QUÉT SẠCH!",
-    "wipeSubtitle": "{{count}} tướng gục ngã"
+    "wipeSubtitle": "{{count}} tướng gục ngã — Sàn đấu trống!",
+    "wipeEmptyField": "Toàn bộ tướng đã gục ngã — Sàn đấu trống!"
   },
   "Audio": {
     "ambienceOn": "Bật nhạc nền",
@@ -412,7 +443,11 @@
   },
   "RoundIntro": {
     "roundLabel": "Ván {{round}} sắp bắt đầu",
-    "vsBoss": "Đối đầu {{boss}}",
+    "worldsOpeningTitle": "KỲ CHUNG KẾT THẾ GIỚI • VÁN {{round}}",
+    "readyBadge": "CHỜ BẮT ĐẦU",
+    "readyBox": "SẴN SÀNG",
+    "startWorldsButton": "Bắt đầu ván {{round}}",
+    "vsBoss": "Mục tiêu: {{boss}}",
     "titleMatchup": "Đối đầu",
     "titleRules": "Luật chơi",
     "titleJoin": "Cách tham gia",
@@ -422,12 +457,19 @@
     "quickRule": "Thắng theo ST ván",
     "quickGift": "1 xu = {{damage}} ST",
     "quickHeart": "Thả tim nạp Nộ",
-    "ruleTeamsTitle": "Đại Chiến Sát Thương",
-    "ruleSeriesTitle": "Thể Thức {{format}}",
+    "rosterTitle": "Đội hình thi đấu chính thức 5v5",
+    "bossHpBadge": "{{hp}} HP",
+    "bossHazard": "Hiểm hoạ diện rộng • S+",
+    "ruleTeamsTitle": "Đại Chiến Sát Thương Lên Boss",
+    "ruleTeams": "Hai đội cùng dồn sát thương vào Boss. Khi Boss gục ngã hoặc hết giờ, đội nào có tổng điểm sát thương cao hơn sẽ giành chiến thắng ván đấu.",
+    "ruleSummonTitle": "Cú Pháp Chat Triệu Hồi Tướng",
+    "ruleSummon": "Khán giả chat cú pháp: [Tên tướng] [Tên đội] (ví dụ: '{{champ1}} {{team1}}' hoặc '{{champ2}} {{team2}}') để triệu hồi tướng yêu thích ra sàn đấu xả chiêu!",
+    "ruleFuryTitle": "Thả Tim Nạp Nộ & Kích Hoạt Ultimate",
+    "ruleFury": "Bấm tim liên tục vào livestream để nạp thanh Nộ. Khi nộ đầy 100%, tướng sẽ tung Tuyệt Kỹ Tối Thượng dồn bão sát thương cực khủng!",
+    "ruleSeriesTitle": "Thể Thức {{format}} Vô Địch Thế Giới",
+    "ruleSeries": "Thể thức {{format}}: Đội đầu tiên giành được {{wins}} ván thắng sẽ chính thức nâng cao Cúp Vô Địch Thế Giới 2026.",
     "ruleBossTitle": "Chiêu Thức Boss & Tiếp Viện",
-    "ruleTeams": "Hai đội cùng đánh Boss, đội gây nhiều sát thương hơn thắng ván.",
-    "ruleSeries": "Thể thức {{format}}: thắng {{wins}} ván để vô địch.",
-    "ruleBoss": "Boss tung chiêu tiêu diệt tướng, triệu hồi liên tục để giữ sức ép!",
+    "ruleBoss": "Boss tung chiêu diện rộng tiêu diệt tướng. Khán giả cần liên tục chat hoặc tặng quà để triệu hồi tướng mới giữ sức ép!",
     "joinChat": "Chat tên tướng + tên đội: \"{{champ}} {{tag}}\" hoặc \"{{champ2}} {{tag2}}\"",
     "joinHeart": "Thả tim để tăng tốc Nộ, mỗi {{milestone}} tim hồi máu cả đội.",
     "joinSignature": "Chat trùng tướng tủ của tuyển thủ để buff Nộ cho tuyển thủ đó.",
@@ -444,7 +486,20 @@
       "BIG": "Từ {{coins}} xu: cột sáng + 8 thiên thạch + banner tên bạn",
       "MEGA": "Từ {{coins}} xu: ĐẠI GIA - Boss bị choáng + 16 thiên thạch"
     },
-    "skipButton": "Xung trận ngay"
+    "giftBottomCallout": "Xem phần quà tặng bên dưới góc phải màn hình",
+    "speechMatchup": "Chào mừng các bạn đến với Kỳ Chung Kết Thế Giới! Ván {{round}}: {{left}} đại chiến {{right}}. Mục tiêu tiêu diệt Boss {{boss}}!",
+    "speechRules": "Luật chơi: Hai phe chạy đua sát thương! Khán giả gõ tên tướng kèm tên đội như {{champ1}} {{team1}} hoặc {{champ2}} {{team2}} để triệu hồi tướng. Đội gây nhiều sát thương hơn lên Boss sẽ giành chiến thắng!",
+    "speechRulesExpanded": "Luật chơi: Khán giả gõ tên tướng kèm tên đội như {{champ1}} {{team1}} hoặc {{champ2}} {{team2}} để triệu hồi tướng vào sân. Bấm tim liên tục vào livestream để tăng tốc độ đánh và nạp Nộ kích hoạt Tuyệt Kỹ. Đội nào dồn nhiều sát thương hơn lên Boss sẽ giành chiến thắng ván đấu!",
+    "commentPromptTitle": "Cú pháp bình luận triệu hồi trực tiếp:",
+    "liveChatReady": "Sẵn sàng",
+    "speechGifts": "Một xu tương ứng một trăm hai mươi sát thương lên Boss. Hãy xem phần quà tặng bên dưới góc phải màn hình để tiếp sức cho tuyển thủ!",
+    "skipButton": "Xung trận ngay",
+    "statusIntro": "ĐANG GIỚI THIỆU"
+  },
+  "CombatDeploy": {
+    "title": "XUNG TRẬN!",
+    "roundBadge": "VÁN {{round}} CHÍNH THỨC BẮT ĐẦU",
+    "hint": "Chat triệu hồi & Thả tim nạp Nộ ngay bây giờ!"
   },
   "BossSkills": {
     "panelLabel": "Chiêu thức của Boss",
@@ -458,7 +513,10 @@
     "score": "{{left}} - {{right}}",
     "number": {
       "thousands": "hơn {{value}} nghìn",
-      "millions": "hơn {{value}} triệu"
+      "millions": "hơn {{value}} triệu",
+      "thousandsExact": "{{value}} nghìn",
+      "millionsExact": "{{value}} triệu",
+      "decimal": "{{whole}} phẩy {{decimal}}"
     },
     "lines": {
       "SUMMON": [
@@ -467,12 +525,12 @@
         "{{team}} thêm quân: {{champion}} của {{name}}!",
         "{{name}} gọi {{champion}} ra trận, {{team}} mạnh thêm rồi!",
         "Chào mừng {{champion}} của {{name}} gia nhập {{team}}!",
-        "{{champion}} xuống đường! {{name}} chọn phe {{team}}!",
+        "{{champion}} xuất trận! {{name}} chọn phe {{team}}!",
         "Thêm một chiến binh cho {{team}}: {{name}} với {{champion}}!",
         "{{name}} cầm {{champion}}, {{team}} có thêm hỏa lực!"
       ],
       "SUMMON_MERGED": [
-        "{{names}} xuống đường cho {{team}}!",
+        "{{team}} đón thêm viện binh: {{names}}!",
         "{{team}} thêm quân! Cảm ơn {{names}}!",
         "Chào mừng {{names}} gia nhập {{team}}!",
         "{{names}} cùng ra trận cho {{team}}!",
@@ -534,7 +592,7 @@
         "Một tràng pháo tay cho {{name}}! Cảm ơn {{gift}}!"
       ],
       "GIFT_MEGA": [
-        "KHÔNG THỂ TIN NỔI! Cảm ơn {{name}} đã gửi {{gift}}! Boss quỳ gối trước {{team}}!",
+        "Không thể tin nổi! Cảm ơn {{name}} đã gửi {{gift}}! Boss quỳ gối trước {{team}}!",
         "Cả đấu trường rung chuyển! Cảm ơn {{name}} vì {{gift}}!",
         "Highlight của ngày hôm nay! {{name}}, cảm ơn bạn rất nhiều!",
         "Siêu phẩm! Cảm ơn {{name}} đã gánh {{team}} bằng {{gift}}!",
@@ -706,7 +764,7 @@
         "Tỉ số {{score}}! Mỗi ván thắng đều quý như vàng trong series {{format}}!"
       ],
       "SERIES_OPENING": [
-        "Chào mừng đến Đại chiến CKTG! {{teamA}} đối đầu {{teamB}}!",
+        "Chào mừng đến Đại chiến chung kết thế giới! {{teamA}} đối đầu {{teamB}}!",
         "Xin chào anh em! Series {{format}}, {{teamA}} gặp {{teamB}}!",
         "Đại chiến bắt đầu! Thắng trước {{wins}} ván là vô địch!",
         "BLV Bão xin chào! {{teamA}} và {{teamB}} cùng săn {{boss}}!"
@@ -742,7 +800,82 @@
         "Trận tiếp theo: {{teamA}} đối đầu {{teamB}}, đừng rời đi nhé!",
         "Sắp tới là {{teamA}} gặp {{teamB}}, chọn phe ngay từ bây giờ!",
         "Tiếp theo trên sóng: {{teamA}} và {{teamB}}!"
+      ],
+      "BOSS_PHASE_TWO": [
+        "{{boss}} thức tỉnh! Chiêu cuối đã được mở khóa, anh em cẩn thận!",
+        "Giai đoạn hai! {{boss}} bắt đầu dùng tuyệt kỹ rồi đấy!",
+        "{{boss}} chuyển giai đoạn! Chiêu cuối có thể giáng xuống bất cứ lúc nào!",
+        "Cảnh báo! {{boss}} vừa mở khóa chiêu cuối, giữ vững đội hình nhé!"
+      ],
+      "BOSS_PHASE_THREE": [
+        "Giai đoạn cuối! {{boss}} mạnh hơn, ra chiêu nhanh hơn, dồn hết sức nào!",
+        "{{boss}} bước vào cơn thịnh nộ cuối cùng! Sát thương chiêu tăng hai mươi phần trăm!",
+        "Tận thế rồi anh em! {{boss}} dốc toàn lực, đây là lúc quyết định!",
+        "Giai đoạn ba! Chiêu của {{boss}} dồn dập hơn, cần thêm tướng ra sân ngay!"
+      ],
+      "BOSS_SHIELD_UP": [
+        "{{boss}} dựng khiên năng lượng! Phá khiên trong {{seconds}} giây, không thì boss hồi máu!",
+        "Khiên đã lên! Anh em có {{seconds}} giây để đập vỡ nó!",
+        "Cẩn thận, {{boss}} đang được khiên bảo vệ! Dồn sát thương phá khiên ngay!"
+      ],
+      "BOSS_SHIELD_BROKEN": [
+        "Vỡ khiên! {{boss}} choáng váng và lĩnh thêm {{dmg}} sát thương!",
+        "Khiên đã vỡ tan! Đẹp lắm anh em, đánh tiếp nào!",
+        "Phá khiên thành công! {{boss}} lộ sơ hở rồi!"
+      ],
+      "BOSS_SHIELD_ABSORBED": [
+        "Không kịp phá khiên! {{boss}} hồi {{hp}} máu!",
+        "Tiếc quá! Khiên tan ra và {{boss}} được hồi {{hp}} máu!",
+        "{{boss}} hấp thụ khiên, hồi lại {{hp}} máu. Lần sau phải nhanh hơn nhé!"
+      ],
+      "HEART_MILESTONE": [
+        "Mốc {{count}} tim! Toàn bộ tướng được hồi {{heal}} máu!",
+        "Cảm ơn những cú thả tim! Đạt {{count}} tim, cả đấu trường được hồi máu!",
+        "Đại hồi phục! {{count}} tim đã nạp đầy, tướng hai bên hồi {{heal}} máu!",
+        "Tim bay rợp trời! Mốc {{count}} tim, cả sân được tiếp sức!"
+      ],
+      "GIFT_FINISHER_CALLOUT": [
+        "{{name}} tung {{gift}} kết liễu {{boss}}!",
+        "Cú chốt bằng quà! {{name}} dùng {{gift}} hạ gục {{boss}} cho {{team}}!",
+        "Không ai ngờ tới! {{gift}} của {{name}} là đòn kết liễu!",
+        "Đại gia {{name}} ra tay! {{gift}} dứt điểm {{boss}}!"
+      ],
+      "DUEL_START": [
+        "Đại chiến một đấu một! {{fighterA}} cầm {{championA}} đối đầu {{fighterB}} với {{championB}}!",
+        "{{fighterA}} bên {{teamA}} gặp {{fighterB}} bên {{teamB}}! {{seconds}} giây đẩy chưởng bắt đầu!",
+        "Kèo đấu đỉnh cao: {{fighterA}} và {{fighterB}}! Thả tim, chat, tặng quà để đẩy chưởng!",
+        "{{teamA}} hay {{teamB}}? {{seconds}} giây quyết định ai giành bùa lợi đầu ván!"
+      ],
+      "DUEL_LAST_STAND": [
+        "Lá chắn tử thủ kích hoạt! Chưa bên nào bị đẩy hết đâu, cố lên!",
+        "Tử thủ! Trận đẩy chưởng vẫn chưa ngã ngũ, dồn sức nào anh em!"
+      ],
+      "DUEL_WIN": [
+        "{{fighter}} thắng kèo một đấu một! {{team}} nhận thêm {{buff}} phần trăm sát thương!",
+        "Chiến thắng thuộc về {{team}}! Cả đội được cộng {{buff}} phần trăm sát thương đầu ván!",
+        "{{fighter}} đẩy lùi đối thủ! {{team}} khởi đầu với bùa lợi {{buff}} phần trăm sát thương!"
+      ],
+      "DUEL_DRAW": [
+        "Hòa! Hai bên ngang tài ngang sức, không đội nào nhận bùa lợi!",
+        "Bất phân thắng bại! Mọi thứ sẽ được quyết định trong ván đấu!"
       ]
+    },
+    "voice": {
+      "casterTitle": "bình luận viên",
+      "scoreJoiner": " "
+    }
+  },
+  "GiftConfig": {
+    "coins": "{{coins}} xu",
+    "joinTeam": "→ {{team}}",
+    "damage": "+{{damage}} ST",
+    "teamPicksTitle": "Tặng quà để chọn phe",
+    "teamPick": "{{gift}} → {{team}}",
+    "effect": {
+      "SUMMON_CHAMPION": "Gọi {{champion}}",
+      "HEAL_TEAM": "Hồi máu cả đội",
+      "STUN_BOSS": "Làm choáng boss",
+      "FULL_FURY": "Đầy Nộ tuyển thủ"
     }
   }
 }

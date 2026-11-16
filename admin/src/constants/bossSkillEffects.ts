@@ -24,6 +24,8 @@ const WEAKEN = {
 
 const LIFESTEAL = {
   LOW: { durationMs: 0, ratio: 0.35 },
+  BEAM: { durationMs: 0, ratio: 0.4 },
+  VORTEX: { durationMs: 0, ratio: 0.45 },
   HIGH: { durationMs: 0, ratio: 0.6 },
 } as const;
 
@@ -194,21 +196,53 @@ export const BOSS_SKILL_EFFECTS: Readonly<Record<string, BossSkillEffectProfile>
   // ── Void Titan: entropy & lifesteal ──────────────────────────────────
   void_annihilation_beam: {
     vfxType: BOSS_SKILL_VFX.BEAM,
-    vfxParams: { secondaryColor: '#f0abfc', scale: 1.3 },
-    statusEffect: { type: BOSS_STATUS_EFFECT.LIFESTEAL, ...LIFESTEAL.LOW },
+    vfxParams: {
+      secondaryColor: '#38bdf8',
+      scale: 1.6,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.SEISMIC_SLAM, delayMs: 380, scale: 1.15, secondaryColor: '#c084fc' },
+      ],
+    },
+    statusEffect: { type: BOSS_STATUS_EFFECT.LIFESTEAL, ...LIFESTEAL.BEAM },
   },
   void_singularity_crush: {
     vfxType: BOSS_SKILL_VFX.VORTEX,
-    vfxParams: { secondaryColor: '#d8b4fe', scale: 1.3 },
-    statusEffect: { type: BOSS_STATUS_EFFECT.LIFESTEAL, ...LIFESTEAL.LOW },
+    vfxParams: {
+      secondaryColor: '#38bdf8',
+      scale: 1.85,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 300, count: 6, scale: 1.25, color: '#c084fc', secondaryColor: '#38bdf8' },
+        { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 650, scale: 1.4, secondaryColor: '#9333ea' },
+      ],
+    },
+    statusEffect: { type: BOSS_STATUS_EFFECT.LIFESTEAL, ...LIFESTEAL.VORTEX },
   },
   void_rift_collapse: {
     vfxType: BOSS_SKILL_VFX.GROUND_SPIKES,
-    vfxParams: { secondaryColor: '#e879f9', count: 9, scale: 1.3 },
+    vfxParams: {
+      secondaryColor: '#c084fc',
+      count: 14,
+      scale: 1.65,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.SEISMIC_SLAM, delayMs: 0, scale: 1.4, secondaryColor: '#a855f7' },
+        { vfxType: BOSS_SKILL_VFX.LIGHTNING_STRIKE, delayMs: 450, count: 6, scale: 1.3, color: '#38bdf8', secondaryColor: '#c084fc' },
+      ],
+    },
+    statusEffect: { type: BOSS_STATUS_EFFECT.WEAKEN, ...WEAKEN.LONG },
   },
   void_apocalypse_oblivion: {
     vfxType: BOSS_SKILL_VFX.NOVA,
-    vfxParams: { secondaryColor: '#9333ea', scale: 1.6 },
+    vfxParams: {
+      secondaryColor: '#38bdf8',
+      scale: 2.2,
+      durationScale: 1.6,
+      layers: [
+        { vfxType: BOSS_SKILL_VFX.VORTEX, delayMs: 0, scale: 2.0, secondaryColor: '#c084fc' },
+        { vfxType: BOSS_SKILL_VFX.GROUND_SPIKES, delayMs: 400, count: 18, scale: 1.7, secondaryColor: '#f0abfc' },
+        { vfxType: BOSS_SKILL_VFX.CHAIN_LIGHTNING, delayMs: 800, count: 10, scale: 1.5, color: '#38bdf8', secondaryColor: '#ffffff' },
+        { vfxType: BOSS_SKILL_VFX.NOVA, delayMs: 1200, scale: 2.4, secondaryColor: '#9333ea' },
+      ],
+    },
     statusEffect: { type: BOSS_STATUS_EFFECT.LIFESTEAL, ...LIFESTEAL.HIGH },
     minPhase: ULTIMATE_UNLOCK_PHASE,
   },

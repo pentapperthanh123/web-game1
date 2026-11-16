@@ -40,31 +40,31 @@ export const VictoryDamageSummaryCard = ({
   const finisherTheme = finisherTeamProfile ? getTeamTheme(finisherTeamProfile.colorTheme) : null;
 
   return (
-    <div className="space-y-2">
+    <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/85 border border-slate-800/90 shadow-md space-y-1">
       {finisherPlayerName && (
-        <div className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-950/75 border border-rose-500/45 text-[11px] shadow-md whitespace-nowrap">
-          <Swords className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+        <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[10.5px] truncate">
+          <Swords className="w-3 h-3 text-rose-400 shrink-0" />
           <span className="text-rose-200/90 font-semibold shrink-0">
             {t('Victory.finisherLabel', 'Kết liễu bởi')}:
           </span>
-          <span className="font-black text-white truncate min-w-0">
+          <span className="font-black text-amber-200 truncate max-w-[160px]" title={finisherPlayerName}>
             {finisherPlayerName}
           </span>
           {finisherTeam && finisherTheme && (
-            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded shrink-0 ${finisherTheme.badgePillClass}`}>
+            <span className={`text-[8px] font-black px-1.5 py-0.2 rounded shrink-0 ${finisherTheme.badgePillClass}`}>
               {finisherTeamProfile?.shortTag || finisherTeam}
             </span>
           )}
         </div>
       )}
 
-      <div className="p-2.5 rounded-xl bg-slate-900/75 border border-slate-800/90 shadow-lg space-y-1.5">
-        <div className="flex items-center justify-between gap-1 text-[10px] font-mono whitespace-nowrap overflow-hidden">
+      <div className="space-y-0.5">
+        <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono whitespace-nowrap">
           <span className={`font-black truncate ${leftTheme.textStrongClass}`}>
-            {leftTeam.shortTag}: {leftPercent}% &bull; {leftDamage.toLocaleString()}
+            {leftTeam.shortTag}: {leftPercent}% ({leftDamage.toLocaleString()})
           </span>
           <span className={`font-black truncate text-right ${rightTheme.textStrongClass}`}>
-            {rightDamage.toLocaleString()} &bull; {rightPercent}% {rightTeam.shortTag}
+            ({rightDamage.toLocaleString()}) {rightPercent}% {rightTeam.shortTag}
           </span>
         </div>
 

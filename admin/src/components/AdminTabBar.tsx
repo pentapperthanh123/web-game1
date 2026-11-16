@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Swords,
+  Gift,
   Compass,
   Sliders,
   MessageSquare,
@@ -31,6 +32,7 @@ const TAB_ICON_MAP: Record<AdminPortalTabId, typeof Swords> = {
   [ADMIN_PORTAL_TAB.SERIES_DUEL]: Flame,
   [ADMIN_PORTAL_TAB.OVERLAYS]: Sliders,
   [ADMIN_PORTAL_TAB.INTERACTION]: Swords,
+  [ADMIN_PORTAL_TAB.GIFTS]: Gift,
   [ADMIN_PORTAL_TAB.BOSS_MAP]: Compass,
   [ADMIN_PORTAL_TAB.LIVE_OPS]: ShieldCheck,
   [ADMIN_PORTAL_TAB.LOGS]: MessageSquare,

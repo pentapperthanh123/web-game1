@@ -1,9 +1,10 @@
+import type { GiftRulePayload } from '../../constants/giftConfig';
 import { StateCreator } from 'zustand';
 import { GiftEvent, buildGiftAnnouncement, runGiftExplosion } from '../giftExplosion';
-import { isGiftTierAtLeast, resolveGiftTier } from '../giftTier';
+import { isGiftTierAtLeast, pickGiftBanner, resolveGiftTier } from '../giftTier';
 import { GIFT_METEOR_SPAWN, GIFT_TIER } from '../../constants/game';
 import { trackQuestProgress } from '../communityQuestRewards';
-import { QUEST_KIND } from '../../constants/game';
+import { DAMAGE_SOURCE, QUEST_KIND } from '../../constants/game';
 import {
   AdminEventLog,
   GameState,
@@ -16,8 +17,9 @@ import { deployQueuedMinions, holdQueuedMinions, resolveSummonTurnLimits } from 
 import { deferUntilRoundStart, onRoundStart, runWhenRoundLive } from '../preRoundBuffer';
 import { isCurrentRoundIntroActive } from '../roundIntroStore';
 import i18n from '../../i18n';
-import { rebuildMinionCollections } from '../minionMapHelpers';
+import { isMinionLiving, rebuildMinionCollections } from '../minionMapHelpers';
 import {
+  BOSS_STATUS,
   COMBAT_VFX_CONSTANTS,
   DAMAGE_TYPE,
   GAME_CONSTANTS,
@@ -107,9 +109,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
 
     // Prevent WebGL thrashing when 100-200 people summon continuously:
     // keep visible 3D slots stable and swap at most MAX_VISUAL_SWAPS_PER_WAVE when saturated.
-    const activeLivingCount = state.minions.filter(
-      (m) => (m.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0 && now - m.createdAt < m.lifetimeMs
-    ).length;
+    const activeLivingCount = state.minions.filter((minion) => isMinionLiving(minion)).length;
     const isVisualSaturated = activeLivingCount >= COMBAT_VFX_CONSTANTS.SUMMON.MAX_VISIBLE_ORBS;
     const visualBudget = isVisualSaturated
       ? SUMMON_PERF_CONSTANTS.MAX_VISUAL_SWAPS_PER_WAVE
@@ -169,9 +169,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       if (!req.isGiftBypass) {
         const livingIdx = nextMinions.findIndex((m) => {
           const isSameUser = m.summonerName.trim().toLowerCase() === normalizedUser;
-          const isAlive = (m.hp ?? CHAMPION_DEFAULT_MAX_HP) > 0;
-          const isNotExpired = now - m.createdAt < m.lifetimeMs;
-          return isSameUser && isAlive && isNotExpired;
+          return isSameUser && isMinionLiving(m);
         });
 
         if (livingIdx !== -1) {
@@ -203,7 +201,6 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
               userAvatarUrl: req.userAvatarUrl ?? targetMinion.userAvatarUrl,
               dps: evolvedDps,
               hp: Math.min(maxHp, curHp + healAmt),
-              lifetimeMs: targetMinion.lifetimeMs + GAME_CONSTANTS.SUMMON_RULES.LIFETIME_EXTENSION_MS,
               isSignatureSynergy,
               signaturePlayerName: exactSignaturePro?.name,
               signaturePlayerRole: exactSignaturePro?.role,
@@ -212,7 +209,6 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
             nextMinions[livingIdx] = {
               ...targetMinion,
               hp: Math.min(maxHp, curHp + healAmt),
-              lifetimeMs: targetMinion.lifetimeMs + GAME_CONSTANTS.SUMMON_RULES.LIFETIME_EXTENSION_MS,
             };
           }
 
@@ -313,7 +309,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       if (totalSupportDmg > 0) {
         const teamShort = state.activeTeams[slotTeam]?.shortTag || slotTeam;
         runWhenRoundLive(() =>
-          get().damageBoss(totalSupportDmg, slotTeam, `Hội Quân (${teamShort})`, DAMAGE_TYPE.NORMAL)
+          get().damageBoss(totalSupportDmg, slotTeam, `Hội Quân (${teamShort})`, DAMAGE_TYPE.NORMAL, { source: DAMAGE_SOURCE.RALLY })
         );
       }
     }
@@ -350,7 +346,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       }
 
       const slicedMinions = finalMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES);
-      const collections = rebuildMinionCollections(slicedMinions, now);
+      const collections = rebuildMinionCollections(slicedMinions);
 
       return {
         minions: slicedMinions,
@@ -438,7 +434,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         return;
       }
       const slicedMinions = deployed.nextMinions.slice(-GAME_CONSTANTS.MINIONS.MAX_INSTANCES);
-      const collections = rebuildMinionCollections(slicedMinions, now);
+      const collections = rebuildMinionCollections(slicedMinions);
       playSummonEntranceSfx(now, deployed.newPortals);
 
       set((prev) => ({
@@ -467,10 +463,11 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     streakCount = 1,
     totalCoins?: number,
     isComboFinal = false,
-    donorAvatarUrl?: string
+    donorAvatarUrl?: string,
+    giftRule?: GiftRulePayload
   ) => {
     const isDeferred = deferUntilRoundStart(() =>
-      get().triggerGiftExplosion(giftName, team, donorName, coins, streakCount, totalCoins, isComboFinal, donorAvatarUrl)
+      get().triggerGiftExplosion(giftName, team, donorName, coins, streakCount, totalCoins, isComboFinal, donorAvatarUrl, giftRule)
     );
     if (isDeferred) {
       // Acknowledged now so the donor sees it landed; the explosion and damage happen at round start
@@ -495,12 +492,14 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       streakCount: Math.max(1, streakCount),
       totalCoins: totalCoins ?? coins,
       isComboFinal,
+      rule: giftRule,
     };
-    trackQuestProgress(get, team, QUEST_KIND.COINS, coins);
 
     if (isBattleHalted(get())) {
+      trackQuestProgress(get, team, QUEST_KIND.COINS, coins);
+      const isDefeated = get().bossStatus === BOSS_STATUS.DEFEATED || get().bossHp <= 0;
       const haltedTier = resolveGiftTier(event.coins, event.totalCoins);
-      if (isGiftTierAtLeast(haltedTier, GIFT_TIER.BIG)) {
+      if (!isDefeated && isGiftTierAtLeast(haltedTier, GIFT_TIER.BIG)) {
         set({ activeGiftBanner: buildGiftAnnouncement(event, haltedTier, now) });
       }
       const streakLabel = event.streakCount > 1 ? ` x${event.streakCount}` : '';
@@ -509,11 +508,15 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     }
 
     const result = runGiftExplosion(get, event, now);
+    const isNowDefeated = get().bossStatus === BOSS_STATUS.DEFEATED || get().bossHp <= 0;
     set((prev) => ({
       activeMeteors: [...prev.activeMeteors.slice(-GIFT_METEOR_SPAWN.MAX_KEPT), ...result.meteors],
-      activeGiftBanner: result.banner ?? prev.activeGiftBanner,
+      activeGiftBanner: isNowDefeated ? null : pickGiftBanner(prev.activeGiftBanner, result.banner, now),
       bossStaggerUntil: Math.max(prev.bossStaggerUntil, result.bossStaggerUntil),
     }));
+    // Counted after the gift lands: a quest it completes rewards a damage burst, and that burst
+    // must not land first and steal the killing blow from the gift (it hid the gift finisher).
+    trackQuestProgress(get, team, QUEST_KIND.COINS, coins);
   },
 
   triggerFollowReward: (
@@ -564,7 +567,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
 
     if (!isBattleHalted(state)) {
       get().healTeamChampions(team, healAmount);
-      get().damageBoss(damageAmount, team, `${userName} (Share Live)`, DAMAGE_TYPE.CRIT);
+      get().damageBoss(damageAmount, team, `${userName} (Share Live)`, DAMAGE_TYPE.CRIT, { source: DAMAGE_SOURCE.SHARE });
       get().spawnParticleBurst([0, 0.4, 0.5], theme.primaryHex, 1.5);
       audioService.playHeartChime();
     }

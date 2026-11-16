@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Flame } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import {
+  BOSS_HEALTH_BAR_LAYOUT,
   BOSS_STATUS,
   UI_CONSTANTS,
   getThemeConfig,
@@ -50,96 +51,81 @@ const getContainerBorderClass = (bossStatus: string, themeConfig: BossThemeConfi
   return themeConfig.colors.borderClass;
 };
 
-export const BossHealthBar = () => {
+/** Boss name (and enraged / defeated badge), shown right above the boss head. */
+export const BossNameTag = React.memo(() => {
   const { t } = useTranslation();
+  const bossStatus = useGameStore((state) => state.bossStatus);
+  const gameTheme = useGameStore((state) => state.gameTheme);
+  const themeConfig = getThemeConfig(gameTheme);
+  const badgeConfig = getStatusBadgeConfig(bossStatus, themeConfig, t);
+
+  return (
+    <div className="flex items-center justify-center gap-1 pointer-events-none select-none whitespace-nowrap">
+      <span className="tracking-wide uppercase text-white font-black text-[10px] sm:text-[11px] drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+        {t(themeConfig.i18nKey, themeConfig.bossName)}
+      </span>
+      {badgeConfig.isFlame && <Flame className="w-3 h-3 text-amber-300 animate-bounce shrink-0" />}
+      {badgeConfig.isAlert && <ShieldAlert className="w-3 h-3 text-rose-400 animate-bounce shrink-0" />}
+      {badgeConfig.text && (
+        <span className={`px-1.5 py-px rounded-full text-[8px] font-black tracking-wider border ${badgeConfig.className}`}>
+          {badgeConfig.text}
+        </span>
+      )}
+    </div>
+  );
+});
+
+BossNameTag.displayName = 'BossNameTag';
+
+/** Short HP bar shown right under the boss. */
+export const BossHealthBar = React.memo(() => {
   const bossHp = useGameStore((state) => state.bossHp);
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const bossStatus = useGameStore((state) => state.bossStatus);
   const gameTheme = useGameStore((state) => state.gameTheme);
-
   const themeConfig = getThemeConfig(gameTheme);
 
-  const [ghostHpPercent, setGhostHpPercent] = useState(100);
-
-  const hpPercentage = Math.max(0, Math.min(100, (bossHp / bossMaxHp) * 100));
+  const safeMaxHp = Math.max(1, bossMaxHp);
+  const hpPercentage = Math.max(0, Math.min(100, (bossHp / safeMaxHp) * 100));
+  const [ghostHpPercent, setGhostHpPercent] = useState(hpPercentage);
 
   // Trailing ghost damage bar effect
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setGhostHpPercent(hpPercentage);
-    }, UI_CONSTANTS.GHOST_HP_DELAY_MS);
+    const timer = setTimeout(() => setGhostHpPercent(hpPercentage), UI_CONSTANTS.GHOST_HP_DELAY_MS);
     return () => clearTimeout(timer);
   }, [hpPercentage]);
 
-  const badgeConfig = getStatusBadgeConfig(bossStatus, themeConfig, t);
   const barGradient = getHpBarGradient(bossStatus, themeConfig);
   const containerBorderClass = getContainerBorderClass(bossStatus, themeConfig);
 
   return (
-    <div className="w-full max-w-lg mx-auto px-2 sm:px-3 pt-0.5 pointer-events-auto select-none">
-      {/* Boss name */}
-      <div className="flex items-center justify-between text-[11px] font-bold px-1 mb-1">
-        <div className="flex items-center gap-1.5">
-          <span className="tracking-wide uppercase text-white font-black drop-shadow text-[11px] sm:text-xs">
-            {t(themeConfig.i18nKey, themeConfig.bossName)}
-          </span>
-        </div>
+    <div
+      className={`relative ${BOSS_HEALTH_BAR_LAYOUT.WIDTH_CLASS} h-3.5 bg-slate-950/95 rounded-md border p-px shadow-[0_0_12px_rgba(0,0,0,0.9)] overflow-hidden pointer-events-none select-none transition-[border-color,opacity] duration-500 ${containerBorderClass}`}
+    >
+      {/* Trailing Ghost Damage Bar - uses GPU composited scaleX to prevent layout reflows */}
+      <div
+        className="absolute inset-y-px left-px right-px bg-rose-500/40 transition-transform duration-500 rounded-sm origin-left will-change-transform"
+        style={{ transform: `scaleX(${ghostHpPercent / 100})` }}
+      />
 
-        {/* Alert badge only if Boss is Enraged or Defeated */}
-        {badgeConfig.text && (
-          <div className="flex items-center space-x-1 animate-in fade-in slide-in-from-top-1 duration-200">
-            {badgeConfig.isFlame && (
-              <Flame className="w-3.5 h-3.5 text-amber-300 animate-bounce shrink-0" />
-            )}
-            {badgeConfig.isAlert && (
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-400 animate-bounce shrink-0" />
-            )}
-            <span
-              className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider border ${badgeConfig.className}`}
-            >
-              {badgeConfig.text}
-            </span>
-          </div>
+      {/* Active Dynamic HP Bar - uses GPU composited scaleX to maintain 60 FPS in OBS */}
+      <div
+        className={`h-full w-full rounded-sm transition-transform duration-200 relative origin-left will-change-transform ${barGradient}`}
+        style={{ transform: `scaleX(${hpPercentage / 100})` }}
+      >
+        {bossStatus === BOSS_STATUS.ENRAGED && (
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent)] animate-shimmer pointer-events-none" />
         )}
+        <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_6px_#ffffff]" />
       </div>
 
-      {/* Segmented Cyberpunk / Fantasy HP Bar Container */}
-      <div
-        className={`relative w-full h-5 sm:h-6 bg-slate-950/95 rounded-lg border-2 p-0.5 shadow-[0_0_20px_rgba(0,0,0,0.9)] overflow-hidden transition-all duration-500 ${containerBorderClass}`}
-      >
-        {/* Tech Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px)] bg-[size:16px_100%] opacity-20 pointer-events-none" />
-
-        {/* Trailing Ghost Damage Bar */}
-        <div
-          className="absolute inset-y-0.5 left-0.5 bg-rose-500/40 transition-all duration-500 rounded-sm"
-          style={{ width: `calc(${ghostHpPercent}% - 4px)` }}
-        />
-
-        {/* Active Dynamic HP Bar */}
-        <div
-          className={`h-full rounded-sm transition-all duration-200 relative ${barGradient}`}
-          style={{ width: `${hpPercentage}%` }}
-        >
-          {/* Molten Lava Shimmer Flow during Enrage */}
-          {bossStatus === BOSS_STATUS.ENRAGED && (
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent)] animate-shimmer pointer-events-none" />
-          )}
-
-          {/* Leading Intense Laser Edge */}
-          <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-white shadow-[0_0_10px_#ffffff]" />
-        </div>
-
-        {/* HP Numeric Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-[11px] font-mono font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tracking-wider">
-          <span>{bossHp.toLocaleString()}</span>
-          <span className="text-slate-400 mx-1">/</span>
-          <span className="text-slate-400">{bossMaxHp.toLocaleString()}</span>
-          <span className="ml-1.5 text-[9px] text-cyan-300 font-bold">
-            ({hpPercentage.toFixed(1)}%)
-          </span>
-        </div>
+      {/* HP Numeric Overlay */}
+      <div className="absolute inset-0 flex items-center justify-center text-[8px] font-mono font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] tracking-wide">
+        <span>{bossHp.toLocaleString()}</span>
+        <span className="ml-1 text-cyan-300">({hpPercentage.toFixed(1)}%)</span>
       </div>
     </div>
   );
-};
+});
+
+BossHealthBar.displayName = 'BossHealthBar';

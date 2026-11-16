@@ -99,6 +99,24 @@
     "bundledAt": "2026-11-14T06:15:26.720Z"
   },
   {
+    "event": "SILVER_SCRAPES",
+    "file": "SILVER_SCRAPES.mp3",
+    "bytes": 2786733,
+    "sha1": "ef7551cc78d5ea243089a3e47a8b77ab657521f4",
+    "sourceUrl": "Danny McCarthy - Silver Scrapes (LoL Game 5 Decider Anthem)",
+    "status": "bundled",
+    "bundledAt": "2026-11-14T15:30:00.000Z"
+  },
+  {
+    "event": "ARENA_AMBIENCE",
+    "file": "ARENA_AMBIENCE.mp3",
+    "bytes": 1766061,
+    "sha1": "1342d98611f5a2a751b32d5b58770ede342086a1",
+    "sourceUrl": "League of Legends - Summoner's Rift In-Queue Atmospheric Ambience",
+    "status": "bundled",
+    "bundledAt": "2026-11-14T15:55:00.000Z"
+  },
+  {
     "event": "BOSS_ROAR",
     "file": "BOSS_ROAR.mp3",
     "bytes": 98638,
@@ -308,11 +326,11 @@
   {
     "event": "WIPE",
     "file": "WIPE.mp3",
-    "bytes": 65337,
-    "sha1": "bc58abc71692b3fcf3d918dcb225afa2749139a8",
-    "sourceUrl": "https://www.myinstants.com/media/sounds/dramatic-sting.MP3",
+    "bytes": 41097,
+    "sha1": "5fc414fe585d3c1947d9038e4198a72fc69a7a27",
+    "sourceUrl": "https://www.myinstants.com/media/sounds/aced-league-of-legends-sound.mp3",
     "status": "cached",
-    "bundledAt": "2026-11-14T06:15:43.384Z"
+    "bundledAt": "2026-11-14T15:24:26.000Z"
   },
   {
     "event": "BOSS_ROAR_HERALD",
@@ -403,5 +421,23 @@
     "sourceUrl": "https://www.myinstants.com/media/sounds/very-scary-scream-metallic-echo-monster.mp3",
     "status": "downloaded",
     "bundledAt": "2026-11-14T06:15:50.851Z"
+  },
+  {
+    "event": "MATCH_FOUND",
+    "file": "MATCH_FOUND.mp3",
+    "bytes": 50541,
+    "sha1": "9b1a383451a2fb1c8556f95f897274fb7fa6aa9d",
+    "sourceUrl": "/sfx/MATCH_FOUND.mp3",
+    "status": "cached",
+    "bundledAt": "2026-11-14T16:24:00.000Z"
+  },
+  {
+    "event": "MATCH_ACCEPT",
+    "file": "MATCH_ACCEPT.mp3",
+    "bytes": 39021,
+    "sha1": "f18982c30205234b28e24fc6c80e6db74504e1ac",
+    "sourceUrl": "/sfx/MATCH_ACCEPT.mp3",
+    "status": "cached",
+    "bundledAt": "2026-11-14T16:24:00.000Z"
   }
 ]

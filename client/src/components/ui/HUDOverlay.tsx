@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Volume2, VolumeX, UserCheck, ShieldAlert, Music } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { audioService } from '../../services/audioService';
-import { BossHealthBar } from './BossHealthBar';
 import { TeamScoreBoard } from './TeamScoreBoard';
 import { DPSLeaderboard } from './DPSLeaderboard';
+import { ChampionDamageNumbers } from './ChampionDamageNumbers';
 import { GiftBanner } from './GiftBanner';
 import { FloatingDamage } from './FloatingDamage';
 import { CasterSubtitle } from './CasterSubtitle';
@@ -16,6 +16,7 @@ import { CasterVoiceUnlockHint } from './CasterVoiceUnlockHint';
 import { LiveChatStream } from './LiveChatStream';
 import { KillFeed, WipeStamp } from './KillFeed';
 import { RoundIntroOverlay } from './roundIntro/RoundIntroOverlay';
+import { CombatDeployBanner } from './roundIntro/CombatDeployBanner';
 import { LikeCounter } from './LikeCounter';
 import { ParticipationGuidePanel } from './ParticipationGuidePanel';
 import { FinisherAnnouncementBanner } from './FinisherAnnouncementBanner';
@@ -30,7 +31,15 @@ import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
 import { BossPhaseShiftBanner } from '../arena/BossPhaseShiftBanner';
-import { AUTO_PRO_BATTLE_CONSTANTS, getThemeConfig, TEAM_KEY } from '../../constants/game';
+import { BossSkillBanner } from './BossSkillBanner';
+import {
+  AUTO_PRO_BATTLE_CONSTANTS,
+  DEBUG_CONTROLS_QUERY_PARAM,
+  DEV_CONTROLS_QUERY_PARAM,
+  getThemeConfig,
+  TEAM_KEY,
+} from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
 
 const ClutchStatusBadge = React.memo(() => {
   const { t } = useTranslation();
@@ -74,13 +83,22 @@ export const HUDOverlay = () => {
   const { t } = useTranslation();
   const overlayVisibility = useGameStore((state) => state.overlayVisibility);
   const gameTheme = useGameStore((state) => state.gameTheme);
-  const leftTeamTag = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG].shortTag);
-  const rightTeamTag = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG].shortTag);
+  const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
+  const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+  const leftTeamTag = leftTeam?.shortTag || 'ĐỘI 1';
+  const rightTeamTag = rightTeam?.shortTag || 'ĐỘI 2';
+  const leftTheme = getTeamTheme(leftTeam?.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam?.colorTheme);
   const isGuestModeActive = useGameStore((state) => state.isGuestModeActive);
   const setGuestMode = useGameStore((state) => state.setGuestMode);
   const isAdminModeActive = useGameStore((state) => state.isAdminModeActive);
   const setAdminMode = useGameStore((state) => state.setAdminMode);
+  const isSilverScrapesActive = useGameStore((state) => state.silverScrapesState.isActive);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
+  const isDevControlsVisible =
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).has(DEV_CONTROLS_QUERY_PARAM) ||
+      new URLSearchParams(window.location.search).has(DEBUG_CONTROLS_QUERY_PARAM));
   const headerRef = useRef<HTMLElement | null>(null);
   const [headerBottomOffset, setHeaderBottomOffset] = useState<number>(128);
 
@@ -160,30 +178,41 @@ export const HUDOverlay = () => {
   return (
     <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none overflow-hidden select-none">
       {/* Incandescent Flash on Ultimates */}
-      <ScreenFlash />
-      <BossSkillCastLayer />
-      <SwarmLegionCanvas />
-      <ChampionArrowVFX />
+      {!isSilverScrapesActive && (
+        <>
+          <ScreenFlash />
+          <BossSkillCastLayer />
+          <SwarmLegionCanvas />
+          <ChampionArrowVFX />
+        </>
+      )}
 
       {/* Unified Non-Overlapping Center Toast Stack */}
-      <div
-        style={{ top: `${headerBottomOffset}px` }}
-        className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-[46] pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
-      >
-        <BossPhaseShiftBanner themeConfig={getThemeConfig(gameTheme)} />
-        <BossEnragedEntranceBanner themeConfig={getThemeConfig(gameTheme)} />
-        <GiftBanner />
-        <HeartMilestoneBanner />
-        <WipeStamp />
-        <RoundIntroOverlay />
-      </div>
+      {!isSilverScrapesActive && (
+        <div
+          style={{ top: `${headerBottomOffset + 10}px` }}
+          className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-[46] pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
+        >
+          <BossPhaseShiftBanner themeConfig={getThemeConfig(gameTheme)} />
+          <BossEnragedEntranceBanner themeConfig={getThemeConfig(gameTheme)} />
+          <BossSkillBanner />
+          <GiftBanner />
+          <HeartMilestoneBanner />
+          <WipeStamp />
+        </div>
+      )}
 
       {/* Top Section: Esports Broadcast Header & Scores */}
-      <header ref={headerRef} className="relative z-[35] space-y-0.5 sm:space-y-1 shrink-0 pt-0.5">
-        {overlayVisibility.matchTitleBar ? (
+      <header ref={headerRef} className="relative z-[35] space-y-0.5 sm:space-y-1 shrink-0 pt-1 sm:pt-1.5">
+        {overlayVisibility.matchTitleBar && (
           <div className="flex items-center justify-center space-x-1.5 pt-0.5">
             <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 mb-1 shadow-md">
-              <span className="text-[10px] font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-amber-400">
+              <span
+                style={{
+                  backgroundImage: `linear-gradient(to right, ${leftTheme.primaryHex}, #ffffff, ${rightTheme.primaryHex})`,
+                }}
+                className="text-[10px] font-black tracking-widest text-transparent bg-clip-text"
+              >
                 {t('Game.dynamicTitle', 'CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}', {
                   left: leftTeamTag,
                   right: rightTeamTag,
@@ -191,64 +220,70 @@ export const HUDOverlay = () => {
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={toggleAudio}
-              className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
-              title={isAudioOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
-            >
-              {isAudioOn ? (
-                <Volume2 className="w-3 h-3 text-emerald-400" />
-              ) : (
-                <VolumeX className="w-3 h-3 text-slate-500" />
-              )}
-            </button>
+            {isDevControlsVisible && (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleAudio}
+                  className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
+                  title={isAudioOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
+                >
+                  {isAudioOn ? (
+                    <Volume2 className="w-3 h-3 text-emerald-400" />
+                  ) : (
+                    <VolumeX className="w-3 h-3 text-slate-500" />
+                  )}
+                </button>
 
-            <button
-              type="button"
-              onClick={toggleAmbience}
-              className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
-              title={isAmbienceOn ? t('Audio.ambienceOff', 'Tắt nhạc nền') : t('Audio.ambienceOn', 'Bật nhạc nền')}
-            >
-              <Music className={isAmbienceOn ? 'w-3 h-3 text-cyan-300' : 'w-3 h-3 text-slate-500'} />
-            </button>
+                <button
+                  type="button"
+                  onClick={toggleAmbience}
+                  className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
+                  title={isAmbienceOn ? t('Audio.ambienceOff', 'Tắt nhạc nền') : t('Audio.ambienceOn', 'Bật nhạc nền')}
+                >
+                  <Music className={isAmbienceOn ? 'w-3 h-3 text-cyan-300' : 'w-3 h-3 text-slate-500'} />
+                </button>
 
-            <button
-              type="button"
-              onClick={toggleGuestMode}
-              title={t(
-                'HUD.guestModeTooltip',
-                'Bật/tắt thanh thao tác giả lập cho người xem trên Client'
-              )}
-              className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
-                isGuestModeActive
-                  ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.55)] ring-1 ring-cyan-400/50'
-                  : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
-              }`}
-            >
-              <UserCheck className={`w-2.5 h-2.5 ${isGuestModeActive ? 'animate-pulse text-cyan-400' : ''}`} />
-              <span>{t('HUD.guestMode', 'Khách')}</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={toggleGuestMode}
+                  title={t(
+                    'HUD.guestModeTooltip',
+                    'Bật/tắt thanh thao tác giả lập cho người xem trên Client'
+                  )}
+                  className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+                    isGuestModeActive
+                      ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.55)] ring-1 ring-cyan-400/50'
+                      : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <UserCheck className={`w-2.5 h-2.5 ${isGuestModeActive ? 'animate-pulse text-cyan-400' : ''}`} />
+                  <span>{t('HUD.guestMode', 'Khách')}</span>
+                </button>
 
-            <button
-              type="button"
-              onClick={toggleAdminMode}
-              title={t(
-                'HUD.adminModeTooltip',
-                'Bật/tắt bảng điều khiển trận đấu dành cho Quản trị viên'
-              )}
-              className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
-                isAdminModeActive
-                  ? 'bg-amber-950/90 border-amber-400/80 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/50'
-                  : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
-              }`}
-            >
-              <ShieldAlert className={`w-2.5 h-2.5 ${isAdminModeActive ? 'animate-pulse text-amber-400' : ''}`} />
-              <span>{t('HUD.adminMode', 'Admin')}</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={toggleAdminMode}
+                  title={t(
+                    'HUD.adminModeTooltip',
+                    'Bật/tắt bảng điều khiển trận đấu dành cho Quản trị viên'
+                  )}
+                  className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+                    isAdminModeActive
+                      ? 'bg-amber-950/90 border-amber-400/80 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/50'
+                      : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ShieldAlert className={`w-2.5 h-2.5 ${isAdminModeActive ? 'animate-pulse text-amber-400' : ''}`} />
+                  <span>{t('HUD.adminMode', 'Admin')}</span>
+                </button>
+              </>
+            )}
           </div>
-        ) : (
-          <div className="absolute top-0 right-0 flex items-center space-x-1 z-50 pointer-events-auto">
+        )}
+
+        {isDevControlsVisible && !overlayVisibility.matchTitleBar && (
+          <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 flex items-center space-x-1 z-50 pointer-events-auto">
             <button
               type="button"
               onClick={toggleAudio}
@@ -272,7 +307,6 @@ export const HUDOverlay = () => {
           </div>
         )}
 
-        {overlayVisibility.bossHealth && <BossHealthBar />}
         {overlayVisibility.bossSkills && <BossSkillStatusPanel />}
         {overlayVisibility.teamScores && <TeamScoreBoard />}
       </header>
@@ -293,12 +327,19 @@ export const HUDOverlay = () => {
       </div>
 
       {/* Floating 3D & Combat Elements */}
-      <FloatingDamage />
-      {overlayVisibility.casterSubtitle && <CasterSubtitle />}
-      <CasterVoiceUnlockHint />
-      <FinisherAnnouncementBanner />
-      <VictoryOverlay />
+      {!isSilverScrapesActive && (
+        <>
+          <FloatingDamage />
+          <ChampionDamageNumbers />
+          {overlayVisibility.casterSubtitle && <CasterSubtitle />}
+          <CasterVoiceUnlockHint />
+          <FinisherAnnouncementBanner />
+          <VictoryOverlay />
+        </>
+      )}
       <SilverScrapesDuelOverlay />
+      <RoundIntroOverlay />
+      <CombatDeployBanner />
       <GuestSimulationDock />
       <AdminControlModal />
 

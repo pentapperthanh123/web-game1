@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Flame, ShieldAlert, Zap } from 'lucide-react';
+import { Flame, ShieldAlert } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { BOSS_ENRAGED_CONSTANTS, BOSS_STATUS, BossThemeConfig } from '../../constants/game';
 
@@ -45,58 +45,34 @@ export const BossEnragedEntranceBanner: React.FC<BossEnragedEntranceBannerProps>
       `CẢNH BÁO: ${themeConfig.bossName.toUpperCase()} CUỒNG NỘ!`
     );
 
-    const subtitleText = t(
-      'Game.rageWarningSubtitle',
-      'MÁU DƯỚI 35% — SÁT THƯƠNG & TỐC ĐÁNH TĂNG VỌT!'
-    );
-
     const enragedColor = themeConfig.colors.enragedHex;
 
     return (
       <div
         key={bossEnragedEntranceTimestamp}
-        className="w-full pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300 select-none"
+        className="w-full max-w-sm pointer-events-none select-none animate-in fade-in slide-in-from-top-2 duration-200 px-2 mx-auto flex justify-center"
       >
+        {/* Slim Esports Ribbon Ticker: Only 28px height, never blocks the 3D Boss or Minions */}
         <div
           style={{
             borderColor: enragedColor,
-            boxShadow: `0 0 35px ${enragedColor}aa`,
+            boxShadow: `0 0 16px ${enragedColor}88`,
           }}
-          className="relative overflow-hidden rounded-2xl px-3.5 py-2.5 shadow-2xl border-2 backdrop-blur-xl bg-gradient-to-r from-slate-950/95 via-rose-950/90 to-slate-950/95 flex flex-col items-center text-center"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border bg-slate-950/95 backdrop-blur-md shadow-lg"
         >
-          {/* Shimmer laser highlight */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.8s_infinite] pointer-events-none" />
-
-          {/* Main Title Row */}
-          <div className="flex items-center space-x-2">
-            <Flame className="w-4 h-4 text-amber-400 animate-bounce shrink-0" />
-            <ShieldAlert className="w-4 h-4 text-rose-400 animate-pulse shrink-0" />
-            <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-white drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
-              {titleText}
-            </span>
-            <Flame className="w-4 h-4 text-amber-400 animate-bounce shrink-0" />
-          </div>
-
-          {/* Subtitle Explainer */}
-          <span className="text-[10px] sm:text-[11px] font-bold text-amber-200/90 tracking-wide mt-0.5">
-            {subtitleText}
+          <span className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-rose-950/90 border border-rose-500/80 text-rose-300 tracking-wider shrink-0 flex items-center gap-0.5">
+            <Flame className="w-2.5 h-2.5 text-amber-400 animate-bounce" />
+            <span>{t('Game.enragedBadge', 'CUỒNG NỘ')}</span>
           </span>
 
-          {/* Buff Indicators */}
-          <div className="flex items-center space-x-2 mt-1.5">
-            <span
-              className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] sm:text-[10px] font-black uppercase shadow-sm ${themeConfig.colors.badgeClass}`}
-            >
-              <Zap className="w-3 h-3 text-yellow-300 animate-spin shrink-0" />
-              <span>+50% SÁT THƯƠNG</span>
-            </span>
-            <span
-              className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] sm:text-[10px] font-black uppercase shadow-sm ${themeConfig.colors.badgeClass}`}
-            >
-              <Flame className="w-3 h-3 text-orange-400 animate-pulse shrink-0" />
-              <span>+50% TỐC ĐÁNH</span>
-            </span>
-          </div>
+          <span className="text-[10.5px] sm:text-[11px] font-black text-white uppercase tracking-wider drop-shadow truncate flex items-center gap-1">
+            <ShieldAlert className="w-3 h-3 text-rose-400 shrink-0 animate-pulse" />
+            <span>{titleText}</span>
+          </span>
+
+          <span className="text-[8.5px] sm:text-[9px] font-bold text-amber-300 tracking-tight shrink-0 hidden xs:inline">
+            • {t('Game.enragedStatsShort', 'MÁU < 35% (+50% ST & TỐC ĐÁNH)')}
+          </span>
         </div>
       </div>
     );

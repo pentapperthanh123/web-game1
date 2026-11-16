@@ -1,67 +1,113 @@
-import { Flame, Zap, Droplets, Wind, Skull, Sparkles } from 'lucide-react';
+import React from 'react';
+import { Flame, Zap, Droplets, Wind, Skull, Sparkles, Swords, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
+import { TEAM_KEY } from '../../constants/game';
 
-const SKILL_ICON_MAP: Record<string, typeof Flame> = {
-  baron_acid_spit: Droplets,
-  baron_void_spikes: Zap,
-  baron_tail_sweep: Wind,
-  baron_void_cataclysm: Skull,
-  elder_dragon_fireball: Flame,
-  elder_dragon_lightning: Zap,
-  elder_dragon_tail_whip: Wind,
-  elder_dragon_inferno: Sparkles,
+const renderSkillIcon = (iconName?: string, skillColor?: string) => {
+  const iconClass = 'w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 drop-shadow';
+  switch (iconName?.toLowerCase()) {
+    case 'zap':
+      return <Zap className={`${iconClass} text-yellow-300 animate-pulse`} />;
+    case 'flame':
+      return <Flame className={`${iconClass} text-amber-400 animate-pulse`} />;
+    case 'wind':
+      return <Wind className={`${iconClass} text-cyan-300`} />;
+    case 'droplets':
+      return <Droplets className={`${iconClass} text-emerald-300`} />;
+    case 'sparkles':
+      return <Sparkles className={`${iconClass} text-purple-300 animate-pulse`} />;
+    case 'swords':
+      return <Swords className={`${iconClass} text-rose-400`} />;
+    case 'shield':
+      return <Shield className={`${iconClass} text-blue-400`} />;
+    case 'skull':
+      return <Skull className={`${iconClass} text-rose-500 animate-pulse`} />;
+    default:
+      return <Zap className={iconClass} style={{ color: skillColor }} />;
+  }
 };
 
-export const BossSkillBanner = () => {
-  const { t } = useTranslation();
+/**
+ * Top-center skill announcement tag for the boss's first 3 skills (non-ultimate).
+ * Placed in the Unified Non-Overlapping Center Toast Stack below the broadcast scoreboard
+ * to avoid covering the boss name or boss sprite in the middle of the arena.
+ */
+export const BossSkillBanner = React.memo(() => {
+  const { t, i18n } = useTranslation();
+  const isBannerVisible = useGameStore((state) => state.overlayVisibility.bossSkillBanner ?? true);
   const activeBanner = useGameStore((state) => state.activeBossSkillBanner);
+  const activeTeams = useGameStore((state) => state.activeTeams);
+  const livingMinionsCount = useGameStore((state) => state.minions.length);
 
-  if (!activeBanner) return null;
+  // Ultimates are already handled by BossSkillCastLayer full-screen cinematic
+  if (!isBannerVisible || !activeBanner || activeBanner.isUltimate) return null;
 
-  const IconComponent = SKILL_ICON_MAP[activeBanner.skillId] || Flame;
+  const isVi = i18n.language.startsWith('vi');
+  const skillDisplayName = isVi ? activeBanner.vietnameseName : activeBanner.skillName;
+  const bannerColor = activeBanner.color || '#f59e0b';
+  const isCrowded = livingMinionsCount > 25;
+
+  const targetTeamLabel =
+    activeBanner.targetTeam === TEAM_KEY.BLG
+      ? activeTeams[TEAM_KEY.BLG]?.shortTag ?? activeTeams[TEAM_KEY.BLG]?.name ?? t('Common.team1', 'ĐỘI 1')
+      : activeBanner.targetTeam === TEAM_KEY.GENG
+      ? activeTeams[TEAM_KEY.GENG]?.shortTag ?? activeTeams[TEAM_KEY.GENG]?.name ?? t('Common.team2', 'ĐỘI 2')
+      : null;
 
   return (
-    <div className="absolute top-[178px] sm:top-[192px] left-1/2 -translate-x-1/2 z-[46] pointer-events-none transition-all duration-300 animate-bounce">
+    <div
+      key={activeBanner.timestamp}
+      style={{
+        boxShadow: isCrowded
+          ? `0 0 14px ${bannerColor}44, 0 4px 16px rgba(0,0,0,0.7)`
+          : `0 0 24px ${bannerColor}66, 0 8px 30px rgba(0,0,0,0.85)`,
+        borderColor: `${bannerColor}cc`,
+      }}
+      className={`pointer-events-none flex items-center gap-1.5 rounded-full border bg-slate-950/90 text-white backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 select-none shadow-2xl z-[46] max-w-[92vw] transition-all ${
+        isCrowded
+          ? 'px-2.5 py-0.5 scale-90 sm:scale-95'
+          : 'px-3 py-1 sm:px-3.5 sm:py-1.5'
+      }`}
+    >
       <div
-        className={`px-4 py-1.5 sm:px-5 sm:py-2 rounded-2xl border-2 backdrop-blur-md shadow-2xl flex items-center space-x-2.5 sm:space-x-3 text-white ${
-          activeBanner.isUltimate
-            ? 'bg-rose-950/95 border-rose-400 shadow-[0_0_35px_rgba(244,63,94,0.9)] scale-105'
-            : 'bg-slate-950/95 border-amber-400/90 shadow-[0_0_25px_rgba(245,158,11,0.7)]'
+        className={`flex items-center justify-center rounded-full border shadow-sm shrink-0 ${
+          isCrowded ? 'p-0.5' : 'p-1'
+        }`}
+        style={{
+          backgroundColor: `${bannerColor}25`,
+          borderColor: bannerColor,
+        }}
+      >
+        {renderSkillIcon(activeBanner.iconName, bannerColor)}
+      </div>
+
+      <div
+        className={`flex items-center gap-1 whitespace-nowrap font-black tracking-wide ${
+          isCrowded ? 'text-[9.5px] sm:text-[10px]' : 'text-[10.5px] sm:text-xs'
         }`}
       >
-        <div
-          className="p-1.5 rounded-lg border flex items-center justify-center shrink-0"
-          style={{
-            backgroundColor: `${activeBanner.color}25`,
-            borderColor: activeBanner.color,
-          }}
+        <span
+          className={`text-slate-300 uppercase tracking-wider opacity-85 truncate ${
+            isCrowded ? 'text-[8.5px] max-w-[90px]' : 'text-[9.5px] sm:text-[10.5px]'
+          }`}
         >
-          <IconComponent
-            className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse"
-            style={{ color: activeBanner.color }}
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-300">
-              [{activeBanner.bossName}]
-            </span>
-            {activeBanner.isUltimate && (
-              <span className="px-1.5 py-0.2 rounded bg-rose-600 text-[9px] font-black tracking-widest text-white uppercase animate-pulse">
-                {t('Combat.ultimateSkill', 'CHIÊU CUỐI!')}
-              </span>
-            )}
-          </div>
-          <div className="text-xs sm:text-sm font-black flex items-center space-x-2">
-            <span style={{ color: activeBanner.color }}>{activeBanner.vietnameseName}</span>
-            <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 text-[10px] sm:text-xs font-mono font-bold">
-              -{activeBanner.damage} HP
-            </span>
-          </div>
-        </div>
+          [{activeBanner.bossName}]
+        </span>
+        <span style={{ color: bannerColor }} className="drop-shadow">
+          {skillDisplayName}
+        </span>
+        <span className="px-1.5 py-0.2 rounded bg-red-950/90 text-rose-300 border border-rose-500/50 text-[8.5px] sm:text-[9.5px] font-mono font-bold tracking-tight shadow-inner">
+          -{activeBanner.damage} HP
+        </span>
+        {targetTeamLabel && (
+          <span className="px-1 py-0.2 rounded bg-slate-800/90 text-slate-200 border border-white/20 text-[8px] sm:text-[8.5px] uppercase tracking-wider font-extrabold">
+            {targetTeamLabel}
+          </span>
+        )}
       </div>
     </div>
   );
-};
+});
+
+BossSkillBanner.displayName = 'BossSkillBanner';

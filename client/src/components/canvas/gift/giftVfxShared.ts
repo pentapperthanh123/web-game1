@@ -7,9 +7,9 @@ import { GiftAnnouncement } from '../../../types/game';
 /** How long each tier's 3D layer plays (SMALL has none). */
 export const GIFT_VFX_DURATION_MS: Readonly<Record<GiftTier, number>> = {
   [GIFT_TIER.SMALL]: 0,
-  [GIFT_TIER.MEDIUM]: 1600,
-  [GIFT_TIER.BIG]: 3200,
-  [GIFT_TIER.MEGA]: 4500,
+  [GIFT_TIER.MEDIUM]: 2400,
+  [GIFT_TIER.BIG]: 4200,
+  [GIFT_TIER.MEGA]: 6000,
 };
 
 export const GIFT_VFX_LAYOUT = {

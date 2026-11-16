@@ -1,4 +1,6 @@
 import {
+  BOSS_STATUS,
+  DAMAGE_SOURCE,
   DAMAGE_TYPE,
   GAME_CONSTANTS,
   GIFT_METEOR_SPAWN,
@@ -6,12 +8,14 @@ import {
   GiftTier,
   TeamType,
 } from '../constants/game';
-import { SFX_EVENT, SfxEventName } from '../constants/sfx';
 import { getTeamTheme } from '../constants/teams';
 import { playSound } from '../services/soundManager';
 import { audioService } from '../services/audioService';
 import { GameState, GiftAnnouncement, MeteorEntity } from '../types/game';
-import { getGiftTierConfig, isGiftTierAtLeast, resolveGiftTier } from './giftTier';
+import { GIFT_FIREWORK, GIFT_SOUND_LAYERS, GIFT_STREAK_PITCH, GiftSoundLayer } from '../constants/giftPresentation';
+import type { GiftRulePayload } from '../constants/giftConfig';
+import { applyGiftRuleEffect, resolveGiftDamageMultiplier } from './giftRuleEffects';
+import { getGiftTierConfig, getMegaGradeConfig, isGiftTierAtLeast, resolveFireworkShellCount, resolveGiftTier } from './giftTier';
 
 export interface GiftEvent {
   giftName: string;
@@ -22,14 +26,9 @@ export interface GiftEvent {
   streakCount: number;
   totalCoins: number;
   isComboFinal: boolean;
+  /** Admin gift rule (damage multiplier, special effect), when one matched this gift. */
+  rule?: GiftRulePayload;
 }
-
-const GIFT_TIER_SOUND: Readonly<Record<GiftTier, SfxEventName>> = {
-  [GIFT_TIER.SMALL]: SFX_EVENT.SCORE_UP,
-  [GIFT_TIER.MEDIUM]: SFX_EVENT.GIFT_MEDIUM,
-  [GIFT_TIER.BIG]: SFX_EVENT.BIG_DONATE,
-  [GIFT_TIER.MEGA]: SFX_EVENT.GIFT_MEGA,
-};
 
 const BOSS_HIT_ORIGIN: [number, number, number] = [0, 0, 0];
 
@@ -50,6 +49,7 @@ export const buildGiftAnnouncement = (event: GiftEvent, tier: GiftTier, now: num
   streakCount: event.streakCount,
   totalCoins: event.totalCoins,
   isComboFinal: event.isComboFinal,
+  damageMultiplier: resolveGiftDamageMultiplier(event.rule),
   timestamp: now,
 });
 
@@ -75,18 +75,59 @@ export const buildGiftMeteors = (count: number, color: string, now: number, seed
     };
   });
 
-const playGiftSound = (tier: GiftTier, isQuietTick: boolean): void => {
+const resolveMeteorCount = (tier: GiftTier, coins: number): number => {
+  const baseCount = getGiftTierConfig(tier).meteorCount;
+  return tier === GIFT_TIER.MEGA ? baseCount + getMegaGradeConfig(coins).bonusMeteorCount : baseCount;
+};
+
+/** Small tiers climb in pitch as the streak grows; BIG / MEGA stingers keep their natural pitch. */
+const resolveStreakRate = (tier: GiftTier, streakCount: number): number => {
+  if (isGiftTierAtLeast(tier, GIFT_TIER.BIG)) return 1;
+  return Math.min(GIFT_STREAK_PITCH.MAX_RATE, 1 + (streakCount - 1) * GIFT_STREAK_PITCH.STEP_PER_STREAK);
+};
+
+const playSoundLayer = (layer: GiftSoundLayer, streakRate: number): void => {
+  const play = () => playSound(layer.event, { volumeScale: layer.volumeScale, rateScale: layer.rateScale * streakRate });
+  if (layer.delayMs <= 0) {
+    play();
+    return;
+  }
+  setTimeout(play, layer.delayMs);
+};
+
+/** One synth crack per firework shell, timed to the 3D bursts (GiftFireworks reads the same timeline). */
+const scheduleFireworkSounds = (shellCount: number): void => {
+  for (let shellIndex = 0; shellIndex < shellCount; shellIndex += 1) {
+    setTimeout(
+      () => audioService.playFireworkBurst(),
+      GIFT_FIREWORK.FIRST_SHELL_DELAY_MS + shellIndex * GIFT_FIREWORK.SHELL_INTERVAL_MS
+    );
+  }
+};
+
+const playGiftSound = (tier: GiftTier, event: GiftEvent, isQuietTick: boolean): void => {
   if (isQuietTick) {
     audioService.playHeartChime();
     return;
   }
-  playSound(GIFT_TIER_SOUND[tier]);
+  const streakRate = resolveStreakRate(tier, event.streakCount);
+  GIFT_SOUND_LAYERS[tier].forEach((layer) => playSoundLayer(layer, streakRate));
+  scheduleFireworkSounds(resolveFireworkShellCount(tier, event.totalCoins));
 };
 
-const shouldSummonElite = (event: GiftEvent): boolean =>
-  event.streakCount === 1 ||
-  event.streakCount % GAME_CONSTANTS.TIKTOK_ENGAGEMENT.ELITE_SUMMON_EVERY_STREAK === 0 ||
-  event.coins >= GAME_CONSTANTS.TIKTOK_ENGAGEMENT.ELITE_SUMMON_MIN_COINS;
+/**
+ * Small gifts (roses) only earn an elite champion every few streak ticks: before, every 3rd 1-coin tick
+ * did, and elites stay on the field, so rose spam was worth ~15x more per coin than a big gift.
+ */
+const shouldSummonElite = (event: GiftEvent): boolean => {
+  const rules = GAME_CONSTANTS.TIKTOK_ENGAGEMENT;
+  if (event.coins <= rules.SMALL_GIFT_MAX_COINS) return event.streakCount % rules.SMALL_GIFT_ELITE_EVERY_STREAK === 0;
+  return event.streakCount === 1 || event.streakCount % rules.ELITE_SUMMON_EVERY_STREAK === 0 || event.coins >= rules.ELITE_SUMMON_MIN_COINS;
+};
+
+/** Pro fury grows with the gift's value (3 per coin, capped at the old flat +30). */
+const resolveGiftFuryGain = (coins: number): number =>
+  Math.min(GAME_CONSTANTS.PRO_FURY.FURY_GAIN_GIFT_BOOST, coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_FURY_PER_COIN);
 
 const summonEliteChampion = (get: () => GameState, event: GiftEvent): void => {
   const roster = get().activeTeams[event.team]?.roster ?? [];
@@ -103,13 +144,25 @@ const applyGiftImpact = (get: () => GameState, event: GiftEvent, tier: GiftTier,
   const damageType = isGiftTierAtLeast(tier, GIFT_TIER.BIG) ? DAMAGE_TYPE.ULTIMATE : DAMAGE_TYPE.NORMAL;
 
   get().healTeamChampions(event.team, GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_HEAL_AMOUNT);
-  get().damageBoss(event.coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN, event.team, `${event.donorName} (${event.giftName})`, damageType);
+  get().damageBoss(
+    Math.round(event.coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN * resolveGiftDamageMultiplier(event.rule)),
+    event.team,
+    `${event.donorName} (${event.giftName})`,
+    damageType,
+    {
+      source: DAMAGE_SOURCE.GIFT,
+      hpDamageCap: Math.round(get().bossMaxHp * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_BOSS_HP_CAP_RATIO),
+      donorAvatarUrl: event.donorAvatarUrl,
+      giftName: event.giftName,
+      coins: event.coins,
+    }
+  );
   if (isQuietTick) return [];
 
   if (config.hasScreenFlash) get().triggerScreenFlash(theme.secondaryHex);
   if (config.screenShake > 0) get().triggerScreenShake(config.screenShake);
   if (config.burstIntensity > 0) get().spawnParticleBurst(BOSS_HIT_ORIGIN, theme.primaryHex, config.burstIntensity);
-  return buildGiftMeteors(config.meteorCount, theme.primaryHex, now, event.streakCount);
+  return buildGiftMeteors(resolveMeteorCount(tier, event.totalCoins), theme.primaryHex, now, event.streakCount);
 };
 
 const logGift = (get: () => GameState, event: GiftEvent, isQuietTick: boolean): void => {
@@ -135,18 +188,26 @@ export const runGiftExplosion = (get: () => GameState, event: GiftEvent, now: nu
   const config = getGiftTierConfig(tier);
   const isQuietTick = isRapidStreakTick(event) && !isGiftTierAtLeast(tier, GIFT_TIER.BIG);
 
-  playGiftSound(tier, isQuietTick);
   const meteors = applyGiftImpact(get, event, tier, isQuietTick, now);
+  // A killing gift hands its audio to the finisher cinematic (avatar strike → impact → card).
+  // Playing the gift layers here as well would also throttle the cinematic's opening sting.
+  const hasKilledBoss = get().bossStatus === BOSS_STATUS.DEFEATED;
+  if (!hasKilledBoss) playGiftSound(tier, event, isQuietTick);
   const roster = get().activeTeams[event.team]?.roster ?? [];
-  roster.forEach((pro) => get().addPlayerFury(pro.id, GAME_CONSTANTS.PRO_FURY.FURY_GAIN_GIFT_BOOST));
+  const furyGain = resolveGiftFuryGain(event.coins);
+  roster.forEach((pro) => get().addPlayerFury(pro.id, furyGain));
   if (shouldSummonElite(event)) summonEliteChampion(get, event);
+  const ruleStunUntil = event.rule && !hasKilledBoss
+    ? applyGiftRuleEffect({ get, team: event.team, donorName: event.donorName, donorAvatarUrl: event.donorAvatarUrl, rule: event.rule }, now)
+    : 0;
   logGift(get, event, isQuietTick);
 
   const hasBanner = config.bannerDurationMs > 0 && !isQuietTick;
+  const tierStaggerUntil = config.bossStaggerMs > 0 ? now + config.bossStaggerMs : 0;
   return {
     tier,
     banner: hasBanner ? buildGiftAnnouncement(event, tier, now) : null,
     meteors,
-    bossStaggerUntil: config.bossStaggerMs > 0 ? now + config.bossStaggerMs : 0,
+    bossStaggerUntil: Math.max(tierStaggerUntil, ruleStunUntil),
   };
 };

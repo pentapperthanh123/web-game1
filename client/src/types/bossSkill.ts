@@ -16,6 +16,7 @@ export const BOSS_SKILL_VFX = {
   CHARGE_DASH: 'CHARGE_DASH',
   SEISMIC_SLAM: 'SEISMIC_SLAM',
   NOVA: 'NOVA',
+  CHAIN_LIGHTNING: 'CHAIN_LIGHTNING',
 } as const;
 
 export type BossSkillVfxType = (typeof BOSS_SKILL_VFX)[keyof typeof BOSS_SKILL_VFX];
@@ -30,8 +31,26 @@ export const BOSS_STATUS_EFFECT = {
 
 export type BossStatusEffectType = (typeof BOSS_STATUS_EFFECT)[keyof typeof BOSS_STATUS_EFFECT];
 
+/** Extra archetype played on top of a skill's main VFX (ultimates are built from several). */
+export interface BossSkillVfxLayer {
+  vfxType: BossSkillVfxType;
+  /** Start delay after the cast. */
+  delayMs?: number;
+  count?: number;
+  scale?: number;
+  color?: string;
+  secondaryColor?: string;
+}
+
+/** Floor position (world x, z) of a champion the skill hits; effects land there. */
+export type BossSkillImpactPoint = readonly [x: number, z: number];
+
 export interface BossSkillVfxParams {
   secondaryColor?: string;
+  /** Additional archetypes layered over the main one (3D). */
+  layers?: readonly BossSkillVfxLayer[];
+  /** Stretches the main archetype's clip (1 = default length). */
+  durationScale?: number;
   /** Number of projectiles / bolts / spikes; archetype-specific default when omitted. */
   count?: number;
   /** Relative size multiplier of the effect (1 = default). */
@@ -92,8 +111,11 @@ export interface ActiveBossSkillBanner {
   isUltimate: boolean;
   bossName: string;
   timestamp: number;
+  iconName?: string;
   targetTeam?: 'BLG' | 'GENG' | 'ALL';
   vfxType: BossSkillVfxType;
   vfxParams?: BossSkillVfxParams;
   statusEffectType?: BossStatusEffectType;
+  /** Where the damaged champions stand, so the VFX lands on the champions it hurts. */
+  impactPoints?: readonly BossSkillImpactPoint[];
 }

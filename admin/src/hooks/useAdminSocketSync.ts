@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { adminSocket, GameThemeType } from '../services/socket';
 import { createDefaultTeamConfig, TeamConfigState } from '../constants/teams';
 import { SeriesFormatConfig, DEFAULT_SERIES_CONFIG } from '../constants/series';
-import { TIKTOK_STATUS } from '../constants/adminAuth';
+import { DEFAULT_TIKTOK_USERNAME, TIKTOK_STATUS } from '../constants/adminAuth';
 import { ADMIN_APP_TITLE, THEME_OPTIONS, VALID_THEMES } from '../constants/adminPortal';
 
 type LogHandler = (type: string, message: string, team?: string) => void;
@@ -17,9 +17,10 @@ export interface Bo5Score {
  * and exposes action handlers for TikTok connection, theme switching, and BO5 match controls.
  */
 export function useAdminSocketSync(onLog: LogHandler) {
-  const [tiktokUsername, setTiktokUsername] = useState('sofm_official');
+  const [tiktokUsername, setTiktokUsername] = useState(DEFAULT_TIKTOK_USERNAME);
   const [tiktokStatus, setTiktokStatus] = useState<string>('DISCONNECTED');
   const [tiktokRoomId, setTiktokRoomId] = useState<string>('');
+  const [tiktokError, setTiktokError] = useState<string>('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [reconnectAttempt, setReconnectAttempt] = useState<number | undefined>(undefined);
   const [nextRetryAt, setNextRetryAt] = useState<number | undefined>(undefined);
@@ -67,10 +68,17 @@ export function useAdminSocketSync(onLog: LogHandler) {
       if (data.roomId) setTiktokRoomId(data.roomId);
       setReconnectAttempt(data.attempt);
       setNextRetryAt(data.nextRetryAt);
+      if (data.error) {
+        setTiktokError(data.error);
+      } else if (data.status === TIKTOK_STATUS.CONNECTED) {
+        setTiktokError('');
+      }
       if (data.status === TIKTOK_STATUS.CONNECTED) {
         onLog('SYSTEM', `Đã kết nối luồng Live TikTok của @${data.username}`);
       } else if (data.status === TIKTOK_STATUS.ERROR) {
         onLog('SYSTEM', `Lỗi kết nối: ${data.error || 'Không xác định'}`);
+      } else if (data.status === TIKTOK_STATUS.RECONNECTING && data.error) {
+        onLog('SYSTEM', `⚠️ Thử kết nối lại TikTok: ${data.error}`);
       }
     });
 
@@ -83,10 +91,12 @@ export function useAdminSocketSync(onLog: LogHandler) {
 
   const handleConnectTiktok = useCallback(async () => {
     setIsConnecting(true);
+    setTiktokError('');
     try {
       await adminSocket.connectTiktokRoom(tiktokUsername);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
+      setTiktokError(message);
       onLog('SYSTEM', `Lỗi: ${message}`);
     } finally {
       setIsConnecting(false);
@@ -97,6 +107,7 @@ export function useAdminSocketSync(onLog: LogHandler) {
     await adminSocket.disconnectTiktokRoom();
     setTiktokStatus(TIKTOK_STATUS.DISCONNECTED);
     setTiktokRoomId('');
+    setTiktokError('');
     onLog('SYSTEM', 'Đã ngắt kết nối phòng TikTok Live');
   }, [onLog]);
 
@@ -118,9 +129,15 @@ export function useAdminSocketSync(onLog: LogHandler) {
   );
 
   const handleBo5Control = useCallback(
-    (action: 'reset' | 'nextRound' | 'setScore', blg?: number, geng?: number, round?: number) => {
+    (action: 'reset' | 'nextRound' | 'setScore' | 'startRound', blg?: number, geng?: number, round?: number) => {
       const leftTag = teamConfig.activeTeams.BLG.shortTag;
       const rightTag = teamConfig.activeTeams.GENG.shortTag;
+
+      if (action === 'startRound') {
+        adminSocket.emit('admin:bo5-control', { action: 'startRound' });
+        onLog('SYSTEM', `🚀 Lệnh BẮT ĐẦU VÁN ĐẤU đã được gửi sang Màn hình Game!`);
+        return;
+      }
 
       if (action === 'reset') {
         setBo5Score({ BLG: 0, GENG: 0 });
@@ -136,7 +153,8 @@ export function useAdminSocketSync(onLog: LogHandler) {
       if (action === 'nextRound') {
         const nextRound = Math.min(seriesConfig.maxRounds, currentRound + 1);
         setCurrentRound(nextRound);
-        adminSocket.emit('admin:bo5-control', { action: 'nextRound' });
+        // fromRound makes a double click (or an overlay's own countdown) count once on the server
+        adminSocket.emit('admin:bo5-control', { action: 'nextRound', fromRound: currentRound });
         onLog('SYSTEM', `⚔️ Chuyển sang Ván ${nextRound} / ${seriesConfig.format}`);
         return;
       }
@@ -167,6 +185,7 @@ export function useAdminSocketSync(onLog: LogHandler) {
     setTiktokUsername,
     tiktokStatus,
     tiktokRoomId,
+    tiktokError,
     reconnectAttempt,
     nextRetryAt,
     isConnecting,

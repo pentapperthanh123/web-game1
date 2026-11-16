@@ -59,7 +59,7 @@ export const CrescentSweep2D: React.FC<SkillVfx2DProps> = React.memo(({ color, s
       {Array.from({ length: sweepCount }, (_, index) => (
         <div
           key={`${nonce}-${index}`}
-          className="absolute -translate-x-1/2 -translate-y-1/2 animate-skill-crescent"
+          className="absolute animate-skill-crescent"
           style={{ width: sizePx, height: sizePx, animationDelay: `${index * SECOND_SWEEP_DELAY_MS}ms` }}
         >
           <CrescentBlade scale={scale} color={color} bladeColor={index === 0 ? secondaryColor : color} />

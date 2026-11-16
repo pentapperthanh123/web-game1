@@ -64,6 +64,7 @@ const SKILL_VFX_LABELS: Record<BossSkillVfxType, string> = {
   [BOSS_SKILL_VFX.CHARGE_DASH]: '🐗 Húc lao',
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: '💥 Địa chấn',
   [BOSS_SKILL_VFX.NOVA]: '🌟 Nova hủy diệt',
+  [BOSS_SKILL_VFX.CHAIN_LIGHTNING]: '🌩️ Tia chớp nối',
 };
 
 const STATUS_EFFECT_LABELS: Record<BossStatusEffectType, { label: string; color: string }> = {
@@ -306,16 +307,16 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
           <input
             type="range"
             min="2000"
-            max="10000"
+            max="20000"
             step="500"
             value={config.intervalMs}
             onChange={(e) => updateConfig({ intervalMs: Number(e.target.value) })}
             className="w-full accent-rose-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none mt-2"
           />
           <div className="flex justify-between text-[9px] text-slate-500 font-mono mt-1">
-            <span>2.0s (Nhanh)</span>
-            <span>5.0s</span>
-            <span>10.0s (Chậm)</span>
+            <span>2.0s</span>
+            <span>10.0s (Mặc định)</span>
+            <span>20.0s</span>
           </div>
         </div>
 

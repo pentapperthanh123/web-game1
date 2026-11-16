@@ -34,15 +34,13 @@ export const BossAlertBanner: React.FC<BossAlertBannerProps> = React.memo(
   ({ isRoarActive, themeConfig, activeBossSkillBanner, gameTheme, defaultRoarTextVi, isAboveHealthBar }) => {
     const { t } = useTranslation();
 
-    // When an ultimate skill is cast, the grand cinematic banner (BossSkillCastLayer)
-    // already announces the ultimate skill name across the screen. Suppress the small lower pill toast
-    // to prevent duplicate banners stacking on top of each other.
-    if (!isRoarActive || activeBossSkillBanner?.isUltimate) return null;
+    // Boss skill cast tags are presented cleanly at the top-center of the screen
+    // via BossSkillBanner (for the first 3 skills) and BossSkillCastLayer (for ultimates)
+    // to avoid covering the boss name or boss sprite in the arena.
+    if (!isRoarActive || activeBossSkillBanner) return null;
 
-    const bannerColor = activeBossSkillBanner?.color || themeConfig.colors.primaryHex;
-    const bannerText = activeBossSkillBanner
-      ? `${activeBossSkillBanner.vietnameseName} (-${activeBossSkillBanner.damage} HP)`
-      : t(`Game.bossRoar.${gameTheme}`, defaultRoarTextVi);
+    const bannerColor = themeConfig.colors.primaryHex;
+    const bannerText = t(`Game.bossRoar.${gameTheme}`, defaultRoarTextVi);
 
     return (
       <div
@@ -50,7 +48,7 @@ export const BossAlertBanner: React.FC<BossAlertBannerProps> = React.memo(
           boxShadow: `0 0 24px ${bannerColor}aa`,
           borderColor: bannerColor,
         }}
-        className={`absolute ${isAboveHealthBar ? BOSS_HEALTH_BAR_LAYOUT.ALERT_BANNER_TOP_CLASS : BOSS_HEALTH_BAR_LAYOUT.ALERT_BANNER_DEFAULT_TOP_CLASS} px-3.5 py-1 rounded-full border-2 text-[10px] sm:text-xs font-black tracking-wide flex items-center space-x-1.5 z-[46] max-w-[90vw] whitespace-nowrap animate-in fade-in zoom-in-95 duration-200 bg-slate-950/95 text-white backdrop-blur-md`}
+        className={`absolute left-1/2 -translate-x-1/2 ${isAboveHealthBar ? BOSS_HEALTH_BAR_LAYOUT.ALERT_BANNER_TOP_CLASS : BOSS_HEALTH_BAR_LAYOUT.ALERT_BANNER_DEFAULT_TOP_CLASS} px-3.5 py-1 rounded-full border-2 text-[10px] sm:text-xs font-black tracking-wide flex items-center space-x-1.5 z-[46] max-w-[90vw] whitespace-nowrap animate-in fade-in zoom-in-95 duration-200 bg-slate-950/95 text-white backdrop-blur-md`}
       >
         {renderSkillIcon(themeConfig, activeBossSkillBanner)}
         <span className="truncate">{bannerText}</span>

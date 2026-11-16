@@ -74,6 +74,20 @@
   animation: screenShake 0.35s ease-in-out;
 }
 
+/* Sustained quake (boss ultimates): loops while the rumble runs; amplitude comes from --screen-rumble-px. */
+@keyframes screenRumble {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  17% { transform: translate3d(calc(var(--screen-rumble-px, 0px) * -1), calc(var(--screen-rumble-px, 0px) * 0.7), 0); }
+  34% { transform: translate3d(calc(var(--screen-rumble-px, 0px) * 0.8), calc(var(--screen-rumble-px, 0px) * -1), 0); }
+  51% { transform: translate3d(calc(var(--screen-rumble-px, 0px) * -0.6), calc(var(--screen-rumble-px, 0px) * -0.5), 0); }
+  68% { transform: translate3d(calc(var(--screen-rumble-px, 0px) * 1), calc(var(--screen-rumble-px, 0px) * 0.9), 0); }
+  85% { transform: translate3d(calc(var(--screen-rumble-px, 0px) * -0.4), calc(var(--screen-rumble-px, 0px) * 0.3), 0); }
+}
+
+.animate-screen-rumble {
+  animation: screenRumble 0.19s linear infinite;
+}
+
 /* 2D Boss & Arena Animations */
 @keyframes bossBreath {
   0%, 100% {
@@ -373,18 +387,21 @@
 
 @keyframes heraldIdleCrouch {
   0%, 100% {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
   }
-  35% {
-    transform: translate3d(0, 3px, 0) scale(1.02, 0.98);
+  30% {
+    transform: translate3d(-3px, 10px, 0) scale(1.04, 0.96) rotate(-1deg);
   }
-  70% {
-    transform: translate3d(0, -2px, 0) scale(0.99, 1.01);
+  60% {
+    transform: translate3d(2px, -14px, 0) scale(0.97, 1.04) rotate(1deg);
+  }
+  85% {
+    transform: translate3d(0, -6px, 0) scale(0.99, 1.01) rotate(0deg);
   }
 }
 
 .animate-herald-idle {
-  animation: heraldIdleCrouch 3.2s ease-in-out infinite;
+  animation: heraldIdleCrouch 3.4s ease-in-out infinite;
 }
 
 @keyframes heraldChargeLunge {
@@ -406,6 +423,31 @@
   animation: heraldChargeLunge 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Directional ram: crouch back, dash into the attacked wing, hold the hit, walk back */
+@keyframes heraldChargeLeft {
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  22% { transform: translate3d(22px, -6px, 0) scale(0.92, 0.96) rotate(4deg); }
+  46% { transform: translate3d(-112px, 12px, 0) scale(1.16, 1.06) rotate(-7deg); }
+  62% { transform: translate3d(-98px, 8px, 0) scale(1.08) rotate(-4deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+
+@keyframes heraldChargeRight {
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  22% { transform: translate3d(-22px, -6px, 0) scale(0.92, 0.96) rotate(-4deg); }
+  46% { transform: translate3d(112px, 12px, 0) scale(1.16, 1.06) rotate(7deg); }
+  62% { transform: translate3d(98px, 8px, 0) scale(1.08) rotate(4deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+
+.animate-herald-charge-left {
+  animation: heraldChargeLeft 0.75s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+.animate-herald-charge-right {
+  animation: heraldChargeRight 0.75s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
 @keyframes heraldEyePulse {
   0%, 100% {
     transform: scale(1);
@@ -425,41 +467,47 @@
 
 @keyframes bossVerticalDragonFloat {
   0%, 100% {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
-  25% {
-    transform: translate3d(-5px, -14px, 0);
+  22% {
+    transform: translate3d(-7px, -18px, 0) rotate(-1.5deg) scale(1.015);
   }
-  50% {
-    transform: translate3d(0, -24px, 0);
+  48% {
+    transform: translate3d(0, -38px, 0) rotate(0.6deg) scale(1.03);
   }
-  75% {
-    transform: translate3d(5px, -10px, 0);
+  72% {
+    transform: translate3d(7px, -20px, 0) rotate(1.8deg) scale(0.99);
+  }
+  88% {
+    transform: translate3d(2px, -6px, 0) rotate(-0.5deg) scale(0.985);
   }
 }
 
 .animate-boss-vertical-dragon {
-  animation: bossVerticalDragonFloat 4.4s ease-in-out infinite;
+  animation: bossVerticalDragonFloat 4.6s ease-in-out infinite;
   will-change: transform;
 }
 
 @keyframes bossVerticalBaronCoil {
   0%, 100% {
-    transform: translate3d(0, 0, 0) scaleY(1);
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
   }
-  30% {
-    transform: translate3d(-4px, -12px, 0) scaleY(1.02);
+  28% {
+    transform: translate3d(-6px, -20px, 0) scale(1.02, 1.05) rotate(-1.2deg);
   }
-  55% {
-    transform: translate3d(0, -16px, 0) scaleY(1.025);
+  50% {
+    transform: translate3d(0, -34px, 0) scale(1.03, 1.08) rotate(0deg);
   }
-  80% {
-    transform: translate3d(4px, 6px, 0) scaleY(0.985);
+  75% {
+    transform: translate3d(6px, -14px, 0) scale(0.99, 1.02) rotate(1.5deg);
+  }
+  90% {
+    transform: translate3d(2px, 8px, 0) scale(1.01, 0.95) rotate(-0.5deg);
   }
 }
 
 .animate-boss-vertical-baron {
-  animation: bossVerticalBaronCoil 3.8s ease-in-out infinite;
+  animation: bossVerticalBaronCoil 4.2s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -1025,21 +1073,19 @@
   animation: defeatImpactSnap 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Centering (-50%) lives in the keyframes: the element must NOT also carry -translate-x-1/2. */
 @keyframes executionBannerPop {
   0% {
     transform: translate(-50%, -24px) scale(0.7);
     opacity: 0;
-    filter: brightness(2.2);
   }
   14% {
     transform: translate(-50%, 0) scale(1.06);
     opacity: 1;
-    filter: brightness(1.35);
   }
   24% {
     transform: translate(-50%, 0) scale(1);
     opacity: 1;
-    filter: brightness(1);
   }
   86% {
     transform: translate(-50%, 0) scale(1);
@@ -1052,7 +1098,7 @@
 }
 
 .animate-execution-banner {
-  animation: executionBannerPop 2.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: executionBannerPop 2.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes comboPunch {
@@ -1534,13 +1580,17 @@
 }
 
 @keyframes wipeStamp {
-  0% { transform: scale(2.2) rotate(-8deg); opacity: 0; }
-  18% { transform: scale(0.92) rotate(-4deg); opacity: 1; }
-  28% { transform: scale(1.04) rotate(-4deg); }
-  80% { transform: scale(1) rotate(-4deg); opacity: 1; }
-  100% { transform: scale(1.1) rotate(-4deg); opacity: 0; }
+  0% { transform: scale(1.6) translateZ(0); opacity: 0; }
+  14% { transform: scale(0.96) translateZ(0); opacity: 1; }
+  24% { transform: scale(1.02) translateZ(0); }
+  82% { transform: scale(1) translateZ(0); opacity: 1; }
+  100% { transform: scale(1.04) translateZ(0); opacity: 0; }
 }
-.animate-wipe-stamp { animation: wipeStamp 1.6s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
+.animate-wipe-stamp {
+  animation: wipeStamp 2.2s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
 
 /* Pre-round intro card */
 @keyframes roundIntroIn {
@@ -1553,3 +1603,19 @@
 }
 .animate-round-intro-in { animation: roundIntroIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-round-intro-page { animation: roundIntroPage 0.35s ease-out both; }
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.4);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.8);
+}
+

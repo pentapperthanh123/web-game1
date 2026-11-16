@@ -2,11 +2,16 @@ import { io, Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
 import { OverlayVisibility, ParticipationRuleConfig } from '../types/game';
 import { TeamConfigState } from '../types/team';
-import { OVERLAY_SECTION, GameThemeType, TeamType, GAME_CONSTANTS, GIFT_TIER, GIFT_TIER_CONFIG } from '../constants/game';
+import { OVERLAY_SECTION, GameThemeType, TeamType, GAME_CONSTANTS, GIFT_TIER, GIFT_TIER_CONFIG, TEAM_KEY } from '../constants/game';
 import { applyCasterConfig } from '../store/casterStore';
 import { hasSpeechNameField, registerSpeechName } from './caster/speechNameRegistry';
 import { announceFollow, announceShare, announceSmallGiftCombo } from './caster/casterDirector';
 import { setCasterWarmSender } from './caster/casterWarmChannel';
+import { startChampionshipTallyReporter } from './championshipTallyReporter';
+import { SERIES_PROGRESS_SOCKET_EVENT, startSeriesProgressReporter } from './seriesProgressReporter';
+import { CHAMPIONSHIP_TALLY_SOCKET_EVENT } from '../constants/championshipTally';
+import { GIFT_CONFIG_SOCKET_EVENT, GiftRulePayload, parseGiftRulePayload } from '../constants/giftConfig';
+import { applyGiftConfigPayload } from '../store/giftConfigStore';
 import { sanitizeTeamConfigState } from '../constants/teams';
 import { buildAdminHeaders, resolveAdminToken } from './adminTokenStorage';
 import {
@@ -14,6 +19,7 @@ import {
   sanitizePlayerLeaderboard,
   usePlayerLeaderboardStore,
 } from '../store/playerLeaderboardStore';
+import { triggerStartRoundCombat } from './roundIntroActions';
 
 export const LIVE_OPS_SOCKET_EVENT = {
   AUTH_ERROR: 'server:auth-error',
@@ -40,6 +46,20 @@ export interface RoundResultPayload {
   players: RoundResultPlayer[];
 }
 
+export interface QueuedGiftPayload {
+  giftName: string;
+  team: TeamType;
+  donorName: string;
+  coins: number;
+  streakCount: number;
+  totalCoins?: number;
+  isComboFinal: boolean;
+  donorAvatarUrl?: string;
+  speechName?: string;
+  /** Admin gift rule attached by the server (damage multiplier, special effect). */
+  giftRule?: GiftRulePayload;
+}
+
 const OVERLAY_KEYS = Object.values(OVERLAY_SECTION) as (keyof OverlayVisibility)[];
 
 function pickOverlayVisibilityPatch(rawPayload: unknown): Partial<OverlayVisibility> {
@@ -64,6 +84,19 @@ const SERVER_URL =
 
 const CLIENT_INSTANCE_ID = `client-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
 
+/**
+ * Server says the series is now on `targetRound`. Skip it when this overlay is already fighting that
+ * round (it moved on by itself first); otherwise start it, never adding +1 on top of the server.
+ */
+const applyServerNextRound = (targetRound: unknown): void => {
+  const state = useGameStore.getState();
+  const target = typeof targetRound === 'number' ? targetRound : undefined;
+  const isAlreadyPlayingTarget =
+    target !== undefined && target <= state.currentRound && !state.isRoundIntermission && state.roundWinner === null;
+  if (isAlreadyPlayingTarget) return;
+  state.startNextRound(target);
+};
+
 class GameSocketClient {
   private socket: Socket | null = null;
   public isConnected = false;
@@ -73,6 +106,16 @@ class GameSocketClient {
   private readonly CHAT_BATCH_FLUSH_MS = 100;
   private chatBatchQueue: Array<{ userName: string; text: string; team?: TeamType; championName?: string }> = [];
   private chatBatchTimer: ReturnType<typeof setInterval> | null = null;
+
+  // Gift batching: queue rapid gift bursts and flush every GIFT_BATCH_FLUSH_MS ms
+  // Consolidates rapid ticks (e.g. 50 roses/sec) to avoid state & micro-render storms
+  private readonly GIFT_BATCH_FLUSH_MS = 60;
+  private giftBatchQueue: QueuedGiftPayload[] = [];
+  private giftBatchTimer: ReturnType<typeof setInterval> | null = null;
+  /** Reports the matchup's series titles to the admin portal while connected. */
+  private stopTallyReporter: (() => void) | null = null;
+  /** Reports round results so the server's series state follows the game. */
+  private stopSeriesReporter: (() => void) | null = null;
 
   constructor() {
     this.init();
@@ -96,24 +139,28 @@ class GameSocketClient {
 
       const syncScoreBalanceToServer = () => {
         if (!this.socket || !this.isConnected) return;
-        const { teamScoreBLG, teamScoreGENG } = useGameStore.getState();
+        const state = useGameStore.getState();
+        const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
+        const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
         const now = Date.now();
-        if (teamScoreBLG === lastSentLeft && teamScoreGENG === lastSentRight) return;
-        if (now - lastScoreSyncAt < 1500 && teamScoreBLG !== 0 && teamScoreGENG !== 0) return;
-        lastSentLeft = teamScoreBLG;
-        lastSentRight = teamScoreGENG;
+        if (leftScore === lastSentLeft && rightScore === lastSentRight) return;
+        if (now - lastScoreSyncAt < 1500 && leftScore !== 0 && rightScore !== 0) return;
+        lastSentLeft = leftScore;
+        lastSentRight = rightScore;
         lastScoreSyncAt = now;
         this.socket.emit('admin:sync-score-hint', {
-          leftScore: teamScoreBLG,
-          rightScore: teamScoreGENG,
+          leftScore,
+          rightScore,
         });
       };
 
       useGameStore.subscribe((state, prevState) => {
-        if (
-          state.teamScoreBLG !== prevState.teamScoreBLG ||
-          state.teamScoreGENG !== prevState.teamScoreGENG
-        ) {
+        const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
+        const prevLeftScore = prevState.teamScores?.[TEAM_KEY.BLG] ?? prevState.teamScoreBLG;
+        const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
+        const prevRightScore = prevState.teamScores?.[TEAM_KEY.GENG] ?? prevState.teamScoreGENG;
+
+        if (leftScore !== prevLeftScore || rightScore !== prevRightScore) {
           syncScoreBalanceToServer();
         }
       });
@@ -121,11 +168,20 @@ class GameSocketClient {
       this.socket.on('connect', () => {
         this.isConnected = true;
         setCasterWarmSender((eventName, payload) => this.socket?.emit(eventName, payload));
+        this.stopTallyReporter?.();
+        this.stopTallyReporter = startChampionshipTallyReporter((report) =>
+          this.socket?.emit(CHAMPIONSHIP_TALLY_SOCKET_EVENT.REPORT, report)
+        );
+        this.stopSeriesReporter?.();
+        this.stopSeriesReporter = startSeriesProgressReporter((report) =>
+          this.socket?.emit(SERIES_PROGRESS_SOCKET_EVENT.ROUND_RESULT, report)
+        );
         lastScoreSyncAt = 0;
         syncScoreBalanceToServer();
         console.log('[Game Socket] Connected to Backend Server on port 4000');
         useGameStore.getState().addLog('SYSTEM', 'Đã kết nối Socket.io tới Server trung gian');
         this.startChatBatchFlush();
+        this.startGiftBatchFlush();
         this.fetchPlayerLeaderboard();
       });
 
@@ -139,7 +195,13 @@ class GameSocketClient {
 
       this.socket.on('disconnect', () => {
         this.isConnected = false;
+        // Restarted on reconnect, which re-sends the current titles immediately
+        this.stopTallyReporter?.();
+        this.stopTallyReporter = null;
+        this.stopSeriesReporter?.();
+        this.stopSeriesReporter = null;
         this.stopChatBatchFlush();
+        this.stopGiftBatchFlush();
         console.log('[Game Socket] Disconnected from Backend Server');
       });
 
@@ -203,23 +265,18 @@ class GameSocketClient {
       this.socket.on('game:gift', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         if (hasSpeechNameField(payload)) registerSpeechName(payload.donorName, payload.speechName);
-        useGameStore
-          .getState()
-          .triggerGiftExplosion(
-            payload.giftName,
-            payload.team,
-            payload.donorName,
-            payload.coins,
-            payload.streakCount,
-            payload.totalCoins,
-            payload.isComboFinal,
-            typeof payload.donorAvatarUrl === 'string' ? payload.donorAvatarUrl : undefined
-          );
-        // Small-gift streaks have no banner; the caster thanks the donor once the streak ends
-        const isSmallGift = (payload.coins ?? 0) < GIFT_TIER_CONFIG[GIFT_TIER.MEDIUM].minCoins;
-        if (payload.isComboFinal && isSmallGift && payload.team) {
-          announceSmallGiftCombo(payload.donorName, payload.team, payload.giftName, payload.streakCount ?? 1);
-        }
+        this.giftBatchQueue.push({
+          giftName: payload.giftName,
+          team: payload.team,
+          donorName: payload.donorName,
+          coins: payload.coins ?? 100,
+          streakCount: payload.streakCount ?? 1,
+          totalCoins: payload.totalCoins,
+          isComboFinal: Boolean(payload.isComboFinal),
+          donorAvatarUrl: typeof payload.donorAvatarUrl === 'string' ? payload.donorAvatarUrl : undefined,
+          speechName: payload.speechName,
+          giftRule: parseGiftRulePayload(payload.giftRule),
+        });
       });
 
       this.socket.on('game:follow', (payload) => {
@@ -303,8 +360,9 @@ class GameSocketClient {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         const store = useGameStore.getState();
         if (payload.action === 'reset') store.resetBO5Match();
-        if (payload.action === 'nextRound') store.startNextRound();
+        if (payload.action === 'nextRound') applyServerNextRound(payload.currentRound);
         if (payload.action === 'setScore') store.setBO5Score(payload.blg, payload.geng, payload.currentRound);
+        if (payload.action === 'startRound') triggerStartRoundCombat();
       });
 
       this.socket.on('game:boss-skill-config', (payload) => {
@@ -325,6 +383,13 @@ class GameSocketClient {
       this.socket.on('game:auto-pro-battle', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         useGameStore.getState().setAutoProBattleConfig(payload);
+      });
+
+      this.socket.on(GIFT_CONFIG_SOCKET_EVENT.CONFIG, (payload: unknown) => applyGiftConfigPayload(payload));
+
+      // Admin portal reset: clear the titles of the matchup on screen (stored in this overlay's localStorage)
+      this.socket.on(CHAMPIONSHIP_TALLY_SOCKET_EVENT.RESET, () => {
+        useGameStore.getState().resetMatchupChampionships();
       });
 
       this.socket.on('game:champion-damage-config', (payload) => {
@@ -450,6 +515,16 @@ class GameSocketClient {
     }
   }
 
+  /**
+   * Asks the server to move on from `fromRound`. Every overlay's victory countdown and the admin can
+   * ask for the same transition; the server only applies the first one (see isStaleNextRoundRequest).
+   */
+  public requestNextRound(fromRound: number): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:bo5-control', { action: 'nextRound', fromRound, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
   public sendTheme(theme: GameThemeType): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:set-theme', { theme, senderId: CLIENT_INSTANCE_ID });
@@ -489,7 +564,7 @@ class GameSocketClient {
     }
   }
 
-  public sendHealTeam(team: 'BLG' | 'GENG' | 'ALL', amount: number): void {
+  public sendHealTeam(team: TeamType | 'ALL', amount: number): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:heal-team', { team, amount, senderId: CLIENT_INSTANCE_ID });
     }
@@ -624,6 +699,64 @@ class GameSocketClient {
     batch.forEach((msg) =>
       store.addChatMessage(msg.userName, msg.text, msg.team, msg.championName)
     );
+  }
+
+  // ─── Gift Batch Flush ───────────────────────────────────────────────────────
+  // Coalesces rapid gift ticks into single store mutations per flush tick
+  // to avoid blocking OBS rendering thread with state & VFX micro-storms.
+
+  private startGiftBatchFlush(): void {
+    if (this.giftBatchTimer !== null) return;
+    this.giftBatchTimer = setInterval(() => this.flushGiftBatch(), this.GIFT_BATCH_FLUSH_MS);
+  }
+
+  private stopGiftBatchFlush(): void {
+    if (this.giftBatchTimer === null) return;
+    clearInterval(this.giftBatchTimer);
+    this.giftBatchTimer = null;
+    this.flushGiftBatch();
+  }
+
+  private flushGiftBatch(): void {
+    if (this.giftBatchQueue.length === 0) return;
+    const batch = this.giftBatchQueue.splice(0);
+    const store = useGameStore.getState();
+
+    // Consolidate rapid same-donor gifts in the batch to reduce redundant state updates
+    const consolidatedGifts = new Map<string, QueuedGiftPayload>();
+
+    for (const gift of batch) {
+      const key = `${gift.donorName}_${gift.giftName}_${gift.team}`;
+      const existing = consolidatedGifts.get(key);
+      if (existing) {
+        existing.coins += gift.coins;
+        existing.totalCoins = (existing.totalCoins ?? 0) + (gift.totalCoins ?? gift.coins);
+        existing.streakCount = Math.max(existing.streakCount, gift.streakCount);
+        existing.isComboFinal = existing.isComboFinal || gift.isComboFinal;
+        if (gift.donorAvatarUrl) existing.donorAvatarUrl = gift.donorAvatarUrl;
+      } else {
+        consolidatedGifts.set(key, { ...gift });
+      }
+    }
+
+    consolidatedGifts.forEach((gift) => {
+      store.triggerGiftExplosion(
+        gift.giftName,
+        gift.team,
+        gift.donorName,
+        gift.coins,
+        gift.streakCount,
+        gift.totalCoins,
+        gift.isComboFinal,
+        gift.donorAvatarUrl,
+        gift.giftRule
+      );
+
+      const isSmallGift = (gift.coins ?? 0) < GIFT_TIER_CONFIG[GIFT_TIER.MEDIUM].minCoins;
+      if (gift.isComboFinal && isSmallGift && gift.team) {
+        announceSmallGiftCombo(gift.donorName, gift.team, gift.giftName, gift.streakCount ?? 1);
+      }
+    });
   }
 }
 

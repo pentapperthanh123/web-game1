@@ -5,6 +5,7 @@ import './i18n';
 import './index.css';
 import App from './App';
 import { startRoundResultReporter } from './services/roundResultReporter';
+import { restoreMatchSnapshot } from './store/matchSnapshot';
 
 // Suppress Three.js core deprecation warning triggered internally by @react-three/fiber
 const originalConsoleWarn = console.warn;
@@ -18,6 +19,9 @@ console.warn = (...args: unknown[]) => {
   originalConsoleWarn.apply(console, args);
 };
 
+// Before the first render: every component (intro card, caster, HUD) must start from the restored
+// round. Restoring in an effect ran after the children's effects, so the intro card kept round 1.
+restoreMatchSnapshot();
 startRoundResultReporter();
 startArenaAmbience();
 

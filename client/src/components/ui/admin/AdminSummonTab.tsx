@@ -369,7 +369,10 @@ export const AdminSummonTab: React.FC = () => {
             [
               {
                 key: 'allowTeamOnlySummon',
-                label: t('Admin.ruleTeamOnlyLabel', 'Gõ Team (T1/GenG) ra quân ngay'),
+                label: t('Admin.ruleTeamOnlyLabel', 'Gõ tên Team ({{team1}}/{{team2}}) ra quân ngay', {
+                  team1: leftTeam.shortTag,
+                  team2: rightTeam.shortTag,
+                }),
               },
               {
                 key: 'autoMatchSignatureTeam',

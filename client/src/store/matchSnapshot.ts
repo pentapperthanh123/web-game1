@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { GAME_THEME, GameThemeType, MATCH_SNAPSHOT_CONSTANTS, TEAM_KEY } from '../constants/game';
+import { GAME_THEME, GameThemeType, MATCH_SNAPSHOT_CONSTANTS, TEAM_KEY, TeamType } from '../constants/game';
 import { DPSPlayer, GameState } from '../types/game';
 import { useGameStore } from './gameStore';
 import { isBattleHalted } from './storeHelpers';
@@ -18,6 +18,7 @@ interface MatchSnapshot {
   bossMaxHp: number;
   bo5Score: GameState['bo5Score'];
   currentRound: number;
+  teamScores?: Record<TeamType, number>;
   teamScoreBLG: number;
   teamScoreGENG: number;
   leaderboard: DPSPlayer[];
@@ -30,19 +31,36 @@ const getTeamIds = (state: GameState): [string, string] => [
   state.activeTeams[TEAM_KEY.GENG].id,
 ];
 
-const buildSnapshot = (state: GameState): MatchSnapshot => ({
-  version: MATCH_SNAPSHOT_CONSTANTS.VERSION,
-  savedAt: Date.now(),
-  teamIds: getTeamIds(state),
-  gameTheme: state.gameTheme,
-  bossHp: state.bossHp,
-  bossMaxHp: state.bossMaxHp,
-  bo5Score: state.bo5Score,
-  currentRound: state.currentRound,
-  teamScoreBLG: state.teamScoreBLG,
-  teamScoreGENG: state.teamScoreGENG,
-  leaderboard: state.leaderboard,
-});
+const buildSnapshot = (state: GameState): MatchSnapshot => {
+  const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
+  const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
+  return {
+    version: MATCH_SNAPSHOT_CONSTANTS.VERSION,
+    savedAt: Date.now(),
+    teamIds: getTeamIds(state),
+    gameTheme: state.gameTheme,
+    bossHp: state.bossHp,
+    bossMaxHp: state.bossMaxHp,
+    bo5Score: state.bo5Score,
+    currentRound: state.currentRound,
+    teamScores: {
+      [TEAM_KEY.BLG]: leftScore,
+      [TEAM_KEY.GENG]: rightScore,
+    },
+    teamScoreBLG: leftScore,
+    teamScoreGENG: rightScore,
+    leaderboard: state.leaderboard,
+  };
+};
+
+/** Clears the persisted match snapshot from localStorage (used on match reset). */
+export const clearMatchSnapshot = (): void => {
+  try {
+    localStorage.removeItem(MATCH_SNAPSHOT_CONSTANTS.STORAGE_KEY);
+  } catch (error) {
+    console.warn(`${LOG_PREFIX} cannot clear snapshot:`, error);
+  }
+};
 
 /** Saves only while a round is being fought; between rounds there is nothing to resume. */
 export const saveMatchSnapshot = (): void => {
@@ -85,24 +103,29 @@ export const restoreMatchSnapshot = (): boolean => {
   const state = useGameStore.getState();
   if (!snapshot || !isSnapshotUsable(snapshot, state)) return false;
 
+  const leftScore = snapshot.teamScores?.[TEAM_KEY.BLG] ?? snapshot.teamScoreBLG;
+  const rightScore = snapshot.teamScores?.[TEAM_KEY.GENG] ?? snapshot.teamScoreGENG;
   state.setGameTheme(snapshot.gameTheme);
   useGameStore.setState({
     bossHp: Math.min(snapshot.bossHp, snapshot.bossMaxHp),
     bossMaxHp: snapshot.bossMaxHp,
     bo5Score: snapshot.bo5Score,
     currentRound: snapshot.currentRound,
-    teamScoreBLG: snapshot.teamScoreBLG,
-    teamScoreGENG: snapshot.teamScoreGENG,
+    teamScores: {
+      [TEAM_KEY.BLG]: leftScore,
+      [TEAM_KEY.GENG]: rightScore,
+    },
+    teamScoreBLG: leftScore,
+    teamScoreGENG: rightScore,
     leaderboard: snapshot.leaderboard,
   });
   state.addLog('SYSTEM', `♻️ Khôi phục trận đấu đang diễn ra (Ván ${snapshot.currentRound}, Boss ${snapshot.bossHp.toLocaleString()} HP)`);
   return true;
 };
 
-/** Mount once at the app root: restore on start, then save periodically and right before unload. */
+/** Mount once at the app root: save periodically and right before unload (restore runs in main.tsx). */
 export const useMatchSnapshotPersistence = (): void => {
   useEffect(() => {
-    restoreMatchSnapshot();
     const intervalId = window.setInterval(saveMatchSnapshot, MATCH_SNAPSHOT_CONSTANTS.SAVE_INTERVAL_MS);
     window.addEventListener('beforeunload', saveMatchSnapshot);
     return () => {

@@ -8,6 +8,8 @@
     "rageWarningTitle": "WARNING: BARON ENRAGED!",
     "rageWarningDragonTitle": "WARNING: ELDER DRAGON ENRAGED!",
     "rageWarningSubtitle": "HP BELOW 35% — DAMAGE & ATTACK SPEED SURGED!",
+    "enragedBadge": "ENRAGED",
+    "enragedStatsShort": "HP < 35% (+50% DMG & ATK SPEED)",
     "defeated": "DEFEATED!",
     "damageContribution": "Damage Contribution",
     "vs": "VS",
@@ -57,8 +59,8 @@
     "guideGiftRoseBadge": "+120 DMG",
     "guideGiftRoseDesc": "+120 Damage • Boost +{{fury}}% Team Fury",
     "guideGiftHeartTitle": "Tap Heart (1♥)",
-    "guideGiftHeartBadge": "+15 DMG / tap",
-    "guideGiftHeartDesc": "+15 DMG/tap • x{{mult}} Fury speed • Global Heal at {{milestone}}♥",
+    "guideGiftHeartBadge": "+{{dmg}} DMG / tap",
+    "guideGiftHeartDesc": "+{{dmg}} DMG/tap • x{{mult}} Fury speed • Global Heal at {{milestone}}♥",
     "guideGiftCookieTitle": "Cookie (10 Coins)",
     "guideGiftCookieBadge": "+1,200 DMG",
     "guideGiftCookieDesc": "Meteor Shower dealing +1,200 Damage",
@@ -80,6 +82,8 @@
     "comboStreak": "COMBO x{{count}}",
     "coinsGained": "+{{coins}} coins",
     "megaCrest": "{{team}} TOP PATRON",
+    "mythicCrest": "{{team}} MYTHIC PATRON",
+    "legendCrest": "{{team}} LEGENDARY PATRON",
     "megaDamage": "+{{damage}} DMG • BOSS KNOCKED BACK!",
     "queuedForRoundStart": "Sent {{gift}} ({{coins}} coins)! It will fire when the round starts ⚔️"
   },
@@ -148,7 +152,7 @@
     "roundWinAction": "WINS GAME {{round}}!",
     "seriesChampion": "🏆 {{team}} WORLDS 2026 {{format}} CHAMPIONS!",
     "seriesChampionAction": "WORLDS {{format}} CHAMPIONS!",
-    "seriesScore": "FINAL {{format}} SERIES SCORE: {{blg}} - {{geng}}",
+    "seriesScore": "FINAL {{format}} SERIES SCORE: {{team1}} {{score1}} - {{score2}} {{team2}}",
     "bo5Score": "CURRENT {{format}} SERIES SCORE",
     "mvpTitle": "GAME MVP",
     "proMvpTitle": "PRO PLAYER MVP",
@@ -160,8 +164,14 @@
     "roundIntermissionPrompt": "Round Intermission - Ready for next game",
     "nextQueuedMatch": "NEXT MATCH: {{label}} ({{remaining}})",
     "finisherBannerTitle": "⚡ DECISIVE FINISHING BLOW ⚡",
+    "finisherGiftTitle": "⚡ DECISIVE FINISHING BLOW FROM GIFT ⚡",
+    "finisherTycoon": "VIP TYCOON {{team}}",
+    "finisherStrike": "FATAL STRIKE!",
+    "finisherBossCrushed": "CLUTCH GAME-ENDING STRIKE!",
     "finisherBannerSlay": "SLAIN {{boss}}!",
     "finisherBannerDesc": "Brought ultimate glory & relic buff to team {{team}}!",
+    "finisherGiftDesc": "Legendary gift strike finishes the battle — Victory for team {{team}}!",
+    "finisherGiftDamage": "CLUTCH GAME-ENDING STRIKE!",
     "finisherVoice": "Warrior {{name}} landed the finishing blow on {{boss}}!",
     "autoAdvanceRound": "Auto-advancing to next round in: {{seconds}}s",
     "autoAdvanceNewSeries": "Auto-starting new match in: {{seconds}}s",
@@ -205,6 +215,16 @@
   "Admin": {
     "title": "Match Admin Control Panel",
     "tabMatch": "Match & Boss",
+    "introControlTitle": "Round Intro & Start Narration Control",
+    "introControlDesc": "Displays both teams and full rosters at first. Click Start to trigger Caster voice introduction and battle countdown.",
+    "introWaiting": "Waiting to Start",
+    "introRunning": "Intro In Progress",
+    "startIntroSpeechBtn": "▶ Start Round {{round}} (Narration)",
+    "skipIntroBtn": "⚔️ Deploy Battle Now (Skip Intro)",
+    "reopenIntroBtn": "Re-display Round {{round}} Intro",
+    "introStartedFeedback": "Started round introduction and narration!",
+    "combatStartedFeedback": "Battle deployed immediately!",
+    "reopenIntroFeedback": "Opened Round {{round}} intro screen!",
     "tabThemeSkills": "Map & Skills",
     "tabSummon": "Summon",
     "tabSimulation": "Bots & Auto",
@@ -259,7 +279,7 @@
     "userAvatarModeOn": "ON (User Avatar)",
     "userAvatarModeOff": "OFF (Champion Avatar)",
     "participationRulesTitle": "Participation Rules & Entrance Queue:",
-    "ruleTeamOnlyLabel": "Team-only comment summons immediately",
+    "ruleTeamOnlyLabel": "Team-only comment ({{team1}}/{{team2}}) summons immediately",
     "ruleAutoSigLabel": "Auto-match signature champion to Team",
     "ruleLockTeamLabel": "Lock Team after joining",
     "ruleEvolveLabel": "Evolve champion on new champion comment",
@@ -290,6 +310,8 @@
     "queueDeployPerTurnValue": "{{count}} champions / turn",
     "queueTurnDelayLabel": "Delay between entrance turns",
     "queueTurnDelayValue": "{{seconds}}s ({{ms}}ms)",
+    "championAttackSpeedLabel": "Summoned champion attack speed",
+    "championAttackSpeedValue": "{{multiplier}} base speed",
     "resetMatchupTitles": "Reset this matchup's titles",
     "resetMatchupTitlesDone": "Matchup titles cleared!",
     "matchupTitlesLabel": "Head-to-head titles:"
@@ -357,10 +379,18 @@
     "lastStand": "LAST STAND SHIELD (95% CAP)",
     "clashPrompt": "Tap Likes & Donate Gifts to Push Beam",
     "draw": "EPIC DRAW MATCH!",
-    "drawDesc": "Both teams fought equally — Both receive +10% Damage at round start!",
+    "drawDesc": "Perfectly matched — no buff for either team, the round decides everything!",
     "winnerTitle": "🏆 {{winner}} WINS 1V1 SILVER SCRAPES!",
     "winnerBuffDesc": "First Blood Claimed! Team {{winner}} receives +20% Damage for 90s in the Decider Game!",
-    "idleHint": "All Likes, Summon Chats & Gifts immediately fuel the energy beam to push back opponents!"
+    "idleHint": "All Likes, Summon Chats & Gifts immediately fuel the energy beam to push back opponents!",
+    "guideTitle": "How to push",
+    "guideHeart": "Send hearts",
+    "guideChat": "Chat a champion",
+    "guideShare": "Follow & Share",
+    "guideGift": "Send gifts",
+    "leading": "Winning",
+    "winnerBadge": "Winner",
+    "versus": "VS"
   },
   "BossPhase": {
     "shiftTitle": "BOSS AWAKENS",
@@ -403,8 +433,9 @@
   },
   "KillFeed": {
     "byKiller": "— {{killer}}",
-    "wipeTitle": "WIPED OUT!",
-    "wipeSubtitle": "{{count}} champions down"
+    "wipeTitle": "ACE / WIPED OUT!",
+    "wipeSubtitle": "{{count}} champions down — Arena wiped!",
+    "wipeEmptyField": "All champions defeated — Arena wiped!"
   },
   "Audio": {
     "ambienceOn": "Turn on ambience",
@@ -412,6 +443,10 @@
   },
   "RoundIntro": {
     "roundLabel": "Round {{round}} is about to start",
+    "worldsOpeningTitle": "WORLD CHAMPIONSHIP • ROUND {{round}}",
+    "readyBadge": "READY TO START",
+    "readyBox": "READY",
+    "startWorldsButton": "Start Round {{round}}",
     "vsBoss": "Facing {{boss}}",
     "titleMatchup": "Matchup",
     "titleRules": "Rules",
@@ -422,11 +457,18 @@
     "quickRule": "Most DMG wins",
     "quickGift": "1 coin = {{damage}} DMG",
     "quickHeart": "Hearts charge Fury",
-    "ruleTeamsTitle": "Damage Battle",
-    "ruleSeriesTitle": "{{format}} Series Format",
+    "rosterTitle": "Official 5v5 Starting Lineup",
+    "bossHpBadge": "{{hp}} HP",
+    "bossHazard": "Area Hazard • S+ Threat",
+    "ruleTeamsTitle": "Damage Battle on Boss",
+    "ruleTeams": "Both teams compete to deal damage to the Boss. When Boss falls or time expires, the team with highest damage wins the round.",
+    "ruleSummonTitle": "Chat Summon Syntax",
+    "ruleSummon": "Viewers chat syntax: [Champion name] [Team tag] (e.g. '{{champ1}} {{team1}}' or '{{champ2}} {{team2}}') to summon their champion into the battle arena!",
+    "ruleFuryTitle": "Tap Hearts to Charge Fury & Ultimate",
+    "ruleFury": "Tap hearts on the livestream to charge team Fury. At 100% Fury, champions unleash their Ultimate abilities for explosive damage!",
+    "ruleSeriesTitle": "{{format}} World Championship Series",
+    "ruleSeries": "{{format}} series: First team to reach {{wins}} wins will be crowned the 2026 World Champions.",
     "ruleBossTitle": "Boss Skills & Reinforcements",
-    "ruleTeams": "Both teams fight the Boss; the team dealing more damage wins the round.",
-    "ruleSeries": "{{format}} format: win {{wins}} rounds to be champion.",
     "ruleBoss": "The Boss kills champions with skills, keep summoning to keep up the pressure!",
     "joinChat": "Chat champion + team: \"{{champ}} {{tag}}\" or \"{{champ2}} {{tag2}}\"",
     "joinHeart": "Tap hearts to charge Fury faster; every {{milestone}} hearts heals the team.",
@@ -444,7 +486,20 @@
       "BIG": "From {{coins}} coins: light pillar + 8 meteors + your name banner",
       "MEGA": "From {{coins}} coins: TYCOON - Boss stunned + 16 meteors"
     },
-    "skipButton": "Deploy battle now"
+    "giftBottomCallout": "Check out the gift list at the bottom right corner of the screen",
+    "speechMatchup": "Welcome to the World Championship! Round {{round}}: {{left}} versus {{right}}. Target: defeat Boss {{boss}}!",
+    "speechRules": "Rules: Damage race between both teams! Chat champion name with team tag like {{champ1}} {{team1}} or {{champ2}} {{team2}} to summon. Highest damage wins!",
+    "speechRulesExpanded": "Rules: Chat champion name with team tag like {{champ1}} {{team1}} or {{champ2}} {{team2}} to summon champions into battle. Tap heart continuously on live to boost attack speed and charge Fury for Ultimate skills. Highest damage on the Boss wins!",
+    "commentPromptTitle": "Live summon chat prompt:",
+    "liveChatReady": "Ready",
+    "speechGifts": "Gifts: 1 coin equals 120 damage to the Boss. Check out the gift guide at the bottom right corner of the screen!",
+    "skipButton": "Deploy battle now",
+    "statusIntro": "INTRO IN PROGRESS"
+  },
+  "CombatDeploy": {
+    "title": "BATTLE COMMENCES!",
+    "roundBadge": "ROUND {{round}} OFFICIALLY STARTS",
+    "hint": "Chat to summon & Tap heart to charge Fury now!"
   },
   "BossSkills": {
     "panelLabel": "Boss skills",
@@ -458,7 +513,10 @@
     "score": "{{left}} - {{right}}",
     "number": {
       "thousands": "over {{value}} thousand",
-      "millions": "over {{value}} million"
+      "millions": "over {{value}} million",
+      "thousandsExact": "{{value}} thousand",
+      "millionsExact": "{{value}} million",
+      "decimal": "{{whole}} point {{decimal}}"
     },
     "lines": {
       "SUMMON": [
@@ -534,7 +592,7 @@
         "A round of applause for {{name}}! Thank you for the {{gift}}!"
       ],
       "GIFT_MEGA": [
-        "UNBELIEVABLE! Thank you {{name}} for the {{gift}}! The boss kneels before {{team}}!",
+        "Unbelievable! Thank you {{name}} for the {{gift}}! The boss kneels before {{team}}!",
         "The whole arena shakes! Thank you {{name}} for the {{gift}}!",
         "Highlight of the day! {{name}}, thank you so much!",
         "Masterpiece! Thank you {{name}} for carrying {{team}} with {{gift}}!",
@@ -742,7 +800,82 @@
         "Next up: {{teamA}} versus {{teamB}}, do not go anywhere!",
         "Coming next, {{teamA}} meets {{teamB}}, pick your side now!",
         "Next on stream: {{teamA}} and {{teamB}}!"
+      ],
+      "BOSS_PHASE_TWO": [
+        "{{boss}} awakens! The ultimate is unlocked, watch out!",
+        "Phase two! {{boss}} can use its ultimate now!",
+        "{{boss}} shifts phase! The ultimate can land at any moment!",
+        "Warning! {{boss}} just unlocked its ultimate, hold the line!"
+      ],
+      "BOSS_PHASE_THREE": [
+        "Final phase! {{boss}} hits harder and casts faster, give it everything!",
+        "{{boss}} enters its last rage! Skill damage is up twenty percent!",
+        "This is the end game! {{boss}} goes all out, this is the deciding moment!",
+        "Phase three! {{boss}} casts nonstop now, send in more champions!"
+      ],
+      "BOSS_SHIELD_UP": [
+        "{{boss}} raises an energy shield! Break it within {{seconds}} seconds or the boss heals!",
+        "Shield is up! You have {{seconds}} seconds to smash it!",
+        "Careful, {{boss}} is shielded! Focus damage on the shield now!"
+      ],
+      "BOSS_SHIELD_BROKEN": [
+        "Shield broken! {{boss}} is stunned and takes {{dmg}} extra damage!",
+        "The shield shatters! Great work, keep hitting!",
+        "Shield down! {{boss}} is wide open!"
+      ],
+      "BOSS_SHIELD_ABSORBED": [
+        "Too late! {{boss}} heals {{hp}} HP!",
+        "So close! The shield fades and {{boss}} recovers {{hp}} HP!",
+        "{{boss}} absorbs the shield and heals {{hp}} HP. Faster next time!"
+      ],
+      "HEART_MILESTONE": [
+        "{{count}} hearts! Every champion heals {{heal}} HP!",
+        "Thanks for the hearts! {{count}} reached, the whole arena heals!",
+        "Mass heal! {{count}} hearts, champions on both sides recover {{heal}} HP!",
+        "Hearts everywhere! {{count}} reached, the field is refreshed!"
+      ],
+      "GIFT_FINISHER_CALLOUT": [
+        "{{name}} finishes {{boss}} with a {{gift}}!",
+        "A gift for the kill! {{name}} takes down {{boss}} for {{team}} with a {{gift}}!",
+        "Nobody saw that coming! The {{gift}} from {{name}} lands the final blow!",
+        "Big spender {{name}} steps in! The {{gift}} finishes {{boss}}!"
+      ],
+      "DUEL_START": [
+        "One on one! {{fighterA}} on {{championA}} faces {{fighterB}} on {{championB}}!",
+        "{{fighterA}} for {{teamA}} against {{fighterB}} for {{teamB}}! {{seconds}} seconds, start pushing!",
+        "Star duel: {{fighterA}} versus {{fighterB}}! Hearts, chat and gifts push the beam!",
+        "{{teamA}} or {{teamB}}? {{seconds}} seconds decide who gets the round-start buff!"
+      ],
+      "DUEL_LAST_STAND": [
+        "Last stand shield! Nobody gets pushed all the way yet, keep going!",
+        "Last stand! The duel is still open, push harder!"
+      ],
+      "DUEL_WIN": [
+        "{{fighter}} wins the duel! {{team}} gets {{buff}} percent extra damage!",
+        "Victory for {{team}}! The whole team starts the round with {{buff}} percent more damage!",
+        "{{fighter}} pushes the rival back! {{team}} opens with a {{buff}} percent damage buff!"
+      ],
+      "DUEL_DRAW": [
+        "It is a draw! Perfectly matched, no buff for either side!",
+        "No winner! The round itself will decide everything!"
       ]
+    },
+    "voice": {
+      "casterTitle": "caster",
+      "scoreJoiner": " to "
+    }
+  },
+  "GiftConfig": {
+    "coins": "{{coins}} coins",
+    "joinTeam": "→ {{team}}",
+    "damage": "+{{damage}} DMG",
+    "teamPicksTitle": "Send a gift to pick your side",
+    "teamPick": "{{gift}} → {{team}}",
+    "effect": {
+      "SUMMON_CHAMPION": "Summons {{champion}}",
+      "HEAL_TEAM": "Heals the team",
+      "STUN_BOSS": "Stuns the boss",
+      "FULL_FURY": "Full pro fury"
     }
   }
 }

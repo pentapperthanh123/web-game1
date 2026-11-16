@@ -1,11 +1,14 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { COMBAT_VFX_CONSTANTS, GIFT_TIER, TEAM_KEY } from '../../../constants/game';
+import { COMBAT_VFX_CONSTANTS, GIFT_TIER, GiftTier, TEAM_KEY } from '../../../constants/game';
+import { GIFT_CELEBRATION_COLORS, GIFT_FOUNTAIN_CONFIG, GIFT_FOUNTAIN_MAX_SPARKS } from '../../../constants/giftPresentation';
 import { GIFT_VFX_DURATION_MS, GIFT_VFX_LAYOUT, readActiveGiftVfx, resolveGiftTeamColors } from './giftVfxShared';
 
-const SPARKLER_TIERS = [GIFT_TIER.MEDIUM] as const;
-const SPARK_COUNT = 40;
+const SPARKLER_TIERS: readonly GiftTier[] = [GIFT_TIER.MEDIUM, GIFT_TIER.BIG, GIFT_TIER.MEGA];
+const SPARK_COUNT = GIFT_FOUNTAIN_MAX_SPARKS;
+/** Sparks relaunch on this cycle, so the longer BIG / MEGA windows keep fountaining. */
+const RELAUNCH_CYCLE_S = 1.5;
 const SPARK_SIZE = 0.07;
 const SPARK_GRAVITY = 6;
 const SPEED = { UP_MIN: 3.2, UP_SPREAD: 2.4, SIDE: 1.4 } as const;
@@ -15,7 +18,8 @@ const SPARK_GEO = new THREE.OctahedronGeometry(SPARK_SIZE, 0);
 const tempMatrix = new THREE.Matrix4();
 const tempColor = new THREE.Color();
 const teamColor = new THREE.Color();
-const whiteColor = new THREE.Color('#ffffff');
+const whiteColor = new THREE.Color(GIFT_CELEBRATION_COLORS.WHITE);
+const goldColor = new THREE.Color(GIFT_CELEBRATION_COLORS.GOLD);
 /** Golden-ratio step spreads spark speeds evenly without randomness. */
 const GOLDEN_RATIO_STEP = 0.618;
 const DEPTH_SPREAD = 0.5;
@@ -45,7 +49,10 @@ const buildSparkSeeds = (): SparkSeed[] =>
     };
   });
 
-/** MEDIUM gifts: a team-colour sparkler fountain rising from the donor's team wing (one instanced draw call). */
+/**
+ * MEDIUM and up: a sparkler fountain rising from the donor's team wing (one instanced draw call).
+ * Each tier adds sparks and height; MEGA sparks launch gold before cooling into the team colour.
+ */
 export const GiftSparkler = () => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const seeds = useMemo(buildSparkSeeds, []);
@@ -64,25 +71,30 @@ export const GiftSparkler = () => {
     const wing = COMBAT_VFX_CONSTANTS.WING_BOUNDS[active.banner.team === TEAM_KEY.GENG ? TEAM_KEY.GENG : TEAM_KEY.BLG];
     const originX = (wing.minX + wing.maxX) / 2;
     const originZ = (wing.minZ + wing.maxZ) / 2;
-    const elapsedS = (active.progress * GIFT_VFX_DURATION_MS[GIFT_TIER.MEDIUM]) / MS_PER_SECOND;
+    const { tier } = active.banner;
+    const fountain = GIFT_FOUNTAIN_CONFIG[tier];
+    if (!fountain) return;
+    const elapsedS = (active.progress * GIFT_VFX_DURATION_MS[tier]) / MS_PER_SECOND;
+    const hotColor = tier === GIFT_TIER.MEGA ? goldColor : whiteColor;
     teamColor.set(resolveGiftTeamColors(active.banner.team).primary);
 
     seeds.forEach((seed, index) => {
-      const flightS = elapsedS - seed.launchAtS;
-      if (flightS < 0) {
+      const sinceLaunchS = elapsedS - seed.launchAtS;
+      if (index >= fountain.sparkCount || sinceLaunchS < 0) {
         tempMatrix.compose(sparkPosition.set(originX, GIFT_VFX_LAYOUT.FLOOR_Y, originZ), identityRotation, hiddenScale);
         mesh.setMatrixAt(index, tempMatrix);
         return;
       }
+      const flightS = sinceLaunchS % RELAUNCH_CYCLE_S;
       sparkPosition.set(
-        originX + seed.velocityX * flightS,
-        GIFT_VFX_LAYOUT.FLOOR_Y + seed.velocityY * flightS - 0.5 * SPARK_GRAVITY * flightS * flightS,
-        originZ + seed.velocityZ * flightS
+        originX + seed.velocityX * fountain.speedScale * flightS,
+        GIFT_VFX_LAYOUT.FLOOR_Y + seed.velocityY * fountain.speedScale * flightS - 0.5 * SPARK_GRAVITY * flightS * flightS,
+        originZ + seed.velocityZ * fountain.speedScale * flightS
       );
       tempMatrix.compose(sparkPosition, identityRotation, sparkScale);
       mesh.setMatrixAt(index, tempMatrix);
-      // White-hot at launch, cooling into the team colour, fading out with the window
-      tempColor.copy(whiteColor).lerp(teamColor, Math.min(1, flightS * COOL_DOWN_RATE));
+      // Hot at launch, cooling into the team colour, fading out with the window
+      tempColor.copy(hotColor).lerp(teamColor, Math.min(1, flightS * COOL_DOWN_RATE));
       mesh.setColorAt(index, tempColor.multiplyScalar(1 - active.progress));
     });
     mesh.instanceMatrix.needsUpdate = true;

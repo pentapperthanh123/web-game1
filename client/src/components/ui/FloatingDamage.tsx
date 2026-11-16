@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { DamageType } from '../../constants/game';
+import { DamageType, GAME_CONSTANTS } from '../../constants/game';
 import { FloatingDamageText } from '../../types/game';
 import { DamageTextSprite, getDamageTextSprite } from './damageTextSprites';
 
@@ -37,6 +37,29 @@ export const FloatingDamage = React.memo(() => {
   const particlesRef = useRef<CanvasDamageParticle[]>([]);
   const animFrameIdRef = useRef<number | null>(null);
   const isLoopRunningRef = useRef<boolean>(false);
+  const dprRef = useRef<number>(
+    typeof window !== 'undefined'
+      ? Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.DPR_MAX)
+      : 1
+  );
+
+  // Resize canvas according to high-DPI device pixel ratio
+  useEffect(() => {
+    const updateCanvasScale = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dpr = typeof window !== 'undefined'
+        ? Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.DPR_MAX)
+        : 1;
+      dprRef.current = dpr;
+      canvas.width = Math.round(CANVAS_WIDTH * dpr);
+      canvas.height = Math.round(CANVAS_HEIGHT * dpr);
+    };
+
+    updateCanvasScale();
+    window.addEventListener('resize', updateCanvasScale);
+    return () => window.removeEventListener('resize', updateCanvasScale);
+  }, []);
 
   // Subscribe to floatingDamages in store without triggering React DOM re-renders
   useEffect(() => {
@@ -102,7 +125,8 @@ export const FloatingDamage = React.memo(() => {
         return;
       }
 
-      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      const dpr = dprRef.current;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const now = Date.now();
       // Expired particles are compacted out in place (no per-frame array allocation)
@@ -122,7 +146,7 @@ export const FloatingDamage = React.memo(() => {
         const { image, width, height } = p.sprite;
 
         ctx.globalAlpha = Math.max(0, 1.0 - Math.pow(progress, FADE_EXPONENT));
-        ctx.setTransform(finalScale, 0, 0, finalScale, p.x, p.y + yOffset);
+        ctx.setTransform(finalScale * dpr, 0, 0, finalScale * dpr, p.x * dpr, (p.y + yOffset) * dpr);
         ctx.drawImage(image, -width / 2, -height / 2, width, height);
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -140,6 +164,8 @@ export const FloatingDamage = React.memo(() => {
     animFrameIdRef.current = requestAnimationFrame(render);
   };
 
+  const initialDpr = dprRef.current;
+
   return (
     <div
       aria-hidden="true"
@@ -147,9 +173,10 @@ export const FloatingDamage = React.memo(() => {
     >
       <canvas
         ref={canvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
-        className="w-full h-full pointer-events-none"
+        width={Math.round(CANVAS_WIDTH * initialDpr)}
+        height={Math.round(CANVAS_HEIGHT * initialDpr)}
+        style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
+        className="pointer-events-none"
       />
     </div>
   );

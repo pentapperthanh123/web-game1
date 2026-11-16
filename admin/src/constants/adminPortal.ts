@@ -185,6 +185,7 @@ export const TAB_SECTION_ID_MAP: Partial<Record<AdminPortalTabId, string>> = {
   [ADMIN_PORTAL_TAB.TEAMS]: 'section-teams',
   [ADMIN_PORTAL_TAB.SERIES_DUEL]: 'section-series-duel',
   [ADMIN_PORTAL_TAB.INTERACTION]: 'section-interaction',
+  [ADMIN_PORTAL_TAB.GIFTS]: 'section-gift-config',
 };
 
 /**

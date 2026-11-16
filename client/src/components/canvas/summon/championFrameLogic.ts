@@ -1,5 +1,6 @@
+import { readChampionHitAt } from '../../../services/championHitFeedback';
 import * as THREE from 'three';
-import { SQUAD_ENTRANCE_CONSTANTS } from '../../../constants/game';
+import { DAMAGE_SOURCE, SQUAD_ENTRANCE_CONSTANTS } from '../../../constants/game';
 import { useGameStore } from '../../../store/gameStore';
 import {
   GAME_CONSTANTS,
@@ -8,7 +9,7 @@ import {
   DAMAGE_TYPE,
   DamageType,
 } from '../../../constants/game';
-import { MinionEntity } from '../../../types/game';
+import { DamageBossOptions, MinionEntity } from '../../../types/game';
 import { getMinionDamageMultiplier, isMinionStunned } from '../../../utils/statusEffects';
 import {
   setLiveMinionPositions,
@@ -26,6 +27,7 @@ import {
 import { updateChampionEntranceAura } from './championEntranceAura';
 import { pickSpreadTargetInWing } from './championSpread';
 import { isCurrentRoundIntroActive } from '../../../store/roundIntroStore';
+import { resolveChampionAttackSpeedMultiplier } from '../../../store/summonQueueHelper';
 
 
 const resolveCachedVfxRefs = (
@@ -113,6 +115,17 @@ const publishLivePosition = (
   projectToScreenInto(ai.liveScreen, worldX, worldY, worldZ, camera, viewportW, viewportH);
 };
 
+/** Token reaction to a boss hit (see championHitFeedback). */
+const HIT_FLINCH = {
+  DURATION_MS: 320,
+  SHAKE_AMPLITUDE: 0.07,
+  SHAKE_FREQUENCY: 0.07,
+  SQUASH: 0.16,
+} as const;
+
+/** Shared, never mutated: no per-hit allocation in the frame loop. */
+const CHAMPION_HIT_OPTIONS: DamageBossOptions = { source: DAMAGE_SOURCE.CHAMPION };
+
 export const stepChampionFrame = (
   champGroup: THREE.Group,
   minion: MinionEntity,
@@ -167,9 +180,11 @@ export const stepChampionFrame = (
       COMBAT_VFX_CONSTANTS.BOSS_TARGET[2] + randomInRange(-0.15, 0.2),
     ];
     const teamMomentum = store.teamHeartMomentum[minion.team];
-    const attackSpeedFactor = teamMomentum
+    const heartTapSpeedFactor = teamMomentum
       ? getMinionAttackSpeedFactor(teamMomentum.multiplier, teamMomentum.lastTapAt, now)
       : 1;
+    const attackSpeedFactor =
+      heartTapSpeedFactor * resolveChampionAttackSpeedMultiplier(store.participationRuleConfig);
     const baseCooldown = randomInRange(
       COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MIN_S,
       COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.ATTACK_INTERVAL_MAX_S
@@ -216,7 +231,7 @@ export const stepChampionFrame = (
       : minion.summonerName;
     const openingDamageType = minion.isSignatureSynergy ? DAMAGE_TYPE.CRIT : DAMAGE_TYPE.NORMAL;
     store.consumeMinionAttackFury(minion.id);
-    store.damageBoss(openingDamage, minion.team, openingActor, openingDamageType);
+    store.damageBoss(openingDamage, minion.team, openingActor, openingDamageType, CHAMPION_HIT_OPTIONS);
     store.spawnFlyingArrow(minion.championName, minion.team, false, scrStart);
   }
 
@@ -224,10 +239,16 @@ export const stepChampionFrame = (
     Math.sin(elapsedTime * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.BOB_SPEED + ai.bobPhase) *
     COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.BOB_AMPLITUDE;
 
-  let posX = ai.currentX + castRecoilX;
+  // Flinch when the boss hits this champion: a short decaying shake plus a squash
+  const hitAgeMs = now - readChampionHitAt(minion.id);
+  const isFlinching = hitAgeMs >= 0 && hitAgeMs < HIT_FLINCH.DURATION_MS;
+  const flinchLevel = isFlinching ? 1 - hitAgeMs / HIT_FLINCH.DURATION_MS : 0;
+  const flinchShakeX = Math.sin(hitAgeMs * HIT_FLINCH.SHAKE_FREQUENCY) * HIT_FLINCH.SHAKE_AMPLITUDE * flinchLevel;
+
+  let posX = ai.currentX + castRecoilX + flinchShakeX;
   let posY = ai.currentY + castLiftY + bobOffset + swoopY;
   let posZ = ai.currentZ;
-  const finalScale = scalePulse * entranceScale;
+  const finalScale = scalePulse * entranceScale * (1 - HIT_FLINCH.SQUASH * flinchLevel);
 
   tempProjVec.set(posX, posY, posZ).project(camera);
   let isClamped = false;
@@ -291,7 +312,7 @@ export const stepChampionFrame = (
       } else if (minion.isSignatureSynergy) {
         attackDamageType = DAMAGE_TYPE.CRIT;
       }
-      store.damageBoss(damage, minion.team, `${minion.summonerName} (${minion.championName})`, attackDamageType);
+      store.damageBoss(damage, minion.team, `${minion.summonerName} (${minion.championName})`, attackDamageType, CHAMPION_HIT_OPTIONS);
     }
   }
 

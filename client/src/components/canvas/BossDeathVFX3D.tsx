@@ -6,7 +6,10 @@ import { getTeamTheme } from '../../constants/teams';
 import {
   BOSS_DEFEAT_CONSTANTS,
   BOSS_STATUS,
+  DEFEAT_SHOWCASE_TIMELINE,
+  FINISHER_BANNER_CONSTANTS,
   getThemeConfig,
+  isDonorFinisherCheck,
   TEAM_KEY,
   TeamType,
 } from '../../constants/game';
@@ -36,7 +39,6 @@ interface SoulOrbKinematics {
 const ORIGIN_Y = 0.35;
 const ORIGIN_Z = 0.3;
 const SHARD_GRAVITY = 4.8;
-const PILLAR_EXTRA_HOLD_MS = 250;
 const CRYSTAL_SHARD_GEO = new THREE.OctahedronGeometry(0.32, 0);
 const SOUL_ORB_GEO = new THREE.IcosahedronGeometry(0.20, 1);
 
@@ -110,7 +112,11 @@ export const BossDeathVFX3D = () => {
   const roundWinner = useGameStore((state) => state.roundWinner);
   const bossDefeatedTimestamp = useGameStore((state) => state.bossDefeatedTimestamp);
   const finisherTeam = useGameStore((state) => state.finisherTeam);
+  const finisherGiftName = useGameStore((state) => state.finisherGiftName);
+  const finisherCoins = useGameStore((state) => state.finisherCoins);
   const gameTheme = useGameStore((state) => state.gameTheme);
+
+  const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
 
   const rawIsDefeated =
     bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
@@ -159,8 +165,9 @@ export const BossDeathVFX3D = () => {
       return;
     }
 
-    const elapsedMs = Date.now() - activeTimestamp;
-    const totalMs = BOSS_DEFEAT_CONSTANTS.VICTORY_DELAY_MS + PILLAR_EXTRA_HOLD_MS;
+    const strikeOffsetMs = isDonorFinisher ? FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS : 0;
+    const elapsedMs = Date.now() - (activeTimestamp + strikeOffsetMs);
+    const totalMs = DEFEAT_SHOWCASE_TIMELINE.DEATH_VFX_3D_MS;
 
     if (elapsedMs < 0 || elapsedMs > totalMs) {
       groupRef.current.visible = false;

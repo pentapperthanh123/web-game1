@@ -21,6 +21,8 @@ import {
 const clampRounded = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, Math.round(value)));
 
+const clampNumber = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+
 interface AdminGiftPayload {
   team?: 'BLG' | 'GENG';
   coins?: number;
@@ -227,6 +229,16 @@ export function registerAdminHandlers(
           payload.summonTurnDelayMs,
           SUMMON_QUEUE_LIMITS.MIN_TURN_DELAY_MS,
           SUMMON_QUEUE_LIMITS.MAX_TURN_DELAY_MS
+        );
+      }
+      if (
+        typeof payload?.championAttackSpeedMultiplier === 'number' &&
+        Number.isFinite(payload.championAttackSpeedMultiplier)
+      ) {
+        next.championAttackSpeedMultiplier = clampNumber(
+          payload.championAttackSpeedMultiplier,
+          SUMMON_QUEUE_LIMITS.MIN_CHAMPION_ATTACK_SPEED_MULTIPLIER,
+          SUMMON_QUEUE_LIMITS.MAX_CHAMPION_ATTACK_SPEED_MULTIPLIER
         );
       }
       ctx.state.participationRuleConfig = next;

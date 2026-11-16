@@ -8,5 +8,7 @@
   "howToPlay": true,
   "heartMilestone": false,
   "matchTitleBar": false,
-  "casterSubtitle": false
+  "casterSubtitle": false,
+  "bossSkills": false,
+  "bossSkillBanner": false
 }

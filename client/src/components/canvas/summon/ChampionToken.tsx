@@ -8,9 +8,9 @@ import { getActiveStatusEffects } from '../../../utils/statusEffects';
 import { ChampionEntranceAuraMeshes } from './ChampionEntranceAuraMeshes';
 import {
   FURY_COLOR_FULL,
-  SHARED_CELESTIAL_AURA_GEO,
   SHARED_NAMEPLATE_GEO,
   SHARED_SHIELD_RING_GEO,
+  SHARED_SIGNATURE_HALO_GEO,
   getChampionTexture,
   getFuryFillColor,
   getNameplateTexture,
@@ -25,7 +25,7 @@ import { SHARED_TOKEN_BODY_GEO, createTokenBodyMaterial, syncTokenBodyMaterial }
 const TOKEN_FACE_SIDE = THREE.FrontSide;
 
 const STATUS_RING_OPACITY = 0.7;
-const SIGNATURE_HALO_OPACITY = 0.4;
+const SIGNATURE_HALO_OPACITY = 0.85;
 
 const GAUGE_STYLE = {
   BG_COLOR: '#020617',
@@ -98,8 +98,8 @@ export const ChampionToken = React.memo(
     const signatureColor = GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR;
     const nameplateTexture = useMemo(() => {
       if (!hasNameplate) return null;
-      return getNameplateTexture(minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName);
-    }, [hasNameplate, minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName]);
+      return getNameplateTexture(minion.championName, minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName);
+    }, [hasNameplate, minion.championName, minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName]);
 
     const activeStatusEffect = getActiveStatusEffects(minion, Date.now())[0] ?? null;
 
@@ -150,7 +150,7 @@ export const ChampionToken = React.memo(
         )}
 
         {isSignature && (
-          <mesh name="signature-synergy-halo" position={[0, 0, -0.025]} geometry={SHARED_CELESTIAL_AURA_GEO}>
+          <mesh name="signature-synergy-halo" position={[0, 0, -0.025]} geometry={SHARED_SIGNATURE_HALO_GEO}>
             <meshBasicMaterial color={signatureColor} transparent opacity={SIGNATURE_HALO_OPACITY} blending={THREE.AdditiveBlending} depthWrite={false} side={TOKEN_FACE_SIDE} />
           </mesh>
         )}

@@ -13,6 +13,7 @@ import {
   Check,
   Layout,
   Mic,
+  Flame,
 } from 'lucide-react';
 import { adminSocket } from '../services/socket';
 import { OverlayVisibility } from '../types/overlay';
@@ -103,6 +104,12 @@ const buildSectionConfigs = (leftTag: string, rightTag: string): SectionConfig[]
     label: 'Bảng Chiêu Thức Boss (Dưới Thanh Máu)',
     description: 'Hệ số HP và 4 chiêu của Boss đang chọn; chiêu vừa tung sẽ sáng lên, chiêu bị khóa sẽ mờ',
     icon: Swords,
+  },
+  {
+    key: 'bossSkillBanner',
+    label: 'Tag Kỹ Năng Boss Tung Chiêu (Đỉnh Màn Hình)',
+    description: 'Tag thông báo tên chiêu, trừ máu và phe trúng đòn khi Boss ra chiêu',
+    icon: Flame,
   },
 ];
 

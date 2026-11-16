@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand';
 import { resolveComboSoundRate } from '../../constants/game';
 import { recordRoundDamage } from '../roundDamageTracker';
 import { trackQuestProgress } from '../communityQuestRewards';
-import { getQuestDamageMultiplier } from '../communityQuestStore';
+import { scaleBossDamage } from '../bossDamageScaling';
 import { QUEST_KIND } from '../../constants/game';
 import {
   addChampionshipTitle,
@@ -33,6 +33,7 @@ import {
   BossStatusType,
   CHAMPION_SKILL_VFX_TYPE,
   COMBAT_VFX_CONSTANTS,
+  DAMAGE_SOURCE,
   DAMAGE_TYPE,
   DamageType,
   GAME_CONSTANTS,
@@ -52,7 +53,6 @@ import { BOSS_VOICE_KIND, SFX_EVENT } from '../../constants/sfx';
 import { playBossVoice } from '../../services/bossVoice';
 import { audioService } from '../../services/audioService';
 import { soundManager, playSound } from '../../services/soundManager';
-import { unprojectScreenToWorld } from '../../components/canvas/summon/summonShared';
 import {
   createEmptyTeamHeartMomentum,
   createInitialTeamCombos,
@@ -66,6 +66,7 @@ import {
   updateProLeaderboardList,
   appendIfCapacity,
 } from '../storeHelpers';
+import { pickScreenRumble } from '../screenRumble';
 import { decideHitFeedback } from '../hitFeedbackAggregator';
 import { isCurrentRoundIntroActive } from '../roundIntroStore';
 
@@ -79,6 +80,7 @@ export type CombatSlice = Pick<
   | 'damageBoss'
   | 'addLikes'
   | 'triggerScreenShake'
+  | 'triggerScreenRumble'
   | 'triggerScreenFlash'
   | 'triggerBossAttack'
   | 'spawnParticleBurst'
@@ -359,27 +361,10 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         : GAME_CONSTANTS.PRO_FURY.FURY_AUTO_CAP;
     const nextFury = isFullFury ? 0 : Math.min(furyCap, prevFury + furyGain);
 
-    const proLaneY = 1.65 - (playerIndex % 5) * 0.55;
     const activeRoster = state.activeTeams[team]?.roster ?? [];
     const playerScreenStart = resolveRosterAnchorScreenPos(player.id, team, activeRoster);
-    const bossRect = getCachedBossRect();
-    const proStart3D: [number, number, number] =
-      unprojectScreenToWorld(playerScreenStart.x, playerScreenStart.y, 0.65) ?? [
-        team === TEAM_KEY.BLG ? -2.9 : 2.9,
-        proLaneY,
-        0.7,
-      ];
-    const bossTarget3D: [number, number, number] | undefined = bossRect
-      ? unprojectScreenToWorld(
-          bossRect.left + bossRect.width * 0.5,
-          bossRect.top + bossRect.height * 0.48,
-          COMBAT_VFX_CONSTANTS.BOSS_TARGET[2]
-        ) ?? undefined
-      : undefined;
 
-    const activeTeamTheme = getTeamTheme(state.activeTeams[team]?.colorTheme);
-    const proBeamColor = isFullFury ? '#fbbf24' : activeTeamTheme.primaryHex;
-
+    // Single definitive attack trajectory: Champion signature weapon arrow VFX
     get().spawnFlyingArrow(
       player.signatureChampion,
       team,
@@ -388,8 +373,6 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       undefined,
       player.id
     );
-    // The flying arrow already plays the champion's skill sound; the 3D beam stays silent to avoid stacking
-    get().spawnProjectile(proStart3D, proBeamColor, isFullFury, bossTarget3D, false);
 
     set((prev) => ({
       rosterAttackTimestamps: {
@@ -416,6 +399,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         isFullFury ? `🔥 ${player.name} (Bạo Nộ)` : `${player.name} (${player.role})`,
         damageType,
         {
+          source: DAMAGE_SOURCE.PRO,
           excludeFromLeaderboard: true,
           proPlayer: player,
           suppressCombo: true,
@@ -438,7 +422,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       return;
     }
 
-    const resolvedChampion = findSignatureChampionByPlayer(championName) || championName;
+    const activeTeamsList = Object.values(currentState.activeTeams);
+    const resolvedChampion =
+      findSignatureChampionByPlayer(championName, activeTeamsList) || championName;
     const skillVfx = getChampionSkillVFX(resolvedChampion, isCrit);
     const attackVfxType = isCrit ? skillVfx.type : CHAMPION_SKILL_VFX_TYPE.BASIC_ATTACK;
     const attackSkillName = isCrit ? skillVfx.skillName : 'Đòn Đánh Thường';
@@ -514,6 +500,10 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       screenShakeTimestamp: Date.now(),
       screenShakeIntensity: intensity,
     });
+  },
+
+  triggerScreenRumble: (intensity: number, durationMs: number) => {
+    set((state) => pickScreenRumble(state, intensity, durationMs, Date.now()));
   },
 
   triggerScreenFlash: (color: string) => {
@@ -685,8 +675,8 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       });
     }
 
-    const likeDamage = count * 15;
-    get().damageBoss(likeDamage, team, `${userName} (Thả tim)`, 'NORMAL');
+    const likeDamage = count * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.HEART_DAMAGE;
+    get().damageBoss(likeDamage, team, `${userName} (Thả tim)`, DAMAGE_TYPE.NORMAL, { source: DAMAGE_SOURCE.HEART });
 
     set((prev) => {
       const nextRosterFury = { ...prev.rosterPlayerFury };
@@ -785,16 +775,12 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     }
 
     const now = Date.now();
-    const isWeakPointActive =
-      !options?.proPlayer &&
-      state.bossWeakPoint !== null &&
-      now < state.bossWeakPoint.expiresAt;
-
-    const damageMultiplier = (state.championDamageMultiplier ?? 1) * getQuestDamageMultiplier(team, now);
-    const baseWithGlobalMultiplier = Math.max(1, Math.round(amount * damageMultiplier));
-    const scaledAmount = isWeakPointActive
-      ? Math.round(baseWithGlobalMultiplier * BOSS_MECHANICS_CONSTANTS.WEAK_POINT.DAMAGE_MULTIPLIER)
-      : baseWithGlobalMultiplier;
+    // Multipliers depend on where the hit comes from (see bossDamageScaling); overflow re-entries are already scaled
+    const scaled = options?.isPreScaled
+      ? { amount, isWeakPointHit: false }
+      : scaleBossDamage(state, amount, team, options?.source ?? DAMAGE_SOURCE.EXTERNAL, now);
+    const scaledAmount = scaled.amount;
+    const isWeakPointActive = scaled.isWeakPointHit;
     const effectiveDamageType: DamageType =
       isWeakPointActive && damageType === DAMAGE_TYPE.NORMAL ? DAMAGE_TYPE.CRIT : damageType;
 
@@ -828,8 +814,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         createdAt: now,
       };
 
-      const nextScoreBLG = team === TEAM_KEY.BLG ? state.teamScoreBLG + absorbedDamage : state.teamScoreBLG;
-      const nextScoreGENG = team === TEAM_KEY.GENG ? state.teamScoreGENG + absorbedDamage : state.teamScoreGENG;
+      const currentScores = state.teamScores || {
+        [TEAM_KEY.BLG]: state.teamScoreBLG,
+        [TEAM_KEY.GENG]: state.teamScoreGENG,
+      };
+      const nextTeamScores = {
+        ...currentScores,
+        [team]: (currentScores[team] || 0) + absorbedDamage,
+      };
+      const nextScoreBLG = nextTeamScores[TEAM_KEY.BLG];
+      const nextScoreGENG = nextTeamScores[TEAM_KEY.GENG];
       const nextViewerBoard = options?.excludeFromLeaderboard
         ? state.leaderboard
         : updateLeaderboardList(state.leaderboard, playerName, team, absorbedDamage);
@@ -862,6 +856,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           bossHitTimestamp: now,
           lastHitTeam: team,
           lastHitDamageType: DAMAGE_TYPE.ULTIMATE,
+          teamScores: nextTeamScores,
           teamScoreBLG: nextScoreBLG,
           teamScoreGENG: nextScoreGENG,
           leaderboard: nextViewerBoard,
@@ -871,6 +866,12 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
             shieldHitFloat,
           ],
         }));
+        // The part of the hit the shield did not absorb carries on into the boss (it used to be lost:
+        // a 1 000-coin gift landing on a shield dealt ~10 500 instead of 120 000)
+        const overflowDamage = scaledAmount - absorbedDamage;
+        if (overflowDamage > 0) {
+          get().damageBoss(overflowDamage, team, playerName, damageType, { ...options, isPreScaled: true });
+        }
         return;
       }
 
@@ -880,6 +881,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         bossHitTimestamp: now,
         lastHitTeam: team,
         lastHitDamageType: effectiveDamageType,
+        teamScores: nextTeamScores,
         teamScoreBLG: nextScoreBLG,
         teamScoreGENG: nextScoreGENG,
         leaderboard: nextViewerBoard,
@@ -898,9 +900,12 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const floorHp = options?.minHpFloorPercent
       ? Math.ceil(state.bossMaxHp * options.minHpFloorPercent)
       : 0;
-    const newHp = Math.max(floorHp, state.bossHp - scaledAmount);
-    const effectiveDamage = Math.max(0, state.bossHp - newHp);
-    if (effectiveDamage <= 0) return;
+    // A capped hit (big gift) removes at most `hpDamageCap` HP but still counts in full for the score
+    const hpDamage = options?.hpDamageCap ? Math.min(scaledAmount, options.hpDamageCap) : scaledAmount;
+    const newHp = Math.max(floorHp, state.bossHp - hpDamage);
+    const hpLost = Math.max(0, state.bossHp - newHp);
+    if (hpLost <= 0) return;
+    const effectiveDamage = options?.hpDamageCap ? scaledAmount : hpLost;
 
     audioService.playDamageImpactSound(effectiveDamageType, effectiveDamageType === DAMAGE_TYPE.CRIT);
 
@@ -954,8 +959,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       nextStatus = BOSS_STATUS.ENRAGED;
     }
 
-    const newBLGScore = team === TEAM_KEY.BLG ? state.teamScoreBLG + effectiveDamage : state.teamScoreBLG;
-    const newGENGScore = team === TEAM_KEY.GENG ? state.teamScoreGENG + effectiveDamage : state.teamScoreGENG;
+    const currentScores = state.teamScores || {
+      [TEAM_KEY.BLG]: state.teamScoreBLG,
+      [TEAM_KEY.GENG]: state.teamScoreGENG,
+    };
+    const nextTeamScores = {
+      ...currentScores,
+      [team]: (currentScores[team] || 0) + effectiveDamage,
+    };
+    const newBLGScore = nextTeamScores[TEAM_KEY.BLG];
+    const newGENGScore = nextTeamScores[TEAM_KEY.GENG];
     if (!options?.excludeFromLeaderboard) recordRoundDamage(playerName, team, effectiveDamage);
     const topLeaderboard = options?.excludeFromLeaderboard
       ? state.leaderboard
@@ -1098,42 +1111,46 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       }
     }
 
+    const isDonorFinisher = Boolean(options?.giftName || (options?.coins && options.coins > 0));
+
     if (isDefeated) {
       audioService.setCombatMuted(true);
       soundManager.stopAll();
       const themeConfig = getThemeConfig(state.gameTheme);
       const defeatColor = themeConfig.colors.enragedHex || themeConfig.colors.primaryHex;
 
-      playSound(SFX_EVENT.BOSS_DEFEAT, { rateScale: themeConfig.audioPitchRate });
-      get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
-      get().triggerScreenFlash(teamPalette.primary);
+      if (!isDonorFinisher) {
+        playSound(SFX_EVENT.BOSS_DEFEAT, { rateScale: themeConfig.audioPitchRate });
+        get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
+        get().triggerScreenFlash(teamPalette.primary);
+
+        newShockwaves.push(
+          {
+            id: `defeat-wave-1-${now}`,
+            timestamp: now,
+            color: defeatColor,
+            maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_INNER,
+          },
+          {
+            id: `defeat-wave-2-${now}`,
+            timestamp: now + BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS,
+            color: teamPalette.primary,
+            maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_MID,
+          },
+          {
+            id: `defeat-wave-3-${now}`,
+            timestamp: now + BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS * 2,
+            color: '#ffffff',
+            maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_OUTER,
+          }
+        );
+
+        get().spawnParticleBurst([0, 0.5, 0.6], defeatColor, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+        get().spawnParticleBurst([-1.1, 0.9, 0.4], teamPalette.primary, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+        get().spawnParticleBurst([1.1, 0.2, 0.4], '#ffffff', COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+      }
 
       get().addLog('BOSS', `🏆 [TIÊU DIỆT BOSS] ${themeConfig.bossName} ĐÃ BỊ HẠ GỤC!`);
-
-      newShockwaves.push(
-        {
-          id: `defeat-wave-1-${now}`,
-          timestamp: now,
-          color: defeatColor,
-          maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_INNER,
-        },
-        {
-          id: `defeat-wave-2-${now}`,
-          timestamp: now + BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS,
-          color: teamPalette.primary,
-          maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_MID,
-        },
-        {
-          id: `defeat-wave-3-${now}`,
-          timestamp: now + BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS * 2,
-          color: '#ffffff',
-          maxRadius: BOSS_DEFEAT_CONSTANTS.SHOCKWAVE_RADIUS_OUTER,
-        }
-      );
-
-      get().spawnParticleBurst([0, 0.5, 0.6], defeatColor, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
-      get().spawnParticleBurst([-1.1, 0.9, 0.4], teamPalette.primary, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
-      get().spawnParticleBurst([1.1, 0.2, 0.4], '#ffffff', COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
     }
 
     set((prev) => ({
@@ -1155,7 +1172,12 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       bossWeakPoint: isDefeated ? null : prev.bossWeakPoint,
       finisherPlayerName: isDefeated ? playerName : prev.finisherPlayerName,
       finisherTeam: isDefeated ? team : prev.finisherTeam,
+      finisherAvatarUrl: isDefeated ? (options?.donorAvatarUrl ?? null) : prev.finisherAvatarUrl,
+      finisherGiftName: isDefeated ? (options?.giftName ?? null) : prev.finisherGiftName,
+      finisherCoins: isDefeated ? (options?.coins ?? null) : prev.finisherCoins,
       activeBossSkillBanner: isDefeated ? null : prev.activeBossSkillBanner,
+      activeGiftBanner: isDefeated ? null : prev.activeGiftBanner,
+      teamScores: nextTeamScores,
       teamScoreBLG: newBLGScore,
       teamScoreGENG: newGENGScore,
       leaderboard: topLeaderboard,

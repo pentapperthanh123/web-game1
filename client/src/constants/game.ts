@@ -47,7 +47,6 @@ export const GAME_CONSTANTS = {
     ORBIT_RADIUS_MAX: 5.4,
     BASE_DPS: 32,
     DPS_VARIANCE: 10,
-    LIFETIME_MS: 18000,
     SPAWN_GRACE_PERIOD_MS: 1000, // 1s grace period: only after 1s do newly summoned champions deal and receive damage
     BLG_COLOR: '#06b6d4',
     GENG_COLOR: '#eab308',
@@ -111,10 +110,14 @@ export const GAME_CONSTANTS = {
     SUMMON_TURN_DELAY_MS: 1300, // Độ trễ xuất hiện giữa các lượt: sau khi tướng xuất hiện xong mới đến lượt tiếp theo
     MIN_TURN_ADVANCE_DELAY_MS: 50,
     TURN_DELAY_OPTIONS_MS: [800, 1300, 2000, 3000],
+    // Hệ số tốc độ đánh của tướng triệu hồi: chia khoảng nghỉ giữa hai đòn (ATTACK_INTERVAL_*_S). Admin chỉnh được.
+    CHAMPION_ATTACK_SPEED_MULTIPLIER: 1.5,
+    MIN_CHAMPION_ATTACK_SPEED_MULTIPLIER: 0.5,
+    MAX_CHAMPION_ATTACK_SPEED_MULTIPLIER: 4,
+    CHAMPION_ATTACK_SPEED_OPTIONS: [1, 1.5, 2, 2.5, 3],
     MAX_ACTIVE_PER_USER: 1, // Option B: Mỗi người chỉ có tối đa 1 tướng đang sống trên sàn
     ALIVE_SUPPORT_HEAL: 50, // Option B: Comment tiếp theo khi tướng còn sống sẽ hồi +50 HP tiếp sức
     ALIVE_SUPPORT_DAMAGE: 90, // Option B: Đòn đánh tiếp sức gây thêm +90 sát thương vào Boss
-    LIFETIME_EXTENSION_MS: 3000, // Option B: Gia hạn thêm 3s thời gian tham chiến cho tướng
   },
   PRO_FURY: {
     MAX_FURY: 100,
@@ -138,7 +141,17 @@ export const GAME_CONSTANTS = {
     SHARE_BURST_DAMAGE: 500,
     SHARE_HEAL_AMOUNT: 50,
     GIFT_DAMAGE_PER_COIN: 120,
+    /**
+     * One gift tick removes at most this share of the boss's max HP; the rest still counts in full
+     * for the team score and the donor's leaderboard entry. Big gifts decide the round without
+     * deleting the boss in one second (a 1 000-coin gift used to one-shot a 100 000 HP boss).
+     */
+    GIFT_BOSS_HP_CAP_RATIO: 0.2,
     GIFT_HEAL_AMOUNT: 50,
+    /** Pro fury per gift coin, capped at PRO_FURY.FURY_GAIN_GIFT_BOOST: a 1-coin rose no longer fills a third of every bar. */
+    GIFT_FURY_PER_COIN: 3,
+    /** Damage per heart. Was 15, which made tapping the strongest free source, above summoning. */
+    HEART_DAMAGE: 5,
     /** Rapid low-value streak ticks (e.g. 1-coin roses) only get full feedback every N ticks. */
     STREAK_FEEDBACK_EVERY: 5,
     STREAK_TICK_MAX_COINS: 10,
@@ -146,6 +159,9 @@ export const GAME_CONSTANTS = {
     /** Elite champion summon on gift: on the first tick, every N ticks, or any gift at/above this value. */
     ELITE_SUMMON_EVERY_STREAK: 3,
     ELITE_SUMMON_MIN_COINS: 10,
+    /** Gifts below this value (roses...) only summon an elite every SMALL_GIFT_ELITE_EVERY_STREAK ticks. */
+    SMALL_GIFT_MAX_COINS: 4,
+    SMALL_GIFT_ELITE_EVERY_STREAK: 10,
     FALLBACK_ELITE_CHAMPIONS: ['Ahri', 'Yone', 'Aatrox', 'Jinx', 'Lee Sin'],
   },
   MINION_FURY: {
@@ -161,12 +177,12 @@ export const GAME_CONSTANTS = {
   },
   AUDIO: {
     DEFAULT_ENABLED: true,
-    DEFAULT_TTS_ENABLED: false,
+    DEFAULT_TTS_ENABLED: true,
     DEFAULT_VOLUME: 0.6,
   },
   RENDER: {
     DPR_MIN: 1,
-    DPR_MAX: 1.5,
+    DPR_MAX: 1.25,
     CAMERA_FOV: 42,
     CAMERA_POS_Z: 10.8,
     CAMERA_POS_Y: 6.8,
@@ -380,7 +396,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60',
     },
     i18nKey: 'BossTheme.xuGia',
-    verticalTiersPx: [0, -4, -8] as const,
+    verticalTiersPx: [10, 0, -35, -75, -125] as const,
     verticalMotionClass: 'animate-herald-idle',
     idleAnimationClass: 'animate-herald-idle',
     groundShadowClass: 'animate-herald-idle scale-x-110 opacity-70',
@@ -432,7 +448,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-orange-950/80 text-orange-300 border-orange-500/60',
     },
     i18nKey: 'BossTheme.rongNui',
-    verticalTiersPx: [0, -18, -36] as const,
+    verticalTiersPx: [12, 0, -50, -105, -165] as const,
     verticalMotionClass: 'animate-boss-vertical-dragon',
     idleAnimationClass: 'animate-dragon-hover',
     groundShadowClass: 'animate-dragon-shadow',
@@ -484,7 +500,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-indigo-950/80 text-indigo-300 border-indigo-500/60',
     },
     i18nKey: 'BossTheme.rongGia',
-    verticalTiersPx: [0, -22, -42] as const,
+    verticalTiersPx: [14, 0, -55, -115, -180] as const,
     verticalMotionClass: 'animate-boss-vertical-dragon',
     idleAnimationClass: 'animate-dragon-hover',
     groundShadowClass: 'animate-dragon-shadow',
@@ -536,7 +552,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-purple-950/80 text-purple-300 border-purple-500/60',
     },
     i18nKey: 'BossTheme.baron',
-    verticalTiersPx: [0, -12, -24] as const,
+    verticalTiersPx: [10, 0, -50, -100, -160] as const,
     verticalMotionClass: 'animate-boss-vertical-baron',
     idleAnimationClass: 'animate-baron-idle',
     groundShadowClass: 'animate-baron-shadow',
@@ -588,7 +604,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60',
     },
     i18nKey: 'BossTheme.elderDragon',
-    verticalTiersPx: [0, -28, -50] as const,
+    verticalTiersPx: [14, 0, -55, -115, -180] as const,
     verticalMotionClass: 'animate-boss-vertical-dragon',
     idleAnimationClass: 'animate-dragon-hover',
     groundShadowClass: 'animate-dragon-shadow',
@@ -638,7 +654,7 @@ export const THEME_CONFIGS: Record<GameThemeType, BossThemeConfig> = {
       badgeClass: 'bg-purple-950/90 text-fuchsia-300 border-fuchsia-500/70 shadow-[0_0_8px_rgba(192,132,252,0.5)]',
     },
     i18nKey: 'BossTheme.voidTitan',
-    verticalTiersPx: [0, -16, -32] as const,
+    verticalTiersPx: [12, 0, -50, -110, -170] as const,
     verticalMotionClass: 'animate-boss-vertical-baron',
     idleAnimationClass: 'animate-baron-idle',
     groundShadowClass: 'animate-baron-shadow',
@@ -694,8 +710,10 @@ export const GUEST_SIMULATION_CONSTANTS = {
 } as const;
 
 export const BOSS_ANIMATION_CONSTANTS = {
-  HIT_DURATION_MS: 320,
-  HEAVY_HIT_DURATION_MS: 440,
+  HIT_DURATION_MS: 260,
+  HEAVY_HIT_DURATION_MS: 320,
+  /** Cooldown between heavy recoil flinches so the boss is not stuck in continuous jitter */
+  HEAVY_HIT_COOLDOWN_MS: 1200,
   /** Hits closer together than this do not restart the recoil (crowds hit every frame). */
   HIT_REACTION_MIN_INTERVAL_MS: 240,
   ATTACK_DURATION_MS: 750,
@@ -706,8 +724,7 @@ export const BOSS_ANIMATION_CONSTANTS = {
 } as const;
 
 export const BOSS_DEFEAT_CONSTANTS = {
-  VICTORY_DELAY_MS: 4200,
-  SHATTER_ANIMATION_MS: 1350,
+  SHATTER_ANIMATION_MS: 1200,
   CRACK_PHASE_END_RATIO: 0.22,
   EXPLOSION_END_RATIO: 0.65,
   SHOCKWAVE_RADIUS_INNER: 4.5,
@@ -726,13 +743,57 @@ export const BOSS_DEFEAT_CONSTANTS = {
 } as const;
 
 export const FINISHER_BANNER_CONSTANTS = {
-  DISPLAY_DURATION_MS: 4000,
-  SHAKE_INTENSITY: 1.5,
+  DISPLAY_DURATION_MS: 1600,
+  GIFT_FINISHER_DURATION_MS: 11500,
+  /** Must match the avatarStrike keyframes duration in gift.css. */
+  AVATAR_STRIKE_DURATION_MS: 4800,
+  CARD_REVEAL_DELAY_MS: 5600,
+  SHAKE_INTENSITY: 2.5,
   PULSE_INTERVAL_MS: 300,
 } as const;
 
+/**
+ * True only when the killing blow carried gift data (set by the gift explosion path).
+ * The actor label alone is not evidence: champions, hearts, rallies and shares are also
+ * labelled "name (something)", and guessing from it played the gift cinematic for normal kills.
+ */
+/**
+ * How long each boss-death layer plays, measured from the killing blow (or from the avatar impact
+ * for a gift finisher). The victory screen waits for the longest one, so it never covers an effect
+ * that is still running. Keep these in sync with the animations they describe.
+ */
+export const DEFEAT_SHOWCASE_TIMELINE = {
+  /** BossDeathVFX3D: imploding core, sky pillar, blast rings and soul streams. */
+  DEATH_VFX_3D_MS: 1850,
+  /** BossDeathVFX2D "boss defeated" banner — `executionBannerPop` in index.css. */
+  EXECUTION_BANNER_MS: 2700,
+  /** BossDefeatedCrest2D fade-in — its `delay-[850ms] duration-700` classes. */
+  CREST_REVEAL_DELAY_MS: 850,
+  CREST_REVEAL_MS: 700,
+  /** Time the crest stays fully visible so viewers can take it in. */
+  CREST_HOLD_MS: 1200,
+  /** Short breath between the last effect ending and the victory screen. */
+  SETTLE_MS: 300,
+} as const;
+
+/** Delay from the killing blow to the victory screen: after every death effect has finished. */
+export const resolveDefeatShowcaseMs = (isDonorFinisher: boolean): number => {
+  const timeline = DEFEAT_SHOWCASE_TIMELINE;
+  const crestEndMs = timeline.CREST_REVEAL_DELAY_MS + timeline.CREST_REVEAL_MS + timeline.CREST_HOLD_MS;
+  const deathEffectsMs = Math.max(timeline.DEATH_VFX_3D_MS, timeline.EXECUTION_BANNER_MS, crestEndMs) + timeline.SETTLE_MS;
+  if (!isDonorFinisher) return deathEffectsMs;
+  // A gift finisher plays the avatar strike first; the death effects start at its impact
+  const afterImpactMs = FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS + deathEffectsMs;
+  return Math.max(afterImpactMs, FINISHER_BANNER_CONSTANTS.GIFT_FINISHER_DURATION_MS);
+};
+
+export const isDonorFinisherCheck = (
+  finisherGiftName?: string | null,
+  finisherCoins?: number | null
+): boolean => Boolean(finisherGiftName) || (finisherCoins ?? 0) > 0;
+
 export const VICTORY_CELEBRATION_CONSTANTS = {
-  AUTO_ADVANCE_SECONDS: 10,
+  AUTO_ADVANCE_SECONDS: 25,
   CONFETTI_PARTICLE_COUNT: 65,
   CONFETTI_MIN_SIZE: 5,
   CONFETTI_MAX_SIZE: 12,
@@ -769,6 +830,41 @@ export const BOSS_CREST_CONSTANTS = {
   COLOR_BARON_VOID: '#c084fc',
 } as const;
 
+/**
+ * Boss name sits right above the boss head, its short HP bar right under its feet;
+ * both follow the boss motion. Speech bubble and skill banner move up by the name height.
+ */
+export const BOSS_HEALTH_BAR_LAYOUT = {
+  NAME_ANCHOR_CLASS: 'absolute left-1/2 -translate-x-1/2 mb-0.5 z-[45]',
+  BAR_ANCHOR_CLASS: 'absolute left-1/2 -translate-x-1/2 mt-0.5 z-[45]',
+  WIDTH_CLASS: 'w-[140px] sm:w-[170px]',
+  DEFAULT_NAME_BOTTOM_CLASS: 'bottom-full',
+  DEFAULT_BAR_TOP_CLASS: 'top-full',
+  /** Sprites with transparent margins: name sits on the visible head, bar on the visible feet. */
+  NAME_BOTTOM_CLASS_BY_THEME: {
+    [GAME_THEME.XU_GIA]: 'bottom-[81%]',
+  } as Partial<Record<GameThemeType, string>>,
+  BAR_TOP_CLASS_BY_THEME: {
+    [GAME_THEME.XU_GIA]: 'top-[83%]',
+    [GAME_THEME.RONG_NUI]: 'top-[92%]',
+    [GAME_THEME.RONG_GIA]: 'top-[92%]',
+  } as Partial<Record<GameThemeType, string>>,
+  ALERT_BANNER_TOP_CLASS: '-top-[6rem]',
+  ALERT_BANNER_DEFAULT_TOP_CLASS: '-top-14 sm:-top-16',
+  SPEECH_BUBBLE_TOP_CLASS: '-top-[5.5rem] sm:-top-[6.25rem]',
+  SPEECH_BUBBLE_DEFAULT_TOP_CLASS: '-top-[4.5rem] sm:-top-[5rem]',
+} as const;
+
+export const getBossNameAnchorClass = (theme: GameThemeType): string =>
+  `${BOSS_HEALTH_BAR_LAYOUT.NAME_ANCHOR_CLASS} ${
+    BOSS_HEALTH_BAR_LAYOUT.NAME_BOTTOM_CLASS_BY_THEME[theme] ?? BOSS_HEALTH_BAR_LAYOUT.DEFAULT_NAME_BOTTOM_CLASS
+  }`;
+
+export const getBossHealthBarAnchorClass = (theme: GameThemeType): string =>
+  `${BOSS_HEALTH_BAR_LAYOUT.BAR_ANCHOR_CLASS} ${
+    BOSS_HEALTH_BAR_LAYOUT.BAR_TOP_CLASS_BY_THEME[theme] ?? BOSS_HEALTH_BAR_LAYOUT.DEFAULT_BAR_TOP_CLASS
+  }`;
+
 export const BOSS_IDLE_CONSTANTS = {
   RESTLESS_THRESHOLD_MS: 9000,
   AMBIENT_ACTION_INTERVAL_MS: 4500,
@@ -784,11 +880,11 @@ export const BOSS_IDLE_CONSTANTS = {
   FLIP_MAX_INTERVAL_MS: 15000,
   FLIP_COOLDOWN_MS: 2800,
   FLIP_TRANSITION_MS: 480,
-  VERTICAL_PATROL_MIN_INTERVAL_MS: 6500,
-  VERTICAL_PATROL_MAX_INTERVAL_MS: 11000,
+  VERTICAL_PATROL_MIN_INTERVAL_MS: 2200,
+  VERTICAL_PATROL_MAX_INTERVAL_MS: 4600,
   VERTICAL_PATROL_TRANSITION_MS: 1600,
-  VERTICAL_TIERS_DRAGON_PX: [-26, 0, 14],
-  VERTICAL_TIERS_BARON_PX: [-14, 0, 12],
+  VERTICAL_TIERS_DRAGON_PX: [14, 0, -55, -115, -180],
+  VERTICAL_TIERS_BARON_PX: [10, 0, -50, -100, -160],
 } as const;
 
 export const BOSS_IDLE_SPEECHES = {
@@ -869,7 +965,7 @@ export const COMBAT_VFX_CONSTANTS = {
       minX: -2.75,
       maxX: -1.35,
       minY: -0.75,
-      maxY: 0.95,
+      maxY: 0.35,
       minZ: 0.3,
       maxZ: 2.4,
     },
@@ -877,7 +973,7 @@ export const COMBAT_VFX_CONSTANTS = {
       minX: 1.35,
       maxX: 2.75,
       minY: -0.75,
-      maxY: 0.95,
+      maxY: 0.35,
       minZ: 0.3,
       maxZ: 2.4,
     },
@@ -885,13 +981,13 @@ export const COMBAT_VFX_CONSTANTS = {
       minX: 1.35,
       maxX: 2.75,
       minY: -0.75,
-      maxY: 0.95,
+      maxY: 0.35,
       minZ: 0.3,
       maxZ: 2.4,
     },
   },
   CHAMPION_MOVEMENT: {
-    TOKEN_SCALE: 0.78,
+    TOKEN_SCALE: 0.98,
     MIN_SPEED: 0.35,
     MAX_SPEED: 0.65,
     WANDER_INTERVAL_MIN_S: 3.5,
@@ -914,24 +1010,28 @@ export const COMBAT_VFX_CONSTANTS = {
     VIEWPORT_SAFE_NDC_X: 0.86,
     VIEWPORT_SAFE_NDC_Y_MIN: -0.80,
     VIEWPORT_SAFE_NDC_Y_MAX: 0.65,
-    NAMEPLATE_WIDTH: 0.60,
-    NAMEPLATE_HEIGHT: 0.15,
-    NAMEPLATE_POS_Y: -0.29,
+    NAMEPLATE_WIDTH: 0.44,
+    NAMEPLATE_HEIGHT: 0.11,
+    NAMEPLATE_POS_Y: -0.26,
     NAMEPLATE_POS_Z: 0.04,
   },
   /** Level of detail for crowded fields: above ENTER the tokens drop to portrait + border + HP. */
   CROWD_LOD: {
-    COMPACT_ENTER_COUNT: 40,
-    COMPACT_EXIT_COUNT: 30,
+    COMPACT_ENTER_COUNT: 15,
+    COMPACT_EXIT_COUNT: 10,
     /** Newest champions that keep a nameplate while the field is compact. */
-    COMPACT_NAMEPLATE_BUDGET: 14,
+    COMPACT_NAMEPLATE_BUDGET: 8,
+    /** When total living champions exceed this count, auto-hide generic nameplates to keep the arena clean */
+    NAMEPLATE_MAX_UNCROWDED_COUNT: 6,
+    /** Time window (ms) during which a newly summoned champion's nameplate remains visible */
+    NAMEPLATE_NEW_SUMMON_WINDOW_MS: 4500,
   },
   SUMMON: {
     PORTAL_DURATION_MS: 1200,
-    SPOTLIGHT_DURATION_MS: 1800,
-    MAX_ACTIVE_PORTALS: 32,
-    MAX_ACTIVE_DEFEATED: 24, // Cap simultaneous death VFX when an ultimate wipes many champions
-    MAX_VISIBLE_ORBS: 300,
+    SPOTLIGHT_DURATION_MS: 3600,
+    MAX_ACTIVE_PORTALS: 16,
+    MAX_ACTIVE_DEFEATED: 12, // Cap simultaneous death VFX when an ultimate wipes many champions
+    MAX_VISIBLE_ORBS: 60,
     MAX_VISIBLE_BADGES_PER_TEAM: 4,
     CRIT_CHANCE: 0.28,
     CRIT_MULTIPLIER: 1.75,
@@ -1048,6 +1148,7 @@ export const OVERLAY_SECTION = {
   MATCH_TITLE_BAR: 'matchTitleBar',
   CASTER_SUBTITLE: 'casterSubtitle',
   BOSS_SKILLS: 'bossSkills',
+  BOSS_SKILL_BANNER: 'bossSkillBanner',
 } as const;
 
 export type OverlaySectionKey = (typeof OVERLAY_SECTION)[keyof typeof OVERLAY_SECTION];
@@ -1064,6 +1165,7 @@ export const DEFAULT_OVERLAY_VISIBILITY = {
   matchTitleBar: true,
   casterSubtitle: false,
   bossSkills: false,
+  bossSkillBanner: true,
 } as const;
 
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';
@@ -1462,6 +1564,23 @@ export const AUTO_PRO_BATTLE_CONSTANTS = {
   },
 } as const;
 
+/** Where a hit on the boss comes from; decides which multipliers apply to it (see store/bossDamageScaling). */
+export const DAMAGE_SOURCE = {
+  CHAMPION: 'CHAMPION',
+  PRO: 'PRO',
+  /** Extra hit from a viewer re-chatting while their champion is alive ("Hội Quân"). */
+  RALLY: 'RALLY',
+  /** Viewer poking the boss's weak point. */
+  WEAK_POINT_POKE: 'WEAK_POINT_POKE',
+  GIFT: 'GIFT',
+  HEART: 'HEART',
+  SHARE: 'SHARE',
+  QUEST: 'QUEST',
+  /** Damage relayed from another tab / admin tool. */
+  EXTERNAL: 'EXTERNAL',
+} as const;
+export type DamageSource = (typeof DAMAGE_SOURCE)[keyof typeof DAMAGE_SOURCE];
+
 export const BOSS_MECHANICS_CONSTANTS = {
   PHASES: {
     PHASE_2_THRESHOLD_PERCENT: 0.65,
@@ -1708,17 +1827,16 @@ export interface GiftTierConfig {
 }
 
 export const GIFT_TIER_CONFIG: Readonly<Record<GiftTier, GiftTierConfig>> = {
-  [GIFT_TIER.SMALL]: { minCoins: 0, meteorCount: 0, screenShake: 0, hasScreenFlash: false, bannerDurationMs: 0, bossStaggerMs: 0, burstIntensity: 0 },
-  [GIFT_TIER.MEDIUM]: { minCoins: 10, meteorCount: 3, screenShake: 0.45, hasScreenFlash: false, bannerDurationMs: 3000, bossStaggerMs: 0, burstIntensity: 1.5 },
-  [GIFT_TIER.BIG]: { minCoins: 99, meteorCount: 8, screenShake: 1.3, hasScreenFlash: true, bannerDurationMs: 5000, bossStaggerMs: 0, burstIntensity: 4 },
-  [GIFT_TIER.MEGA]: { minCoins: 1000, meteorCount: 16, screenShake: 2.2, hasScreenFlash: true, bannerDurationMs: 8000, bossStaggerMs: 2500, burstIntensity: 6 },
+  [GIFT_TIER.SMALL]: { minCoins: 0, meteorCount: 1, screenShake: 0, hasScreenFlash: false, bannerDurationMs: 0, bossStaggerMs: 0, burstIntensity: 0 },
+  [GIFT_TIER.MEDIUM]: { minCoins: 10, meteorCount: 5, screenShake: 0.65, hasScreenFlash: true, bannerDurationMs: 4500, bossStaggerMs: 0, burstIntensity: 2.5 },
+  [GIFT_TIER.BIG]: { minCoins: 99, meteorCount: 12, screenShake: 1.8, hasScreenFlash: true, bannerDurationMs: 7000, bossStaggerMs: 0, burstIntensity: 6 },
+  [GIFT_TIER.MEGA]: { minCoins: 1000, meteorCount: 24, screenShake: 2.8, hasScreenFlash: true, bannerDurationMs: 10000, bossStaggerMs: 2500, burstIntensity: 9 },
 };
 
 /** Scaling factor for mega/ultra gifts above 1,000 coins: extends banner duration proportionally up to max limit. */
 export const GIFT_DURATION_SCALING = {
-  MEGA_BASE_MS: 8000,
   MS_PER_1000_COINS: 1000,
-  MAX_BANNER_DURATION_MS: 15000,
+  MAX_BANNER_DURATION_MS: 18000,
 } as const;
 
 export const GIFT_METEOR_SPAWN = {
@@ -1770,12 +1888,13 @@ export const SQUAD_ENTRANCE_CONSTANTS = {
 
 /** Pre-round intro card (rules, how to join, gifts) shown when a new round is about to start. */
 export const ROUND_INTRO_CONSTANTS = {
-  TOTAL_MS: 15000,
-  TAB_MATCHUP_MS: 5000,
-  TAB_RULES_MS: 5000,
-  TAB_GIFTS_MS: 5000,
+  TOTAL_MS: 38000,
+  TAB_MATCHUP_MS: 8000,
+  TAB_RULES_MS: 21000,
+  TAB_GIFTS_MS: 9000,
   FADE_OUT_MS: 300,
-  HYPE_COUNTDOWN_SEC: 3,
+  HYPE_COUNTDOWN_SEC: 5,
+  TTS_SPEECH_RATE: 1.35,
 } as const;
 
 /** Participation guide panel: collapsed during battle, revealed periodically or when nobody is playing. */
@@ -1790,3 +1909,11 @@ export const GUIDE_AUTO_REVEAL_CONSTANTS = {
 
 /** Tokens show the champion art; viewers' TikTok profile photos only when an admin turns this on. */
 export const DEFAULT_USE_USER_AVATAR = false;
+
+/**
+ * Developer controls visibility on Client screen.
+ * Production / livestream view hides speaker and admin floating buttons.
+ * Can be temporarily revealed by adding ?dev=1 or ?debug=1 to URL.
+ */
+export const DEV_CONTROLS_QUERY_PARAM = 'dev';
+export const DEBUG_CONTROLS_QUERY_PARAM = 'debug';

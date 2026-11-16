@@ -11,25 +11,27 @@
   0% { transform: translateY(-8px) scale(0.9); opacity: 0; }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
-.animate-gift-pill-in { animation: giftPillIn 0.22s ease-out both; }
+.animate-gift-pill-in { animation: giftPillIn 0.32s ease-out both; }
 
 @keyframes giftShimmer {
   from { transform: translateX(-100%); }
   to { transform: translateX(100%); }
 }
-.animate-gift-shimmer { animation: giftShimmer 1.8s linear infinite; }
+.animate-gift-shimmer { animation: giftShimmer 2.6s ease-in-out infinite; }
 
 @keyframes giftHeroIn {
-  0% { transform: scale(0.4); opacity: 0; }
-  55% { transform: scale(1.08); opacity: 1; }
-  75% { transform: scale(0.97); }
+  0% { transform: scale(0.6); opacity: 0; }
+  55% { transform: scale(1.04); opacity: 1; }
+  75% { transform: scale(0.99); }
   100% { transform: scale(1); opacity: 1; }
 }
-.animate-gift-hero-in { animation: giftHeroIn 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.animate-gift-hero-in { animation: giftHeroIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* Rotation only: elements centre themselves with the `translate` utilities, so they stay centred
+   even when the animation is disabled (prefers-reduced-motion). */
 @keyframes giftRaysSpin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .animate-gift-rays { animation: giftRaysSpin 9s linear infinite; }
 .animate-gift-ring-spin { animation: giftRaysSpin 3.5s linear infinite; }
@@ -52,15 +54,165 @@
 }
 .animate-boss-knockback { animation: bossKnockback 0.9s cubic-bezier(0.3, 0.7, 0.4, 1); }
 
-@media (prefers-reduced-motion: reduce) {
-  .animate-gift-streak-punch,
-  .animate-gift-pill-in,
-  .animate-gift-shimmer,
-  .animate-gift-hero-in,
-  .animate-gift-rays,
-  .animate-gift-ring-spin,
-  .animate-gift-confetti,
-  .animate-boss-knockback {
-    animation: none;
+/*
+ * Avatar flying strike (gift finisher), 4.8 s — keep in sync with AVATAR_STRIKE_DURATION_MS.
+ * Arrive at the donor's wing, hover ~2 s so the name can be read, then dive into the boss.
+ * Transform / opacity only: animating `filter` on a large blurred element stutters in OBS,
+ * and the old brightness(2.9) + scale(2.2) washed the card out to white.
+ */
+@keyframes avatarStrikeLeft {
+  0% { transform: translate3d(-230px, -170px, 0) scale(0.4) rotate(-30deg); opacity: 0; animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
+  14% { transform: translate3d(-90px, -150px, 0) scale(1.08) rotate(-12deg); opacity: 1; animation-timing-function: ease-in-out; }
+  36% { transform: translate3d(-80px, -162px, 0) scale(1.12) rotate(-8deg); opacity: 1; animation-timing-function: ease-in-out; }
+  58% { transform: translate3d(-85px, -154px, 0) scale(1.1) rotate(-10deg); opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.4); }
+  90% { transform: translate3d(0, 0, 0) scale(1.3) rotate(0deg); opacity: 1; animation-timing-function: ease-out; }
+  100% { transform: translate3d(0, 0, 0) scale(1.15) rotate(0deg); opacity: 0; }
+}
+.animate-avatar-strike-left {
+  animation: avatarStrikeLeft 4.8s linear both;
+  will-change: transform, opacity;
+}
+
+@keyframes avatarStrikeRight {
+  0% { transform: translate3d(230px, -170px, 0) scale(0.4) rotate(30deg); opacity: 0; animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
+  14% { transform: translate3d(90px, -150px, 0) scale(1.08) rotate(12deg); opacity: 1; animation-timing-function: ease-in-out; }
+  36% { transform: translate3d(80px, -162px, 0) scale(1.12) rotate(8deg); opacity: 1; animation-timing-function: ease-in-out; }
+  58% { transform: translate3d(85px, -154px, 0) scale(1.1) rotate(10deg); opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.4); }
+  90% { transform: translate3d(0, 0, 0) scale(1.3) rotate(0deg); opacity: 1; animation-timing-function: ease-out; }
+  100% { transform: translate3d(0, 0, 0) scale(1.15) rotate(0deg); opacity: 0; }
+}
+.animate-avatar-strike-right {
+  animation: avatarStrikeRight 4.8s linear both;
+  will-change: transform, opacity;
+}
+
+/* Boss critical stun tremble while awaiting incoming finisher strike */
+@keyframes bossCriticalStun {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: brightness(1.8) contrast(1.4) drop-shadow(0 0 35px #ef4444);
+  }
+  20%, 60% {
+    transform: translate3d(-5px, 2px, 0) scale(1.03);
+    filter: brightness(2.2) contrast(1.6) drop-shadow(0 0 55px #f43f5e);
+  }
+  40%, 80% {
+    transform: translate3d(5px, -2px, 0) scale(0.98);
+    filter: brightness(1.9) contrast(1.5) drop-shadow(0 0 45px #f59e0b);
   }
 }
+.animate-boss-critical-stun {
+  animation: bossCriticalStun 0.25s infinite ease-in-out;
+}
+
+/* Impact shockwave on boss collision */
+@keyframes finisherImpactWave {
+  0% {
+    transform: translate(-50%, -50%) scale(0.1);
+    opacity: 1;
+    border-width: 8px;
+  }
+  60% {
+    opacity: 0.85;
+    border-width: 4px;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.6);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+.animate-finisher-impact-wave {
+  animation: finisherImpactWave 0.7s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+/* Option A Unified Card Entrance */
+@keyframes finisherCardAppear {
+  0% {
+    transform: scale(0.8) translateY(24px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+.animate-finisher-card-appear {
+  animation: finisherCardAppear 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
+/* ── Tier escalation layers (MEDIUM pop → BIG slam → MEGA hero with aura, shock rings, crowns) ── */
+
+@keyframes giftPopIn {
+  0% { transform: translateY(-10px) scale(0.8); opacity: 0; }
+  60% { transform: translateY(0) scale(1.05); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.animate-gift-pop-in { animation: giftPopIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes giftSlamIn {
+  0% { transform: scale(1.25) rotate(-1.5deg); opacity: 0; }
+  50% { transform: scale(0.97) rotate(0.5deg); opacity: 1; }
+  75% { transform: scale(1.015) rotate(0deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.animate-gift-slam-in { animation: giftSlamIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes giftGlowPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.animate-gift-glow-pulse { animation: giftGlowPulse 2s ease-in-out infinite; }
+
+/* 4-point star flying out from the card centre; offsets come from --gift-sparkle-x / -y. */
+@keyframes giftSparkleFly {
+  0% { transform: translate3d(0, 0, 0) scale(0) rotate(0deg); opacity: 0; }
+  25% { transform: translate3d(calc(var(--gift-sparkle-x, 0px) * 0.6), calc(var(--gift-sparkle-y, 0px) * 0.6), 0) scale(1.25) rotate(80deg); opacity: 1; }
+  100% { transform: translate3d(var(--gift-sparkle-x, 0px), var(--gift-sparkle-y, 0px), 0) scale(0) rotate(200deg); opacity: 0; }
+}
+.gift-sparkle {
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+  opacity: 0;
+}
+.animate-gift-sparkle { animation: giftSparkleFly 0.9s ease-out both; }
+.animate-gift-sparkle-loop { animation: giftSparkleFly 2s ease-out infinite both; }
+
+/* Rotating conic border behind BIG / MEGA cards (the card sits on top with a 2px inset). */
+.animate-gift-aura { animation: giftRaysSpin 4s linear infinite; }
+.animate-gift-aura-fast { animation: giftRaysSpin 2.2s linear infinite; }
+.animate-gift-rays-reverse { animation: giftRaysSpin 14s linear infinite reverse; }
+
+@keyframes giftShockRing {
+  0% { transform: scale(0.15); opacity: 0.95; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+.gift-shock-ring { opacity: 0; }
+.animate-gift-shock-ring { animation: giftShockRing 1.6s cubic-bezier(0.1, 0.7, 0.3, 1) infinite both; }
+
+@keyframes giftCrownBob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.12); }
+}
+.animate-gift-crown-bob { animation: giftCrownBob 0.9s ease-in-out infinite; }
+
+@keyframes giftCoinPunch {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.18); }
+  28% { transform: scale(0.98); }
+  40% { transform: scale(1); }
+}
+.animate-gift-coin-punch { animation: giftCoinPunch 2s ease-out infinite; }
+
+
+/* Gift card leaving: fades and lifts away instead of vanishing (duration = GIFT_BANNER_EXIT_MS). */
+@keyframes giftExit {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-12px) scale(0.94); opacity: 0; }
+}
+.animate-gift-exit { animation: giftExit 0.45s cubic-bezier(0.4, 0, 1, 1) both; }
+
+/*
+ * No prefers-reduced-motion override here on purpose: this page is a broadcast overlay captured by OBS,
+ * and the gift celebration is the content. Honouring the streaming PC's OS "animation effects" switch
+ * froze confetti on the card edge and hid sparkles, rays and shock rings for every viewer.
+ */

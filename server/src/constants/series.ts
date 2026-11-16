@@ -33,6 +33,9 @@ export function isDeciderRound(blgScore: number, gengScore: number, targetWins: 
   return blgScore === gengScore && blgScore === targetWins - 1;
 }
 
+/** Length of the Silver Scrapes duel that opens a decider round (seconds). */
+export const DECIDER_DUEL_DURATION_SEC = 60;
+
 export type DuelLaneKey = 'MID' | 'TOP' | 'JUG' | 'ADC' | 'SUP';
 
 export interface DuelFighter {
@@ -89,4 +92,22 @@ export const DEFAULT_DUEL_STATE: SilverScrapesDuelState = {
   winner: null,
   isLastStandActive: false,
   winningTeamBuff: null,
+};
+
+/** Series progress sockets (the overlay plays the rounds; the server keeps the series state). */
+export const SERIES_EVENT = {
+  /** Overlay → server: a round was just won (score after the round, round that was played). */
+  OVERLAY_ROUND_RESULT: 'overlay:round-result',
+} as const;
+
+/**
+ * "Next round" requests say which round they finish (`fromRound`). Several senders can ask for the
+ * same transition (each overlay's victory countdown, the admin button), so only the first one whose
+ * `fromRound` is still the current round advances; the others are duplicates. Requests without
+ * `fromRound` (older admin builds) always advance.
+ */
+export const isStaleNextRoundRequest = (currentRound: number, fromRound: unknown): boolean => {
+  if (fromRound === undefined || fromRound === null) return false;
+  const round = Number(fromRound);
+  return !Number.isInteger(round) || round !== currentRound;
 };

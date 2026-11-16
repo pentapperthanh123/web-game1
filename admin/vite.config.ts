@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
   const backendTarget =
     process.env.VITE_SERVER_URL ||
     env.VITE_SERVER_URL ||
-    'http://localhost:4000';
+    'http://127.0.0.1:4000';
 
   return {
     plugins: [react(), tailwindcss()],
@@ -27,10 +27,21 @@ export default defineConfig(({ mode }) => {
           target: backendTarget,
           ws: true,
           changeOrigin: true,
+          timeout: 60000,
         },
         '/api': {
           target: backendTarget,
           changeOrigin: true,
+          timeout: 60000,
+          proxyTimeout: 60000,
+          configure: (proxy) => {
+            proxy.on('error', (err, _req, res) => {
+              if (res && 'writeHead' in res && !res.headersSent) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'PROXY_ERROR', message: err.message }));
+              }
+            });
+          },
         },
       },
     },

@@ -17,6 +17,7 @@ import {
   TeamType,
 } from '../constants/game';
 import { RosterPlayer } from '../constants/roster';
+import { isCurrentRoundIntroActive } from './roundIntroStore';
 
 /** Returns a random floating-point number in [min, max). */
 export const randomInRange = (min: number, max: number): number =>
@@ -159,7 +160,7 @@ export const getActiveHeartFuryMultiplier = (
   return momentum.multiplier;
 };
 
-/** Returns true when combat actions should be ignored (boss defeated, round intermission, or Silver Scrapes duel active). */
+/** Returns true when combat actions should be ignored (boss defeated, round intermission, round intro active, or Silver Scrapes duel active). */
 export const isBattleHalted = (
   state: Pick<GameState, 'bossHp' | 'bossStatus' | 'isRoundIntermission' | 'roundWinner' | 'silverScrapesState'>
 ): boolean =>
@@ -167,7 +168,8 @@ export const isBattleHalted = (
   state.bossStatus === BOSS_STATUS.DEFEATED ||
   state.isRoundIntermission ||
   state.roundWinner !== null ||
-  state.silverScrapesState?.isActive === true;
+  state.silverScrapesState?.isActive === true ||
+  isCurrentRoundIntroActive();
 
 /**
  * Adds a timed VFX entity unless `maxActive` are still playing.

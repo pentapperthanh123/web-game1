@@ -45,11 +45,13 @@ const EMBER_COUNT = 6;
 const RANDOMS_PER_PUFF = 2;
 
 /** Dust kicked up along the charge path, speed streaks rushing forward and a shock burst on impact. */
-export const ChargeDash3D = ({ color, secondaryColor, scale, count, direction, startedAt, durationMs }: SkillVfx3DProps) => {
+export const ChargeDash3D = ({ color, secondaryColor, scale, count, direction, startedAt, durationMs, impactPoints }: SkillVfx3DProps) => {
   const puffGroupRef = useRef<THREE.Group>(null);
   const streakGroupRef = useRef<THREE.Group>(null);
   const trailSide = direction >= 0 ? -1 : 1;
-  const impactX = direction === 0 ? 0 : direction * BOSS_3D_ANCHORS.WING_X;
+  // The charge ends on the champion it rams (or the wing centre when the wing is empty)
+  const impactX = impactPoints[0]?.[0] ?? direction * BOSS_3D_ANCHORS.WING_X;
+  const impactZ = impactPoints[0]?.[1] ?? 0;
   const puffs = useMemo(() => {
     const randoms = seededValues(startedAt, count * RANDOMS_PER_PUFF);
     const stagger = fitStagger(PUFF_STAGGER, PUFF_LIFE, count);
@@ -83,7 +85,7 @@ export const ChargeDash3D = ({ color, secondaryColor, scale, count, direction, s
     });
   });
 
-  const impactPosition = [impactX, BOSS_3D_ANCHORS.GROUND_Y, 0] as const;
+  const impactPosition = [impactX, BOSS_3D_ANCHORS.GROUND_Y, impactZ] as const;
 
   return (
     <group>

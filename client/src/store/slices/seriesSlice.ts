@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand';
 import { resetRoundDamage } from '../roundDamageTracker';
 import { showRoundIntro } from '../roundIntroStore';
 import { resetCommunityQuests } from '../communityQuestStore';
+import { clearMatchSnapshot } from '../matchSnapshot';
 import { clearMatchupTitles, persistChampionshipTally } from '../championshipTally';
 import { GameState, SeriesFormat } from '../../types/game';
 import {
@@ -48,12 +49,15 @@ const resolveSeriesWinner = (
 
 /** Creates the BO1/BO3/BO5 series progression and Silver Scrapes duel slice. */
 export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (set, get) => ({
-  startNextRound: () => {
+  startNextRound: (targetRound?: number) => {
     const state = get();
     if (state.isSeriesEnded) return;
     resetCommunityQuests();
     resetRoundDamage();
-    const nextRound = Math.min(GAME_CONSTANTS.BO5.MAX_ROUNDS, state.currentRound + 1);
+    const maxRounds = state.seriesMaxRounds || GAME_CONSTANTS.BO5.MAX_ROUNDS;
+    // A server-sent target wins: the series sync may already have moved currentRound (no double +1)
+    const isValidTarget = typeof targetRound === 'number' && Number.isInteger(targetRound) && targetRound >= 1;
+    const nextRound = Math.min(maxRounds, isValidTarget ? targetRound : state.currentRound + 1);
     const nextTheme = getBossThemeForRound(nextRound, state.seriesFormat);
     const difficulty = BOSS_DIFFICULTY_SCALE[nextTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
     const nextMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
@@ -62,7 +66,6 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     persistGameTheme(nextTheme);
     audioService.setCombatMuted(false);
     playSound(SFX_EVENT.ROUND_START);
-    showRoundIntro(nextRound);
     get().addLog(
       'SYSTEM',
       `⚔️ Bắt đầu Ván ${nextRound} / ${state.seriesFormat} • Đối đầu ${themeConfig.bossName} (${nextMaxHp.toLocaleString()} HP)!`
@@ -75,6 +78,10 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       currentRound: nextRound,
       roundWinner: null,
       isRoundIntermission: false,
+      teamScores: {
+        [TEAM_KEY.BLG]: 0,
+        [TEAM_KEY.GENG]: 0,
+      },
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
@@ -108,12 +115,17 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
+      finisherAvatarUrl: null,
+      finisherGiftName: null,
+      finisherCoins: null,
       leaderboard: [],
       proLeaderboard: [],
       rosterAttackTimestamps: {},
       rosterPlayerFury: createInitialRosterFury(state.activeTeams),
       lastFuryUltimatePlayerId: null,
     });
+    // After the store update: the intro and the caster read the round from currentRound
+    showRoundIntro(Date.now(), false);
   },
 
   resetMatchupChampionships: () => {
@@ -127,6 +139,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
   },
 
   resetBO5Match: () => {
+    clearMatchSnapshot();
     resetCommunityQuests();
     resetRoundDamage();
     const state = get();
@@ -138,7 +151,6 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     persistGameTheme(round1Theme);
     audioService.setCombatMuted(false);
     playSound(SFX_EVENT.ROUND_START);
-    showRoundIntro(1);
     get().addLog(
       'SYSTEM',
       `🔄 Bắt đầu Trận đấu ${state.seriesFormat} Mới (0 - 0) • Ván 1: ${themeConfig.bossName}!`
@@ -154,6 +166,10 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       isRoundIntermission: false,
       isSeriesEnded: false,
       seriesWinner: null,
+      teamScores: {
+        [TEAM_KEY.BLG]: 0,
+        [TEAM_KEY.GENG]: 0,
+      },
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
@@ -191,10 +207,15 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       lastWeakPointSpawnTimestamp: 0,
       finisherPlayerName: null,
       finisherTeam: null,
+      finisherAvatarUrl: null,
+      finisherGiftName: null,
+      finisherCoins: null,
       rosterAttackTimestamps: {},
       rosterPlayerFury: createInitialRosterFury(get().activeTeams),
       lastFuryUltimatePlayerId: null,
     });
+    // After the store update: the intro and the caster read the round from currentRound
+    showRoundIntro(Date.now(), true);
   },
 
   setSeriesFormat: (format: SeriesFormat, resetScore = false) => {
@@ -232,6 +253,9 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
 
   applySeriesFormatSnapshot: (config) => {
     const isEnded = config.blgScore >= config.targetWins || config.gengScore >= config.targetWins;
+    // On the victory screen the round number stays the one just played: only an explicit nextRound
+    // (startNextRound) moves it. Changing it here made this overlay's own countdown skip a round.
+    const isBetweenRounds = get().roundWinner !== null;
     set({
       seriesFormat: config.format,
       bo5TargetWins: config.targetWins,
@@ -240,7 +264,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
         [TEAM_KEY.BLG]: config.blgScore,
         [TEAM_KEY.GENG]: config.gengScore,
       },
-      currentRound: config.currentRound,
+      currentRound: isBetweenRounds ? get().currentRound : config.currentRound,
       isSeriesEnded: isEnded,
       seriesWinner: resolveSeriesWinner(isEnded, config.blgScore, config.targetWins),
     });

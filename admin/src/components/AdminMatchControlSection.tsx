@@ -2,6 +2,7 @@ import { Activity, Crown, Play, Square } from 'lucide-react';
 import { SeriesFormatConfig } from '../constants/series';
 import { TeamColorPalette, TeamProfile } from '../constants/teams';
 import { Bo5Score } from '../hooks/useAdminSocketSync';
+import { ChampionshipTallyControl } from './ChampionshipTallyControl';
 
 interface AdminMatchControlSectionProps {
   visible: boolean;
@@ -17,7 +18,7 @@ interface AdminMatchControlSectionProps {
   botSpeed: number;
   onSetBossHp: (hp: number) => void;
   onBo5Control: (
-    action: 'reset' | 'nextRound' | 'setScore',
+    action: 'reset' | 'nextRound' | 'setScore' | 'startRound',
     blg?: number,
     geng?: number,
     round?: number
@@ -134,20 +135,31 @@ export function AdminMatchControlSection({
           <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
-              onClick={() => onBo5Control('nextRound')}
-              className="py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold transition active:scale-95"
+              onClick={() => onBo5Control('startRound')}
+              className="py-1.5 px-2 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-[10.5px] font-black transition active:scale-95 shadow flex items-center justify-center gap-1 cursor-pointer"
             >
-              Ván Kế Tiếp ⏩
+              <Play className="w-3 h-3 fill-current shrink-0" />
+              <span>Bắt Đầu Ván Đấu</span>
             </button>
             <button
               type="button"
-              onClick={() => onBo5Control('reset')}
-              className="py-1 px-2 rounded bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[10px] font-bold transition active:scale-95"
+              onClick={() => onBo5Control('nextRound')}
+              className="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10.5px] font-bold transition active:scale-95 cursor-pointer"
             >
-              Reset {seriesConfig.format} (0-0)
+              Ván Kế Tiếp ⏩
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => onBo5Control('reset')}
+            className="w-full py-1.5 px-2 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[10.5px] font-bold transition active:scale-95 cursor-pointer"
+          >
+            Reset {seriesConfig.format} (0-0)
+          </button>
         </div>
+
+        <ChampionshipTallyControl leftTeam={leftTeam} rightTeam={rightTeam} />
 
         <div className="pt-2 border-t border-slate-800 space-y-2">
           <div className="flex items-center justify-between">

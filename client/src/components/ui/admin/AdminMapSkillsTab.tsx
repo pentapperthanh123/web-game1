@@ -5,6 +5,7 @@ import { useGameStore } from '../../../store/gameStore';
 import {
   ADMIN_CONSTANTS,
   TEAM_KEY,
+  TeamType,
   THEME_CONFIGS,
   getThemeConfig,
   BossThemeConfig,
@@ -49,7 +50,7 @@ export const AdminMapSkillsTab: React.FC = () => {
     showFeedback(`Đã kích hoạt: ${skillName}`);
   };
 
-  const handleHealTeam = (team: 'BLG' | 'GENG' | 'ALL', label: string) => {
+  const handleHealTeam = (team: TeamType | 'ALL', label: string) => {
     healTeamChampions(team, 50);
     gameSocket.sendHealTeam(team, 50);
     showFeedback(`Đã hồi máu: ${label}`);
@@ -138,7 +139,7 @@ export const AdminMapSkillsTab: React.FC = () => {
             type="button"
             onClick={() =>
               handleHealTeam(
-                'BLG',
+                TEAM_KEY.BLG,
                 t('Admin.healTeamDynamic', '+50 HP cho {{team}}', { team: leftTeam.shortTag })
               )
             }
@@ -151,7 +152,7 @@ export const AdminMapSkillsTab: React.FC = () => {
             type="button"
             onClick={() =>
               handleHealTeam(
-                'GENG',
+                TEAM_KEY.GENG,
                 t('Admin.healTeamDynamic', '+50 HP cho {{team}}', { team: rightTeam.shortTag })
               )
             }

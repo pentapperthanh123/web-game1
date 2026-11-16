@@ -116,6 +116,8 @@ const textureLoader = new THREE.TextureLoader();
 export const SHARED_PORTRAIT_GEO = new THREE.CircleGeometry(0.17, 24);
 
 export const SHARED_CELESTIAL_AURA_GEO = new THREE.RingGeometry(0.16, 0.26, 24);
+/** Thin gold ring just outside the portrait border: a wide additive band reads as a muddy olive haze. */
+export const SHARED_SIGNATURE_HALO_GEO = new THREE.RingGeometry(0.2, 0.218, 48);
 export const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.05, 0.18, 1.6, 16, 1, true);
 export const SHARED_LIGHT_BEAM_CORE_GEO = new THREE.CylinderGeometry(0.015, 0.06, 1.6, 12, 1, true);
 export const SHARED_RUNE_SEAL_GEO = new THREE.RingGeometry(0.24, 0.265, 6);
@@ -161,13 +163,99 @@ export const getMinionAttackSpeedFactor = (
   );
 };
 
+/**
+ * Nameplate canvas. It is drawn close to its on-screen size and sampled with mipmaps, so the text
+ * stays sharp when the token is small (a huge canvas without mipmaps shimmers and smears instead).
+ */
+const NAMEPLATE_STYLE = {
+  CANVAS_WIDTH: 256,
+  CANVAS_HEIGHT: 64,
+  PADDING: 3,
+  CORNER_RADIUS: 29,
+  BORDER_WIDTH: 3,
+  BACKGROUND: 'rgba(2, 6, 23, 0.92)',
+  TEXT_COLOR: '#ffffff',
+  SIGNATURE_TEXT_COLOR: '#fde047',
+  TEXT_OUTLINE_COLOR: 'rgba(2, 6, 23, 0.95)',
+  TEXT_OUTLINE_WIDTH: 4,
+  TEXT_INSET_X: 15,
+  FONT_FAMILY: '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  FONT_WEIGHT: 800,
+  FONT_SIZE_MAX: 38,
+  FONT_SIZE_MIN: 22,
+  FONT_SIZE_STEP: 2,
+  /** Optical centring: bold caps sit slightly high on a `middle` baseline. */
+  TEXT_BASELINE_SHIFT: 2,
+  ANISOTROPY: 2,
+  MIN_TRUNCATED_LENGTH: 3,
+  FALLBACK_NAME: 'Viewer',
+  SIGNATURE_PREFIX: '★ ',
+} as const;
+
+const buildNameplateFont = (fontSize: number): string =>
+  `${NAMEPLATE_STYLE.FONT_WEIGHT} ${fontSize}px ${NAMEPLATE_STYLE.FONT_FAMILY}`;
+
+/** Shrinks the font first, then trims the name, so short names stay big and long ones still fit. */
+const fitNameplateText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string => {
+  let fontSize: number = NAMEPLATE_STYLE.FONT_SIZE_MAX;
+  ctx.font = buildNameplateFont(fontSize);
+  while (ctx.measureText(text).width > maxWidth && fontSize > NAMEPLATE_STYLE.FONT_SIZE_MIN) {
+    fontSize -= NAMEPLATE_STYLE.FONT_SIZE_STEP;
+    ctx.font = buildNameplateFont(fontSize);
+  }
+  let fitted = text;
+  while (ctx.measureText(fitted).width > maxWidth && fitted.length > NAMEPLATE_STYLE.MIN_TRUNCATED_LENGTH) {
+    fitted = `${fitted.slice(0, -2)}…`;
+  }
+  return fitted;
+};
+
+const traceNameplatePill = (ctx: CanvasRenderingContext2D): void => {
+  const inset = NAMEPLATE_STYLE.PADDING + NAMEPLATE_STYLE.BORDER_WIDTH / 2;
+  const pillWidth = NAMEPLATE_STYLE.CANVAS_WIDTH - inset * 2;
+  const pillHeight = NAMEPLATE_STYLE.CANVAS_HEIGHT - inset * 2;
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(inset, inset, pillWidth, pillHeight, NAMEPLATE_STYLE.CORNER_RADIUS);
+    return;
+  }
+  ctx.rect(inset, inset, pillWidth, pillHeight);
+};
+
+const drawNameplate = (ctx: CanvasRenderingContext2D, label: string, accentColor: string, isSignature: boolean): void => {
+  ctx.clearRect(0, 0, NAMEPLATE_STYLE.CANVAS_WIDTH, NAMEPLATE_STYLE.CANVAS_HEIGHT);
+
+  // Solid dark pill with one crisp accent border (no blurred glow: blur turns to mush when minified)
+  traceNameplatePill(ctx);
+  ctx.fillStyle = NAMEPLATE_STYLE.BACKGROUND;
+  ctx.fill();
+  ctx.lineWidth = NAMEPLATE_STYLE.BORDER_WIDTH;
+  ctx.strokeStyle = accentColor;
+  ctx.stroke();
+
+  // Centred name with a dark outline instead of a soft shadow, so glyph edges stay hard
+  const maxTextWidth = NAMEPLATE_STYLE.CANVAS_WIDTH - NAMEPLATE_STYLE.TEXT_INSET_X * 2;
+  const fittedLabel = fitNameplateText(ctx, label, maxTextWidth);
+  const textX = NAMEPLATE_STYLE.CANVAS_WIDTH / 2;
+  const textY = NAMEPLATE_STYLE.CANVAS_HEIGHT / 2 + NAMEPLATE_STYLE.TEXT_BASELINE_SHIFT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = NAMEPLATE_STYLE.TEXT_OUTLINE_WIDTH;
+  ctx.strokeStyle = NAMEPLATE_STYLE.TEXT_OUTLINE_COLOR;
+  ctx.strokeText(fittedLabel, textX, textY);
+  ctx.fillStyle = isSignature ? NAMEPLATE_STYLE.SIGNATURE_TEXT_COLOR : NAMEPLATE_STYLE.TEXT_COLOR;
+  ctx.fillText(fittedLabel, textX, textY);
+};
+
 export const getNameplateTexture = (
+  _championName: string,
   summonerName: string,
   team: string,
   primaryColor: string,
   signaturePlayerName?: string
 ): THREE.CanvasTexture => {
-  const cleanName = (summonerName || 'Viewer').trim().replace(/^@+/, '');
+  const cleanName = (summonerName || NAMEPLATE_STYLE.FALLBACK_NAME).trim().replace(/^@+/, '');
   const sigTag = signaturePlayerName ? signaturePlayerName.trim() : '';
   const cacheKey = `${team}_${primaryColor}_${cleanName}_${sigTag}`;
   const existing = nameplateTextureCache.get(cacheKey);
@@ -183,95 +271,26 @@ export const getNameplateTexture = (
     }
   }
 
-  const width = 512;
-  const height = 128;
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = NAMEPLATE_STYLE.CANVAS_WIDTH;
+  canvas.height = NAMEPLATE_STYLE.CANVAS_HEIGHT;
   const ctx = canvas.getContext('2d');
-
-  if (!ctx) {
-    const emptyTex = new THREE.CanvasTexture(canvas);
-    nameplateTextureCache.set(cacheKey, emptyTex);
-    return emptyTex;
+  if (ctx) {
+    const isSignature = sigTag.length > 0;
+    const label = isSignature
+      ? `${NAMEPLATE_STYLE.SIGNATURE_PREFIX}@${cleanName}`
+      : `@${cleanName}`;
+    const accentColor = isSignature ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor;
+    drawNameplate(ctx, label, accentColor, isSignature);
   }
-
-  const glowColor = sigTag ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor;
-  const paddingX = 14;
-  const paddingY = 14;
-  const pillW = width - paddingX * 2;
-  const pillH = height - paddingY * 2;
-  const radius = pillH / 2;
-
-  ctx.clearRect(0, 0, width, height);
-  ctx.save();
-  ctx.fillStyle = 'rgba(2, 6, 23, 0.94)';
-  ctx.beginPath();
-  if (typeof ctx.roundRect === 'function') {
-    ctx.roundRect(paddingX, paddingY, pillW, pillH, radius);
-  } else {
-    ctx.rect(paddingX, paddingY, pillW, pillH);
-  }
-  ctx.fill();
-  ctx.lineWidth = 10;
-  ctx.globalAlpha = 0.28;
-  ctx.strokeStyle = glowColor;
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.lineWidth = sigTag ? 5 : 4;
-  ctx.strokeStyle = glowColor;
-  ctx.beginPath();
-  if (typeof ctx.roundRect === 'function') {
-    ctx.roundRect(paddingX, paddingY, pillW, pillH, radius);
-  } else {
-    ctx.rect(paddingX, paddingY, pillW, pillH);
-  }
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(sigTag ? '⭐' : '💬', paddingX + 46, height / 2);
-  ctx.restore();
-
-  ctx.save();
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-  ctx.shadowBlur = 8;
-  const maxTextW = pillW - 88;
-
-  let displayName = `@${cleanName}`;
-  ctx.fillStyle = '#ffffff';
-  ctx.font = sigTag
-    ? 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-    : 'bold 38px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  while (ctx.measureText(displayName).width > maxTextW && displayName.length > 4) {
-    displayName = `${displayName.slice(0, -2)}…`;
-  }
-
-  if (sigTag) {
-    ctx.fillText(displayName, paddingX + 82, height * 0.36);
-    ctx.fillStyle = '#fde047';
-    ctx.font = '900 23px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    let badgeText = `${GAME_CONSTANTS.SIGNATURE_SYNERGY.BADGE_PREFIX} · ${sigTag.toUpperCase()} (+${GAME_CONSTANTS.SIGNATURE_SYNERGY.BONUS_PERCENT}%)`;
-    while (ctx.measureText(badgeText).width > maxTextW && badgeText.length > 6) {
-      badgeText = `${badgeText.slice(0, -2)}…`;
-    }
-    ctx.fillText(badgeText, paddingX + 82, height * 0.69);
-  } else {
-    ctx.fillText(displayName, paddingX + 82, height / 2);
-  }
-  ctx.restore();
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
+  // Mipmaps + trilinear + anisotropy: clean downsampling at any token size and camera angle
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
+  texture.anisotropy = NAMEPLATE_STYLE.ANISOTROPY;
+  texture.colorSpace = THREE.SRGBColorSpace;
 
   nameplateTextureCache.set(cacheKey, texture);
   return texture;
@@ -290,7 +309,10 @@ export const getChampionTexture = (url: string): THREE.Texture => {
   }
 
   const tex = textureLoader.load(url);
+  // Optimized for mass rendering: enable mipmaps with linear downsampling to reduce GPU fillrate & memory bandwidth
   tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
   // Set explicitly: the token shader reads it as a uniform, which skips R3F's automatic sRGB tagging of `map` props
   tex.colorSpace = THREE.SRGBColorSpace;
   textureCache.set(url, tex);

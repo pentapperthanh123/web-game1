@@ -6,6 +6,7 @@ interface TiktokConnectionBannerProps {
   tiktokUsername: string;
   tiktokStatus: string;
   tiktokRoomId: string;
+  tiktokError?: string;
   reconnectAttempt?: number;
   nextRetryAt?: number;
   isConnecting: boolean;
@@ -21,6 +22,7 @@ export function TiktokConnectionBanner({
   tiktokUsername,
   tiktokStatus,
   tiktokRoomId,
+  tiktokError,
   reconnectAttempt,
   nextRetryAt,
   isConnecting,
@@ -45,9 +47,16 @@ export function TiktokConnectionBanner({
               <span className="text-slate-500 text-[10px]">(Room ID: {tiktokRoomId})</span>
             )}
           </div>
-          <p className="text-[10px] text-slate-400 truncate">
-            Kết nối trực tiếp tới phòng livestream để bắt chat, gift, like thật
-          </p>
+          {tiktokError ? (
+            <p className="text-[10px] text-amber-400 font-medium truncate flex items-center gap-1">
+              <span>⚠️</span>
+              <span>{tiktokError}</span>
+            </p>
+          ) : (
+            <p className="text-[10px] text-slate-400 truncate">
+              Kết nối trực tiếp tới phòng livestream để bắt chat, gift, like thật
+            </p>
+          )}
         </div>
       </div>
 
@@ -63,13 +72,13 @@ export function TiktokConnectionBanner({
           />
         </div>
 
-        {tiktokStatus === TIKTOK_STATUS.CONNECTED ? (
+        {tiktokStatus === TIKTOK_STATUS.CONNECTED || tiktokStatus === TIKTOK_STATUS.RECONNECTING ? (
           <button
             type="button"
             onClick={onDisconnect}
             className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shrink-0"
           >
-            Ngắt Kết Nối
+            {tiktokStatus === TIKTOK_STATUS.RECONNECTING ? 'Hủy Thử Lại' : 'Ngắt Kết Nối'}
           </button>
         ) : (
           <button

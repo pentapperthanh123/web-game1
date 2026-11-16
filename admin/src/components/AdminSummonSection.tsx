@@ -113,6 +113,7 @@ export function AdminSummonSection({
     allowChampionEvolution: true,
     maxDeployPerTurn: SUMMON_QUEUE_UI.DEFAULT_DEPLOY_PER_TURN,
     summonTurnDelayMs: SUMMON_QUEUE_UI.DEFAULT_TURN_DELAY_MS,
+    championAttackSpeedMultiplier: SUMMON_QUEUE_UI.DEFAULT_ATTACK_SPEED_MULTIPLIER,
   });
 
   useEffect(() => {

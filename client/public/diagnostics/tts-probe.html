@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TTS Probe</title>
+<style>
+  :root { --bg: #0d1117; --panel: #161b22; --ink: #e6edf3; --muted: #8b949e; --ok: #3fb950; --bad: #f85149; --warn: #d29922; --line: #30363d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .verdict { margin: 14px 0; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); font-size: 18px; font-weight: 700; }
+  .verdict.ok { border-color: var(--ok); color: var(--ok); }
+  .verdict.bad { border-color: var(--bad); color: var(--bad); }
+  .verdict.warn { border-color: var(--warn); color: var(--warn); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line); background: #21262d; color: var(--ink); cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--ok); outline-offset: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  tr.vi td { color: var(--ok); font-weight: 600; }
+  pre { white-space: pre-wrap; word-break: break-word; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>TTS Probe · Spike S1</h1>
+  <div class="muted">Mở trang này dưới dạng OBS Browser Source (bật "Control audio via OBS") hoặc trong OBS → Interact. Trang tự đọc thử một câu sau khi tải danh sách giọng.</div>
+
+  <div id="verdict" class="verdict">Đang tải danh sách giọng…</div>
+
+  <div class="row">
+    <button id="speak-button" type="button">Đọc thử lại</button>
+    <button id="copy-button" type="button">Sao chép kết quả</button>
+  </div>
+
+  <h2 style="font-size:16px;margin:16px 0 4px">Đo thời gian</h2>
+  <pre id="timing">Chưa đọc.</pre>
+
+  <h2 style="font-size:16px;margin:16px 0 4px">Giọng có sẵn (<span id="voice-count">0</span>)</h2>
+  <table>
+    <thead><tr><th>Tên</th><th>Ngôn ngữ</th><th>Cục bộ</th><th>Mặc định</th></tr></thead>
+    <tbody id="voice-rows"></tbody>
+  </table>
+
+  <h2 style="font-size:16px;margin:16px 0 4px">Kết quả (gửi lại cho dev)</h2>
+  <pre id="report"></pre>
+
+<script>
+(() => {
+  const TEST_LINE = 'Hùng Dũng tung Yasuo vào sân cho BLG! Boss đang chao đảo!';
+  const VIETNAMESE_LANG_PREFIX = 'vi';
+  const VOICE_WAIT_TIMEOUT_MS = 4000;
+  const VOICE_POLL_INTERVAL_MS = 200;
+  const SPEECH_START_TIMEOUT_MS = 8000;
+  const SPEECH_RATE = 1.15;
+  const AUTOPLAY_BLOCKED_ERROR = 'not-allowed';
+  const AUTOPLAY_BLOCKED_HINT = ' (trình duyệt chặn tự phát âm thanh — bấm "Đọc thử lại"; OBS thường không chặn)';
+
+  const verdictEl = document.getElementById('verdict');
+  const timingEl = document.getElementById('timing');
+  const reportEl = document.getElementById('report');
+  const rowsEl = document.getElementById('voice-rows');
+  const countEl = document.getElementById('voice-count');
+
+  const report = {
+    userAgent: navigator.userAgent,
+    hasSpeechSynthesis: 'speechSynthesis' in window,
+    voiceCount: 0,
+    vietnameseVoices: [],
+    chosenVoice: null,
+    timeToStartMs: null,
+    speakDurationMs: null,
+    error: null,
+    checkedAt: new Date().toISOString(),
+  };
+
+  const renderReport = () => { reportEl.textContent = JSON.stringify(report, null, 2); };
+
+  const setVerdict = (text, tone) => {
+    verdictEl.textContent = text;
+    verdictEl.className = `verdict ${tone}`;
+  };
+
+  const waitForVoices = () => new Promise((resolve) => {
+    const startedAt = performance.now();
+    const poll = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0 || performance.now() - startedAt > VOICE_WAIT_TIMEOUT_MS) {
+        resolve(voices);
+        return;
+      }
+      setTimeout(poll, VOICE_POLL_INTERVAL_MS);
+    };
+    window.speechSynthesis.addEventListener('voiceschanged', () => resolve(window.speechSynthesis.getVoices()), { once: true });
+    poll();
+  });
+
+  const renderVoices = (voices) => {
+    countEl.textContent = String(voices.length);
+    rowsEl.replaceChildren(...voices.map((voice) => {
+      const row = document.createElement('tr');
+      if (voice.lang.toLowerCase().startsWith(VIETNAMESE_LANG_PREFIX)) row.className = 'vi';
+      [voice.name, voice.lang, voice.localService ? 'có' : 'không', voice.default ? 'có' : ''].forEach((value) => {
+        const cell = document.createElement('td');
+        cell.textContent = value;
+        row.appendChild(cell);
+      });
+      return row;
+    }));
+  };
+
+  const pickVietnameseVoice = (voices) => {
+    const vietnamese = voices.filter((voice) => voice.lang.toLowerCase().startsWith(VIETNAMESE_LANG_PREFIX));
+    return vietnamese.find((voice) => voice.localService) || vietnamese[0] || null;
+  };
+
+  const speakTestLine = (voice) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(TEST_LINE);
+    utterance.lang = voice ? voice.lang : 'vi-VN';
+    if (voice) utterance.voice = voice;
+    utterance.rate = SPEECH_RATE;
+    const calledAt = performance.now();
+    let startedAt = null;
+    timingEl.textContent = 'Đang đọc…';
+
+    const startTimeout = setTimeout(() => {
+      if (startedAt !== null) return;
+      report.error = `Không bắt đầu đọc sau ${SPEECH_START_TIMEOUT_MS} ms`;
+      timingEl.textContent = report.error;
+      setVerdict('Có giọng nhưng không phát được tiếng (treo). Cần TTS ở server.', 'bad');
+      renderReport();
+    }, SPEECH_START_TIMEOUT_MS);
+
+    utterance.onstart = () => {
+      startedAt = performance.now();
+      report.timeToStartMs = Math.round(startedAt - calledAt);
+      timingEl.textContent = `Bắt đầu đọc sau ${report.timeToStartMs} ms`;
+      renderReport();
+    };
+    utterance.onend = () => {
+      clearTimeout(startTimeout);
+      report.speakDurationMs = startedAt === null ? null : Math.round(performance.now() - startedAt);
+      timingEl.textContent = `Bắt đầu sau ${report.timeToStartMs} ms · đọc hết trong ${report.speakDurationMs} ms`;
+      renderReport();
+    };
+    utterance.onerror = (event) => {
+      clearTimeout(startTimeout);
+      report.error = `speech error: ${event.error}`;
+      const hint = event.error === AUTOPLAY_BLOCKED_ERROR ? AUTOPLAY_BLOCKED_HINT : '';
+      timingEl.textContent = `${report.error}${hint}`;
+      renderReport();
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const run = async () => {
+    if (!report.hasSpeechSynthesis) {
+      setVerdict('Trình duyệt này KHÔNG hỗ trợ Web Speech. Cần TTS ở server.', 'bad');
+      renderReport();
+      return;
+    }
+    const voices = await waitForVoices();
+    renderVoices(voices);
+    report.voiceCount = voices.length;
+    report.vietnameseVoices = voices
+      .filter((voice) => voice.lang.toLowerCase().startsWith(VIETNAMESE_LANG_PREFIX))
+      .map((voice) => `${voice.name} (${voice.lang}${voice.localService ? ', local' : ', online'})`);
+    const chosenVoice = pickVietnameseVoice(voices);
+    report.chosenVoice = chosenVoice ? `${chosenVoice.name} (${chosenVoice.lang})` : null;
+
+    if (voices.length === 0) setVerdict('Không có giọng nào. Web Speech không dùng được trong OBS → cần TTS ở server.', 'bad');
+    else if (!chosenVoice) setVerdict(`Có ${voices.length} giọng nhưng KHÔNG có tiếng Việt → cần TTS ở server hoặc cài gói giọng Việt cho Windows.`, 'warn');
+    else setVerdict(`CÓ giọng tiếng Việt: ${report.chosenVoice}. Hãy nghe thử chất lượng.`, 'ok');
+
+    renderReport();
+    speakTestLine(chosenVoice);
+  };
+
+  document.getElementById('speak-button').addEventListener('click', () => {
+    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    speakTestLine(pickVietnameseVoice(voices));
+  });
+  document.getElementById('copy-button').addEventListener('click', () => {
+    navigator.clipboard?.writeText(reportEl.textContent).catch(() => {
+      const range = document.createRange();
+      range.selectNodeContents(reportEl);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+    });
+  });
+
+  run();
+})();
+</script>
+</body>
+</html>

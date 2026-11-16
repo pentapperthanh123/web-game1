@@ -15,6 +15,7 @@ import {
   fitStagger,
   opacityLayer,
   phaseProgress,
+  resolveImpactSpot,
   seededValues,
   setMaterialOpacity,
 } from './bossSkill3DShared';
@@ -51,23 +52,29 @@ const resolveHeightFactor = (local: number): number => {
 };
 
 /** Crystal spikes: a glowing ground telegraph, then a solid crystal with a white-hot core pops out of the floor. */
-export const GroundSpikes3D = ({ color, secondaryColor, scale, count, startedAt, durationMs }: SkillVfx3DProps) => {
+export const GroundSpikes3D = ({ color, secondaryColor, scale, count, startedAt, durationMs, impactPoints }: SkillVfx3DProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const spikes = useMemo(() => {
     const randoms = seededValues(startedAt, count * RANDOMS_PER_SPIKE);
     const stagger = fitStagger(STAGGER, SPIKE_SPAN, count);
     return Array.from({ length: count }, (_, index) => {
       const base = index * RANDOMS_PER_SPIKE;
+      const [x, z] = resolveImpactSpot(
+        impactPoints,
+        index,
+        (randoms[base] - 0.5) * SPREAD_X,
+        (randoms[base + 1] - 0.5) * SPREAD_Z
+      );
       return {
-        x: (randoms[base] - 0.5) * SPREAD_X,
-        z: (randoms[base + 1] - 0.5) * SPREAD_Z,
+        x,
+        z,
         height: (MIN_HEIGHT + randoms[base + 2] * HEIGHT_RANGE) * scale,
         rotationY: randoms[base] * Math.PI * 2,
         lean: (randoms[base + 3] - 0.5) * 2 * MAX_LEAN,
         offset: index * stagger,
       };
     });
-  }, [startedAt, count, scale]);
+  }, [startedAt, count, scale, impactPoints]);
 
   useFrame(() => {
     const group = groupRef.current;

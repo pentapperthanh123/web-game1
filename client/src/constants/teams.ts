@@ -12,6 +12,8 @@ import {
   TeamProfile,
 } from '../types/team';
 
+export type { TeamColorPalette, TeamProfile, TeamPlayerProfile };
+
 export const TEAM_DATA_LIMITS = {
   MAX_BASE64_MEDIA_LENGTH: 400_000,
   MAX_QUEUE_ITEMS: 24,
@@ -392,15 +394,15 @@ export const PRESET_TEAMS: TeamProfile[] = [
         avatarUrl: '/images/players/knight.png',
       },
       {
-        id: 'blg-elk',
-        name: 'Elk',
+        id: 'blg-viper',
+        name: 'Viper',
         role: 'ADC',
         roleName: PLAYER_ROLE_LABEL_VI.ADC,
-        signatureChampion: 'Kalista',
-        championKey: 'Kalista',
+        signatureChampion: "Kai'Sa",
+        championKey: 'Kaisa',
         team: 'BLG',
         color: '#22d3ee',
-        avatarUrl: createChampionPortrait('Kalista'),
+        avatarUrl: '/images/players/viper.png',
       },
       {
         id: 'blg-on',
@@ -1422,11 +1424,15 @@ export const findRosterPlayerInRoster = (
   return roster[Math.floor(Math.random() * roster.length)];
 };
 
-export const findSignatureChampionByPlayer = (input: string): string | undefined => {
+export const findSignatureChampionByPlayer = (
+  input: string,
+  dynamicTeams?: TeamProfile[]
+): string | undefined => {
   if (!input || !input.trim()) return undefined;
   const norm = input.trim().toLowerCase();
+  const searchList = dynamicTeams && dynamicTeams.length > 0 ? dynamicTeams : PRESET_TEAMS;
 
-  for (const team of PRESET_TEAMS) {
+  for (const team of searchList) {
     const matched = team.roster.find(
       (p) => p.name.toLowerCase() === norm || norm.includes(p.name.toLowerCase())
     );

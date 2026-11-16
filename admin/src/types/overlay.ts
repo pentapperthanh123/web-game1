@@ -10,6 +10,7 @@ export interface OverlayVisibility {
   matchTitleBar: boolean;
   casterSubtitle: boolean;
   bossSkills: boolean;
+  bossSkillBanner: boolean;
 }
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -24,6 +25,7 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   matchTitleBar: true,
   casterSubtitle: false,
   bossSkills: false,
+  bossSkillBanner: true,
 };
 
 export const OVERLAY_STORAGE_KEY = 'lol_overlay_visibility_config';

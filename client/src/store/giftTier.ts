@@ -1,4 +1,15 @@
 import { GIFT_DURATION_SCALING, GIFT_TIER, GIFT_TIER_CONFIG, GiftTier, GiftTierConfig } from '../constants/game';
+import {
+  GIFT_FIREWORK,
+  GIFT_MEGA_GRADE,
+  GIFT_MEGA_GRADE_CONFIG,
+  GIFT_MEGA_GRADES_DESCENDING,
+  GiftMegaGrade,
+  GiftMegaGradeConfig,
+} from '../constants/giftPresentation';
+import { GiftAnnouncement } from '../types/game';
+
+const COINS_PER_EXTRA_STEP = 1000;
 
 /** Tiers from highest to lowest so the first match wins. */
 const TIERS_DESCENDING: readonly GiftTier[] = [GIFT_TIER.MEGA, GIFT_TIER.BIG, GIFT_TIER.MEDIUM, GIFT_TIER.SMALL];
@@ -27,16 +38,12 @@ export const getGiftTierConfig = (tier: GiftTier): GiftTierConfig => GIFT_TIER_C
  * For gifts >= 1000 coins, the bigger the reward, the longer the celebration banner stays on screen.
  */
 export const resolveBannerDurationMs = (tier: GiftTier, coins = 0): number => {
-  const baseDuration = GIFT_TIER_CONFIG[tier].bannerDurationMs;
-  if (tier !== GIFT_TIER.MEGA || coins <= 1000) {
-    return baseDuration;
+  const config = GIFT_TIER_CONFIG[tier];
+  if (tier !== GIFT_TIER.MEGA || coins <= config.minCoins) {
+    return config.bannerDurationMs;
   }
-  const extraCoins = coins - 1000;
-  const extraTime = Math.floor(extraCoins / 1000) * GIFT_DURATION_SCALING.MS_PER_1000_COINS;
-  return Math.min(
-    GIFT_DURATION_SCALING.MAX_BANNER_DURATION_MS,
-    GIFT_DURATION_SCALING.MEGA_BASE_MS + extraTime
-  );
+  const extraTime = Math.floor((coins - config.minCoins) / COINS_PER_EXTRA_STEP) * GIFT_DURATION_SCALING.MS_PER_1000_COINS;
+  return Math.min(GIFT_DURATION_SCALING.MAX_BANNER_DURATION_MS, config.bannerDurationMs + extraTime);
 };
 
 /** Rank for comparisons (MEGA > BIG > MEDIUM > SMALL). */
@@ -44,3 +51,35 @@ export const getGiftTierRank = (tier: GiftTier): number => TIERS_DESCENDING.leng
 
 export const isGiftTierAtLeast = (tier: GiftTier, minimum: GiftTier): boolean =>
   getGiftTierRank(tier) >= getGiftTierRank(minimum);
+
+/** Grade inside the MEGA tier: the celebration keeps growing with the coin value. */
+export const resolveMegaGrade = (coins: number): GiftMegaGrade =>
+  GIFT_MEGA_GRADES_DESCENDING.find((grade) => coins >= GIFT_MEGA_GRADE_CONFIG[grade].minCoins) ?? GIFT_MEGA_GRADE.ROYAL;
+
+export const getMegaGradeConfig = (coins: number): GiftMegaGradeConfig => GIFT_MEGA_GRADE_CONFIG[resolveMegaGrade(coins)];
+
+/** Coins a banner celebrates: the streak's running total when known, else the single gift. */
+export const resolveAnnouncementCoins = (banner: GiftAnnouncement): number => banner.totalCoins ?? banner.coins ?? 0;
+
+/**
+ * A smaller gift must not cut a bigger celebration short: the running banner stays until its own
+ * duration ends unless the incoming one is at least the same tier.
+ */
+export const pickGiftBanner = (
+  current: GiftAnnouncement | null,
+  incoming: GiftAnnouncement | null,
+  now: number
+): GiftAnnouncement | null => {
+  if (!incoming) return current;
+  if (!current) return incoming;
+  const isCurrentBigger = getGiftTierRank(current.tier) > getGiftTierRank(incoming.tier);
+  const currentEndsAt = current.timestamp + resolveBannerDurationMs(current.tier, resolveAnnouncementCoins(current));
+  return isCurrentBigger && now < currentEndsAt ? current : incoming;
+};
+
+/** Firework shells for the gift: none below BIG, a couple for BIG, the grade's count for MEGA. */
+export const resolveFireworkShellCount = (tier: GiftTier, coins: number): number => {
+  if (tier === GIFT_TIER.MEGA) return getMegaGradeConfig(coins).fireworkShellCount;
+  if (tier === GIFT_TIER.BIG) return GIFT_FIREWORK.BIG_SHELL_COUNT;
+  return 0;
+};

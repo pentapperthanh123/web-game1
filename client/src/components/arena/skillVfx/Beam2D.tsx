@@ -68,7 +68,7 @@ export const Beam2D: React.FC<SkillVfx2DProps> = React.memo(({ color, secondaryC
   return (
     <div className="absolute inset-0 pointer-events-none z-30" style={SKILL_VFX_2D_LAYER_STYLE}>
       <div
-        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full animate-skill-beam-core"
+        className="absolute left-1/2 rounded-full animate-skill-beam-core"
         style={{
           top: BEAM_ORIGIN_TOP,
           width: muzzlePx,

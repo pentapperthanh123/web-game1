@@ -5,6 +5,7 @@ import {
   QUEST_KIND,
   QuestKind,
   TeamType,
+  DAMAGE_SOURCE,
 } from '../constants/game';
 import { GameState } from '../types/game';
 import { activateTeamDamageBuff, recordQuestProgress } from './communityQuestStore';
@@ -27,6 +28,7 @@ const rewardMeteorStrike = (get: () => GameState, team: TeamType, tier: number):
   get().triggerScreenShake(COMMUNITY_QUEST_CONSTANTS.METEOR_SCREEN_SHAKE);
   get().spawnParticleBurst(BOSS_HIT_ORIGIN, COMMUNITY_QUEST_CONSTANTS.REWARD_FLASH_COLOR, tier + 1);
   get().damageBoss(damage, team, COMMUNITY_QUEST_CONSTANTS.REWARD_ACTOR_NAME, DAMAGE_TYPE.ULTIMATE, {
+    source: DAMAGE_SOURCE.QUEST,
     excludeFromLeaderboard: true,
   });
 };

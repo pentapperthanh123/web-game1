@@ -47,6 +47,9 @@ export const SFX_EVENT = {
   CHAMPION_DEATH_MULTI: 'CHAMPION_DEATH_MULTI',
   SIGNATURE_SUMMON: 'SIGNATURE_SUMMON',
   WIPE: 'WIPE',
+  SILVER_SCRAPES: 'SILVER_SCRAPES',
+  MATCH_FOUND: 'MATCH_FOUND',
+  MATCH_ACCEPT: 'MATCH_ACCEPT',
   // Per-boss voices (BOSS_ROAR / BOSS_ENRAGE above are Baron's, the default boss)
   BOSS_ROAR_HERALD: 'BOSS_ROAR_HERALD',
   BOSS_ENRAGE_HERALD: 'BOSS_ENRAGE_HERALD',
@@ -227,6 +230,33 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     duckCombatMs: 5000,
     maxVoices: 1,
     throttleMs: 1500,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.SILVER_SCRAPES]: {
+    src: [fromLocal('SILVER_SCRAPES.mp3')],
+    volume: 0.95,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 65000,
+    maxVoices: 1,
+    throttleMs: 500,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.MATCH_FOUND]: {
+    src: [fromLocal('MATCH_FOUND.mp3')],
+    volume: 0.9,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 3200,
+    maxVoices: 1,
+    throttleMs: 1000,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.MATCH_ACCEPT]: {
+    src: [fromLocal('MATCH_ACCEPT.mp3')],
+    volume: 0.95,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 2000,
+    maxVoices: 1,
+    throttleMs: 500,
     rateJitter: 0,
   },
 
@@ -430,10 +460,10 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0.05,
   },
   [SFX_EVENT.WIPE]: {
-    src: [fromMyinstants('dramatic-sting.MP3'), fromMyinstants('cinematic-boom-hq.mp3')],
-    volume: 0.9,
+    src: [fromMyinstants('aced-league-of-legends-sound.mp3'), fromMyinstants('dramatic-sting.MP3')],
+    volume: 0.95,
     category: SFX_CATEGORY.STINGER,
-    duckCombatMs: 1800,
+    duckCombatMs: 2500,
     maxVoices: 1,
     throttleMs: 1500,
     rateJitter: 0,
@@ -554,6 +584,7 @@ export const BOSS_SKILL_VFX_SFX: Readonly<Partial<Record<BossSkillVfxType, SfxEv
   [BOSS_SKILL_VFX.BEAM]: SFX_EVENT.BOSS_BEAM,
   [BOSS_SKILL_VFX.VORTEX]: SFX_EVENT.BOSS_VORTEX,
   [BOSS_SKILL_VFX.CHARGE_DASH]: SFX_EVENT.BOSS_CHARGE,
+  [BOSS_SKILL_VFX.CHAIN_LIGHTNING]: SFX_EVENT.BOSS_LIGHTNING,
 };
 
 export const BOSS_VOICE_KIND = {

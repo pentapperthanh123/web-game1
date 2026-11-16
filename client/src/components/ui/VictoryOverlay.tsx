@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import {
-  BOSS_DEFEAT_CONSTANTS,
   BOSS_STATUS,
+  isDonorFinisherCheck,
+  resolveDefeatShowcaseMs,
   TEAM_KEY,
 } from '../../constants/game';
 import { playSound } from '../../services/soundManager';
@@ -15,10 +16,8 @@ import { VictoryHeaderStage } from './victory/VictoryHeaderStage';
 import { VictorySeriesScoreCard } from './victory/VictorySeriesScoreCard';
 import { VictoryMvpCard } from './victory/VictoryMvpCard';
 import { PODIUM_SIZE, VictoryPodiumCard } from './victory/VictoryPodiumCard';
-import { VictoryWeeklyBoardCard } from './victory/VictoryWeeklyBoardCard';
 import { VictoryDamageSummaryCard } from './victory/VictoryDamageSummaryCard';
 import { VictoryActionControls } from './victory/VictoryActionControls';
-import { VictoryConfettiCanvas } from './victory/VictoryConfettiCanvas';
 import {
   VICTORY_CELEBRATION_STARS,
   resolveEffectiveWinner,
@@ -27,8 +26,8 @@ import {
 export const VictoryOverlay = () => {
   const bossStatus = useGameStore((state) => state.bossStatus);
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
-  const teamScoreBLG = useGameStore((state) => state.teamScoreBLG);
-  const teamScoreGENG = useGameStore((state) => state.teamScoreGENG);
+  const leftScore = useGameStore((state) => state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG);
+  const rightScore = useGameStore((state) => state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG);
   const leaderboard = useGameStore((state) => state.leaderboard);
   const proLeaderboard = useGameStore((state) => state.proLeaderboard);
   const bo5Score = useGameStore((state) => state.bo5Score);
@@ -40,16 +39,19 @@ export const VictoryOverlay = () => {
   const seriesWinner = useGameStore((state) => state.seriesWinner);
   const finisherPlayerName = useGameStore((state) => state.finisherPlayerName);
   const finisherTeam = useGameStore((state) => state.finisherTeam);
+  const finisherGiftName = useGameStore((state) => state.finisherGiftName);
+  const finisherCoins = useGameStore((state) => state.finisherCoins);
   const startNextRound = useGameStore((state) => state.startNextRound);
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
   const advanceNextMatchQueue = useGameStore((state) => state.advanceNextMatchQueue);
   const matchQueue = useGameStore((state) => state.matchQueue);
   const activeTeams = useGameStore((state) => state.activeTeams);
   const gameTheme = useGameStore((state) => state.gameTheme);
-  const activeGiftBanner = useGameStore((state) => state.activeGiftBanner);
 
   const [isVictoryVisible, setIsVictoryVisible] = useState<boolean>(false);
   const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
+  /** Set synchronously: two calls in the same tick both still see the old `isAdvancing` state. */
+  const isAdvancingRef = useRef(false);
 
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || isRoundIntermission;
 
@@ -57,27 +59,32 @@ export const VictoryOverlay = () => {
     if (!isDefeated) {
       setIsVictoryVisible(false);
       setIsAdvancing(false);
+      isAdvancingRef.current = false;
       audioService.setCombatMuted(false);
       return;
     }
 
-    // Silence combat synths and speech; the boss-defeat sting already playing keeps going
+    // Silence combat synths and speech
     audioService.setCombatMuted(true);
 
-    // If a mega/big gift banner is on screen celebrating the final hit or donor, give it time
-    const extraDelay = activeGiftBanner && (activeGiftBanner.tier === 'MEGA' || activeGiftBanner.tier === 'BIG') ? 3500 : 0;
-    const revealDelay = BOSS_DEFEAT_CONSTANTS.VICTORY_DELAY_MS + extraDelay;
+    const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
+    // Anchored to the moment the boss died (like the finisher cinematic and the caster), not to
+    // when this effect happened to run, so a slow render cannot push the screen out of sync.
+    const { bossDefeatedTimestamp } = useGameStore.getState();
+    const sinceDefeatMs = bossDefeatedTimestamp > 0 ? Date.now() - bossDefeatedTimestamp : 0;
+    const victoryDelay = Math.max(0, resolveDefeatShowcaseMs(isDonorFinisher) - sinceDefeatMs);
 
+    // Start playing Victory sound and reveal the Victory screen after finisher showcase
     const revealTimer = setTimeout(() => {
       setIsVictoryVisible(true);
       playSound(SFX_EVENT.VICTORY);
-    }, revealDelay);
+    }, victoryDelay);
 
     return () => {
       clearTimeout(revealTimer);
       audioService.setCombatMuted(false);
     };
-  }, [isDefeated, activeGiftBanner]);
+  }, [isDefeated]);
 
   if (!isDefeated || !isVictoryVisible) return null;
 
@@ -86,8 +93,8 @@ export const VictoryOverlay = () => {
     seriesWinner,
     roundWinner,
     bo5Score,
-    teamScoreBLG,
-    teamScoreGENG
+    leftScore,
+    rightScore
   );
 
   const leftTeam = activeTeams[TEAM_KEY.BLG];
@@ -102,19 +109,25 @@ export const VictoryOverlay = () => {
   const nextQueuedMatch = matchQueue.length > 0 ? matchQueue[0] : null;
 
   const handleStartNextRound = () => {
-    if (isAdvancing) return;
+    if (isAdvancing || isAdvancingRef.current) return;
+    isAdvancingRef.current = true;
     setIsAdvancing(true);
+    const finishedRound = useGameStore.getState().currentRound;
     startNextRound();
+    // Says which round just ended: a duplicate request (another overlay's countdown) is ignored by the server
+    gameSocket.requestNextRound(finishedRound);
   };
 
   const handleResetSeriesMatch = () => {
-    if (isAdvancing) return;
+    if (isAdvancing || isAdvancingRef.current) return;
+    isAdvancingRef.current = true;
     setIsAdvancing(true);
     resetBO5Match();
   };
 
   const handleAdvanceQueuedMatch = () => {
-    if (isAdvancing || !nextQueuedMatch) return;
+    if (isAdvancing || isAdvancingRef.current || !nextQueuedMatch) return;
+    isAdvancingRef.current = true;
     setIsAdvancing(true);
     const didAdvance = advanceNextMatchQueue();
     if (!didAdvance) return;
@@ -131,12 +144,11 @@ export const VictoryOverlay = () => {
   };
 
   return (
-    <div className="absolute inset-0 bg-slate-950/92 backdrop-blur-2xl z-50 flex flex-col items-center justify-center p-3 sm:p-5 text-center animate-in fade-in zoom-in-95 duration-700 pointer-events-auto select-none overflow-y-auto">
+    <div className="absolute inset-0 bg-slate-950/92 backdrop-blur-2xl z-50 flex flex-col items-center justify-center p-2 sm:p-4 text-center animate-in fade-in zoom-in-95 duration-700 pointer-events-auto select-none overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/30 via-slate-950/80 to-slate-950 pointer-events-none" />
       <div
         className={`absolute w-96 h-96 rounded-full blur-[100px] opacity-35 pointer-events-none ${winnerTheme.glowOrbClass}`}
       />
-      <VictoryConfettiCanvas winnerTheme={winnerTheme} />
 
       {VICTORY_CELEBRATION_STARS.map((star) => (
         <div
@@ -148,15 +160,15 @@ export const VictoryOverlay = () => {
         </div>
       ))}
 
-      <div className="relative z-10 max-w-sm w-full space-y-3 my-auto py-2 px-3">
+      <div className="relative z-10 max-w-sm w-full space-y-2 my-auto py-1 px-2.5">
         <VictoryHeaderStage
           winnerProfile={winnerProfile}
           winnerSlot={effectiveWinner}
           winnerTheme={winnerTheme}
           isSeriesEnded={isSeriesEnded}
           seriesFormat={seriesFormat}
-          leftScore={bo5Score.BLG}
-          rightScore={bo5Score.GENG}
+          leftScore={bo5Score[TEAM_KEY.BLG]}
+          rightScore={bo5Score[TEAM_KEY.GENG]}
           currentRound={currentRound}
           gameTheme={gameTheme}
         />
@@ -166,8 +178,8 @@ export const VictoryOverlay = () => {
           rightTeam={rightTeam}
           leftTheme={leftTheme}
           rightTheme={rightTheme}
-          leftScore={bo5Score.BLG}
-          rightScore={bo5Score.GENG}
+          leftScore={bo5Score[TEAM_KEY.BLG]}
+          rightScore={bo5Score[TEAM_KEY.GENG]}
           targetWins={bo5TargetWins}
           seriesFormat={seriesFormat}
         />
@@ -182,15 +194,13 @@ export const VictoryOverlay = () => {
           <VictoryMvpCard viewerMvp={null} proMvp={proMvp} activeTeams={activeTeams} />
         )}
 
-        <VictoryWeeklyBoardCard />
-
         <VictoryDamageSummaryCard
           leftTeam={leftTeam}
           rightTeam={rightTeam}
           leftTheme={leftTheme}
           rightTheme={rightTheme}
-          leftDamage={teamScoreBLG ?? 0}
-          rightDamage={teamScoreGENG ?? 0}
+          leftDamage={leftScore ?? 0}
+          rightDamage={rightScore ?? 0}
           finisherPlayerName={finisherPlayerName}
           finisherTeam={finisherTeam}
           activeTeams={activeTeams}

@@ -48,30 +48,30 @@ const SummonSpotlightCard = ({
   const theme = getTeamTheme(teamProfile?.colorTheme);
   const isRight = side === 'right';
   const isSignature = Boolean(portal.isSignatureSynergy && portal.signaturePlayerName);
-  const cardBorderClass = isSignature ? 'border-amber-400 ring-1 ring-amber-400/60' : `${theme.borderClass} border-2`;
-  const cardShadowStyle = isSignature ? '0 0 16px rgba(251,191,36,0.6)' : theme.glowStyle;
-  const nameColorClass = isSignature ? 'text-amber-300' : theme.textClass;
+  const cardBorderClass = isSignature ? 'border-amber-400/90 ring-1 ring-amber-400/50' : `${theme.borderClass} border`;
+  const cardShadowStyle = isSignature ? '0 0 10px rgba(251,191,36,0.5)' : theme.glowStyle;
+  const nameColorClass = isSignature ? 'text-amber-300' : 'text-white';
 
   return (
     <div
       key={portal.id}
       style={{ boxShadow: cardShadowStyle }}
-      className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border-2 w-max max-w-[130px] sm:max-w-[148px] h-[24px] sm:h-[26px] bg-slate-950/98 shadow-2xl transition-all duration-300 ${
-        isFadingOut ? 'opacity-0 scale-95 -translate-y-1' : 'opacity-100 scale-100 animate-in fade-in zoom-in-95'
-      } ${cardBorderClass} ${isRight ? 'flex-row-reverse text-right' : ''}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border bg-slate-950/90 backdrop-blur-md shadow-md max-w-[125px] sm:max-w-[145px] transition-all duration-300 select-none ${
+        isFadingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100 animate-in fade-in zoom-in-95'
+      } ${cardBorderClass} ${isRight ? 'flex-row-reverse text-right' : 'text-left'}`}
     >
-      {/* Compact Mini Avatar matching Team Theme */}
-      <div className="relative w-4.5 h-4.5 sm:w-5 sm:h-5 flex items-center justify-center shrink-0">
+      {/* High-visibility Mini Champion Avatar */}
+      <div className="relative w-5 h-5 flex items-center justify-center shrink-0">
         <ChampionPortrait
           avatarUrl={portal.avatarUrl}
           championName={portal.championName}
-          sizeClass="w-4 h-4 sm:w-4.5 sm:h-4.5 relative z-10 border border-white/80"
+          sizeClass="w-5 h-5 rounded-full object-cover border border-white/80 shadow-sm ring-1 ring-slate-950"
         />
       </div>
 
-      <div className="min-w-0 flex-1 leading-none">
+      <div className="min-w-0 flex-1 leading-none py-0.5">
         <div className={`flex items-center gap-0.5 ${isRight ? 'flex-row-reverse' : ''}`}>
-          <span className={`text-[8.5px] sm:text-[9.5px] font-black truncate ${nameColorClass}`}>
+          <span className={`text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider drop-shadow truncate ${nameColorClass}`}>
             {portal.championName}
           </span>
           {portal.isCrit && (
@@ -81,7 +81,7 @@ const SummonSpotlightCard = ({
             <Crown className="w-2.5 h-2.5 text-amber-300 fill-current shrink-0" />
           )}
         </div>
-        <p className={`text-[7px] sm:text-[7.5px] text-slate-200 truncate font-semibold mt-[1px] ${isRight ? 'text-right' : 'text-left'}`}>
+        <p className={`text-[8px] sm:text-[8.5px] font-bold text-amber-300 truncate mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,1)] ${isRight ? 'text-right' : 'text-left'}`}>
           @{portal.summonerName.replace(/^@+/, '')}
         </p>
       </div>

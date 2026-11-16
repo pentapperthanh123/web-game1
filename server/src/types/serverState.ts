@@ -1,3 +1,5 @@
+import type { ChampionshipTallyReport } from '../constants/championshipTally.js';
+import type { GiftCatalogState, GiftConfigState } from '../constants/giftConfig.js';
 import type { Server } from 'socket.io';
 import type { WebcastPushConnection } from 'tiktok-live-connector';
 import type { TeamConfigState } from '../constants/teams.js';
@@ -16,6 +18,7 @@ export interface OverlayVisibility {
   matchTitleBar: boolean;
   casterSubtitle: boolean;
   bossSkills: boolean;
+  bossSkillBanner: boolean;
 }
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -30,6 +33,7 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   matchTitleBar: true,
   casterSubtitle: false,
   bossSkills: false,
+  bossSkillBanner: true,
 };
 
 export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
@@ -44,6 +48,7 @@ export const OVERLAY_VISIBILITY_KEYS: readonly (keyof OverlayVisibility)[] = [
   'heartMilestone',
   'casterSubtitle',
   'bossSkills',
+  'bossSkillBanner',
 ];
 
 export type GameThemeType =
@@ -73,7 +78,7 @@ export interface BossSkillConfig {
 
 export const DEFAULT_BOSS_SKILL_CONFIG: BossSkillConfig = {
   autoAttackEnabled: true,
-  intervalMs: 4000,
+  intervalMs: 10000,
   damageMultiplier: 0.25,
   mode: 'RANDOM_WEIGHTED',
   randomIntervalEnabled: true,
@@ -99,6 +104,8 @@ export interface ParticipationRuleConfig {
   /** Number of queued champions that enter the arena per turn (arena floor itself is unlimited). */
   maxDeployPerTurn?: number;
   summonTurnDelayMs?: number;
+  /** Summoned champions attack this many times faster than the base interval (1 = base). */
+  championAttackSpeedMultiplier?: number;
 }
 
 export const SUMMON_QUEUE_LIMITS = {
@@ -108,6 +115,9 @@ export const SUMMON_QUEUE_LIMITS = {
   DEFAULT_TURN_DELAY_MS: 1300,
   MIN_TURN_DELAY_MS: 100,
   MAX_TURN_DELAY_MS: 10000,
+  DEFAULT_CHAMPION_ATTACK_SPEED_MULTIPLIER: 1.5,
+  MIN_CHAMPION_ATTACK_SPEED_MULTIPLIER: 0.5,
+  MAX_CHAMPION_ATTACK_SPEED_MULTIPLIER: 4,
 } as const;
 
 export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
@@ -117,6 +127,7 @@ export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
   allowChampionEvolution: true,
   maxDeployPerTurn: SUMMON_QUEUE_LIMITS.DEFAULT_DEPLOY_PER_TURN,
   summonTurnDelayMs: SUMMON_QUEUE_LIMITS.DEFAULT_TURN_DELAY_MS,
+  championAttackSpeedMultiplier: SUMMON_QUEUE_LIMITS.DEFAULT_CHAMPION_ATTACK_SPEED_MULTIPLIER,
 };
 
 export type TikTokConnectionStatus =
@@ -135,6 +146,12 @@ export interface ServerState {
   bossSkillConfig: BossSkillConfig;
   autoProBattleConfig: AutoProBattleConfig;
   championDamageMultiplier: number;
+  /** Last series-title counts reported by an overlay (shown in the admin portal). */
+  championshipTally: ChampionshipTallyReport | null;
+  /** Per-gift rules from the admin portal (team, overlay board, effect, damage multiplier). */
+  giftConfig: GiftConfigState;
+  /** Gift list of the connected live room, for the admin picker. */
+  giftCatalog: GiftCatalogState;
   useUserAvatar: boolean;
   participationRuleConfig: ParticipationRuleConfig;
   chatLimitConfig: ChatLimitConfig;

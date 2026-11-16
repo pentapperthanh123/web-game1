@@ -1,7 +1,13 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Skull, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { GAME_THEME, TEAM_KEY } from '../../constants/game';
+import {
+  FINISHER_BANNER_CONSTANTS,
+  GAME_THEME,
+  isDonorFinisherCheck,
+  TEAM_KEY,
+} from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
 import { TeamLogo } from '../icons/TeamLogos';
 
@@ -9,12 +15,39 @@ export const BossDeathVFX2D = () => {
   const { t } = useTranslation();
   const bossDefeatedTimestamp = useGameStore((state) => state.bossDefeatedTimestamp);
   const finisherPlayerName = useGameStore((state) => state.finisherPlayerName);
+  const finisherGiftName = useGameStore((state) => state.finisherGiftName);
+  const finisherCoins = useGameStore((state) => state.finisherCoins);
   const finisherTeam = useGameStore((state) => state.finisherTeam);
   const roundWinner = useGameStore((state) => state.roundWinner);
   const gameTheme = useGameStore((state) => state.gameTheme);
   const activeTeams = useGameStore((state) => state.activeTeams);
 
-  if (bossDefeatedTimestamp === 0) return null;
+  const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
+
+  const [hasImpacted, setHasImpacted] = useState<boolean>(() => {
+    if (!isDonorFinisher) return true;
+    return Date.now() - bossDefeatedTimestamp >= FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS;
+  });
+
+  useEffect(() => {
+    if (!isDonorFinisher || bossDefeatedTimestamp <= 0) {
+      setHasImpacted(true);
+      return;
+    }
+    const elapsed = Date.now() - bossDefeatedTimestamp;
+    const remaining = FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS - elapsed;
+    if (remaining <= 0) {
+      setHasImpacted(true);
+      return;
+    }
+    setHasImpacted(false);
+    const timer = setTimeout(() => {
+      setHasImpacted(true);
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [isDonorFinisher, bossDefeatedTimestamp]);
+
+  if (bossDefeatedTimestamp === 0 || !hasImpacted) return null;
 
   const isElder = gameTheme === GAME_THEME.ELDER_DRAGON;
 
@@ -33,7 +66,7 @@ export const BossDeathVFX2D = () => {
       className="absolute inset-0 pointer-events-none z-20 overflow-visible"
     >
       {/* Grand LoL Esports Broadcast Slain Banner (Visual explosion handled via BossDeathVFX3D) */}
-      <div className="absolute left-1/2 top-[18%] sm:top-[22%] -translate-x-1/2 animate-execution-banner w-max max-w-[94vw] z-30 pointer-events-none flex flex-col items-center select-none">
+      <div className="absolute left-1/2 top-[18%] sm:top-[22%] animate-execution-banner w-max max-w-[94vw] z-30 pointer-events-none flex flex-col items-center select-none">
         <div
           style={{
             boxShadow: `0 0 35px ${teamAccentColor}, 0 0 70px rgba(0,0,0,0.95)`,
