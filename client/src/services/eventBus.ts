@@ -1,17 +1,26 @@
 import { AutoProBattleConfig, GameState, OverlayVisibility } from '../types/game';
 import { TeamConfigUpdatePayload } from '../types/team';
-import { GameThemeType } from '../constants/game';
+import { GameThemeType, TeamType } from '../constants/game';
 
 export type GameBusEvent =
-  | { type: 'SUMMON_MINION'; payload: { summonerName: string; championName: string; team: 'BLG' | 'GENG' } }
-  | { type: 'TRIGGER_GIFT'; payload: { giftName: string; team: 'BLG' | 'GENG'; donorName: string; coins?: number } }
-  | { type: 'DAMAGE_BOSS'; payload: { amount: number; team: 'BLG' | 'GENG'; playerName: string } }
-  | { type: 'ADD_LIKE'; payload: { count: number; team: 'BLG' | 'GENG'; userName?: string } }
-  | { type: 'SEND_CHAT'; payload: { userName: string; text: string; team?: 'BLG' | 'GENG'; championName?: string } }
+  | { type: 'SUMMON_MINION'; payload: { summonerName: string; championName: string; team: TeamType } }
+  | { type: 'TRIGGER_GIFT'; payload: { giftName: string; team: TeamType; donorName: string; coins?: number } }
+  | { type: 'DAMAGE_BOSS'; payload: { amount: number; team: TeamType; playerName: string } }
+  | { type: 'ADD_LIKE'; payload: { count: number; team: TeamType; userName?: string } }
+  | { type: 'SEND_CHAT'; payload: { userName: string; text: string; team?: TeamType; championName?: string } }
   | { type: 'RESET_BOSS' }
   | { type: 'START_NEXT_ROUND' }
   | { type: 'RESET_BO5' }
-  | { type: 'SET_BO5_SCORE'; payload: { blg: number; geng: number; currentRound?: number } }
+  | {
+      type: 'SET_BO5_SCORE';
+      payload: {
+        leftWins?: number;
+        rightWins?: number;
+        blg?: number;
+        geng?: number;
+        currentRound?: number;
+      };
+    }
   | { type: 'SET_BOSS_HP'; payload: { hp: number } }
   | { type: 'SET_ENRAGED'; payload: { isEnraged: boolean } }
   | { type: 'TOGGLE_BOT'; payload: { isActive: boolean; speedMs: number } }

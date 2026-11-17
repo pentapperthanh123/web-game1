@@ -1,29 +1,5 @@
 {
   "profiles": {
-    "Hội Quân": {
-      "userName": "Hội Quân",
-      "lastSeenAt": 1794846518962,
-      "periods": {
-        "2026-W46": {
-          "totalDamage": 54818,
-          "roundsPlayed": 33,
-          "mvpCount": 15
-        },
-        "2026-11": {
-          "totalDamage": 59772,
-          "roundsPlayed": 44,
-          "mvpCount": 15
-        },
-        "2026-W47": {
-          "totalDamage": 4954,
-          "roundsPlayed": 11,
-          "mvpCount": 0
-        }
-      },
-      "totalDamage": 59772,
-      "roundsPlayed": 44,
-      "mvpCount": 15
-    },
     "Gamer_Pro_99_565": {
       "userName": "Gamer_Pro_99_565",
       "lastSeenAt": 1794758380779,
@@ -962,7 +938,7 @@
     },
     "Đại_Gia_TikTok": {
       "userName": "Đại_Gia_TikTok",
-      "lastSeenAt": 1794845975994,
+      "lastSeenAt": 1794902291170,
       "periods": {
         "2026-W46": {
           "totalDamage": 17468450,
@@ -970,19 +946,19 @@
           "mvpCount": 67
         },
         "2026-11": {
-          "totalDamage": 25968248,
-          "roundsPlayed": 72,
-          "mvpCount": 70
+          "totalDamage": 26000762,
+          "roundsPlayed": 74,
+          "mvpCount": 71
         },
         "2026-W47": {
-          "totalDamage": 8499798,
-          "roundsPlayed": 4,
-          "mvpCount": 3
+          "totalDamage": 8532312,
+          "roundsPlayed": 6,
+          "mvpCount": 4
         }
       },
-      "totalDamage": 25968248,
-      "roundsPlayed": 72,
-      "mvpCount": 70
+      "totalDamage": 26000762,
+      "roundsPlayed": 74,
+      "mvpCount": 71
     },
     "Gamer_Pro_99_735": {
       "userName": "Gamer_Pro_99_735",
@@ -3428,7 +3404,7 @@
     },
     "Gamer_Pro_99": {
       "userName": "Gamer_Pro_99",
-      "lastSeenAt": 1794847324094,
+      "lastSeenAt": 1794895934401,
       "periods": {
         "2026-W46": {
           "totalDamage": 5116,
@@ -3436,18 +3412,18 @@
           "mvpCount": 1
         },
         "2026-11": {
-          "totalDamage": 5925,
-          "roundsPlayed": 7,
+          "totalDamage": 14675,
+          "roundsPlayed": 8,
           "mvpCount": 1
         },
         "2026-W47": {
-          "totalDamage": 809,
-          "roundsPlayed": 1,
+          "totalDamage": 9559,
+          "roundsPlayed": 2,
           "mvpCount": 0
         }
       },
-      "totalDamage": 5925,
-      "roundsPlayed": 7,
+      "totalDamage": 14675,
+      "roundsPlayed": 8,
       "mvpCount": 1
     },
     "Mid_Diff_VN_479": {
@@ -19336,44 +19312,6 @@
       "roundsPlayed": 1,
       "mvpCount": 0
     },
-    "🛡️ Tiên Phong T1": {
-      "userName": "🛡️ Tiên Phong T1",
-      "lastSeenAt": 1794847324094,
-      "periods": {
-        "2026-W47": {
-          "totalDamage": 128447,
-          "roundsPlayed": 20,
-          "mvpCount": 7
-        },
-        "2026-11": {
-          "totalDamage": 128447,
-          "roundsPlayed": 20,
-          "mvpCount": 7
-        }
-      },
-      "totalDamage": 128447,
-      "roundsPlayed": 20,
-      "mvpCount": 7
-    },
-    "⚔️ Tiên Phong GEN": {
-      "userName": "⚔️ Tiên Phong GEN",
-      "lastSeenAt": 1794847324094,
-      "periods": {
-        "2026-W47": {
-          "totalDamage": 113992,
-          "roundsPlayed": 20,
-          "mvpCount": 7
-        },
-        "2026-11": {
-          "totalDamage": 113992,
-          "roundsPlayed": 20,
-          "mvpCount": 7
-        }
-      },
-      "totalDamage": 113992,
-      "roundsPlayed": 20,
-      "mvpCount": 7
-    },
     "Đại_Gia_TikTok777": {
       "userName": "Đại_Gia_TikTok777",
       "lastSeenAt": 1794847324094,
@@ -20399,6 +20337,158 @@
       "totalDamage": 320,
       "roundsPlayed": 1,
       "mvpCount": 0
+    },
+    "Đội hình T1": {
+      "userName": "Đội hình T1",
+      "lastSeenAt": 1794897003758,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 21043,
+          "roundsPlayed": 2,
+          "mvpCount": 1
+        },
+        "2026-11": {
+          "totalDamage": 21043,
+          "roundsPlayed": 2,
+          "mvpCount": 1
+        }
+      },
+      "totalDamage": 21043,
+      "roundsPlayed": 2,
+      "mvpCount": 1
+    },
+    "Đội hình GAM": {
+      "userName": "Đội hình GAM",
+      "lastSeenAt": 1794900734510,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 25067,
+          "roundsPlayed": 2,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 25067,
+          "roundsPlayed": 2,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 25067,
+      "roundsPlayed": 2,
+      "mvpCount": 0
+    },
+    "Đội hình AL": {
+      "userName": "Đội hình AL",
+      "lastSeenAt": 1794909705912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 73750,
+          "roundsPlayed": 6,
+          "mvpCount": 1
+        },
+        "2026-11": {
+          "totalDamage": 73750,
+          "roundsPlayed": 6,
+          "mvpCount": 1
+        }
+      },
+      "totalDamage": 73750,
+      "roundsPlayed": 6,
+      "mvpCount": 1
+    },
+    "Đội hình DK": {
+      "userName": "Đội hình DK",
+      "lastSeenAt": 1794903358867,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 85356,
+          "roundsPlayed": 6,
+          "mvpCount": 3
+        },
+        "2026-11": {
+          "totalDamage": 85356,
+          "roundsPlayed": 6,
+          "mvpCount": 3
+        }
+      },
+      "totalDamage": 85356,
+      "roundsPlayed": 6,
+      "mvpCount": 3
+    },
+    "Đội hình HLE": {
+      "userName": "Đội hình HLE",
+      "lastSeenAt": 1794900734510,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 25373,
+          "roundsPlayed": 2,
+          "mvpCount": 1
+        },
+        "2026-11": {
+          "totalDamage": 25373,
+          "roundsPlayed": 2,
+          "mvpCount": 1
+        }
+      },
+      "totalDamage": 25373,
+      "roundsPlayed": 2,
+      "mvpCount": 1
+    },
+    "Đội hình G2": {
+      "userName": "Đội hình G2",
+      "lastSeenAt": 1794909705912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 8438,
+          "roundsPlayed": 2,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 8438,
+          "roundsPlayed": 2,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 8438,
+      "roundsPlayed": 2,
+      "mvpCount": 0
+    },
+    "Đội hình BLG": {
+      "userName": "Đội hình BLG",
+      "lastSeenAt": 1794900734510,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 12618,
+          "roundsPlayed": 1,
+          "mvpCount": 1
+        },
+        "2026-11": {
+          "totalDamage": 12618,
+          "roundsPlayed": 1,
+          "mvpCount": 1
+        }
+      },
+      "totalDamage": 12618,
+      "roundsPlayed": 1,
+      "mvpCount": 1
+    },
+    "Đội hình GEN": {
+      "userName": "Đội hình GEN",
+      "lastSeenAt": 1794909705912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 35668,
+          "roundsPlayed": 3,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 35668,
+          "roundsPlayed": 3,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 35668,
+      "roundsPlayed": 3,
+      "mvpCount": 0
     }
   },
   "recentRoundIds": [
@@ -20539,6 +20629,19 @@
     "1794845706296-1",
     "1794846248446-1",
     "1794846518962-1",
-    "1794847062986-1"
+    "1794847062986-1",
+    "1794879029518-1",
+    "1794879743250-2",
+    "1794880027107-3",
+    "1794882355521-1",
+    "1794885515986-1",
+    "1794895654532-1",
+    "1794896658254-1",
+    "1794900389045-1",
+    "1794902063432-1",
+    "1794902063432-2",
+    "1794902063432-3",
+    "1794903013397-1",
+    "1794909360215-1"
   ]
 }

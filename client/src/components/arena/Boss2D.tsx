@@ -9,6 +9,7 @@ import {
   DAMAGE_TYPE,
   BOSS_ANIMATION_CONSTANTS,
   BOSS_IDLE_CONSTANTS,
+  BOSS_DEFEAT_CONSTANTS,
   FINISHER_BANNER_CONSTANTS,
   isDonorFinisherCheck,
   getBossHealthBarAnchorClass,
@@ -45,6 +46,7 @@ import { getBossSpriteAnchors } from '../../constants/bossSpriteAnchors';
 const getAnimationClass = (
   isDefeated: boolean,
   isAwaitingStrike: boolean,
+  isExhausted: boolean,
   isPoked: boolean,
   isRoarActive: boolean,
   isRecentlyHit: boolean,
@@ -63,6 +65,9 @@ const getAnimationClass = (
     if (isAwaitingStrike) {
       return 'animate-boss-critical-stun pointer-events-none';
     }
+    if (isExhausted) {
+      return 'animate-boss-exhausted pointer-events-none';
+    }
     return 'animate-boss-defeat pointer-events-none';
   }
   const archetypeClass = vfxType ? BOSS_SKILL_VFX_ANIMATION_CLASS[vfxType] : null;
@@ -76,39 +81,38 @@ const getAnimationClass = (
   if (isRoarActive) {
     if (themeConfig.archetype === 'HERALD') {
       if (isUltimateAttack || skillId === 'herald_seismic_slam') {
-        return 'animate-boss-slam-center drop-shadow-[0_0_80px_rgba(236,72,153,1)] cursor-pointer';
+        return 'animate-boss-slam-center cursor-pointer';
       }
       if (vfxType === BOSS_SKILL_VFX.CHARGE_DASH) {
         const chargeClass =
           attackTargetTeam === TEAM_KEY.GENG ? BOSS_CHARGE_ANIMATION_CLASS.RIGHT : BOSS_CHARGE_ANIMATION_CLASS.LEFT;
-        return `${chargeClass} drop-shadow-[0_0_75px_rgba(16,185,129,1)] cursor-pointer`;
+        return `${chargeClass} cursor-pointer`;
       }
       if (archetypeClass) {
-        return `${archetypeClass} drop-shadow-[0_0_70px_rgba(16,185,129,1)] cursor-pointer`;
+        return `${archetypeClass} cursor-pointer`;
       }
       if (attackTargetTeam === TEAM_KEY.BLG) {
-        return 'animate-boss-lunge-left drop-shadow-[0_0_60px_rgba(16,185,129,1)] cursor-pointer';
+        return 'animate-boss-lunge-left cursor-pointer';
       }
       if (attackTargetTeam === TEAM_KEY.GENG) {
-        return 'animate-boss-lunge-right drop-shadow-[0_0_60px_rgba(16,185,129,1)] cursor-pointer';
+        return 'animate-boss-lunge-right cursor-pointer';
       }
-      return 'animate-herald-charge drop-shadow-[0_0_65px_rgba(16,185,129,1)] cursor-pointer';
+      return 'animate-herald-charge cursor-pointer';
     }
 
-    const shadowColor = themeConfig.colors.glowHex || themeConfig.colors.primaryHex;
     if (archetypeClass) {
-      return `${archetypeClass} drop-shadow-[0_0_70px_${shadowColor}] cursor-pointer`;
+      return `${archetypeClass} cursor-pointer`;
     }
     if (isUltimateAttack || attackTargetTeam === 'ALL') {
-      return `animate-boss-slam-center drop-shadow-[0_0_75px_${shadowColor}] cursor-pointer`;
+      return `animate-boss-slam-center cursor-pointer`;
     }
     if (attackTargetTeam === TEAM_KEY.BLG) {
-      return `animate-boss-lunge-left drop-shadow-[0_0_60px_${shadowColor}] cursor-pointer`;
+      return `animate-boss-lunge-left cursor-pointer`;
     }
     if (attackTargetTeam === TEAM_KEY.GENG) {
-      return `animate-boss-lunge-right drop-shadow-[0_0_60px_${shadowColor}] cursor-pointer`;
+      return `animate-boss-lunge-right cursor-pointer`;
     }
-    return `animate-boss-slam-center drop-shadow-[0_0_60px_${shadowColor}] cursor-pointer`;
+    return `animate-boss-slam-center cursor-pointer`;
   }
 
   // 3. Directional Damage Recoil & Stagger with alternating keyframes to prevent freezing
@@ -137,16 +141,16 @@ const getAnimationClass = (
 
   // 4. Enraged Stance with violent fury tremor
   if (isEnraged) {
-    return `animate-boss-enraged-tremor drop-shadow-[0_0_55px_${themeConfig.colors.enragedHex}] cursor-pointer`;
+    return `animate-boss-enraged-tremor cursor-pointer`;
   }
 
   // 5. Restless Impatient Stance (Prolonged idle with 0 active champions)
   if (isRestless) {
-    return `animate-boss-restless drop-shadow-[0_0_50px_${themeConfig.colors.enragedHex}] cursor-pointer`;
+    return `animate-boss-restless cursor-pointer`;
   }
 
   // 6. Natural Living Breathing Idle: Hovering / Crouching / Slithering
-  return `${themeConfig.idleAnimationClass} drop-shadow-[0_0_32px_${themeConfig.colors.primaryHex}b3] cursor-pointer hover:drop-shadow-[0_0_48px_${themeConfig.colors.primaryHex}] transition-all`;
+  return `${themeConfig.idleAnimationClass} cursor-pointer transition-all`;
 };
 
 const BOSS_KNOCKBACK_CLASS = 'animate-boss-knockback';
@@ -226,6 +230,27 @@ export const Boss2D = React.memo(() => {
   }, [isDefeated, isDonorFinisher, bossDefeatedTimestamp]);
 
   const isAwaitingStrike = isDefeated && isDonorFinisher && !hasStrikeImpacted;
+
+  const [isExhaustedPhase, setIsExhaustedPhase] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isDefeated || isAwaitingStrike) {
+      setIsExhaustedPhase(false);
+      return;
+    }
+    const strikeOffsetMs = isDonorFinisher ? FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS : 0;
+    const impactTime = (bossDefeatedTimestamp > 0 ? bossDefeatedTimestamp : Date.now()) + strikeOffsetMs;
+    const elapsed = Date.now() - impactTime;
+    const remaining = BOSS_DEFEAT_CONSTANTS.EXHAUSTION_DELAY_MS - elapsed;
+    if (remaining > 0) {
+      setIsExhaustedPhase(true);
+      const timer = setTimeout(() => {
+        setIsExhaustedPhase(false);
+      }, remaining);
+      return () => clearTimeout(timer);
+    }
+    setIsExhaustedPhase(false);
+  }, [isDefeated, isAwaitingStrike, isDonorFinisher, bossDefeatedTimestamp]);
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
   const bossStaggerUntil = useGameStore((state) => state.bossStaggerUntil);
   const isKnockedBack = useIsBeforeDeadline(bossStaggerUntil);
@@ -641,6 +666,7 @@ export const Boss2D = React.memo(() => {
   const baseAnimationClass = getAnimationClass(
     isDefeated,
     isAwaitingStrike,
+    isExhaustedPhase,
     isPoked,
     isRoarActive,
     isHitActive,
@@ -834,7 +860,7 @@ export const Boss2D = React.memo(() => {
                         <img
                           src={themeConfig.bossEnragedImagePng}
                           alt={`${themeConfig.bossName} (Nộ)`}
-                          className={`w-full h-full object-contain filter contrast-125 brightness-110 drop-shadow-[0_0_32px_${themeConfig.colors.enragedHex}]`}
+                          className={`w-full h-full object-contain filter contrast-125 brightness-110`}
                           style={{ backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
                           loading="eager"
                           draggable={false}

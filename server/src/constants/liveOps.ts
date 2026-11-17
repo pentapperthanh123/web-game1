@@ -20,6 +20,8 @@ export interface CasterConfig {
   isTtsEnabled: boolean;
   /** Kill switch. false = no viewer name is ever offered for speech. */
   isNameReadingEnabled: boolean;
+  /** Two casters banter on the overlay (A + B voices); false = one voice says everything. */
+  isDuoEnabled: boolean;
 }
 
 export interface NumericBound {
@@ -46,6 +48,7 @@ export const CHAT_LIMIT_BOUNDS: Readonly<Record<keyof ChatLimitConfig, NumericBo
 export const DEFAULT_CASTER_CONFIG: CasterConfig = {
   isTtsEnabled: false,
   isNameReadingEnabled: true,
+  isDuoEnabled: true,
 };
 
 export const CHAT_LIMITER = {

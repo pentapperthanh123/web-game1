@@ -11,11 +11,10 @@ import {
   SESSION_TIER_UP_ANNOUNCE_MIN,
   SESSION_TIER_UP_CONSTANTS,
   SessionTier,
-  VANGUARD_ACTOR_LABEL,
   isSessionTierAtLeast,
 } from '../constants/sessionLeaderboard';
 import { TeamColorThemeId } from '../types/team';
-import { toCanonicalViewerName } from './roundDamageTracker';
+import { isViewerActor, toCanonicalViewerName } from './roundDamageTracker';
 
 export interface SessionLeaderboardEntry {
   userName: string;
@@ -98,7 +97,7 @@ export const getCanonicalViewerName = (actorName: string): string => {
 };
 
 const isRankableViewer = (userName: string): boolean =>
-  userName.length > 0 && !userName.includes(VANGUARD_ACTOR_LABEL);
+  Boolean(userName) && isViewerActor(userName);
 
 const getTierOrder = (tier: SessionTier | undefined): number =>
   tier ? SESSION_TIER_STYLE[tier].order : NO_TIER_ORDER;

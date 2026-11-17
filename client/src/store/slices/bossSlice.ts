@@ -28,7 +28,9 @@ import {
   GAME_CONSTANTS,
   GAME_THEME,
   getThemeConfig,
-  TEAM_KEY,
+  LEGACY_GEN_SLOT,
+  TEAM_SLOT_LEFT,
+  TEAM_SLOT_RIGHT,
   DAMAGE_SOURCE,
 } from '../../constants/game';
 import {
@@ -36,12 +38,17 @@ import {
   CHAMPION_DEFAULT_MAX_HP,
   getBossSkillsByTheme,
 } from '../../constants/bossSkills';
-import { BOSS_PHASE, BOSS_PHASE_RULES, getBossPhaseRule, resolveBossPhase } from '../../constants/bossPhases';
+import { BOSS_PHASE, BOSS_PHASE_RULES, resolveBossPhase } from '../../constants/bossPhases';
+import {
+  BOSS_LIFESTEAL_CAP,
+  resolveSkillDamageScale,
+  resolveSkillHitDamage,
+} from '../../constants/bossSkillBalance';
+import { buildSkillImpactWaves } from '../bossSkillWaves';
 import {
   BOSS_METEOR_RAIN_CONSTANTS,
   BOSS_PHASE_SHIFT_SHAKE_INTENSITY,
   CHAMPION_HIT_FEEDBACK,
-  getSkillImpactDelayMs,
 } from '../../constants/bossSkillVfx';
 import {
   DAMAGE_OVER_TIME_EFFECTS,
@@ -62,8 +69,10 @@ import {
 } from '../bossSkillResolver';
 import {
   createInitialRosterFury,
+  createInitialSummonQueue,
   createInitialTeamCombos,
   createInitialTeamHeartMomentum,
+  createInitialTeamScores,
   isBattleHalted,
 } from '../storeHelpers';
 import {
@@ -166,9 +175,9 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       return;
     }
 
-    const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
-    const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
-    const dominantTeam = leftScore >= rightScore ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+    const leftScore = state.teamScores?.[TEAM_SLOT_LEFT] ?? state.teamScoreBLG;
+    const rightScore = state.teamScores?.[TEAM_SLOT_RIGHT] ?? state.teamScoreGENG;
+    const dominantTeam = leftScore >= rightScore ? TEAM_SLOT_LEFT : TEAM_SLOT_RIGHT;
     const baseDamage = BOSS_MECHANICS_CONSTANTS.WEAK_POINT.POKE_BASE_DAMAGE;
     set({ bossWeakPoint: null });
     get().damageBoss(baseDamage, dominantTeam, playerName, DAMAGE_TYPE.CRIT, { source: DAMAGE_SOURCE.WEAK_POINT_POKE });
@@ -215,7 +224,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       return;
     }
 
-    const normalizedTarget = targetTeam === 'GEN' ? TEAM_KEY.GENG : targetTeam;
+    const normalizedTarget = targetTeam === LEGACY_GEN_SLOT ? TEAM_SLOT_RIGHT : targetTeam;
 
     const updatedMinions = state.minions.map((minion) => {
       if (normalizedTarget !== 'ALL' && minion.team !== normalizedTarget) {
@@ -284,7 +293,6 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     if (!skills || skills.length === 0) return;
 
     const phase = resolveBossPhase(state.bossHp, state.bossMaxHp);
-    const phaseRule = getBossPhaseRule(phase);
     const nextIndex = pickBossSkillIndex({
       skills,
       config: state.bossSkillConfig,
@@ -296,13 +304,13 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     const skill = skills[nextIndex];
     const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
     const difficulty = BOSS_DIFFICULTY_SCALE[state.gameTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
-    const baseMultiplier =
-      (state.bossSkillConfig.damageMultiplier || 1.0) * (difficulty.skillDamageMultiplier || 1.0);
-    const rageBoost = isEnraged ? BOSS_ENRAGED_CONSTANTS.DAMAGE_BOOST_MULTIPLIER : 1.0;
-    const actualDamage = Math.max(
-      1,
-      Math.round(skill.baseDamage * baseMultiplier * rageBoost * phaseRule.skillDamageMultiplier)
-    );
+    const damageScale = resolveSkillDamageScale({
+      damageMultiplier: state.bossSkillConfig.damageMultiplier || 1.0,
+      difficultyMultiplier: difficulty.skillDamageMultiplier || 1.0,
+      phase,
+      isEnraged,
+    });
+    const actualDamage = resolveSkillHitDamage(skill.baseDamage, damageScale);
     const now = Date.now();
     const themeConfig = getThemeConfig(state.gameTheme);
     const bossName = themeConfig.bossName;
@@ -319,7 +327,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       (minion) => getLiveMinionPositionSnapshot(minion.id) || minion.spawnPosition
     );
     const { targetedMinionIds, targetTeam } = skillHit;
-    const championDebuff = buildChampionStatusEffect(skill.statusEffect, skill.id, phase, now);
+    const championDebuff = buildChampionStatusEffect(skill.statusEffect, skill.id, phase, now, actualDamage);
 
     const banner: ActiveBossSkillBanner = {
       skillId: skill.id,
@@ -367,18 +375,21 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       bossSkillRotationIndex: (state.bossSkillRotationIndex + 1) % skills.length,
     });
 
-    // Damage lands when the effect reaches the champions, never at the cast itself
-    const pendingImpact: PendingBossSkillImpact = {
-      skill,
-      damage: actualDamage,
-      targetedMinionIds,
-      championDebuff,
-      bossName,
-    };
-    setTimeout(
-      () => applyBossSkillImpact(set, get, pendingImpact),
-      getSkillImpactDelayMs(skill.vfxType, skill.vfxParams)
-    );
+    // Damage lands when the effect reaches the champions, never at the cast itself; an ultimate built
+    // from several layers hurts once per layer, each at the moment that layer lands
+    const lifestealBudget = { remainingHp: Math.round(state.bossMaxHp * BOSS_LIFESTEAL_CAP.MAX_BOSS_HP_RATIO) };
+    buildSkillImpactWaves(skill).forEach((wave) => {
+      const pendingImpact: PendingBossSkillImpact = {
+        skill,
+        damage: Math.max(1, Math.round(actualDamage * wave.damageShare)),
+        targetedMinionIds,
+        championDebuff: wave.isFirst ? championDebuff : null,
+        isFirstWave: wave.isFirst,
+        lifestealBudget,
+        bossName,
+      };
+      setTimeout(() => applyBossSkillImpact(set, get, pendingImpact), wave.delayMs);
+    });
   },
 
   spawnBossMeteorRain: ({ color, glowColor, count, startAt, impactPoints }) => {
@@ -557,18 +568,12 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       bossStatus: BOSS_STATUS.IDLE,
       isRoundIntermission: false,
       roundWinner: null,
-      teamScores: {
-        [TEAM_KEY.BLG]: 0,
-        [TEAM_KEY.GENG]: 0,
-      },
+      teamScores: createInitialTeamScores(),
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
       ...createEmptyMinionCollections(),
-      summonQueue: {
-        [TEAM_KEY.BLG]: [],
-        [TEAM_KEY.GENG]: [],
-      },
+      summonQueue: createInitialSummonQueue(),
       activeBursts: [],
       activeHearts: [],
       activeProjectiles: [],

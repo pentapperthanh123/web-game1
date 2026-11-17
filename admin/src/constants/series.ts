@@ -44,6 +44,8 @@ export interface SilverScrapesDuelEvent {
 
 export interface SilverScrapesDuelState {
   isActive: boolean;
+  isIntroActive?: boolean;
+  introRemaining?: number;
   timeRemaining: number;
   totalDuration: number;
   tugOfWarPercent: number;
@@ -59,6 +61,8 @@ export interface SilverScrapesDuelState {
 
 export const DEFAULT_DUEL_STATE: SilverScrapesDuelState = {
   isActive: false,
+  isIntroActive: false,
+  introRemaining: 0,
   timeRemaining: 60,
   totalDuration: 60,
   tugOfWarPercent: 50,

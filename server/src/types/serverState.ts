@@ -70,10 +70,13 @@ export interface BossSkillConfig {
   randomIntervalEnabled: boolean;
 }
 
+/** Mirrors client DEFAULT_SKILL_DAMAGE_MULTIPLIER ("medium" boss danger; the old 0.25 made bosses harmless). */
+export const DEFAULT_BOSS_SKILL_DAMAGE_MULTIPLIER = 0.45;
+
 export const DEFAULT_BOSS_SKILL_CONFIG: BossSkillConfig = {
   autoAttackEnabled: true,
   intervalMs: 10000,
-  damageMultiplier: 0.25,
+  damageMultiplier: DEFAULT_BOSS_SKILL_DAMAGE_MULTIPLIER,
   mode: 'RANDOM_WEIGHTED',
   randomIntervalEnabled: true,
 };
@@ -102,6 +105,12 @@ export interface ParticipationRuleConfig {
   championAttackSpeedMultiplier?: number;
   /** Regular time of a round before overtime; 0 = no time limit. */
   roundDurationMs?: number;
+  /** Auto-start countdown for new series in milliseconds; 0 = manual start only. */
+  seriesAutoStartMs?: number;
+  /** Matchup rotation mode when matchQueue is empty: 'random' | 'repeat'. */
+  matchRotationMode?: 'random' | 'repeat';
+  /** Whether the +15% comeback damage buff for trailing team is enabled. */
+  enableComebackBuff?: boolean;
 }
 
 export const SUMMON_QUEUE_LIMITS = {
@@ -132,6 +141,9 @@ export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
   summonTurnDelayMs: SUMMON_QUEUE_LIMITS.DEFAULT_TURN_DELAY_MS,
   championAttackSpeedMultiplier: SUMMON_QUEUE_LIMITS.DEFAULT_CHAMPION_ATTACK_SPEED_MULTIPLIER,
   roundDurationMs: ROUND_DURATION_LIMITS.DEFAULT_MS,
+  seriesAutoStartMs: 15_000,
+  matchRotationMode: 'random',
+  enableComebackBuff: true,
 };
 
 export type TikTokConnectionStatus =

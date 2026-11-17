@@ -175,28 +175,28 @@ export const BossDeathVFX3D = () => {
     }
 
     groupRef.current.visible = true;
-    const progress = Math.min(1, elapsedMs / totalMs);
+    const shatterProgress = Math.min(1, elapsedMs / totalMs);
     const crackEnd = BOSS_DEFEAT_CONSTANTS.CRACK_PHASE_END_RATIO;
 
-    // Beat 1 & 2: Imploding Core -> Supernova Expansion
+    // Beat 1 & 2: Imploding Core -> Supernova Expansion (post-exhaustion)
     if (coreSphereRef.current) {
       const coreScale =
-        progress < crackEnd
-          ? THREE.MathUtils.lerp(0.6, 0.2, progress / crackEnd)
-          : THREE.MathUtils.lerp(0.2, 1.2, Math.min(1, (progress - crackEnd) / 0.25));
+        shatterProgress < crackEnd
+          ? THREE.MathUtils.lerp(0.6, 0.2, shatterProgress / crackEnd)
+          : THREE.MathUtils.lerp(0.2, 1.2, Math.min(1, (shatterProgress - crackEnd) / 0.25));
       coreSphereRef.current.scale.setScalar(coreScale);
       const mat = coreSphereRef.current.material as THREE.MeshBasicMaterial;
       mat.opacity =
-        progress < crackEnd
+        shatterProgress < crackEnd
           ? 0.7
-          : Math.max(0, 0.75 * (1 - (progress - crackEnd) / 0.25));
+          : Math.max(0, 0.75 * (1 - (shatterProgress - crackEnd) / 0.25));
     }
 
     // Beat 2: Sky Execution Lightning Pillar & Core Beam
     const pillarProgress =
-      progress < crackEnd
+      shatterProgress < crackEnd
         ? 0
-        : Math.min(1, (progress - crackEnd) / 0.52);
+        : Math.min(1, (shatterProgress - crackEnd) / 0.52);
     const pillarFade =
       pillarProgress > 0 && pillarProgress < 1
         ? Math.sin(pillarProgress * Math.PI)
@@ -223,8 +223,9 @@ export const BossDeathVFX3D = () => {
     }
 
     // Multi-angle 3D Shockwave Rings
-    const blastProgress = Math.max(0, (progress - crackEnd * 0.7) / (1 - crackEnd * 0.7));
+    const blastProgress = Math.max(0, (shatterProgress - crackEnd * 0.7) / (1 - crackEnd * 0.7));
     if (ringPrimaryRef.current) {
+      ringPrimaryRef.current.visible = true;
       const ease = 1 - Math.pow(1 - Math.min(1, blastProgress * 1.25), 3);
       ringPrimaryRef.current.scale.setScalar(0.45 + ease * 8.2);
       ringPrimaryRef.current.rotation.z += 0.05;
@@ -235,6 +236,7 @@ export const BossDeathVFX3D = () => {
     }
 
     if (ringSecondaryRef.current) {
+      ringSecondaryRef.current.visible = true;
       const delayed = Math.max(0, blastProgress - 0.1) / 0.9;
       const ease = 1 - Math.pow(1 - Math.min(1, delayed * 1.2), 3);
       ringSecondaryRef.current.scale.setScalar(0.4 + ease * 7.2);
@@ -246,6 +248,7 @@ export const BossDeathVFX3D = () => {
     }
 
     if (groundFissureRef.current) {
+      groundFissureRef.current.visible = true;
       const ease = 1 - Math.pow(1 - Math.min(1, blastProgress), 2);
       groundFissureRef.current.scale.setScalar(0.6 + ease * 6.5);
       (groundFissureRef.current.material as THREE.MeshBasicMaterial).opacity =
@@ -254,11 +257,11 @@ export const BossDeathVFX3D = () => {
 
     // 38 Shattered Crystal Shards exploding radially in 3D space
     if (shardsMeshRef.current) {
-      const burstElapsedS = Math.max(0, (progress - crackEnd * 0.85) * (totalMs / 1000));
+      const burstElapsedS = Math.max(0, (shatterProgress - crackEnd * 0.85) * (totalMs / 1000));
       const shardFade =
-        progress < crackEnd * 0.85
+        shatterProgress < crackEnd * 0.85
           ? 0
-          : Math.max(0, 1 - (progress - crackEnd * 0.85) / 0.72);
+          : Math.max(0, 1 - (shatterProgress - crackEnd * 0.85) / 0.72);
 
       for (let i = 0; i < shardKinematics.length; i++) {
         const shard = shardKinematics[i];
@@ -299,7 +302,7 @@ export const BossDeathVFX3D = () => {
 
       for (let i = 0; i < soulOrbKinematics.length; i++) {
         const orb = soulOrbKinematics[i];
-        const t = Math.min(1, Math.max(0, (progress - orb.delayRatio) / 0.42));
+        const t = Math.min(1, Math.max(0, (shatterProgress - orb.delayRatio) / 0.42));
 
         if (t <= 0 || t >= 1) {
           dummyObj.scale.setScalar(0);

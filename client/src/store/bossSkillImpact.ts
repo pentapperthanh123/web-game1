@@ -1,5 +1,6 @@
 import { StoreApi } from 'zustand';
 import { CHAMPION_DEFAULT_MAX_HP } from '../constants/bossSkills';
+import { BOSS_ULTIMATE_WAVES } from '../constants/bossSkillBalance';
 import { STATUS_EFFECT_PRESENTATION } from '../constants/bossStatusEffects';
 import { CHAMPION_HIT_FEEDBACK } from '../constants/bossSkillVfx';
 import { COMBAT_VFX_CONSTANTS, TEAM_KEY } from '../constants/game';
@@ -19,12 +20,22 @@ import { deployQueuedMinions, resolveSummonTurnLimits } from './summonQueueHelpe
 type SetGameState = StoreApi<GameState>['setState'];
 type GetGameState = StoreApi<GameState>['getState'];
 
+/** Boss HP a cast may still restore through lifesteal; shared by every wave of that cast. */
+export interface LifestealBudget {
+  remainingHp: number;
+}
+
 /** Everything decided at cast time that the impact needs once the effect reaches the champions. */
 export interface PendingBossSkillImpact {
   skill: BossSkillDefinition;
+  /** Damage of this wave (the whole skill's damage for a skill that hurts once). */
   damage: number;
   targetedMinionIds: ReadonlySet<string>;
+  /** Only the first wave of a cast carries the debuff. */
   championDebuff: ActiveStatusEffect | null;
+  /** The first wave also plays the one-off impact sound. */
+  isFirstWave: boolean;
+  lifestealBudget: LifestealBudget;
   bossName: string;
 }
 
@@ -87,6 +98,7 @@ const resolveImpactOutcome = (get: GetGameState, impact: PendingBossSkillImpact,
   const burstIntensity = skill.isUltimate
     ? CHAMPION_HIT_FEEDBACK.ULTIMATE_BURST_INTENSITY
     : CHAMPION_HIT_FEEDBACK.BURST_INTENSITY;
+  let shownHitNumbers = 0;
 
   get().minions.forEach((minion) => {
     if (!targetedMinionIds.has(minion.id)) {
@@ -102,7 +114,12 @@ const resolveImpactOutcome = (get: GetGameState, impact: PendingBossSkillImpact,
 
     const worldPosition = resolveChampionWorldPosition(minion);
     const hitColor = isLethal ? CHAMPION_HIT_FEEDBACK.LETHAL_COLOR : CHAMPION_HIT_FEEDBACK.DAMAGE_COLOR;
-    const screenPoint = showChampionDamage(minion, damage, isLethal, hitColor, now);
+    // A wave over a crowd shows numbers on the first champions only; the rest still lose HP and flinch
+    const isNumberShown = shownHitNumbers < BOSS_ULTIMATE_WAVES.MAX_HIT_NUMBERS_PER_WAVE;
+    shownHitNumbers += 1;
+    const screenPoint = isNumberShown
+      ? showChampionDamage(minion, damage, isLethal, hitColor, now)
+      : resolveChampionScreenPoint(minion);
     if (outcome.hitCount <= CHAMPION_HIT_FEEDBACK.MAX_BURSTS_PER_IMPACT) {
       get().spawnParticleBurst(worldPosition, skill.color, burstIntensity);
     }
@@ -141,12 +158,12 @@ export const applyBossSkillImpact = (set: SetGameState, get: GetGameState, impac
   if (outcome.hitCount === 0) return;
 
   const { skill, championDebuff } = impact;
-  if (
+  const isShockwaveSkill =
     skill.vfxType === BOSS_SKILL_VFX.CHARGE_DASH ||
     skill.vfxType === BOSS_SKILL_VFX.SEISMIC_SLAM ||
     skill.vfxType === BOSS_SKILL_VFX.NOVA ||
-    skill.isUltimate
-  ) {
+    skill.isUltimate;
+  if (impact.isFirstWave && isShockwaveSkill) {
     audioService.playShockwaveExplosion(skill.isUltimate ? 1.25 : 0.95, 1.0, true);
   }
 
@@ -177,7 +194,17 @@ export const applyBossSkillImpact = (set: SetGameState, get: GetGameState, impac
     ),
   }));
 
+  healBossFromLifesteal(get, impact, outcome.totalDamageDealt);
+};
+
+/** Lifesteal heals a share of the damage dealt, but one cast never restores more than its budget. */
+const healBossFromLifesteal = (get: GetGameState, impact: PendingBossSkillImpact, damageDealt: number): void => {
+  const { skill, lifestealBudget } = impact;
   const isLifesteal = skill.statusEffect?.type === BOSS_STATUS_EFFECT.LIFESTEAL;
-  if (!isLifesteal || outcome.totalDamageDealt <= 0) return;
-  get().healBoss(Math.round(outcome.totalDamageDealt * (skill.statusEffect?.ratio ?? 0)), skill.vietnameseName);
+  if (!isLifesteal || damageDealt <= 0 || lifestealBudget.remainingHp <= 0) return;
+  const wantedHeal = Math.round(damageDealt * (skill.statusEffect?.ratio ?? 0));
+  const heal = Math.min(wantedHeal, lifestealBudget.remainingHp);
+  if (heal <= 0) return;
+  lifestealBudget.remainingHp -= heal;
+  get().healBoss(heal, skill.vietnameseName);
 };

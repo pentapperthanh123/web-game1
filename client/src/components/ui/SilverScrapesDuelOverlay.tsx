@@ -11,8 +11,10 @@ import { DuelFighterCard } from './silverScrapes/DuelFighterCard';
 import { DuelTugBar } from './silverScrapes/DuelTugBar';
 import { DuelPushGuide } from './silverScrapes/DuelPushGuide';
 import { DuelFooter } from './silverScrapes/DuelFooter';
+import { SilverScrapesIntroStage } from './silverScrapes/SilverScrapesIntroStage';
 import { useSilverScrapesDuel } from './silverScrapes/useSilverScrapesDuel';
 import { DUEL_DRAW, DUEL_SIDE, clampDuelPercent, resolveHighlightedSide } from './silverScrapes/silverScrapesShared';
+import { gameSocket } from '../../services/socket';
 
 const AMBIENT_ALPHA = '26';
 
@@ -48,6 +50,12 @@ export const SilverScrapesDuelOverlay: React.FC = React.memo(() => {
     return getTeamTheme(activeTeams[duel.lastEvent.team]?.colorTheme).primaryHex;
   };
   const eventColor = resolveEventColor();
+  const isIntro = Boolean(duel.isIntroActive);
+
+  const handleSkipIntro = () => {
+    gameSocket.sendSilverScrapesControl('skipIntro');
+    useGameStore.getState().setSilverScrapesState({ isIntroActive: false });
+  };
 
   const overlayContent = (
     <div
@@ -85,65 +93,78 @@ export const SilverScrapesDuelOverlay: React.FC = React.memo(() => {
         <X className="w-4 h-4" />
       </button>
 
-      {/* Centered Unified Esports Duel Stage */}
-      <div className="relative z-10 w-full max-w-lg flex flex-col items-center gap-3 sm:gap-3.5 my-auto px-1 sm:px-2">
-        {/* 1. Championship Title & Stadium Countdown Header */}
-        <DuelHeader
-          timeRemaining={duel.timeRemaining}
-          totalDuration={duel.totalDuration}
-          isLastStandActive={duel.isLastStandActive && duel.winner === null}
+      {/* Stage Content: Intro Announcement Stage vs Active 1v1 Tug-of-War Stage */}
+      {isIntro ? (
+        <SilverScrapesIntroStage
+          leftFighter={duel.leftFighter}
+          rightFighter={duel.rightFighter}
+          leftTeamTag={leftTeam.shortTag}
+          rightTeamTag={rightTeam.shortTag}
+          leftTheme={leftTheme}
+          rightTheme={rightTheme}
+          introRemaining={duel.introRemaining ?? 5}
+          onSkip={handleSkipIntro}
         />
-
-        {/* 2. Duelists Facing Off (Left Card vs Right Card) */}
-        <div className="w-full flex items-center gap-2 sm:gap-3">
-          <DuelFighterCard
-            fighter={duel.leftFighter}
-            teamTag={leftTeam.shortTag}
-            theme={leftTheme}
-            isLeading={leadingSide === DUEL_SIDE.LEFT}
-            isWinner={isDecided && leadingSide === DUEL_SIDE.LEFT}
+      ) : (
+        <div className="relative z-10 w-full max-w-lg flex flex-col items-center gap-3 sm:gap-3.5 my-auto px-1 sm:px-2 animate-in fade-in zoom-in-95 duration-300">
+          {/* 1. Championship Title & Stadium Countdown Header */}
+          <DuelHeader
+            timeRemaining={duel.timeRemaining}
+            totalDuration={duel.totalDuration}
+            isLastStandActive={duel.isLastStandActive && duel.winner === null}
           />
 
-          {/* Central Animated Swords Clash Emblem */}
-          <div className="shrink-0 flex flex-col items-center gap-1">
-            <div className="p-2.5 sm:p-3 rounded-full bg-gradient-to-b from-amber-400/25 via-slate-900 to-slate-950 border-2 border-amber-400/80 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]">
-              <Swords className="w-5 h-5 sm:w-6 sm:h-6" />
+          {/* 2. Duelists Facing Off (Left Card vs Right Card) */}
+          <div className="w-full flex items-center gap-2 sm:gap-3">
+            <DuelFighterCard
+              fighter={duel.leftFighter}
+              teamTag={leftTeam.shortTag}
+              theme={leftTheme}
+              isLeading={leadingSide === DUEL_SIDE.LEFT}
+              isWinner={isDecided && leadingSide === DUEL_SIDE.LEFT}
+            />
+
+            {/* Central Animated Swords Clash Emblem */}
+            <div className="shrink-0 flex flex-col items-center gap-1">
+              <div className="p-2.5 sm:p-3 rounded-full bg-gradient-to-b from-amber-400/25 via-slate-900 to-slate-950 border-2 border-amber-400/80 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]">
+                <Swords className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[11px] sm:text-xs font-black italic text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-300 tracking-widest drop-shadow">
+                {t('SilverScrapes.versus', 'VS')}
+              </span>
             </div>
-            <span className="text-[11px] sm:text-xs font-black italic text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-300 tracking-widest drop-shadow">
-              {t('SilverScrapes.versus', 'VS')}
-            </span>
+
+            <DuelFighterCard
+              fighter={duel.rightFighter}
+              teamTag={rightTeam.shortTag}
+              theme={rightTheme}
+              isLeading={leadingSide === DUEL_SIDE.RIGHT}
+              isWinner={isDecided && leadingSide === DUEL_SIDE.RIGHT}
+            />
           </div>
 
-          <DuelFighterCard
-            fighter={duel.rightFighter}
-            teamTag={rightTeam.shortTag}
-            theme={rightTheme}
-            isLeading={leadingSide === DUEL_SIDE.RIGHT}
-            isWinner={isDecided && leadingSide === DUEL_SIDE.RIGHT}
+          {/* 3. Dual Energy Beam Tug-of-War Bar */}
+          <DuelTugBar
+            leftPercent={leftPercent}
+            leftTag={leftTeam.shortTag}
+            rightTag={rightTeam.shortTag}
+            leftColor={leftTheme.primaryHex}
+            rightColor={rightTheme.primaryHex}
+            isClashFlashing={isClashFlashing}
+          />
+
+          {/* 4. Viewer Push Action Guide */}
+          {duel.winner === null && <DuelPushGuide />}
+
+          {/* 5. Live Donation Ticker / Winner Reward Banner */}
+          <DuelFooter
+            winner={duel.winner}
+            winnerTag={winnerTag}
+            lastEvent={duel.lastEvent}
+            eventColor={eventColor}
           />
         </div>
-
-        {/* 3. Dual Energy Beam Tug-of-War Bar */}
-        <DuelTugBar
-          leftPercent={leftPercent}
-          leftTag={leftTeam.shortTag}
-          rightTag={rightTeam.shortTag}
-          leftColor={leftTheme.primaryHex}
-          rightColor={rightTheme.primaryHex}
-          isClashFlashing={isClashFlashing}
-        />
-
-        {/* 4. Viewer Push Action Guide */}
-        {duel.winner === null && <DuelPushGuide />}
-
-        {/* 5. Live Donation Ticker / Winner Reward Banner */}
-        <DuelFooter
-          winner={duel.winner}
-          winnerTag={winnerTag}
-          lastEvent={duel.lastEvent}
-          eventColor={eventColor}
-        />
-      </div>
+      )}
     </div>
   );
 

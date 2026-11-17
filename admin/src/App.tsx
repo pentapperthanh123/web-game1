@@ -32,6 +32,8 @@ import { AdminBossMapSection } from './components/AdminBossMapSection';
 import { OverlayControls } from './components/OverlayControls';
 import { AdminEventLogSection } from './components/AdminEventLogSection';
 import { LiveOpsSection } from './components/liveOps/LiveOpsSection';
+import { MemeSoundboard } from './components/MemeSoundboard';
+import { AutoLiveSimulatorCard } from './components/AutoLiveSimulatorCard';
 
 export { detectSummonCommand } from './utils/commentCommand';
 
@@ -116,6 +118,9 @@ export function App() {
           />
         </div>
 
+        {/* Auto Mock Live Stream Simulator (Content Creator Mode) */}
+        <AutoLiveSimulatorCard />
+
         <AdminTokenGate
           savedToken={tokenGate.savedToken}
           hasAuthError={tokenGate.hasAuthError}
@@ -150,6 +155,11 @@ export function App() {
           className={`scroll-mt-24 ${shouldShowSeriesDuel ? 'block' : 'hidden'}`}
         >
           <SilverScrapesControls />
+        </div>
+
+        {/* Section: Meme Soundboard */}
+        <div className={`scroll-mt-24 ${shouldShowInteraction ? 'block' : 'hidden'}`}>
+          <MemeSoundboard visible={shouldShowInteraction} />
         </div>
 
         {/* Main Section Grid */}

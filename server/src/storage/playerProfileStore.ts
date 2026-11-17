@@ -53,7 +53,19 @@ export function loadPlayerProfilesFromDisk(): PlayerProfileData {
   return createEmptyData();
 }
 
-function writePlayerProfilesNow(data: PlayerProfileData): void {
+export function backupPlayerProfilesFile(): boolean {
+  try {
+    if (!fs.existsSync(PLAYER_PROFILES_FILE)) return false;
+    const backupFile = `${PLAYER_PROFILES_FILE}.bak`;
+    fs.copyFileSync(PLAYER_PROFILES_FILE, backupFile);
+    return true;
+  } catch (err) {
+    console.warn('[PlayerProfiles] Failed to backup player profiles file:', err);
+    return false;
+  }
+}
+
+export function writePlayerProfilesNow(data: PlayerProfileData): void {
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(PLAYER_PROFILES_FILE, JSON.stringify(data, null, JSON_INDENT), 'utf-8');

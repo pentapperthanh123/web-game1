@@ -19,6 +19,7 @@ import {
   STATUS_EFFECT_PRESENTATION,
 } from '../constants/bossStatusEffects';
 import { COMBAT_VFX_CONSTANTS, TEAM_KEY, TeamType } from '../constants/game';
+import { resolveDotTickDamage, resolveSkillTargetCount } from '../constants/bossSkillBalance';
 
 
 interface PickSkillInput {
@@ -106,27 +107,47 @@ const pickAttackedSide = (vulnerableMinions: readonly MinionEntity[]): TeamType 
   return Math.random() < 0.5 ? TEAM_KEY.BLG : TEAM_KEY.GENG;
 };
 
+const [BOSS_FLOOR_X, , BOSS_FLOOR_Z] = COMBAT_VFX_CONSTANTS.BOSS_TARGET;
+
+/** Distance to the boss on the floor plane: depth counts too, a champion far behind is not "near". */
+const distanceFromBoss = (position: readonly [number, number, number]): number =>
+  Math.hypot(position[0] - BOSS_FLOOR_X, position[2] - BOSS_FLOOR_Z);
+
 const byDistanceFromBoss =
   (readPosition: MinionPositionReader) =>
   (a: MinionEntity, b: MinionEntity): number =>
-    Math.abs(readPosition(a)[0]) - Math.abs(readPosition(b)[0]);
+    distanceFromBoss(readPosition(a)) - distanceFromBoss(readPosition(b));
+
+/** The champions inside a sweep's horizontal reach (before the target count is applied). */
+const getMinionsInSweepReach = (
+  minions: readonly MinionEntity[],
+  readPosition: MinionPositionReader
+): MinionEntity[] =>
+  minions.filter((minion) => Math.abs(readPosition(minion)[0]) <= BOSS_SKILL_HIT_RULES.SWEEP_REACH_X);
 
 interface AreaPickInput {
   minions: readonly MinionEntity[];
-  targetCount: number;
+  skill: BossSkillDefinition;
   readPosition: MinionPositionReader;
 }
 
-/** Who gets hit inside the attacked area, per hit-area kind. */
+const pickNearest = ({ minions, skill, readPosition }: AreaPickInput): MinionEntity[] =>
+  [...minions].sort(byDistanceFromBoss(readPosition)).slice(0, resolveSkillTargetCount(skill, minions.length));
+
+const pickRandom = ({ minions, skill }: AreaPickInput): MinionEntity[] =>
+  shuffle(minions).slice(0, resolveSkillTargetCount(skill, minions.length));
+
+/**
+ * Who gets hit inside the attacked area, per hit-area kind. The count follows the skill's target count
+ * and the crowd (see resolveSkillTargetCount); a sweep only counts the champions it can reach.
+ */
 const AREA_PICKERS: Readonly<Record<BossSkillHitArea, (input: AreaPickInput) => MinionEntity[]>> = {
-  [BOSS_SKILL_HIT_AREA.SIDE]: ({ minions, targetCount }) => shuffle(minions).slice(0, targetCount),
-  [BOSS_SKILL_HIT_AREA.SIDE_REACH]: ({ minions, readPosition }) =>
-    minions.filter((minion) => Math.abs(readPosition(minion)[0]) <= BOSS_SKILL_HIT_RULES.SWEEP_REACH_X),
-  [BOSS_SKILL_HIT_AREA.SIDE_NEAREST]: ({ minions, targetCount, readPosition }) =>
-    [...minions].sort(byDistanceFromBoss(readPosition)).slice(0, targetCount),
-  [BOSS_SKILL_HIT_AREA.CENTER]: ({ minions, targetCount, readPosition }) =>
-    [...minions].sort(byDistanceFromBoss(readPosition)).slice(0, targetCount),
-  [BOSS_SKILL_HIT_AREA.ARENA]: ({ minions, targetCount }) => shuffle(minions).slice(0, targetCount),
+  [BOSS_SKILL_HIT_AREA.SIDE]: pickRandom,
+  [BOSS_SKILL_HIT_AREA.SIDE_REACH]: ({ minions, skill, readPosition }) =>
+    pickNearest({ minions: getMinionsInSweepReach(minions, readPosition), skill, readPosition }),
+  [BOSS_SKILL_HIT_AREA.SIDE_NEAREST]: pickNearest,
+  [BOSS_SKILL_HIT_AREA.CENTER]: pickNearest,
+  [BOSS_SKILL_HIT_AREA.ARENA]: pickRandom,
 };
 
 const ONE_SIDED_AREAS: ReadonlySet<BossSkillHitArea> = new Set([
@@ -151,7 +172,7 @@ export const pickSkillHit = (
   const minionsInArea = attackedSide
     ? vulnerableMinions.filter((minion) => minion.team === attackedSide)
     : vulnerableMinions;
-  const targets = AREA_PICKERS[area]({ minions: minionsInArea, targetCount: skill.targetCount, readPosition });
+  const targets = AREA_PICKERS[area]({ minions: minionsInArea, skill, readPosition });
 
   return {
     targetedMinionIds: new Set(targets.map((minion) => minion.id)),
@@ -163,22 +184,28 @@ export const pickSkillHit = (
   };
 };
 
-/** Builds the champion-side debuff instance, or null for boss-side effects such as LIFESTEAL. */
+/**
+ * Builds the champion-side debuff instance, or null for boss-side effects such as LIFESTEAL.
+ * Burn / poison damage is a share of `hitDamage` (the full hit, before any wave split), so it follows
+ * the same multipliers as the hit; a longer phase-3 effect spreads the same total over more ticks.
+ */
 export const buildChampionStatusEffect = (
   effect: BossSkillStatusEffect | undefined,
   sourceSkillId: string,
   phase: BossPhase,
-  now: number
+  now: number,
+  hitDamage: number
 ): ActiveStatusEffect | null => {
   if (!effect || !CHAMPION_BOUND_STATUS_EFFECTS.includes(effect.type)) return null;
   const durationMs = Math.round(effect.durationMs * getBossPhaseRule(phase).statusDurationMultiplier);
+  const tickDamage = effect.dotRatio ? resolveDotTickDamage(hitDamage, effect.dotRatio, durationMs) : undefined;
   return {
     type: effect.type,
     sourceSkillId,
     color: STATUS_EFFECT_PRESENTATION[effect.type].color,
     appliedAt: now,
     expiresAt: now + durationMs,
-    tickDamage: effect.tickDamage,
+    tickDamage,
     lastTickAt: now,
   };
 };

@@ -2,6 +2,7 @@ import type { Socket } from 'socket.io';
 import type { TeamSlotKey } from '../constants/teams.js';
 import { DuelService } from '../services/duelService.js';
 import { saveOverlayVisibilityToDisk } from '../storage/jsonFileStore.js';
+import { MEME_AUDIO_EVENT, MemeTriggerPayload } from '../constants/memeAudio.js';
 import {
   AutoProBattleConfig,
   BossSkillConfig,
@@ -70,6 +71,20 @@ export function registerAdminHandlers(
 
   socket.on('admin:summon-batch', (payload: unknown) => {
     ctx.io.emit('game:summon-batch', payload);
+  });
+
+  socket.on(MEME_AUDIO_EVENT.ADMIN_TRIGGER, (payload: unknown) => {
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      'soundId' in payload &&
+      typeof (payload as MemeTriggerPayload).soundId === 'string'
+    ) {
+      const soundId = (payload as MemeTriggerPayload).soundId.trim();
+      if (soundId.length > 0) {
+        ctx.io.emit(MEME_AUDIO_EVENT.CLIENT_PLAY, { soundId });
+      }
+    }
   });
 
   socket.on('admin:gift', (payload: AdminGiftPayload) => {
@@ -249,6 +264,15 @@ export function registerAdminHandlers(
           ROUND_DURATION_LIMITS.MAX_MS
         );
       }
+      if (typeof payload?.seriesAutoStartMs === 'number' && Number.isFinite(payload.seriesAutoStartMs)) {
+        next.seriesAutoStartMs = Math.max(0, payload.seriesAutoStartMs);
+      }
+      if (payload?.matchRotationMode === 'random' || payload?.matchRotationMode === 'repeat') {
+        next.matchRotationMode = payload.matchRotationMode;
+      }
+      if (typeof payload?.enableComebackBuff === 'boolean') {
+        next.enableComebackBuff = payload.enableComebackBuff;
+      }
       ctx.state.participationRuleConfig = next;
       ctx.io.emit('game:participation-rules', {
         ...next,
@@ -256,4 +280,15 @@ export function registerAdminHandlers(
       });
     }
   );
+
+  socket.on(
+    'admin:toggle-auto-live',
+    (payload: { active: boolean; mode?: 'natural' | 'highlight'; resetMatch?: boolean; senderId?: string }) => {
+      ctx.io.emit('game:toggle-auto-live', payload);
+    }
+  );
+
+  socket.on('game:auto-live-status', (payload: unknown) => {
+    ctx.io.emit('game:auto-live-status', payload);
+  });
 }

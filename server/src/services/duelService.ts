@@ -18,6 +18,7 @@ export interface DuelService {
   broadcastDuelState: () => void;
   startDuel: (lane?: DuelLaneKey, duration?: number) => void;
   stopDuel: () => void;
+  skipIntro: () => void;
   finishDuel: (forcedWinner?: 'BLG' | 'GENG') => void;
   applyDuelContribution: (
     team: 'BLG' | 'GENG',
@@ -93,14 +94,19 @@ export function createDuelService(ctx: ServerContext): DuelService {
     }, 6000);
   };
 
+  const INTRO_COUNTDOWN_SEC = 5;
+
   const startDuel = (lane: DuelLaneKey = 'MID', duration = 60): void => {
     clearDuelTimer();
 
     const left = resolveFighter('BLG', lane);
     const right = resolveFighter('GENG', lane);
+    let introRemaining = INTRO_COUNTDOWN_SEC;
 
     ctx.state.silverScrapesDuelState = {
       isActive: true,
+      isIntroActive: true,
+      introRemaining,
       timeRemaining: duration,
       totalDuration: duration,
       tugOfWarPercent: 50,
@@ -120,6 +126,16 @@ export function createDuelService(ctx: ServerContext): DuelService {
         return;
       }
 
+      if (duel.isIntroActive) {
+        introRemaining -= 1;
+        duel.introRemaining = Math.max(0, introRemaining);
+        if (introRemaining <= 0) {
+          duel.isIntroActive = false;
+        }
+        broadcastDuelState();
+        return;
+      }
+
       duel.timeRemaining -= 1;
       if (duel.timeRemaining <= duel.totalDuration - 15) {
         duel.isLastStandActive = false;
@@ -134,9 +150,19 @@ export function createDuelService(ctx: ServerContext): DuelService {
     }, 1000);
   };
 
+  const skipIntro = (): void => {
+    const duel = ctx.state.silverScrapesDuelState;
+    if (!duel.isActive || !duel.isIntroActive) return;
+    duel.isIntroActive = false;
+    duel.introRemaining = 0;
+    broadcastDuelState();
+  };
+
   const stopDuel = (): void => {
     clearDuelTimer();
     ctx.state.silverScrapesDuelState.isActive = false;
+    ctx.state.silverScrapesDuelState.isIntroActive = false;
+    ctx.state.silverScrapesDuelState.introRemaining = 0;
     ctx.state.silverScrapesDuelState.winner = null;
     broadcastDuelState();
   };
@@ -188,6 +214,7 @@ export function createDuelService(ctx: ServerContext): DuelService {
     broadcastDuelState,
     startDuel,
     stopDuel,
+    skipIntro,
     finishDuel,
     applyDuelContribution,
     extendDuel,

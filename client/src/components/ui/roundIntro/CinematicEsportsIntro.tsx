@@ -5,7 +5,7 @@ import { TeamProfile } from '../../../types/team';
 import { TEAM_KEY } from '../../../constants/game';
 import { getTeamTheme } from '../../../constants/teams';
 import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../../utils/introStar';
-import { audioService } from '../../../services/audioService';
+import { playCinematicIntroScore } from '../../../services/audio/cinematicIntroScore';
 import { STAR_CARD_SIDE, StarFighterCard } from './StarFighterCard';
 
 interface CinematicEsportsIntroProps {
@@ -17,7 +17,6 @@ interface CinematicEsportsIntroProps {
 }
 
 const CINEMATIC_TIMING_MS = {
-  IMPACT_DELAY: 1000,
   AUTO_FINISH: 3500,
 } as const;
 
@@ -47,22 +46,18 @@ export const CinematicEsportsIntro: React.FC<CinematicEsportsIntroProps> = ({
 
   // Audio coordination & automated finish timer
   useEffect(() => {
-    // Phase 1: High-velocity whoosh build-up
-    audioService.playCinematicWhoosh();
+    // Full score locked to the CSS animation: riser, card whooshes, collision, VS slam, title stab, roar
+    const score = playCinematicIntroScore();
 
-    // Phase 2: High-impact Taiko hit + metal clash at visual collision (1.0s)
-    const impactTimer = window.setTimeout(() => {
-      audioService.playRoundStartSound();
-    }, CINEMATIC_TIMING_MS.IMPACT_DELAY);
-
-    // Phase 4: Auto complete when cinematic completes (3.5s)
+    // Auto complete when the cinematic ends (3.5s)
     const finishTimer = window.setTimeout(() => {
       handleFinish();
     }, CINEMATIC_TIMING_MS.AUTO_FINISH);
 
     return () => {
-      window.clearTimeout(impactTimer);
       window.clearTimeout(finishTimer);
+      // Skip or unmount: fade the score instead of letting it play over the next screen
+      score.stop();
     };
   }, [handleFinish]);
 

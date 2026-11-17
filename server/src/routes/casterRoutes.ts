@@ -11,16 +11,21 @@ export function registerCasterSocketHandlers(io: Server, casterTts: CasterTtsSer
   io.on('connection', (socket) => {
     socket.on(CASTER_TTS_WARM.SOCKET_EVENT, (payload: unknown) => {
       if (!payload || typeof payload !== 'object') return;
-      const { texts, lang } = payload as Record<string, unknown>;
-      casterTts.warm(texts, lang);
+      const { texts, lang, role } = payload as Record<string, unknown>;
+      casterTts.warm(texts, lang, role);
     });
   });
 }
 
-/** GET /api/caster/tts?text=...&lang=vi → audio/mpeg for one caster line. */
+/** GET /api/caster/tts?text=...&lang=vi&role=male&intensity=hype → audio/mpeg for one caster line. */
 export function registerCasterRoutes(app: Express, casterTts: CasterTtsService): void {
   app.get(CASTER_TTS.ROUTE, async (req, res) => {
-    const result = await casterTts.synthesize(req.query.text, req.query.lang);
+    const result = await casterTts.synthesize(req.query.text, req.query.lang, {
+      role: req.query.role,
+      intensity: req.query.intensity,
+      rate: req.query.rate,
+      pitch: req.query.pitch,
+    });
     if (result.audio) {
       res.set('Content-Type', CASTER_TTS.AUDIO_CONTENT_TYPE);
       res.set('Cache-Control', CASTER_TTS.CACHE_CONTROL);

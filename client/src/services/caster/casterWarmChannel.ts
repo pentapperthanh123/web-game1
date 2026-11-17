@@ -1,8 +1,10 @@
-import { CASTER_WARM } from '../../constants/caster';
+import { CASTER_WARM, CasterRole } from '../../constants/caster';
 
 export interface CasterWarmPayload {
   lang: string;
   texts: string[];
+  /** Voice to generate the lines with (each caster has its own); the server defaults to the male voice. */
+  role?: CasterRole;
 }
 
 type WarmSender = (eventName: string, payload: CasterWarmPayload) => void;

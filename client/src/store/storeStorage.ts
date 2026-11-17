@@ -5,6 +5,7 @@ import {
   OverlayVisibility,
 } from '../types/game';
 import { TeamConfigState } from '../types/team';
+import { DEFAULT_SKILL_DAMAGE_MULTIPLIER, LEGACY_SKILL_DAMAGE_MULTIPLIER } from '../constants/bossSkillBalance';
 import {
   BOSS_SKILL_STORAGE_KEY,
   DEFAULT_BOSS_SKILL_CONFIG,
@@ -51,13 +52,19 @@ export const persistGameTheme = (theme: GameThemeType): void => {
   }
 };
 
+/** A stored multiplier equal to the old default was never chosen on purpose: bosses then use the new default. */
+const upgradeLegacyDamageMultiplier = (config: BossSkillConfig): BossSkillConfig =>
+  config.damageMultiplier === LEGACY_SKILL_DAMAGE_MULTIPLIER
+    ? { ...config, damageMultiplier: DEFAULT_SKILL_DAMAGE_MULTIPLIER }
+    : config;
+
 /** Reads the persisted boss skill configuration from localStorage. */
 export const getStoredBossSkillConfig = (): BossSkillConfig => {
   if (typeof window === 'undefined') return DEFAULT_BOSS_SKILL_CONFIG;
   try {
     const raw = localStorage.getItem(BOSS_SKILL_STORAGE_KEY);
     if (!raw) return DEFAULT_BOSS_SKILL_CONFIG;
-    return { ...DEFAULT_BOSS_SKILL_CONFIG, ...JSON.parse(raw) };
+    return upgradeLegacyDamageMultiplier({ ...DEFAULT_BOSS_SKILL_CONFIG, ...JSON.parse(raw) });
   } catch {
     return DEFAULT_BOSS_SKILL_CONFIG;
   }

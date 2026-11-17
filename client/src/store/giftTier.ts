@@ -9,8 +9,6 @@ import {
 } from '../constants/giftPresentation';
 import { GiftAnnouncement } from '../types/game';
 
-const COINS_PER_EXTRA_STEP = 1000;
-
 /** Tiers from highest to lowest so the first match wins. */
 const TIERS_DESCENDING: readonly GiftTier[] = [GIFT_TIER.MEGA, GIFT_TIER.BIG, GIFT_TIER.MEDIUM, GIFT_TIER.SMALL];
 
@@ -35,14 +33,17 @@ export const getGiftTierConfig = (tier: GiftTier): GiftTierConfig => GIFT_TIER_C
 
 /**
  * Calculates dynamic banner duration based on tier and coins.
- * For gifts >= 1000 coins, the bigger the reward, the longer the celebration banner stays on screen.
+ * Scales smoothly from MEGA baseline (199 coins) up to the 1000-coin LEGEND cap.
  */
 export const resolveBannerDurationMs = (tier: GiftTier, coins = 0): number => {
   const config = GIFT_TIER_CONFIG[tier];
   if (tier !== GIFT_TIER.MEGA || coins <= config.minCoins) {
     return config.bannerDurationMs;
   }
-  const extraTime = Math.floor((coins - config.minCoins) / COINS_PER_EXTRA_STEP) * GIFT_DURATION_SCALING.MS_PER_1000_COINS;
+  const maxCoins = GIFT_MEGA_GRADE_CONFIG.LEGEND.minCoins;
+  const cappedCoins = Math.min(maxCoins, coins);
+  const progress = (cappedCoins - config.minCoins) / Math.max(1, maxCoins - config.minCoins);
+  const extraTime = Math.round(progress * (GIFT_DURATION_SCALING.MAX_BANNER_DURATION_MS - config.bannerDurationMs));
   return Math.min(GIFT_DURATION_SCALING.MAX_BANNER_DURATION_MS, config.bannerDurationMs + extraTime);
 };
 

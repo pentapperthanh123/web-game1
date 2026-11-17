@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { getTeamTheme } from '../../../constants/teams';
-import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS } from '../../../constants/game';
+import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, isEliteMinion } from '../../../constants/game';
 import { MinionEntity } from '../../../types/game';
 import { TeamColorThemeId } from '../../../types/team';
 import { SessionTier } from '../../../constants/sessionLeaderboard';
@@ -12,6 +12,8 @@ import {
   SHARED_NAMEPLATE_GEO,
   SHARED_SHIELD_RING_GEO,
   SHARED_SIGNATURE_HALO_GEO,
+  SHARED_ELITE_AURA_RING_GEO,
+  SHARED_ELITE_FLOOR_AURA_GEO,
   getChampionTexture,
   getFuryFillColor,
   getNameplateTexture,
@@ -75,6 +77,7 @@ const areMinionVisualsEqual = (a: MinionEntity, b: MinionEntity, isCompact: bool
     a.summonerName === b.summonerName &&
     a.signaturePlayerName === b.signaturePlayerName &&
     a.isSignatureSynergy === b.isSignatureSynergy &&
+    a.isElite === b.isElite &&
     (a.statusEffects?.length ?? 0) === (b.statusEffects?.length ?? 0)
   );
 };
@@ -99,7 +102,9 @@ export const ChampionToken = React.memo(
     const displayAvatarUrl = shouldUseUserAvatar && minion.userAvatarUrl ? minion.userAvatarUrl : minion.avatarUrl;
     const texture = useMemo(() => getChampionTexture(displayAvatarUrl), [displayAvatarUrl]);
     const isSignature = Boolean(minion.isSignatureSynergy);
+    const isElite = isEliteMinion(minion);
     const signatureColor = GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR;
+    const eliteColor = isSignature || isElite ? signatureColor : primaryColor;
     const nameplateTexture = useMemo(() => {
       if (!hasNameplate) return null;
       return getNameplateTexture(
@@ -164,6 +169,45 @@ export const ChampionToken = React.memo(
           <mesh name="signature-synergy-halo" visible={false} position={[0, 0, -0.025]} geometry={SHARED_SIGNATURE_HALO_GEO}>
             <meshBasicMaterial color={signatureColor} transparent opacity={SIGNATURE_HALO_OPACITY} blending={THREE.AdditiveBlending} depthWrite={false} side={TOKEN_FACE_SIDE} />
           </mesh>
+        )}
+
+        {isElite && (
+          <>
+            {/* VIP Golden Halo around token avatar */}
+            <mesh
+              name="elite-vip-aura"
+              position={[0, 0, -0.02]}
+              geometry={SHARED_ELITE_AURA_RING_GEO}
+            >
+              <meshBasicMaterial
+                color={eliteColor}
+                transparent
+                opacity={0.88}
+                blending={THREE.AdditiveBlending}
+                depthWrite={false}
+                toneMapped={false}
+                side={TOKEN_FACE_SIDE}
+              />
+            </mesh>
+
+            {/* Rotating Ground Aura beneath Champion */}
+            <mesh
+              name="elite-floor-aura"
+              position={[0, -0.24, -0.01]}
+              rotation={[-Math.PI / 2.3, 0, 0]}
+              geometry={SHARED_ELITE_FLOOR_AURA_GEO}
+            >
+              <meshBasicMaterial
+                color={eliteColor}
+                transparent
+                opacity={0.75}
+                blending={THREE.AdditiveBlending}
+                depthWrite={false}
+                toneMapped={false}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          </>
         )}
 
         {activeStatusEffect && (

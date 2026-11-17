@@ -42,31 +42,38 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
   const donorName = giftMatch ? giftMatch[1].trim() : (finisherPlayerName || t('Victory.teamworkKill', 'Toàn Đội Phối Hợp'));
   const parsedGiftName = finisherGiftName;
   const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
+  const isIndividualFinisher = Boolean(isDonorFinisher || (finisherPlayerName && finisherPlayerName !== 'Toàn Đội Phối Hợp' && finisherPlayerName !== t('Victory.teamworkKill', 'Toàn Đội Phối Hợp')));
 
   const effectiveWinner: TeamType = (finisherTeam || roundWinner || TEAM_KEY.BLG) as TeamType;
   const winnerProfile = activeTeams[effectiveWinner];
   const winnerTheme = getTeamTheme(winnerProfile?.colorTheme);
   const teamLabel = winnerProfile?.shortTag || effectiveWinner;
 
+  const cardRevealDelayMs = isDonorFinisher
+    ? FINISHER_BANNER_CONSTANTS.GIFT_CARD_REVEAL_DELAY_MS
+    : FINISHER_BANNER_CONSTANTS.NORMAL_CARD_REVEAL_DELAY_MS;
+
   const displayDurationMs = isDonorFinisher
     ? FINISHER_BANNER_CONSTANTS.GIFT_FINISHER_DURATION_MS
-    : FINISHER_BANNER_CONSTANTS.DISPLAY_DURATION_MS;
+    : FINISHER_BANNER_CONSTANTS.NORMAL_DISPLAY_DURATION_MS;
 
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [hasImpacted, setHasImpacted] = useState<boolean>(() => {
-    if (!isDonorFinisher) return true;
+    if (!isDonorFinisher) {
+      return Date.now() - bossDefeatedTimestamp >= cardRevealDelayMs;
+    }
     return Date.now() - bossDefeatedTimestamp >= FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS;
   });
   const [isCardVisible, setIsCardVisible] = useState<boolean>(() => {
-    if (!isDonorFinisher) return true;
-    return Date.now() - bossDefeatedTimestamp >= FINISHER_BANNER_CONSTANTS.CARD_REVEAL_DELAY_MS;
+    return Date.now() - bossDefeatedTimestamp >= cardRevealDelayMs;
   });
 
   const calculatedDamage =
     (finisherCoins ?? 0) > 0 ? calculateGiftBaseDamage(finisherCoins!) : 300000;
 
   useEffect(() => {
-    if (bossStatus !== BOSS_STATUS.DEFEATED || bossDefeatedTimestamp <= 0) {
+    // Only show Finisher Spotlight card if there is a real donor / individual finisher
+    if (!isIndividualFinisher || bossStatus !== BOSS_STATUS.DEFEATED || bossDefeatedTimestamp <= 0) {
       setIsVisible(false);
       setHasImpacted(false);
       setIsCardVisible(false);
@@ -85,12 +92,22 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
     let cardTimer: ReturnType<typeof setTimeout> | undefined;
 
     if (!isDonorFinisher) {
-      setHasImpacted(true);
-      setIsCardVisible(true);
-      playSound(SFX_EVENT.COMBO_LEVEL_UP, FINISHER_SOUND_OPTIONS);
+      const remainingToCard = Math.max(0, cardRevealDelayMs - elapsed);
+      if (remainingToCard <= 0) {
+        setHasImpacted(true);
+        setIsCardVisible(true);
+      } else {
+        setHasImpacted(false);
+        setIsCardVisible(false);
+        cardTimer = setTimeout(() => {
+          setHasImpacted(true);
+          setIsCardVisible(true);
+          playSound(SFX_EVENT.COMBO_LEVEL_UP, FINISHER_SOUND_OPTIONS);
+        }, remainingToCard);
+      }
     } else {
       const strikeDelay = Math.max(0, FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS - elapsed);
-      const cardDelay = Math.max(0, FINISHER_BANNER_CONSTANTS.CARD_REVEAL_DELAY_MS - elapsed);
+      const cardDelay = Math.max(0, cardRevealDelayMs - elapsed);
 
       if (strikeDelay <= 0) {
         setHasImpacted(true);
@@ -131,6 +148,7 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
   }, [
     bossStatus,
     bossDefeatedTimestamp,
+    cardRevealDelayMs,
     displayDurationMs,
     isDonorFinisher,
     winnerTheme.primaryHex,
@@ -138,7 +156,12 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
     triggerScreenFlash,
   ]);
 
-  if (!isVisible || bossDefeatedTimestamp <= 0) {
+  if (!isIndividualFinisher || !isVisible || bossDefeatedTimestamp <= 0) {
+    return null;
+  }
+
+  // During normal kill, wait until the 3D explosion finishes before mounting any overlay DOM
+  if (!isDonorFinisher && !hasImpacted) {
     return null;
   }
 
@@ -153,12 +176,14 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
       className="fixed inset-0 z-45 flex items-center justify-center pointer-events-none p-4 select-none"
     >
       {/* Background Radiance Pulse */}
-      <div
-        style={{
-          background: `radial-gradient(circle, ${winnerTheme.primaryHex}66 0%, transparent 70%)`,
-        }}
-        className="absolute w-[520px] h-[520px] rounded-full blur-3xl opacity-85 animate-pulse pointer-events-none"
-      />
+      {hasImpacted && (
+        <div
+          style={{
+            background: `radial-gradient(circle, ${winnerTheme.primaryHex}66 0%, transparent 70%)`,
+          }}
+          className="absolute w-[520px] h-[520px] rounded-full blur-3xl opacity-85 animate-pulse pointer-events-none"
+        />
+      )}
 
       {/* PHASE 1 (0 -> 1800ms): Flying Avatar Strike Cinematic */}
       {isDonorFinisher && !hasImpacted && (

@@ -30,7 +30,7 @@ export interface GiftMegaGradeConfig {
 
 export const GIFT_MEGA_GRADE_CONFIG: Readonly<Record<GiftMegaGrade, GiftMegaGradeConfig>> = {
   [GIFT_MEGA_GRADE.ROYAL]: {
-    minCoins: 1000,
+    minCoins: 199,
     crownCount: 1,
     confettiCount: 28,
     fireworkShellCount: 4,
@@ -40,7 +40,7 @@ export const GIFT_MEGA_GRADE_CONFIG: Readonly<Record<GiftMegaGrade, GiftMegaGrad
     crestFallback: 'ĐẠI GIA {{team}}',
   },
   [GIFT_MEGA_GRADE.MYTHIC]: {
-    minCoins: 2500,
+    minCoins: 500,
     crownCount: 2,
     confettiCount: 40,
     fireworkShellCount: 6,
@@ -50,7 +50,7 @@ export const GIFT_MEGA_GRADE_CONFIG: Readonly<Record<GiftMegaGrade, GiftMegaGrad
     crestFallback: 'SIÊU ĐẠI GIA {{team}}',
   },
   [GIFT_MEGA_GRADE.LEGEND]: {
-    minCoins: 5000,
+    minCoins: 1000,
     crownCount: 3,
     confettiCount: 56,
     fireworkShellCount: 9,

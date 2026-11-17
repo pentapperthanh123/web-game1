@@ -11,6 +11,8 @@ export interface ChatLimitConfig {
 export interface CasterConfig {
   isTtsEnabled: boolean;
   isNameReadingEnabled: boolean;
+  /** Two casters banter (Bảo + Anna); off = one male voice. */
+  isDuoEnabled: boolean;
 }
 
 export interface ModerationSnapshot {

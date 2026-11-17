@@ -3,6 +3,7 @@ import { ArenaBackground2D } from './components/arena/ArenaBackground2D';
 import { Boss2D } from './components/arena/Boss2D';
 import { GameCanvas } from './components/canvas/GameCanvas';
 import { HUDOverlay } from './components/ui/HUDOverlay';
+import { AudioController } from './components/audio/AudioController';
 import { useGameStore } from './store/gameStore';
 import { useScreenRumbleAmplitudePx } from './hooks/useScreenRumbleAmplitude';
 import { useMatchSnapshotPersistence } from './store/matchSnapshot';
@@ -20,6 +21,9 @@ import {
   AUTO_SUMMON_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
   BOSS_DIFFICULTY_SCALE,
+  BACKGROUND_PERF_CONSTANTS,
+  DAMAGE_SOURCE,
+  DAMAGE_TYPE,
 } from './constants/game';
 
 import { getRandomChampion } from './constants/champions';
@@ -485,6 +489,41 @@ export function App() {
     return () => clearInterval(intervalId);
   }, [isBattlePaused, summonMinion]);
 
+  // Background Combat Ticker: Keeps minion combat and turn queues moving smoothly even when the tab is in background / unfocused
+  useEffect(() => {
+    const backgroundCombatInterval = setInterval(() => {
+      if (typeof document === 'undefined' || !document.hidden || isBattlePaused) return;
+      const state = useGameStore.getState();
+      if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
+
+      const livingMinions = state.minions.filter((m) => (m.hp ?? 1) > 0);
+      if (livingMinions.length === 0) return;
+
+      const teamDamageMap: Record<TeamType, number> = {
+        [TEAM_KEY.BLG]: 0,
+        [TEAM_KEY.GENG]: 0,
+      };
+
+      for (const minion of livingMinions) {
+        teamDamageMap[minion.team] = (teamDamageMap[minion.team] ?? 0) + Math.round(minion.dps);
+      }
+
+      for (const team of Object.keys(teamDamageMap) as TeamType[]) {
+        const dmg = teamDamageMap[team];
+        if (dmg > 0) {
+          const teamTag = state.activeTeams[team]?.shortTag ?? team;
+          state.damageBoss(dmg, team, `Đội hình ${teamTag}`, DAMAGE_TYPE.NORMAL, {
+            source: DAMAGE_SOURCE.CHAMPION,
+          });
+        }
+      }
+
+      state.advanceSummonTurnQueue();
+    }, BACKGROUND_PERF_CONSTANTS.COMBAT_TICK_INTERVAL_MS);
+
+    return () => clearInterval(backgroundCombatInterval);
+  }, [isBattlePaused]);
+
   return (
     <main className="fixed inset-0 w-full h-full bg-slate-950 overflow-hidden font-sans select-none">
       {/* 100% Fullscreen on all mobile devices and browsers, zero letterboxing */}
@@ -506,6 +545,9 @@ export function App() {
 
         {/* Layer 4: Boss Speech Bubbles & Skill Callouts (below top-level toast/intro modals) */}
         <div id="boss-notification-layer" className="absolute inset-0 pointer-events-none z-[30]" />
+
+        {/* Headless Audio Controller (Meme Soundboard & Climax Music) */}
+        <AudioController />
       </div>
     </main>
   );

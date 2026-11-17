@@ -132,6 +132,19 @@ class AudioSynthesizerService {
       window.addEventListener('keydown', unlockAudio);
       window.addEventListener('touchstart', unlockAudio);
       window.addEventListener('pointerdown', unlockAudio);
+
+      // Auto-resume audio when browser window regains focus or visibility
+      const resumeSuspendedAudio = () => {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+      };
+      window.addEventListener('focus', resumeSuspendedAudio);
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) resumeSuspendedAudio();
+        });
+      }
     }
   }
 
@@ -1662,58 +1675,6 @@ class AudioSynthesizerService {
     sirenOsc.stop(t + 0.75);
 
     this.playBossRoarSound(pitch, true);
-  }
-
-  // 11c. High-Velocity Aerodynamic Cinematic Whoosh & Tension Drone (Opening Build-up)
-  public playCinematicWhoosh(): void {
-    if (!this.isAudioEnabled) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
-
-    const t = ctx.currentTime;
-    const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
-    const vol = this.volume;
-
-    // Filtered aerodynamic air whoosh building up tension to impact
-    const noise = ctx.createBufferSource();
-    noise.buffer = this.getNoiseBuffer(ctx);
-    const filter = ctx.createBiquadFilter();
-    const gain = ctx.createGain();
-
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(220, t);
-    filter.frequency.exponentialRampToValueAtTime(1400, t + 1.1);
-    filter.Q.setValueAtTime(2.5, t);
-
-    gain.gain.setValueAtTime(0.001, t);
-    gain.gain.linearRampToValueAtTime(0.35 * vol, t + 0.95);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 1.15);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(out);
-    noise.start(t);
-    noise.stop(t + 1.18);
-
-    // Low rising drone tension
-    const droneOsc = ctx.createOscillator();
-    const droneGain = ctx.createGain();
-    droneOsc.type = 'sawtooth';
-    droneOsc.frequency.setValueAtTime(55, t);
-    droneOsc.frequency.exponentialRampToValueAtTime(110, t + 1.1);
-    const droneFilter = ctx.createBiquadFilter();
-    droneFilter.type = 'lowpass';
-    droneFilter.frequency.setValueAtTime(180, t);
-
-    droneGain.gain.setValueAtTime(0.001, t);
-    droneGain.gain.linearRampToValueAtTime(0.25 * vol, t + 0.9);
-    droneGain.gain.exponentialRampToValueAtTime(0.001, t + 1.15);
-
-    droneOsc.connect(droneFilter);
-    droneFilter.connect(droneGain);
-    droneGain.connect(out);
-    droneOsc.start(t);
-    droneOsc.stop(t + 1.18);
   }
 
   // 11d. Epic Worlds Brass Fanfare & Taiko War Drums (Esports Opening Ceremony)

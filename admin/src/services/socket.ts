@@ -30,6 +30,7 @@ import {
 import { pickOverlayVisibilityPatch } from '../utils/overlayVisibility';
 import { SERVER_AUTH_ERROR_EVENT } from '../constants/adminAuth';
 import { LIVE_OPS_ACK_TIMEOUT_MS, LIVE_OPS_EVENT } from '../constants/liveOps';
+import { MEME_AUDIO_EVENT } from '../constants/memeAudio';
 import {
   CasterConfig,
   ChatLimitConfig,
@@ -78,6 +79,9 @@ export interface ParticipationRuleConfig {
   /** Summoned champions attack this many times faster than the base interval (1 = base). */
   championAttackSpeedMultiplier?: number;
   roundDurationMs?: number;
+  seriesAutoStartMs?: number;
+  matchRotationMode?: 'random' | 'repeat';
+  enableComebackBuff?: boolean;
 }
 
 export interface TikTokPipelineStats {
@@ -474,6 +478,34 @@ class AdminSocketService {
     this.emit('admin:boss-cast-skill', { skillIndex });
   }
 
+  public toggleAutoLive(active: boolean, mode: 'natural' | 'highlight' = 'natural', resetMatch = true): void {
+    this.emit('admin:toggle-auto-live', { active, mode, resetMatch });
+    if (active && resetMatch) {
+      this.emit('admin:bo5-control', { action: 'reset' });
+      this.emit('admin:boss-control', { action: 'reset' });
+    }
+  }
+
+  public onAutoLiveStatus(
+    callback: (status: {
+      isActive: boolean;
+      mode: 'natural' | 'highlight';
+      phase: string;
+      phaseLabel: string;
+      summonsCount: number;
+      giftsCount: number;
+      likesCount: number;
+      lastAction: string;
+      message?: string;
+    }) => void
+  ): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('game:auto-live-status', callback);
+    return () => {
+      this.socket?.off('game:auto-live-status', callback);
+    };
+  }
+
   public healTeam(team: 'BLG' | 'GEN' | 'GENG' | 'ALL', amount: number): void {
     this.emit('admin:heal-team', { team, amount });
   }
@@ -547,7 +579,7 @@ class AdminSocketService {
   }
 
   public setSilverScrapesControl(
-    action: 'start' | 'stop' | 'extend' | 'setLane',
+    action: 'start' | 'stop' | 'extend' | 'setLane' | 'skipIntro',
     lane?: DuelLaneKey,
     duration?: number
   ): void {
@@ -725,6 +757,11 @@ class AdminSocketService {
     };
   }
 
+  public triggerMeme(soundId: string): void {
+    if (!soundId) return;
+    this.socket?.emit(MEME_AUDIO_EVENT.ADMIN_TRIGGER, { soundId });
+  }
+
   public requestLiveOpsState(): void {
     this.socket?.emit(LIVE_OPS_EVENT.ADMIN_REQUEST_STATE);
   }
@@ -784,4 +821,5 @@ class AdminSocketService {
 }
 
 export const adminSocket = new AdminSocketService();
+export const adminSocketService = adminSocket;
 

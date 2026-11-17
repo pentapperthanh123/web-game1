@@ -60,6 +60,8 @@ export const LIVE_OPS_TEXT = {
   NAME_READING_LABEL: 'Đọc tên người xem',
   NAME_READING_HINT: 'TẮT = khẩn cấp: BLV không đọc bất kỳ tên người xem nào.',
   NAME_READING_OFF_BADGE: 'ĐANG TẮT ĐỌC TÊN',
+  DUO_LABEL: 'Hai BLV tung hứng (Bảo & Anna)',
+  DUO_HINT: 'TẮT = chỉ giọng nam Bảo như cũ. Cần giọng Edge hoặc Azure; giọng Google chỉ có một giọng.',
   TELEGRAM_TITLE: 'Cảnh báo Telegram',
   TELEGRAM_CONFIGURED: 'Đã cấu hình',
   TELEGRAM_NOT_CONFIGURED: 'Chưa cấu hình (chỉ ghi log)',

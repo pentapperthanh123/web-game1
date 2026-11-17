@@ -1,6 +1,11 @@
 {
+  "BattleBar": {
+    "coins": "coins",
+    "vs": "VS"
+  },
   "Game": {
     "subtitle": "TikTok Live Interactive 3D Game",
+    "comebackBuffBadge": "COMEBACK +15%",
     "bossName": "BARON NASHOR",
     "hpLabel": "BOSS HP",
     "rageMode": "ENRAGED",
@@ -153,7 +158,7 @@
     "bossDefeatedElder": "ELDER DRAGON HAS BEEN SLAIN!",
     "worldsBadge": "CKTG 2026 WORLDS CHAMPIONSHIP",
     "championTag": "CHAMPION",
-    "slainBadge": "BOSS SLAIN!",
+    "slainBadge": "HAS SLAIN",
     "baronShort": "BARON NASHOR",
     "elderShort": "ELDER DRAGON",
     "teamSlainBoss": "{{team}} HAS SLAIN {{boss}}!",
@@ -242,6 +247,7 @@
     "combatStartedFeedback": "Battle deployed immediately!",
     "reopenIntroFeedback": "Opened Round {{round}} intro screen!",
     "tabThemeSkills": "Map & Skills",
+    "tabGifts": "Gifts & LiveOps",
     "tabSummon": "Summon",
     "tabSimulation": "Bots & Auto",
     "tabOverlays": "Sections",
@@ -335,7 +341,22 @@
     "roundTimerValue": "{{minutes}} min + {{overtime}}s overtime",
     "resetMatchupTitles": "Reset this matchup's titles",
     "resetMatchupTitlesDone": "Matchup titles cleared!",
-    "matchupTitlesLabel": "Head-to-head titles:"
+    "matchupTitlesLabel": "Head-to-head titles:",
+    "saveScoreBtn": "Save BO5 Score",
+    "matchFlowSectionTitle": "Match Flow & Comeback Settings",
+    "seriesAutoStartLabel": "Auto-start new series (waiting card)",
+    "autoStartUpdatedFeedback": "Updated auto-start: {{val}}",
+    "matchRotationModeLabel": "When match queue is empty",
+    "rotationRandom": "Random matchup",
+    "rotationRepeat": "Repeat previous matchup",
+    "rotationModeUpdatedFeedback": "Changed rotation mode: {{val}}",
+    "comebackBuffLabel": "Comeback buff for trailing team (+15%)",
+    "comebackBuffDesc": "Active when score < 70%, released when > 85% (min damage 5,000)",
+    "comebackEnabledFeedback": "Comeback buff enabled (+15%)",
+    "comebackDisabledFeedback": "Comeback buff disabled",
+    "off": "Off",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
   },
   "AdminTeams": {
     "activeMatchupTitle": "Current Matchup:",
@@ -397,6 +418,13 @@
   "SilverScrapes": {
     "title": "⚡ SILVER SCRAPES: 1V1 DECIDER DUEL ⚡",
     "close": "Close",
+    "introBadge": "⚡ TIED MATCH • DECIDER GAME INCOMING ⚡",
+    "introTitle": "SILVER SCRAPES",
+    "introSubtitle": "1V1 DECIDER DUEL",
+    "introCountdown": "BATTLE COMMENCES IN {{count}}S",
+    "introBattleNow": "BATTLE NOW",
+    "introTip": "Get ready to Tap Likes, Send Chats & Donate Gifts to power up your team's beam!",
+    "introDeciderCallout": "Both teams tied neck and neck! 1v1 Silver Scrapes will decide the First Blood team buff!",
     "lastStand": "LAST STAND SHIELD (95% CAP)",
     "clashPrompt": "Tap Likes & Donate Gifts to Push Beam",
     "draw": "EPIC DRAW MATCH!",
@@ -497,6 +525,7 @@
     "worldsOpeningTitle": "WORLD CHAMPIONSHIP • ROUND {{round}}",
     "readyBadge": "READY TO START",
     "readyBox": "READY",
+    "holdButton": "Hold",
     "startWorldsButton": "Start Round {{round}}",
     "vsBoss": "Facing {{boss}}",
     "titleMatchup": "Matchup",
@@ -558,7 +587,7 @@
   },
   "Caster": {
     "nameJoiner": " and ",
-    "subtitleLabel": "Caster Storm",
+    "subtitleLabel": "Caster Bao",
     "donateLabel": "Donation Honor",
     "voiceUnlockHint": "Click the screen to turn on the caster voice",
     "anonymousName": "a mystery warrior",
@@ -570,16 +599,973 @@
       "millionsExact": "{{value}} million",
       "decimal": "{{whole}} point {{decimal}}"
     },
+    "casters": {
+      "A": {
+        "name": "Bao"
+      },
+      "B": {
+        "name": "Anna"
+      }
+    },
+    "dialogues": {
+      "ROUND_GO": [
+        [
+          {
+            "speaker": "A",
+            "text": "All units, charge! Take down {{boss}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Round {{round}} is on. Reminder: type a champion name plus a team tag and you are in the arena!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "CHARGE! {{boss}} is waiting for you!"
+          },
+          {
+            "speaker": "B",
+            "text": "Bao, easy on the mic. But yes, get in there, {{boss}} will not die on its own!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Let us go! Round {{round}}, no losing this one!"
+          },
+          {
+            "speaker": "B",
+            "text": "Stay calm and hit it. Hearts, chat, gifts, every one of them is damage."
+          }
+        ]
+      ],
+      "BOSS_ENRAGE": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} IS ENRAGED! Hold the line!"
+          },
+          {
+            "speaker": "B",
+            "text": "Enraged means it attacks half again as fast. Tap hearts to heal, do not let champions drop!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Oh my, {{boss}} changed form! It got stronger!"
+          },
+          {
+            "speaker": "B",
+            "text": "The wilder it gets, the easier the steal. Pour in the damage, the finish is close!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Hear that roar! {{boss}} is furious!"
+          },
+          {
+            "speaker": "B",
+            "text": "Honestly Bao is more furious than the boss. Ignore him, everyone, focus on the fight!"
+          }
+        ]
+      ],
+      "BOSS_PHASE_TWO": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} awakens! The ultimate is unlocked!"
+          },
+          {
+            "speaker": "B",
+            "text": "From now on it can wipe the whole arena. When it winds up, get ready to summon again!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Phase two! Things get serious now!"
+          },
+          {
+            "speaker": "B",
+            "text": "Serious how? The boss opens its ultimate, and we open our wallets… I mean the chat!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} enters phase two!"
+          },
+          {
+            "speaker": "B",
+            "text": "Good news: it already lost a third of its health. Bad news: it starts hitting for real."
+          }
+        ]
+      ],
+      "BOSS_PHASE_THREE": [
+        [
+          {
+            "speaker": "A",
+            "text": "FINAL PHASE! {{boss}} casts faster and hits harder!"
+          },
+          {
+            "speaker": "B",
+            "text": "Its damage is up twenty percent. But it only has a third of its health left, push!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "It has lost it! Phase three!"
+          },
+          {
+            "speaker": "B",
+            "text": "This is where the big spenders step in. A gift right now is worth double the hype."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "The apocalypse phase! {{boss}} goes all in!"
+          },
+          {
+            "speaker": "B",
+            "text": "Then so do we. Hearts, chat, gifts, everything at once!"
+          }
+        ]
+      ],
+      "BOSS_SHIELD_UP": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} raised a shield! Break it now!"
+          },
+          {
+            "speaker": "B",
+            "text": "You have exactly {{seconds}} seconds. Miss it and the boss heals, all that work gone!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Energy shield! Hit it, hit it!"
+          },
+          {
+            "speaker": "B",
+            "text": "Hit the right spot, Bao. Everyone, all damage on the shield for {{seconds}} seconds!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "It is hiding behind a shield!"
+          },
+          {
+            "speaker": "B",
+            "text": "How brave. Break it and the boss is stunned, then the hits feel great."
+          }
+        ]
+      ],
+      "BOSS_SHIELD_BROKEN": [
+        [
+          {
+            "speaker": "A",
+            "text": "SHIELD DOWN! {{boss}} is stunned!"
+          },
+          {
+            "speaker": "B",
+            "text": "Plus {{dmg}} bonus damage. Lovely! While it is stunned, hit twice as hard!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "We broke it! Beautiful, everyone!"
+          },
+          {
+            "speaker": "B",
+            "text": "Textbook. A broken shield costs {{boss}} another {{dmg}} health. No boss survives teamwork like that."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Shattered! What a flimsy shield!"
+          },
+          {
+            "speaker": "B",
+            "text": "Flimsy because you all hit thick, Bao. Keep this rhythm!"
+          }
+        ]
+      ],
+      "BOSS_SHIELD_ABSORBED": [
+        [
+          {
+            "speaker": "A",
+            "text": "Too late! {{boss}} heals!"
+          },
+          {
+            "speaker": "B",
+            "text": "Plus {{hp}} health for the boss. Next shield, all-out attack at once, do not let it run out."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "So close, the shield held!"
+          },
+          {
+            "speaker": "B",
+            "text": "No regrets. Lesson learned: shield up means hearts and chat up too."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} is laughing at us now!"
+          },
+          {
+            "speaker": "B",
+            "text": "Not for long. It healed {{hp}}, hit it again and that is gone."
+          }
+        ]
+      ],
+      "BOSS_LOW_HP": [
+        [
+          {
+            "speaker": "A",
+            "text": "ALMOST THERE! Who takes the kill?!"
+          },
+          {
+            "speaker": "B",
+            "text": "The final blow gets honored right on screen. A gift now seals it, nobody can contest."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} is staggering! Finish it!"
+          },
+          {
+            "speaker": "B",
+            "text": "You count it down, Bao, I will watch who lands the last hit."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Nearly done, everyone!"
+          },
+          {
+            "speaker": "B",
+            "text": "Nearly, not done. Do not just watch, type a champion name!"
+          }
+        ]
+      ],
+      "BOSS_CRITICAL_TENSION": [
+        [
+          {
+            "speaker": "A",
+            "text": "RED ALERT! {{boss}} below {{hpPercent}} percent!"
+          },
+          {
+            "speaker": "B",
+            "text": "The most valuable moment of the round. Want your name on the board? Strike now!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{hpPercent}} percent left! My heart is racing!"
+          },
+          {
+            "speaker": "B",
+            "text": "Yours or the viewers? Both should race right now, tap those hearts!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} is on its last breath!"
+          },
+          {
+            "speaker": "B",
+            "text": "Last breath, not dead. One more push and it is over, both teams go!"
+          }
+        ]
+      ],
+      "COMEBACK": [
+        [
+          {
+            "speaker": "A",
+            "text": "COMEBACK! {{team}} overtakes {{teamOther}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Told you this was not over. {{teamOther}} fans, take it back!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Unbelievable! {{team}} turns it around!"
+          },
+          {
+            "speaker": "B",
+            "text": "Very believable. {{teamOther}} slacked for a moment and paid for it. Now they prove themselves."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} TAKES THE LEAD!"
+          },
+          {
+            "speaker": "B",
+            "text": "And {{teamOther}} has not given up. This one flips a few more times, I would bet on it."
+          }
+        ]
+      ],
+      "COMEBACK_BUFF": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} gets the Comeback buff! Fifteen percent more damage!"
+          },
+          {
+            "speaker": "B",
+            "text": "Behind and buffed, what excuse is left? {{team}} fans, send in champions now!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Comeback buff activated for {{team}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "The system is rooting for you. Use it, or it goes to waste."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} is fifteen percent stronger from now on!"
+          },
+          {
+            "speaker": "B",
+            "text": "Fifteen sounds small, but times a hundred champions it is a different story. Go!"
+          }
+        ]
+      ],
+      "TIGHT_RACE": [
+        [
+          {
+            "speaker": "A",
+            "text": "NECK AND NECK! {{teamA}} and {{teamB}} trading blow for blow!"
+          },
+          {
+            "speaker": "B",
+            "text": "Under five percent apart. One gift right now flips the whole race."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Dead even, Anna!"
+          },
+          {
+            "speaker": "B",
+            "text": "I know, no need to yell in my ear. Fans of both teams, time to prove who wants it more!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Nobody is backing down!"
+          },
+          {
+            "speaker": "B",
+            "text": "That is the fun part. Do not just watch, a single champion changes the result."
+          }
+        ]
+      ],
+      "DOMINANT_LEAD": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} DOMINATES! Over {{leadPercent}} percent ahead of {{teamOther}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "{{teamOther}} fans, where are you? There is time, one summon wave pulls it back."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "One-sided! {{team}} is too strong!"
+          },
+          {
+            "speaker": "B",
+            "text": "One-sided because the other side went quiet. {{teamOther}}, show me you are still here!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} is running this round!"
+          },
+          {
+            "speaker": "B",
+            "text": "A {{leadPercent}} percent lead is big, but I have seen comebacks from further. Do not celebrate yet."
+          }
+        ]
+      ],
+      "GIFT_BIG": [
+        [
+          {
+            "speaker": "A",
+            "text": "OH WOW! {{name}} DROPS A {{gift}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thank you, {{name}}! {{team}} is in tears, and the boss is losing blood."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{name}} SENDS A {{gift}}! The arena shakes!"
+          },
+          {
+            "speaker": "B",
+            "text": "As it should. {{name}}, {{team}} owes you a round!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "HUGE GIFT! {{name}} with a {{gift}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "With people like {{name}}, {{team}} has nothing to fear. Thank you so much!"
+          }
+        ]
+      ],
+      "GIFT_MEGA": [
+        [
+          {
+            "speaker": "A",
+            "text": "LEGENDARY! {{name}} UNLEASHES A DIVINE {{gift}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "The whole arena held its breath. {{name}}, {{team}} will remember that name!"
+          },
+          {
+            "speaker": "A",
+            "text": "Honor to {{name}}! A true legend!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{name}}! A {{gift}}! I AM SPEECHLESS!"
+          },
+          {
+            "speaker": "B",
+            "text": "Bao speechless is a rare thing. Thank you {{name}}, you just rewrote this round for {{team}}!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "ARENA FLATTENED! {{name}} WITH A {{gift}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "The boss is stunned, and so am I. {{name}}, {{team}} bows to you!"
+          }
+        ]
+      ],
+      "ROUND_WIN": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} WINS ROUND {{round}}! Series {{score}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Deserved. {{team}} dealt more damage, simple as that. But the series is not over."
+          },
+          {
+            "speaker": "A",
+            "text": "Right, the next round gets even hotter!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} falls! Round {{round}} goes to {{team}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "{{team}} fans, celebrate. Other side, breathe. The next round is your payback."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "It is over! {{team}} takes round {{round}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Series {{score}}. Noted. Let us see if anyone gets revenge."
+          }
+        ]
+      ],
+      "PODIUM_THANKS": [
+        [
+          {
+            "speaker": "A",
+            "text": "Top three this round: {{a}}, {{b}} and {{c}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Those three carried the arena. Thank you, keep that form next round!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Honor to {{a}}, {{b}}, {{c}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Want your name read out like that? You know what to do next round."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{a}}, {{b}} and {{c}} lead the damage board!"
+          },
+          {
+            "speaker": "B",
+            "text": "Look at that podium. Next round, that spot could be yours."
+          }
+        ]
+      ],
+      "SERIES_WIN": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} ARE CHAMPIONS! Final score {{score}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "A series well earned. Congratulations {{team}}, and thank you to both sides for going all in."
+          },
+          {
+            "speaker": "A",
+            "text": "Stay with us, the next matchup is coming!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "THE TITLE GOES TO {{team}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Score {{score}}, nothing to argue. I feel for the losing side, but that is competition."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} lift the trophy!"
+          },
+          {
+            "speaker": "B",
+            "text": "{{team}} fans, this moment is yours. Take a screenshot!"
+          }
+        ]
+      ],
+      "HEART_MILESTONE": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{count}} hearts! {{heal}} health restored to the whole field!"
+          },
+          {
+            "speaker": "B",
+            "text": "See, hearts are not just pretty. Keep tapping, the next milestone comes sooner!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{count}} hearts! The whole field is healthy again!"
+          },
+          {
+            "speaker": "B",
+            "text": "Your thumbs are healing potions. Do not stop."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Hearts filling the sky! Milestone {{count}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "{{heal}} health for every champion. The cheapest and best way to help, keep tapping!"
+          }
+        ]
+      ],
+      "BANTER_GUIDE": [
+        [
+          {
+            "speaker": "B",
+            "text": "For anyone new: type a champion name plus a team tag, for example {{champion}} {{teamB}}."
+          },
+          {
+            "speaker": "A",
+            "text": "And the champion steps onto the field! Easy, right? Try it now!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Anna, explain the rules for the newcomers."
+          },
+          {
+            "speaker": "B",
+            "text": "Sure. Chat {{champion}} {{teamA}} for a {{teamA}} champion, {{champion}} {{teamB}} for {{teamB}}. That is it."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Someone asked how to play. One chat line: champion name, space, team tag."
+          },
+          {
+            "speaker": "A",
+            "text": "For example {{champion}} {{teamA}}! And you are fighting the boss with everyone!"
+          }
+        ]
+      ],
+      "BANTER_CTA": [
+        [
+          {
+            "speaker": "A",
+            "text": "Follow for a free champion, share and the boss takes a hit!"
+          },
+          {
+            "speaker": "B",
+            "text": "You sound like a commercial. But it is true, so go ahead, everyone."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Quick reminder: rapid hearts make champions attack faster and build Fury faster."
+          },
+          {
+            "speaker": "A",
+            "text": "And every two hundred hearts heals the whole field! Tap, tap, tap!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Anyone not following yet? Raise your hand!"
+          },
+          {
+            "speaker": "B",
+            "text": "How would you see a hand. Press follow, the system sees it, the champion appears."
+          }
+        ]
+      ],
+      "BANTER_HYPE": [
+        [
+          {
+            "speaker": "A",
+            "text": "The energy is through the roof! Both sides all in!"
+          },
+          {
+            "speaker": "B",
+            "text": "I like this pace. Nobody backs off, the boss takes the beating."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "With a field this full, every hit counts, Bao."
+          },
+          {
+            "speaker": "A",
+            "text": "Exactly! Keep this rhythm and the boss cannot hold!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "What a fire, everyone!"
+          },
+          {
+            "speaker": "B",
+            "text": "Keep that fire until the end of the round. The final minute is what decides it."
+          }
+        ]
+      ],
+      "BANTER_BOSS_HP": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} is down to {{hpPercent}} percent!"
+          },
+          {
+            "speaker": "B",
+            "text": "That is {{hpPercent}} percent of chances left to get on the board. Be quick."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "{{boss}} at {{hpPercent}} percent. Bao, who takes the kill?"
+          },
+          {
+            "speaker": "A",
+            "text": "My guess: whoever is reading this line! Type a champion name!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "The boss is slipping, {{hpPercent}} percent!"
+          },
+          {
+            "speaker": "B",
+            "text": "Slipping slowly? Then we push it faster. Hearts, chat, gifts, let us go."
+          }
+        ]
+      ],
+      "BANTER_FIELD": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{fieldCount}} champions around {{boss}}! What a crowd!"
+          },
+          {
+            "speaker": "B",
+            "text": "A crowd only works when everyone hits. No champion yet? Join and fill the ranks."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "I count {{fieldCount}} champions on the field. {{boss}} is running out of air."
+          },
+          {
+            "speaker": "A",
+            "text": "Take all its air! More champions, now!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Look at that field, Anna, {{fieldCount}} champions!"
+          },
+          {
+            "speaker": "B",
+            "text": "I see it. Nice, but I want that number doubled."
+          }
+        ]
+      ],
+      "BANTER_LEAD": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} leads the damage race! Where are the {{teamOther}} fans?"
+          },
+          {
+            "speaker": "B",
+            "text": "A lead means nothing yet. {{teamOther}} needs one wave of champions to pull it back."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "{{team}} is slightly ahead. Any answer from {{teamOther}}?"
+          },
+          {
+            "speaker": "A",
+            "text": "There has to be! Chat a champion name plus {{teamOther}} right now!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} still holds the edge!"
+          },
+          {
+            "speaker": "B",
+            "text": "For how long, we will see. I can feel {{teamOther}} starting to stir."
+          }
+        ]
+      ],
+      "BANTER_SERIES": [
+        [
+          {
+            "speaker": "A",
+            "text": "Series score {{score}}! Round {{round}} matters a lot!"
+          },
+          {
+            "speaker": "B",
+            "text": "It is a {{format}}, every round matters. But this one really is tighter."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "It is {{score}}. Bao, which way does round {{round}} lean?"
+          },
+          {
+            "speaker": "A",
+            "text": "Toward whichever team chats more! Simple as that!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Round {{round}} of a {{format}}, score {{score}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Win this and you hold the momentum. Cheer your team, do not just watch."
+          }
+        ]
+      ],
+      "BANTER_IDLE": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} is waiting for a challenger! Who strikes first?"
+          },
+          {
+            "speaker": "B",
+            "text": "This silence worries me a little. {{teamA}}, {{teamB}}, anyone out there?"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Empty field, bored boss, and Bao is about to fall asleep."
+          },
+          {
+            "speaker": "A",
+            "text": "Who is asleep! I am waiting for you to type a champion name!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Way too quiet, this is not an arena!"
+          },
+          {
+            "speaker": "B",
+            "text": "Then make some noise. One chat line and {{boss}} will know you are here."
+          }
+        ]
+      ],
+      "BANTER_EMPTY": [
+        [
+          {
+            "speaker": "A",
+            "text": "The field is empty! {{boss}} is laughing!"
+          },
+          {
+            "speaker": "B",
+            "text": "Let it laugh. Chat {{champion}} {{teamA}} or {{champion}} {{teamB}}, a champion appears and the laughing stops."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "No champion on the field. I will count three seconds, three, two…"
+          },
+          {
+            "speaker": "A",
+            "text": "One! Chat a champion name plus {{teamA}} or {{teamB}} now!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} stands alone, looking sad!"
+          },
+          {
+            "speaker": "B",
+            "text": "Make it sadder. One champion each and the field is full again."
+          }
+        ]
+      ],
+      "BANTER_PROVOCATION": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{teamTrailing}} fans, where are you? Letting {{teamLeading}} take {{boss}} this easily?"
+          },
+          {
+            "speaker": "B",
+            "text": "Bao is pushing it. But {{teamTrailing}} fans, {{starTrailing}} really needs you right now."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{teamLeading}} owns the field! Did {{teamTrailing}} give up?"
+          },
+          {
+            "speaker": "B",
+            "text": "No way. I think {{teamTrailing}} fans are just reloading. Prove me right!"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "I am backing {{teamTrailing}} here. One wave of champions and they are right back in it."
+          },
+          {
+            "speaker": "A",
+            "text": "Then chat already! Champion name plus {{teamTrailing}}, show me!"
+          }
+        ]
+      ]
+    },
     "lines": {
       "SUMMON": [
-        "{{name}} sends {{champion}} in for {{team}}!",
-        "{{champion}} has arrived! Thanks, {{name}}!",
-        "{{team}} reinforced: {{champion}} from {{name}}!",
-        "{{name}} calls {{champion}} to battle, {{team}} grows stronger!",
+        "{{name}} sends {{champion}} straight into the arena for {{team}}!",
+        "{{champion}} has arrived! Battle cry from {{name}}!",
+        "{{team}} reinforced with massive firepower: {{champion}} from {{name}}!",
+        "What a pick! {{name}} calls {{champion}} to battle, {{team}} grows stronger!",
         "Welcome {{champion}} from {{name}} to {{team}}!",
-        "{{champion}} hits the lane! {{name}} picks {{team}}!",
-        "One more warrior for {{team}}: {{name}} with {{champion}}!",
-        "{{name}} brings {{champion}}, more firepower for {{team}}!"
+        "{{champion}} hits the lane! {{name}} backs {{team}}!",
+        "One more relentless warrior for {{team}}: {{name}} with {{champion}}!",
+        "{{name}} brings {{champion}}, full assault for {{team}}!"
+      ],
+      "PRO_SIGNATURE_DEPLOY": [
+        "OH MY GOODNESS! {{name}} just deployed {{proPlayer}}'s signature champion {{champion}} for {{team}}!",
+        "The iconic {{champion}} of {{proPlayer}} enters the arena thanks to {{name}}!",
+        "Signature pick deployed! {{champion}} under {{team}} banner, true {{proPlayer}} style!",
+        "Masterstroke! {{name}} picked the legendary {{champion}} for {{proPlayer}}! The arena goes wild!",
+        "Ultimate firepower! {{name}} calls in {{proPlayer}}'s {{champion}} to crush the enemy!"
       ],
       "SUMMON_MERGED": [
         "{{names}} join {{team}}!",
@@ -655,6 +1641,12 @@
         "Thank you {{name}}! That {{gift}} goes down in history!",
         "We bow to you, {{name}}! What a {{gift}}!"
       ],
+      "GIFT_STORM_BATCH": [
+        "A gift storm is sweeping the arena! Massive shoutout to {{donorA}}, {{donorB}}, and {{othersCount}} other legends backing {{team}}!",
+        "Raining gifts all over the battlefield! Heavy artillery from {{donorA}}, {{donorB}}, and {{othersCount}} warriors shredding the boss for {{team}}!",
+        "Gifting barrage unlocked! {{donorA}}, {{donorB}}, and {{othersCount}} fighters just unloaded an arsenal of support for {{team}}!",
+        "Overwhelming firepower! Huge thanks to {{donorA}}, {{donorB}}, and {{othersCount}} comrades for replenishing {{team}}'s firepower!"
+      ],
       "BOSS_ENRAGE": [
         "{{boss}} is enraged! Hold the formation!",
         "Careful! {{boss}} has gone berserk!",
@@ -670,6 +1662,13 @@
         "Just a little more! {{boss}} is on its last legs!",
         "Decisive moment! Throw everything at {{boss}}!",
         "{{boss}} is staggering! Who wants the final blow?"
+      ],
+      "BOSS_CRITICAL_TENSION": [
+        "RED ALERT! {{boss}} HP IS UNDER {{hpPercent}} PERCENT! The steal window is open!",
+        "JUST A SLIVER OF HEALTH! Throw everything at {{boss}}, be the hero right now!",
+        "CLUTCH MOMENT! {{boss}} is falling, who will claim the legendary finishing blow?!",
+        "BREATHTAKING SECONDS! {{boss}} at {{hpPercent}}% health, unleash all ultimate firepower!",
+        "FINISH IT! {{boss}} is on death's door, whose name will be on the final kill?!"
       ],
       "BOSS_SKILL": [
         "Can they dodge it?!",
@@ -694,11 +1693,30 @@
         "Here comes round {{round}}! {{boss}} has appeared!"
       ],
       "COMEBACK": [
-        "What a comeback! {{team}} pulls ahead!",
-        "{{team}} overtakes {{teamOther}} on damage! Unbelievable!",
-        "The damage board flips! {{team}} takes the lead!",
-        "{{teamOther}} got caught! {{team}} rises!",
-        "Turnaround! {{team}} seizes the initiative!"
+        "MASSIVE COMEBACK! {{team}} surges ahead in breathtaking fashion over {{teamOther}}!",
+        "THE TIDES HAVE TURNED! {{team}} pulls off an unbelievable turnaround over {{teamOther}}!",
+        "UNBELIEVABLE! A legendary comeback from {{team}} takes the stage!",
+        "THE DAMAGE BOARD IS ON FIRE! {{team}} reclaims the lead in style!",
+        "A TEXTBOOK REVERSAL! {{team}} is peaking right when it matters most!"
+      ],
+      "TIGHT_RACE": [
+        "NECK AND NECK! {{teamA}} and {{teamB}} are trading blows with almost zero damage difference!",
+        "Razor-thin margin! {{teamA}} and {{teamB}} are fighting for every single point of damage!",
+        "Nobody gives an inch! A classic high-stakes race between {{teamA}} and {{teamB}}!",
+        "High-tension deadlock! One slip-up and the lead changes in a split second!",
+        "Absolute thriller! Both sides refuse to back down in this furious duel!"
+      ],
+      "DOMINANT_LEAD": [
+        "TOTAL DESTRUCTION! {{team}} is running away with a massive {{leadPercent}}% damage lead over {{teamOther}}!",
+        "One-sided onslaught! {{team}} is crushing the field! {{teamOther}} fans, rally to the rescue!",
+        "Suffocating pressure! {{team}} is suffocating {{teamOther}} unless a miracle happens!",
+        "Complete dominance! {{team}} leads by {{leadPercent}}%, {{teamOther}} needs an emergency rally!",
+        "An unstoppable storm! {{team}} turns the arena into their personal highlight reel against {{teamOther}}!"
+      ],
+      "COMEBACK_BUFF": [
+        "{{team}} activated Comeback Buff! +15% damage boost!",
+        "Comeback chance! {{team}} receives +15% damage buff!",
+        "Comeback buff is on for {{team}}! Push the damage now!"
       ],
       "ROUND_WIN": [
         "{{team}} wins round {{round}} with more damage! Series score {{score}}!",
@@ -732,20 +1750,27 @@
         "Keep tapping hearts to charge fury, every milestone heals the team!"
       ],
       "BANTER_HYPE": [
-        "The atmosphere is on fire! Keep the rhythm, everyone!",
-        "What a match! Who will be the hero today?",
-        "I am Caster Storm, an AI voice calling this match, and I am hyped!",
-        "The Worlds arena never cools down! Keep it going!",
-        "Every champion on the field is a step closer to victory!",
-        "You are playing beautifully! Keep it up!"
+        "The energy is off the charts! Both sides are throwing everything into this fight!",
+        "The Worlds arena is roaring every single second! Keep up the momentum!",
+        "What an unbelievable spectacle! Every second here is esports history in the making!",
+        "Electric atmosphere in the arena! Who will step up and become the hero?!",
+        "Chills all over! Caster Storm is witnessing absolute peak competitive gaming right now!",
+        "Pure greatness! The roar of the battle is shaking the rafters!"
       ],
       "BANTER_CTA": [
-        "Follow for a free champion, share to damage the boss!",
-        "Tap hearts to charge the pros of your team!",
-        "One share and the boss loses health, try it!",
-        "Bigger gifts mean bigger meteor showers!",
-        "Follow the channel so you never miss a match!",
-        "Bring your friends, more people means more pain for the boss!"
+        "Hit follow for a free champion! One share deals direct damage to the boss!",
+        "Spam those heart taps to charge up the pros for battle!",
+        "Chat your favourite champion with your team tag to jump into the massive multiplayer war!",
+        "Who wants to carry this round? A big gift turns the tide in a heartbeat!",
+        "Follow the channel so you never miss an epic moment!",
+        "Invite your friends, the bigger the crowd the faster the boss falls!"
+      ],
+      "BANTER_PROVOCATION": [
+        "Where are the {{teamTrailing}} fans at? Are you really going to let {{teamLeading}} take down {{boss}} without a fight?!",
+        "{{teamLeading}} is utterly dominating the field! Is there any chance left for {{starTrailing}} and the squad to turn this around?",
+        "The tug-of-war bar is swinging completely toward {{teamLeading}}! {{teamTrailing}} supporters, rally your troops right now!",
+        "{{starLeading}} from {{teamLeading}} is running wild while {{starTrailing}} struggles! {{teamTrailing}} fans, where is your firepower?",
+        "The damage gap is massive! Will {{teamTrailing}} surrender, or will a legendary gift comeback shake up the arena?!"
       ],
       "WIPE": [
         "{{boss}} wipes the arena! {{count}} warriors have fallen!",
@@ -819,9 +1844,9 @@
       ],
       "SERIES_OPENING": [
         "Welcome to the Worlds Showdown! {{teamA}} versus {{teamB}}!",
-        "Hello everyone! {{format}}, {{teamA}} meets {{teamB}}!",
-        "The showdown begins! First to {{wins}} wins is champion!",
-        "Caster Storm here! {{teamA}} and {{teamB}} hunt {{boss}}!"
+        "Hello everyone! The {{format}} showdown between {{teamA}} and {{teamB}} officially explodes!",
+        "The ultimate clash begins! First to {{wins}} wins lifts the championship trophy!",
+        "Caster Storm is in position and fully hyped! The clash of titans between {{teamA}} and {{teamB}} starts now!"
       ],
       "ROUND_INTRO_STARS": [
         "Which champion do you like? Chat any champion name plus {{teamA}} or {{teamB}} to enter!",

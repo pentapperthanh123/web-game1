@@ -5,6 +5,8 @@ import { useGameStore } from '../../store/gameStore';
 
 const SHOCKWAVE_POOL_CAPACITY = 24;
 const SHOCKWAVE_DURATION_S = 0.85;
+const PEAK_FADE = 0.85;
+const FULL_INTENSITY = 1;
 
 const SHARED_MAIN_RING_GEO = new THREE.RingGeometry(0.88, 0.94, 32);
 const SHARED_EDGE_RING_GEO = new THREE.RingGeometry(0.93, 0.95, 32);
@@ -41,7 +43,8 @@ export const ShockwaveRings = () => {
       const wave = activeShockwaves[i];
       const elapsed = (now - wave.timestamp) / 1000;
       const progress = Math.min(1.0, Math.max(0, elapsed / SHOCKWAVE_DURATION_S));
-      const fade = Math.max(0, (1 - progress) * 0.85);
+      const intensity = wave.intensity ?? FULL_INTENSITY;
+      const fade = Math.max(0, (1 - progress) * PEAK_FADE * intensity);
 
       if (fade <= 0) {
         dummyWave.scale.set(0, 0, 0);
@@ -64,7 +67,9 @@ export const ShockwaveRings = () => {
       tempColor.set(wave.color).multiplyScalar(fade);
       mainMesh.setColorAt(i, tempColor);
 
-      tempWhite.setRGB(fade, fade, fade);
+      // The white rim drops faster than the coloured ring, so subtle waves have almost no hard edge
+      const rimFade = fade * intensity;
+      tempWhite.setRGB(rimFade, rimFade, rimFade);
       edgeMesh.setColorAt(i, tempWhite);
     }
 

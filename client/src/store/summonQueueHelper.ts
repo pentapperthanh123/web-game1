@@ -11,6 +11,7 @@ import {
   GAME_CONSTANTS,
   TEAM_KEY,
   TeamType,
+  isEliteMinion,
 } from '../constants/game';
 import { CHAMPION_DEFAULT_MAX_HP } from '../constants/bossSkills';
 import { getChampionAvatarUrl } from '../constants/roster';
@@ -93,6 +94,7 @@ const buildDeployedChampion = (
   const primaryColor = getTeamTheme(activeTeamProfile?.colorTheme).primaryHex;
   const exactSignaturePro = findExactSignaturePlayer(req.championName, activeTeamProfile?.roster ?? []);
   const isSignatureSynergy = Boolean(exactSignaturePro);
+  const isElite = Boolean(req.isElite || req.isGiftBypass || isEliteMinion(req) || isSignatureSynergy);
   const baseDps = rollBaseDps(isSignatureSynergy);
   const avatarUrl = getChampionAvatarUrl(req.championName, req.team);
   const spawnPosition = pickSpawnPositionInWing(req.team);
@@ -117,6 +119,7 @@ const buildDeployedChampion = (
     fury: 0,
     maxFury: GAME_CONSTANTS.MINION_FURY.MAX_FURY,
     isSignatureSynergy,
+    isElite,
     signaturePlayerName: exactSignaturePro?.name,
     signaturePlayerRole: exactSignaturePro?.role,
   };

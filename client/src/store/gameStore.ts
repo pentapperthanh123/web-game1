@@ -64,7 +64,11 @@ if (typeof window !== 'undefined') {
         store.resetBO5Match();
         break;
       case 'SET_BO5_SCORE':
-        store.setBO5Score(event.payload.blg, event.payload.geng, event.payload.currentRound);
+        store.setBO5Score(
+          event.payload.leftWins ?? event.payload.blg ?? 0,
+          event.payload.rightWins ?? event.payload.geng ?? 0,
+          event.payload.currentRound
+        );
         break;
       case 'SET_BOSS_HP':
         store.setBossHp(event.payload.hp);

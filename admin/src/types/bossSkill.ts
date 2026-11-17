@@ -31,6 +31,16 @@ export const BOSS_STATUS_EFFECT = {
 
 export type BossStatusEffectType = (typeof BOSS_STATUS_EFFECT)[keyof typeof BOSS_STATUS_EFFECT];
 
+/** Power class of a skill: its position in the boss's list (1st-3rd regular skill, then the ultimate). */
+export const BOSS_SKILL_TIER = {
+  LIGHT: 'LIGHT',
+  MEDIUM: 'MEDIUM',
+  HEAVY: 'HEAVY',
+  ULTIMATE: 'ULTIMATE',
+} as const;
+
+export type BossSkillTier = (typeof BOSS_SKILL_TIER)[keyof typeof BOSS_SKILL_TIER];
+
 export interface BossSkillVfxLayer {
   vfxType: BossSkillVfxType;
   delayMs?: number;
@@ -52,7 +62,8 @@ export interface BossSkillVfxParams {
 export interface BossSkillStatusEffect {
   type: BossStatusEffectType;
   durationMs: number;
-  tickDamage?: number;
+  /** BURN / POISON: total damage as a share of the hit that applied it. */
+  dotRatio?: number;
   ratio?: number;
 }
 
@@ -75,7 +86,7 @@ export interface BossSkillBase {
   description: string;
 }
 
-export type BossSkillDefinition = BossSkillBase & BossSkillEffectProfile;
+export type BossSkillDefinition = BossSkillBase & BossSkillEffectProfile & { tier: BossSkillTier };
 
 export interface BossSkillConfig {
   autoAttackEnabled: boolean;

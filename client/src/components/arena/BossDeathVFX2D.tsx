@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Swords, Trophy } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
+import { useGiftVfxStore } from '../../store/giftVfxStore';
 import {
   FINISHER_BANNER_CONSTANTS,
   getThemeConfig,
@@ -21,6 +22,7 @@ export const BossDeathVFX2D = () => {
   const roundWinner = useGameStore((state) => state.roundWinner);
   const gameTheme = useGameStore((state) => state.gameTheme);
   const activeTeams = useGameStore((state) => state.activeTeams);
+  const isPodiumOrbitActive = useGiftVfxStore((state) => state.isPodiumOrbitActive);
 
   const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
 
@@ -47,7 +49,8 @@ export const BossDeathVFX2D = () => {
     return () => clearTimeout(timer);
   }, [isDonorFinisher, bossDefeatedTimestamp]);
 
-  if (bossDefeatedTimestamp === 0 || !hasImpacted) return null;
+  // Immediately unmount/hide when Victory Overlay and Podium Orbit become active
+  if (bossDefeatedTimestamp === 0 || !hasImpacted || isPodiumOrbitActive) return null;
 
   const effectiveTeam = finisherTeam || roundWinner || TEAM_KEY.BLG;
   const winningTeamProfile = activeTeams[effectiveTeam];
@@ -64,7 +67,7 @@ export const BossDeathVFX2D = () => {
       className="absolute inset-0 pointer-events-none z-20 overflow-visible"
     >
       {/* Grand LoL Esports Broadcast Slain Banner */}
-      <div className="absolute left-1/2 top-[16%] sm:top-[20%] animate-execution-banner w-max max-w-[94vw] z-30 pointer-events-none flex flex-col items-center select-none">
+      <div className="absolute left-1/2 top-[10%] sm:top-[12%] animate-execution-banner w-max max-w-[94vw] z-30 pointer-events-none flex flex-col items-center select-none">
         {/* Symmetrical Winged Hextech Golden Container */}
         <div className="relative flex items-center justify-center">
           {/* Left Wing Ornament */}

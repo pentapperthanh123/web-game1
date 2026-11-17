@@ -53,6 +53,11 @@ export const SFX_EVENT = {
   SILVER_SCRAPES: 'SILVER_SCRAPES',
   MATCH_FOUND: 'MATCH_FOUND',
   MATCH_ACCEPT: 'MATCH_ACCEPT',
+  /** Pre-round VS cinematic (Mixkit free-license files, trimmed): see services/audio/cinematicIntroScore.ts. */
+  INTRO_FLY_IMPACT: 'INTRO_FLY_IMPACT',
+  INTRO_DEEP_IMPACT: 'INTRO_DEEP_IMPACT',
+  INTRO_TITLE_HORN: 'INTRO_TITLE_HORN',
+  INTRO_CROWD_ROAR: 'INTRO_CROWD_ROAR',
   // Per-boss voices (BOSS_ROAR / BOSS_ENRAGE above are Baron's, the default boss)
   BOSS_ROAR_HERALD: 'BOSS_ROAR_HERALD',
   BOSS_ENRAGE_HERALD: 'BOSS_ENRAGE_HERALD',
@@ -260,6 +265,40 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     duckCombatMs: 2000,
     maxVoices: 1,
     throttleMs: 500,
+    rateJitter: 0,
+  },
+  // VS cinematic layers: "Movie whoosh impact presentation" (2903), "Cinematic whoosh deep impact" (1143),
+  // "Warfare horn trailer hit" (3111), "Crowd at the stadium" (2111) from mixkit.co, tails trimmed with fades
+  [SFX_EVENT.INTRO_FLY_IMPACT]: {
+    src: [fromLocal('INTRO_FLY_IMPACT.mp3')], // 3.3 s, hit at 0.86 s
+    volume: 0.95,
+    category: SFX_CATEGORY.STINGER,
+    maxVoices: 1,
+    throttleMs: 1000,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.INTRO_DEEP_IMPACT]: {
+    src: [fromLocal('INTRO_DEEP_IMPACT.mp3')], // 2.2 s, hit at 0.62 s, mostly < 200 Hz
+    volume: 0.75,
+    category: SFX_CATEGORY.STINGER,
+    maxVoices: 1,
+    throttleMs: 1000,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.INTRO_TITLE_HORN]: {
+    src: [fromLocal('INTRO_TITLE_HORN.mp3')], // 2.45 s, blast at 0.04 s
+    volume: 0.85,
+    category: SFX_CATEGORY.STINGER,
+    maxVoices: 1,
+    throttleMs: 1000,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.INTRO_CROWD_ROAR]: {
+    src: [fromLocal('INTRO_CROWD_ROAR.mp3')], // 2.6 s, loud from 0.22 s
+    volume: 0.7,
+    category: SFX_CATEGORY.STINGER,
+    maxVoices: 1,
+    throttleMs: 1000,
     rateJitter: 0,
   },
 

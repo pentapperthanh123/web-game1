@@ -1,9 +1,16 @@
-import { CASTER_SIGNAL, CasterSignal } from '../../constants/caster';
+import { CASTER_SIGNAL, CASTER_SPEAKER, CASTER_WARM, CasterSignal, CasterSpeaker, resolveSpeakerRole } from '../../constants/caster';
 import { getBossSkillsByTheme } from '../../constants/bossSkills';
 import { BOSS_MECHANICS_CONSTANTS, getThemeConfig, TeamType } from '../../constants/game';
 import { useGameStore } from '../../store/gameStore';
 import { GameState } from '../../types/game';
-import { CasterSlots, composeAllCasterVariants, formatSpeechNumber, getCasterLang } from './casterComposer';
+import {
+  CasterSlots,
+  DialogueTurn,
+  composeAllCasterVariants,
+  composeAllDialogueTurns,
+  formatSpeechNumber,
+  getCasterLang,
+} from './casterComposer';
 import { requestCasterWarm } from './casterWarmChannel';
 import { toSpeakableText } from './presentationQueue';
 import { toVoiceText } from './casterVoiceText';
@@ -20,6 +27,9 @@ const MATCH_SIGNALS: readonly CasterSignal[] = [
   CASTER_SIGNAL.BOSS_PHASE_THREE,
   CASTER_SIGNAL.DUEL_LAST_STAND,
   CASTER_SIGNAL.DUEL_DRAW,
+  CASTER_SIGNAL.TIGHT_RACE,
+  CASTER_SIGNAL.COMEBACK,
+  CASTER_SIGNAL.BANTER_PROVOCATION,
 ];
 /** Shield lines: their numbers are fixed game rules, so they can be generated ahead too. */
 const SHIELD_SIGNALS: readonly CasterSignal[] = [
@@ -43,6 +53,23 @@ const CHAMPION_SIGNALS: readonly CasterSignal[] = [
 ];
 
 const warmedMatchKeys = new Set<string>();
+
+/** Same transform as a live clip request, so the server caches exactly what will be asked for. */
+const toWarmText = (line: string): string => toVoiceText(toSpeakableText(line));
+
+const uniqueTexts = (lines: readonly string[]): string[] =>
+  Array.from(new Set(lines.map(toWarmText).filter(Boolean)));
+
+/** The warm request is capped per message; longer lists go in several messages. */
+const sendWarmTexts = (lang: string, texts: readonly string[], speaker: CasterSpeaker): void => {
+  for (let start = 0; start < texts.length; start += CASTER_WARM.MAX_TEXTS) {
+    requestCasterWarm({ lang, texts: texts.slice(start, start + CASTER_WARM.MAX_TEXTS), role: resolveSpeakerRole(speaker) });
+  }
+};
+
+/** Every turn of the written exchanges of these signals, so both casters' replies are ready in time. */
+const collectDialogueTurns = (signals: readonly CasterSignal[], slots: CasterSlots): DialogueTurn[] =>
+  signals.flatMap((signal) => composeAllDialogueTurns(signal, slots));
 
 const getTeamTags = (state: GameState): [string, string] => {
   const [leftTeam, rightTeam] = Object.keys(state.activeTeams) as TeamType[];
@@ -71,15 +98,25 @@ export const warmPredictableLines = (guideChampions: readonly string[]): void =>
   warmedMatchKeys.add(matchKey);
 
   const baseSlots: CasterSlots = { teamA, teamB, boss, round: state.currentRound, format: state.seriesFormat };
-  const lines = [
+  const shieldSlots = buildShieldSlots(baseSlots);
+  const singleLines = [
     ...MATCH_SIGNALS.flatMap((signal) => composeAllCasterVariants(signal, baseSlots)),
     ...guideChampions.flatMap((champion) =>
       CHAMPION_SIGNALS.flatMap((signal) => composeAllCasterVariants(signal, { ...baseSlots, champion }))
     ),
     ...collectSkillLines(baseSlots, state.gameTheme),
-    ...SHIELD_SIGNALS.flatMap((signal) => composeAllCasterVariants(signal, buildShieldSlots(baseSlots))),
+    ...SHIELD_SIGNALS.flatMap((signal) => composeAllCasterVariants(signal, shieldSlots)),
   ];
-  // Same transform as a live clip request, so the server caches exactly what will be asked for
-  const texts = Array.from(new Set(lines.map((line) => toVoiceText(toSpeakableText(line))).filter(Boolean)));
-  if (texts.length > 0) requestCasterWarm({ lang, texts });
+  const turns = [
+    ...collectDialogueTurns(MATCH_SIGNALS, baseSlots),
+    ...guideChampions.flatMap((champion) => collectDialogueTurns(CHAMPION_SIGNALS, { ...baseSlots, champion })),
+    ...collectDialogueTurns(SHIELD_SIGNALS, shieldSlots),
+  ];
+  const turnTextsOf = (speaker: CasterSpeaker): string[] =>
+    turns.filter((turn) => turn.speaker === speaker).map((turn) => turn.text);
+  // Single lines are A's; each caster's turns go with that caster's voice
+  const textsA = uniqueTexts([...singleLines, ...turnTextsOf(CASTER_SPEAKER.A)]);
+  const textsB = uniqueTexts(turnTextsOf(CASTER_SPEAKER.B));
+  if (textsA.length > 0) sendWarmTexts(lang, textsA, CASTER_SPEAKER.A);
+  if (textsB.length > 0) sendWarmTexts(lang, textsB, CASTER_SPEAKER.B);
 };

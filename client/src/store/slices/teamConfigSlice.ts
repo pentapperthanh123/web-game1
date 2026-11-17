@@ -7,11 +7,22 @@ import {
   GAME_CONSTANTS,
   GAME_THEME,
   getBossThemeForRound,
-  TEAM_KEY,
+  TEAM_SLOT_LEFT,
+  TEAM_SLOT_RIGHT,
   TeamType,
 } from '../../constants/game';
 import { clearMatchSnapshot } from '../matchSnapshot';
-import { showRoundIntro } from '../roundIntroStore';
+import {
+  ROUND_HOLD_REASON,
+  RoundHoldReason,
+  resolveRoundIntroDurationMs,
+  showRoundIntro,
+} from '../roundIntroStore';
+import {
+  MATCH_ROTATION_MODE,
+  createRotatedMatchup,
+  pickNextMatchup,
+} from '../matchRotation';
 import { BOSS_PHASE } from '../../constants/bossPhases';
 import { SFX_EVENT } from '../../constants/sfx';
 import { playSound } from '../../services/soundManager';
@@ -25,8 +36,10 @@ import {
 } from '../../constants/teams';
 import {
   createInitialRosterFury,
+  createInitialSummonQueue,
   createInitialTeamCombos,
   createInitialTeamHeartMomentum,
+  createInitialTeamScores,
 } from '../storeHelpers';
 import { persistTeamConfig } from '../storeStorage';
 
@@ -50,14 +63,18 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
   set,
   get
 ) => ({
-  applyTeamConfigSnapshot: (config: TeamConfigState, resetMatch = false) => {
+  applyTeamConfigSnapshot: (
+    config: TeamConfigState,
+    resetMatch = false,
+    holdReason: RoundHoldReason = ROUND_HOLD_REASON.ADMIN_RESET
+  ) => {
     const sanitized = sanitizeTeamConfigState(config);
     if (!sanitized) return;
 
     persistTeamConfig(sanitized);
     const state = get();
-    const leftTag = sanitized.activeTeams[TEAM_KEY.BLG].shortTag;
-    const rightTag = sanitized.activeTeams[TEAM_KEY.GENG].shortTag;
+    const leftTag = sanitized.activeTeams[TEAM_SLOT_LEFT]?.shortTag ?? TEAM_SLOT_LEFT;
+    const rightTag = sanitized.activeTeams[TEAM_SLOT_RIGHT]?.shortTag ?? TEAM_SLOT_RIGHT;
 
     if (resetMatch) {
       clearMatchSnapshot();
@@ -75,29 +92,20 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
         bossMaxHp: round1MaxHp,
         bossHp: round1MaxHp,
         bossStatus: BOSS_STATUS.IDLE,
-        bo5Score: { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 },
+        bo5Score: createInitialTeamScores(),
         currentRound: 1,
         roundWinner: null,
         isRoundIntermission: false,
         isSeriesEnded: false,
         seriesWinner: null,
-        teamScores: {
-          [TEAM_KEY.BLG]: 0,
-          [TEAM_KEY.GENG]: 0,
-        },
-        teamLikes: {
-          [TEAM_KEY.BLG]: 0,
-          [TEAM_KEY.GENG]: 0,
-        },
+        teamScores: createInitialTeamScores(),
+        teamLikes: createInitialTeamScores(),
         teamScoreBLG: 0,
         teamScoreGENG: 0,
         totalLikesBLG: 0,
         totalLikesGENG: 0,
         minions: [],
-        summonQueue: {
-          [TEAM_KEY.BLG]: [],
-          [TEAM_KEY.GENG]: [],
-        },
+        summonQueue: createInitialSummonQueue(),
         activeBursts: [],
         activeHearts: [],
         activeProjectiles: [],
@@ -136,7 +144,11 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
         lastFuryUltimatePlayerId: null,
       });
       // After the store update: the intro and the caster read the round from currentRound
-      showRoundIntro(Date.now(), true);
+      const autoStartDelayMs =
+        holdReason === ROUND_HOLD_REASON.NEW_SERIES
+          ? (state.participationRuleConfig.seriesAutoStartMs ?? 15_000)
+          : 0;
+      showRoundIntro(Date.now(), true, resolveRoundIntroDurationMs(1), holdReason, autoStartDelayMs);
       return;
     }
 
@@ -151,8 +163,8 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
 
   setActiveTeams: (leftTeam: TeamProfile, rightTeam: TeamProfile, resetMatch = false) => {
     const state = get();
-    const mountedLeft = mountTeamToSlot(leftTeam, TEAM_KEY.BLG);
-    const mountedRight = mountTeamToSlot(rightTeam, TEAM_KEY.GENG);
+    const mountedLeft = mountTeamToSlot(leftTeam, TEAM_SLOT_LEFT);
+    const mountedRight = mountTeamToSlot(rightTeam, TEAM_SLOT_RIGHT);
     const catalogMap = new Map(state.teamCatalog.map((t) => [t.id, t]));
     catalogMap.set(mountedLeft.id, mountedLeft);
     catalogMap.set(mountedRight.id, mountedRight);
@@ -160,8 +172,8 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
     get().applyTeamConfigSnapshot(
       {
         activeTeams: {
-          [TEAM_KEY.BLG]: mountedLeft,
-          [TEAM_KEY.GENG]: mountedRight,
+          [TEAM_SLOT_LEFT]: mountedLeft,
+          [TEAM_SLOT_RIGHT]: mountedRight,
         },
         teamCatalog: Array.from(catalogMap.values()),
         matchQueue: state.matchQueue,
@@ -172,30 +184,30 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
 
   saveTeamToCatalog: (team: TeamProfile, mountSlot?: TeamType) => {
     const state = get();
-    const cleanTemplate = mountTeamToSlot(team, mountSlot ?? TEAM_KEY.BLG);
+    const cleanTemplate = mountTeamToSlot(team, mountSlot ?? TEAM_SLOT_LEFT);
     const existsIndex = state.teamCatalog.findIndex((t) => t.id === cleanTemplate.id);
     const nextCatalog =
       existsIndex >= 0
         ? state.teamCatalog.map((item, idx) => (idx === existsIndex ? cleanTemplate : item))
         : [...state.teamCatalog, cleanTemplate];
 
-    const currentLeft = state.activeTeams[TEAM_KEY.BLG];
-    const currentRight = state.activeTeams[TEAM_KEY.GENG];
+    const currentLeft = state.activeTeams[TEAM_SLOT_LEFT];
+    const currentRight = state.activeTeams[TEAM_SLOT_RIGHT];
 
     const nextLeft =
-      mountSlot === TEAM_KEY.BLG || currentLeft.id === cleanTemplate.id
-        ? mountTeamToSlot(cleanTemplate, TEAM_KEY.BLG)
+      mountSlot === TEAM_SLOT_LEFT || currentLeft.id === cleanTemplate.id
+        ? mountTeamToSlot(cleanTemplate, TEAM_SLOT_LEFT)
         : currentLeft;
     const nextRight =
-      mountSlot === TEAM_KEY.GENG || currentRight.id === cleanTemplate.id
-        ? mountTeamToSlot(cleanTemplate, TEAM_KEY.GENG)
+      mountSlot === TEAM_SLOT_RIGHT || currentRight.id === cleanTemplate.id
+        ? mountTeamToSlot(cleanTemplate, TEAM_SLOT_RIGHT)
         : currentRight;
 
     get().applyTeamConfigSnapshot(
       {
         activeTeams: {
-          [TEAM_KEY.BLG]: nextLeft,
-          [TEAM_KEY.GENG]: nextRight,
+          [TEAM_SLOT_LEFT]: nextLeft,
+          [TEAM_SLOT_RIGHT]: nextRight,
         },
         teamCatalog: nextCatalog,
         matchQueue: state.matchQueue,
@@ -212,19 +224,19 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
     const nextCatalog = state.teamCatalog.filter((t) => t.id !== teamId);
     const defaults = createDefaultTeamConfig();
     const nextLeft =
-      state.activeTeams[TEAM_KEY.BLG].id === teamId
-        ? defaults.activeTeams[TEAM_KEY.BLG]
-        : state.activeTeams[TEAM_KEY.BLG];
+      state.activeTeams[TEAM_SLOT_LEFT].id === teamId
+        ? defaults.activeTeams[TEAM_SLOT_LEFT]
+        : state.activeTeams[TEAM_SLOT_LEFT];
     const nextRight =
-      state.activeTeams[TEAM_KEY.GENG].id === teamId
-        ? defaults.activeTeams[TEAM_KEY.GENG]
-        : state.activeTeams[TEAM_KEY.GENG];
+      state.activeTeams[TEAM_SLOT_RIGHT].id === teamId
+        ? defaults.activeTeams[TEAM_SLOT_RIGHT]
+        : state.activeTeams[TEAM_SLOT_RIGHT];
 
     get().applyTeamConfigSnapshot(
       {
         activeTeams: {
-          [TEAM_KEY.BLG]: nextLeft,
-          [TEAM_KEY.GENG]: nextRight,
+          [TEAM_SLOT_LEFT]: nextLeft,
+          [TEAM_SLOT_RIGHT]: nextRight,
         },
         teamCatalog: nextCatalog,
         matchQueue: sanitizeMatchQueue(state.matchQueue, nextCatalog),
@@ -260,19 +272,19 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
       : [...state.teamCatalog, template];
 
     const nextLeft =
-      state.activeTeams[TEAM_KEY.BLG].id === template.id
-        ? mountTeamToSlot(template, TEAM_KEY.BLG)
-        : state.activeTeams[TEAM_KEY.BLG];
+      state.activeTeams[TEAM_SLOT_LEFT].id === template.id
+        ? mountTeamToSlot(template, TEAM_SLOT_LEFT)
+        : state.activeTeams[TEAM_SLOT_LEFT];
     const nextRight =
-      state.activeTeams[TEAM_KEY.GENG].id === template.id
-        ? mountTeamToSlot(template, TEAM_KEY.GENG)
-        : state.activeTeams[TEAM_KEY.GENG];
+      state.activeTeams[TEAM_SLOT_RIGHT].id === template.id
+        ? mountTeamToSlot(template, TEAM_SLOT_RIGHT)
+        : state.activeTeams[TEAM_SLOT_RIGHT];
 
     get().applyTeamConfigSnapshot(
       {
         activeTeams: {
-          [TEAM_KEY.BLG]: nextLeft,
-          [TEAM_KEY.GENG]: nextRight,
+          [TEAM_SLOT_LEFT]: nextLeft,
+          [TEAM_SLOT_RIGHT]: nextRight,
         },
         teamCatalog: nextCatalog,
         matchQueue: state.matchQueue,
@@ -328,34 +340,40 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
     );
   },
 
-  advanceNextMatchQueue: () => {
+  advanceNextMatchQueue: (forcedNextMatch?: { leftTeamId: string; rightTeamId: string }) => {
     const state = get();
-    if (state.matchQueue.length === 0) return false;
-    const [nextMatch, ...restQueue] = state.matchQueue;
+    const currentPair = {
+      leftTeamId: state.activeTeams[TEAM_SLOT_LEFT].id,
+      rightTeamId: state.activeTeams[TEAM_SLOT_RIGHT].id,
+    };
+    const mode = state.participationRuleConfig.matchRotationMode ?? MATCH_ROTATION_MODE.RANDOM;
+    const { nextMatch, nextQueue } = forcedNextMatch
+      ? {
+          nextMatch: forcedNextMatch,
+          nextQueue:
+            state.matchQueue.length > 0
+              ? [...state.matchQueue.slice(1), createRotatedMatchup(currentPair, state.teamCatalog)]
+              : [],
+        }
+      : pickNextMatchup(state.matchQueue, state.teamCatalog, currentPair, mode);
+
     const leftTeam = state.teamCatalog.find((t) => t.id === nextMatch.leftTeamId);
     const rightTeam = state.teamCatalog.find((t) => t.id === nextMatch.rightTeamId);
     if (!leftTeam || !rightTeam) {
-      get().applyTeamConfigSnapshot(
-        {
-          activeTeams: state.activeTeams,
-          teamCatalog: state.teamCatalog,
-          matchQueue: restQueue,
-        },
-        false
-      );
       return false;
     }
 
     get().applyTeamConfigSnapshot(
       {
         activeTeams: {
-          [TEAM_KEY.BLG]: mountTeamToSlot(leftTeam, TEAM_KEY.BLG),
-          [TEAM_KEY.GENG]: mountTeamToSlot(rightTeam, TEAM_KEY.GENG),
+          [TEAM_SLOT_LEFT]: mountTeamToSlot(leftTeam, TEAM_SLOT_LEFT),
+          [TEAM_SLOT_RIGHT]: mountTeamToSlot(rightTeam, TEAM_SLOT_RIGHT),
         },
         teamCatalog: state.teamCatalog,
-        matchQueue: restQueue,
+        matchQueue: nextQueue,
       },
-      true
+      true,
+      ROUND_HOLD_REASON.NEW_SERIES
     );
     return true;
   },
@@ -365,26 +383,26 @@ export const createTeamConfigSlice: StateCreator<GameState, [], [], TeamConfigSl
     const catalogMap = new Map(state.teamCatalog.map((t) => [t.id, t]));
     let importedCount = 0;
     for (const item of teams) {
-      catalogMap.set(item.id, mountTeamToSlot(item, TEAM_KEY.BLG));
+      catalogMap.set(item.id, mountTeamToSlot(item, TEAM_SLOT_LEFT));
       importedCount += 1;
     }
     const nextCatalog = Array.from(catalogMap.values());
     const nextQueue = sanitizeMatchQueue([...state.matchQueue, ...importedQueue], nextCatalog);
 
-    const mountedLeft = catalogMap.get(state.activeTeams[TEAM_KEY.BLG].id);
-    const mountedRight = catalogMap.get(state.activeTeams[TEAM_KEY.GENG].id);
+    const mountedLeft = catalogMap.get(state.activeTeams[TEAM_SLOT_LEFT].id);
+    const mountedRight = catalogMap.get(state.activeTeams[TEAM_SLOT_RIGHT].id);
     const nextLeft = mountedLeft
-      ? mountTeamToSlot(mountedLeft, TEAM_KEY.BLG)
-      : state.activeTeams[TEAM_KEY.BLG];
+      ? mountTeamToSlot(mountedLeft, TEAM_SLOT_LEFT)
+      : state.activeTeams[TEAM_SLOT_LEFT];
     const nextRight = mountedRight
-      ? mountTeamToSlot(mountedRight, TEAM_KEY.GENG)
-      : state.activeTeams[TEAM_KEY.GENG];
+      ? mountTeamToSlot(mountedRight, TEAM_SLOT_RIGHT)
+      : state.activeTeams[TEAM_SLOT_RIGHT];
 
     get().applyTeamConfigSnapshot(
       {
         activeTeams: {
-          [TEAM_KEY.BLG]: nextLeft,
-          [TEAM_KEY.GENG]: nextRight,
+          [TEAM_SLOT_LEFT]: nextLeft,
+          [TEAM_SLOT_RIGHT]: nextRight,
         },
         teamCatalog: nextCatalog,
         matchQueue: nextQueue,

@@ -1,10 +1,20 @@
 import { create } from 'zustand';
 import { ROUND_INTRO_CONSTANTS } from '../constants/game';
 
+export const ROUND_HOLD_REASON = {
+  STREAM_OPENING: 'STREAM_OPENING',
+  NEW_SERIES: 'NEW_SERIES',
+  ADMIN_RESET: 'ADMIN_RESET',
+} as const;
+export type RoundHoldReason = (typeof ROUND_HOLD_REASON)[keyof typeof ROUND_HOLD_REASON];
+
 interface RoundIntroState {
   shownAt: number;
   isActive: boolean;
   isManualHold: boolean;
+  holdReason: RoundHoldReason | null;
+  /** Wall-clock timestamp (ms) when this held intro automatically starts, or 0 for no countdown. */
+  autoStartAt: number;
   /** How long the narrated card runs once started (full card for the opening round, compact later). */
   durationMs: number;
   /** The esports cinematic that plays between "start" and the narrated card. */
@@ -21,15 +31,21 @@ export const isCompactRoundIntro = (durationMs: number): boolean =>
   durationMs < ROUND_INTRO_CONSTANTS.TOTAL_MS;
 
 /** Kept outside the game store so the intro timer never re-renders the HUD.
- * Starts in manual hold (waiting to start) so no combat, summons or boss actions occur before user starts round 1.
+ * Starts in manual hold with an automatic countdown fallback so the game automatically
+ * starts fighting and summoning even if left unattended on a second screen or in OBS.
  */
-export const useRoundIntroStore = create<RoundIntroState>(() => ({
-  shownAt: Date.now(),
-  isActive: true,
-  isManualHold: true,
-  durationMs: ROUND_INTRO_CONSTANTS.TOTAL_MS,
-  isCinematicPlaying: false,
-}));
+export const useRoundIntroStore = create<RoundIntroState>(() => {
+  const now = Date.now();
+  return {
+    shownAt: now,
+    isActive: true,
+    isManualHold: true,
+    holdReason: ROUND_HOLD_REASON.STREAM_OPENING,
+    autoStartAt: now + ROUND_INTRO_CONSTANTS.INITIAL_AUTO_START_MS,
+    durationMs: ROUND_INTRO_CONSTANTS.TOTAL_MS,
+    isCinematicPlaying: false,
+  };
+});
 
 /**
  * Shows the intro card. The round it announces is the game store's `currentRound` (single source:
@@ -39,9 +55,31 @@ export const useRoundIntroStore = create<RoundIntroState>(() => ({
 export const showRoundIntro = (
   now = Date.now(),
   isManualHold = false,
-  durationMs: number = ROUND_INTRO_CONSTANTS.TOTAL_MS
+  durationMs: number = ROUND_INTRO_CONSTANTS.TOTAL_MS,
+  holdReason: RoundHoldReason | null = null,
+  autoStartDelayMs = 0
 ): void => {
-  useRoundIntroStore.setState({ shownAt: now, isActive: true, isManualHold, durationMs, isCinematicPlaying: false });
+  const isAutoStartReason =
+    holdReason === ROUND_HOLD_REASON.NEW_SERIES || holdReason === ROUND_HOLD_REASON.STREAM_OPENING;
+  const autoStartAt =
+    isManualHold && isAutoStartReason && autoStartDelayMs > 0
+      ? now + autoStartDelayMs
+      : 0;
+
+  useRoundIntroStore.setState({
+    shownAt: now,
+    isActive: true,
+    isManualHold,
+    holdReason,
+    autoStartAt,
+    durationMs,
+    isCinematicPlaying: false,
+  });
+};
+
+/** Cancels the auto-start timer on a held card ("Giữ lại"), leaving it waiting for the host to press start. */
+export const cancelAutoStart = (): void => {
+  useRoundIntroStore.setState({ autoStartAt: 0 });
 };
 
 /**
@@ -54,12 +92,20 @@ export const playRoundIntroCinematic = (
   durationMs: number = ROUND_INTRO_CONSTANTS.TOTAL_MS
 ): void => {
   // Held while the cinematic plays, so nothing starts before the narrated card
-  useRoundIntroStore.setState({ shownAt: now, isActive: true, isManualHold: true, durationMs, isCinematicPlaying: true });
+  useRoundIntroStore.setState({
+    shownAt: now,
+    isActive: true,
+    isManualHold: true,
+    holdReason: null,
+    autoStartAt: 0,
+    durationMs,
+    isCinematicPlaying: true,
+  });
 };
 
 /** Plays the cinematic; when it ends the overlay calls `startIntroNarration`. */
 export const playIntroCinematic = (): void => {
-  useRoundIntroStore.setState({ isCinematicPlaying: true });
+  useRoundIntroStore.setState({ isCinematicPlaying: true, autoStartAt: 0 });
 };
 
 export const endIntroCinematic = (): void => {
@@ -67,12 +113,22 @@ export const endIntroCinematic = (): void => {
 };
 
 /** Initiates automated voice intro & countdown after operator explicitly clicks start. */
-export const startIntroNarration = (now = Date.now(), durationMs: number = ROUND_INTRO_CONSTANTS.TOTAL_MS): void => {
-  useRoundIntroStore.setState({ isManualHold: false, shownAt: now, durationMs });
+export const startIntroNarration = (
+  now = Date.now(),
+  durationMs: number = ROUND_INTRO_CONSTANTS.TOTAL_MS
+): void => {
+  useRoundIntroStore.setState({ isManualHold: false, holdReason: null, autoStartAt: 0, shownAt: now, durationMs });
 };
 
 export const hideRoundIntro = (): void => {
-  useRoundIntroStore.setState({ shownAt: 0, isActive: false, isManualHold: false, isCinematicPlaying: false });
+  useRoundIntroStore.setState({
+    shownAt: 0,
+    isActive: false,
+    isManualHold: false,
+    holdReason: null,
+    autoStartAt: 0,
+    isCinematicPlaying: false,
+  });
 };
 
 export const isRoundIntroActive = (

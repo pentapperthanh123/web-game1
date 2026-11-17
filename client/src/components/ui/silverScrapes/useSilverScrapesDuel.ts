@@ -77,6 +77,7 @@ export const useSilverScrapesDuel = (): SilverScrapesDuelView => {
       // Stray browser speech only; the caster queue is cleared by the director, which then says the duel opening
       audioService.cancelSpeech();
       hideRoundIntro();
+      audioService.playCombatDeployBlastSound();
       playSound(SFX_EVENT.SILVER_SCRAPES, { loop: true });
     } else {
       stopSound(SFX_EVENT.SILVER_SCRAPES);

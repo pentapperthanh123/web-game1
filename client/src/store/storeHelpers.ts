@@ -11,12 +11,16 @@ import {
   BOSS_STATUS,
   COMBAT_VFX_CONSTANTS,
   DAMAGE_TYPE,
+  DamageSource,
   DamageType,
   GAME_CONSTANTS,
-  TEAM_KEY,
+  TEAM_SLOTS,
+  TEAM_SLOT_LEFT,
+  TEAM_SLOT_RIGHT,
   TeamType,
 } from '../constants/game';
 import { RosterPlayer } from '../constants/roster';
+import { isViewerActor, toCanonicalViewerName } from './roundDamageTracker';
 import { isCurrentRoundIntroActive } from './roundIntroStore';
 
 /** Returns a random floating-point number in [min, max). */
@@ -33,14 +37,20 @@ export const createWingSpawnPosition = (team: TeamType): [number, number, number
   ];
 };
 
-/** Updates and sorts the viewer DPS leaderboard, capped at MAX_DISPLAY entries. */
+/** Updates and sorts the viewer DPS leaderboard with canonical viewer names, filtering out non-viewer bots. */
 export const updateLeaderboardList = (
   leaderboard: DPSPlayer[],
-  playerName: string,
+  actorName: string,
   team: TeamType,
-  amount: number
+  amount: number,
+  source?: DamageSource
 ): DPSPlayer[] => {
-  const existingIndex = leaderboard.findIndex((p) => p.userName === playerName);
+  if (!Number.isFinite(amount) || amount <= 0) return leaderboard;
+  if (!isViewerActor(actorName, source)) return leaderboard;
+  const canonicalName = toCanonicalViewerName(actorName);
+  if (!canonicalName) return leaderboard;
+
+  const existingIndex = leaderboard.findIndex((p) => p.userName === canonicalName);
   const nextList =
     existingIndex >= 0
       ? leaderboard.map((player, index) =>
@@ -50,7 +60,7 @@ export const updateLeaderboardList = (
           ...leaderboard,
           {
             id: `player-${Date.now()}-${Math.random()}`,
-            userName: playerName,
+            userName: canonicalName,
             team,
             totalDamage: amount,
           },
@@ -114,10 +124,22 @@ export const createEmptyTeamCombo = (): TeamComboState => ({
   lastTimestamp: 0,
 });
 
+/** Creates zeroed score mapping for match slots. */
+export const createInitialTeamScores = (): Record<TeamType, number> => ({
+  [TEAM_SLOT_LEFT]: 0,
+  [TEAM_SLOT_RIGHT]: 0,
+});
+
+/** Creates empty summon queues for match slots. */
+export const createInitialSummonQueue = <T = unknown>(): Record<TeamType, T[]> => ({
+  [TEAM_SLOT_LEFT]: [],
+  [TEAM_SLOT_RIGHT]: [],
+});
+
 /** Creates initial combo states for both teams. */
 export const createInitialTeamCombos = (): Record<TeamType, TeamComboState> => ({
-  [TEAM_KEY.BLG]: createEmptyTeamCombo(),
-  [TEAM_KEY.GENG]: createEmptyTeamCombo(),
+  [TEAM_SLOT_LEFT]: createEmptyTeamCombo(),
+  [TEAM_SLOT_RIGHT]: createEmptyTeamCombo(),
 });
 
 /** Creates a baseline heart momentum state for a single team. */
@@ -129,8 +151,8 @@ export const createEmptyTeamHeartMomentum = (): TeamHeartMomentum => ({
 
 /** Creates initial heart momentum states for both teams. */
 export const createInitialTeamHeartMomentum = (): Record<TeamType, TeamHeartMomentum> => ({
-  [TEAM_KEY.BLG]: createEmptyTeamHeartMomentum(),
-  [TEAM_KEY.GENG]: createEmptyTeamHeartMomentum(),
+  [TEAM_SLOT_LEFT]: createEmptyTeamHeartMomentum(),
+  [TEAM_SLOT_RIGHT]: createEmptyTeamHeartMomentum(),
 });
 
 /** Initializes or preserves pro player fury gauges for the active rosters. */
@@ -139,7 +161,7 @@ export const createInitialRosterFury = (
   previousFury?: Record<string, number>
 ): Record<string, number> => {
   const nextFury: Record<string, number> = {};
-  for (const slot of [TEAM_KEY.BLG, TEAM_KEY.GENG] as TeamType[]) {
+  for (const slot of TEAM_SLOTS) {
     const roster = activeTeams[slot]?.roster ?? [];
     for (const player of roster) {
       nextFury[player.id] = previousFury?.[player.id] ?? 0;

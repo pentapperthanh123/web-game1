@@ -1,6 +1,13 @@
 import { StateCreator } from 'zustand';
 import { resetRoundDamage } from '../roundDamageTracker';
-import { playRoundIntroCinematic, resolveRoundIntroDurationMs, showRoundIntro } from '../roundIntroStore';
+import { resetComebackState } from '../comebackRules';
+import {
+  ROUND_HOLD_REASON,
+  RoundHoldReason,
+  playRoundIntroCinematic,
+  resolveRoundIntroDurationMs,
+  showRoundIntro,
+} from '../roundIntroStore';
 import { resetCommunityQuests } from '../communityQuestStore';
 import { clearMatchSnapshot } from '../matchSnapshot';
 import { clearMatchupTitles, persistChampionshipTally } from '../championshipTally';
@@ -12,7 +19,9 @@ import {
   GAME_THEME,
   getBossThemeForRound,
   getThemeConfig,
-  TEAM_KEY,
+  TEAM_SLOTS,
+  TEAM_SLOT_LEFT,
+  TEAM_SLOT_RIGHT,
   TeamType,
 } from '../../constants/game';
 import { BOSS_PHASE } from '../../constants/bossPhases';
@@ -21,8 +30,10 @@ import { audioService } from '../../services/audioService';
 import { playSound } from '../../services/soundManager';
 import {
   createInitialRosterFury,
+  createInitialSummonQueue,
   createInitialTeamCombos,
   createInitialTeamHeartMomentum,
+  createInitialTeamScores,
 } from '../storeHelpers';
 import { persistGameTheme } from '../storeStorage';
 
@@ -40,11 +51,14 @@ export type SeriesSlice = Pick<
 
 const resolveSeriesWinner = (
   isEnded: boolean,
-  blgScore: number,
+  scores: Record<TeamType, number>,
   targetWins: number
 ): TeamType | null => {
   if (!isEnded) return null;
-  return blgScore >= targetWins ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+  for (const slot of TEAM_SLOTS) {
+    if ((scores[slot] ?? 0) >= targetWins) return slot;
+  }
+  return null;
 };
 
 /** Creates the BO1/BO3/BO5 series progression and Silver Scrapes duel slice. */
@@ -54,6 +68,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     if (state.isSeriesEnded) return;
     resetCommunityQuests();
     resetRoundDamage();
+    resetComebackState();
     const maxRounds = state.seriesMaxRounds || GAME_CONSTANTS.BO5.MAX_ROUNDS;
     // A server-sent target wins: the series sync may already have moved currentRound (no double +1)
     const isValidTarget = typeof targetRound === 'number' && Number.isInteger(targetRound) && targetRound >= 1;
@@ -78,17 +93,11 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       currentRound: nextRound,
       roundWinner: null,
       isRoundIntermission: false,
-      teamScores: {
-        [TEAM_KEY.BLG]: 0,
-        [TEAM_KEY.GENG]: 0,
-      },
+      teamScores: createInitialTeamScores(),
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
-      summonQueue: {
-        [TEAM_KEY.BLG]: [],
-        [TEAM_KEY.GENG]: [],
-      },
+      summonQueue: createInitialSummonQueue(),
       teamCombos: createInitialTeamCombos(),
       teamHeartMomentum: createInitialTeamHeartMomentum(),
       floatingDamages: [],
@@ -131,18 +140,19 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
 
   resetMatchupChampionships: () => {
     const state = get();
-    const leftTeam = state.activeTeams[TEAM_KEY.BLG];
-    const rightTeam = state.activeTeams[TEAM_KEY.GENG];
+    const leftTeam = state.activeTeams[TEAM_SLOT_LEFT];
+    const rightTeam = state.activeTeams[TEAM_SLOT_RIGHT];
     const nextTally = clearMatchupTitles(state.championshipTally, leftTeam, rightTeam);
     persistChampionshipTally(nextTally);
     set({ championshipTally: nextTally });
     get().addLog('SYSTEM', `🧹 Đã xoá số lần vô địch của cặp ${leftTeam.shortTag} vs ${rightTeam.shortTag}`);
   },
 
-  resetBO5Match: () => {
+  resetBO5Match: (holdReason: RoundHoldReason = ROUND_HOLD_REASON.ADMIN_RESET) => {
     clearMatchSnapshot();
     resetCommunityQuests();
     resetRoundDamage();
+    resetComebackState();
     const state = get();
     const round1Theme = getBossThemeForRound(1, state.seriesFormat);
     const difficulty = BOSS_DIFFICULTY_SCALE[round1Theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
@@ -161,23 +171,17 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       bossMaxHp: round1MaxHp,
       bossHp: round1MaxHp,
       bossStatus: BOSS_STATUS.IDLE,
-      bo5Score: { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 },
+      bo5Score: createInitialTeamScores(),
       currentRound: 1,
       roundWinner: null,
       isRoundIntermission: false,
       isSeriesEnded: false,
       seriesWinner: null,
-      teamScores: {
-        [TEAM_KEY.BLG]: 0,
-        [TEAM_KEY.GENG]: 0,
-      },
+      teamScores: createInitialTeamScores(),
       teamScoreBLG: 0,
       teamScoreGENG: 0,
       minions: [],
-      summonQueue: {
-        [TEAM_KEY.BLG]: [],
-        [TEAM_KEY.GENG]: [],
-      },
+      summonQueue: createInitialSummonQueue(),
       activeBursts: [],
       activeHearts: [],
       activeProjectiles: [],
@@ -216,15 +220,23 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       lastFuryUltimatePlayerId: null,
     });
     // After the store update: the intro and the caster read the round from currentRound
-    showRoundIntro(Date.now(), true);
+    const autoStartDelayMs =
+      holdReason === ROUND_HOLD_REASON.NEW_SERIES
+        ? (state.participationRuleConfig.seriesAutoStartMs ?? 15_000)
+        : 0;
+    showRoundIntro(Date.now(), true, resolveRoundIntroDurationMs(1), holdReason, autoStartDelayMs);
   },
 
   setSeriesFormat: (format: SeriesFormat, resetScore = false) => {
     const specs = GAME_CONSTANTS.SERIES_FORMATS[format] ?? GAME_CONSTANTS.SERIES_FORMATS.BO5;
     set((state) => {
-      const nextBlg = resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score.BLG);
-      const nextGeng = resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score.GENG);
-      const isEnded = nextBlg >= specs.TARGET_WINS || nextGeng >= specs.TARGET_WINS;
+      const nextScores = Object.fromEntries(
+        TEAM_SLOTS.map((slot) => [
+          slot,
+          resetScore ? 0 : Math.min(specs.TARGET_WINS, state.bo5Score[slot] ?? 0),
+        ])
+      ) as Record<TeamType, number>;
+      const isEnded = TEAM_SLOTS.some((slot) => (nextScores[slot] ?? 0) >= specs.TARGET_WINS);
       const targetRound = resetScore ? 1 : Math.min(specs.MAX_ROUNDS, state.currentRound);
       const targetTheme = getBossThemeForRound(targetRound, format);
       const difficulty = BOSS_DIFFICULTY_SCALE[targetTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
@@ -239,20 +251,21 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
         seriesFormat: format,
         bo5TargetWins: specs.TARGET_WINS,
         seriesMaxRounds: specs.MAX_ROUNDS,
-        bo5Score: {
-          [TEAM_KEY.BLG]: nextBlg,
-          [TEAM_KEY.GENG]: nextGeng,
-        },
+        bo5Score: nextScores,
         currentRound: targetRound,
         isSeriesEnded: isEnded,
-        seriesWinner: resolveSeriesWinner(isEnded, nextBlg, specs.TARGET_WINS),
+        seriesWinner: resolveSeriesWinner(isEnded, nextScores, specs.TARGET_WINS),
       };
     });
     get().addLog('SYSTEM', `⚙️ Thể thức thi đấu chuyển sang ${format} (Chạm ${specs.TARGET_WINS} thắng)`);
   },
 
   applySeriesFormatSnapshot: (config) => {
-    const isEnded = config.blgScore >= config.targetWins || config.gengScore >= config.targetWins;
+    const nextScores: Record<TeamType, number> = {
+      [TEAM_SLOT_LEFT]: config.blgScore,
+      [TEAM_SLOT_RIGHT]: config.gengScore,
+    };
+    const isEnded = TEAM_SLOTS.some((slot) => (nextScores[slot] ?? 0) >= config.targetWins);
     // On the victory screen the round number stays the one just played: only an explicit nextRound
     // (startNextRound) moves it. Changing it here made this overlay's own countdown skip a round.
     const isBetweenRounds = get().roundWinner !== null;
@@ -266,16 +279,13 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
       seriesFormat: config.format,
       bo5TargetWins: config.targetWins,
       seriesMaxRounds: config.maxRounds,
-      bo5Score: {
-        [TEAM_KEY.BLG]: config.blgScore,
-        [TEAM_KEY.GENG]: config.gengScore,
-      },
+      bo5Score: nextScores,
       currentRound: targetRound,
       gameTheme: targetTheme,
       bossMaxHp: targetMaxHp,
       bossHp: get().bossHp >= get().bossMaxHp ? targetMaxHp : Math.min(get().bossHp, targetMaxHp),
       isSeriesEnded: isEnded,
-      seriesWinner: resolveSeriesWinner(isEnded, config.blgScore, config.targetWins),
+      seriesWinner: resolveSeriesWinner(isEnded, nextScores, config.targetWins),
     });
   },
 
@@ -294,30 +304,31 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     return duel.winningTeamBuff === team && Date.now() <= duel.buffActiveUntil;
   },
 
-  setBO5Score: (blg: number, geng: number, currentRound?: number) => {
+  setBO5Score: (leftWins: number, rightWins: number, currentRound?: number) => {
     const state = get();
     const targetWins = state.bo5TargetWins;
-    const clampedBlg = Math.max(0, Math.min(targetWins, blg));
-    const clampedGeng = Math.max(0, Math.min(targetWins, geng));
-    const isEnded = clampedBlg >= targetWins || clampedGeng >= targetWins;
-    const seriesWinner = resolveSeriesWinner(isEnded, clampedBlg, targetWins);
-    const nextRound = currentRound ?? Math.min(state.seriesMaxRounds, clampedBlg + clampedGeng + 1);
+    const clampedLeft = Math.max(0, Math.min(targetWins, leftWins));
+    const clampedRight = Math.max(0, Math.min(targetWins, rightWins));
+    const nextScores: Record<TeamType, number> = {
+      [TEAM_SLOT_LEFT]: clampedLeft,
+      [TEAM_SLOT_RIGHT]: clampedRight,
+    };
+    const isEnded = TEAM_SLOTS.some((slot) => (nextScores[slot] ?? 0) >= targetWins);
+    const seriesWinner = resolveSeriesWinner(isEnded, nextScores, targetWins);
+    const nextRound = currentRound ?? Math.min(state.seriesMaxRounds, clampedLeft + clampedRight + 1);
     const nextTheme = getBossThemeForRound(nextRound, state.seriesFormat);
     const difficulty = BOSS_DIFFICULTY_SCALE[nextTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
     const nextMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
-    const leftTag = state.activeTeams[TEAM_KEY.BLG].shortTag;
-    const rightTag = state.activeTeams[TEAM_KEY.GENG].shortTag;
+    const leftTag = state.activeTeams[TEAM_SLOT_LEFT]?.shortTag ?? TEAM_SLOT_LEFT;
+    const rightTag = state.activeTeams[TEAM_SLOT_RIGHT]?.shortTag ?? TEAM_SLOT_RIGHT;
 
     persistGameTheme(nextTheme);
     get().addLog(
       'SYSTEM',
-      `⚙️ Cập nhật điểm ${state.seriesFormat}: ${leftTag} ${clampedBlg} - ${clampedGeng} ${rightTag} (Ván ${nextRound})`
+      `⚙️ Cập nhật điểm ${state.seriesFormat}: ${leftTag} ${clampedLeft} - ${clampedRight} ${rightTag} (Ván ${nextRound})`
     );
     set({
-      bo5Score: {
-        [TEAM_KEY.BLG]: clampedBlg,
-        [TEAM_KEY.GENG]: clampedGeng,
-      },
+      bo5Score: nextScores,
       currentRound: nextRound,
       gameTheme: nextTheme,
       bossMaxHp: nextMaxHp,

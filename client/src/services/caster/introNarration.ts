@@ -1,4 +1,4 @@
-import { CASTER_VOICE_MAX_CHARS } from '../../constants/caster';
+import { CASTER_VOICE_MAX_CHARS, CasterSpeaker, DEFAULT_CASTER_SPEAKER, resolveSpeakerRole } from '../../constants/caster';
 import { getCasterLang } from './casterComposer';
 import { toVoiceText } from './casterVoiceText';
 import { SPEECH_OUTCOME, SpeechOutcome, casterSpeechEngine } from './speechEngine';
@@ -54,11 +54,13 @@ export const splitSpeechChunks = (text: string): string[] => splitAtLevel(text.t
 export const speakIntroNarration = async (
   text: string,
   isStillCurrent: () => boolean,
-  initialDelayMs = 0
+  initialDelayMs = 0,
+  speaker: CasterSpeaker = DEFAULT_CASTER_SPEAKER
 ): Promise<void> => {
   const lang = getCasterLang();
+  const role = resolveSpeakerRole(speaker);
   const chunks = splitSpeechChunks(text);
-  chunks.forEach((chunk) => casterSpeechEngine.prefetch(chunk, lang));
+  chunks.forEach((chunk) => casterSpeechEngine.prefetch(chunk, lang, role));
 
   if (initialDelayMs > 0) {
     await new Promise<void>((resolve) => setTimeout(resolve, initialDelayMs));
@@ -66,9 +68,9 @@ export const speakIntroNarration = async (
   }
 
   for (const chunk of chunks) {
-    await casterSpeechEngine.prepare(chunk, lang);
+    await casterSpeechEngine.prepare(chunk, lang, role);
     if (!isStillCurrent()) return;
-    const outcome = await casterSpeechEngine.speak(chunk, lang, NOOP);
+    const outcome = await casterSpeechEngine.speak(chunk, lang, NOOP, undefined, role);
     if (STOP_OUTCOMES.has(outcome) || !isStillCurrent()) return;
   }
 };

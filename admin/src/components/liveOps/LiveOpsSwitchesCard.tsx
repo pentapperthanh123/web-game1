@@ -88,6 +88,12 @@ export const LiveOpsSwitchesCard: React.FC<LiveOpsSwitchesCardProps> = ({ caster
         isDangerWhenOff
         onToggle={() => adminSocket.updateCasterConfig({ isNameReadingEnabled: !casterConfig.isNameReadingEnabled })}
       />
+      <SwitchRow
+        label={LIVE_OPS_TEXT.DUO_LABEL}
+        hint={LIVE_OPS_TEXT.DUO_HINT}
+        isOn={casterConfig.isDuoEnabled}
+        onToggle={() => adminSocket.updateCasterConfig({ isDuoEnabled: !casterConfig.isDuoEnabled })}
+      />
 
       <div className="pt-3 border-t border-slate-800 space-y-2">
         <div className="flex items-center justify-between gap-2">

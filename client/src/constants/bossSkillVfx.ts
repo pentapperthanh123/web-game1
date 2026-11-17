@@ -76,9 +76,9 @@ export const CHAMPION_HIT_FEEDBACK = {
 /**
  * Which champions a skill can hurt, matching where its effect is drawn:
  * - SIDE: random champions of the attacked wing (bolts / orbs / beam land on them)
- * - SIDE_REACH: every champion of the attacked wing within the boss's reach (sweeps)
- * - SIDE_NEAREST: the closest champions of the attacked wing (charge)
- * - CENTER: the champions closest to the boss, both wings (slam, vortex)
+ * - SIDE_REACH: the champions of the attacked wing within the boss's reach, nearest first (sweeps)
+ * - SIDE_NEAREST: the closest champions of the attacked wing (charge, beam)
+ * - CENTER: the champions closest to the boss in the floor plane, both wings (slam, vortex)
  * - ARENA: random champions anywhere (spikes, meteors) or everyone (nova)
  */
 export const BOSS_SKILL_HIT_AREA = {
@@ -94,7 +94,8 @@ export const BOSS_SKILL_VFX_HIT_AREA: Readonly<Record<BossSkillVfxType, BossSkil
   [BOSS_SKILL_VFX.FIRE_BREATH]: BOSS_SKILL_HIT_AREA.SIDE,
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: BOSS_SKILL_HIT_AREA.SIDE,
   [BOSS_SKILL_VFX.LIGHTNING_STRIKE]: BOSS_SKILL_HIT_AREA.SIDE,
-  [BOSS_SKILL_VFX.BEAM]: BOSS_SKILL_HIT_AREA.SIDE,
+  // The beam aims at the front-line champions it hurts (Beam3D follows the impact points)
+  [BOSS_SKILL_VFX.BEAM]: BOSS_SKILL_HIT_AREA.SIDE_NEAREST,
   [BOSS_SKILL_VFX.CRESCENT_SWEEP]: BOSS_SKILL_HIT_AREA.SIDE_REACH,
   [BOSS_SKILL_VFX.CHARGE_DASH]: BOSS_SKILL_HIT_AREA.SIDE_NEAREST,
   [BOSS_SKILL_VFX.SEISMIC_SLAM]: BOSS_SKILL_HIT_AREA.CENTER,

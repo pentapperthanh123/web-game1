@@ -24,7 +24,9 @@ import {
   DAMAGE_TYPE,
   GAME_CONSTANTS,
   SUMMON_PERF_CONSTANTS,
-  TEAM_KEY,
+  TEAM_SLOTS,
+  TEAM_SLOT_LEFT,
+  TEAM_SLOT_RIGHT,
   TeamType,
 } from '../../constants/game';
 import { CHAMPION_DEFAULT_MAX_HP } from '../../constants/bossSkills';
@@ -36,8 +38,9 @@ import {
 } from '../../constants/teams';
 import { SFX_EVENT } from '../../constants/sfx';
 import { audioService } from '../../services/audioService';
+import { useGiftVfxStore } from '../giftVfxStore';
 import { playSound } from '../../services/soundManager';
-import { isBattleHalted } from '../storeHelpers';
+import { createInitialTeamScores, isBattleHalted } from '../storeHelpers';
 
 export type SummonSlice = Pick<
   GameState,
@@ -57,6 +60,7 @@ interface PendingSummonRequest {
   isGiftBypass: boolean;
   userAvatarUrl?: string;
   isExplicitChampion?: boolean;
+  isElite?: boolean;
 }
 
 const pendingSummonQueue: PendingSummonRequest[] = [];
@@ -83,12 +87,16 @@ const scheduleTurnAdvance = (get: () => GameState, delayMs: number): void => {
   }, Math.max(GAME_CONSTANTS.SUMMON_RULES.MIN_TURN_ADVANCE_DELAY_MS, delayMs));
 };
 
+const isPageHidden = (): boolean => typeof document !== 'undefined' && document.hidden;
+
 const scheduleBatchFlush = (callback: () => void, delayMs: number): void => {
-  if (delayMs <= 0 && typeof requestAnimationFrame === 'function') {
+  // If the browser tab is in the background or unfocused, requestAnimationFrame freezes completely.
+  // Fall back immediately to setTimeout so summon processing never hangs waiting for focus.
+  if (!isPageHidden() && delayMs <= 0 && typeof requestAnimationFrame === 'function') {
     requestAnimationFrame(() => callback());
     return;
   }
-  setTimeout(callback, Math.max(SUMMON_PERF_CONSTANTS.COALESCE_FALLBACK_MS, delayMs));
+  setTimeout(callback, Math.max(0, delayMs));
 };
 
 /** Creates the champion summon, TikTok gift, follow, and share reward slice. */
@@ -125,26 +133,19 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     const newLogs: AdminEventLog[] = [];
     const newChats: LiveChatMessage[] = [];
     const furyBoosts: Record<string, number> = {};
-    const teamAggregatedSupportDmg: Record<TeamType, number> = {
-      [TEAM_KEY.BLG]: 0,
-      [TEAM_KEY.GENG]: 0,
-    };
-    const teamOverflowCounts: Record<TeamType, number> = {
-      [TEAM_KEY.BLG]: 0,
-      [TEAM_KEY.GENG]: 0,
-    };
+    const teamAggregatedSupportDmg = createInitialTeamScores();
+    const teamOverflowCounts = createInitialTeamScores();
     let hasPlayedSupportChime = false;
 
-    const nextQueue: Record<TeamType, QueuedSummon[]> = {
-      [TEAM_KEY.BLG]: [...(state.summonQueue?.[TEAM_KEY.BLG] || [])],
-      [TEAM_KEY.GENG]: [...(state.summonQueue?.[TEAM_KEY.GENG] || [])],
-    };
+    const nextQueue: Record<TeamType, QueuedSummon[]> = Object.fromEntries(
+      TEAM_SLOTS.map((slot) => [slot, [...(state.summonQueue?.[slot] || [])]])
+    ) as Record<TeamType, QueuedSummon[]>;
 
     if (overflowCount > 0) {
       const overflowItems = batch.slice(0, overflowCount);
       for (let k = 0; k < overflowItems.length; k += 1) {
         const item = overflowItems[k];
-        const slotTeam = item.team === TEAM_KEY.GENG ? TEAM_KEY.GENG : TEAM_KEY.BLG;
+        const slotTeam = item.team === TEAM_SLOT_RIGHT ? TEAM_SLOT_RIGHT : TEAM_SLOT_LEFT;
         teamOverflowCounts[slotTeam] += 1;
         teamAggregatedSupportDmg[slotTeam] += Math.round(
           GAME_CONSTANTS.MINIONS.BASE_DPS * SUMMON_PERF_CONSTANTS.OVERFLOW_SUPPORT_DPS_FACTOR
@@ -157,6 +158,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
           userAvatarUrl: item.userAvatarUrl,
           isExplicitChampion: item.isExplicitChampion,
           isGiftBypass: item.isGiftBypass,
+          isElite: item.isElite,
           queuedAt: now,
         });
       }
@@ -259,6 +261,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         userAvatarUrl: req.userAvatarUrl,
         isExplicitChampion: req.isExplicitChampion,
         isGiftBypass: req.isGiftBypass,
+        isElite: req.isElite,
         queuedAt: now,
       });
 
@@ -295,16 +298,18 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
     }
 
     if (overflowCount > 0) {
+      const leftTag = state.activeTeams[TEAM_SLOT_LEFT]?.shortTag ?? TEAM_SLOT_LEFT;
+      const rightTag = state.activeTeams[TEAM_SLOT_RIGHT]?.shortTag ?? TEAM_SLOT_RIGHT;
       newLogs.unshift({
         id: `log-${now}-overflow`,
         time: new Date(now).toLocaleTimeString('vi-VN', { hour12: false }),
         type: 'SUMMON',
-        message: `🌊 Bão triệu hồi đồng loạt: +${batch.length} người tham chiến (${teamOverflowCounts[TEAM_KEY.BLG]} ${state.activeTeams[TEAM_KEY.BLG].shortTag} / ${teamOverflowCounts[TEAM_KEY.GENG]} ${state.activeTeams[TEAM_KEY.GENG].shortTag} tiếp sức)!`,
+        message: `🌊 Bão triệu hồi đồng loạt: +${batch.length} người tham chiến (${teamOverflowCounts[TEAM_SLOT_LEFT]} ${leftTag} / ${teamOverflowCounts[TEAM_SLOT_RIGHT]} ${rightTag} tiếp sức)!`,
       });
     }
 
     // Apply aggregated support + overflow damage at most once per team per batch
-    for (const slotTeam of [TEAM_KEY.BLG, TEAM_KEY.GENG] as const) {
+    for (const slotTeam of TEAM_SLOTS) {
       const totalSupportDmg = teamAggregatedSupportDmg[slotTeam];
       if (totalSupportDmg > 0) {
         const teamShort = state.activeTeams[slotTeam]?.shortTag || slotTeam;
@@ -370,13 +375,14 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       return;
     }
 
-    const summonsByTeam: Record<TeamType, number> = { [TEAM_KEY.BLG]: 0, [TEAM_KEY.GENG]: 0 };
+    const summonsByTeam = createInitialTeamScores();
     for (let i = 0; i < items.length; i += 1) {
       pendingSummonQueue.push(items[i]);
       summonsByTeam[items[i].team] += 1;
     }
-    trackQuestProgress(get, TEAM_KEY.BLG, QUEST_KIND.SUMMONS, summonsByTeam[TEAM_KEY.BLG]);
-    trackQuestProgress(get, TEAM_KEY.GENG, QUEST_KIND.SUMMONS, summonsByTeam[TEAM_KEY.GENG]);
+    TEAM_SLOTS.forEach((slot) => {
+      trackQuestProgress(get, slot, QUEST_KIND.SUMMONS, summonsByTeam[slot]);
+    });
 
     if (!isSummonFlushScheduled) {
       isSummonFlushScheduled = true;
@@ -396,10 +402,11 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       team: TeamType,
       isGiftBypass = false,
       userAvatarUrl?: string,
-      isExplicitChampion?: boolean
+      isExplicitChampion?: boolean,
+      isElite?: boolean
     ) => {
       enqueueSummons([
-        { summonerName, championName, team, isGiftBypass, userAvatarUrl, isExplicitChampion },
+        { summonerName, championName, team, isGiftBypass, userAvatarUrl, isExplicitChampion, isElite },
       ]);
     },
 
@@ -411,6 +418,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         isGiftBypass: Boolean(item.isGiftBypass),
         userAvatarUrl: item.userAvatarUrl,
         isExplicitChampion: item.isExplicitChampion,
+        isElite: item.isElite,
       }));
       enqueueSummons(normalized);
     },
@@ -507,6 +515,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       return;
     }
 
+    useGiftVfxStore.getState().recordGiftCoins(event.team, event.coins);
     const result = runGiftExplosion(get, event, now);
     const isNowDefeated = get().bossStatus === BOSS_STATUS.DEFEATED || get().bossHp <= 0;
     set((prev) => {

@@ -1,23 +1,81 @@
 import i18n from '../../i18n';
-import { CASTER_EVENT_RULES, CASTER_NUMBER, CASTER_QUEUE, CasterSignal } from '../../constants/caster';
+import {
+  CASTER_DIALOGUE,
+  CASTER_EVENT_RULES,
+  CASTER_NUMBER,
+  CASTER_QUEUE,
+  CASTER_SPEAKER,
+  CasterSignal,
+  CasterSpeaker,
+} from '../../constants/caster';
 
 export type CasterSlots = Record<string, string | number>;
 
+/** One turn of a two-caster exchange, as written in i18n under Caster.dialogues.<SIGNAL>[variant][turn]. */
+export interface DialogueTurn {
+  speaker: CasterSpeaker;
+  text: string;
+}
+
 const LANG = { VI: 'vi', EN: 'en' } as const;
 const UNFILLED_SLOT = /\{\{|\}\}/;
-const recentVariantsBySignal = new Map<CasterSignal, number[]>();
+/** Single lines and exchanges of one signal rotate their variants separately. */
+const DIALOGUE_KEY_PREFIX = 'dialogue:';
+const recentVariantsByKey = new Map<string, number[]>();
+const SPEAKERS = new Set<string>(Object.values(CASTER_SPEAKER));
 
 /** Voice language follows the overlay language. */
 export const getCasterLang = (): string => (i18n.language?.startsWith(LANG.EN) ? LANG.EN : LANG.VI);
 
-const pickVariantIndex = (signal: CasterSignal, variantCount: number): number => {
-  const recent = recentVariantsBySignal.get(signal) ?? [];
+/** A fresh variant index for this key, avoiding the ones used most recently. */
+const pickFreshIndex = (key: string, variantCount: number): number => {
+  const recent = recentVariantsByKey.get(key) ?? [];
   const avoidCount = Math.min(CASTER_EVENT_RULES.RECENT_VARIANTS_TO_AVOID, variantCount - 1);
   const avoided = new Set(avoidCount > 0 ? recent.slice(-avoidCount) : []);
   const candidates = Array.from({ length: variantCount }, (_, index) => index).filter((index) => !avoided.has(index));
   const index = candidates[Math.floor(Math.random() * candidates.length)] ?? 0;
-  recentVariantsBySignal.set(signal, [...recent, index].slice(-CASTER_EVENT_RULES.RECENT_VARIANTS_TO_AVOID));
+  recentVariantsByKey.set(key, [...recent, index].slice(-CASTER_EVENT_RULES.RECENT_VARIANTS_TO_AVOID));
   return index;
+};
+
+const pickVariantIndex = (signal: CasterSignal, variantCount: number): number => pickFreshIndex(signal, variantCount);
+
+const isDialogueTurn = (value: unknown): value is { speaker: string; text: string } =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as Record<string, unknown>).speaker === 'string' &&
+  typeof (value as Record<string, unknown>).text === 'string';
+
+/** Fills the slots of one written exchange; null when a turn is malformed or a slot stays empty. */
+const fillDialogueVariant = (signal: CasterSignal, variantIndex: number, rawTurns: unknown, slots: CasterSlots): DialogueTurn[] | null => {
+  if (!Array.isArray(rawTurns) || rawTurns.length === 0 || rawTurns.length > CASTER_DIALOGUE.MAX_TURNS) return null;
+  const turns: DialogueTurn[] = [];
+  for (let turnIndex = 0; turnIndex < rawTurns.length; turnIndex += 1) {
+    const rawTurn = rawTurns[turnIndex];
+    if (!isDialogueTurn(rawTurn) || !SPEAKERS.has(rawTurn.speaker)) return null;
+    const text = i18n.t(`Caster.dialogues.${signal}.${variantIndex}.${turnIndex}.text`, { ...slots, defaultValue: '' });
+    if (!text || UNFILLED_SLOT.test(text)) return null;
+    turns.push({ speaker: rawTurn.speaker as CasterSpeaker, text });
+  }
+  return turns;
+};
+
+/**
+ * Picks a fresh two-caster exchange of the signal and fills its slots; null when none is written
+ * (the caller then says the single line instead).
+ */
+export const composeCasterDialogue = (signal: CasterSignal, slots: CasterSlots): DialogueTurn[] | null => {
+  const variants = i18n.t(`Caster.dialogues.${signal}`, { returnObjects: true, defaultValue: [] });
+  if (!Array.isArray(variants) || variants.length === 0) return null;
+  const index = pickFreshIndex(`${DIALOGUE_KEY_PREFIX}${signal}`, variants.length);
+  return fillDialogueVariant(signal, index, variants[index], slots);
+};
+
+/** Every turn of every written exchange of a signal (used to pre-generate predictable voices). */
+export const composeAllDialogueTurns = (signal: CasterSignal, slots: CasterSlots): DialogueTurn[] => {
+  const variants = i18n.t(`Caster.dialogues.${signal}`, { returnObjects: true, defaultValue: [] });
+  if (!Array.isArray(variants)) return [];
+  return variants.flatMap((rawTurns, index) => fillDialogueVariant(signal, index, rawTurns, slots) ?? []);
 };
 
 /** Picks a fresh variant of the signal's line and fills its slots; null if a slot stays empty. */

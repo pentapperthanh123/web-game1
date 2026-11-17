@@ -1,15 +1,24 @@
 import type { Socket } from 'socket.io';
 import {
+  backupPlayerProfilesFile,
   createPlayerProfileStore,
   loadPlayerProfilesFromDisk,
   PeriodStats,
   PlayerProfile,
   PlayerProfileData,
+  writePlayerProfilesNow,
 } from '../storage/playerProfileStore.js';
 import { ServerContext } from '../types/serverState.js';
 
 export const ROUND_RESULT_EVENT = 'game:round-result';
 export const PLAYER_LEADERBOARD_EVENT = 'game:player-leaderboard';
+
+export const BOT_NAME_KEYWORDS = ['Tiên Phong', 'Hội Quân', 'Nhiệm vụ cộng đồng'] as const;
+
+export function isBotUserName(userName: string): boolean {
+  if (!userName) return false;
+  return BOT_NAME_KEYWORDS.some((kw) => userName.includes(kw));
+}
 
 const MAX_PLAYERS_PER_ROUND = 50;
 const MAX_USERNAME_LENGTH = 40;
@@ -85,9 +94,21 @@ function sanitizePlayer(raw: unknown): RoundPlayer | null {
   if (typeof src.userName !== 'string') return null;
   const userName = src.userName.trim().slice(0, MAX_USERNAME_LENGTH);
   const damage = typeof src.damage === 'number' ? src.damage : Number.NaN;
-  if (!userName || !Number.isFinite(damage) || damage < 0) return null;
+  if (!userName || !Number.isFinite(damage) || damage <= 0) return null;
+  if (isBotUserName(userName)) return null;
   const team = typeof src.team === 'string' ? src.team.slice(0, MAX_USERNAME_LENGTH) : '';
   return { userName, team, damage };
+}
+
+export function cleanBotProfiles(data: PlayerProfileData): number {
+  let cleanedCount = 0;
+  for (const userName of Object.keys(data.profiles)) {
+    if (isBotUserName(userName)) {
+      delete data.profiles[userName];
+      cleanedCount += 1;
+    }
+  }
+  return cleanedCount;
 }
 
 function sanitizeRoundResult(raw: unknown): RoundResult | null {
@@ -161,6 +182,12 @@ function getTopDamage(players: RoundPlayer[]): number {
 export function createPlayerProfileService(ctx: ServerContext): PlayerProfileService {
   const store = createPlayerProfileStore();
   const data: PlayerProfileData = loadPlayerProfilesFromDisk();
+  const cleanedCount = cleanBotProfiles(data);
+  if (cleanedCount > 0) {
+    backupPlayerProfilesFile();
+    writePlayerProfilesNow(data);
+    console.log(`[PlayerProfiles] Cleaned ${cleanedCount} bot profiles from disk (backup saved to .bak)`);
+  }
   const lastResultAtBySocket = new WeakMap<Socket, number>();
 
   const getLeaderboard = (): PlayerLeaderboard => {

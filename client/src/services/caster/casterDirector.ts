@@ -4,10 +4,16 @@ import {
   CASTER_BANTER_WEIGHTS,
   CASTER_EMPTY_FIELD_BANTER_WEIGHTS,
   CASTER_EVENT_RULES,
+  CASTER_GIFT_BATCH_RULES,
+  CASTER_INTENSITY,
   CASTER_INTRO_SIGNALS,
+  CASTER_PRIORITY,
+  CASTER_PRIORITY_TTL_MS,
+  CASTER_PROVOCATION_RULES,
   CASTER_QUEUE,
   CASTER_SIGNAL,
   CASTER_SIGNAL_PRIORITY,
+  CASTER_SPEAKER,
   CASTER_VOICE,
   CasterSignal,
 } from '../../constants/caster';
@@ -15,7 +21,6 @@ import {
   BOSS_STATUS,
   GAME_CONSTANTS,
   GIFT_TIER,
-  GiftTier,
   TEAM_KEY,
   TeamType,
   getThemeConfig,
@@ -25,21 +30,29 @@ import {
 import { useCasterStore } from '../../store/casterStore';
 import { useGameStore } from '../../store/gameStore';
 import { isCurrentRoundIntroActive, useRoundIntroStore } from '../../store/roundIntroStore';
+import { evaluateComebackBuff } from '../../store/comebackRules';
 import { triggerFieldWipe } from '../../store/combatMomentStore';
 import { bossSpeechManager, resolveBossSpeechItem } from '../../constants/bossSpeech';
 import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../utils/introStar';
 import { GameState } from '../../types/game';
 import {
   CasterSlots,
+  DialogueTurn,
+  composeCasterDialogue,
   composeCasterLine,
   formatScore,
   formatSpeechNumber,
-  getCasterLang,
 } from './casterComposer';
-import { casterSpeechEngine } from './speechEngine';
 import { casterQueue } from './presentationQueue';
 import { warmPredictableLines } from './casterWarmup';
-import { castCasterSignal, getTeamTag, speakerFor } from './casterSignal';
+import {
+  castCasterDialogue,
+  castCasterSignal,
+  castCasterTurns,
+  getTeamTag,
+  prefetchDialogueTurns,
+  speakerFor,
+} from './casterSignal';
 import { announceBattleMoments, announceDuelMoments, createBattleMomentMemory } from './casterBattleMoments';
 
 /** Names starting with a badge (💖 follow reward, 👑 gift elite) already got their own line. */
@@ -47,20 +60,16 @@ const BADGED_NAME = /^[^\p{L}\p{N}]/u;
 /** Champions suggested by the "how to play" banter. */
 const GUIDE_CHAMPIONS = ['Ahri', 'Yasuo', 'Lee Sin', 'Jinx', 'Garen', 'Lux'] as const;
 
-const GIFT_TIER_SIGNAL: Partial<Record<GiftTier, CasterSignal>> = {
-  [GIFT_TIER.MEDIUM]: CASTER_SIGNAL.GIFT_MEDIUM,
-  [GIFT_TIER.BIG]: CASTER_SIGNAL.GIFT_BIG,
-  [GIFT_TIER.MEGA]: CASTER_SIGNAL.GIFT_MEGA,
-};
-
 const getOtherTeam = (team: TeamType): TeamType => {
   const teams = Object.keys(useGameStore.getState().activeTeams) as TeamType[];
   return teams.find((candidate) => candidate !== team) ?? team;
 };
 
 const getSeriesScore = (state: GameState): string => {
-  const [left, right] = Object.values(state.bo5Score);
-  return formatScore(left ?? 0, right ?? 0);
+  const [leftTeam, rightTeam] = getTeamKeys(state);
+  const leftWins = (leftTeam && state.bo5Score?.[leftTeam]) ?? 0;
+  const rightWins = (rightTeam && state.bo5Score?.[rightTeam]) ?? 0;
+  return formatScore(leftWins, rightWins);
 };
 
 const randomBetween = (min: number, max: number): number => min + Math.random() * (max - min);
@@ -105,13 +114,30 @@ export const announceSmallGiftCombo = (donorName: string, team: TeamType, giftNa
 
 // ── Store watcher ─────────────────────────────────────────────────────────────────
 
+interface BufferedGift {
+  donorName: string;
+  team: TeamType;
+  giftName: string;
+  count: number;
+  coins: number;
+  timestamp: number;
+}
+
 interface DirectorMemory {
   seenPortalIds: Set<string>;
   lastGiftBannerId: string | null;
   lastSkillTimestamp: number;
   hasAnnouncedEnrage: boolean;
   hasAnnouncedLowHp: boolean;
+  hasAnnouncedCriticalTension: boolean;
+  lastTightRaceAt: number;
+  lastDominantLeadAt: number;
+  lastSignatureAtByPlayer: Map<string, number>;
   lastActivityAt: number;
+  lastProvocationAt: number;
+  lastActivityByTeam: Record<string, number>;
+  giftBatchBuffer: BufferedGift[];
+  giftBatchTimer: ReturnType<typeof setTimeout> | null;
   lastBanterSignal: CasterSignal | null;
   nextBanterSilenceMs: number;
   damageLeader: TeamType | null;
@@ -121,8 +147,8 @@ interface DirectorMemory {
   livingCount: number;
   /** shownAt of the intro card already narrated (late start / late voice config must not repeat it). */
   narratedIntroShownAt: number;
-  /** "Xung trận!" line composed and downloaded during the intro so it plays the instant the card closes. */
-  preparedGoLine: string | null;
+  /** "Xung trận!" exchange composed and downloaded during the intro so it plays the instant the card closes. */
+  preparedGoTurns: DialogueTurn[] | null;
   /** Round the prepared line names; a server sync may change currentRound while the card is up. */
   preparedGoRound: number;
   hasAnnouncedSeriesEnd: boolean;
@@ -132,11 +158,25 @@ interface DirectorMemory {
 
 const getTeamKeys = (state: GameState): TeamType[] => Object.keys(state.activeTeams) as TeamType[];
 
+const getScoreForTeam = (state: GameState, team: TeamType): number => {
+  const score = state.teamScores?.[team];
+  if (typeof score === 'number') return score;
+  if (team === TEAM_KEY.BLG) return state.teamScoreBLG ?? 0;
+  if (team === TEAM_KEY.GENG) return state.teamScoreGENG ?? 0;
+  return 0;
+};
+
+const getTotalTeamDamage = (state: GameState): number => {
+  const teams = getTeamKeys(state);
+  return teams.reduce((sum, team) => sum + getScoreForTeam(state, team), 0);
+};
+
 /** Team ahead on round damage, null while tied. */
 const getDamageLeader = (state: GameState): TeamType | null => {
   const [leftTeam, rightTeam] = getTeamKeys(state);
-  const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
-  const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
+  if (!leftTeam || !rightTeam) return null;
+  const leftScore = getScoreForTeam(state, leftTeam);
+  const rightScore = getScoreForTeam(state, rightTeam);
   if (leftScore === rightScore) return null;
   return leftScore > rightScore ? leftTeam : rightTeam;
 };
@@ -155,11 +195,22 @@ const isBattleRunning = (state: GameState): boolean =>
 
 /** Lead as a share of total team damage (0 = tied or no damage yet). */
 const getLeadRatio = (state: GameState): number => {
-  const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
-  const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
+  const [leftTeam, rightTeam] = getTeamKeys(state);
+  if (!leftTeam || !rightTeam) return 0;
+  const leftScore = getScoreForTeam(state, leftTeam);
+  const rightScore = getScoreForTeam(state, rightTeam);
   const total = leftScore + rightScore;
   if (total <= 0) return 0;
   return Math.abs(leftScore - rightScore) / total;
+};
+
+const initActivityByTeam = (state: GameState): Record<string, number> => {
+  const now = Date.now();
+  const result: Record<string, number> = {};
+  for (const team of getTeamKeys(state)) {
+    result[team] = now;
+  }
+  return result;
 };
 
 const createMemory = (state: GameState): DirectorMemory => ({
@@ -169,7 +220,15 @@ const createMemory = (state: GameState): DirectorMemory => ({
   lastSkillTimestamp: state.activeBossSkillBanner?.timestamp ?? 0,
   hasAnnouncedEnrage: state.bossStatus === BOSS_STATUS.ENRAGED,
   hasAnnouncedLowHp: false,
+  hasAnnouncedCriticalTension: false,
+  lastTightRaceAt: 0,
+  lastDominantLeadAt: 0,
+  lastSignatureAtByPlayer: new Map<string, number>(),
   lastActivityAt: Date.now(),
+  lastProvocationAt: 0,
+  lastActivityByTeam: initActivityByTeam(state),
+  giftBatchBuffer: [],
+  giftBatchTimer: null,
   lastBanterSignal: null,
   nextBanterSilenceMs: CASTER_BANTER.ACTIVE_SILENCE_MS,
   damageLeader: getDamageLeader(state),
@@ -177,7 +236,7 @@ const createMemory = (state: GameState): DirectorMemory => ({
   lastComebackAt: 0,
   livingCount: countLiving(state),
   narratedIntroShownAt: 0,
-  preparedGoLine: null,
+  preparedGoTurns: null,
   preparedGoRound: 0,
   hasAnnouncedSeriesEnd: state.isSeriesEnded,
   pendingRoundEndTimer: null,
@@ -192,9 +251,37 @@ const announceNewSummons = (state: GameState, memory: DirectorMemory): void => {
   for (const portal of state.activeSummonPortals) {
     if (memory.seenPortalIds.has(portal.id)) continue;
     memory.seenPortalIds.add(portal.id);
-    memory.lastActivityAt = Date.now();
+    const now = Date.now();
+    memory.lastActivityAt = now;
+    memory.lastActivityByTeam[portal.team] = now;
     if (BADGED_NAME.test(portal.summonerName)) continue;
     const speakerName = speakerFor(portal.summonerName, portal.team);
+    const teamProfile = state.activeTeams[portal.team];
+    const matchedPro = teamProfile?.roster?.find((player) => {
+      const normChamp = portal.championName.trim().toLowerCase();
+      const normSig = player.signatureChampion.trim().toLowerCase();
+      return normChamp === normSig || normChamp.includes(normSig) || normSig.includes(normChamp);
+    });
+
+    const lastSigTime = matchedPro ? (memory.lastSignatureAtByPlayer.get(matchedPro.name) ?? 0) : 0;
+    const canShoutSignature =
+      Boolean(matchedPro) && now - lastSigTime >= CASTER_EVENT_RULES.PRO_SIGNATURE_COOLDOWN_MS;
+
+    if (matchedPro && canShoutSignature) {
+      memory.lastSignatureAtByPlayer.set(matchedPro.name, now);
+      castCasterSignal(
+        CASTER_SIGNAL.PRO_SIGNATURE_DEPLOY,
+        {
+          name: speakerName,
+          proPlayer: matchedPro.name,
+          champion: portal.championName,
+          team: getTeamTag(portal.team),
+        },
+        { team: portal.team, speakerName, ttlMs: CASTER_PRIORITY_TTL_MS[CASTER_PRIORITY.P3] }
+      );
+      continue;
+    }
+
     castCasterSignal(
       CASTER_SIGNAL.SUMMON,
       { name: speakerName, champion: portal.championName, team: getTeamTag(portal.team) },
@@ -203,19 +290,143 @@ const announceNewSummons = (state: GameState, memory: DirectorMemory): void => {
   }
 };
 
+const flushGiftBatch = (memory: DirectorMemory): void => {
+  if (memory.giftBatchTimer) {
+    clearTimeout(memory.giftBatchTimer);
+    memory.giftBatchTimer = null;
+  }
+  const batch = memory.giftBatchBuffer.splice(0, memory.giftBatchBuffer.length);
+  if (batch.length === 0) return;
+
+  const byTeam = new Map<TeamType, BufferedGift[]>();
+  for (const item of batch) {
+    const list = byTeam.get(item.team) ?? [];
+    list.push(item);
+    byTeam.set(item.team, list);
+  }
+
+  for (const [team, gifts] of byTeam.entries()) {
+    const donorCounts = new Map<string, number>();
+    let totalCount = 0;
+    const mainGift = gifts[0]?.giftName || 'quà';
+    for (const g of gifts) {
+      donorCounts.set(g.donorName, (donorCounts.get(g.donorName) ?? 0) + g.count);
+      totalCount += g.count;
+    }
+    const sortedDonors = Array.from(donorCounts.entries()).sort((a, b) => b[1] - a[1]);
+    const isStorm =
+      sortedDonors.length >= CASTER_GIFT_BATCH_RULES.MIN_DONORS_FOR_BATCH ||
+      totalCount >= CASTER_GIFT_BATCH_RULES.MIN_GIFTS_FOR_BATCH;
+
+    if (isStorm) {
+      const topDonorA = sortedDonors[0]?.[0] ?? 'Khán giả';
+      const topDonorB = sortedDonors[1]?.[0] ?? topDonorA;
+      const othersCount = Math.max(0, sortedDonors.length - 2);
+      castCasterSignal(
+        CASTER_SIGNAL.GIFT_STORM_BATCH,
+        {
+          team: getTeamTag(team),
+          donorA: topDonorA,
+          donorB: topDonorB,
+          othersCount,
+          count: totalCount,
+          gift: mainGift,
+        },
+        {
+          team,
+          intensity: CASTER_INTENSITY.HYPE,
+          ttlMs: CASTER_GIFT_BATCH_RULES.MAX_BATCH_TTL_MS,
+        }
+      );
+    } else {
+      const single = gifts[0];
+      if (single) {
+        castCasterSignal(
+          CASTER_SIGNAL.GIFT_COMBO,
+          {
+            name: speakerFor(single.donorName, team),
+            gift: single.giftName,
+            team: getTeamTag(team),
+            count: single.count,
+          },
+          { team, intensity: CASTER_INTENSITY.NORMAL }
+        );
+      }
+    }
+  }
+};
+
 const announceGiftBanner = (state: GameState, memory: DirectorMemory): void => {
   const banner = state.activeGiftBanner;
   if (!banner || banner.id === memory.lastGiftBannerId) return;
   memory.lastGiftBannerId = banner.id;
-  memory.lastActivityAt = Date.now();
-  const signal = GIFT_TIER_SIGNAL[banner.tier];
-  if (!signal) return;
-  castCasterSignal(signal, {
-    name: speakerFor(banner.donorName, banner.team),
-    gift: banner.giftName,
-    team: getTeamTag(banner.team),
+  const now = Date.now();
+  memory.lastActivityAt = now;
+  memory.lastActivityByTeam[banner.team] = now;
+
+  // MEGA gifts immediately interrupt ongoing commentary and trigger personal callout
+  if (banner.tier === GIFT_TIER.MEGA) {
+    flushGiftBatch(memory);
+    castCasterDialogue(
+      CASTER_SIGNAL.GIFT_MEGA,
+      {
+        name: speakerFor(banner.donorName, banner.team),
+        gift: banner.giftName,
+        team: getTeamTag(banner.team),
+        count: banner.streakCount ?? 1,
+      },
+      { team: banner.team, intensity: CASTER_INTENSITY.CLIMAX }
+    );
+    return;
+  }
+
+  // BIG gifts flush previous buffer and cast with HYPE intensity
+  if (banner.tier === GIFT_TIER.BIG) {
+    flushGiftBatch(memory);
+    castCasterDialogue(
+      CASTER_SIGNAL.GIFT_BIG,
+      {
+        name: speakerFor(banner.donorName, banner.team),
+        gift: banner.giftName,
+        team: getTeamTag(banner.team),
+        count: banner.streakCount ?? 1,
+      },
+      { team: banner.team, intensity: CASTER_INTENSITY.HYPE }
+    );
+    return;
+  }
+
+  // MEDIUM gifts announce immediately with the visual explosion
+  if (banner.tier === GIFT_TIER.MEDIUM) {
+    flushGiftBatch(memory);
+    castCasterSignal(
+      CASTER_SIGNAL.GIFT_MEDIUM,
+      {
+        name: speakerFor(banner.donorName, banner.team),
+        gift: banner.giftName,
+        team: getTeamTag(banner.team),
+        count: banner.streakCount ?? 1,
+      },
+      { team: banner.team, intensity: CASTER_INTENSITY.NORMAL, ttlMs: 4_500 }
+    );
+    return;
+  }
+
+  // Small gifts are buffered for rapid streak combo batching (0.4s fast window)
+  memory.giftBatchBuffer.push({
+    donorName: speakerFor(banner.donorName, banner.team),
+    team: banner.team,
+    giftName: banner.giftName,
     count: banner.streakCount ?? 1,
+    coins: banner.coins,
+    timestamp: now,
   });
+
+  if (banner.isComboFinal || (banner.streakCount && banner.streakCount >= 5)) {
+    flushGiftBatch(memory);
+  } else if (!memory.giftBatchTimer) {
+    memory.giftBatchTimer = setTimeout(() => flushGiftBatch(memory), CASTER_GIFT_BATCH_RULES.BUFFER_MS);
+  }
 };
 
 const announceBossState = (state: GameState, memory: DirectorMemory): void => {
@@ -223,23 +434,38 @@ const announceBossState = (state: GameState, memory: DirectorMemory): void => {
   const bossName = getThemeConfig(state.gameTheme).bossName;
   if (state.bossStatus === BOSS_STATUS.ENRAGED && !memory.hasAnnouncedEnrage && state.bossHp > 0) {
     memory.hasAnnouncedEnrage = true;
-    castCasterSignal(CASTER_SIGNAL.BOSS_ENRAGE, { boss: bossName });
+    castCasterDialogue(CASTER_SIGNAL.BOSS_ENRAGE, { boss: bossName });
   }
   const isLowHp = state.bossHp > 0 && state.bossHp <= state.bossMaxHp * CASTER_EVENT_RULES.LOW_HP_RATIO;
   if (isLowHp && !memory.hasAnnouncedLowHp) {
     memory.hasAnnouncedLowHp = true;
-    castCasterSignal(CASTER_SIGNAL.BOSS_LOW_HP, { boss: bossName });
+    castCasterDialogue(CASTER_SIGNAL.BOSS_LOW_HP, { boss: bossName });
+  }
+  const isCriticalTension =
+    state.bossHp > 0 && state.bossHp <= state.bossMaxHp * CASTER_EVENT_RULES.CRITICAL_TENSION_HP_RATIO;
+  if (isCriticalTension && !memory.hasAnnouncedCriticalTension) {
+    memory.hasAnnouncedCriticalTension = true;
+    const hpPercent = Math.ceil((state.bossHp / Math.max(1, state.bossMaxHp)) * CASTER_EVENT_RULES.PERCENT);
+    castCasterDialogue(CASTER_SIGNAL.BOSS_CRITICAL_TENSION, { boss: bossName, hpPercent });
   }
 
   const skill = state.activeBossSkillBanner;
   if (!skill || skill.timestamp === memory.lastSkillTimestamp) return;
   memory.lastSkillTimestamp = skill.timestamp;
   if (skill.isUltimate) {
-    castCasterSignal(CASTER_SIGNAL.BOSS_ULTIMATE, { boss: bossName, skill: skill.vietnameseName });
+    castCasterSignal(
+      CASTER_SIGNAL.BOSS_ULTIMATE,
+      { boss: bossName, skill: skill.vietnameseName },
+      { ttlMs: CASTER_EVENT_RULES.BOSS_ULTIMATE_TTL_MS, intensity: CASTER_INTENSITY.CLIMAX }
+    );
     return;
   }
   if (Math.random() < CASTER_EVENT_RULES.BOSS_SKILL_LINE_CHANCE) {
-    castCasterSignal(CASTER_SIGNAL.BOSS_SKILL, { boss: bossName, skill: skill.vietnameseName });
+    castCasterSignal(
+      CASTER_SIGNAL.BOSS_SKILL,
+      { boss: bossName, skill: skill.vietnameseName },
+      { ttlMs: CASTER_EVENT_RULES.BOSS_SKILL_TTL_MS, intensity: CASTER_INTENSITY.HYPE }
+    );
   }
 };
 
@@ -251,6 +477,9 @@ const announceRoundFlow = (state: GameState, prev: GameState, memory: DirectorMe
   if (isNewRound) {
     memory.hasAnnouncedEnrage = false;
     memory.hasAnnouncedLowHp = false;
+    memory.hasAnnouncedCriticalTension = false;
+    memory.lastTightRaceAt = 0;
+    memory.lastDominantLeadAt = 0;
     memory.damageLeader = null;
     memory.peakLeadRatio = 0;
     if (!state.isSeriesEnded) memory.hasAnnouncedSeriesEnd = false;
@@ -301,7 +530,7 @@ const endSequence = { ttlMs: CASTER_EVENT_RULES.ROUND_END_SEQUENCE_TTL_MS };
 const announceRoundEnd = (state: GameState, bossName: string): void => {
   const winner = state.roundWinner;
   if (!winner) return;
-  castCasterSignal(
+  castCasterDialogue(
     CASTER_SIGNAL.ROUND_WIN,
     { team: getTeamTag(winner), boss: bossName, round: state.currentRound, score: getSeriesScore(state) },
     endSequence
@@ -325,11 +554,11 @@ const announceRoundEnd = (state: GameState, bossName: string): void => {
         team: getTeamTag(proMvp.team),
         dmg: formatSpeechNumber(proMvp.totalDamage),
       },
-      endSequence
+      { ...endSequence, speaker: CASTER_SPEAKER.B }
     );
   }
   if (state.leaderboard.length >= CASTER_EVENT_RULES.PODIUM_SIZE && second && third) {
-    castCasterSignal(
+    castCasterDialogue(
       CASTER_SIGNAL.PODIUM_THANKS,
       { a: speakerFor(mvp?.userName, mvp?.team), b: speakerFor(second.userName, second.team), c: speakerFor(third.userName, third.team) },
       endSequence
@@ -340,12 +569,12 @@ const announceRoundEnd = (state: GameState, bossName: string): void => {
 /** Series over: champion, thanks, and the next queued matchup if there is one. */
 const announceSeriesEnd = (state: GameState): void => {
   if (!state.seriesWinner) return;
-  castCasterSignal(
+  castCasterDialogue(
     CASTER_SIGNAL.SERIES_WIN,
     { team: getTeamTag(state.seriesWinner), score: getSeriesScore(state) },
     endSequence
   );
-  castCasterSignal(CASTER_SIGNAL.SERIES_OUTRO, { team: getTeamTag(state.seriesWinner) }, endSequence);
+  castCasterSignal(CASTER_SIGNAL.SERIES_OUTRO, { team: getTeamTag(state.seriesWinner) }, { ...endSequence, speaker: CASTER_SPEAKER.B });
   const nextMatch = state.matchQueue[0];
   if (!nextMatch) return;
   const findTag = (teamId: string): string => state.teamCatalog.find((team) => team.id === teamId)?.shortTag ?? '';
@@ -373,9 +602,7 @@ const announceComeback = (state: GameState, memory: DirectorMemory): void => {
   const previousPeakLead = memory.peakLeadRatio;
   memory.damageLeader = leader;
   memory.peakLeadRatio = leadRatio;
-  const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
-  const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
-  const totalDamage = leftScore + rightScore;
+  const totalDamage = getTotalTeamDamage(state);
   const now = Date.now();
   const isRealComeback =
     previousLeader !== null &&
@@ -385,7 +612,53 @@ const announceComeback = (state: GameState, memory: DirectorMemory): void => {
     now - memory.lastComebackAt >= CASTER_EVENT_RULES.COMEBACK_COOLDOWN_MS;
   if (!isRealComeback) return;
   memory.lastComebackAt = now;
-  castCasterSignal(CASTER_SIGNAL.COMEBACK, { team: getTeamTag(leader), teamOther: getTeamTag(previousLeader) });
+  castCasterDialogue(CASTER_SIGNAL.COMEBACK, { team: getTeamTag(leader), teamOther: getTeamTag(previousLeader) });
+};
+
+/**
+ * Dynamic pacing: shouts when damage race is neck-and-neck (<=5% diff),
+ * or when one team is completely dominating (>=25% diff).
+ */
+const announceScoreSituations = (state: GameState, memory: DirectorMemory): void => {
+  if (isCurrentRoundIntroActive() || !isBattleRunning(state)) return;
+  const [leftTeam, rightTeam] = getTeamKeys(state);
+  if (!leftTeam || !rightTeam) return;
+  const leftScore = getScoreForTeam(state, leftTeam);
+  const rightScore = getScoreForTeam(state, rightTeam);
+  const totalDamage = leftScore + rightScore;
+  if (totalDamage <= 0) return;
+  const diffRatio = Math.abs(leftScore - rightScore) / totalDamage;
+  const now = Date.now();
+
+  const isTightRace =
+    diffRatio <= CASTER_EVENT_RULES.TIGHT_RACE_MAX_DIFF_RATIO &&
+    totalDamage >= CASTER_EVENT_RULES.TIGHT_RACE_MIN_TOTAL_DAMAGE &&
+    now - memory.lastTightRaceAt >= CASTER_EVENT_RULES.TIGHT_RACE_COOLDOWN_MS;
+  if (isTightRace) {
+    memory.lastTightRaceAt = now;
+    castCasterDialogue(CASTER_SIGNAL.TIGHT_RACE, {
+      teamA: getTeamTag(leftTeam),
+      teamB: getTeamTag(rightTeam),
+    });
+    return;
+  }
+
+  const isDominantLead =
+    diffRatio >= CASTER_EVENT_RULES.DOMINANT_LEAD_MIN_DIFF_RATIO &&
+    totalDamage >= CASTER_EVENT_RULES.DOMINANT_LEAD_MIN_TOTAL_DAMAGE &&
+    now - memory.lastDominantLeadAt >= CASTER_EVENT_RULES.DOMINANT_LEAD_COOLDOWN_MS;
+  if (isDominantLead) {
+    const leader = getDamageLeader(state);
+    if (!leader) return;
+    memory.lastDominantLeadAt = now;
+    const other = getOtherTeam(leader);
+    const leadPercent = Math.round(diffRatio * CASTER_EVENT_RULES.PERCENT);
+    castCasterDialogue(CASTER_SIGNAL.DOMINANT_LEAD, {
+      team: getTeamTag(leader),
+      teamOther: getTeamTag(other),
+      leadPercent,
+    });
+  }
 };
 
 /**
@@ -410,7 +683,7 @@ const announceFieldWipe = (state: GameState, memory: DirectorMemory): void => {
   const ttlMs = CASTER_EVENT_RULES.WIPE_SEQUENCE_TTL_MS;
   castCasterSignal(CASTER_SIGNAL.WIPE, slots, { ttlMs });
   castCasterSignal(CASTER_SIGNAL.BOSS_WIPE_TAUNT, slots, { voice: CASTER_VOICE.BOSS, ttlMs });
-  castCasterSignal(CASTER_SIGNAL.EMPTY_FIELD_RALLY, slots, { ttlMs });
+  castCasterSignal(CASTER_SIGNAL.EMPTY_FIELD_RALLY, slots, { ttlMs, speaker: CASTER_SPEAKER.B });
 };
 
 /**
@@ -447,30 +720,33 @@ const announceRoundIntro = (shownAt: number, memory: DirectorMemory): void => {
   // Tab-by-tab narration (Matchup, Rules, Gifts) is managed directly by RoundIntroOverlay
   // to synchronize with visual tabs, allow interactive clicks, and avoid overlapping speech.
   warmPredictableLines(GUIDE_CHAMPIONS);
-  memory.preparedGoLine = composeCasterLine(CASTER_SIGNAL.ROUND_GO, slots);
+  memory.preparedGoTurns = composeRoundGoTurns(slots);
   memory.preparedGoRound = state.currentRound;
-  if (memory.preparedGoLine) casterSpeechEngine.prefetch(memory.preparedGoLine, getCasterLang());
+  if (memory.preparedGoTurns) prefetchDialogueTurns(memory.preparedGoTurns);
+};
+
+/** "Xung trận!" as the two-caster exchange when the duo is on, else A's single line. */
+const composeRoundGoTurns = (slots: CasterSlots): DialogueTurn[] | null => {
+  const exchange = useCasterStore.getState().isDuoEnabled ? composeCasterDialogue(CASTER_SIGNAL.ROUND_GO, slots) : null;
+  if (exchange) return exchange;
+  const text = composeCasterLine(CASTER_SIGNAL.ROUND_GO, slots);
+  return text ? [{ speaker: CASTER_SPEAKER.A, text }] : null;
 };
 
 /** The intro card closed (timer or "Xung trận ngay"): skip unread intro lines, let the current one finish, then go. */
 const announceRoundGo = (memory: DirectorMemory): void => {
   casterQueue.dropPending(CASTER_INTRO_SIGNALS);
   if (!useCasterStore.getState().isTtsEnabled || useGameStore.getState().silverScrapesState.isActive) return;
-  const isPreparedLineCurrent = memory.preparedGoRound === useGameStore.getState().currentRound;
-  const text =
-    (isPreparedLineCurrent ? memory.preparedGoLine : null) ??
-    composeCasterLine(CASTER_SIGNAL.ROUND_GO, {
+  const isPreparedCurrent = memory.preparedGoRound === useGameStore.getState().currentRound;
+  const turns =
+    (isPreparedCurrent ? memory.preparedGoTurns : null) ??
+    composeRoundGoTurns({
       round: useGameStore.getState().currentRound,
       boss: getThemeConfig(useGameStore.getState().gameTheme).bossName,
     });
-  memory.preparedGoLine = null;
-  if (!text) return;
-  casterQueue.enqueue({
-    signal: CASTER_SIGNAL.ROUND_GO,
-    priority: CASTER_SIGNAL_PRIORITY[CASTER_SIGNAL.ROUND_GO],
-    text,
-    createdAt: Date.now(),
-  });
+  memory.preparedGoTurns = null;
+  if (!turns) return;
+  castCasterTurns(CASTER_SIGNAL.ROUND_GO, turns);
 };
 
 /** The card may already be on screen when the director starts or when the voice gets switched on. */
@@ -506,9 +782,7 @@ const collectBanterFacts = (state: GameState, isIdle: boolean, livingCount: numb
   fieldCount: livingCount,
   hpRatio: state.bossHp / Math.max(1, state.bossMaxHp),
   leadRatio: getLeadRatio(state),
-  totalDamage:
-    (state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG) +
-    (state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG),
+  totalDamage: getTotalTeamDamage(state),
   hasSeriesProgress: Object.values(state.bo5Score).some((wins) => wins > 0),
 });
 
@@ -558,6 +832,61 @@ const isBanterAllowed = (state: GameState): boolean =>
   !state.silverScrapesState.isActive &&
   !isCurrentRoundIntroActive();
 
+const checkProvocation = (state: GameState, memory: DirectorMemory, now: number): boolean => {
+  if (now - memory.lastProvocationAt < CASTER_PROVOCATION_RULES.COOLDOWN_MS) return false;
+  const totalDamage = getTotalTeamDamage(state);
+  const leadRatio = getLeadRatio(state);
+  const [leftTeam, rightTeam] = getTeamKeys(state);
+  if (!leftTeam || !rightTeam) return false;
+  const leader = getDamageLeader(state);
+
+  let teamLeading: TeamType | null = null;
+  let teamTrailing: TeamType | null = null;
+
+  if (
+    leader &&
+    leadRatio >= CASTER_PROVOCATION_RULES.LEAD_DIFF_RATIO &&
+    totalDamage >= CASTER_PROVOCATION_RULES.MIN_TOTAL_DAMAGE
+  ) {
+    teamLeading = leader;
+    teamTrailing = getOtherTeam(leader);
+  } else {
+    const leftInactive = now - (memory.lastActivityByTeam[leftTeam] ?? 0) >= CASTER_PROVOCATION_RULES.INACTIVE_MS;
+    const rightInactive = now - (memory.lastActivityByTeam[rightTeam] ?? 0) >= CASTER_PROVOCATION_RULES.INACTIVE_MS;
+    if (leftInactive && !rightInactive) {
+      teamTrailing = leftTeam;
+      teamLeading = rightTeam;
+    } else if (rightInactive && !leftInactive) {
+      teamTrailing = rightTeam;
+      teamLeading = leftTeam;
+    }
+  }
+
+  if (!teamLeading || !teamTrailing) return false;
+
+  const trailingRoster = state.activeTeams[teamTrailing]?.roster ?? [];
+  const starTrailing = trailingRoster[0]?.name || 'tuyển thủ';
+  const leadingRoster = state.activeTeams[teamLeading]?.roster ?? [];
+  const starLeading = leadingRoster[0]?.name || 'tuyển thủ';
+
+  memory.lastProvocationAt = now;
+  memory.lastBanterSignal = CASTER_SIGNAL.BANTER_PROVOCATION;
+  memory.nextBanterSilenceMs = CASTER_BANTER.ACTIVE_SILENCE_MS;
+
+  castCasterDialogue(
+    CASTER_SIGNAL.BANTER_PROVOCATION,
+    {
+      teamLeading: getTeamTag(teamLeading),
+      teamTrailing: getTeamTag(teamTrailing),
+      starTrailing,
+      starLeading,
+      boss: getThemeConfig(state.gameTheme).bossName,
+    },
+    { intensity: CASTER_INTENSITY.HYPE }
+  );
+  return true;
+};
+
 const tickBanter = (memory: DirectorMemory): void => {
   if (!useCasterStore.getState().isTtsEnabled) return;
   const state = useGameStore.getState();
@@ -566,6 +895,8 @@ const tickBanter = (memory: DirectorMemory): void => {
   const requiredSilenceMs =
     memory.livingCount === 0 ? CASTER_BANTER.EMPTY_FIELD_SILENCE_MS : memory.nextBanterSilenceMs;
   if (casterQueue.getSilenceMs(now) < requiredSilenceMs) return;
+
+  if (checkProvocation(state, memory, now)) return;
 
   const isIdle = now - memory.lastActivityAt > CASTER_BANTER.IDLE_AFTER_MS;
   const isFieldEmpty = memory.livingCount === 0;
@@ -582,7 +913,7 @@ const tickBanter = (memory: DirectorMemory): void => {
   const signal = pickBanterSignal(facts, isFieldEmpty, memory.lastBanterSignal);
   memory.lastBanterSignal = signal;
   memory.nextBanterSilenceMs = resolveNextBanterSilence(isIdle, isFieldEmpty);
-  castCasterSignal(signal, buildBanterSlots(state, memory.livingCount));
+  castCasterDialogue(signal, buildBanterSlots(state, memory.livingCount));
 };
 
 /** Starts listening to the game; returns the cleanup for the mounting effect. */
@@ -593,10 +924,7 @@ export const startCasterDirector = (): (() => void) => {
   const unsubscribe = useGameStore.subscribe((state, prev) => {
     if (state.silverScrapesState.isActive) {
       // The duel silences the battle chatter; only its own lines are said
-      if (!prev.silverScrapesState.isActive) {
-        casterQueue.clear();
-        casterSpeechEngine.interrupt();
-      }
+      if (!prev.silverScrapesState.isActive) casterQueue.clear();
       announceDuelMoments(state, prev);
       return;
     }
@@ -617,12 +945,20 @@ export const startCasterDirector = (): (() => void) => {
       state.isRoundIntermission !== prev.isRoundIntermission ||
       state.isSeriesEnded !== prev.isSeriesEnded;
     if (hasRoundChange) announceRoundFlow(state, prev, memory);
-    const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
-    const prevLeftScore = prev.teamScores?.[TEAM_KEY.BLG] ?? prev.teamScoreBLG;
-    const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
-    const prevRightScore = prev.teamScores?.[TEAM_KEY.GENG] ?? prev.teamScoreGENG;
-    if (leftScore !== prevLeftScore || rightScore !== prevRightScore) {
+    const teams = getTeamKeys(state);
+    const hasScoreChanged = teams.some(
+      (team) => getScoreForTeam(state, team) !== getScoreForTeam(prev, team)
+    );
+    if (hasScoreChanged) {
       announceComeback(state, memory);
+      evaluateComebackBuff(
+        state.teamScores,
+        state.participationRuleConfig.enableComebackBuff ?? true,
+        (buffedTeam) => {
+          castCasterDialogue(CASTER_SIGNAL.COMEBACK_BUFF, { team: getTeamTag(buffedTeam) });
+        }
+      );
+      announceScoreSituations(state, memory);
     }
   });
   const unsubscribeIntro = useRoundIntroStore.subscribe((intro, prevIntro) => {
@@ -641,6 +977,7 @@ export const startCasterDirector = (): (() => void) => {
     unsubscribeIntro();
     unsubscribeVoice();
     clearInterval(banterTimer);
+    if (memory.giftBatchTimer) clearTimeout(memory.giftBatchTimer);
     cancelPendingRoundEnd(memory);
     casterQueue.clear();
   };

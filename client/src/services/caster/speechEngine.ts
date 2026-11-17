@@ -52,8 +52,15 @@ const fitToDeadline = (audio: HTMLAudioElement, deadlineAt: number): void => {
 };
 
 /** The voice gets the spoken form of the caption (scores, abbreviations); see casterVoiceText. */
-const buildClipUrl = (text: string, lang: string): string =>
-  `${CASTER_SPEECH.ROUTE}?${new URLSearchParams({ text: toVoiceText(text), lang }).toString()}`;
+const buildClipUrl = (text: string, lang: string, role?: string, intensity?: string): string => {
+  const params: Record<string, string> = {
+    text: toVoiceText(text),
+    lang,
+  };
+  if (role) params.role = role;
+  if (intensity) params.intensity = intensity;
+  return `${CASTER_SPEECH.ROUTE}?${new URLSearchParams(params).toString()}`;
+};
 
 /**
  * Plays caster lines from the server TTS route (works in OBS without any installed voice).
@@ -86,27 +93,53 @@ class CasterSpeechEngine {
   }
 
   /** Starts downloading a clip early so a high-priority line starts without delay. */
-  public prefetch(text: string, lang: string): void {
-    this.getClipUrl(text, lang).catch(() => undefined);
+  public prefetch(text: string, lang: string, role?: string, intensity?: string): void {
+    this.getClipUrl(text, lang, role, intensity).catch(() => undefined);
   }
 
-  /** Resolves once the clip is downloaded (or could not be), so a caller can still cancel before it plays. */
-  public prepare(text: string, lang: string): Promise<void> {
-    return waitForClip(this.getClipUrl(text, lang)).then(
-      () => undefined,
-      () => undefined
+  /** Resolves once the clip is downloaded (true) or could not be (false), so a caller can still cancel before it plays. */
+  public prepare(text: string, lang: string, role?: string, intensity?: string): Promise<boolean> {
+    return waitForClip(this.getClipUrl(text, lang, role, intensity)).then(
+      () => true,
+      () => false
     );
   }
 
+  /** True when the clip is ready within `timeoutMs`: a reply in a two-caster exchange must not leave a hole. */
+  public isClipReady(text: string, lang: string, role: string, intensity: string, timeoutMs: number): Promise<boolean> {
+    const clip = this.getClipUrl(text, lang, role, intensity).then(
+      () => true,
+      () => false
+    );
+    const timeout = new Promise<boolean>((resolve) => {
+      setTimeout(() => resolve(false), timeoutMs);
+    });
+    return Promise.race([clip, timeout]);
+  }
+
   /** `deadlineAt` (epoch ms): speed the clip up just enough to finish by then. */
-  public speak(text: string, lang: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
-    return this.speakMain(text, lang, onStart, deadlineAt);
+  public speak(
+    text: string,
+    lang: string,
+    onStart: () => void,
+    deadlineAt?: number,
+    role?: string,
+    intensity?: string
+  ): Promise<SpeechOutcome> {
+    return this.speakMain(text, lang, onStart, deadlineAt, role, intensity);
   }
 
   /** Speaks general caster commentary lines (ducked if donate audio is currently playing). */
-  public speakMain(text: string, lang: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
+  public speakMain(
+    text: string,
+    lang: string,
+    onStart: () => void,
+    deadlineAt?: number,
+    role?: string,
+    intensity?: string
+  ): Promise<SpeechOutcome> {
     if (this.isSuspended(Date.now())) return Promise.resolve(SPEECH_OUTCOME.SUSPENDED);
-    return waitForClip(this.getClipUrl(text, lang))
+    return waitForClip(this.getClipUrl(text, lang, role, intensity))
       .then((url) => {
         const isTooLate = deadlineAt !== undefined && Date.now() >= deadlineAt;
         return isTooLate ? SPEECH_OUTCOME.EXPIRED : this.playMain(url, onStart, deadlineAt);
@@ -115,9 +148,16 @@ class CasterSpeechEngine {
   }
 
   /** Dedicated donate voice channel that plays in parallel at full volume, ducking ongoing commentary. */
-  public speakDonate(text: string, lang: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
+  public speakDonate(
+    text: string,
+    lang: string,
+    onStart: () => void,
+    deadlineAt?: number,
+    role?: string,
+    intensity?: string
+  ): Promise<SpeechOutcome> {
     if (this.isSuspended(Date.now())) return Promise.resolve(SPEECH_OUTCOME.SUSPENDED);
-    return waitForClip(this.getClipUrl(text, lang))
+    return waitForClip(this.getClipUrl(text, lang, role, intensity))
       .then((url) => {
         const isTooLate = deadlineAt !== undefined && Date.now() >= deadlineAt;
         return isTooLate ? SPEECH_OUTCOME.EXPIRED : this.playDonate(url, onStart, deadlineAt);
@@ -141,13 +181,13 @@ class CasterSpeechEngine {
     this.finishCurrentDonate?.(SPEECH_OUTCOME.INTERRUPTED);
   }
 
-  private getClipUrl(text: string, lang: string): Promise<string> {
-    const key = `${lang}|${text}`;
+  private getClipUrl(text: string, lang: string, role?: string, intensity?: string): Promise<string> {
+    const key = `${lang}|${role ?? ''}|${intensity ?? ''}|${text}`;
     const cached = this.clipUrls.get(key);
     if (cached) return cached;
     if (this.clipUrls.size >= CASTER_SPEECH.MAX_CACHED_CLIPS) this.evictOldestClip();
 
-    const request = fetch(buildClipUrl(text, lang)).then(async (response) => {
+    const request = fetch(buildClipUrl(text, lang, role, intensity)).then(async (response) => {
       if (response.status === CASTER_SPEECH.HTTP_DISABLED || response.status === CASTER_SPEECH.HTTP_BLOCKED) {
         throw new ClipRejectedError(`HTTP ${response.status}`);
       }
@@ -219,6 +259,7 @@ class CasterSpeechEngine {
       audio
         .play()
         .then(() => {
+          audio.playbackRate = CASTER_SPEECH.NORMAL_RATE;
           this.updateSfxDuck();
           onStart();
         })
@@ -274,6 +315,7 @@ class CasterSpeechEngine {
       audio
         .play()
         .then(() => {
+          audio.playbackRate = CASTER_SPEECH.NORMAL_RATE;
           this.updateSfxDuck();
           onStart();
         })

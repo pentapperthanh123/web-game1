@@ -4,7 +4,6 @@ import {
   BOSS_MECHANICS_CONSTANTS,
   FINISHER_BANNER_CONSTANTS,
   GAME_CONSTANTS,
-  TEAM_KEY,
   getThemeConfig,
   isDonorFinisherCheck,
   resolveDefeatShowcaseMs,
@@ -12,7 +11,7 @@ import {
 import { BossPhase } from '../../types/bossSkill';
 import { GameState } from '../../types/game';
 import { formatSpeechNumber } from './casterComposer';
-import { castCasterSignal, getTeamTag, speakerFor } from './casterSignal';
+import { castCasterDialogue, castCasterSignal, getTeamTag, speakerFor } from './casterSignal';
 
 const MS_PER_SECOND = 1000;
 const DUEL_DRAW = 'DRAW';
@@ -46,7 +45,7 @@ const announcePhaseShift = (state: GameState, memory: BattleMomentMemory): void 
   memory.lastPhase = state.bossPhase;
   const signal = PHASE_SIGNAL[state.bossPhase];
   if (!isEscalating || !signal || !isFightOn(state)) return;
-  castCasterSignal(signal, { boss: getBossName(state) });
+  castCasterDialogue(signal, { boss: getBossName(state) });
 };
 
 const announceShield = (state: GameState, prev: GameState): void => {
@@ -54,12 +53,12 @@ const announceShield = (state: GameState, prev: GameState): void => {
   const shield = state.bossShield;
   if (shield && !prev.bossShield) {
     const seconds = Math.round((shield.expiresAt - shield.createdAt) / MS_PER_SECOND);
-    castCasterSignal(CASTER_SIGNAL.BOSS_SHIELD_UP, { boss, seconds });
+    castCasterDialogue(CASTER_SIGNAL.BOSS_SHIELD_UP, { boss, seconds });
     return;
   }
   const isJustBroken = state.bossShieldBrokenTimestamp > 0 && state.bossShieldBrokenTimestamp !== prev.bossShieldBrokenTimestamp;
   if (isJustBroken) {
-    castCasterSignal(CASTER_SIGNAL.BOSS_SHIELD_BROKEN, {
+    castCasterDialogue(CASTER_SIGNAL.BOSS_SHIELD_BROKEN, {
       boss,
       dmg: formatSpeechNumber(BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE),
     });
@@ -68,7 +67,7 @@ const announceShield = (state: GameState, prev: GameState): void => {
   // Gone without being broken while the fight goes on: it expired and healed the boss
   const isAbsorbed = !shield && Boolean(prev.bossShield) && isFightOn(state);
   if (!isAbsorbed) return;
-  castCasterSignal(CASTER_SIGNAL.BOSS_SHIELD_ABSORBED, {
+  castCasterDialogue(CASTER_SIGNAL.BOSS_SHIELD_ABSORBED, {
     boss,
     hp: formatSpeechNumber(BOSS_MECHANICS_CONSTANTS.SHIELD.HEAL_PENALTY_AMOUNT),
   });
@@ -78,7 +77,7 @@ const announceHeartMilestone = (state: GameState, memory: BattleMomentMemory): v
   const banner = state.activeHeartMilestoneBanner;
   if (!banner || banner.id === memory.lastHeartBannerId) return;
   memory.lastHeartBannerId = banner.id;
-  castCasterSignal(CASTER_SIGNAL.HEART_MILESTONE, {
+  castCasterDialogue(CASTER_SIGNAL.HEART_MILESTONE, {
     count: formatSpeechNumber(banner.milestoneCount),
     heal: banner.healAmount,
   });
@@ -117,10 +116,10 @@ export const announceDuelMoments = (state: GameState, prev: GameState): void => 
     castCasterSignal(CASTER_SIGNAL.DUEL_START, {
       fighterA: duel.leftFighter.name,
       championA: duel.leftFighter.champion,
-      teamA: getTeamTag(TEAM_KEY.BLG),
+      teamA: getTeamTag(duel.leftFighter.team),
       fighterB: duel.rightFighter.name,
       championB: duel.rightFighter.champion,
-      teamB: getTeamTag(TEAM_KEY.GENG),
+      teamB: getTeamTag(duel.rightFighter.team),
       seconds: duel.timeRemaining,
     });
     return;
@@ -134,7 +133,7 @@ export const announceDuelMoments = (state: GameState, prev: GameState): void => 
     castCasterSignal(CASTER_SIGNAL.DUEL_DRAW, {});
     return;
   }
-  const fighter = duel.winner === TEAM_KEY.BLG ? duel.leftFighter : duel.rightFighter;
+  const fighter = duel.winner === duel.leftFighter.team ? duel.leftFighter : duel.rightFighter;
   castCasterSignal(CASTER_SIGNAL.DUEL_WIN, {
     fighter: fighter.name,
     team: getTeamTag(duel.winner),

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, X, Trophy, Compass, Bot, Layout, Swords, Users } from 'lucide-react';
+import { ShieldAlert, X, Trophy, Compass, Bot, Layout, Swords, Users, Gift } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { ADMIN_CONSTANTS } from '../../constants/game';
 import { OverlayVisibility } from '../../types/game';
@@ -11,8 +11,9 @@ import { AdminMapSkillsTab } from './admin/AdminMapSkillsTab';
 import { AdminSummonTab } from './admin/AdminSummonTab';
 import { AdminSimulationTab } from './admin/AdminSimulationTab';
 import { AdminOverlaysTab } from './admin/AdminOverlaysTab';
+import { AdminGiftConfigPanel } from './admin/AdminGiftConfigPanel';
 
-type AdminTab = 'MATCH' | 'TEAMS' | 'MAP_SKILLS' | 'SUMMON' | 'SIMULATION' | 'OVERLAYS';
+type AdminTab = 'MATCH' | 'TEAMS' | 'GIFTS' | 'MAP_SKILLS' | 'SUMMON' | 'SIMULATION' | 'OVERLAYS';
 
 export const AdminControlModal: React.FC = () => {
   const { t } = useTranslation();
@@ -95,6 +96,11 @@ export const AdminControlModal: React.FC = () => {
                 label: t('Admin.tabTeams', 'Đội & Tuyển Thủ'),
               },
               {
+                id: 'GIFTS' as AdminTab,
+                icon: Gift,
+                label: t('Admin.tabGifts', 'Quà & LiveOps'),
+              },
+              {
                 id: 'SUMMON' as AdminTab,
                 icon: Swords,
                 label: t('Admin.tabSummon', 'Triệu Hồi'),
@@ -153,6 +159,7 @@ export const AdminControlModal: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {activeTab === 'MATCH' && <AdminMatchTab />}
           {activeTab === 'TEAMS' && <AdminTeamsTab />}
+          {activeTab === 'GIFTS' && <AdminGiftConfigPanel />}
           {activeTab === 'SUMMON' && <AdminSummonTab />}
           {activeTab === 'MAP_SKILLS' && <AdminMapSkillsTab />}
           {activeTab === 'SIMULATION' && <AdminSimulationTab />}

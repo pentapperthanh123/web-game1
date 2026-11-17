@@ -12,6 +12,7 @@ interface VictoryActionControlsProps {
   onStartNextRound: () => void;
   onResetSeriesMatch: () => void;
   onAdvanceQueuedMatch: () => void;
+  teamColor?: string;
 }
 
 /** Countdown caption per outcome: next round, next queued matchup or a fresh series. */
@@ -36,6 +37,7 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
   onStartNextRound,
   onResetSeriesMatch,
   onAdvanceQueuedMatch,
+  teamColor,
 }) => {
   const { t } = useTranslation();
   /** One advance per victory screen, whatever triggers it (countdown, Space/Enter or button). */
@@ -105,16 +107,19 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
   }, [executeAdvance]);
 
   return (
-    <div className="pt-1 flex flex-col items-center space-y-1.5 w-full">
-      {/* Action Buttons: advance now, or let the countdown below do it */}
+    <div className="pt-1 flex flex-col items-center space-y-2 w-full">
+      {/* Action Buttons: sleek esports Glassmorphism styling */}
       {isSeriesEnded ? (
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 w-full">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 w-full">
           {nextQueuedMatchLabel && (
             <button
               type="button"
               disabled={isAdvancing}
               onClick={onAdvanceQueuedMatch}
-              className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-lg flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap"
+              style={{
+                boxShadow: teamColor ? `0 0 16px ${teamColor}55` : '0 0 16px rgba(16,185,129,0.35)',
+              }}
+              className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-slate-900/60 backdrop-blur-md border border-white/10 text-white font-black text-xs uppercase tracking-wide transition hover:bg-slate-800/80 hover:border-white/20 flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
             >
               <span>
                 {t('Victory.nextQueuedMatch', 'TRẬN TIẾP THEO: {{label}} ({{remaining}})', {
@@ -122,16 +127,19 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
                   remaining: remainingQueueCount,
                 })}
               </span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
+              <ArrowRight className="w-4 h-4 shrink-0 text-emerald-400" />
             </button>
           )}
           <button
             type="button"
             disabled={isAdvancing}
             onClick={onResetSeriesMatch}
-            className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wide transition shadow-md flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap"
+            style={{
+              boxShadow: teamColor ? `0 0 16px ${teamColor}55` : '0 0 16px rgba(245,158,11,0.35)',
+            }}
+            className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-slate-900/60 backdrop-blur-md border border-white/10 text-white font-black text-xs uppercase tracking-wide transition hover:bg-slate-800/80 hover:border-white/20 flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
           >
-            <RotateCcw className="w-4 h-4 shrink-0" />
+            <RotateCcw className="w-4 h-4 shrink-0 text-amber-400" />
             <span>{t('Victory.newSeries', 'BẮT ĐẦU TRẬN ĐẤU MỚI')}</span>
           </button>
         </div>
@@ -140,10 +148,13 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
           type="button"
           disabled={isAdvancing}
           onClick={onStartNextRound}
-          className="w-full py-2.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider transition shadow-[0_0_20px_rgba(6,182,212,0.6)] flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap animate-pulse hover:animate-none"
+          style={{
+            boxShadow: teamColor ? `0 0 20px ${teamColor}66` : '0 0 20px rgba(6,182,212,0.45)',
+          }}
+          className="w-full py-2.5 px-6 rounded-xl bg-slate-900/60 backdrop-blur-md border border-white/10 text-white font-black text-xs sm:text-sm uppercase tracking-wider transition hover:bg-slate-800/80 hover:border-white/20 flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
         >
           <span>{t('Victory.nextRoundNow', 'VÀO VÁN TIẾP THEO')}</span>
-          <ArrowRight className="w-4 h-4 shrink-0" />
+          <ArrowRight className="w-4 h-4 shrink-0 text-cyan-400" />
         </button>
       )}
 

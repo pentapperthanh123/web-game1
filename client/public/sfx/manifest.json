@@ -466,5 +466,53 @@
     "sourceUrl": "https://riotgames.com/leagueoflegends/sfx/ashe_impact.mp3",
     "status": "cached",
     "bundledAt": "2026-11-16T09:59:16.643854+00:00"
+  },
+  {
+    "event": "INTRO_FLY_IMPACT",
+    "file": "INTRO_FLY_IMPACT.mp3",
+    "bytes": 53959,
+    "sha1": "0da3b8d4a13f7d03230325f8cc42589636f54254",
+    "sourceUrl": "https://assets.mixkit.co/active_storage/sfx/2903/2903-preview.mp3",
+    "sourceTitle": "Mixkit: Movie whoosh impact presentation",
+    "license": "Mixkit Sound Effects Free License",
+    "edit": "trimmed to 3.3 s, 0.8 s fade-out",
+    "status": "local",
+    "bundledAt": "2026-11-17T01:35:51.225762Z"
+  },
+  {
+    "event": "INTRO_DEEP_IMPACT",
+    "file": "INTRO_DEEP_IMPACT.mp3",
+    "bytes": 36684,
+    "sha1": "7ea0f45f80be73f7606ac981f2d89a3dea039a65",
+    "sourceUrl": "https://assets.mixkit.co/active_storage/sfx/1143/1143-preview.mp3",
+    "sourceTitle": "Mixkit: Cinematic whoosh deep impact",
+    "license": "Mixkit Sound Effects Free License",
+    "edit": "trimmed to 2.2 s, 0.8 s fade-out",
+    "status": "local",
+    "bundledAt": "2026-11-17T01:35:51.225762Z"
+  },
+  {
+    "event": "INTRO_TITLE_HORN",
+    "file": "INTRO_TITLE_HORN.mp3",
+    "bytes": 40167,
+    "sha1": "7e7948f0b4e997ae123fd43c2db61b447c61c072",
+    "sourceUrl": "https://assets.mixkit.co/active_storage/sfx/3111/3111-preview.mp3",
+    "sourceTitle": "Mixkit: Warfare horn trailer hit",
+    "license": "Mixkit Sound Effects Free License",
+    "edit": "trimmed to 2.45 s, 0.9 s fade-out",
+    "status": "local",
+    "bundledAt": "2026-11-17T01:35:51.225762Z"
+  },
+  {
+    "event": "INTRO_CROWD_ROAR",
+    "file": "INTRO_CROWD_ROAR.mp3",
+    "bytes": 42674,
+    "sha1": "e0b972f2a24cd0039f466d03532f81c2f08ae4da",
+    "sourceUrl": "https://assets.mixkit.co/active_storage/sfx/2111/2111-preview.mp3",
+    "sourceTitle": "Mixkit: Crowd at the stadium",
+    "license": "Mixkit Sound Effects Free License",
+    "edit": "trimmed to 2.6 s, 0.15 s fade-in, 0.8 s fade-out",
+    "status": "local",
+    "bundledAt": "2026-11-17T01:35:51.225762Z"
   }
 ]

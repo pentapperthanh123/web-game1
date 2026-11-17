@@ -10,6 +10,14 @@ export const TEAM_KEY = {
 
 export type TeamType = (typeof TEAM_KEY)[keyof typeof TEAM_KEY];
 
+/** The two active match slots (Left slot = BLG slot, Right slot = GENG slot). */
+export const TEAM_SLOTS = [TEAM_KEY.BLG, TEAM_KEY.GENG] as const;
+export const TEAM_SLOT_LEFT = TEAM_KEY.BLG;
+export const TEAM_SLOT_RIGHT = TEAM_KEY.GENG;
+
+/** Legacy 3-letter alias occasionally sent by older socket payloads. */
+export const LEGACY_GEN_SLOT = 'GEN';
+
 export const BOSS_STATUS = {
   IDLE: 'IDLE',
   HIT: 'HIT',
@@ -92,6 +100,7 @@ export const GAME_CONSTANTS = {
     BO5: { TARGET_WINS: 3, MAX_ROUNDS: 5 },
   },
   SILVER_SCRAPES: {
+    INTRO_DURATION_SECONDS: 5,
     DURATION_SECONDS: 60,
     EXTEND_SECONDS: 30,
     BUFF_DURATION_MS: 90000,
@@ -135,6 +144,12 @@ export const GAME_CONSTANTS = {
     BONUS_PERCENT: 25,
     GOLD_COLOR: '#fbbf24',
     BADGE_PREFIX: 'TƯỚNG TỦ',
+  },
+  SUMMON_BADGES: {
+    ELITE: '👑',
+    FOLLOW: '💖',
+    VANGUARD_DEF: '🛡️',
+    VANGUARD_ATK: '⚔️',
   },
   TIKTOK_ENGAGEMENT: {
     FOLLOW_FURY_GAIN: 10,
@@ -188,6 +203,18 @@ export const GAME_CONSTANTS = {
     CAMERA_POS_Y: 6.8,
   },
 } as const;
+
+export const SUMMON_BADGES = GAME_CONSTANTS.SUMMON_BADGES;
+
+/** Type-safe check for Elite / VIP champions (avoids magic string checks) */
+export const isEliteMinion = (minion: {
+  isElite?: boolean;
+  isSignatureSynergy?: boolean;
+  summonerName?: string;
+}): boolean => {
+  if (minion.isElite || minion.isSignatureSynergy) return true;
+  return Boolean(minion.summonerName && minion.summonerName.startsWith(SUMMON_BADGES.ELITE));
+};
 
 export const SIMULATION_PRESETS = [
   { champion: 'Jax', team: TEAM_KEY.BLG, damage: 2200, comment: 'Jax Nhảy Nện gõ Boss!' },
@@ -692,21 +719,21 @@ export interface GiftCoinDamageMilestone {
   readonly damage: number;
 }
 
-/** Milestone damage table for TikTok gifts: escalating damage multiplier with higher coin values. */
+/** Milestone damage table for TikTok gifts: escalating damage multiplier with higher coin values, capped at 1000 coins (LEGEND). */
 export const GIFT_COIN_DAMAGE_TABLE: readonly GiftCoinDamageMilestone[] = [
   { coins: 1, damage: 120 },
-  { coins: 10, damage: 1300 },
-  { coins: 30, damage: 4800 },
-  { coins: 50, damage: 9000 },
-  { coins: 99, damage: 22000 },
-  { coins: 199, damage: 50000 },
-  { coins: 1000, damage: 260000 },
-  { coins: 2500, damage: 700000 },
+  { coins: 10, damage: 1500 },
+  { coins: 30, damage: 5400 },
+  { coins: 50, damage: 11000 },
+  { coins: 99, damage: 26000 },
+  { coins: 199, damage: 65000 },
+  { coins: 500, damage: 185000 },
+  { coins: 1000, damage: 420000 },
 ] as const;
 
 /**
  * Calculates progressive base damage dealt by gifts with bonus damage milestones.
- * Linearly interpolates between milestones so custom or intermediate coin values scale smoothly.
+ * Linearly interpolates between milestones; damage strictly peaks and caps at 1000 coins.
  */
 export const calculateGiftBaseDamage = (coins: number): number => {
   if (coins <= 0) return 0;
@@ -715,9 +742,9 @@ export const calculateGiftBaseDamage = (coins: number): number => {
     return Math.round(coins * table[0].damage);
   }
   const lastIndex = table.length - 1;
+  // Peaks & caps at 1000 coins milestone (Max tier: LEGEND)
   if (coins >= table[lastIndex].coins) {
-    const rate = table[lastIndex].damage / table[lastIndex].coins;
-    return Math.round(coins * rate);
+    return table[lastIndex].damage;
   }
   for (let i = 0; i < lastIndex; i += 1) {
     const current = table[i];
@@ -729,7 +756,7 @@ export const calculateGiftBaseDamage = (coins: number): number => {
       return Math.round(current.damage + progress * (next.damage - current.damage));
     }
   }
-  return Math.round(coins * GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN);
+  return table[lastIndex].damage;
 };
 
 export const GUEST_SIMULATION_CONSTANTS = {
@@ -787,23 +814,35 @@ export const BOSS_DEFEAT_CONSTANTS = {
   BARON_SECONDARY_COLOR: '#38bdf8',
   ELDER_DRAGON_DEFEAT_COLOR: '#f59e0b',
   ELDER_SECONDARY_COLOR: '#fef08a',
+  /** Boss slumps for 1.5s before shattering */
+  EXHAUSTION_DELAY_MS: 1500,
+  BUFF_ORB_RADIUS: 0.35,
+  BUFF_ORB_PULSE_SPEED: 2.5,
+  BUFF_ORB_GLOW_INTENSITY: 1.8,
+  BUFF_ORB_HOVER_HEIGHT: 0.6,
+  BUFF_ORB_FADE_DURATION_MS: 2000,
 } as const;
 
 export const FINISHER_BANNER_CONSTANTS = {
-  DISPLAY_DURATION_MS: 8000,
-  GIFT_FINISHER_DURATION_MS: 11500,
-  /** Must match the avatarStrike keyframes duration in gift.css. */
+  /** Duration of boss death showcase before victory overlay for normal kills. */
+  NORMAL_DEFEAT_SHOWCASE_MS: 5000,
+  /** Delay before revealing the Finisher popup card for normal kills. */
+  NORMAL_CARD_REVEAL_DELAY_MS: 4500,
+  /** Total duration until normal finisher showcase transitions to victory screen. */
+  NORMAL_DISPLAY_DURATION_MS: 9000,
+  /** Duration of the avatar flight strike cinematic for gift finishers. */
   AVATAR_STRIKE_DURATION_MS: 4800,
-  CARD_REVEAL_DELAY_MS: 5600,
+  /** Delay before revealing gift finisher card (4800ms strike + 4500ms 3D explosion). */
+  GIFT_CARD_REVEAL_DELAY_MS: 9300,
+  /** Total duration of gift finisher showcase before victory screen. */
+  GIFT_FINISHER_DURATION_MS: 13800,
   SHAKE_INTENSITY: 2.5,
   PULSE_INTERVAL_MS: 300,
+  /** Backward compatibility aliases */
+  DISPLAY_DURATION_MS: 9000,
+  CARD_REVEAL_DELAY_MS: 9300,
 } as const;
 
-/**
- * True only when the killing blow carried gift data (set by the gift explosion path).
- * The actor label alone is not evidence: champions, hearts, rallies and shares are also
- * labelled "name (something)", and guessing from it played the gift cinematic for normal kills.
- */
 /**
  * How long each boss-death layer plays, measured from the killing blow (or from the avatar impact
  * for a gift finisher). The victory screen waits for the longest one, so it never covers an effect
@@ -811,7 +850,7 @@ export const FINISHER_BANNER_CONSTANTS = {
  */
 export const DEFEAT_SHOWCASE_TIMELINE = {
   /** BossDeathVFX3D: imploding core, sky pillar, blast rings and soul streams. */
-  DEATH_VFX_3D_MS: 3000,
+  DEATH_VFX_3D_MS: 4500,
   /** BossDeathVFX2D "boss defeated" banner — `executionBannerPop` in index.css. */
   EXECUTION_BANNER_MS: 8000,
   /** BossDefeatedCrest2D fade-in — its `delay-[850ms] duration-700` classes. */
@@ -825,13 +864,10 @@ export const DEFEAT_SHOWCASE_TIMELINE = {
 
 /** Delay from the killing blow to the victory screen: after every death effect has finished. */
 export const resolveDefeatShowcaseMs = (isDonorFinisher: boolean): number => {
-  const timeline = DEFEAT_SHOWCASE_TIMELINE;
-  const crestEndMs = timeline.CREST_REVEAL_DELAY_MS + timeline.CREST_REVEAL_MS + timeline.CREST_HOLD_MS;
-  const deathEffectsMs = Math.max(timeline.DEATH_VFX_3D_MS, timeline.EXECUTION_BANNER_MS, crestEndMs) + timeline.SETTLE_MS;
-  if (!isDonorFinisher) return deathEffectsMs;
-  // A gift finisher plays the avatar strike first; the death effects start at its impact
-  const afterImpactMs = FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS + deathEffectsMs;
-  return Math.max(afterImpactMs, FINISHER_BANNER_CONSTANTS.GIFT_FINISHER_DURATION_MS);
+  if (!isDonorFinisher) {
+    return FINISHER_BANNER_CONSTANTS.NORMAL_DEFEAT_SHOWCASE_MS;
+  }
+  return FINISHER_BANNER_CONSTANTS.GIFT_FINISHER_DURATION_MS + 200;
 };
 
 export const isDonorFinisherCheck = (
@@ -1136,8 +1172,11 @@ export const COMBAT_VFX_CONSTANTS = {
     FLOATING_SCALE_CRIT: 0.90,
     FLOATING_SCALE_ULTIMATE: 0.98,
     COMBO_WINDOW_MS: 2800,
-    CRIT_SHOCKWAVE_RADIUS: 2.2,
+    /** Only ultimates draw a floor shockwave ring; crits (every weak-point hit) kept a red ring on the arena floor. */
     ULTIMATE_SHOCKWAVE_RADIUS: 3.2,
+    ULTIMATE_SHOCKWAVE_COLOR: '#fbbf24',
+    CRIT_SCREEN_SHAKE: 0.55,
+    ULTIMATE_SCREEN_SHAKE: 1.2,
   },
   PARTICLES: {
     MAX_BURST_QUEUE: 6,
@@ -1874,6 +1913,8 @@ export const ADMIN_CONSTANTS = {
 
 export const DEFAULT_DUEL_STATE: SilverScrapesDuelState = {
   isActive: false,
+  isIntroActive: false,
+  introRemaining: 0,
   timeRemaining: 60,
   totalDuration: 60,
   tugOfWarPercent: 50,
@@ -1924,6 +1965,17 @@ export const COMMUNITY_QUEST_CONSTANTS = {
 } as const;
 
 /** Match snapshot so an OBS reload mid-round resumes the same fight. */
+/**
+ * Boss retaliation floor wave: a small, soft ring spreading from under the boss in the boss's own
+ * colour (the old one was red/purple and covered the whole floor every retaliation).
+ */
+export const BOSS_RETALIATION_WAVE = {
+  RADIUS: 2.6,
+  ENRAGED_RADIUS: 3.4,
+  INTENSITY: 0.45,
+  ENRAGED_INTENSITY: 0.6,
+} as const;
+
 export const MATCH_SNAPSHOT_CONSTANTS = {
   STORAGE_KEY: 'lol_match_snapshot_v1',
   SAVE_INTERVAL_MS: 5000,
@@ -1957,8 +2009,8 @@ export interface GiftTierConfig {
 export const GIFT_TIER_CONFIG: Readonly<Record<GiftTier, GiftTierConfig>> = {
   [GIFT_TIER.SMALL]: { minCoins: 0, meteorCount: 1, screenShake: 0, hasScreenFlash: false, bannerDurationMs: 0, bossStaggerMs: 0, burstIntensity: 0 },
   [GIFT_TIER.MEDIUM]: { minCoins: 10, meteorCount: 5, screenShake: 0.65, hasScreenFlash: true, bannerDurationMs: 4500, bossStaggerMs: 0, burstIntensity: 2.5 },
-  [GIFT_TIER.BIG]: { minCoins: 99, meteorCount: 12, screenShake: 1.8, hasScreenFlash: true, bannerDurationMs: 7000, bossStaggerMs: 2500, burstIntensity: 6 },
-  [GIFT_TIER.MEGA]: { minCoins: 1000, meteorCount: 24, screenShake: 2.8, hasScreenFlash: true, bannerDurationMs: 10000, bossStaggerMs: 2500, burstIntensity: 9 },
+  [GIFT_TIER.BIG]: { minCoins: 50, meteorCount: 12, screenShake: 1.8, hasScreenFlash: true, bannerDurationMs: 7000, bossStaggerMs: 2500, burstIntensity: 6 },
+  [GIFT_TIER.MEGA]: { minCoins: 199, meteorCount: 24, screenShake: 2.8, hasScreenFlash: true, bannerDurationMs: 10000, bossStaggerMs: 2500, burstIntensity: 9 },
 };
 
 /** Scaling factor for mega/ultra gifts above 1,000 coins: extends banner duration proportionally up to max limit. */
@@ -2019,6 +2071,7 @@ export const SQUAD_ENTRANCE_CONSTANTS = {
 /** Pre-round intro card (rules, how to join, gifts) shown when a new round is about to start. */
 export const ROUND_INTRO_CONSTANTS = {
   TOTAL_MS: 42000,
+  INITIAL_AUTO_START_MS: 15000,
   TAB_MATCHUP_MS: 10000,
   TAB_RULES_MS: 22000,
   TAB_GIFTS_MS: 10000,
@@ -2029,6 +2082,10 @@ export const ROUND_INTRO_CONSTANTS = {
   FADE_OUT_MS: 300,
   HYPE_COUNTDOWN_SEC: 5,
   TTS_SPEECH_RATE: 1.08,
+} as const;
+
+export const BACKGROUND_PERF_CONSTANTS = {
+  COMBAT_TICK_INTERVAL_MS: 1000,
 } as const;
 
 /** Round clock phases: regular time, then overtime (boss weakens), then the round is decided on damage. */

@@ -1,4 +1,8 @@
 {
+  "BattleBar": {
+    "coins": "xu",
+    "vs": "VS"
+  },
   "Game": {
     "subtitle": "TikTok Live Interactive Game 3D",
     "bossName": "BARON NASHOR",
@@ -153,7 +157,7 @@
     "bossDefeatedElder": "RỒNG NGÀN TUỔI ĐÃ BỊ TIÊU DIỆT!",
     "worldsBadge": "CKTG 2026 WORLDS CHAMPIONSHIP",
     "championTag": "CHAMPION",
-    "slainBadge": "ĐÃ BỊ HẠ GỤC!",
+    "slainBadge": "ĐÃ HẠ GỤC",
     "baronShort": "BARON NASHOR",
     "elderShort": "RỒNG NGÀN TUỔI",
     "teamSlainBoss": "{{team}} ĐÃ TIÊU DIỆT {{boss}}!",
@@ -242,6 +246,7 @@
     "combatStartedFeedback": "Đã bắt đầu trận đấu ngay!",
     "reopenIntroFeedback": "Đã mở màn hình giới thiệu ván {{round}}!",
     "tabThemeSkills": "Bản Đồ & Kỹ Năng",
+    "tabGifts": "Quà & LiveOps",
     "tabSummon": "Triệu Hồi",
     "tabSimulation": "Bot & Tự Đánh",
     "tabOverlays": "Ẩn/Hiện Section",

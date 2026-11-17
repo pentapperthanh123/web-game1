@@ -21,8 +21,12 @@ import {
   sanitizePlayerLeaderboard,
   usePlayerLeaderboardStore,
 } from '../store/playerLeaderboardStore';
-import { requestRoundStart } from './roundIntroActions';
+import { requestRoundStart, triggerStartRoundCombat } from './roundIntroActions';
+import { cancelAutoStart } from '../store/roundIntroStore';
 import { recordRoseGift } from '../store/roseGratitudeStore';
+import { mockLiveSimulator } from './mockLiveSimulator';
+import { casterQueue } from './caster/presentationQueue';
+import { casterSpeechEngine } from './caster/speechEngine';
 
 export const LIVE_OPS_SOCKET_EVENT = {
   AUTH_ERROR: 'server:auth-error',
@@ -140,11 +144,17 @@ class GameSocketClient {
       let lastSentRight = -1;
       let lastScoreSyncAt = 0;
 
+      const getScore = (state: ReturnType<typeof useGameStore.getState>, team?: TeamType): number => {
+        if (!team) return 0;
+        return state.teamScores?.[team] ?? (team === TEAM_KEY.BLG ? state.teamScoreBLG : team === TEAM_KEY.GENG ? state.teamScoreGENG : 0);
+      };
+
       const syncScoreBalanceToServer = () => {
         if (!this.socket || !this.isConnected) return;
         const state = useGameStore.getState();
-        const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
-        const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
+        const [leftTeam, rightTeam] = Object.keys(state.activeTeams) as TeamType[];
+        const leftScore = getScore(state, leftTeam);
+        const rightScore = getScore(state, rightTeam);
         const now = Date.now();
         if (leftScore === lastSentLeft && rightScore === lastSentRight) return;
         if (now - lastScoreSyncAt < 1500 && leftScore !== 0 && rightScore !== 0) return;
@@ -158,12 +168,10 @@ class GameSocketClient {
       };
 
       useGameStore.subscribe((state, prevState) => {
-        const leftScore = state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG;
-        const prevLeftScore = prevState.teamScores?.[TEAM_KEY.BLG] ?? prevState.teamScoreBLG;
-        const rightScore = state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG;
-        const prevRightScore = prevState.teamScores?.[TEAM_KEY.GENG] ?? prevState.teamScoreGENG;
+        const teams = Object.keys(state.activeTeams) as TeamType[];
+        const hasScoreChanged = teams.some((team) => getScore(state, team) !== getScore(prevState, team));
 
-        if (leftScore !== prevLeftScore || rightScore !== prevRightScore) {
+        if (hasScoreChanged) {
           syncScoreBalanceToServer();
         }
       });
@@ -359,6 +367,22 @@ class GameSocketClient {
         if (payload.action === 'setEnraged') store.setBossStatus(payload.isEnraged ? 'ENRAGED' : 'IDLE');
       });
 
+      this.socket.on('game:toggle-auto-live', (payload: { active: boolean; mode?: 'natural' | 'highlight'; resetMatch?: boolean }) => {
+        if (payload?.active) {
+          if (payload.resetMatch) {
+            useGameStore.getState().resetBO5Match();
+            casterQueue.clear();
+            casterSpeechEngine.interruptAll();
+            setTimeout(() => {
+              triggerStartRoundCombat();
+            }, 1200);
+          }
+          mockLiveSimulator.start(payload.mode || 'natural', payload.resetMatch);
+        } else {
+          mockLiveSimulator.stop();
+        }
+      });
+
       this.socket.on('game:bo5-control', (payload) => {
         if (payload?.senderId === CLIENT_INSTANCE_ID) return;
         const store = useGameStore.getState();
@@ -366,6 +390,7 @@ class GameSocketClient {
         if (payload.action === 'nextRound') applyServerNextRound(payload.currentRound);
         if (payload.action === 'setScore') store.setBO5Score(payload.blg, payload.geng, payload.currentRound);
         if (payload.action === 'startRound') requestRoundStart();
+        if (payload.action === 'holdRound') cancelAutoStart();
       });
 
       this.socket.on('game:boss-skill-config', (payload) => {
@@ -447,6 +472,18 @@ class GameSocketClient {
     };
   }
 
+  public getSocket(): Socket | null {
+    return this.socket;
+  }
+
+  public on(event: string, callback: (...args: any[]) => void): void {
+    this.socket?.on(event, callback);
+  }
+
+  public off(event: string, callback: (...args: any[]) => void): void {
+    this.socket?.off(event, callback);
+  }
+
   public sendLike(count: number, team: string, userName: string): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:like', { count, team, userName, senderId: CLIENT_INSTANCE_ID });
@@ -512,7 +549,7 @@ class GameSocketClient {
   }
 
   public sendBO5Control(
-    action: 'reset' | 'nextRound' | 'setScore',
+    action: 'reset' | 'nextRound' | 'setScore' | 'startRound' | 'holdRound',
     blg?: number,
     geng?: number,
     currentRound?: number
@@ -631,7 +668,7 @@ class GameSocketClient {
   }
 
   public sendSilverScrapesControl(
-    action: 'start' | 'stop' | 'extend' | 'setLane',
+    action: 'start' | 'stop' | 'extend' | 'setLane' | 'skipIntro',
     lane?: string,
     duration?: number
   ): void {
@@ -643,6 +680,22 @@ class GameSocketClient {
   public sendBotControl(isActive: boolean, speedMs?: number): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:toggle-bot', { isActive, speedMs, senderId: CLIENT_INSTANCE_ID });
+    }
+  }
+
+  public toggleAutoLive(active: boolean, mode: 'natural' | 'highlight' = 'natural', resetMatch = true): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('admin:toggle-auto-live', { active, mode, resetMatch, senderId: CLIENT_INSTANCE_ID });
+      if (active && resetMatch) {
+        this.socket.emit('admin:bo5-control', { action: 'reset', senderId: CLIENT_INSTANCE_ID });
+        this.socket.emit('admin:boss-control', { action: 'reset', senderId: CLIENT_INSTANCE_ID });
+      }
+    }
+  }
+
+  public sendAutoLiveStatus(status: unknown): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('game:auto-live-status', status);
     }
   }
 

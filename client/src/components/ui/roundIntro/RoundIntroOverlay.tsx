@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Gift, Pause, Play, Swords, Trophy, Volume2 } from 'lucide-react';
+import { BookOpen, Gift, Pause, Play, Swords, Timer, Trophy, Volume2 } from 'lucide-react';
 import { ROUND_INTRO_CONSTANTS, TEAM_KEY, getBossThemeForRound, getThemeConfig } from '../../../constants/game';
+import { CASTER_SPEAKER } from '../../../constants/caster';
 import { useGameStore } from '../../../store/gameStore';
 import {
+  ROUND_HOLD_REASON,
+  cancelAutoStart,
   endIntroCinematic,
   isCompactRoundIntro,
   isRoundIntroActive,
@@ -14,6 +17,7 @@ import {
   startIntroNarration,
   useRoundIntroStore,
 } from '../../../store/roundIntroStore';
+import { gameSocket } from '../../../services/socket';
 import { playSound } from '../../../services/soundManager';
 import { audioService } from '../../../services/audioService';
 import { casterSpeechEngine } from '../../../services/caster/speechEngine';
@@ -25,6 +29,7 @@ import { requestRoundStart, triggerStartRoundCombat } from '../../../services/ro
 import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../../utils/introStar';
 import { GiftsPage, MatchupPage, RulesPage } from './RoundIntroPages';
 import { CinematicEsportsIntro } from './CinematicEsportsIntro';
+import { preloadCinematicIntroScore } from '../../../services/audio/cinematicIntroScore';
 
 type IntroTab = 'MATCHUP' | 'RULES' | 'GIFTS';
 const TICK_MS = 200;
@@ -87,6 +92,7 @@ export const RoundIntroOverlay = () => {
   const currentRound = useGameStore((state) => state.currentRound);
   const activeRound = Number(currentRound) || 1;
   const isManualHold = useRoundIntroStore((state) => state.isManualHold);
+  const autoStartAt = useRoundIntroStore((state) => state.autoStartAt);
   const introDurationMs = useRoundIntroStore((state) => state.durationMs);
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
   const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
@@ -144,6 +150,39 @@ export const RoundIntroOverlay = () => {
     triggerStartRoundCombat();
   }, []);
 
+  const handleHoldAutoStart = useCallback(() => {
+    cancelAutoStart();
+    gameSocket.sendBO5Control('holdRound');
+  }, []);
+
+  const [autoStartRemainingSec, setAutoStartRemainingSec] = useState<number>(0);
+
+  // Auto-start countdown for new series
+  useEffect(() => {
+    if (!isManualHold || autoStartAt <= 0) {
+      setAutoStartRemainingSec(0);
+      return undefined;
+    }
+
+    const checkAutoStart = () => {
+      const remainingMs = autoStartAt - Date.now();
+      const sec = Math.max(0, Math.ceil(remainingMs / 1000));
+      setAutoStartRemainingSec(sec);
+      if (remainingMs <= 0) {
+        requestRoundStart();
+      }
+    };
+
+    checkAutoStart();
+    const interval = window.setInterval(checkAutoStart, 250);
+    return () => window.clearInterval(interval);
+  }, [isManualHold, autoStartAt]);
+
+  // Decode the VS cinematic files while the intro card waits, so its first cue plays on time
+  useEffect(() => {
+    preloadCinematicIntroScore();
+  }, []);
+
   // Clean up ongoing intro speech when intro overlay is unmounted
   useEffect(() => {
     return () => {
@@ -182,7 +221,7 @@ export const RoundIntroOverlay = () => {
 
     const introDurationMs = resolveRoundIntroDurationMs(state.currentRound);
     if (isRound1Initial) {
-      showRoundIntro(Date.now(), true, introDurationMs);
+      showRoundIntro(Date.now(), true, introDurationMs, ROUND_HOLD_REASON.STREAM_OPENING);
       return;
     }
     playRoundIntroCinematic(Date.now(), introDurationMs);
@@ -286,10 +325,13 @@ export const RoundIntroOverlay = () => {
       casterQueue.clear();
       // On initial MATCHUP page, give 700ms breathing room for gong sound and visual entrance
       const initialDelayMs = activeTab === 'MATCHUP' ? 700 : 0;
+      // The analyst caster reads the rules; the play-by-play caster does the welcome and the gifts
+      const speaker = activeTab === 'RULES' ? CASTER_SPEAKER.B : CASTER_SPEAKER.A;
       void speakIntroNarration(
         speechText,
         () => narrationIdRef.current === currentNarrationId,
-        initialDelayMs
+        initialDelayMs,
+        speaker
       );
     }
   }, [
@@ -517,7 +559,7 @@ export const RoundIntroOverlay = () => {
         <div className="shrink-0 mt-3 pt-2.5 border-t border-white/10 flex items-center gap-2">
           {/* Animated Countdown or Ready Badge Box */}
           <div
-            className={`flex h-11 ${isManualHold ? 'w-24' : 'w-16'} shrink-0 items-center justify-center rounded-xl border font-black transition-all shadow-md ${
+            className={`flex h-11 ${isManualHold ? (autoStartRemainingSec > 0 ? 'w-28' : 'w-24') : 'w-16'} shrink-0 items-center justify-center rounded-xl border font-black transition-all shadow-md ${
               isManualHold
                 ? 'border-amber-400 bg-amber-950/60 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
                 : remainingSec <= ROUND_INTRO_CONSTANTS.HYPE_COUNTDOWN_SEC
@@ -526,10 +568,17 @@ export const RoundIntroOverlay = () => {
             }`}
           >
             {isManualHold ? (
-              <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-300">
-                <Pause className="w-3.5 h-3.5 fill-amber-300" />
-                {t('RoundIntro.readyBox', 'SẴN SÀNG')}
-              </span>
+              autoStartRemainingSec > 0 ? (
+                <span className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-300">
+                  <Timer className="w-3.5 h-3.5 animate-pulse text-amber-300 shrink-0" />
+                  <span>{autoStartRemainingSec}s</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-300">
+                  <Pause className="w-3.5 h-3.5 fill-amber-300" />
+                  {t('RoundIntro.readyBox', 'SẴN SÀNG')}
+                </span>
+              )
             ) : remainingSec <= ROUND_INTRO_CONSTANTS.HYPE_COUNTDOWN_SEC ? (
               <span className="font-mono text-base font-black tracking-tight">{remainingSec}!</span>
             ) : (
@@ -539,23 +588,35 @@ export const RoundIntroOverlay = () => {
 
           {/* Primary Action Button */}
           {isManualHold ? (
-            <button
-              type="button"
-              onClick={handleStartIntro}
-              className="relative overflow-hidden pointer-events-auto flex flex-1 h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_28px_rgba(245,158,11,0.7)] transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
-            >
-              {/* Shimmer light beam */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[-20deg] animate-gold-shimmer" />
-              </div>
-              <Play className="h-4 w-4 fill-current shrink-0 group-hover:scale-110 transition-transform" />
-              <span className="whitespace-nowrap font-black">
-                {startWorldsText}
-              </span>
-              <kbd className="hidden sm:inline-block rounded bg-slate-950/90 px-1.5 py-0.5 text-[9px] font-mono text-amber-300 border border-amber-400/40 shrink-0">
-                Space
-              </kbd>
-            </button>
+            <div className="flex flex-1 items-center gap-2">
+              <button
+                type="button"
+                onClick={handleStartIntro}
+                className="relative overflow-hidden pointer-events-auto flex flex-1 h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_28px_rgba(245,158,11,0.7)] transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
+              >
+                {/* Shimmer light beam */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[-20deg] animate-gold-shimmer" />
+                </div>
+                <Play className="h-4 w-4 fill-current shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="whitespace-nowrap font-black">
+                  {startWorldsText}
+                </span>
+                <kbd className="hidden sm:inline-block rounded bg-slate-950/90 px-1.5 py-0.5 text-[9px] font-mono text-amber-300 border border-amber-400/40 shrink-0">
+                  Space
+                </kbd>
+              </button>
+              {autoStartRemainingSec > 0 && (
+                <button
+                  type="button"
+                  onClick={handleHoldAutoStart}
+                  className="pointer-events-auto flex h-11 items-center justify-center gap-1.5 rounded-xl border border-rose-500/60 bg-rose-950/70 hover:bg-rose-900/80 text-rose-300 hover:text-white px-3 sm:px-4 font-black text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer whitespace-nowrap shadow-md shrink-0"
+                >
+                  <Pause className="h-3.5 w-3.5 shrink-0" />
+                  <span>{t('RoundIntro.holdButton', 'Giữ lại')}</span>
+                </button>
+              )}
+            </div>
           ) : (
             <button
               type="button"

@@ -1,21 +1,30 @@
 import {
   BOSS_CAPTION,
+  CASTER_CALMER_INTENSITY,
+  CASTER_DIALOGUE,
+  CASTER_INTENSITY,
   CASTER_PRIORITY,
   CASTER_PRIORITY_TTL_MS,
   CASTER_QUEUE,
   CASTER_SIGNAL,
+  CASTER_SPEAKER,
   CASTER_SPEECH,
   CASTER_VOICE,
+  CasterIntensity,
   CasterPriority,
+  CasterRole,
   CasterSignal,
+  CasterSpeaker,
   CasterVoice,
+  DEFAULT_CASTER_SPEAKER,
   isDonateSignal,
+  resolveSpeakerRole,
 } from '../../constants/caster';
 import { BOSS_VOICE_KIND } from '../../constants/sfx';
 import { useGameStore } from '../../store/gameStore';
 import { playBossVoice } from '../bossVoice';
 import { TeamType } from '../../constants/game';
-import { useCasterStore } from '../../store/casterStore';
+import { CasterSubtitleTurn, useCasterStore } from '../../store/casterStore';
 import { isCurrentRoundIntroActive } from '../../store/roundIntroStore';
 import { composeCasterLine, getCasterLang, joinSpokenNames } from './casterComposer';
 import { casterSpeechEngine, SPEECH_OUTCOME, SpeechOutcome } from './speechEngine';
@@ -35,10 +44,23 @@ export interface CasterLine {
   ttlMs?: number;
   /** Epoch ms by which the line should have finished (sped up to fit, e.g. intro card lines). */
   deadlineAt?: number;
+  /** Explicit voice; otherwise the speaker's voice. */
+  role?: CasterRole;
+  intensity?: CasterIntensity;
+  /** Which caster says it (A by default). */
+  speaker?: CasterSpeaker;
+  /** Turns of one two-caster exchange share an id and are said back to back, in `turnIndex` order. */
+  exchangeId?: number;
+  turnIndex?: number;
 }
 
 interface QueuedLine extends CasterLine {
   id: number;
+}
+
+interface TurnVoice {
+  role: CasterRole;
+  intensity: CasterIntensity;
 }
 
 /** Emoji and pictographs would be spelled out by the TTS voice. */
@@ -53,10 +75,50 @@ const SUBTITLE_ONLY_OUTCOMES = new Set<SpeechOutcome>([
   SPEECH_OUTCOME.UNAVAILABLE,
 ]);
 
+/** After one of these the rest of an exchange is dropped: a reply to a line nobody heard is worse than silence. */
+const EXCHANGE_STOP_OUTCOMES = new Set<SpeechOutcome>([
+  SPEECH_OUTCOME.INTERRUPTED,
+  SPEECH_OUTCOME.EXPIRED,
+  SPEECH_OUTCOME.FAILED,
+]);
+
+const BOSS_HP_RATIO_CLIMAX = 0.2;
+const BOSS_HP_RATIO_HYPE = 0.5;
+const FIRST_TURN_INDEX = 0;
+
 const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 const estimateSubtitleMs = (text: string): number =>
   Math.max(CASTER_SPEECH.SUBTITLE_MIN_MS, text.length * CASTER_SPEECH.SUBTITLE_MS_PER_CHAR);
+
+const byTurnIndex = (a: QueuedLine, b: QueuedLine): number => (a.turnIndex ?? 0) - (b.turnIndex ?? 0);
+
+/** Commentary gets louder as the boss gets lower. */
+const resolveDefaultIntensity = (): CasterIntensity => {
+  const gameState = useGameStore.getState();
+  const bossHpRatio = gameState.bossMaxHp > 0 ? gameState.bossHp / gameState.bossMaxHp : 1;
+  if (bossHpRatio <= BOSS_HP_RATIO_CLIMAX) return CASTER_INTENSITY.CLIMAX;
+  if (bossHpRatio <= BOSS_HP_RATIO_HYPE) return CASTER_INTENSITY.HYPE;
+  return CASTER_INTENSITY.NORMAL;
+};
+
+/** The voice of a turn follows its speaker; B stays one notch calmer than A at the same moment. */
+const resolveTurnVoice = (line: QueuedLine, defaultIntensity: CasterIntensity): TurnVoice => {
+  const speaker = line.speaker ?? DEFAULT_CASTER_SPEAKER;
+  const baseIntensity = line.intensity ?? defaultIntensity;
+  return {
+    role: line.role ?? resolveSpeakerRole(speaker),
+    intensity: speaker === CASTER_SPEAKER.B ? CASTER_CALMER_INTENSITY[baseIntensity] : baseIntensity,
+  };
+};
+
+const resolveDonateDefaultIntensity = (line: QueuedLine): CasterIntensity =>
+  line.signal === CASTER_SIGNAL.GIFT_MEGA ? CASTER_INTENSITY.CLIMAX : CASTER_INTENSITY.HYPE;
+
+const toSubtitleTurn = (line: QueuedLine): CasterSubtitleTurn => ({
+  speaker: line.speaker ?? DEFAULT_CASTER_SPEAKER,
+  text: line.text,
+});
 
 interface RollCall {
   names: string[];
@@ -93,6 +155,8 @@ const byPriorityThenAge = (a: QueuedLine, b: QueuedLine): number =>
  * - Channel 1 (Main Commentary): Priority ladder P1..P5 for general game events, summons & banter.
  * - Channel 2 (Donate Voice): High-priority parallel channel for donation shoutouts that plays
  *   simultaneously, ducking ongoing commentary so donors are never delayed or dropped.
+ * A two-caster exchange is several lines sharing an `exchangeId`: they are said back to back with a
+ * short breath, every reply's clip must be ready before it plays, and an interrupted exchange is dropped.
  */
 class PresentationQueue {
   private pendingMain: QueuedLine[] = [];
@@ -100,6 +164,7 @@ class PresentationQueue {
   private currentMain: QueuedLine | null = null;
   private currentDonate: QueuedLine | null = null;
   private nextId = 1;
+  private nextExchangeId = 1;
   private lastP4At = 0;
   private lastSummonTeam: TeamType | null = null;
   private lastSpeechEndAt = Date.now();
@@ -107,32 +172,96 @@ class PresentationQueue {
   private donatePumpTimer: ReturnType<typeof setTimeout> | null = null;
 
   public enqueue(line: CasterLine): void {
+    this.enqueueLine(line, false);
+  }
+
+  /** Queues the turns of one exchange; every turn's clip is fetched now so the replies land on time. */
+  public enqueueExchange(turns: readonly CasterLine[]): void {
+    if (turns.length === 0) return;
+    const exchangeId = this.nextExchangeId++;
+    turns.forEach((turn, turnIndex) => this.enqueueLine({ ...turn, exchangeId, turnIndex }, true));
+  }
+
+  private enqueueLine(line: CasterLine, isExchangeTurn: boolean): void {
     if (!useCasterStore.getState().isTtsEnabled) return;
     if (isCurrentRoundIntroActive() && line.voice === CASTER_VOICE.BOSS) return;
     const text = toSpeakableText(line.text);
     if (!text) return;
-    const queued: QueuedLine = { ...line, text, id: this.nextId++ };
+    const speaker = line.speaker ?? DEFAULT_CASTER_SPEAKER;
+    const queued: QueuedLine = { ...line, text, speaker, id: this.nextId++ };
+    const isFirstTurn = (queued.turnIndex ?? FIRST_TURN_INDEX) === FIRST_TURN_INDEX;
 
     if (isDonateSignal(queued.signal)) {
-      this.pendingDonate.push(queued);
+      const isMegaOpening = queued.signal === CASTER_SIGNAL.GIFT_MEGA && isFirstTurn;
+      const isBigOpening = queued.signal === CASTER_SIGNAL.GIFT_BIG && isFirstTurn;
+      const isMediumOpening = queued.signal === CASTER_SIGNAL.GIFT_MEDIUM && isFirstTurn;
+
+      if (isMegaOpening) {
+        casterSpeechEngine.interruptAll();
+        this.pendingDonate = [];
+        this.pendingDonate.unshift(queued);
+      } else if (isBigOpening) {
+        casterSpeechEngine.interruptDonate();
+        if (this.currentMain && this.currentMain.priority >= CASTER_PRIORITY.P3) {
+          casterSpeechEngine.interrupt();
+        }
+        this.pendingDonate = this.pendingDonate.filter((l) => l.signal === CASTER_SIGNAL.GIFT_MEGA);
+        this.pendingDonate.unshift(queued);
+      } else if (isMediumOpening) {
+        if (
+          this.currentDonate &&
+          this.currentDonate.signal !== CASTER_SIGNAL.GIFT_MEGA &&
+          this.currentDonate.signal !== CASTER_SIGNAL.GIFT_BIG
+        ) {
+          casterSpeechEngine.interruptDonate();
+        }
+        this.pendingDonate.unshift(queued);
+      } else {
+        this.pendingDonate.push(queued);
+      }
       this.trimDonateOverflow();
-      casterSpeechEngine.prefetch(queued.text, getCasterLang());
+      this.prefetchTurn(queued, resolveDonateDefaultIntensity(queued));
       this.scheduleDonatePump(0);
+      return;
+    }
+
+    const isCombatCritical =
+      queued.signal === CASTER_SIGNAL.BOSS_SKILL ||
+      queued.signal === CASTER_SIGNAL.BOSS_ULTIMATE ||
+      queued.signal === CASTER_SIGNAL.BOSS_ENRAGE ||
+      queued.signal === CASTER_SIGNAL.ROUND_WIN ||
+      queued.signal === CASTER_SIGNAL.ROUND_FINISHER;
+
+    if (isCombatCritical && isFirstTurn) {
+      // Clear out stale low-priority lines so they never play after the critical event
+      this.pendingMain = this.pendingMain.filter((l) => l.priority <= CASTER_PRIORITY.P2);
+      this.pendingMain.unshift(queued);
+      if (this.currentMain !== null && this.currentMain.priority > CASTER_PRIORITY.P1) {
+        casterSpeechEngine.interrupt();
+      }
+      this.prefetchTurn(queued, resolveDefaultIntensity());
+      this.scheduleMainPump(0);
       return;
     }
 
     this.pendingMain.push(queued);
     this.trimMainOverflow();
     const isSpoken = queued.voice !== CASTER_VOICE.BOSS;
-    if (isSpoken && queued.priority <= CASTER_QUEUE.PREFETCH_MAX_PRIORITY) {
-      casterSpeechEngine.prefetch(queued.text, getCasterLang());
+    if (isSpoken && (queued.priority <= CASTER_QUEUE.PREFETCH_MAX_PRIORITY || isExchangeTurn)) {
+      this.prefetchTurn(queued, resolveDefaultIntensity());
     }
     const isPreempting =
-      queued.priority === CASTER_PRIORITY.P1 &&
+      isFirstTurn &&
       this.currentMain !== null &&
-      this.currentMain.priority !== CASTER_PRIORITY.P1;
+      ((queued.priority === CASTER_PRIORITY.P1 && this.currentMain.priority > CASTER_PRIORITY.P1) ||
+        (queued.priority <= CASTER_PRIORITY.P2 && this.currentMain.priority >= CASTER_PRIORITY.P3));
     if (isPreempting) casterSpeechEngine.interrupt();
     this.scheduleMainPump(0);
+  }
+
+  private prefetchTurn(line: QueuedLine, defaultIntensity: CasterIntensity): void {
+    const { role, intensity } = resolveTurnVoice(line, defaultIntensity);
+    casterSpeechEngine.prefetch(line.text, getCasterLang(), role, intensity);
   }
 
   public isBusy(): boolean {
@@ -172,6 +301,27 @@ class PresentationQueue {
     this.pendingDonate.pop();
   }
 
+  /** The other turns of `first`'s exchange, taken out of the pending list, in speaking order. */
+  private takeExchangeTurns(first: QueuedLine, pending: QueuedLine[]): QueuedLine[] {
+    if (first.exchangeId === undefined) return [first];
+    const others = pending.filter((line) => line.exchangeId === first.exchangeId);
+    const otherIds = new Set(others.map((line) => line.id));
+    const remaining = pending.filter((line) => !otherIds.has(line.id));
+    pending.splice(0, pending.length, ...remaining);
+    return [first, ...others].sort(byTurnIndex);
+  }
+
+  /** A reply only plays if its clip is ready in time; otherwise the exchange ends there (no holes). */
+  private isReplyReady(line: QueuedLine, voice: TurnVoice): Promise<boolean> {
+    return casterSpeechEngine.isClipReady(
+      line.text,
+      getCasterLang(),
+      voice.role,
+      voice.intensity,
+      CASTER_DIALOGUE.TURN_READY_WAIT_MS
+    );
+  }
+
   // ── Donate Voice Channel (Parallel) ───────────────────────────────────────────
 
   private scheduleDonatePump(delayMs: number): void {
@@ -193,11 +343,36 @@ class PresentationQueue {
 
     const next = this.pendingDonate.shift();
     if (!next) return;
-    void this.speakDonate(next);
+    void this.speakDonateExchange(this.takeExchangeTurns(next, this.pendingDonate));
   }
 
-  private async speakDonate(line: QueuedLine): Promise<void> {
-    this.currentDonate = line;
+  private async speakDonateExchange(turns: QueuedLine[]): Promise<void> {
+    let previousTurn: CasterSubtitleTurn | undefined;
+    for (let index = 0; index < turns.length; index += 1) {
+      const line = turns[index];
+      const voice = resolveTurnVoice(line, resolveDonateDefaultIntensity(line));
+      if (index > FIRST_TURN_INDEX) {
+        if (!(await this.isReplyReady(line, voice))) break;
+        await wait(CASTER_DIALOGUE.TURN_GAP_MS);
+      }
+      this.currentDonate = line;
+      const outcome = await this.speakDonateTurn(line, voice, previousTurn);
+      if (outcome === SPEECH_OUTCOME.AUTOPLAY_BLOCKED) {
+        this.holdUntilDonateVoiceUnlocked(turns.slice(index));
+        return;
+      }
+      if (EXCHANGE_STOP_OUTCOMES.has(outcome)) break;
+      previousTurn = toSubtitleTurn(line);
+    }
+    this.currentDonate = null;
+    this.scheduleDonatePump(CASTER_SPEECH.DONATE_GAP_MS);
+  }
+
+  private async speakDonateTurn(
+    line: QueuedLine,
+    voice: TurnVoice,
+    previousTurn: CasterSubtitleTurn | undefined
+  ): Promise<SpeechOutcome> {
     const showSubtitle = (): void =>
       useCasterStore.setState({
         donateSubtitle: {
@@ -205,6 +380,8 @@ class PresentationQueue {
           text: line.text,
           priority: line.priority,
           voice: CASTER_VOICE.CASTER,
+          speaker: line.speaker,
+          previousTurn,
         },
       });
 
@@ -212,30 +389,25 @@ class PresentationQueue {
       line.text,
       getCasterLang(),
       showSubtitle,
-      line.deadlineAt
+      line.deadlineAt,
+      voice.role,
+      voice.intensity
     );
-
-    if (outcome === SPEECH_OUTCOME.AUTOPLAY_BLOCKED) {
-      this.holdUntilDonateVoiceUnlocked(line);
-      return;
-    }
+    if (outcome === SPEECH_OUTCOME.AUTOPLAY_BLOCKED) return outcome;
 
     if (SUBTITLE_ONLY_OUTCOMES.has(outcome)) {
       showSubtitle();
       await wait(estimateSubtitleMs(line.text));
     }
-
     if (outcome !== SPEECH_OUTCOME.EXPIRED) await wait(CASTER_SPEECH.SUBTITLE_LINGER_MS);
     if (useCasterStore.getState().donateSubtitle?.id === line.id) {
       useCasterStore.setState({ donateSubtitle: null });
     }
-
-    this.currentDonate = null;
-    this.scheduleDonatePump(CASTER_SPEECH.DONATE_GAP_MS);
+    return outcome;
   }
 
-  private holdUntilDonateVoiceUnlocked(line: QueuedLine): void {
-    this.pendingDonate.unshift(line);
+  private holdUntilDonateVoiceUnlocked(lines: readonly QueuedLine[]): void {
+    this.pendingDonate.unshift(...lines);
     this.currentDonate = null;
     void casterSpeechEngine.whenUnlocked().then(() => this.scheduleDonatePump(0));
   }
@@ -268,11 +440,11 @@ class PresentationQueue {
     const next = head.signal === CASTER_SIGNAL.SUMMON ? this.pickFairSummon(head) : head;
     this.pendingMain = this.pendingMain.filter((line) => line.id !== next.id);
     if (next.signal !== CASTER_SIGNAL.SUMMON) {
-      void this.speakMain(next);
+      void this.speakMainExchange(this.takeExchangeTurns(next, this.pendingMain));
       return;
     }
     this.lastSummonTeam = next.team ?? null;
-    void this.speakMain(this.mergeSummonWave(next));
+    void this.speakMainExchange([this.mergeSummonWave(next)]);
   }
 
   /** Alternates teams: a flood on one side must not starve the other side's summon lines. */
@@ -314,20 +486,69 @@ class PresentationQueue {
     return text ? { ...first, signal: CASTER_SIGNAL.SUMMON_WAVE, text } : first;
   }
 
-  private async speakMain(line: QueuedLine): Promise<void> {
-    this.currentMain = line;
-    const voice = line.voice ?? CASTER_VOICE.CASTER;
+  /**
+   * Says the turns of one exchange (a single line is an exchange of one). With a backlog waiting,
+   * only the first turn is said so the fight keeps its pace.
+   */
+  private async speakMainExchange(turns: QueuedLine[]): Promise<void> {
+    const isBacklogged = this.pendingMain.length > CASTER_DIALOGUE.MAX_BACKLOG_LINES;
+    const playable = isBacklogged ? turns.slice(0, 1) : turns;
+    const defaultIntensity = resolveDefaultIntensity();
+    let previousTurn: CasterSubtitleTurn | undefined;
+    let lastLine: QueuedLine = playable[0];
+
+    for (let index = 0; index < playable.length; index += 1) {
+      const line = playable[index];
+      const voice = resolveTurnVoice(line, defaultIntensity);
+      if (index > FIRST_TURN_INDEX) {
+        if (!(await this.isReplyReady(line, voice))) break;
+        await wait(CASTER_DIALOGUE.TURN_GAP_MS);
+      }
+      this.currentMain = line;
+      lastLine = line;
+      const outcome = await this.speakMainTurn(line, voice, previousTurn);
+      if (outcome === SPEECH_OUTCOME.AUTOPLAY_BLOCKED) {
+        this.holdUntilMainVoiceUnlocked(playable.slice(index));
+        return;
+      }
+      if (EXCHANGE_STOP_OUTCOMES.has(outcome)) break;
+      previousTurn = toSubtitleTurn(line);
+    }
+
+    this.currentMain = null;
+    this.lastSpeechEndAt = Date.now();
+    if (lastLine.priority === CASTER_PRIORITY.P4) this.lastP4At = this.lastSpeechEndAt;
+    this.scheduleMainPump(CASTER_QUEUE.LINE_GAP_MS);
+  }
+
+  private async speakMainTurn(
+    line: QueuedLine,
+    voice: TurnVoice,
+    previousTurn: CasterSubtitleTurn | undefined
+  ): Promise<SpeechOutcome> {
+    const lineVoice = line.voice ?? CASTER_VOICE.CASTER;
     const showSubtitle = (): void =>
-      useCasterStore.setState({ subtitle: { id: line.id, text: line.text, priority: line.priority, voice } });
-    if (voice === CASTER_VOICE.BOSS) {
-      await this.showBossLine(line, showSubtitle);
-      return;
-    }
-    const outcome = await casterSpeechEngine.speakMain(line.text, getCasterLang(), showSubtitle, line.deadlineAt);
-    if (outcome === SPEECH_OUTCOME.AUTOPLAY_BLOCKED) {
-      this.holdUntilMainVoiceUnlocked(line);
-      return;
-    }
+      useCasterStore.setState({
+        subtitle: {
+          id: line.id,
+          text: line.text,
+          priority: line.priority,
+          voice: lineVoice,
+          speaker: lineVoice === CASTER_VOICE.BOSS ? undefined : line.speaker,
+          previousTurn,
+        },
+      });
+    if (lineVoice === CASTER_VOICE.BOSS) return this.showBossLine(line, showSubtitle);
+
+    const outcome = await casterSpeechEngine.speakMain(
+      line.text,
+      getCasterLang(),
+      showSubtitle,
+      line.deadlineAt,
+      voice.role,
+      voice.intensity
+    );
+    if (outcome === SPEECH_OUTCOME.AUTOPLAY_BLOCKED) return outcome;
 
     if (SUBTITLE_ONLY_OUTCOMES.has(outcome)) {
       showSubtitle();
@@ -335,32 +556,23 @@ class PresentationQueue {
     }
     if (outcome !== SPEECH_OUTCOME.EXPIRED) await wait(CASTER_SPEECH.SUBTITLE_LINGER_MS);
     if (useCasterStore.getState().subtitle?.id === line.id) useCasterStore.setState({ subtitle: null });
-
-    this.currentMain = null;
-    this.lastSpeechEndAt = Date.now();
-    if (line.priority === CASTER_PRIORITY.P4) this.lastP4At = this.lastSpeechEndAt;
-    this.scheduleMainPump(CASTER_QUEUE.LINE_GAP_MS);
+    return outcome;
   }
 
-  private holdUntilMainVoiceUnlocked(line: QueuedLine): void {
-    this.pendingMain.unshift(line);
+  private holdUntilMainVoiceUnlocked(lines: readonly QueuedLine[]): void {
+    this.pendingMain.unshift(...lines);
     this.currentMain = null;
     void casterSpeechEngine.whenUnlocked().then(() => this.scheduleMainPump(0));
   }
 
   /** The boss roars with its own voice SFX while its line is shown as a caption. */
-  private async showBossLine(line: QueuedLine, showSubtitle: () => void): Promise<void> {
-    if (isCurrentRoundIntroActive()) {
-      this.currentMain = null;
-      return;
-    }
+  private async showBossLine(line: QueuedLine, showSubtitle: () => void): Promise<SpeechOutcome> {
+    if (isCurrentRoundIntroActive()) return SPEECH_OUTCOME.EXPIRED;
     playBossVoice(useGameStore.getState().gameTheme, BOSS_VOICE_KIND.ROAR);
     showSubtitle();
     await wait(Math.max(BOSS_CAPTION.MIN_MS, line.text.length * BOSS_CAPTION.MS_PER_CHAR));
     if (useCasterStore.getState().subtitle?.id === line.id) useCasterStore.setState({ subtitle: null });
-    this.currentMain = null;
-    this.lastSpeechEndAt = Date.now();
-    this.scheduleMainPump(CASTER_QUEUE.LINE_GAP_MS);
+    return SPEECH_OUTCOME.SPOKEN;
   }
 }
 

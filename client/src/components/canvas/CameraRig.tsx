@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/gameStore';
+import { useGiftVfxStore } from '../../store/giftVfxStore';
 import { GAME_CONSTANTS } from '../../constants/game';
 import { SCREEN_RUMBLE_CONSTANTS, SCREEN_SHAKE_CONSTANTS } from '../../constants/bossUltimateFeedback';
 import { resolveScreenRumbleEnvelope } from '../../store/screenRumble';
@@ -31,6 +32,11 @@ export const CameraRig = () => {
       state.screenRumbleIntensity *
       resolveScreenRumbleEnvelope(now, state.screenRumbleStartedAt, state.screenRumbleDurationMs) *
       SCREEN_RUMBLE_CONSTANTS.CAMERA_GAIN;
+
+    // Yield camera manipulation when Cinematic Camera Controller has an active fly-to request
+    if (useGiftVfxStore.getState().cinematicRequest) {
+      return;
+    }
 
     if (shake <= 0 && rumble <= 0) {
       camera.position.lerp(basePos.current, SCREEN_SHAKE_CONSTANTS.RETURN_LERP);

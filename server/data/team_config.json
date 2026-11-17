@@ -1,77 +1,6 @@
 {
   "activeTeams": {
     "BLG": {
-      "id": "preset-t1",
-      "name": "T1",
-      "shortTag": "T1",
-      "aliases": [
-        "T1",
-        "SKT",
-        "FAKER"
-      ],
-      "autoSyncRosterAliases": true,
-      "colorTheme": "rose",
-      "logoUrl": "/images/teams/t1.svg",
-      "isPreset": true,
-      "roster": [
-        {
-          "id": "blg-preset-t1-top-0",
-          "name": "Doran",
-          "role": "TOP",
-          "roleName": "Đường Trên",
-          "signatureChampion": "Ambessa",
-          "championKey": "Ambessa",
-          "team": "BLG",
-          "color": "#fb7185",
-          "avatarUrl": "/images/players/doran.png"
-        },
-        {
-          "id": "blg-preset-t1-jug-1",
-          "name": "Oner",
-          "role": "JUG",
-          "roleName": "Đi Rừng",
-          "signatureChampion": "Vi",
-          "championKey": "Vi",
-          "team": "BLG",
-          "color": "#f43f5e",
-          "avatarUrl": "/images/players/oner.png"
-        },
-        {
-          "id": "blg-preset-t1-mid-2",
-          "name": "Faker",
-          "role": "MID",
-          "roleName": "Đường Giữa",
-          "signatureChampion": "Azir",
-          "championKey": "Azir",
-          "team": "BLG",
-          "color": "#e11d48",
-          "avatarUrl": "/images/players/faker.png"
-        },
-        {
-          "id": "blg-preset-t1-adc-3",
-          "name": "Peyz",
-          "role": "ADC",
-          "roleName": "Xạ Thủ",
-          "signatureChampion": "Xayah",
-          "championKey": "Xayah",
-          "team": "BLG",
-          "color": "#fb7185",
-          "avatarUrl": "/images/players/peyz.png"
-        },
-        {
-          "id": "blg-preset-t1-sup-4",
-          "name": "Keria",
-          "role": "SUP",
-          "roleName": "Hỗ Trợ",
-          "signatureChampion": "Thresh",
-          "championKey": "Thresh",
-          "team": "BLG",
-          "color": "#fda4af",
-          "avatarUrl": "/images/players/keria.png"
-        }
-      ]
-    },
-    "GENG": {
       "id": "preset-geng",
       "name": "Gen.G Esports",
       "shortTag": "GEN",
@@ -86,59 +15,129 @@
       "isPreset": true,
       "roster": [
         {
-          "id": "geng-preset-geng-top-0",
+          "id": "blg-preset-geng-top-0",
           "name": "Kiin",
           "role": "TOP",
           "roleName": "Đường Trên",
           "signatureChampion": "K'Sante",
           "championKey": "KSante",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#f59e0b",
           "avatarUrl": "/images/players/kiin.png"
         },
         {
-          "id": "geng-preset-geng-jug-1",
+          "id": "blg-preset-geng-jug-1",
           "name": "Canyon",
           "role": "JUG",
           "roleName": "Đi Rừng",
           "signatureChampion": "Nidalee",
           "championKey": "Nidalee",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#fbbf24",
           "avatarUrl": "/images/players/canyon.png"
         },
         {
-          "id": "geng-preset-geng-mid-2",
+          "id": "blg-preset-geng-mid-2",
           "name": "Chovy",
           "role": "MID",
           "roleName": "Đường Giữa",
           "signatureChampion": "Yone",
           "championKey": "Yone",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#eab308",
           "avatarUrl": "/images/players/chovy.png"
         },
         {
-          "id": "geng-preset-geng-adc-3",
+          "id": "blg-preset-geng-adc-3",
           "name": "Ruler",
           "role": "ADC",
           "roleName": "Xạ Thủ",
           "signatureChampion": "Ezreal",
           "championKey": "Ezreal",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#f97316",
           "avatarUrl": "/images/players/ruler.png"
         },
         {
-          "id": "geng-preset-geng-sup-4",
+          "id": "blg-preset-geng-sup-4",
           "name": "Duro",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
           "signatureChampion": "Nautilus",
           "championKey": "Nautilus",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#d97706",
           "avatarUrl": "/images/players/duro.png"
+        }
+      ]
+    },
+    "GENG": {
+      "id": "preset-hle",
+      "name": "Hanwha Life Esports",
+      "shortTag": "HLE",
+      "aliases": [
+        "HLE",
+        "HANWHA"
+      ],
+      "autoSyncRosterAliases": true,
+      "colorTheme": "orange",
+      "logoUrl": "/images/teams/hle.svg",
+      "isPreset": true,
+      "roster": [
+        {
+          "id": "geng-preset-hle-top-0",
+          "name": "Zeus",
+          "role": "TOP",
+          "roleName": "Đường Trên",
+          "signatureChampion": "Aatrox",
+          "championKey": "Aatrox",
+          "team": "GENG",
+          "color": "#fb923c",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Aatrox.png"
+        },
+        {
+          "id": "geng-preset-hle-jug-1",
+          "name": "Peanut",
+          "role": "JUG",
+          "roleName": "Đi Rừng",
+          "signatureChampion": "Sejuani",
+          "championKey": "Sejuani",
+          "team": "GENG",
+          "color": "#f97316",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sejuani.png"
+        },
+        {
+          "id": "geng-preset-hle-mid-2",
+          "name": "Zeka",
+          "role": "MID",
+          "roleName": "Đường Giữa",
+          "signatureChampion": "Sylas",
+          "championKey": "Sylas",
+          "team": "GENG",
+          "color": "#fdba74",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sylas.png"
+        },
+        {
+          "id": "geng-preset-hle-adc-3",
+          "name": "Viper",
+          "role": "ADC",
+          "roleName": "Xạ Thủ",
+          "signatureChampion": "Kai'Sa",
+          "championKey": "Kaisa",
+          "team": "GENG",
+          "color": "#ea580c",
+          "avatarUrl": "/images/players/viper.png"
+        },
+        {
+          "id": "geng-preset-hle-sup-4",
+          "name": "Delight",
+          "role": "SUP",
+          "roleName": "Hỗ Trợ",
+          "signatureChampion": "Rell",
+          "championKey": "Rell",
+          "team": "GENG",
+          "color": "#fb923c",
+          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rell.png"
         }
       ]
     }

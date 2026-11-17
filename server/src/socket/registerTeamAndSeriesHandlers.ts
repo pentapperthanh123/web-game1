@@ -27,7 +27,7 @@ interface Bo5ControlPayload {
 }
 
 interface SilverScrapesDuelPayload {
-  action: 'start' | 'stop' | 'extend' | 'setLane';
+  action: 'start' | 'stop' | 'extend' | 'setLane' | 'skipIntro';
   lane?: DuelLaneKey;
   duration?: number;
 }
@@ -153,6 +153,8 @@ export function registerTeamAndSeriesHandlers(
       duelService.stopDuel();
     } else if (payload.action === 'extend') {
       duelService.extendDuel(30);
+    } else if (payload.action === 'skipIntro') {
+      duelService.skipIntro();
     } else if (payload.action === 'setLane' && payload.lane) {
       duelService.setDuelLane(payload.lane);
     }

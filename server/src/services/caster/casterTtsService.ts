@@ -3,19 +3,23 @@ import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
+  CASTER_EMOTION_INTENSITY,
   CASTER_TTS,
   CASTER_TTS_DISK_CACHE,
   CASTER_TTS_FAILURE,
   CASTER_TTS_LANG,
   CASTER_TTS_WARM,
+  CASTER_VOICE_ROLE,
+  CasterEmotionIntensity,
   CasterTtsFailure,
   CasterTtsLang,
   CasterTtsProviderName,
+  CasterVoiceRole,
   EDGE_TTS,
 } from '../../constants/casterTts.js';
 import { CasterConfig } from '../../constants/liveOps.js';
 import { getErrorMessage } from '../../utils/payloadSanitizers.js';
-import { TtsProvider, TtsProviderChain } from './ttsProviders.js';
+import { TtsProvider, TtsProviderChain, TtsSynthesizeOptions } from './ttsProviders.js';
 
 export interface CasterTtsResult {
   audio?: Buffer;
@@ -24,12 +28,19 @@ export interface CasterTtsResult {
   failure?: CasterTtsFailure;
 }
 
+export interface SynthesizeRequestOptions {
+  role?: unknown;
+  intensity?: unknown;
+  rate?: unknown;
+  pitch?: unknown;
+}
+
 export interface CasterTtsService {
   providerName: CasterTtsProviderName;
   fallbackName: CasterTtsProviderName | null;
-  synthesize(rawText: unknown, rawLang: unknown): Promise<CasterTtsResult>;
+  synthesize(rawText: unknown, rawLang: unknown, rawOptions?: SynthesizeRequestOptions): Promise<CasterTtsResult>;
   /** Queues untrusted texts for background generation; returns how many were newly queued. */
-  warm(rawTexts: unknown, rawLang: unknown): number;
+  warm(rawTexts: unknown, rawLang: unknown, rawRole?: unknown): number;
 }
 
 interface CasterTtsDeps {
@@ -47,10 +58,20 @@ interface CachedClip {
   isOnDisk?: boolean;
 }
 
+interface QueuedJob {
+  key: string;
+  text: string;
+  lang: CasterTtsLang;
+  options: TtsSynthesizeOptions;
+}
+
 const LOG_PREFIX = '[CasterTTS]';
 const UNKNOWN_ERROR = 'unknown error';
 const WHITESPACE_RUN = /\s+/g;
 const SUPPORTED_LANGS = new Set<string>(Object.values(CASTER_TTS_LANG));
+const SUPPORTED_ROLES = new Set<string>(Object.values(CASTER_VOICE_ROLE));
+const SUPPORTED_INTENSITIES = new Set<string>(Object.values(CASTER_EMOTION_INTENSITY));
+const PROSODY_SAFE_CHARS = /^[a-zA-Z0-9%+\-.]+$/;
 
 const normalizeText = (rawText: unknown): string | null => {
   if (typeof rawText !== 'string') return null;
@@ -62,6 +83,30 @@ const normalizeText = (rawText: unknown): string | null => {
 const normalizeLang = (rawLang: unknown): CasterTtsLang =>
   typeof rawLang === 'string' && SUPPORTED_LANGS.has(rawLang) ? (rawLang as CasterTtsLang) : CASTER_TTS.DEFAULT_LANG;
 
+const normalizeRole = (rawRole: unknown): CasterVoiceRole | undefined =>
+  typeof rawRole === 'string' && SUPPORTED_ROLES.has(rawRole) ? (rawRole as CasterVoiceRole) : undefined;
+
+const normalizeIntensity = (rawIntensity: unknown): CasterEmotionIntensity | undefined =>
+  typeof rawIntensity === 'string' && SUPPORTED_INTENSITIES.has(rawIntensity)
+    ? (rawIntensity as CasterEmotionIntensity)
+    : undefined;
+
+const normalizeProsody = (rawValue: unknown): string | undefined => {
+  if (typeof rawValue !== 'string') return undefined;
+  const trimmed = rawValue.trim();
+  if (trimmed.length > 12 || !PROSODY_SAFE_CHARS.test(trimmed)) return undefined;
+  return trimmed;
+};
+
+const buildCacheKey = (
+  lang: CasterTtsLang,
+  role: CasterVoiceRole | undefined,
+  intensity: CasterEmotionIntensity | undefined,
+  rate: string | undefined,
+  pitch: string | undefined,
+  text: string
+): string => `${lang}|${role ?? ''}|${intensity ?? ''}|${rate ?? ''}|${pitch ?? ''}|${text}`;
+
 const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Primary-voice clips on disk, oldest evicted first. */
@@ -69,10 +114,15 @@ const createDiskCache = (serverRoot: string, provider: TtsProvider) => {
   const dir = path.join(serverRoot, CASTER_TTS_DISK_CACHE.DIR);
   mkdirSync(dir, { recursive: true });
   const fileOrder = readdirSync(dir).filter((name) => name.endsWith(CASTER_TTS_DISK_CACHE.EXTENSION));
-  // key is `${lang}|${text}`; the voice tag makes a voice change start a fresh set of clips
+  // key is `${lang}|${role}|${intensity}|${rate}|${pitch}|${text}`
   const fileFor = (key: string): string => {
-    const lang = key.slice(0, key.indexOf('|')) as CasterTtsLang;
-    const hash = createHash('sha1').update(`${provider.voiceTag(lang)}|${key}`).digest('hex');
+    const parts = key.split('|');
+    const lang = (parts[0] || CASTER_TTS.DEFAULT_LANG) as CasterTtsLang;
+    const role = (parts[1] || undefined) as CasterVoiceRole | undefined;
+    const rate = parts[3] || undefined;
+    const pitch = parts[4] || undefined;
+    const voiceTag = provider.voiceTag(lang, role, rate, pitch);
+    const hash = createHash('sha1').update(`${voiceTag}|${key}`).digest('hex');
     return `${hash}${CASTER_TTS_DISK_CACHE.EXTENSION}`;
   };
 
@@ -109,7 +159,7 @@ export const createCasterTtsService = ({
   const clipCache = new Map<string, CachedClip>();
   const inFlight = new Map<string, Promise<CachedClip>>();
   const upgradesInFlight = new Set<string>();
-  const upgradeQueue: Array<{ key: string; text: string; lang: CasterTtsLang }> = [];
+  const upgradeQueue: QueuedJob[] = [];
   const diskCache = createDiskCache(serverRoot, primary);
   let providerCallTimes: number[] = [];
 
@@ -128,15 +178,25 @@ export const createCasterTtsService = ({
     return providerCallTimes.length >= CASTER_TTS.MAX_PROVIDER_CALLS_PER_WINDOW;
   };
 
-  const callProvider = (provider: TtsProvider, text: string, lang: CasterTtsLang, timeoutMs?: number): Promise<Buffer> => {
+  const callProvider = (
+    provider: TtsProvider,
+    text: string,
+    lang: CasterTtsLang,
+    options?: TtsSynthesizeOptions
+  ): Promise<Buffer> => {
     providerCallTimes.push(Date.now());
-    return provider.synthesize(text, lang, timeoutMs);
+    return provider.synthesize(text, lang, options);
   };
 
-  const upgradeOne = async (key: string, text: string, lang: CasterTtsLang): Promise<void> => {
+  const upgradeOne = async (
+    key: string,
+    text: string,
+    lang: CasterTtsLang,
+    options: TtsSynthesizeOptions
+  ): Promise<void> => {
     for (let attempt = 1; attempt <= EDGE_TTS.UPGRADE_ATTEMPTS; attempt += 1) {
       try {
-        const audio = await callProvider(primary, text, lang, EDGE_TTS.UPGRADE_TIMEOUT_MS);
+        const audio = await callProvider(primary, text, lang, { ...options, timeoutMs: EDGE_TTS.UPGRADE_TIMEOUT_MS });
         rememberClip(key, { audio, isPrimaryVoice: true });
         return;
       } catch {
@@ -151,7 +211,7 @@ export const createCasterTtsService = ({
       const job = upgradeQueue.shift();
       if (!job) return;
       upgradesInFlight.add(job.key);
-      void upgradeOne(job.key, job.text, job.lang).finally(() => {
+      void upgradeOne(job.key, job.text, job.lang, job.options).finally(() => {
         upgradesInFlight.delete(job.key);
         drainUpgrades();
       });
@@ -159,10 +219,15 @@ export const createCasterTtsService = ({
   };
 
   /** After a fallback answer, keep trying the primary voice so the next time this line sounds right. */
-  const scheduleUpgrade = (key: string, text: string, lang: CasterTtsLang): void => {
+  const scheduleUpgrade = (
+    key: string,
+    text: string,
+    lang: CasterTtsLang,
+    options: TtsSynthesizeOptions
+  ): void => {
     const isKnown = upgradesInFlight.has(key) || upgradeQueue.some((job) => job.key === key);
     if (isKnown || upgradeQueue.length >= EDGE_TTS.MAX_QUEUED_UPGRADES) return;
-    upgradeQueue.push({ key, text, lang });
+    upgradeQueue.push({ key, text, lang, options });
     drainUpgrades();
   };
 
@@ -170,7 +235,12 @@ export const createCasterTtsService = ({
    * Only one voice: start a second attempt if the first is slow and take whichever answers first.
    * Gives up at LIVE_DEADLINE_MS (the overlay then shows the caption); a late answer is still cached.
    */
-  const hedgedPrimary = (key: string, text: string, lang: CasterTtsLang): Promise<Buffer> =>
+  const hedgedPrimary = (
+    key: string,
+    text: string,
+    lang: CasterTtsLang,
+    options: TtsSynthesizeOptions
+  ): Promise<Buffer> =>
     new Promise<Buffer>((resolve, reject) => {
       let isSettled = false;
       let failedAttempts = 0;
@@ -184,7 +254,7 @@ export const createCasterTtsService = ({
         else reject(error instanceof Error ? error : new Error(UNKNOWN_ERROR));
       };
       const attempt = (): void => {
-        callProvider(primary, text, lang, EDGE_TTS.TIMEOUT_MS)
+        callProvider(primary, text, lang, { ...options, timeoutMs: EDGE_TTS.TIMEOUT_MS })
           .then((audio) => {
             if (isSettled) rememberClip(key, { audio, isPrimaryVoice: true });
             settle(audio);
@@ -196,7 +266,7 @@ export const createCasterTtsService = ({
       };
       const hedgeTimer = setTimeout(attempt, EDGE_TTS.HEDGE_DELAY_MS);
       const deadlineTimer = setTimeout(() => {
-        scheduleUpgrade(key, text, lang);
+        scheduleUpgrade(key, text, lang, options);
         settle(null, new Error(`no answer within ${EDGE_TTS.LIVE_DEADLINE_MS} ms`));
       }, EDGE_TTS.LIVE_DEADLINE_MS);
       attempt();
@@ -207,13 +277,18 @@ export const createCasterTtsService = ({
    * period; otherwise the fallback answers right away and the primary clip is cached when it lands
    * (or retried in the background), so latency stays at the fallback's while quality catches up.
    */
-  const produceClip = async (key: string, text: string, lang: CasterTtsLang): Promise<CachedClip> => {
+  const produceClip = async (
+    key: string,
+    text: string,
+    lang: CasterTtsLang,
+    options: TtsSynthesizeOptions
+  ): Promise<CachedClip> => {
     const fromDisk = await diskCache.read(key);
     if (fromDisk) return { audio: fromDisk, isPrimaryVoice: true, isOnDisk: true };
-    if (!fallback) return { audio: await hedgedPrimary(key, text, lang), isPrimaryVoice: true };
+    if (!fallback) return { audio: await hedgedPrimary(key, text, lang, options), isPrimaryVoice: true };
 
-    const primaryRequest = callProvider(primary, text, lang, EDGE_TTS.TIMEOUT_MS);
-    const fallbackRequest = callProvider(fallback, text, lang);
+    const primaryRequest = callProvider(primary, text, lang, { ...options, timeoutMs: EDGE_TTS.TIMEOUT_MS });
+    const fallbackRequest = callProvider(fallback, text, lang, options);
     // Never leave a rejection unhandled: each request is awaited or chained below
     fallbackRequest.catch(() => undefined);
 
@@ -225,7 +300,7 @@ export const createCasterTtsService = ({
 
     primaryRequest
       .then((audio) => rememberClip(key, { audio, isPrimaryVoice: true }))
-      .catch(() => scheduleUpgrade(key, text, lang));
+      .catch(() => scheduleUpgrade(key, text, lang, options));
     try {
       return { audio: await fallbackRequest, isPrimaryVoice: false };
     } catch (fallbackError) {
@@ -236,10 +311,15 @@ export const createCasterTtsService = ({
   };
 
   /** One shared request per line: live calls and warm-up of the same text never hit the provider twice. */
-  const obtainClip = (key: string, text: string, lang: CasterTtsLang): Promise<CachedClip> => {
+  const obtainClip = (
+    key: string,
+    text: string,
+    lang: CasterTtsLang,
+    options: TtsSynthesizeOptions
+  ): Promise<CachedClip> => {
     const pending = inFlight.get(key);
     if (pending) return pending;
-    const request = produceClip(key, text, lang).then((clip) => {
+    const request = produceClip(key, text, lang, options).then((clip) => {
       // An upgrade may already have stored the primary voice while the fallback was answering
       if (!clipCache.get(key)?.isPrimaryVoice) rememberClip(key, clip);
       return clip;
@@ -252,7 +332,7 @@ export const createCasterTtsService = ({
   const isAlreadyAvailable = (key: string): boolean => clipCache.has(key) || inFlight.has(key) || diskCache.has(key);
 
   // ── Warm-up queue ──────────────────────────────────────────────────────
-  const warmQueue: Array<{ key: string; text: string; lang: CasterTtsLang }> = [];
+  const warmQueue: QueuedJob[] = [];
   const warmKeys = new Set<string>();
   let warmTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -273,7 +353,7 @@ export const createCasterTtsService = ({
       if (job) {
         warmKeys.delete(job.key);
         if (!isAlreadyAvailable(job.key)) {
-          void obtainClip(job.key, job.text, job.lang).catch((error: unknown) =>
+          void obtainClip(job.key, job.text, job.lang, job.options).catch((error: unknown) =>
             console.warn(`${LOG_PREFIX} warm-up failed: ${getErrorMessage(error, UNKNOWN_ERROR)}`)
           );
         }
@@ -282,38 +362,50 @@ export const createCasterTtsService = ({
     if (warmQueue.length > 0) warmTimer = setTimeout(runNextWarm, CASTER_TTS_WARM.MIN_INTERVAL_MS);
   };
 
-  const warm = (rawTexts: unknown, rawLang: unknown): number => {
+  const warm = (rawTexts: unknown, rawLang: unknown, rawRole?: unknown): number => {
     if (!getCasterConfig().isTtsEnabled || !Array.isArray(rawTexts)) return 0;
     const lang = normalizeLang(rawLang);
+    const role = normalizeRole(rawRole);
+    const options: TtsSynthesizeOptions = { role };
     let queued = 0;
     for (const rawText of rawTexts.slice(0, CASTER_TTS_WARM.MAX_TEXTS_PER_REQUEST)) {
       if (warmQueue.length >= CASTER_TTS_WARM.MAX_QUEUED) break;
       const text = normalizeText(rawText);
       if (!text || containsBlocked(text)) continue;
-      const key = `${lang}|${text}`;
+      const key = buildCacheKey(lang, role, undefined, undefined, undefined, text);
       if (warmKeys.has(key) || isAlreadyAvailable(key)) continue;
       warmKeys.add(key);
-      warmQueue.push({ key, text, lang });
+      warmQueue.push({ key, text, lang, options });
       queued += 1;
     }
     if (queued > 0 && !warmTimer) warmTimer = setTimeout(runNextWarm, 0);
     return queued;
   };
 
-  const synthesize = async (rawText: unknown, rawLang: unknown): Promise<CasterTtsResult> => {
+  const synthesize = async (
+    rawText: unknown,
+    rawLang: unknown,
+    rawOptions?: SynthesizeRequestOptions
+  ): Promise<CasterTtsResult> => {
     if (!getCasterConfig().isTtsEnabled) return { failure: CASTER_TTS_FAILURE.DISABLED };
     const text = normalizeText(rawText);
     if (!text) return { failure: CASTER_TTS_FAILURE.INVALID_TEXT };
     if (containsBlocked(text)) return { failure: CASTER_TTS_FAILURE.BLOCKED_TEXT };
 
     const lang = normalizeLang(rawLang);
-    const key = `${lang}|${text}`;
+    const role = normalizeRole(rawOptions?.role);
+    const intensity = normalizeIntensity(rawOptions?.intensity);
+    const rate = normalizeProsody(rawOptions?.rate);
+    const pitch = normalizeProsody(rawOptions?.pitch);
+
+    const options: TtsSynthesizeOptions = { role, intensity, rate, pitch };
+    const key = buildCacheKey(lang, role, intensity, rate, pitch, text);
     const cached = clipCache.get(key);
     if (cached) return { audio: cached.audio, isPrimaryVoice: cached.isPrimaryVoice };
 
     const isNewRequest = !inFlight.has(key) && !diskCache.has(key);
     if (isNewRequest && isRateLimited(Date.now())) return { failure: CASTER_TTS_FAILURE.RATE_LIMITED };
-    const pending = obtainClip(key, text, lang);
+    const pending = obtainClip(key, text, lang, options);
     try {
       const clip = await pending;
       return { audio: clip.audio, isPrimaryVoice: clip.isPrimaryVoice };

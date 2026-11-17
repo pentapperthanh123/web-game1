@@ -6,6 +6,7 @@ import {
   Clock,
   Sparkles,
   Layers,
+  Flame,
 } from 'lucide-react';
 import { adminSocket } from '../services/socket';
 import {
@@ -57,6 +58,10 @@ export function SilverScrapesControls() {
     adminSocket.setSilverScrapesControl('stop');
   };
 
+  const handleSkipIntro = () => {
+    adminSocket.setSilverScrapesControl('skipIntro');
+  };
+
   const handleExtendDuel = () => {
     adminSocket.setSilverScrapesControl('extend');
   };
@@ -88,7 +93,9 @@ export function SilverScrapesControls() {
                 }`}
               >
                 {duelState.isActive
-                  ? `ĐANG ĐỐI ĐẦU (⏱ 00:${duelState.timeRemaining < 10 ? '0' : ''}${duelState.timeRemaining})`
+                  ? duelState.isIntroActive
+                    ? `CHUẨN BỊ VÀO TRẬN (⏱ 00:0${duelState.introRemaining ?? 5})`
+                    : `ĐANG ĐỐI ĐẦU (⏱ 00:${duelState.timeRemaining < 10 ? '0' : ''}${duelState.timeRemaining})`
                   : 'SẴN SÀNG'}
               </span>
             </div>
@@ -102,6 +109,16 @@ export function SilverScrapesControls() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {duelState.isActive ? (
             <>
+              {duelState.isIntroActive && (
+                <button
+                  type="button"
+                  onClick={handleSkipIntro}
+                  className="flex-1 sm:flex-initial justify-center px-3 py-1.5 rounded-lg bg-sky-950/80 hover:bg-sky-900 border border-sky-700 text-xs font-bold text-sky-300 flex items-center space-x-1.5 transition active:scale-95"
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Vào Đấu Ngay</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleExtendDuel}

@@ -23,6 +23,7 @@ export interface ActiveStatusEffect {
   lastTickAt: number;
 }
 import { ActiveTeamsMap, QueuedMatchup, TeamConfigState, TeamProfile } from './team';
+import type { RoundHoldReason } from '../store/roundIntroStore';
 
 export interface MinionEntity {
   id: string;
@@ -47,6 +48,7 @@ export interface MinionEntity {
   isSignatureSynergy?: boolean;
   signaturePlayerName?: string;
   signaturePlayerRole?: string;
+  isElite?: boolean;
   statusEffects?: ActiveStatusEffect[];
 }
 
@@ -137,6 +139,8 @@ export interface ShockwaveEntity {
   timestamp: number;
   color: string;
   maxRadius: number;
+  /** 0..1 brightness of the ring (1 = full); subtle waves such as the boss retaliation use less. */
+  intensity?: number;
 }
 
 export interface MeteorEntity {
@@ -260,6 +264,7 @@ export interface QueuedSummon {
   userAvatarUrl?: string;
   isExplicitChampion?: boolean;
   isGiftBypass?: boolean;
+  isElite?: boolean;
   queuedAt: number;
 }
 
@@ -324,6 +329,12 @@ export interface ParticipationRuleConfig {
   championAttackSpeedMultiplier?: number;
   /** Regular time of a round before overtime; 0 = no time limit. */
   roundDurationMs?: number;
+  /** Auto-start countdown for new series in milliseconds; 0 = manual start only. */
+  seriesAutoStartMs?: number;
+  /** Matchup rotation mode when matchQueue is empty: 'random' | 'repeat'. */
+  matchRotationMode?: 'random' | 'repeat';
+  /** Whether the +15% comeback damage buff for trailing team is enabled. */
+  enableComebackBuff?: boolean;
 }
 
 export type BossWeakPointSpot = 'left-horn' | 'core-chest' | 'right-claw';
@@ -387,6 +398,8 @@ export interface SilverScrapesDuelEvent {
 
 export interface SilverScrapesDuelState {
   isActive: boolean;
+  isIntroActive?: boolean;
+  introRemaining?: number;
   timeRemaining: number;
   totalDuration: number;
   tugOfWarPercent: number;
@@ -534,19 +547,23 @@ export interface GameState {
   setMatchQueue: (queue: QueuedMatchup[]) => void;
   enqueueMatchup: (leftTeamId: string, rightTeamId: string, customLabel?: string) => boolean;
   removeQueuedMatchup: (queueId: string) => void;
-  advanceNextMatchQueue: () => boolean;
+  advanceNextMatchQueue: (forcedNextMatch?: { leftTeamId: string; rightTeamId: string }) => boolean;
   importTeamPack: (teams: TeamProfile[], importedQueue?: QueuedMatchup[]) => number;
-  applyTeamConfigSnapshot: (config: TeamConfigState, resetMatch?: boolean) => void;
+  applyTeamConfigSnapshot: (
+    config: TeamConfigState,
+    resetMatch?: boolean,
+    holdReason?: RoundHoldReason
+  ) => void;
   setGuestMode: (active: boolean) => void;
   setGuestTeam: (team: TeamType) => void;
   setGuestName: (name: string) => void;
   setAdminMode: (active: boolean) => void;
   /** Moves to `targetRound` when given (server-synced), otherwise to the round after the current one. */
   startNextRound: (targetRound?: number) => void;
-  resetBO5Match: () => void;
+  resetBO5Match: (holdReason?: RoundHoldReason) => void;
   /** Clears the title count of the two teams currently on stage. */
   resetMatchupChampionships: () => void;
-  setBO5Score: (blg: number, geng: number, currentRound?: number) => void;
+  setBO5Score: (leftWins: number, rightWins: number, currentRound?: number) => void;
   setBossSkillConfig: (config: Partial<BossSkillConfig>) => void;
   castBossSkill: (skillIndex?: number) => void;
   /** Applies damage-over-time ticks, expires debuffs; called on a fixed interval. */
@@ -591,7 +608,8 @@ export interface GameState {
     team: TeamType,
     isGiftBypass?: boolean,
     userAvatarUrl?: string,
-    isExplicitChampion?: boolean
+    isExplicitChampion?: boolean,
+    isElite?: boolean
   ) => void;
   summonMinionsBatch: (
     items: Array<{
@@ -601,6 +619,7 @@ export interface GameState {
       isGiftBypass?: boolean;
       userAvatarUrl?: string;
       isExplicitChampion?: boolean;
+      isElite?: boolean;
     }>
   ) => void;
   advanceSummonTurnQueue: () => void;

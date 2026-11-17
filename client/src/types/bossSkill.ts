@@ -33,6 +33,16 @@ export const BOSS_STATUS_EFFECT = {
 
 export type BossStatusEffectType = (typeof BOSS_STATUS_EFFECT)[keyof typeof BOSS_STATUS_EFFECT];
 
+/** Power class of a skill: its position in the boss's list (1st-3rd regular skill, then the ultimate). */
+export const BOSS_SKILL_TIER = {
+  LIGHT: 'LIGHT',
+  MEDIUM: 'MEDIUM',
+  HEAVY: 'HEAVY',
+  ULTIMATE: 'ULTIMATE',
+} as const;
+
+export type BossSkillTier = (typeof BOSS_SKILL_TIER)[keyof typeof BOSS_SKILL_TIER];
+
 /** Extra archetype played on top of a skill's main VFX (ultimates are built from several). */
 export interface BossSkillVfxLayer {
   vfxType: BossSkillVfxType;
@@ -64,8 +74,11 @@ export interface BossSkillVfxParams {
 export interface BossSkillStatusEffect {
   type: BossStatusEffectType;
   durationMs: number;
-  /** BURN / POISON: HP removed from the champion every tick. */
-  tickDamage?: number;
+  /**
+   * BURN / POISON: total damage over the whole effect as a share of the hit that applied it.
+   * The per-tick amount is derived at cast time, so it follows the same multipliers as the hit.
+   */
+  dotRatio?: number;
   /** LIFESTEAL: fraction of dealt damage the boss heals. */
   ratio?: number;
 }
@@ -92,7 +105,7 @@ export interface BossSkillBase {
   description: string;
 }
 
-export type BossSkillDefinition = BossSkillBase & BossSkillEffectProfile;
+export type BossSkillDefinition = BossSkillBase & BossSkillEffectProfile & { tier: BossSkillTier };
 
 export interface BossSkillConfig {
   autoAttackEnabled: boolean;

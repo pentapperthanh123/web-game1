@@ -10,6 +10,7 @@ import { TeamComboBadge, MIN_COMBO_DISPLAY_COUNT } from './TeamComboBadge';
 import { SummonSpotlight } from './SummonShowcase';
 import { MatchupTitleTally } from './MatchupTitleTally';
 import { TeamLiveStatusRow } from './TeamLiveStatusRow';
+import { isComebackBuffActive } from '../../store/comebackRules';
 
 /**
  * Isolated continuous damage number & ratio display.
@@ -41,10 +42,17 @@ const TeamDmgDisplay = React.memo(
 
     const totalScore = leftScore + rightScore;
     const ratio = totalScore > 0 ? (currentScore / totalScore) * 100 : 50;
+    const hasComebackBuff = isComebackBuffActive(team);
+    const { t } = useTranslation();
 
     return (
       <div className="min-w-0 shrink-0">
         <div className={`flex items-center space-x-1.5 ${isLeft ? '' : 'justify-end'}`}>
+          {!isLeft && hasComebackBuff && (
+            <span className="flex items-center gap-0.5 text-[8.5px] sm:text-[9.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse shrink-0">
+              ⚡ {t('Game.comebackBuffBadge', 'LẬT KÈO +15%')}
+            </span>
+          )}
           {!isLeft && (
             <span
               className={`text-[9px] sm:text-[10px] font-mono font-extrabold px-1 rounded border shrink-0 ${theme.textMutedClass} ${theme.bgSoftClass} ${theme.borderSoftClass}`}
@@ -62,6 +70,11 @@ const TeamDmgDisplay = React.memo(
               className={`text-[9px] sm:text-[10px] font-mono font-extrabold px-1 rounded border shrink-0 ${theme.textMutedClass} ${theme.bgSoftClass} ${theme.borderSoftClass}`}
             >
               {ratio.toFixed(0)}%
+            </span>
+          )}
+          {isLeft && hasComebackBuff && (
+            <span className="flex items-center gap-0.5 text-[8.5px] sm:text-[9.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse shrink-0">
+              ⚡ {t('Game.comebackBuffBadge', 'LẬT KÈO +15%')}
             </span>
           )}
         </div>

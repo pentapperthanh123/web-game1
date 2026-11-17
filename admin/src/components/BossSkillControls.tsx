@@ -35,6 +35,12 @@ import {
   BOSS_SKILL_MODE_OPTIONS,
   BOSS_SKILL_MODES,
 } from '../constants/bossSkills';
+import {
+  DEFAULT_SKILL_DAMAGE_MULTIPLIER,
+  LEGACY_SKILL_DAMAGE_MULTIPLIER,
+  buildSkillBalanceRows,
+} from '../constants/bossSkillBalance';
+import { BossSkillBalanceTable } from './BossSkillBalanceTable';
 import { TeamConfigState, getTeamTheme } from '../constants/teams';
 
 interface BossSkillControlsProps {
@@ -51,7 +57,14 @@ const BOSS_NAMES: Record<GameThemeType, string> = {
   VOID_TITAN: 'Thần Hư Vô Nguyên Thủy',
 };
 
-const DAMAGE_MULTIPLIER_OPTIONS = [0.25, 0.5, 1.0, 1.5, 2.0] as const;
+const DAMAGE_MULTIPLIER_OPTIONS = [0.25, 0.45, 0.7, 1.0, 1.5] as const;
+
+const DAMAGE_MULTIPLIER_HINTS: Readonly<Record<number, string>> = {
+  0.25: 'Nhẹ (0.25x - Tướng hiếm khi gục)',
+  0.45: 'Mặc định: Vừa (0.45x - Chiêu thường mất 10-35% máu)',
+  0.7: 'Mạnh (0.7x - Tuyệt kỹ quét gục phần lớn sân)',
+  1.0: 'Sát thương chuẩn (1.0x)',
+};
 
 const SKILL_VFX_LABELS: Record<BossSkillVfxType, string> = {
   [BOSS_SKILL_VFX.PROJECTILE_ARC]: '🟢 Phun đạn',
@@ -76,12 +89,18 @@ const STATUS_EFFECT_LABELS: Record<BossStatusEffectType, { label: string; color:
   [BOSS_STATUS_EFFECT.LIFESTEAL]: { label: '🩸 Boss hút máu', color: '#e11d48' },
 };
 
+/** A stored multiplier equal to the old default was never chosen on purpose: use the new default. */
+const upgradeLegacyMultiplier = (config: BossSkillConfig): BossSkillConfig =>
+  config.damageMultiplier === LEGACY_SKILL_DAMAGE_MULTIPLIER
+    ? { ...config, damageMultiplier: DEFAULT_SKILL_DAMAGE_MULTIPLIER }
+    : config;
+
 const loadInitialConfig = (): BossSkillConfig => {
   if (typeof window === 'undefined') return DEFAULT_BOSS_SKILL_CONFIG;
   try {
     const raw = localStorage.getItem(BOSS_SKILL_STORAGE_KEY);
     if (!raw) return DEFAULT_BOSS_SKILL_CONFIG;
-    return { ...DEFAULT_BOSS_SKILL_CONFIG, ...JSON.parse(raw) };
+    return upgradeLegacyMultiplier({ ...DEFAULT_BOSS_SKILL_CONFIG, ...JSON.parse(raw) });
   } catch {
     return DEFAULT_BOSS_SKILL_CONFIG;
   }
@@ -166,6 +185,7 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
 
 
   const activeSkills = getBossSkillsByTheme(currentTheme);
+  const balanceRows = buildSkillBalanceRows(activeSkills, currentTheme, config.damageMultiplier);
   const bossName = BOSS_NAMES[currentTheme] || 'Baron Nashor';
 
   const getSkillChanceBadge = (index: number) => {
@@ -385,11 +405,7 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
             ))}
           </div>
           <div className="text-[10px] text-slate-500 font-mono mt-1 text-center">
-            {config.damageMultiplier === 1.0
-              ? 'Sát thương chuẩn (1.0x)'
-              : config.damageMultiplier === 0.25
-                ? 'Mặc định cân bằng (0.25x - Tướng trụ lâu)'
-                : `Nhân ${config.damageMultiplier}x sát thương`}
+            {DAMAGE_MULTIPLIER_HINTS[config.damageMultiplier] ?? `Nhân ${config.damageMultiplier}x sát thương`}
           </div>
         </div>
       </div>
@@ -411,7 +427,7 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           {activeSkills.map((skill, index) => {
             const Icon = SKILL_ICONS[skill.iconName] || Flame;
-            const actualDmg = Math.round(skill.baseDamage * config.damageMultiplier);
+            const balanceRow = balanceRows[index];
             const chanceBadge = getSkillChanceBadge(index);
 
             return (
@@ -482,10 +498,10 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 mt-1">
                   <span className="text-[10px] font-mono text-slate-400">
-                    Mục tiêu: {skill.targetCount >= 999 ? 'Toàn bộ sân' : `${skill.targetCount} tướng`}
+                    Mục tiêu: {skill.targetCount >= 999 ? 'Toàn bộ sân' : `≥ ${skill.targetCount} tướng`}
                   </span>
-                  <span className="text-xs font-black text-rose-400 font-mono">
-                    -{actualDmg} HP
+                  <span className="text-xs font-black text-rose-400 font-mono" title="Sát thương thường → tối đa (giai đoạn 3 + nổi điên)">
+                    -{balanceRow.hitDamageCalm}→{balanceRow.hitDamageWorst} HP
                   </span>
                 </div>
               </button>
@@ -493,6 +509,8 @@ export function BossSkillControls({ currentTheme, teamConfig: propTeamConfig }: 
           })}
         </div>
       </div>
+
+      <BossSkillBalanceTable skills={activeSkills} theme={currentTheme} damageMultiplier={config.damageMultiplier} />
 
       {/* 5. Healing Actions (Cứu Tướng & Hồi Phục Máu) */}
       <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">

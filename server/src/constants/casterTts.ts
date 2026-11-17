@@ -76,6 +76,8 @@ export const CASTER_TTS_ENV = {
   PROVIDER: 'CASTER_TTS_PROVIDER',
   /** "GOOGLE" re-enables the Google voice as fallback behind Edge/Azure; default: no other voice is mixed in. */
   FALLBACK_VOICE: 'CASTER_TTS_FALLBACK_VOICE',
+  /** Force 100% Male voice across all lines, ignoring female role requests. */
+  FORCE_MALE: 'CASTER_TTS_FORCE_MALE',
   EDGE_PYTHON: 'EDGE_TTS_PYTHON',
   EDGE_VOICE_VI: 'EDGE_TTS_VOICE_VI',
   EDGE_VOICE_EN: 'EDGE_TTS_VOICE_EN',
@@ -85,14 +87,44 @@ export const CASTER_TTS_ENV = {
   AZURE_VOICE_EN: 'AZURE_SPEECH_VOICE_EN',
 } as const;
 
+export const CASTER_VOICE_ROLE = {
+  MALE: 'male',
+  FEMALE: 'female',
+} as const;
+export type CasterVoiceRole = (typeof CASTER_VOICE_ROLE)[keyof typeof CASTER_VOICE_ROLE];
+
+export const CASTER_EMOTION_INTENSITY = {
+  NORMAL: 'normal',
+  HYPE: 'hype',
+  CLIMAX: 'climax',
+} as const;
+export type CasterEmotionIntensity = (typeof CASTER_EMOTION_INTENSITY)[keyof typeof CASTER_EMOTION_INTENSITY];
+
+export const EMOTION_PROSODY: Readonly<Record<CasterEmotionIntensity, { rate: string; pitch: string }>> = {
+  [CASTER_EMOTION_INTENSITY.NORMAL]: { rate: '+0%', pitch: '+0Hz' },
+  [CASTER_EMOTION_INTENSITY.HYPE]: { rate: '+5%', pitch: '+0Hz' },
+  [CASTER_EMOTION_INTENSITY.CLIMAX]: { rate: '+10%', pitch: '+0Hz' },
+};
+
+export const DUAL_VOICES: Readonly<Record<CasterVoiceRole, Record<CasterTtsLang, string>>> = {
+  [CASTER_VOICE_ROLE.MALE]: {
+    [CASTER_TTS_LANG.VI]: 'vi-VN-NamMinhNeural',
+    [CASTER_TTS_LANG.EN]: 'en-US-AndrewNeural',
+  },
+  [CASTER_VOICE_ROLE.FEMALE]: {
+    [CASTER_TTS_LANG.VI]: 'vi-VN-HoaiMyNeural',
+    [CASTER_TTS_LANG.EN]: 'en-US-AvaNeural',
+  },
+};
+
 export const AZURE_TTS = {
   ENDPOINT_TEMPLATE: 'https://{region}.tts.speech.microsoft.com/cognitiveservices/v1',
   OUTPUT_FORMAT: 'audio-24khz-48kbitrate-mono-mp3',
-  DEFAULT_VOICE: { [CASTER_TTS_LANG.VI]: 'vi-VN-HoaiMyNeural', [CASTER_TTS_LANG.EN]: 'en-US-AndrewNeural' },
+  DEFAULT_VOICE: { [CASTER_TTS_LANG.VI]: 'vi-VN-NamMinhNeural', [CASTER_TTS_LANG.EN]: 'en-US-AndrewNeural' },
   LOCALE: { [CASTER_TTS_LANG.VI]: 'vi-VN', [CASTER_TTS_LANG.EN]: 'en-US' },
-  /** Persona "BLV Bão": energetic, natural esports pacing. */
-  PROSODY_RATE: '+28%',
-  PROSODY_PITCH: '+2%',
+  /** Default natural pacing (1.0x). */
+  PROSODY_RATE: '+0%',
+  PROSODY_PITCH: '+0Hz',
 } as const;
 
 /**
@@ -105,8 +137,12 @@ export const EDGE_TTS = {
   MODULE: 'edge_tts',
   /** NamMinh (male) caster voice; set EDGE_TTS_VOICE_VI=vi-VN-HoaiMyNeural for the female voice. */
   DEFAULT_VOICE: { [CASTER_TTS_LANG.VI]: 'vi-VN-NamMinhNeural', [CASTER_TTS_LANG.EN]: 'en-US-AndrewNeural' },
-  /** Caster persona: natural, crisp esports pacing. */
-  RATE: '+28%',
+  /** Default natural pacing (1.0x). */
+  RATE: '+0%',
+  /** Edge TTS rejects non-zero pitch with NoAudioReceived. Pitch is locked to +0Hz for stability. */
+  SAFE_PITCH: '+0Hz',
+  MAX_RETRIES: 2,
+  RETRY_DELAY_MS: 350,
   /** With a fallback voice: the primary is used only if it answers within this grace. */
   PRIMARY_GRACE_MS: 1_200,
   /** Per attempt; a late answer is still cached for the next time the line is needed. */

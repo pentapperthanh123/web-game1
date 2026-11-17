@@ -8,6 +8,12 @@ import { ShockwaveRings } from './ShockwaveRings';
 import { SlashEffects } from './SlashEffects';
 import { MeteorShower3D } from './MeteorShower3D';
 import { CelestialGiftVFX } from './CelestialGiftVFX';
+import { GiftVFXPool } from './gift/GiftVFXPool';
+import { DonatorGlorification } from './gift/DonatorGlorification';
+import { InnateMilestoneVFX } from './gift/InnateMilestoneVFX';
+import { CinematicCameraController } from './gift/CinematicCameraController';
+import { VictoryPodium3D } from './gift/VictoryPodium3D';
+import { ContinuousVictoryFireworks } from './gift/ContinuousVictoryFireworks';
 import { HealWave3D } from './HealWave3D';
 import { ArenaEnvironment } from './ArenaEnvironment';
 import { BossVoidAttack } from './BossVoidAttack';
@@ -36,6 +42,7 @@ export const GameCanvas = React.memo(() => {
         frameloop="always"
       >
         <CameraRig />
+        <CinematicCameraController />
         <ArenaEnvironment />
         <Boss3DPresence />
         <BossVoidAttack />
@@ -48,6 +55,11 @@ export const GameCanvas = React.memo(() => {
         <ShockwaveRings />
         <MeteorShower3D />
         <CelestialGiftVFX />
+        <GiftVFXPool />
+        <DonatorGlorification />
+        <InnateMilestoneVFX />
+        <VictoryPodium3D />
+        <ContinuousVictoryFireworks />
         <FloatingHearts />
         <HealWave3D />
       </Canvas>

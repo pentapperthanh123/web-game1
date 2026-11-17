@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Heart, RefreshCw, FastForward, RotateCcw, Check, Trophy, Play, Swords } from 'lucide-react';
+import { Heart, RefreshCw, FastForward, RotateCcw, Check, Trophy, Play, Swords, Zap } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
 import { ADMIN_CONSTANTS, TEAM_KEY } from '../../../constants/game';
+import { ParticipationRuleConfig } from '../../../types/game';
 import { getTeamTheme } from '../../../constants/teams';
 import { gameSocket } from '../../../services/socket';
 import { getMatchupTitleCount } from '../../../store/championshipTally';
@@ -32,6 +33,9 @@ export const AdminMatchTab: React.FC = () => {
   const leftTheme = getTeamTheme(leftTeam.colorTheme);
   const rightTheme = getTeamTheme(rightTeam.colorTheme);
 
+  const participationRuleConfig = useGameStore((state) => state.participationRuleConfig);
+  const setParticipationRuleConfig = useGameStore((state) => state.setParticipationRuleConfig);
+
   const [inputHp, setInputHp] = useState<number>(bossHp);
   const [blgScore, setBlgScore] = useState<number>(bo5Score.BLG);
   const [gengScore, setGengScore] = useState<number>(bo5Score.GENG);
@@ -43,6 +47,12 @@ export const AdminMatchTab: React.FC = () => {
     setTimeout(() => {
       setStatusFeedback((prev) => (prev === msg ? null : prev));
     }, 1500);
+  };
+
+  const handleUpdateRule = (patch: Partial<ParticipationRuleConfig>, msg: string) => {
+    setParticipationRuleConfig(patch);
+    gameSocket.sendParticipationRuleConfig(patch);
+    showFeedback(msg);
   };
 
   const handleApplyHp = (hpValue: number) => {
@@ -366,10 +376,123 @@ export const AdminMatchTab: React.FC = () => {
         <button
           type="button"
           onClick={handleSaveScore}
-          className="w-full py-1.5 rounded-lg bg-amber-950/70 border border-amber-500/60 text-amber-300 font-bold hover:bg-amber-900/80 transition active:scale-95"
+          className="w-full py-1.5 rounded-lg bg-amber-950/70 border border-amber-500/60 text-amber-300 font-bold hover:bg-amber-900/80 transition active:scale-95 cursor-pointer"
         >
-          Lưu tỉ số BO5
+          {t('Admin.saveScoreBtn', 'Lưu tỉ số BO5')}
         </button>
+      </div>
+
+      {/* Section 4: Match Flow, Rotation & Comeback Buff */}
+      <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3">
+        <div className="flex items-center space-x-1.5 font-bold text-amber-300">
+          <Zap className="w-3.5 h-3.5 text-amber-400" />
+          <span>{t('Admin.matchFlowSectionTitle', 'Cài Đặt Luồng Trận & Lật Kèo')}</span>
+        </div>
+
+        {/* Series Auto Start Countdown */}
+        <div>
+          <div className="text-[11px] font-bold text-slate-300 mb-1">
+            {t('Admin.seriesAutoStartLabel', 'Tự bắt đầu loạt trận mới (thẻ chờ)')}
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {[
+              { label: t('Admin.off', 'Tắt'), value: 0 },
+              { label: '10s', value: 10_000 },
+              { label: '15s', value: 15_000 },
+              { label: '30s', value: 30_000 },
+            ].map((opt) => {
+              const currentVal = participationRuleConfig.seriesAutoStartMs ?? 15_000;
+              const isSelected = currentVal === opt.value;
+              return (
+                <button
+                  key={`auto-start-${opt.value}`}
+                  type="button"
+                  onClick={() =>
+                    handleUpdateRule(
+                      { seriesAutoStartMs: opt.value },
+                      t('Admin.autoStartUpdatedFeedback', 'Đã cập nhật tự bắt đầu: {{val}}', { val: opt.label })
+                    )
+                  }
+                  className={`py-1.5 px-2 rounded-lg text-xs font-black transition border cursor-pointer ${
+                    isSelected
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-400/60 shadow-sm'
+                      : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Empty Queue Rotation Mode */}
+        <div>
+          <div className="text-[11px] font-bold text-slate-300 mb-1">
+            {t('Admin.matchRotationModeLabel', 'Khi hết hàng đợi cặp đấu')}
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {[
+              { label: t('Admin.rotationRandom', 'Ghép ngẫu nhiên'), value: 'random' as const },
+              { label: t('Admin.rotationRepeat', 'Lặp lại cặp cũ'), value: 'repeat' as const },
+            ].map((opt) => {
+              const currentMode = participationRuleConfig.matchRotationMode ?? 'random';
+              const isSelected = currentMode === opt.value;
+              return (
+                <button
+                  key={`rot-mode-${opt.value}`}
+                  type="button"
+                  onClick={() =>
+                    handleUpdateRule(
+                      { matchRotationMode: opt.value },
+                      t('Admin.rotationModeUpdatedFeedback', 'Đã đổi chế độ quay vòng: {{val}}', { val: opt.label })
+                    )
+                  }
+                  className={`py-1.5 px-2 rounded-lg text-xs font-black transition border cursor-pointer ${
+                    isSelected
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/60 shadow-sm'
+                      : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Comeback Buff (+15%) */}
+        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+          <div>
+            <div className="text-[11px] font-bold text-slate-200">
+              {t('Admin.comebackBuffLabel', 'Buff Lật Kèo cho đội bị dẫn (+15%)')}
+            </div>
+            <div className="text-[10px] text-slate-400">
+              {t('Admin.comebackBuffDesc', 'Bật khi điểm < 70%, tắt khi > 85% (sát thương ≥ 5.000)')}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const current = participationRuleConfig.enableComebackBuff ?? true;
+              handleUpdateRule(
+                { enableComebackBuff: !current },
+                !current
+                  ? t('Admin.comebackEnabledFeedback', 'Đã bật Buff Lật Kèo (+15%)')
+                  : t('Admin.comebackDisabledFeedback', 'Đã tắt Buff Lật Kèo')
+              );
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition border cursor-pointer ${
+              (participationRuleConfig.enableComebackBuff ?? true)
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/60 shadow-sm'
+                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+            }`}
+          >
+            {(participationRuleConfig.enableComebackBuff ?? true)
+              ? t('Admin.enabled', 'Bật')
+              : t('Admin.disabled', 'Tắt')}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -6,7 +6,8 @@ import {
   AUTO_PRO_BATTLE_CONSTANTS,
   COMBAT_VFX_CONSTANTS,
   GAME_CONSTANTS,
-  TEAM_KEY,
+  TEAM_SLOTS,
+  TeamType,
 } from '../../constants/game';
 import { createEmptyTeamCombo, createEmptyTeamHeartMomentum } from '../storeHelpers';
 import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
@@ -65,21 +66,27 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
       state.activeHeartMilestoneBanner !== null &&
       now - state.activeHeartMilestoneBanner.timestamp <= GAME_CONSTANTS.HEART_MILESTONE.BANNER_DURATION_MS;
 
-    const isBLGComboExpired =
-      state.teamCombos[TEAM_KEY.BLG].count > 0 &&
-      now - state.teamCombos[TEAM_KEY.BLG].lastTimestamp > COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
-    const isGENGComboExpired =
-      state.teamCombos[TEAM_KEY.GENG].count > 0 &&
-      now - state.teamCombos[TEAM_KEY.GENG].lastTimestamp > COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
-    const hasComboChanged = isBLGComboExpired || isGENGComboExpired;
+    const isComboExpiredBySlot = Object.fromEntries(
+      TEAM_SLOTS.map((slot) => {
+        const combo = state.teamCombos[slot];
+        const isExpired =
+          combo.count > 0 &&
+          now - combo.lastTimestamp > COMBAT_VFX_CONSTANTS.DAMAGE.COMBO_WINDOW_MS;
+        return [slot, isExpired];
+      })
+    ) as Record<TeamType, boolean>;
+    const hasComboChanged = TEAM_SLOTS.some((slot) => isComboExpiredBySlot[slot]);
 
-    const isBLGMomentumExpired =
-      state.teamHeartMomentum[TEAM_KEY.BLG].multiplier > 1 &&
-      now - state.teamHeartMomentum[TEAM_KEY.BLG].lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS;
-    const isGENGMomentumExpired =
-      state.teamHeartMomentum[TEAM_KEY.GENG].multiplier > 1 &&
-      now - state.teamHeartMomentum[TEAM_KEY.GENG].lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS;
-    const hasMomentumChanged = isBLGMomentumExpired || isGENGMomentumExpired;
+    const isMomentumExpiredBySlot = Object.fromEntries(
+      TEAM_SLOTS.map((slot) => {
+        const momentum = state.teamHeartMomentum[slot];
+        const isExpired =
+          momentum.multiplier > 1 &&
+          now - momentum.lastTapAt > GAME_CONSTANTS.MINION_FURY.HEART_TAP_SPEED_WINDOW_MS;
+        return [slot, isExpired];
+      })
+    ) as Record<TeamType, boolean>;
+    const hasMomentumChanged = TEAM_SLOTS.some((slot) => isMomentumExpiredBySlot[slot]);
 
     const nextRosterTimestamps: Record<string, number> = {};
     let hasRosterAttackChanged = false;
@@ -92,9 +99,7 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
     }
 
     const hasMinionsChanged = activeMinions.length !== state.minions.length;
-    const hasQueueItems =
-      (state.summonQueue?.[TEAM_KEY.BLG]?.length ?? 0) > 0 ||
-      (state.summonQueue?.[TEAM_KEY.GENG]?.length ?? 0) > 0;
+    const hasQueueItems = TEAM_SLOTS.some((slot) => (state.summonQueue?.[slot]?.length ?? 0) > 0);
 
     let finalMinions = activeMinions;
     let nextSummonQueue = state.summonQueue;
@@ -157,26 +162,22 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
 
     let nextTeamCombos = state.teamCombos;
     if (hasComboChanged) {
-      nextTeamCombos = {
-        [TEAM_KEY.BLG]: isBLGComboExpired
-          ? createEmptyTeamCombo()
-          : state.teamCombos[TEAM_KEY.BLG],
-        [TEAM_KEY.GENG]: isGENGComboExpired
-          ? createEmptyTeamCombo()
-          : state.teamCombos[TEAM_KEY.GENG],
-      };
+      nextTeamCombos = Object.fromEntries(
+        TEAM_SLOTS.map((slot) => [
+          slot,
+          isComboExpiredBySlot[slot] ? createEmptyTeamCombo() : state.teamCombos[slot],
+        ])
+      ) as Record<TeamType, (typeof state.teamCombos)[TeamType]>;
     }
 
     let nextTeamHeartMomentum = state.teamHeartMomentum;
     if (hasMomentumChanged) {
-      nextTeamHeartMomentum = {
-        [TEAM_KEY.BLG]: isBLGMomentumExpired
-          ? createEmptyTeamHeartMomentum()
-          : state.teamHeartMomentum[TEAM_KEY.BLG],
-        [TEAM_KEY.GENG]: isGENGMomentumExpired
-          ? createEmptyTeamHeartMomentum()
-          : state.teamHeartMomentum[TEAM_KEY.GENG],
-      };
+      nextTeamHeartMomentum = Object.fromEntries(
+        TEAM_SLOTS.map((slot) => [
+          slot,
+          isMomentumExpiredBySlot[slot] ? createEmptyTeamHeartMomentum() : state.teamHeartMomentum[slot],
+        ])
+      ) as Record<TeamType, (typeof state.teamHeartMomentum)[TeamType]>;
     }
 
     const collections = hasMinionsChanged || finalMinions.length !== state.minions.length

@@ -3,13 +3,15 @@ import {
   BOSS_STATUS_EFFECT,
   BossSkillEffectProfile,
 } from '../types/bossSkill';
+import { BOSS_SKILL_DOT_RATIO } from './bossSkillBalance';
 
 const ULTIMATE_UNLOCK_PHASE = 2;
 
+/** Damage over time = `dotRatio` of the hit that applied it (mirrors the client). */
 const DOT = {
-  LIGHT: { durationMs: 4000, tickDamage: 4 },
-  MEDIUM: { durationMs: 5000, tickDamage: 6 },
-  HEAVY: { durationMs: 6000, tickDamage: 9 },
+  LIGHT: { durationMs: 4000, dotRatio: BOSS_SKILL_DOT_RATIO.LIGHT },
+  MEDIUM: { durationMs: 5000, dotRatio: BOSS_SKILL_DOT_RATIO.MEDIUM },
+  HEAVY: { durationMs: 6000, dotRatio: BOSS_SKILL_DOT_RATIO.HEAVY },
 } as const;
 
 const STUN = {

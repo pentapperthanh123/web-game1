@@ -14,10 +14,13 @@ import { gameSocket } from '../../services/socket';
 import { getTeamTheme } from '../../constants/teams';
 import { VictoryHeaderStage } from './victory/VictoryHeaderStage';
 import { VictorySeriesScoreCard } from './victory/VictorySeriesScoreCard';
-import { VictoryMvpCard } from './victory/VictoryMvpCard';
-import { PODIUM_SIZE, VictoryPodiumCard } from './victory/VictoryPodiumCard';
 import { VictoryDamageSummaryCard } from './victory/VictoryDamageSummaryCard';
 import { VictoryActionControls } from './victory/VictoryActionControls';
+import { ROUND_HOLD_REASON } from '../../store/roundIntroStore';
+import { previewNextMatchup } from '../../store/matchRotation';
+import { useGiftVfxStore } from '../../store/giftVfxStore';
+import { useRoseGratitudeStore } from '../../store/roseGratitudeStore';
+import { hideCombatDeployBanner } from '../../store/combatDeployBannerStore';
 import {
   VICTORY_CELEBRATION_STARS,
   resolveEffectiveWinner,
@@ -28,8 +31,6 @@ export const VictoryOverlay = () => {
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const leftScore = useGameStore((state) => state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG);
   const rightScore = useGameStore((state) => state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG);
-  const leaderboard = useGameStore((state) => state.leaderboard);
-  const proLeaderboard = useGameStore((state) => state.proLeaderboard);
   const bo5Score = useGameStore((state) => state.bo5Score);
   const currentRound = useGameStore((state) => state.currentRound);
   const seriesFormat = useGameStore((state) => state.seriesFormat);
@@ -45,6 +46,10 @@ export const VictoryOverlay = () => {
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
   const advanceNextMatchQueue = useGameStore((state) => state.advanceNextMatchQueue);
   const matchQueue = useGameStore((state) => state.matchQueue);
+  const teamCatalog = useGameStore((state) => state.teamCatalog);
+  const matchRotationMode = useGameStore(
+    (state) => state.participationRuleConfig.matchRotationMode
+  );
   const activeTeams = useGameStore((state) => state.activeTeams);
   const gameTheme = useGameStore((state) => state.gameTheme);
 
@@ -78,11 +83,20 @@ export const VictoryOverlay = () => {
     const revealTimer = setTimeout(() => {
       setIsVictoryVisible(true);
       playSound(SFX_EVENT.VICTORY);
+      useGiftVfxStore.getState().setPodiumOrbitActive(true);
+      useGiftVfxStore.getState().setContinuousFireworksActive(true);
+
+      // Clean up lingering combat toasts, deployment banners and skill tags immediately
+      useRoseGratitudeStore.getState().clearAllToasts();
+      hideCombatDeployBanner();
+      useGameStore.getState().clearBossSkillBanner?.();
     }, victoryDelay);
 
     return () => {
       clearTimeout(revealTimer);
       audioService.setCombatMuted(false);
+      useGiftVfxStore.getState().setPodiumOrbitActive(false);
+      useGiftVfxStore.getState().setContinuousFireworksActive(false);
     };
   }, [isDefeated]);
 
@@ -104,14 +118,23 @@ export const VictoryOverlay = () => {
   const winnerProfile = activeTeams[effectiveWinner];
   const winnerTheme = getTeamTheme(winnerProfile?.colorTheme);
 
-  const viewerTopPlayers = leaderboard.slice(0, PODIUM_SIZE);
-  const proMvp = proLeaderboard.length > 0 ? proLeaderboard[0] : null;
-  const nextQueuedMatch = matchQueue.length > 0 ? matchQueue[0] : null;
+  const currentPair = {
+    leftTeamId: leftTeam.id,
+    rightTeamId: rightTeam.id,
+  };
+  const previewMatch = previewNextMatchup(
+    matchQueue,
+    teamCatalog,
+    currentPair,
+    matchRotationMode
+  );
 
   const handleStartNextRound = () => {
     if (isAdvancing || isAdvancingRef.current) return;
     isAdvancingRef.current = true;
     setIsAdvancing(true);
+    useGiftVfxStore.getState().setPodiumOrbitActive(false);
+    useGiftVfxStore.getState().setContinuousFireworksActive(false);
     const finishedRound = useGameStore.getState().currentRound;
     startNextRound();
     // Says which round just ended: a duplicate request (another overlay's countdown) is ignored by the server
@@ -122,14 +145,18 @@ export const VictoryOverlay = () => {
     if (isAdvancing || isAdvancingRef.current) return;
     isAdvancingRef.current = true;
     setIsAdvancing(true);
-    resetBO5Match();
+    useGiftVfxStore.getState().setPodiumOrbitActive(false);
+    useGiftVfxStore.getState().setContinuousFireworksActive(false);
+    resetBO5Match(ROUND_HOLD_REASON.NEW_SERIES);
   };
 
   const handleAdvanceQueuedMatch = () => {
-    if (isAdvancing || isAdvancingRef.current || !nextQueuedMatch) return;
+    if (isAdvancing || isAdvancingRef.current || !previewMatch) return;
     isAdvancingRef.current = true;
     setIsAdvancing(true);
-    const didAdvance = advanceNextMatchQueue();
+    useGiftVfxStore.getState().setPodiumOrbitActive(false);
+    useGiftVfxStore.getState().setContinuousFireworksActive(false);
+    const didAdvance = advanceNextMatchQueue(previewMatch);
     if (!didAdvance) return;
 
     const latest = useGameStore.getState();
@@ -144,10 +171,11 @@ export const VictoryOverlay = () => {
   };
 
   return (
-    <div className="absolute inset-0 bg-slate-950/92 backdrop-blur-2xl z-50 flex flex-col items-center justify-center p-2 sm:p-4 text-center animate-in fade-in zoom-in-95 duration-700 pointer-events-auto select-none overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/30 via-slate-950/80 to-slate-950 pointer-events-none" />
+    <div className="flex flex-col justify-between h-screen w-full absolute inset-0 z-50 pointer-events-none select-none overflow-hidden animate-in fade-in duration-700">
+      {/* Top and Bottom Cinematic Broadcast Vignettes (keeps 3D Canvas center visible) */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/85 via-transparent to-slate-950/90 pointer-events-none" />
       <div
-        className={`absolute w-96 h-96 rounded-full blur-[100px] opacity-35 pointer-events-none ${winnerTheme.glowOrbClass}`}
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[32rem] h-[32rem] rounded-full blur-[130px] opacity-20 pointer-events-none ${winnerTheme.glowOrbClass}`}
       />
 
       {VICTORY_CELEBRATION_STARS.map((star) => (
@@ -160,7 +188,8 @@ export const VictoryOverlay = () => {
         </div>
       ))}
 
-      <div className="relative z-10 max-w-sm w-full space-y-2 my-auto py-1 px-2.5">
+      {/* TOP SECTION: Winner Header, Team Logo & Series Score at flex-start */}
+      <div className="relative z-10 max-w-sm w-full mx-auto space-y-1.5 pt-3 px-3 pointer-events-auto flex flex-col items-center">
         <VictoryHeaderStage
           winnerProfile={winnerProfile}
           winnerSlot={effectiveWinner}
@@ -183,17 +212,13 @@ export const VictoryOverlay = () => {
           targetWins={bo5TargetWins}
           seriesFormat={seriesFormat}
         />
+      </div>
 
-        {viewerTopPlayers.length > 0 ? (
-          <VictoryPodiumCard
-            topPlayers={viewerTopPlayers}
-            activeTeams={activeTeams}
-            finisherPlayerName={finisherPlayerName}
-          />
-        ) : (
-          <VictoryMvpCard viewerMvp={null} proMvp={proMvp} activeTeams={activeTeams} />
-        )}
+      {/* MIDDLE SECTION: Open unobstructed viewport for 3D Victory Podium & 360 Orbit Camera */}
+      <div className="flex-1 pointer-events-none" />
 
+      {/* BOTTOM SECTION: Damage Summary Bar & Glassmorphic Action Controls at flex-end */}
+      <div className="relative z-10 max-w-sm w-full mx-auto space-y-2 pb-10 px-3 pointer-events-auto flex flex-col items-center">
         <VictoryDamageSummaryCard
           leftTeam={leftTeam}
           rightTeam={rightTeam}
@@ -210,11 +235,12 @@ export const VictoryOverlay = () => {
           isSeriesEnded={isSeriesEnded}
           seriesFormat={seriesFormat}
           isAdvancing={isAdvancing}
-          nextQueuedMatchLabel={nextQueuedMatch?.label ?? null}
+          nextQueuedMatchLabel={previewMatch?.label ?? null}
           remainingQueueCount={matchQueue.length}
           onStartNextRound={handleStartNextRound}
           onResetSeriesMatch={handleResetSeriesMatch}
           onAdvanceQueuedMatch={handleAdvanceQueuedMatch}
+          teamColor={winnerTheme.primaryHex}
         />
       </div>
     </div>

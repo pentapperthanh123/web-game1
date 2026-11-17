@@ -51,6 +51,11 @@ export const SFX_FALLBACKS: Record<SfxEventName, () => void> = {
   [SFX_EVENT.SILVER_SCRAPES]: () => audioService.startSilverScrapesBgm(),
   [SFX_EVENT.MATCH_FOUND]: () => audioService.playRoundStartSound(),
   [SFX_EVENT.MATCH_ACCEPT]: () => audioService.playSummonArrivalSound(),
+  // Bundled local files; if they ever fail, the fly-in file falls back to the synth fanfare, the rest stay silent
+  [SFX_EVENT.INTRO_FLY_IMPACT]: () => audioService.playRoundStartSound(),
+  [SFX_EVENT.INTRO_DEEP_IMPACT]: () => undefined,
+  [SFX_EVENT.INTRO_TITLE_HORN]: () => undefined,
+  [SFX_EVENT.INTRO_CROWD_ROAR]: () => undefined,
   [SFX_EVENT.BOSS_ROAR_HERALD]: () => audioService.playBossRoarSound(DEFAULT_PITCH_RATE, false),
   [SFX_EVENT.BOSS_ENRAGE_HERALD]: () => audioService.playBossEnrageSound(DEFAULT_PITCH_RATE),
   [SFX_EVENT.BOSS_ROAR_MOUNTAIN]: () => audioService.playBossRoarSound(DEFAULT_PITCH_RATE, false),

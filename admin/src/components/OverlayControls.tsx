@@ -95,7 +95,7 @@ const buildSectionConfigs = (leftTag: string, rightTag: string): SectionConfig[]
   },
   {
     key: 'casterSubtitle',
-    label: 'Khung Phụ Đề Bình Luận Viên (BLV Bão / Boss)',
+    label: 'Khung Phụ Đề Bình Luận Viên (BLV Bảo & Anna / Boss)',
     description: 'Hiển thị lời thoại phụ đề của bình luận viên và lời gầm của Boss trên màn hình',
     icon: Mic,
   },

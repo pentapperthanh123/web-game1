@@ -1,12 +1,14 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BOSS_SKILL_VFX_STYLE } from '../../../constants/bossSkillVfx';
 import {
   ADDITIVE_DOUBLE_SIDED_PROPS,
   BOSS_3D_ANCHORS,
+  BossSkillImpactPoint,
   GROUND_DECAL_LIFT,
   SkillVfx3DProps,
+  Vec3Tuple,
   computeProgress,
   easeInOutSine,
   easeOutCubic,
@@ -53,7 +55,30 @@ const IMPACT_DECAL_SIZE = 2.2;
 const IMPACT_RING_SIZE = 1.5;
 const IMPACT_SPIN_RATE = 0.004;
 
-const resolveYaw = (direction: number, sweepProgress: number): number => {
+/** The beam never sweeps narrower than this, so a single target still gets a visible pass. */
+const MIN_AIM_SPREAD = 0.12;
+/** Targets this far apart (radians) are not one group; fall back to the wing sweep. */
+const MAX_AIM_SPREAD = Math.PI * 0.75;
+
+interface AimRange {
+  from: number;
+  to: number;
+}
+
+/** Yaw range (from the eye) that covers the champions the beam hurts; null without targets. */
+const resolveAimRange = (impactPoints: readonly BossSkillImpactPoint[], eyeOrigin: Vec3Tuple): AimRange | null => {
+  if (impactPoints.length === 0) return null;
+  const yaws = impactPoints.map(([x, z]) => Math.atan2(x - eyeOrigin[0], z - eyeOrigin[2]));
+  const from = Math.min(...yaws);
+  const to = Math.max(...yaws);
+  if (to - from > MAX_AIM_SPREAD) return null;
+  const centre = (from + to) / 2;
+  const halfSpread = Math.max((to - from) / 2, MIN_AIM_SPREAD / 2);
+  return { from: centre - halfSpread, to: centre + halfSpread };
+};
+
+const resolveYaw = (direction: number, sweepProgress: number, aim: AimRange | null): number => {
+  if (aim) return aim.from + (aim.to - aim.from) * sweepProgress;
   if (direction === 0) return Math.sin(sweepProgress * Math.PI * 2) * BOTH_SIDES_SWEEP;
   return direction * (BASE_YAW + (sweepProgress - 0.5) * 2 * SIDE_SWEEP);
 };
@@ -65,8 +90,19 @@ const MIN_EYE_HEIGHT = 0.5;
 const resolveBeamReach = (eyeY: number): number =>
   Math.max(MIN_EYE_HEIGHT, eyeY - BOSS_3D_ANCHORS.GROUND_Y) / EYE_HEIGHT_ABOVE_GROUND;
 
-export const Beam3D = ({ color, secondaryColor, scale, direction, startedAt, durationMs, eyeOrigin }: SkillVfx3DProps) => {
+export const Beam3D = ({
+  color,
+  secondaryColor,
+  scale,
+  direction,
+  startedAt,
+  durationMs,
+  eyeOrigin,
+  impactPoints,
+}: SkillVfx3DProps) => {
   const beamReach = resolveBeamReach(eyeOrigin[1]);
+  // The beam passes over the champions it hurts, so the damage numbers appear where it burns
+  const aimRange = useMemo(() => resolveAimRange(impactPoints, eyeOrigin), [impactPoints, eyeOrigin]);
   const yawRef = useRef<THREE.Group>(null);
   const widthRef = useRef<THREE.Group>(null);
   const muzzleRef = useRef<THREE.Group>(null);
@@ -82,7 +118,7 @@ export const Beam3D = ({ color, secondaryColor, scale, direction, startedAt, dur
     const release = fadeOut(phaseProgress(progress, RELEASE_START, 1));
     const fireLevel = ignite * release;
     const flicker = 1 + Math.sin(elapsedMs * FLICKER_RATE) * FLICKER_AMPLITUDE;
-    const yaw = resolveYaw(direction, easeInOutSine(phaseProgress(progress, CHARGE_END, RELEASE_START)));
+    const yaw = resolveYaw(direction, easeInOutSine(phaseProgress(progress, CHARGE_END, RELEASE_START)), aimRange);
 
     if (yawRef.current && widthRef.current) {
       yawRef.current.visible = isAlive;

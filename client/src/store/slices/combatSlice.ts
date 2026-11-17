@@ -29,6 +29,7 @@ import {
   BOSS_DEFEAT_CONSTANTS,
   BOSS_DIFFICULTY_SCALE,
   BOSS_ENRAGED_CONSTANTS,
+  BOSS_RETALIATION_WAVE,
   BOSS_MECHANICS_CONSTANTS,
   BOSS_STATUS,
   BossStatusType,
@@ -44,7 +45,8 @@ import {
   getChampionSkillVFX,
   isMeleeChampionName,
   getThemeConfig,
-  TEAM_KEY,
+  TEAM_SLOT_LEFT,
+  TEAM_SLOT_RIGHT,
   TeamType,
 } from '../../constants/game';
 import {
@@ -58,8 +60,10 @@ import { audioService } from '../../services/audioService';
 import { soundManager, playSound } from '../../services/soundManager';
 import {
   createEmptyTeamHeartMomentum,
+  createInitialSummonQueue,
   createInitialTeamCombos,
   createInitialTeamHeartMomentum,
+  createInitialTeamScores,
   DAMAGE_INTENSITY_MAP,
   getActiveHeartFuryMultiplier,
   isBattleHalted,
@@ -152,7 +156,7 @@ const getCachedAnchorPos = (anchorEl: HTMLElement, team: TeamType): { x: number;
 
   const rect = anchorEl.getBoundingClientRect();
   const anchor = {
-    x: team === TEAM_KEY.BLG ? rect.right + ROSTER_ANCHOR_EDGE_GAP_PX : rect.left - ROSTER_ANCHOR_EDGE_GAP_PX,
+    x: team === TEAM_SLOT_LEFT ? rect.right + ROSTER_ANCHOR_EDGE_GAP_PX : rect.left - ROSTER_ANCHOR_EDGE_GAP_PX,
     y: rect.top + rect.height / 2,
     at: now,
   };
@@ -189,7 +193,7 @@ const resolveRosterAnchorScreenPos = (
   const playerIndex = playerId ? activeRoster.findIndex((p) => p.id === playerId) : 2;
   const idx = playerIndex >= 0 ? playerIndex : 2;
   return {
-    x: team === TEAM_KEY.BLG ? 52 : screenW - 52,
+    x: team === TEAM_SLOT_LEFT ? 52 : screenW - 52,
     y: Math.min(screenH * 0.48, 185 + idx * 42),
   };
 };
@@ -216,7 +220,7 @@ const formatHitText = (amount: number, hitCount: number, isWeakPoint: boolean): 
 /** Left team's numbers float left of the boss centre, right team's to the right. */
 const resolveTeamFloatX = (team: TeamType): number => {
   const offset = randomInRange(COMBAT_VFX_CONSTANTS.DAMAGE.FLOAT_SIDE_MIN_X, COMBAT_VFX_CONSTANTS.DAMAGE.FLOAT_SIDE_MAX_X);
-  return team === TEAM_KEY.BLG ? -offset : offset;
+  return team === TEAM_SLOT_LEFT ? -offset : offset;
 };
 
 const resolveMergedTextScale = (baseScale: number, hitCount: number): number => {
@@ -227,8 +231,10 @@ const resolveMergedTextScale = (baseScale: number, hitCount: number): number => 
 const pendingFuryByMinionId = new Map<string, number>();
 let isFuryFlushScheduled = false;
 
+const isPageHidden = (): boolean => typeof document !== 'undefined' && document.hidden;
+
 const requestNextFrame = (callback: () => void): void => {
-  if (typeof requestAnimationFrame === 'function') {
+  if (!isPageHidden() && typeof requestAnimationFrame === 'function') {
     requestAnimationFrame(() => callback());
     return;
   }
@@ -438,12 +444,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const state = get();
     if (isBattleHalted(state) || state.bossHp <= 0) return;
 
-    const scores = state.teamScores || {
-      [TEAM_KEY.BLG]: state.teamScoreBLG,
-      [TEAM_KEY.GENG]: state.teamScoreGENG,
-    };
+    const scores = state.teamScores || createInitialTeamScores();
     // Same tie rule as a boss kill (damageBoss): left team wins a draw
-    const leadingTeam = (scores[TEAM_KEY.BLG] || 0) >= (scores[TEAM_KEY.GENG] || 0) ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+    const leadingTeam = (scores[TEAM_SLOT_LEFT] || 0) >= (scores[TEAM_SLOT_RIGHT] || 0) ? TEAM_SLOT_LEFT : TEAM_SLOT_RIGHT;
     // The shield would absorb the finishing blow; time is up, so it goes away first
     set({ bossShield: null });
     get().damageBoss(
@@ -585,7 +588,13 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     }
 
     const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
-    const waveColor = isEnraged ? '#ef4444' : '#a855f7';
+    const retaliationWave: ShockwaveEntity = {
+      id: `boss-wave-${Date.now()}`,
+      timestamp: Date.now(),
+      color: getThemeConfig(state.gameTheme).colors.primaryHex,
+      maxRadius: isEnraged ? BOSS_RETALIATION_WAVE.ENRAGED_RADIUS : BOSS_RETALIATION_WAVE.RADIUS,
+      intensity: isEnraged ? BOSS_RETALIATION_WAVE.ENRAGED_INTENSITY : BOSS_RETALIATION_WAVE.INTENSITY,
+    };
     const shakeIntensity = isEnraged ? 0.95 : 0.65;
     const pitchRate = getThemeConfig(state.gameTheme).audioPitchRate;
 
@@ -594,13 +603,6 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
     audioService.playShockwaveExplosion(isEnraged ? 1.25 : 0.95, pitchRate, true);
     playBossVoice(state.gameTheme, isEnraged ? BOSS_VOICE_KIND.ENRAGE : BOSS_VOICE_KIND.ROAR);
-
-    const newWave: ShockwaveEntity = {
-      id: `boss-wave-${Date.now()}`,
-      timestamp: Date.now(),
-      color: waveColor,
-      maxRadius: 7.2,
-    };
 
     get().addLog(
       'BOSS',
@@ -612,7 +614,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     set((prev) => ({
       bossAttackTimestamp: Date.now(),
       bossAttackTargetTeam: 'ALL',
-      activeShockwaves: [...prev.activeShockwaves.slice(-5), newWave],
+      activeShockwaves: [...prev.activeShockwaves.slice(-5), retaliationWave],
     }));
   },
 
@@ -655,13 +657,13 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
   addLikes: (count: number, team: TeamType, userName = 'Viewer') => {
     trackQuestProgress(get, team, QUEST_KIND.LIKES, count);
     const state = get();
-    const newLikesBLG = team === TEAM_KEY.BLG ? state.totalLikesBLG + count : state.totalLikesBLG;
-    const newLikesGENG = team === TEAM_KEY.GENG ? state.totalLikesGENG + count : state.totalLikesGENG;
+    const newLikesLeft = team === TEAM_SLOT_LEFT ? state.totalLikesBLG + count : state.totalLikesBLG;
+    const newLikesRight = team === TEAM_SLOT_RIGHT ? state.totalLikesGENG + count : state.totalLikesGENG;
 
     if (isBattleHalted(state)) {
       set({
-        totalLikesBLG: newLikesBLG,
-        totalLikesGENG: newLikesGENG,
+        totalLikesBLG: newLikesLeft,
+        totalLikesGENG: newLikesRight,
       });
       return;
     }
@@ -728,7 +730,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         Math.random() < 0.6 ? targetColor : colors[Math.floor(Math.random() * colors.length)];
       newHearts.push({
         id: `heart-${now}-${Math.random()}`,
-        x: (team === TEAM_KEY.BLG ? -2.2 : 2.2) + (Math.random() - 0.5) * 1.5,
+        x: (team === TEAM_SLOT_LEFT ? -2.2 : 2.2) + (Math.random() - 0.5) * 1.5,
         y: -3.5,
         z: 3.5 + Math.random() * 1.5,
         speed:
@@ -763,8 +765,8 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       });
 
       return {
-        totalLikesBLG: newLikesBLG,
-        totalLikesGENG: newLikesGENG,
+        totalLikesBLG: newLikesLeft,
+        totalLikesGENG: newLikesRight,
         activeHearts: [...prev.activeHearts.slice(-GAME_CONSTANTS.HEARTS.MAX_ACTIVE), ...newHearts],
         minions: nextMinions,
         rosterPlayerFury: nextRosterFury,
@@ -780,7 +782,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     });
 
     const prevTotalLikes = state.totalLikesBLG + state.totalLikesGENG;
-    const newTotalLikes = newLikesBLG + newLikesGENG;
+    const newTotalLikes = newLikesLeft + newLikesRight;
     const milestoneThreshold = GAME_CONSTANTS.HEART_MILESTONE.THRESHOLD;
     const prevMilestoneTier = Math.floor(prevTotalLikes / milestoneThreshold);
     const newMilestoneTier = Math.floor(newTotalLikes / milestoneThreshold);
@@ -884,20 +886,17 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         createdAt: now,
       };
 
-      const currentScores = state.teamScores || {
-        [TEAM_KEY.BLG]: state.teamScoreBLG,
-        [TEAM_KEY.GENG]: state.teamScoreGENG,
-      };
+      const currentScores = state.teamScores || createInitialTeamScores();
       const nextTeamScores = {
         ...currentScores,
         [team]: (currentScores[team] || 0) + absorbedDamage,
       };
-      const nextScoreBLG = nextTeamScores[TEAM_KEY.BLG];
-      const nextScoreGENG = nextTeamScores[TEAM_KEY.GENG];
+      const nextScoreLeft = nextTeamScores[TEAM_SLOT_LEFT];
+      const nextScoreRight = nextTeamScores[TEAM_SLOT_RIGHT];
       recordViewerSessionDamage(state, playerName, team, absorbedDamage, options);
       const nextViewerBoard = options?.excludeFromLeaderboard
         ? state.leaderboard
-        : updateLeaderboardList(state.leaderboard, playerName, team, absorbedDamage);
+        : updateLeaderboardList(state.leaderboard, playerName, team, absorbedDamage, options?.source);
       const nextProBoard = options?.proPlayer
         ? updateProLeaderboardList(state.proLeaderboard, options.proPlayer, absorbedDamage)
         : state.proLeaderboard;
@@ -928,8 +927,8 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           lastHitTeam: team,
           lastHitDamageType: DAMAGE_TYPE.ULTIMATE,
           teamScores: nextTeamScores,
-          teamScoreBLG: nextScoreBLG,
-          teamScoreGENG: nextScoreGENG,
+          teamScoreBLG: nextScoreLeft,
+          teamScoreGENG: nextScoreRight,
           leaderboard: nextViewerBoard,
           proLeaderboard: nextProBoard,
           floatingDamages: [
@@ -953,8 +952,8 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         lastHitTeam: team,
         lastHitDamageType: effectiveDamageType,
         teamScores: nextTeamScores,
-        teamScoreBLG: nextScoreBLG,
-        teamScoreGENG: nextScoreGENG,
+        teamScoreBLG: nextScoreLeft,
+        teamScoreGENG: nextScoreRight,
         leaderboard: nextViewerBoard,
         proLeaderboard: nextProBoard,
         floatingDamages: resolveNextCappedList(
@@ -1032,23 +1031,20 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       nextStatus = BOSS_STATUS.ENRAGED;
     }
 
-    const currentScores = state.teamScores || {
-      [TEAM_KEY.BLG]: state.teamScoreBLG,
-      [TEAM_KEY.GENG]: state.teamScoreGENG,
-    };
+    const currentScores = state.teamScores || createInitialTeamScores();
     const nextTeamScores = options?.excludeFromScore
       ? currentScores
       : {
           ...currentScores,
           [team]: (currentScores[team] || 0) + effectiveDamage,
         };
-    const newBLGScore = nextTeamScores[TEAM_KEY.BLG];
-    const newGENGScore = nextTeamScores[TEAM_KEY.GENG];
-    if (!options?.excludeFromLeaderboard) recordRoundDamage(playerName, team, effectiveDamage);
+    const newScoreLeft = nextTeamScores[TEAM_SLOT_LEFT];
+    const newScoreRight = nextTeamScores[TEAM_SLOT_RIGHT];
+    if (!options?.excludeFromLeaderboard) recordRoundDamage(playerName, team, effectiveDamage, options?.source);
     recordViewerSessionDamage(state, playerName, team, effectiveDamage, options);
     const topLeaderboard = options?.excludeFromLeaderboard
       ? state.leaderboard
-      : updateLeaderboardList(state.leaderboard, playerName, team, effectiveDamage);
+      : updateLeaderboardList(state.leaderboard, playerName, team, effectiveDamage, options?.source);
     const nextProLeaderboard = options?.proPlayer
       ? updateProLeaderboardList(state.proLeaderboard, options.proPlayer, effectiveDamage)
       : state.proLeaderboard;
@@ -1060,15 +1056,15 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     let nextChampionshipTally = state.championshipTally;
 
     if (isDefeated && !state.roundWinner && !state.isSeriesEnded) {
-      nextRoundWinner = newBLGScore >= newGENGScore ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+      nextRoundWinner = newScoreLeft >= newScoreRight ? TEAM_SLOT_LEFT : TEAM_SLOT_RIGHT;
       nextBO5Score[nextRoundWinner] = (nextBO5Score[nextRoundWinner] || 0) + 1;
-      const winnerTag = state.activeTeams[nextRoundWinner].shortTag;
-      const leftTag = state.activeTeams[TEAM_KEY.BLG].shortTag;
-      const rightTag = state.activeTeams[TEAM_KEY.GENG].shortTag;
+      const winnerTag = state.activeTeams[nextRoundWinner]?.shortTag ?? nextRoundWinner;
+      const leftTag = state.activeTeams[TEAM_SLOT_LEFT]?.shortTag ?? TEAM_SLOT_LEFT;
+      const rightTag = state.activeTeams[TEAM_SLOT_RIGHT]?.shortTag ?? TEAM_SLOT_RIGHT;
       if (nextBO5Score[nextRoundWinner] >= state.bo5TargetWins) {
         nextIsSeriesEnded = true;
         nextSeriesWinner = nextRoundWinner;
-        const loserSlot = nextRoundWinner === TEAM_KEY.BLG ? TEAM_KEY.GENG : TEAM_KEY.BLG;
+        const loserSlot = nextRoundWinner === TEAM_SLOT_LEFT ? TEAM_SLOT_RIGHT : TEAM_SLOT_LEFT;
         const winnerProfile = state.activeTeams[nextRoundWinner];
         nextChampionshipTally = addChampionshipTitle(
           state.championshipTally,
@@ -1083,12 +1079,12 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         );
         get().addLog(
           'SYSTEM',
-          `🏆 ${winnerTag} VÔ ĐỊCH CKTG 2026 ${state.seriesFormat} (${nextBO5Score.BLG} - ${nextBO5Score.GENG})! Lần vô địch thứ ${winnerTitleCount} trước ${state.activeTeams[loserSlot].shortTag}.`
+          `🏆 ${winnerTag} VÔ ĐỊCH CKTG 2026 ${state.seriesFormat} (${nextBO5Score[TEAM_SLOT_LEFT]} - ${nextBO5Score[TEAM_SLOT_RIGHT]})! Lần vô địch thứ ${winnerTitleCount} trước ${state.activeTeams[loserSlot]?.shortTag ?? loserSlot}.`
         );
       } else {
         get().addLog(
           'SYSTEM',
-          `🚩 ${winnerTag} THẮNG VÁN ${state.currentRound}! (BO5: ${leftTag} ${nextBO5Score.BLG} - ${nextBO5Score.GENG} ${rightTag})`
+          `🚩 ${winnerTag} THẮNG VÁN ${state.currentRound}! (BO5: ${leftTag} ${nextBO5Score[TEAM_SLOT_LEFT]} - ${nextBO5Score[TEAM_SLOT_RIGHT]} ${rightTag})`
         );
       }
     }
@@ -1123,17 +1119,20 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     }
 
     const newShockwaves: ShockwaveEntity[] = [...state.activeShockwaves];
-    if (isCritOrUlt) {
+    const isUltimateHit = effectiveDamageType === DAMAGE_TYPE.ULTIMATE;
+    // Crits keep their shake, slash and big number but no floor ring: in crowds the red rings never left the arena
+    if (isUltimateHit) {
       newShockwaves.push({
         id: `shock-${now}-${Math.random()}`,
         timestamp: now,
-        color: effectiveDamageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : '#ef4444',
-        maxRadius:
-          effectiveDamageType === DAMAGE_TYPE.ULTIMATE
-            ? COMBAT_VFX_CONSTANTS.DAMAGE.ULTIMATE_SHOCKWAVE_RADIUS
-            : COMBAT_VFX_CONSTANTS.DAMAGE.CRIT_SHOCKWAVE_RADIUS,
+        color: COMBAT_VFX_CONSTANTS.DAMAGE.ULTIMATE_SHOCKWAVE_COLOR,
+        maxRadius: COMBAT_VFX_CONSTANTS.DAMAGE.ULTIMATE_SHOCKWAVE_RADIUS,
       });
-      get().triggerScreenShake(effectiveDamageType === DAMAGE_TYPE.ULTIMATE ? 1.2 : 0.55);
+    }
+    if (isCritOrUlt) {
+      get().triggerScreenShake(
+        isUltimateHit ? COMBAT_VFX_CONSTANTS.DAMAGE.ULTIMATE_SCREEN_SHAKE : COMBAT_VFX_CONSTANTS.DAMAGE.CRIT_SCREEN_SHAKE
+      );
     }
 
     const safeAmount = Number.isFinite(effectiveDamage) ? effectiveDamage : 0;
@@ -1254,8 +1253,8 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       activeBossSkillBanner: isDefeated ? null : prev.activeBossSkillBanner,
       activeGiftBanner: isDefeated ? null : prev.activeGiftBanner,
       teamScores: nextTeamScores,
-      teamScoreBLG: newBLGScore,
-      teamScoreGENG: newGENGScore,
+      teamScoreBLG: newScoreLeft,
+      teamScoreGENG: newScoreRight,
       leaderboard: topLeaderboard,
       proLeaderboard: nextProLeaderboard,
       activeShockwaves: newShockwaves.slice(-8),
@@ -1277,7 +1276,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       teamHeartMomentum: isDefeated ? createInitialTeamHeartMomentum() : prev.teamHeartMomentum,
       minions: isDefeated ? [] : prev.minions,
       summonQueue: isDefeated
-        ? { [TEAM_KEY.BLG]: [], [TEAM_KEY.GENG]: [] }
+        ? createInitialSummonQueue()
         : prev.summonQueue,
       activeSummonPortals: isDefeated ? [] : prev.activeSummonPortals,
       activeProjectiles: isDefeated ? [] : prev.activeProjectiles,

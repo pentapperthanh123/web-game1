@@ -7,8 +7,8 @@ import {
   GIFT_TIER,
   GIFT_TIER_CONFIG,
   GiftTier,
+  SUMMON_BADGES,
   TeamType,
-  calculateGiftBaseDamage,
 } from '../constants/game';
 import { getTeamTheme } from '../constants/teams';
 import { playSound } from '../services/soundManager';
@@ -17,7 +17,27 @@ import { GameState, GiftAnnouncement, MeteorEntity } from '../types/game';
 import { GIFT_FIREWORK, GIFT_SOUND_LAYERS, GIFT_STREAK_PITCH, GiftSoundLayer } from '../constants/giftPresentation';
 import { GIFT_EFFECT, GIFT_EFFECT_TUNING, type GiftRulePayload } from '../constants/giftConfig';
 import { applyGiftRuleEffect, resolveGiftDamageMultiplier } from './giftRuleEffects';
-import { getGiftTierConfig, getMegaGradeConfig, isGiftTierAtLeast, resolveFireworkShellCount, resolveGiftTier } from './giftTier';
+import { getGiftTierConfig, getMegaGradeConfig, isGiftTierAtLeast, resolveFireworkShellCount } from './giftTier';
+import {
+  applyDynamicGiftRules,
+  GIFT_VFX_ASSET_TYPE,
+  GIFT_SKILL_BINDING,
+  GiftVfxAssetType,
+} from './dynamicGiftStore';
+import { useGiftVfxStore, MegaWeaponCategory } from './giftVfxStore';
+
+const LIVEOPS_WEAPON_MAP: Readonly<Partial<Record<GiftVfxAssetType, MegaWeaponCategory>>> = {
+  [GIFT_VFX_ASSET_TYPE.SWORD_STRIKE]: 'SWORD',
+  [GIFT_VFX_ASSET_TYPE.LASER_BEAM]: 'LASER',
+  [GIFT_VFX_ASSET_TYPE.LOVE_BURST]: 'LOVE',
+  [GIFT_VFX_ASSET_TYPE.WATER_BUBBLE]: 'WATER',
+};
+
+const LIVEOPS_SKILL_TUNING = {
+  STUN_DURATION_MS: 2500,
+  FULL_FURY_AMOUNT: 100,
+  HEAL_AMOUNT: 1500,
+} as const;
 
 export interface GiftEvent {
   giftName: string;
@@ -139,20 +159,33 @@ const summonEliteChampion = (get: () => GameState, event: GiftEvent): void => {
   const signaturePool = roster.map((pro) => pro.signatureChampion).filter(Boolean);
   const pool = signaturePool.length > 0 ? signaturePool : GAME_CONSTANTS.TIKTOK_ENGAGEMENT.FALLBACK_ELITE_CHAMPIONS;
   const eliteChampion = pool[Math.floor(Math.random() * pool.length)];
-  get().summonMinion(`👑 ${event.donorName}`, eliteChampion, event.team, true, event.donorAvatarUrl);
+  get().summonMinion(
+    `${SUMMON_BADGES.ELITE} ${event.donorName}`,
+    eliteChampion,
+    event.team,
+    true,
+    event.donorAvatarUrl,
+    false,
+    true
+  );
 };
 
 /** Screen / boss / 3D feedback for one gift tick. Returns the meteors to spawn. */
-const applyGiftImpact = (get: () => GameState, event: GiftEvent, tier: GiftTier, isQuietTick: boolean, now: number): MeteorEntity[] => {
+const applyGiftImpact = (
+  get: () => GameState,
+  event: GiftEvent,
+  tier: GiftTier,
+  damage: number,
+  isQuietTick: boolean,
+  now: number
+): MeteorEntity[] => {
   const config = getGiftTierConfig(tier);
   const theme = getTeamTheme(get().activeTeams[event.team]?.colorTheme);
   const damageType = isGiftTierAtLeast(tier, GIFT_TIER.BIG) ? DAMAGE_TYPE.ULTIMATE : DAMAGE_TYPE.NORMAL;
-  const baseDamage = calculateGiftBaseDamage(event.coins);
-  const totalDamage = Math.round(baseDamage * resolveGiftDamageMultiplier(event.rule));
 
   get().healTeamChampions(event.team, GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_HEAL_AMOUNT);
   get().damageBoss(
-    totalDamage,
+    damage,
     event.team,
     `${event.donorName} (${event.giftName})`,
     damageType,
@@ -172,10 +205,9 @@ const applyGiftImpact = (get: () => GameState, event: GiftEvent, tier: GiftTier,
   return buildGiftMeteors(resolveMeteorCount(tier, event.totalCoins), theme.primaryHex, now, event.streakCount);
 };
 
-const logGift = (get: () => GameState, event: GiftEvent, isQuietTick: boolean): void => {
+const logGift = (get: () => GameState, event: GiftEvent, damage: number, isQuietTick: boolean): void => {
   const teamTag = get().activeTeams[event.team]?.shortTag || event.team;
   const streakLabel = event.streakCount > 1 ? ` x${event.streakCount}` : '';
-  const damage = Math.round(calculateGiftBaseDamage(event.coins) * resolveGiftDamageMultiplier(event.rule));
   get().addLog('GIFT', `💎 ${event.donorName} tặng [${event.giftName}${streakLabel}] (+${event.coins} xu) phe ${teamTag} gây +${damage.toLocaleString()} ST!`, event.team);
   if (!isQuietTick || event.isComboFinal) {
     get().addChatMessage(event.donorName, `Đã tặng ${event.giftName}${streakLabel} (+${damage.toLocaleString()} DMG)!`, event.team);
@@ -193,11 +225,15 @@ export interface GiftExplosionResult {
 
 /** Runs the whole gift reaction (sound, rewards, VFX inputs); the slice commits the returned state. */
 export const runGiftExplosion = (get: () => GameState, event: GiftEvent, now: number): GiftExplosionResult => {
-  const tier = resolveGiftTier(event.coins, event.totalCoins);
+  const processed = applyDynamicGiftRules(event);
+  const tier = processed.effectiveTier;
   const config = getGiftTierConfig(tier);
   const isQuietTick = isRapidStreakTick(event) && !isGiftTierAtLeast(tier, GIFT_TIER.BIG);
 
-  const meteors = applyGiftImpact(get, event, tier, isQuietTick, now);
+  const ruleMultiplier = resolveGiftDamageMultiplier(event.rule);
+  const totalDamage = Math.round(processed.calculatedDamage * ruleMultiplier);
+
+  const meteors = applyGiftImpact(get, event, tier, totalDamage, isQuietTick, now);
   // A killing gift hands its audio to the finisher cinematic (avatar strike → impact → card).
   // Playing the gift layers here as well would also throttle the cinematic's opening sting.
   const hasKilledBoss = get().bossStatus === BOSS_STATUS.DEFEATED;
@@ -206,6 +242,45 @@ export const runGiftExplosion = (get: () => GameState, event: GiftEvent, now: nu
   const furyGain = resolveGiftFuryGain(event.coins);
   roster.forEach((pro) => get().addPlayerFury(pro.id, furyGain));
   if (shouldSummonElite(event)) summonEliteChampion(get, event);
+
+  // Trigger 3D Mega Weapon if mapped to a custom weapon asset
+  const weaponCategory = LIVEOPS_WEAPON_MAP[processed.vfxAssetType];
+  if (weaponCategory) {
+    useGiftVfxStore.getState().triggerMegaWeapon({
+      category: weaponCategory,
+      team: event.team,
+      targetPos: BOSS_HIT_ORIGIN,
+      donorName: event.donorName,
+      donorAvatarUrl: event.donorAvatarUrl,
+      coins: event.coins,
+    });
+  }
+
+  // LiveOps Bound Skill execution
+  let liveOpsStunUntil = 0;
+  if (!hasKilledBoss && processed.boundSkill !== GIFT_SKILL_BINDING.NONE) {
+    const teamTag = get().activeTeams[event.team]?.shortTag || event.team;
+    switch (processed.boundSkill) {
+      case GIFT_SKILL_BINDING.STUN_BOSS:
+        liveOpsStunUntil = now + LIVEOPS_SKILL_TUNING.STUN_DURATION_MS;
+        get().addLog('GIFT', `⚡ [LIVEOPS] ${event.donorName} kích hoạt CHOÁNG BOSS 2.5s!`, event.team);
+        break;
+      case GIFT_SKILL_BINDING.FULL_FURY:
+        roster.forEach((pro) => get().addPlayerFury(pro.id, LIVEOPS_SKILL_TUNING.FULL_FURY_AMOUNT));
+        get().addLog('GIFT', `🔥 [LIVEOPS] ${event.donorName} bơm ĐẦY 100% NỘ cho phe ${teamTag}!`, event.team);
+        break;
+      case GIFT_SKILL_BINDING.HEAL_TEAM:
+        get().healTeamChampions(event.team, LIVEOPS_SKILL_TUNING.HEAL_AMOUNT);
+        get().addLog('GIFT', `🛡️ [LIVEOPS] ${event.donorName} HỒI SINH LỰC toàn phe ${teamTag}!`, event.team);
+        break;
+      case GIFT_SKILL_BINDING.SUMMON_CHAMPION:
+        summonEliteChampion(get, event);
+        get().addLog('GIFT', `👑 [LIVEOPS] ${event.donorName} triệu hồi TƯỚNG TINH ANH VIP!`, event.team);
+        break;
+      default:
+        break;
+    }
+  }
 
   // Innate milestone effects:
   // Mốc 30 xu (Kính Mát): BATTLE_FRENZY (+40% attack speed, fury boost, light heal, 8 meteors)
@@ -249,7 +324,7 @@ export const runGiftExplosion = (get: () => GameState, event: GiftEvent, now: nu
     );
   }
 
-  logGift(get, event, isQuietTick);
+  logGift(get, event, totalDamage, isQuietTick);
 
   const hasBanner = config.bannerDurationMs > 0 && !isQuietTick;
   const tierStaggerUntil = config.bossStaggerMs > 0 ? now + config.bossStaggerMs : 0;
@@ -257,7 +332,7 @@ export const runGiftExplosion = (get: () => GameState, event: GiftEvent, now: nu
     tier,
     banner: hasBanner ? buildGiftAnnouncement(event, tier, now) : null,
     meteors,
-    bossStaggerUntil: Math.max(tierStaggerUntil, ruleStunUntil),
+    bossStaggerUntil: Math.max(tierStaggerUntil, ruleStunUntil, liveOpsStunUntil),
     frenzyUntil,
     frenzyTeam: frenzyUntil ? event.team : undefined,
   };

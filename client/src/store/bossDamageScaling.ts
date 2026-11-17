@@ -8,6 +8,7 @@ import {
 import { GameState } from '../types/game';
 import { getQuestDamageMultiplier } from './communityQuestStore';
 import { getOvertimeDamageMultiplier } from './roundClockStore';
+import { getComebackDamageMultiplier } from './comebackRules';
 
 /**
  * Which multipliers apply to which kind of hit. Before, every multiplier hit every source, so the
@@ -54,7 +55,9 @@ export const scaleBossDamage = (
 ): ScaledBossDamage => {
   const championMultiplier = CHAMPION_SCALED_SOURCES.has(source) ? state.championDamageMultiplier ?? NO_MULTIPLIER : NO_MULTIPLIER;
   const teamBuffMultiplier = TEAM_BUFFED_SOURCES.has(source)
-    ? getQuestDamageMultiplier(team, now) * getDuelBuffMultiplier(state, team, now)
+    ? getQuestDamageMultiplier(team, now) *
+      getDuelBuffMultiplier(state, team, now) *
+      getComebackDamageMultiplier(team)
     : NO_MULTIPLIER;
   const isWeakPointHit =
     WEAK_POINT_SOURCES.has(source) && state.bossWeakPoint !== null && now < state.bossWeakPoint.expiresAt;
