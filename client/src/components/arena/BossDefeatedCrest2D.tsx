@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { useGiftVfxStore } from '../../store/giftVfxStore';
 import {
   FINISHER_BANNER_CONSTANTS,
   isDonorFinisherCheck,
@@ -24,6 +25,7 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
     const roundWinner = useGameStore((state) => state.roundWinner);
     const bossDefeatedTimestamp = useGameStore((state) => state.bossDefeatedTimestamp);
     const activeTeams = useGameStore((state) => state.activeTeams);
+    const isPodiumOrbitActive = useGiftVfxStore((state) => state.isPodiumOrbitActive);
 
     const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
 
@@ -50,7 +52,7 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
       return () => clearTimeout(timer);
     }, [isDonorFinisher, bossDefeatedTimestamp]);
 
-    if (bossDefeatedTimestamp === 0 || !hasImpacted) return null;
+    if (bossDefeatedTimestamp === 0 || !hasImpacted || isPodiumOrbitActive) return null;
 
     const winnerTeam: TeamType = (finisherTeam || roundWinner || TEAM_KEY.BLG) as TeamType;
     const winnerProfile = activeTeams[winnerTeam];

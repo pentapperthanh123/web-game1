@@ -104,9 +104,17 @@ export const RoundIntroOverlay = () => {
 
   const leftStar = pickIntroStar(leftTeam, INTRO_STAR_FALLBACK_CHAMPION.LEFT);
   const rightStar = pickIntroStar(rightTeam, INTRO_STAR_FALLBACK_CHAMPION.RIGHT);
+  const holdReason = useRoundIntroStore((state) => state.holdReason);
+  const isNewSeries = holdReason === ROUND_HOLD_REASON.NEW_SERIES;
 
   const worldsTitleText = (
-    isManualHold
+    isNewSeries
+      ? t('RoundIntro.newSeriesOpeningTitle', {
+          defaultValue: '🔥 CẶP ĐẤU MỚI: {{left}} VS {{right}} • VÁN 1',
+          left: leftTeam.shortTag,
+          right: rightTeam.shortTag,
+        })
+      : isManualHold
       ? t('RoundIntro.worldsOpeningTitle', {
           defaultValue: 'KỲ CHUNG KẾT THẾ GIỚI • VÁN {{round}}',
           round: activeRound,
@@ -289,16 +297,27 @@ export const RoundIntroOverlay = () => {
 
     let speechText = '';
     if (activeTab === 'MATCHUP') {
-      speechText = t(
-        'RoundIntro.speechMatchup',
-        'Chào mừng các bạn đến với Kỳ Chung Kết Thế Giới! Ván {{round}}: {{left}} đại chiến {{right}}. Mục tiêu tiêu diệt Boss {{boss}}!',
-        {
-          round: activeRound,
-          left: leftTeam.name,
-          right: rightTeam.name,
-          boss: bossName,
-        }
-      ).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
+      speechText = isNewSeries
+        ? t(
+            'RoundIntro.speechNewSeriesMatchup',
+            'Chào mừng các bạn đến với Cặp đấu mới giữa {{left}} và {{right}}! Ván 1 thể thức {{format}}. Mục tiêu tiêu diệt Boss {{boss}}!',
+            {
+              left: leftTeam.name,
+              right: rightTeam.name,
+              format: seriesFormat,
+              boss: bossName,
+            }
+          )
+        : t(
+            'RoundIntro.speechMatchup',
+            'Chào mừng các bạn đến với Kỳ Chung Kết Thế Giới! Ván {{round}}: {{left}} đại chiến {{right}}. Mục tiêu tiêu diệt Boss {{boss}}!',
+            {
+              round: activeRound,
+              left: leftTeam.name,
+              right: rightTeam.name,
+              boss: bossName,
+            }
+          ).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
     } else if (activeTab === 'RULES') {
       speechText = t(
         'RoundIntro.speechRulesExpanded',

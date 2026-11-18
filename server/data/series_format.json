@@ -2,7 +2,7 @@
   "format": "BO3",
   "targetWins": 2,
   "maxRounds": 3,
-  "blgScore": 2,
-  "gengScore": 1,
-  "currentRound": 3
+  "blgScore": 0,
+  "gengScore": 0,
+  "currentRound": 1
 }

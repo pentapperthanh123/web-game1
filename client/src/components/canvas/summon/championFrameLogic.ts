@@ -48,7 +48,6 @@ const resolveCachedVfxRefs = (
     landingFlashMesh: tokenSubgroup.getObjectByName('landing-flash') as THREE.Mesh | undefined,
     shieldMesh: tokenSubgroup.getObjectByName('invuln-shield') as THREE.Mesh | undefined,
     eliteAuraMesh: tokenSubgroup.getObjectByName('elite-vip-aura') as THREE.Mesh | undefined,
-    eliteFloorAuraMesh: tokenSubgroup.getObjectByName('elite-floor-aura') as THREE.Mesh | undefined,
   };
   ai.cachedVfxRefs = refs;
   ai.cachedVfxGroupId = tokenSubgroup.uuid;
@@ -256,7 +255,10 @@ export const stepChampionFrame = (
   tempProjVec.set(posX, posY, posZ).project(camera);
   let isClamped = false;
   const safeNdcX = COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_X;
-  const safeNdcYMin = COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_Y_MIN;
+  const isRightSide = minion.team === TEAM_KEY.GENG;
+  const safeNdcYMin = isRightSide
+    ? COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_Y_MIN_RIGHT
+    : COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_Y_MIN;
   const safeNdcYMax = COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_Y_MAX;
 
   if (tempProjVec.x < -safeNdcX) {
@@ -341,15 +343,12 @@ export const stepChampionFrame = (
   }
 
   if (vfxRefs.eliteAuraMesh) {
-    vfxRefs.eliteAuraMesh.rotation.z = -elapsedTime * 2.2;
-    const auraPulse = 1.05 + Math.sin(elapsedTime * 4.5) * 0.08;
+    vfxRefs.eliteAuraMesh.rotation.z = -elapsedTime * COMBAT_VFX_CONSTANTS.ELITE_AURA.ROTATION_SPEED;
+    const auraPulse =
+      COMBAT_VFX_CONSTANTS.ELITE_AURA.PULSE_BASE_SCALE +
+      Math.sin(elapsedTime * COMBAT_VFX_CONSTANTS.ELITE_AURA.PULSE_FREQUENCY) *
+        COMBAT_VFX_CONSTANTS.ELITE_AURA.PULSE_AMPLITUDE;
     vfxRefs.eliteAuraMesh.scale.set(auraPulse, auraPulse, 1);
-  }
-
-  if (vfxRefs.eliteFloorAuraMesh) {
-    vfxRefs.eliteFloorAuraMesh.rotation.z = elapsedTime * 2.8;
-    const floorPulse = 1.0 + Math.sin(elapsedTime * 6.0) * 0.06;
-    vfxRefs.eliteFloorAuraMesh.scale.set(floorPulse, floorPulse, 1);
   }
 
   const isSquadMember = (minion.entranceSquadSize ?? 1) >= SQUAD_ENTRANCE_CONSTANTS.MIN_SIZE;

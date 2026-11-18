@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { GIFT_TIER } from '../../../constants/game';
 import { GIFT_CELEBRATION_COLORS, GIFT_FIREWORK } from '../../../constants/giftPresentation';
 import { useGameStore } from '../../../store/gameStore';
@@ -66,7 +67,7 @@ export const GiftFireworks = () => {
   const shells = useMemo(buildShellSeeds, []);
   const palette = useMemo(() => Array.from({ length: PALETTE_SIZE }, () => new THREE.Color()), []);
   const material = useMemo(
-    () => new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }),
+    () => new THREE.MeshBasicMaterial({ transparent: true, ...COLOR_ONLY_ADDITIVE_PROPS, depthWrite: false, toneMapped: false }),
     []
   );
 

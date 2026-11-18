@@ -1,5 +1,5 @@
 import type { Express } from 'express';
-import { getSeriesFormatSpecs, SeriesFormat } from '../constants/series.js';
+import { getBossThemeForRound, getSeriesFormatSpecs, SeriesFormat } from '../constants/series.js';
 import { sanitizeTeamConfigState } from '../constants/teams.js';
 import {
   saveOverlayVisibilityToDisk,
@@ -45,6 +45,17 @@ export function registerConfigRoutes(app: Express, ctx: ServerContext): void {
     ctx.state.teamConfig = cleanConfig;
     saveTeamConfigToDisk(ctx.state.teamConfig);
     const resetMatch = Boolean(req.body?.resetMatch);
+    if (resetMatch) {
+      const series = ctx.state.seriesConfig;
+      series.blgScore = 0;
+      series.gengScore = 0;
+      series.currentRound = 1;
+      const theme = getBossThemeForRound(1, series.format);
+      ctx.state.gameTheme = theme;
+      saveSeriesConfigToDisk(series);
+      ctx.io.emit('game:series-format', series);
+      ctx.io.emit('game:theme', { theme });
+    }
     const senderId = extractSenderId(req.body);
     ctx.io.emit('game:team-config', {
       ...ctx.state.teamConfig,

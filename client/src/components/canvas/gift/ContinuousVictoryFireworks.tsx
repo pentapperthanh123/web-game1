@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { useGiftVfxStore } from '../../../store/giftVfxStore';
 import { useGameStore } from '../../../store/gameStore';
 import { getTeamTheme } from '../../../constants/teams';
@@ -180,7 +181,7 @@ export const ContinuousVictoryFireworks = () => {
       <meshBasicMaterial
         transparent
         opacity={0.9}
-        blending={THREE.AdditiveBlending}
+        {...COLOR_ONLY_ADDITIVE_PROPS}
         depthWrite={false}
         toneMapped={false}
       />

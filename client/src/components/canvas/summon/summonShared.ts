@@ -89,7 +89,6 @@ export interface CachedChampionVfxRefs {
   landingFlashMesh?: THREE.Mesh;
   shieldMesh?: THREE.Mesh;
   eliteAuraMesh?: THREE.Mesh;
-  eliteFloorAuraMesh?: THREE.Mesh;
 }
 
 export interface ChampionAIState {
@@ -129,10 +128,12 @@ export const SHARED_PORTRAIT_GEO = new THREE.CircleGeometry(0.17, 24);
 export const SHARED_CELESTIAL_AURA_GEO = new THREE.RingGeometry(0.16, 0.26, 24);
 /** Thin gold ring just outside the portrait border: a wide additive band reads as a muddy olive haze. */
 export const SHARED_SIGNATURE_HALO_GEO = new THREE.RingGeometry(0.2, 0.218, 48);
-/** Glorious VIP halo for Elite Champions that persists throughout combat */
-export const SHARED_ELITE_AURA_RING_GEO = new THREE.RingGeometry(0.19, 0.245, 36);
-/** Rotating golden ground aura beneath Elite Champion tokens */
-export const SHARED_ELITE_FLOOR_AURA_GEO = new THREE.RingGeometry(0.12, 0.26, 32);
+/** Refined VIP halo ring for Elite Champions that fits cleanly around the portrait */
+export const SHARED_ELITE_AURA_RING_GEO = new THREE.RingGeometry(
+  COMBAT_VFX_CONSTANTS.ELITE_AURA.RING_INNER_RADIUS,
+  COMBAT_VFX_CONSTANTS.ELITE_AURA.RING_OUTER_RADIUS,
+  COMBAT_VFX_CONSTANTS.ELITE_AURA.RING_SEGMENTS
+);
 export const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.05, 0.18, 1.6, 16, 1, true);
 export const SHARED_LIGHT_BEAM_CORE_GEO = new THREE.CylinderGeometry(0.015, 0.06, 1.6, 12, 1, true);
 export const SHARED_RUNE_SEAL_GEO = new THREE.RingGeometry(0.24, 0.265, 6);

@@ -13,14 +13,15 @@ const DEFAULT_CAM = {
   TARGET: [0, 0.4, 0] as const,
 };
 
+/** Broadcast camera remains stable so foreground champions don't get zoomed into gigantic blobs */
 const CLOSEUP_CINEMATIC_CAM = {
-  POS: [0, 2.8, 5.5] as const,
-  TARGET: [0, 0.6, 0] as const,
+  POS: [0, 6.8, 10.8] as const,
+  TARGET: [0, 0.4, 0] as const,
 };
 
 const FINISHER_CINEMATIC_CAM = {
-  POS: [0, 2.2, 4.4] as const,
-  TARGET: [0, 0.8, 0] as const,
+  POS: [0, 6.8, 10.8] as const,
+  TARGET: [0, 0.4, 0] as const,
 };
 
 const PODIUM_ORBIT_CAM = {

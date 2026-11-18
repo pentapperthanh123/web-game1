@@ -1,13 +1,13 @@
 ---
 name: lint-and-validate
-description: Automatic quality control, linting, and static analysis procedures. Use after every code modification to ensure syntax correctness and project standards. Triggers onKeywords: lint, format, check, validate, types, static analysis.
-when_to_use: "When running linters, type checkers, or code formatters. After any code change that needs quality validation."
+description: Quality control, linting, and static analysis procedures. Use ONLY when explicitly requested by user. Triggers onKeywords: lint, format, check, validate, types, static analysis.
+when_to_use: "ONLY when user explicitly requests linting, type checks, or code formatting. NEVER run automatically after code changes."
 allowed-tools: Read, Glob, Grep, Bash
 ---
 
 # Lint and Validate Skill
 
-> **MANDATORY:** Run appropriate validation tools after EVERY code change. Do not finish a task until the code is error-free.
+> **MANUAL ONLY:** Run validation tools ONLY when the user explicitly requests it. DO NOT run automatically after code edits.
 
 ### Procedures by Ecosystem
 
@@ -21,11 +21,11 @@ allowed-tools: Read, Glob, Grep, Bash
 2. **Security (Bandit):** `bandit -r "path" -ll`
 3. **Types (MyPy):** `mypy "path"`
 
-## The Quality Loop
-1. **Write/Edit Code**
-2. **Run Audit:** `npm run lint && npx tsc --noEmit`
+## The Quality Loop (Manual Trigger Only)
+1. **Write/Edit Code** (Do NOT run audit automatically)
+2. **Run Audit (When requested by user):** `npm run lint && npx tsc --noEmit`
 3. **Analyze Report:** Check the "FINAL AUDIT REPORT" section.
-4. **Fix & Repeat:** Submitting code with "FINAL AUDIT" failures is NOT allowed.
+4. **Fix & Repeat:** If user requested audit, fix any reported issues.
 
 ## Error Handling
 - If `lint` fails: Fix the style or syntax issues immediately.
@@ -33,7 +33,7 @@ allowed-tools: Read, Glob, Grep, Bash
 - If no tool is configured: Check the project root for `.eslintrc`, `tsconfig.json`, `pyproject.toml` and suggest creating one.
 
 ---
-**Strict Rule:** No code should be committed or reported as "done" without passing these checks.
+**Rule:** Only run these checks when explicitly requested by user. Do not run automatically after code generation.
 
 ---
 

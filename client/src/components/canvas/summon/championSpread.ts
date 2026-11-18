@@ -11,10 +11,14 @@ import { getActiveSceneCamera, pickTargetInWing, randomInRange } from './summonS
 export const WING_SCREEN_LAYOUT = {
   NDC_X_INNER: 0.26,
   NDC_X_OUTER: 0.82,
-  NDC_Y_MIN: -0.72,
-  NDC_Y_MAX: 0.08,
+  NDC_Y_MIN: -0.28,
+  NDC_Y_MAX: 0.32,
+  /** On the right wing, the Participation Guide Panel occupies the lower-right; champions stay above it */
+  RIGHT_WING_NDC_Y_MIN: -0.02,
+  /** On the left wing, Live Chat & Leaderboard occupy the bottom-left */
+  LEFT_WING_NDC_Y_MIN: -0.28,
   /** Random candidates per pick; the least crowded one wins (best-candidate sampling). */
-  CANDIDATE_COUNT: 7,
+  CANDIDATE_COUNT: 10,
   /** Pixel distance at which another champion no longer counts as crowding. */
   CROWD_RADIUS_PX: 140,
 } as const;
@@ -48,10 +52,15 @@ interface ScreenCandidate {
   py: number;
 }
 
+const isRightSideTeam = (team: TeamType | string): boolean =>
+  team === TEAM_KEY.GENG || team === 'GEN' || team === 'GEN.G';
+
 const sampleWingCandidate = (team: TeamType, viewportW: number, viewportH: number): ScreenCandidate => {
-  const sideSign = team === TEAM_KEY.GENG ? 1 : -1;
+  const isRight = isRightSideTeam(team);
+  const sideSign = isRight ? 1 : -1;
   const ndcX = sideSign * randomInRange(WING_SCREEN_LAYOUT.NDC_X_INNER, WING_SCREEN_LAYOUT.NDC_X_OUTER);
-  const ndcY = randomInRange(WING_SCREEN_LAYOUT.NDC_Y_MIN, WING_SCREEN_LAYOUT.NDC_Y_MAX);
+  const minY = isRight ? WING_SCREEN_LAYOUT.RIGHT_WING_NDC_Y_MIN : WING_SCREEN_LAYOUT.LEFT_WING_NDC_Y_MIN;
+  const ndcY = randomInRange(minY, WING_SCREEN_LAYOUT.NDC_Y_MAX);
   return {
     ndcX,
     ndcY,
@@ -60,8 +69,21 @@ const sampleWingCandidate = (team: TeamType, viewportW: number, viewportH: numbe
   };
 };
 
+/** Disqualifies points that land inside HUD overlays like Participation Guide Panel or Chat */
+const isInsideHudDeadzone = (candidate: ScreenCandidate, team: TeamType): boolean => {
+  const isRight = isRightSideTeam(team);
+  if (isRight || candidate.ndcX > 0.22) {
+    if (candidate.ndcY < WING_SCREEN_LAYOUT.RIGHT_WING_NDC_Y_MIN) return true;
+  }
+  if (!isRight || candidate.ndcX < -0.22) {
+    if (candidate.ndcY < WING_SCREEN_LAYOUT.LEFT_WING_NDC_Y_MIN) return true;
+  }
+  return false;
+};
+
 /** Distance to the nearest champion already on screen (capped so far ones are all "free"). */
-const measureClearance = (candidate: ScreenCandidate, excludeId?: string): number => {
+const measureClearance = (candidate: ScreenCandidate, team: TeamType, excludeId?: string): number => {
+  if (isInsideHudDeadzone(candidate, team)) return -1;
   let nearest: number = WING_SCREEN_LAYOUT.CROWD_RADIUS_PX;
   for (const [minionId, screenPos] of getLiveChampionScreenEntries()) {
     if (minionId === excludeId) continue;
@@ -91,7 +113,7 @@ export const pickSpreadTargetInWing = (
 
   for (let i = 0; i < WING_SCREEN_LAYOUT.CANDIDATE_COUNT; i += 1) {
     const candidate = sampleWingCandidate(team, viewportW, viewportH);
-    const clearance = measureClearance(candidate, excludeId);
+    const clearance = measureClearance(candidate, team, excludeId);
     if (clearance <= bestClearance) continue;
     bestClearance = clearance;
     bestCandidate = candidate;

@@ -1,5 +1,6 @@
 import { TeamType } from '../constants/game';
 import { useGameStore } from '../store/gameStore';
+import { isCurrentRoundIntroActive } from '../store/roundIntroStore';
 import { gameSocket } from './socket';
 
 export type MockLiveMode = 'natural' | 'highlight';
@@ -88,6 +89,20 @@ const SIMULATION_TIMING = {
 } as const;
 
 const RANDOM_PICK_FRACTION = 0.5;
+
+/**
+ * "Comeback" surge (big and mega gifts for the trailing side). It needs a real score gap: right after
+ * the start one team has a few points and the other none, which is a 100% lead and used to rain mega
+ * gifts on a full-HP boss, burying it under gift effects and killing it in seconds.
+ */
+const COMEBACK_SURGE = {
+  /** Both teams together must have dealt at least this share of the boss's max HP. */
+  MIN_TOTAL_SCORE_HP_RATIO: 0.15,
+  MIN_LEAD_RATIO: 0.35,
+} as const;
+
+/** Paused while the round is not live, so nothing piles up during the intro and floods the round start. */
+const PAUSED_TICK_DELAY_MS = 2000;
 
 class MockLiveSimulator {
   private active = false;
@@ -192,8 +207,9 @@ class MockLiveSimulator {
     const state = useGameStore.getState();
 
     // Pause simulation if round is halted, victory screen or intro is active
-    if (state.bossHp <= 0 || state.roundWinner !== null || state.isRoundIntermission) {
-      this.scheduleNextTick(2000);
+    const isRoundLive = state.bossHp > 0 && state.roundWinner === null && !state.isRoundIntermission;
+    if (!isRoundLive || isCurrentRoundIntroActive()) {
+      this.scheduleNextTick(PAUSED_TICK_DELAY_MS);
       return;
     }
 
@@ -277,11 +293,13 @@ class MockLiveSimulator {
     const rightScore = state.teamScores?.[Object.keys(state.activeTeams)[1] as TeamType] ?? 0;
     const total = leftScore + rightScore;
     const leadRatio = total > 0 ? Math.abs(leftScore - rightScore) / total : 0;
+    const isComebackSurge =
+      total >= state.bossMaxHp * COMEBACK_SURGE.MIN_TOTAL_SCORE_HP_RATIO && leadRatio > COMEBACK_SURGE.MIN_LEAD_RATIO;
 
     let selectedGift: { name: string; coins: number; streakRange: readonly [number, number] };
 
     // Escalating gift tiers based on Boss HP and comeback situations
-    if (bossHpRatio <= 0.3 || leadRatio > 0.35) {
+    if (bossHpRatio <= 0.3 || isComebackSurge) {
       // Climax phase or heavy comeback: Big and Mega gifts drop!
       const tierRoll = Math.random();
       if (tierRoll < 0.2) {

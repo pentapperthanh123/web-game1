@@ -33,8 +33,8 @@ export const CameraRig = () => {
       resolveScreenRumbleEnvelope(now, state.screenRumbleStartedAt, state.screenRumbleDurationMs) *
       SCREEN_RUMBLE_CONSTANTS.CAMERA_GAIN;
 
-    // Yield camera manipulation when Cinematic Camera Controller has an active fly-to request
-    if (useGiftVfxStore.getState().cinematicRequest) {
+    // Yield camera manipulation when Cinematic Camera Controller has an active fly-to request or podium orbit
+    if (useGiftVfxStore.getState().cinematicRequest || useGiftVfxStore.getState().isPodiumOrbitActive) {
       return;
     }
 

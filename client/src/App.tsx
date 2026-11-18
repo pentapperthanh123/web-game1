@@ -11,6 +11,7 @@ import { useRoundClockTicker } from './store/roundClockTicker';
 import { useSessionLeaderboardPersistence } from './store/sessionLeaderboardStore';
 import { VANGUARD_ACTOR_LABEL } from './constants/sessionLeaderboard';
 import {
+  SIMULATION_BOT_GIFT,
   SIMULATION_PRESETS,
   BOSS_STATUS,
   APP_TITLE,
@@ -226,9 +227,10 @@ export function App() {
       // Random Likes
       addLikes(Math.floor(Math.random() * 3) + 1, botSlot, viewerName);
 
-      // 15% chance to send gift
-      if (Math.random() < 0.15) {
-        triggerGiftExplosion('Rồng Thần CKTG 🐉', botSlot, viewerName, 1000);
+      if (Math.random() < SIMULATION_BOT_GIFT.CHANCE_PER_TICK) {
+        const isClimax = currentState.bossHp <= currentState.bossMaxHp * SIMULATION_BOT_GIFT.CLIMAX_BOSS_HP_RATIO;
+        const gift = isClimax ? SIMULATION_BOT_GIFT.CLIMAX : SIMULATION_BOT_GIFT.REGULAR;
+        triggerGiftExplosion(gift.name, botSlot, viewerName, gift.coins);
       }
     }, botSpeedMs);
 

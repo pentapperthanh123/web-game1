@@ -2,6 +2,8 @@ import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, RotateCcw, Timer } from 'lucide-react';
 import { VICTORY_CELEBRATION_CONSTANTS } from '../../../constants/game';
+import { casterQueue } from '../../../services/caster/presentationQueue';
+import { useCasterStore } from '../../../store/casterStore';
 
 interface VictoryActionControlsProps {
   isSeriesEnded: boolean;
@@ -43,6 +45,7 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
   /** One advance per victory screen, whatever triggers it (countdown, Space/Enter or button). */
   const hasAdvancedRef = useRef(false);
   const [secondsLeft, setSecondsLeft] = useState<number>(VICTORY_CELEBRATION_CONSTANTS.AUTO_ADVANCE_SECONDS);
+  const [isWaitingForCaster, setIsWaitingForCaster] = useState<boolean>(false);
 
   const executeAdvance = useCallback(() => {
     if (isAdvancing || hasAdvancedRef.current) return;
@@ -78,10 +81,38 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
   }, [isAdvancing]);
 
   useEffect(() => {
-    if (secondsLeft === 0) executeAdvance();
-  }, [secondsLeft, executeAdvance]);
+    if (secondsLeft > 0 || isAdvancing) return undefined;
+
+    const checkCasterBusy = (): boolean => {
+      const isTtsEnabled = useCasterStore.getState().isTtsEnabled;
+      if (!isTtsEnabled) return false;
+      return casterQueue.isBusy() || Boolean(useCasterStore.getState().subtitle);
+    };
+
+    if (!checkCasterBusy()) {
+      executeAdvance();
+      return undefined;
+    }
+
+    setIsWaitingForCaster(true);
+    const safetyDeadline = Date.now() + 15000;
+    const interval = setInterval(() => {
+      if (!checkCasterBusy() || Date.now() >= safetyDeadline) {
+        clearInterval(interval);
+        setIsWaitingForCaster(false);
+        setTimeout(() => {
+          executeAdvance();
+        }, 800);
+      }
+    }, 400);
+
+    return () => clearInterval(interval);
+  }, [secondsLeft, isAdvancing, executeAdvance]);
 
   const autoAdvanceCaption = resolveAutoAdvanceCaption(isSeriesEnded, Boolean(nextQueuedMatchLabel));
+  const captionText = isWaitingForCaster
+    ? t('Victory.autoAdvanceWaitingCaster', 'Đang hoàn tất bình luận...')
+    : t(autoAdvanceCaption.key, { defaultValue: autoAdvanceCaption.fallback, seconds: secondsLeft });
 
   // Keyboard shortcut listener (Space or Enter to advance manually when ready)
   useEffect(() => {
@@ -161,7 +192,7 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
       {!isAdvancing && (
         <div className="flex items-center gap-1 text-[9.5px] sm:text-[10.5px] font-black text-cyan-300 tracking-wide">
           <Timer className="w-3 h-3 shrink-0" />
-          <span>{t(autoAdvanceCaption.key, { defaultValue: autoAdvanceCaption.fallback, seconds: secondsLeft })}</span>
+          <span>{captionText}</span>
         </div>
       )}
 

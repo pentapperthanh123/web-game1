@@ -14,6 +14,8 @@ import { useGameStore } from '../../store/gameStore';
 import { useGuideAutoReveal } from './useGuideAutoReveal';
 import { pickOverlayGiftRules, useGiftConfigStore } from '../../store/giftConfigStore';
 import { ConfiguredGiftRows } from './gift/ConfiguredGiftRows';
+import { REWARD_ITEMS } from './gift/rewardGuideConfig';
+import { RewardGuideRow } from './gift/RewardGuideRow';
 
 type GuidePanelTab = 'RULES' | 'REWARDS';
 
@@ -34,20 +36,7 @@ interface GuideItemConfig {
   descParams: Record<string, number | string>;
 }
 
-interface RewardItemConfig {
-  id: string;
-  emoji: string;
-  containerClass: string;
-  badgeClass: string;
-  titleKey: string;
-  titleFallback: string;
-  badgeKey: string;
-  badgeFallback: string;
-  badgeParams: Record<string, number | string>;
-}
-
 const GIFT_DAMAGE_PER_COIN = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN;
-const LIKE_DAMAGE_PER_HEART = GAME_CONSTANTS.TIKTOK_ENGAGEMENT.HEART_DAMAGE;
 const AUTO_SWITCH_INTERVAL_MS = 5000;
 const USER_PAUSE_AUTO_SWITCH_MS = 10000;
 
@@ -103,97 +92,6 @@ const GUIDE_ITEMS: readonly GuideItemConfig[] = [
       dmg: GIFT_DAMAGE_PER_COIN,
       fury: GAME_CONSTANTS.PRO_FURY.FURY_GAIN_GIFT_BOOST,
     },
-  },
-];
-
-const REWARD_ITEMS: readonly RewardItemConfig[] = [
-  {
-    id: 'rose',
-    emoji: '🌹',
-    containerClass: 'border-rose-500/20 bg-rose-950/15',
-    badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-400/40 shadow-[0_0_6px_rgba(244,63,94,0.15)]',
-    titleKey: 'HUD.guideGiftRoseTitle',
-    titleFallback: 'Hoa Hồng (1 xu)',
-    badgeKey: 'HUD.guideGiftRoseBadge',
-    badgeFallback: '+120 ST',
-    badgeParams: { dmg: 120 },
-  },
-  {
-    id: 'heart_tap',
-    emoji: '💖',
-    containerClass: 'border-pink-500/20 bg-pink-950/15',
-    badgeClass: 'bg-pink-500/20 text-pink-300 border-pink-400/40 shadow-[0_0_6px_rgba(236,72,153,0.15)]',
-    titleKey: 'HUD.guideGiftHeartTitle',
-    titleFallback: 'Thả Tim (1♥)',
-    badgeKey: 'HUD.guideGiftHeartBadge',
-    badgeFallback: '+{{dmg}} ST / tim',
-    badgeParams: { dmg: LIKE_DAMAGE_PER_HEART },
-  },
-  {
-    id: 'cookie',
-    emoji: '🍪',
-    containerClass: 'border-amber-500/20 bg-amber-950/15',
-    badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-[0_0_6px_rgba(245,158,11,0.15)]',
-    titleKey: 'HUD.guideGiftCookieTitle',
-    titleFallback: 'Bánh Quy (10 xu)',
-    badgeKey: 'HUD.guideGiftCookieBadge',
-    badgeFallback: '+1,300 ST',
-    badgeParams: { dmg: '1,300' },
-  },
-  {
-    id: 'sunglasses',
-    emoji: '🕶️',
-    containerClass: 'border-purple-500/20 bg-purple-950/15',
-    badgeClass: 'bg-purple-500/20 text-purple-300 border-purple-400/40 shadow-[0_0_6px_rgba(168,85,247,0.15)]',
-    titleKey: 'HUD.guideGiftSunglassesTitle',
-    titleFallback: 'Kính Mát (30 xu)',
-    badgeKey: 'HUD.guideGiftSunglassesBadge',
-    badgeFallback: '+4,800 ST',
-    badgeParams: { dmg: '4,800' },
-  },
-  {
-    id: 'watergun',
-    emoji: '🔫',
-    containerClass: 'border-cyan-500/20 bg-cyan-950/15',
-    badgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-[0_0_6px_rgba(6,182,212,0.15)]',
-    titleKey: 'HUD.guideGiftWatergunTitle',
-    titleFallback: 'Súng Nước (50 xu)',
-    badgeKey: 'HUD.guideGiftWatergunBadge',
-    badgeFallback: '+9,000 ST',
-    badgeParams: { dmg: '9,000' },
-  },
-  {
-    id: 'crown',
-    emoji: '👑',
-    containerClass: 'border-amber-400/20 bg-amber-950/15',
-    badgeClass: 'bg-amber-400/20 text-amber-200 border-amber-300/40 shadow-[0_0_8px_rgba(251,191,36,0.25)]',
-    titleKey: 'HUD.guideGiftCrownTitle',
-    titleFallback: 'Vương Miện (99 xu)',
-    badgeKey: 'HUD.guideGiftCrownBadge',
-    badgeFallback: '+22,000 ST',
-    badgeParams: { dmg: '22,000' },
-  },
-  {
-    id: 'world_heart',
-    emoji: '💎',
-    containerClass: 'border-fuchsia-500/20 bg-fuchsia-950/15',
-    badgeClass: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-400/40 shadow-[0_0_6px_rgba(217,70,239,0.15)]',
-    titleKey: 'HUD.guideGiftWorldHeartTitle',
-    titleFallback: 'Tim CKTG (199 xu)',
-    badgeKey: 'HUD.guideGiftWorldHeartBadge',
-    badgeFallback: '+50,000 ST',
-    badgeParams: { dmg: '50,000' },
-  },
-  {
-    id: 'dragon',
-    emoji: '🐉',
-    containerClass: 'border-yellow-500/20 bg-yellow-950/15',
-    badgeClass: 'bg-yellow-500/20 text-yellow-300 border-yellow-400/40 shadow-[0_0_6px_rgba(234,179,8,0.2)]',
-    titleKey: 'HUD.guideGiftDragonTitle',
-    titleFallback: 'Rồng Thần (1,000 xu)',
-    badgeKey: 'HUD.guideGiftDragonBadge',
-    badgeFallback: '+260,000 ST',
-    badgeParams: { dmg: '260,000' },
   },
 ];
 
@@ -339,24 +237,7 @@ export const ParticipationGuidePanel = () => {
           {activeTab === 'REWARDS' && !hasConfiguredGifts && (
             <div className="space-y-0.5">
               {REWARD_ITEMS.map((item) => (
-                <div
-                  key={item.id}
-                  className={`flex items-center justify-between px-1.5 py-0.5 rounded border transition-all ${item.containerClass}`}
-                >
-                  <div className="flex items-center space-x-1 min-w-0 pr-1">
-                    <span className="text-[9.5px] leading-none shrink-0" aria-hidden="true">
-                      {item.emoji}
-                    </span>
-                    <span className="text-[8px] sm:text-[8.5px] font-black text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {t(item.titleKey, item.titleFallback)}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-[7px] sm:text-[7.5px] font-mono font-black px-1 py-0.2 rounded border shrink-0 ${item.badgeClass}`}
-                  >
-                    {t(item.badgeKey, item.badgeFallback, item.badgeParams)}
-                  </span>
-                </div>
+                <RewardGuideRow key={item.id} item={item} />
               ))}
             </div>
           )}

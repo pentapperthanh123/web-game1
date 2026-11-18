@@ -32,7 +32,11 @@ description: "Strict Clean Code Rules for ALL generated and modified code"
 - Hằng số: SCREAMING_SNAKE_CASE (VD: `MAX_RETRY_COUNT`).
 - Biến logic (Boolean): Dạng câu hỏi (VD: `isActive`, `hasPermission`).
 
-## 6. Mandatory AI Checklist (Socratic Self-Reflection)
+## 6. No Automatic Build/Test After Code
+- **TUYỆT ĐỐI KHÔNG** tự động chạy `npm run build`, `tsc`, `lint`, hoặc lệnh test sau khi sinh code.
+- Chỉ thực hiện build/check khi user yêu cầu trực tiếp.
+
+## 7. Mandatory AI Checklist (Socratic Self-Reflection)
 > **AI INSTRUCTION**: Trước khi kết thúc việc sinh code hoặc chỉnh sửa code, BẠN BẮT BUỘC PHẢI tự rà soát và in ra màn hình checklist sau (Đánh dấu [x] nếu đã thỏa mãn):
 >
 > ```markdown

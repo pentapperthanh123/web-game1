@@ -19,6 +19,7 @@ export const AdminMatchTab: React.FC = () => {
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const bo5Score = useGameStore((state) => state.bo5Score);
   const currentRound = useGameStore((state) => state.currentRound);
+  const isSeriesEnded = useGameStore((state) => state.isSeriesEnded);
   const isIntroActive = useRoundIntroStore((state) => state.isActive);
   const isIntroManualHold = useRoundIntroStore((state) => state.isManualHold);
   const setBossHp = useGameStore((state) => state.setBossHp);
@@ -71,6 +72,10 @@ export const AdminMatchTab: React.FC = () => {
   };
 
   const handleNextRound = () => {
+    if (isSeriesEnded) {
+      showFeedback(t('Admin.seriesAlreadyEndedFeedback', 'Chuỗi trận đã kết thúc! Vui lòng chọn cặp đấu mới hoặc bấm Tái đấu.'));
+      return;
+    }
     const finishedRound = useGameStore.getState().currentRound;
     startNextRound();
     gameSocket.requestNextRound(finishedRound);

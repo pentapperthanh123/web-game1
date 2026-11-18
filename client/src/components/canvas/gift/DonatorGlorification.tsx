@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { useGameStore } from '../../../store/gameStore';
 import { useGiftVfxStore } from '../../../store/giftVfxStore';
 import { getTeamTheme } from '../../../constants/teams';
@@ -197,7 +198,7 @@ export const DonatorGlorification: React.FC = React.memo(() => {
           fragmentShader={CyberpunkHologramShader.fragmentShader}
           uniforms={hologramUniforms}
           transparent
-          blending={THREE.AdditiveBlending}
+          {...COLOR_ONLY_ADDITIVE_PROPS}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
@@ -220,7 +221,7 @@ export const DonatorGlorification: React.FC = React.memo(() => {
                 transparent
                 opacity={0.65}
                 side={THREE.DoubleSide}
-                blending={THREE.AdditiveBlending}
+                {...COLOR_ONLY_ADDITIVE_PROPS}
               />
             </mesh>
 

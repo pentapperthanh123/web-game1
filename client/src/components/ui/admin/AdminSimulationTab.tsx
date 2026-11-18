@@ -5,9 +5,6 @@ import { useGameStore } from '../../../store/gameStore';
 import { ADMIN_CONSTANTS } from '../../../constants/game';
 import { gameSocket } from '../../../services/socket';
 import { mockLiveSimulator, MockLiveStatus } from '../../../services/mockLiveSimulator';
-import { casterQueue } from '../../../services/caster/presentationQueue';
-import { casterSpeechEngine } from '../../../services/caster/speechEngine';
-import { triggerStartRoundCombat } from '../../../services/roundIntroActions';
 
 export const AdminSimulationTab: React.FC = () => {
   const { t } = useTranslation();
@@ -39,19 +36,13 @@ export const AdminSimulationTab: React.FC = () => {
   const handleToggleBot = () => {
     const nextState = !simStatus.isActive;
     if (nextState) {
-      useGameStore.getState().resetBO5Match();
-      casterQueue.clear();
-      casterSpeechEngine.interruptAll();
-      setTimeout(() => {
-        triggerStartRoundCombat();
-      }, 1200);
-      mockLiveSimulator.start(selectedMode, true);
+      mockLiveSimulator.start(selectedMode, false);
     } else {
       mockLiveSimulator.stop();
     }
     toggleSimulation(nextState, botSpeedMs);
-    gameSocket.toggleAutoLive(nextState, selectedMode, nextState);
-    showFeedback(nextState ? 'Đã Reset Ván 1 & Bắt Đầu Giả Lập Live!' : 'Đã dừng Giả lập Live!');
+    gameSocket.toggleAutoLive(nextState, selectedMode, false);
+    showFeedback(nextState ? 'Đã Bắt Đầu Giả Lập Live!' : 'Đã dừng Giả lập Live!');
   };
 
   const handleChangeSimMode = (mode: 'natural' | 'highlight') => {

@@ -6,7 +6,7 @@
 
 ## User
 
-- [user] (Empty - add via /remember)
+- [preference] KHÔNG tự động chạy build/lint/test sau khi sinh code → user-preferences.md
 
 ## Project
 - [project] Project Architecture Overview (Next.js, RN, NestJS, Python) → project-architecture.md

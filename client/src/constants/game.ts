@@ -216,6 +216,17 @@ export const isEliteMinion = (minion: {
   return Boolean(minion.summonerName && minion.summonerName.startsWith(SUMMON_BADGES.ELITE));
 };
 
+/**
+ * Background bot gifts: a mid-size gift during the fight, the mega gift only in the climax. A mega
+ * gift on every few ticks kept the boss buried under gift effects and killed it in seconds.
+ */
+export const SIMULATION_BOT_GIFT = {
+  CHANCE_PER_TICK: 0.15,
+  CLIMAX_BOSS_HP_RATIO: 0.3,
+  REGULAR: { name: 'Kính Mát', coins: 30 },
+  CLIMAX: { name: 'Rồng Thần CKTG 🐉', coins: 1000 },
+} as const;
+
 export const SIMULATION_PRESETS = [
   { champion: 'Jax', team: TEAM_KEY.BLG, damage: 2200, comment: 'Jax Nhảy Nện gõ Boss!' },
   { champion: 'Xin Zhao', team: TEAM_KEY.BLG, damage: 1800, comment: 'Phong Lôi Thương càn quét!' },
@@ -877,7 +888,7 @@ export const isDonorFinisherCheck = (
 
 export const VICTORY_CELEBRATION_CONSTANTS = {
   /** The victory screen moves on by itself: nobody can click the overlay inside OBS. */
-  AUTO_ADVANCE_SECONDS: 10,
+  AUTO_ADVANCE_SECONDS: 15,
   COUNTDOWN_TICK_MS: 1000,
   CONFETTI_PARTICLE_COUNT: 65,
   CONFETTI_MIN_SIZE: 5,
@@ -1071,24 +1082,24 @@ export const COMBAT_VFX_CONSTANTS = {
     [TEAM_KEY.BLG]: {
       minX: -2.75,
       maxX: -1.35,
-      minY: -0.75,
-      maxY: 0.35,
+      minY: -0.32,
+      maxY: 0.85,
       minZ: 0.3,
       maxZ: 2.4,
     },
     [TEAM_KEY.GENG]: {
       minX: 1.35,
       maxX: 2.75,
-      minY: -0.75,
-      maxY: 0.35,
+      minY: -0.05,
+      maxY: 0.85,
       minZ: 0.3,
       maxZ: 2.4,
     },
     GEN: {
       minX: 1.35,
       maxX: 2.75,
-      minY: -0.75,
-      maxY: 0.35,
+      minY: -0.05,
+      maxY: 0.85,
       minZ: 0.3,
       maxZ: 2.4,
     },
@@ -1115,12 +1126,23 @@ export const COMBAT_VFX_CONSTANTS = {
     ENTRANCE_SWOOP_X: 0.0,
     DEFEAT_DURATION_MS: 1200,
     VIEWPORT_SAFE_NDC_X: 0.86,
-    VIEWPORT_SAFE_NDC_Y_MIN: -0.80,
-    VIEWPORT_SAFE_NDC_Y_MAX: 0.65,
+    VIEWPORT_SAFE_NDC_Y_MIN: -0.32,
+    VIEWPORT_SAFE_NDC_Y_MIN_RIGHT: -0.05,
+    VIEWPORT_SAFE_NDC_Y_MAX: 0.42,
     NAMEPLATE_WIDTH: 0.44,
     NAMEPLATE_HEIGHT: 0.11,
     NAMEPLATE_POS_Y: -0.26,
     NAMEPLATE_POS_Z: 0.04,
+  },
+  ELITE_AURA: {
+    RING_INNER_RADIUS: 0.182,
+    RING_OUTER_RADIUS: 0.200,
+    RING_SEGMENTS: 36,
+    HALO_OPACITY: 0.55,
+    PULSE_BASE_SCALE: 1.0,
+    PULSE_AMPLITUDE: 0.025,
+    PULSE_FREQUENCY: 3.0,
+    ROTATION_SPEED: 2.2,
   },
   /** Level of detail for crowded fields: above ENTER the tokens drop to portrait + border + HP. */
   CROWD_LOD: {

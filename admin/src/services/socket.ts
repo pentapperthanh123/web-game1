@@ -478,7 +478,7 @@ class AdminSocketService {
     this.emit('admin:boss-cast-skill', { skillIndex });
   }
 
-  public toggleAutoLive(active: boolean, mode: 'natural' | 'highlight' = 'natural', resetMatch = true): void {
+  public toggleAutoLive(active: boolean, mode: 'natural' | 'highlight' = 'natural', resetMatch = false): void {
     this.emit('admin:toggle-auto-live', { active, mode, resetMatch });
     if (active && resetMatch) {
       this.emit('admin:bo5-control', { action: 'reset' });

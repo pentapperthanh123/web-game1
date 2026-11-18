@@ -2,6 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { useGameStore } from '../../../store/gameStore';
 import { useGiftVfxStore } from '../../../store/giftVfxStore';
 import { getTeamTheme } from '../../../constants/teams';
@@ -116,7 +117,7 @@ const HolographicDonorStep: React.FC<HolographicDonorProps> = ({
           color={teamColor}
           transparent
           opacity={0.22 * riseProgress}
-          blending={THREE.AdditiveBlending}
+          {...COLOR_ONLY_ADDITIVE_PROPS}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
@@ -135,7 +136,7 @@ const HolographicDonorStep: React.FC<HolographicDonorProps> = ({
           transparent
           opacity={0.85 * riseProgress}
           side={THREE.DoubleSide}
-          blending={THREE.AdditiveBlending}
+          {...COLOR_ONLY_ADDITIVE_PROPS}
           depthWrite={false}
         />
       </mesh>
@@ -159,7 +160,7 @@ const HolographicDonorStep: React.FC<HolographicDonorProps> = ({
                 color={teamColor}
                 transparent
                 opacity={0.9}
-                blending={THREE.AdditiveBlending}
+                {...COLOR_ONLY_ADDITIVE_PROPS}
                 side={THREE.DoubleSide}
                 depthWrite={false}
               />

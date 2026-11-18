@@ -493,8 +493,11 @@ const announceRoundFlow = (state: GameState, prev: GameState, memory: DirectorMe
   scheduleAtVictoryReveal(state, memory, () => {
     // Read the latest state: the leaderboard and finisher are final by the time the screen shows
     const latest = useGameStore.getState();
-    if (isRoundJustWon && latest.roundWinner !== null) announceRoundEnd(latest, bossName);
-    if (isSeriesJustEnded) announceSeriesEnd(latest);
+    if (latest.isSeriesEnded && latest.seriesWinner) {
+      announceSeriesEnd(latest);
+    } else if (isRoundJustWon && latest.roundWinner !== null) {
+      announceRoundEnd(latest, bossName);
+    }
   });
 };
 
@@ -574,6 +577,14 @@ const announceSeriesEnd = (state: GameState): void => {
     { team: getTeamTag(state.seriesWinner), score: getSeriesScore(state) },
     endSequence
   );
+  const mvp = state.leaderboard[0];
+  if (mvp) {
+    castCasterSignal(
+      CASTER_SIGNAL.MVP,
+      { name: speakerFor(mvp.userName, mvp.team), dmg: formatSpeechNumber(mvp.totalDamage), team: getTeamTag(mvp.team) },
+      endSequence
+    );
+  }
   castCasterSignal(CASTER_SIGNAL.SERIES_OUTRO, { team: getTeamTag(state.seriesWinner) }, { ...endSequence, speaker: CASTER_SPEAKER.B });
   const nextMatch = state.matchQueue[0];
   if (!nextMatch) return;

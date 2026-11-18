@@ -1900,3 +1900,32 @@
   animation: emberDrift 2.7s ease-out 1.2s infinite;
 }
 
+/* Tier 5 God Effect & VIP Animations */
+@keyframes gradientX {
+  0%, 100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+.animate-gradient-x {
+  animation: gradientX 3s ease infinite;
+}
+
+@keyframes godGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.6), 0 0 20px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.9), 0 0 32px rgba(239, 68, 68, 0.7);
+  }
+}
+
+.animate-god-glow {
+  animation: godGlowPulse 2s ease-in-out infinite;
+}
+

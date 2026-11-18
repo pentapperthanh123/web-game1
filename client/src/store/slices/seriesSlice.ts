@@ -65,7 +65,8 @@ const resolveSeriesWinner = (
 export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (set, get) => ({
   startNextRound: (targetRound?: number) => {
     const state = get();
-    if (state.isSeriesEnded) return;
+    const isWon = TEAM_SLOTS.some((slot) => (state.bo5Score[slot] ?? 0) >= state.bo5TargetWins);
+    if (state.isSeriesEnded || isWon) return;
     resetCommunityQuests();
     resetRoundDamage();
     resetComebackState();
@@ -315,7 +316,10 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     };
     const isEnded = TEAM_SLOTS.some((slot) => (nextScores[slot] ?? 0) >= targetWins);
     const seriesWinner = resolveSeriesWinner(isEnded, nextScores, targetWins);
-    const nextRound = currentRound ?? Math.min(state.seriesMaxRounds, clampedLeft + clampedRight + 1);
+    const calculatedRound = isEnded
+      ? Math.min(state.seriesMaxRounds, clampedLeft + clampedRight)
+      : Math.min(state.seriesMaxRounds, clampedLeft + clampedRight + 1);
+    const nextRound = currentRound ?? calculatedRound;
     const nextTheme = getBossThemeForRound(nextRound, state.seriesFormat);
     const difficulty = BOSS_DIFFICULTY_SCALE[nextTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
     const nextMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);

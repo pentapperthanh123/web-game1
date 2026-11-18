@@ -61,6 +61,13 @@ export function registerTeamAndSeriesHandlers(
       ctx.io.emit('game:theme', { theme });
       duelService.stopDuel();
     } else if (payload?.action === 'nextRound') {
+      const isSeriesEnded =
+        series.blgScore >= series.targetWins || series.gengScore >= series.targetWins;
+      if (isSeriesEnded) {
+        // Series already concluded (e.g. 2-0 sweep in BO3). Do not advance to an unplayed round 3!
+        socket.emit('game:series-format', series);
+        return;
+      }
       if (isStaleNextRoundRequest(series.currentRound, payload.fromRound)) {
         // Someone already moved past that round: re-sync the sender to the real round instead of advancing again
         socket.emit('game:series-format', series);
@@ -101,13 +108,18 @@ export function registerTeamAndSeriesHandlers(
     const series = ctx.state.seriesConfig;
     const blg = Number(payload?.blg);
     const geng = Number(payload?.geng);
-    const isOneMoreWin =
+    const playedRound = Number(payload?.currentRound);
+    const isNormalIncrement =
       (blg === series.blgScore + 1 && geng === series.gengScore) ||
       (geng === series.gengScore + 1 && blg === series.blgScore);
-    if (!isOneMoreWin || blg > series.targetWins || geng > series.targetWins) return;
+    const isRoundOneFirstWin =
+      playedRound === 1 &&
+      series.currentRound === 1 &&
+      ((blg === 1 && geng === 0) || (geng === 1 && blg === 0));
+    const isValidWin = isNormalIncrement || isRoundOneFirstWin;
+    if (!isValidWin || blg > series.targetWins || geng > series.targetWins) return;
     series.blgScore = blg;
     series.gengScore = geng;
-    const playedRound = Number(payload?.currentRound);
     if (Number.isInteger(playedRound) && playedRound >= 1) {
       series.currentRound = Math.min(series.maxRounds, playedRound);
     }
@@ -167,9 +179,24 @@ export function registerTeamAndSeriesHandlers(
     ctx.state.teamConfig = cleanConfig;
     saveTeamConfigToDisk(ctx.state.teamConfig);
     const src = (payload || {}) as Record<string, unknown>;
+    const resetMatch = Boolean(src.resetMatch);
+
+    if (resetMatch) {
+      const series = ctx.state.seriesConfig;
+      series.blgScore = 0;
+      series.gengScore = 0;
+      series.currentRound = 1;
+      const theme = getBossThemeForRound(1, series.format);
+      ctx.state.gameTheme = theme;
+      saveSeriesConfigToDisk(series);
+      ctx.io.emit('game:series-format', series);
+      ctx.io.emit('game:theme', { theme });
+      duelService.stopDuel();
+    }
+
     ctx.io.emit('game:team-config', {
       ...ctx.state.teamConfig,
-      resetMatch: Boolean(src.resetMatch),
+      resetMatch,
       senderId: extractSenderId(payload),
     });
   });

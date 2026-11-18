@@ -64,12 +64,15 @@ export const BossDeathVFX2D = () => {
   return (
     <div
       key={bossDefeatedTimestamp}
-      className="absolute inset-0 pointer-events-none z-20 overflow-visible"
+      className="absolute inset-0 pointer-events-none z-[45] overflow-visible"
     >
       {/* Grand LoL Esports Broadcast Slain Banner */}
-      <div className="absolute left-1/2 top-[10%] sm:top-[12%] animate-execution-banner w-max max-w-[94vw] z-30 pointer-events-none flex flex-col items-center select-none">
+      <div className="absolute left-1/2 top-[18%] sm:top-[20%] animate-execution-banner w-max max-w-[94vw] z-[46] pointer-events-none flex flex-col items-center select-none">
         {/* Symmetrical Winged Hextech Golden Container */}
         <div className="relative flex items-center justify-center">
+          {/* Deep dark backdrop plate to block background 3D light pillars, beams, and particles */}
+          <div className="absolute -inset-4 bg-slate-950/95 rounded-3xl blur-md -z-10 pointer-events-none shadow-[0_0_40px_rgba(0,0,0,1)]" />
+
           {/* Left Wing Ornament */}
           <div className="hidden sm:flex -mr-2 items-center pointer-events-none z-10 opacity-90">
             <div className="w-8 h-12 bg-gradient-to-l from-amber-400/80 via-amber-500/40 to-transparent skew-x-[25deg] rounded-l-lg border-l-2 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]" />
@@ -80,8 +83,8 @@ export const BossDeathVFX2D = () => {
           <div
             style={{
               borderColor: `${teamAccentColor}`,
-              boxShadow: `0 0 35px ${teamAccentColor}90, 0 0 80px rgba(0,0,0,0.95), inset 0 0 20px ${teamAccentColor}30`,
-              background: `linear-gradient(135deg, rgba(2, 6, 23, 0.98) 0%, ${teamAccentColor}20 50%, rgba(2, 6, 23, 0.98) 100%)`,
+              boxShadow: `0 0 35px ${teamAccentColor}80, 0 10px 40px rgba(0,0,0,0.98), inset 0 0 16px ${teamAccentColor}30`,
+              background: 'linear-gradient(135deg, #020617 0%, #0b1120 50%, #020617 100%)',
             }}
             className="relative flex items-center gap-3 sm:gap-4 px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-2xl sm:rounded-3xl border-2 backdrop-blur-2xl overflow-hidden shadow-2xl"
           >
@@ -111,25 +114,30 @@ export const BossDeathVFX2D = () => {
             {/* Banner Text Details */}
             <div className="flex flex-col items-start leading-tight min-w-0">
               {/* Eyebrow Label */}
-              <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-amber-300 mb-0.5">
+              <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-amber-300 mb-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
                 <Trophy className="w-3 h-3 text-amber-400 shrink-0 animate-pulse" />
                 <span>{t('Victory.objectiveSecured', 'TIÊU DIỆT MỤC TIÊU LỚN')}</span>
               </div>
 
               {/* Main Headline */}
-              <h2 className="text-xs sm:text-base md:text-lg font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 drop-shadow-[0_2px_8px_rgba(245,158,11,0.8)] truncate max-w-[260px] sm:max-w-md">
+              <h2
+                style={{
+                  textShadow:
+                    '0 2px 4px rgba(0,0,0,1), 0 0 12px rgba(0,0,0,0.95), 0 0 24px rgba(245,158,11,0.5)',
+                }}
+                className="text-xs sm:text-base md:text-lg font-black uppercase tracking-wider text-amber-200 truncate max-w-[260px] sm:max-w-md"
+              >
                 {teamTag} {t('Victory.slainBadge', 'ĐÃ HẠ GỤC')} {bossName.toUpperCase()}!
               </h2>
 
               {/* Finisher Credit Badge */}
               {finisherPlayerName && (
-                <div className="flex items-center gap-1.5 mt-1 text-[9.5px] sm:text-[11px] font-bold text-amber-300">
+                <div className="flex items-center gap-1.5 mt-1 text-[9.5px] sm:text-[11px] font-bold text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
                   <Swords className="w-3 h-3 text-amber-400 shrink-0" />
-                  <span className="text-slate-300 font-semibold">{t('Victory.finisherBlow', 'Đòn Kết Liễu')}:</span>
+                  <span className="text-slate-200 font-semibold">{t('Victory.finisherBlow', 'Đòn Kết Liễu')}:</span>
                   <span
-                    className="text-amber-100 font-black px-2 py-0.5 rounded-md border truncate max-w-[160px] sm:max-w-[220px] shadow-sm"
+                    className="text-amber-100 font-black px-2 py-0.5 rounded-md border truncate max-w-[160px] sm:max-w-[220px] shadow-sm bg-slate-900/90"
                     style={{
-                      backgroundColor: `${teamAccentColor}35`,
                       borderColor: `${teamAccentColor}80`,
                     }}
                   >

@@ -1,6 +1,21 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
+import { getBeamFadeAlphaMap } from './giftVfxShared';
+
+/**
+ * Sword slam shockwave: a thin bright band. The old 0.6–1.2 band grew to a 4-unit-wide disc at full
+ * size and covered the whole arena (and the boss) in cyan.
+ */
+const SWORD_SHOCKWAVE = {
+  INNER_RADIUS: 1,
+  OUTER_RADIUS: 1.18,
+  SEGMENTS: 48,
+  GROWTH_PER_SECOND: 8,
+  MAX_SCALE: 7,
+  PEAK_OPACITY: 0.75,
+} as const;
 import { useGameStore } from '../../../store/gameStore';
 import { useGiftVfxStore, MegaWeaponCategory } from '../../../store/giftVfxStore';
 import { getTeamTheme } from '../../../constants/teams';
@@ -79,8 +94,10 @@ const LaserShader = {
       float scroll = fract(vUv.y * 3.0 - uTime * 6.0);
       float beamCore = pow(sin(vUv.x * 3.14159), 4.0);
       float energyPulse = 0.7 + 0.3 * sin(uTime * 15.0 + vUv.y * 10.0);
-      vec3 finalColor = uColor * (beamCore * 2.5 + scroll * 0.8) * energyPulse;
-      float alpha = beamCore * (0.8 + 0.2 * scroll);
+      vec3 finalColor = uColor * (beamCore * 1.5 + scroll * 0.6) * energyPulse;
+      // Thin out at the foot of the column, where the boss stands, so the sprite stays readable
+      float footFade = mix(0.15, 1.0, smoothstep(0.0, 0.14, vUv.y));
+      float alpha = beamCore * (0.8 + 0.2 * scroll) * footFade;
       gl_FragColor = vec4(finalColor, alpha);
     }
   `,
@@ -461,11 +478,11 @@ export const GiftVFXPool: React.FC = React.memo(() => {
 
         // Shockwave expansion
         if (swordShockwaveRef.current && swordShockwaveRef.current.visible) {
-          const sc = swordShockwaveRef.current.scale.x + delta * 8.0;
+          const sc = swordShockwaveRef.current.scale.x + delta * SWORD_SHOCKWAVE.GROWTH_PER_SECOND;
           swordShockwaveRef.current.scale.set(sc, sc, sc);
           const mat = swordShockwaveRef.current.material as THREE.MeshBasicMaterial;
-          mat.opacity = Math.max(0, 1.0 - sc / 7.0);
-          if (sc > 7.0) swordShockwaveRef.current.visible = false;
+          mat.opacity = Math.max(0, SWORD_SHOCKWAVE.PEAK_OPACITY * (1 - sc / SWORD_SHOCKWAVE.MAX_SCALE));
+          if (sc > SWORD_SHOCKWAVE.MAX_SCALE) swordShockwaveRef.current.visible = false;
         }
 
         if (s.lingerTimer >= 3.5) {
@@ -594,8 +611,8 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         </mesh>
         {/* Shockwave ring */}
         <mesh ref={swordShockwaveRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} visible={false}>
-          <ringGeometry args={[0.6, 1.2, 32]} />
-          <meshBasicMaterial toneMapped={false} color="#38bdf8" transparent opacity={1} side={THREE.DoubleSide} />
+          <ringGeometry args={[SWORD_SHOCKWAVE.INNER_RADIUS, SWORD_SHOCKWAVE.OUTER_RADIUS, SWORD_SHOCKWAVE.SEGMENTS]} />
+          <meshBasicMaterial toneMapped={false} color="#38bdf8" transparent opacity={1} depthWrite={false} side={THREE.DoubleSide} {...COLOR_ONLY_ADDITIVE_PROPS} />
         </mesh>
       </group>
 
@@ -607,20 +624,20 @@ export const GiftVFXPool: React.FC = React.memo(() => {
           fragmentShader={LaserShader.fragmentShader}
           uniforms={laserUniforms}
           transparent
-          blending={THREE.AdditiveBlending}
+          {...COLOR_ONLY_ADDITIVE_PROPS}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
       </mesh>
       <mesh ref={laserGroundRingRef} position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
         <ringGeometry args={[1.0, 2.4, 32]} />
-        <meshBasicMaterial toneMapped={false} color="#38bdf8" transparent opacity={0.85} side={THREE.DoubleSide} />
+        <meshBasicMaterial toneMapped={false} color="#38bdf8" transparent opacity={0.85} depthWrite={false} side={THREE.DoubleSide} {...COLOR_ONLY_ADDITIVE_PROPS} />
       </mesh>
 
       {/* 5. Love Category (Pink Beam & Orbiting Hearts) */}
       <mesh ref={loveBeamMeshRef} position={[0, 14, 0]} visible={false}>
         <cylinderGeometry args={[0.7, 0.7, 28, 16, 1, true]} />
-        <meshBasicMaterial toneMapped={false} color="#ec4899" transparent opacity={0.65} side={THREE.DoubleSide} />
+        <meshBasicMaterial toneMapped={false} color="#ec4899" transparent opacity={0.65} depthWrite={false} side={THREE.DoubleSide} alphaMap={getBeamFadeAlphaMap()} {...COLOR_ONLY_ADDITIVE_PROPS} />
       </mesh>
       <group ref={loveHeartsGroupRef} visible={false}>
         {heartSlots.current.map((_, i) => (
@@ -641,7 +658,7 @@ export const GiftVFXPool: React.FC = React.memo(() => {
               fragmentShader={WaterRefractionShader.fragmentShader}
               uniforms={waterUniforms}
               transparent
-              blending={THREE.AdditiveBlending}
+              {...COLOR_ONLY_ADDITIVE_PROPS}
               depthWrite={false}
             />
           </mesh>

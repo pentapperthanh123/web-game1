@@ -683,7 +683,7 @@ class GameSocketClient {
     }
   }
 
-  public toggleAutoLive(active: boolean, mode: 'natural' | 'highlight' = 'natural', resetMatch = true): void {
+  public toggleAutoLive(active: boolean, mode: 'natural' | 'highlight' = 'natural', resetMatch = false): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('admin:toggle-auto-live', { active, mode, resetMatch, senderId: CLIENT_INSTANCE_ID });
       if (active && resetMatch) {

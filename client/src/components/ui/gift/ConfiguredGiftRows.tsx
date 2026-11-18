@@ -6,7 +6,8 @@ import { GiftRuleIcon } from './GiftRuleIcon';
 import { getGiftEffectLabel, resolveRuleGiftDamage } from './giftRuleDisplay';
 
 /** Two lines: the panel is ~200px wide, so the badges sit under the name instead of squeezing it. */
-const ROW_CLASS = 'flex flex-col gap-0.5 px-1.5 py-0.5 rounded border border-amber-500/20 bg-amber-950/15';
+const ROW_CLASS =
+  'flex flex-col gap-0.5 px-1.5 py-0.5 rounded border border-amber-500/20 bg-amber-950/15 hover:scale-[1.02] hover:brightness-110 transition-all duration-200 cursor-pointer';
 const BADGE_CLASS = 'text-[7px] sm:text-[7.5px] font-mono font-black px-1 py-0.2 rounded border shrink-0';
 
 interface ConfiguredGiftRowsProps {

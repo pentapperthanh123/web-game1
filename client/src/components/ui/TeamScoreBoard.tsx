@@ -200,7 +200,6 @@ export const TeamScoreBoard = React.memo(() => {
           {/* Top row: Logo & Damage info */}
           <div className="relative flex items-center space-x-1.5 sm:space-x-2">
             <div
-              style={{ boxShadow: leftTheme.glowStyle }}
               className={`relative shrink-0 p-0.5 rounded-md border ${leftTheme.bgSoftClass} ${leftTheme.borderSoftClass}`}
             >
               <TeamLogo teamProfile={leftTeam} className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -284,7 +283,6 @@ export const TeamScoreBoard = React.memo(() => {
           {/* Top row: Logo & Damage info */}
           <div className="relative flex items-center space-x-1.5 sm:space-x-2 text-right flex-row-reverse space-x-reverse">
             <div
-              style={{ boxShadow: rightTheme.glowStyle }}
               className={`relative shrink-0 p-0.5 rounded-md border ${rightTheme.bgSoftClass} ${rightTheme.borderSoftClass}`}
             >
               <TeamLogo teamProfile={rightTeam} className="w-6 h-6 sm:w-7 sm:h-7" />

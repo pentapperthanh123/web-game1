@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { COMBAT_VFX_CONSTANTS, GIFT_TIER, GiftTier, TEAM_KEY } from '../../../constants/game';
 import { GIFT_CELEBRATION_COLORS, GIFT_FOUNTAIN_CONFIG, GIFT_FOUNTAIN_MAX_SPARKS } from '../../../constants/giftPresentation';
 import { GIFT_VFX_DURATION_MS, GIFT_VFX_LAYOUT, readActiveGiftVfx, resolveGiftTeamColors } from './giftVfxShared';
@@ -57,7 +58,7 @@ export const GiftSparkler = () => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const seeds = useMemo(buildSparkSeeds, []);
   const material = useMemo(
-    () => new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }),
+    () => new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, ...COLOR_ONLY_ADDITIVE_PROPS, depthWrite: false, toneMapped: false }),
     []
   );
 

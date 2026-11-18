@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { GIFT_TIER, GiftTier, TeamType } from '../../../constants/game';
 import { getTeamTheme } from '../../../constants/teams';
 import { useGameStore } from '../../../store/gameStore';
@@ -46,12 +47,48 @@ export const createGlowMaterial = (color: string): THREE.MeshBasicMaterial =>
     color,
     transparent: true,
     opacity: 0,
-    blending: THREE.AdditiveBlending,
+    ...COLOR_ONLY_ADDITIVE_PROPS,
     depthWrite: false,
     toneMapped: false,
     side: THREE.DoubleSide,
     forceSinglePass: true,
   });
+
+/** Height share (from the floor) over which a sky beam fades in: the boss body sits there. */
+const BEAM_FADE = {
+  TEXTURE_HEIGHT: 64,
+  /** Fully transparent at the floor, still faint at the boss's shoulders. */
+  CLEAR_UNTIL: 0.08,
+  SOLID_FROM: 0.34,
+  FLOOR_ALPHA: 0.12,
+} as const;
+
+let beamFadeTexture: THREE.Texture | null = null;
+
+/**
+ * Vertical alpha ramp for beam cylinders (uv.y 0 = floor): the light pours from the sky and thins
+ * out around the boss instead of washing the sprite out. Created once.
+ */
+export const getBeamFadeAlphaMap = (): THREE.Texture => {
+  if (beamFadeTexture) return beamFadeTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = BEAM_FADE.TEXTURE_HEIGHT;
+  const context = canvas.getContext('2d');
+  if (context) {
+    // Canvas y grows downward while uv.y grows upward (flipY), so the floor is the bottom row
+    const gradient = context.createLinearGradient(0, BEAM_FADE.TEXTURE_HEIGHT, 0, 0);
+    const floorGray = Math.round(BEAM_FADE.FLOOR_ALPHA * 255);
+    gradient.addColorStop(0, `rgb(${floorGray},${floorGray},${floorGray})`);
+    gradient.addColorStop(BEAM_FADE.CLEAR_UNTIL, `rgb(${floorGray},${floorGray},${floorGray})`);
+    gradient.addColorStop(BEAM_FADE.SOLID_FROM, 'rgb(255,255,255)');
+    gradient.addColorStop(1, 'rgb(255,255,255)');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 1, BEAM_FADE.TEXTURE_HEIGHT);
+  }
+  beamFadeTexture = new THREE.CanvasTexture(canvas);
+  return beamFadeTexture;
+};
 
 export const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 export const easeOutCubic = (value: number): number => 1 - Math.pow(1 - clamp01(value), 3);

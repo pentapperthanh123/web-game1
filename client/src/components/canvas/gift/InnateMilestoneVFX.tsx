@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { useGameStore } from '../../../store/gameStore';
 import { getTeamTheme } from '../../../constants/teams';
 import { GIFT_TIER, GIFT_TIER_CONFIG, TEAM_SLOT_LEFT, TEAM_SLOT_RIGHT, TeamType } from '../../../constants/game';
@@ -189,7 +190,7 @@ export const InnateMilestoneVFX: React.FC = React.memo(() => {
           fragmentShader={HexShieldShader.fragmentShader}
           uniforms={leftShieldUniforms}
           transparent
-          blending={THREE.AdditiveBlending}
+          {...COLOR_ONLY_ADDITIVE_PROPS}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
@@ -207,7 +208,7 @@ export const InnateMilestoneVFX: React.FC = React.memo(() => {
           fragmentShader={HexShieldShader.fragmentShader}
           uniforms={rightShieldUniforms}
           transparent
-          blending={THREE.AdditiveBlending}
+          {...COLOR_ONLY_ADDITIVE_PROPS}
           depthWrite={false}
           side={THREE.DoubleSide}
         />

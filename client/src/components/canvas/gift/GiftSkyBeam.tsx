@@ -8,6 +8,7 @@ import { resolveBossAnchorWorld } from '../bossSkill/bossSkill3DShared';
 import {
   GIFT_VFX_LAYOUT,
   createGlowMaterial,
+  getBeamFadeAlphaMap,
   easeOutCubic,
   phase,
   pulseWindow,
@@ -24,7 +25,8 @@ const SIZE = {
   BEAM_RADIUS: 0.45, MEGA_BEAM_SCALE: 1.9, CORE_RADIUS: 0.2,
   RING_MAX_BIG: 3.2, RING_MAX_MEGA: 4.6, RAY_LENGTH: 3.4, RAY_WIDTH: 0.22, RAY_SPIN: 0.6,
 } as const;
-const OPACITY = { BEAM_OUTER: 0.22, BEAM_CORE: 0.6, RING: 0.42, CORE: 0.75, RAY: 0.18 } as const;
+/** The orb sits on the boss body: kept soft so the sprite stays readable under it. */
+const OPACITY = { BEAM_OUTER: 0.22, BEAM_CORE: 0.6, RING: 0.42, CORE: 0.3, RAY: 0.18 } as const;
 
 const BEAM_OUTER_GEO = new THREE.CylinderGeometry(SIZE.BEAM_RADIUS, SIZE.BEAM_RADIUS * 1.6, GIFT_VFX_LAYOUT.BEAM_HEIGHT, 20, 1, true);
 const BEAM_CORE_GEO = new THREE.CylinderGeometry(SIZE.BEAM_RADIUS * 0.3, SIZE.BEAM_RADIUS * 0.45, GIFT_VFX_LAYOUT.BEAM_HEIGHT, 12, 1, true);
@@ -49,8 +51,8 @@ export const GiftSkyBeam = () => {
   const gradeScaleRef = useRef(1);
   const materials = useMemo(
     () => ({
-      beamOuter: createGlowMaterial(GIFT_VFX_LAYOUT.CORE_WHITE),
-      beamCore: createGlowMaterial(GIFT_VFX_LAYOUT.CORE_WHITE),
+      beamOuter: Object.assign(createGlowMaterial(GIFT_VFX_LAYOUT.CORE_WHITE), { alphaMap: getBeamFadeAlphaMap() }),
+      beamCore: Object.assign(createGlowMaterial(GIFT_VFX_LAYOUT.CORE_WHITE), { alphaMap: getBeamFadeAlphaMap() }),
       core: createGlowMaterial(GIFT_VFX_LAYOUT.CORE_WHITE),
       ring: createGlowMaterial(GIFT_VFX_LAYOUT.CORE_WHITE),
       ray: createGlowMaterial(GIFT_VFX_LAYOUT.MEGA_GOLD),

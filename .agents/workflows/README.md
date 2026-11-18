@@ -1,3 +1,7 @@
+---
+description: "Workflows - Slash Commands documentation"
+---
+
 # Workflows - Slash Commands
 
 > 18 workflows định nghĩa sẵn. **Cursor slash** cần sync sang `.cursor/commands/`:

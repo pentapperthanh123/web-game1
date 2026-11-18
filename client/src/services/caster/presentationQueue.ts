@@ -269,7 +269,8 @@ class PresentationQueue {
       this.currentMain !== null ||
       this.pendingMain.length > 0 ||
       this.currentDonate !== null ||
-      this.pendingDonate.length > 0
+      this.pendingDonate.length > 0 ||
+      casterSpeechEngine.isSpeaking()
     );
   }
 

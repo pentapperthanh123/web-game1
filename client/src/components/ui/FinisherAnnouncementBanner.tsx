@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Swords, Zap, Crown, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
+import { useGiftVfxStore } from '../../store/giftVfxStore';
 import {
   BOSS_STATUS,
   FINISHER_BANNER_CONSTANTS,
@@ -35,6 +36,7 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
   const activeTeams = useGameStore((state) => state.activeTeams);
   const triggerScreenShake = useGameStore((state) => state.triggerScreenShake);
   const triggerScreenFlash = useGameStore((state) => state.triggerScreenFlash);
+  const isPodiumOrbitActive = useGiftVfxStore((state) => state.isPodiumOrbitActive);
 
   // Parse donor and gift name if finished by a donation strike
   const rawPlayerName = finisherPlayerName || '';
@@ -42,26 +44,17 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
   const donorName = giftMatch ? giftMatch[1].trim() : (finisherPlayerName || t('Victory.teamworkKill', 'Toàn Đội Phối Hợp'));
   const parsedGiftName = finisherGiftName;
   const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
-  const isIndividualFinisher = Boolean(isDonorFinisher || (finisherPlayerName && finisherPlayerName !== 'Toàn Đội Phối Hợp' && finisherPlayerName !== t('Victory.teamworkKill', 'Toàn Đội Phối Hợp')));
 
   const effectiveWinner: TeamType = (finisherTeam || roundWinner || TEAM_KEY.BLG) as TeamType;
   const winnerProfile = activeTeams[effectiveWinner];
   const winnerTheme = getTeamTheme(winnerProfile?.colorTheme);
   const teamLabel = winnerProfile?.shortTag || effectiveWinner;
 
-  const cardRevealDelayMs = isDonorFinisher
-    ? FINISHER_BANNER_CONSTANTS.GIFT_CARD_REVEAL_DELAY_MS
-    : FINISHER_BANNER_CONSTANTS.NORMAL_CARD_REVEAL_DELAY_MS;
-
-  const displayDurationMs = isDonorFinisher
-    ? FINISHER_BANNER_CONSTANTS.GIFT_FINISHER_DURATION_MS
-    : FINISHER_BANNER_CONSTANTS.NORMAL_DISPLAY_DURATION_MS;
+  const cardRevealDelayMs = FINISHER_BANNER_CONSTANTS.GIFT_CARD_REVEAL_DELAY_MS;
+  const displayDurationMs = FINISHER_BANNER_CONSTANTS.GIFT_FINISHER_DURATION_MS;
 
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [hasImpacted, setHasImpacted] = useState<boolean>(() => {
-    if (!isDonorFinisher) {
-      return Date.now() - bossDefeatedTimestamp >= cardRevealDelayMs;
-    }
     return Date.now() - bossDefeatedTimestamp >= FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS;
   });
   const [isCardVisible, setIsCardVisible] = useState<boolean>(() => {
@@ -72,8 +65,8 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
     (finisherCoins ?? 0) > 0 ? calculateGiftBaseDamage(finisherCoins!) : 300000;
 
   useEffect(() => {
-    // Only show Finisher Spotlight card if there is a real donor / individual finisher
-    if (!isIndividualFinisher || bossStatus !== BOSS_STATUS.DEFEATED || bossDefeatedTimestamp <= 0) {
+    // Only show Finisher Spotlight card if there is a real donor gift finisher and podium orbit is not active
+    if (!isDonorFinisher || bossStatus !== BOSS_STATUS.DEFEATED || bossDefeatedTimestamp <= 0 || isPodiumOrbitActive) {
       setIsVisible(false);
       setHasImpacted(false);
       setIsCardVisible(false);
@@ -154,14 +147,10 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
     winnerTheme.primaryHex,
     triggerScreenShake,
     triggerScreenFlash,
+    isPodiumOrbitActive,
   ]);
 
-  if (!isIndividualFinisher || !isVisible || bossDefeatedTimestamp <= 0) {
-    return null;
-  }
-
-  // During normal kill, wait until the 3D explosion finishes before mounting any overlay DOM
-  if (!isDonorFinisher && !hasImpacted) {
+  if (!isDonorFinisher || !isVisible || bossDefeatedTimestamp <= 0 || isPodiumOrbitActive) {
     return null;
   }
 

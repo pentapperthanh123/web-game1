@@ -73,10 +73,15 @@ export const CinematicEsportsIntro: React.FC<CinematicEsportsIntroProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleFinish]);
 
-  const clashTitleText = t('RoundIntro.clashTitle', {
-    defaultValue: 'VÁN {{round}} • KHAI CHIẾN!',
-    round: currentRound,
-  }).replace(/\{\{\s*round\s*\}\}/gi, String(currentRound));
+  const isNewMatchup = currentRound === 1;
+  const clashTitleText = isNewMatchup
+    ? t('RoundIntro.clashNewSeriesTitle', {
+        defaultValue: 'CẶP ĐẤU MỚI • VÁN 1 KHAI CHIẾN!',
+      })
+    : t('RoundIntro.clashTitle', {
+        defaultValue: 'VÁN {{round}} • KHAI CHIẾN!',
+        round: currentRound,
+      }).replace(/\{\{\s*round\s*\}\}/gi, String(currentRound));
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950 flex flex-col justify-between select-none pointer-events-auto">

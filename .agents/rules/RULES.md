@@ -118,12 +118,17 @@ For COMPLEX CODE tasks, update `.agents/.session/checkpoint.md` after completing
 - **Direct "Proceed":** Ask 2 "Edge Case" / Trade-off questions before coding.
 - **Rule:** Never assume. Wait for user confirmation before invoking code generation.
 
+### 🚫 TẮT TỰ ĐỘNG BUILD / CHECK SAU KHI SINH CODE (STRICT)
+- **TUYỆT ĐỐI KHÔNG** tự ý chạy `npm run build`, `npm run lint`, `npx tsc`, `test`, hoặc bất kỳ lệnh build/kiểm thử nào sau khi sinh hoặc chỉnh sửa code.
+- **CHỈ** chạy build hoặc kiểm tra khi NGƯỜI DÙNG YÊU CẦU TRỰC TIẾP (ví dụ: "build đi", "test đi", "check build", "chạy test").
+- Sau khi chỉnh sửa code, chỉ báo cáo tóm tắt các thay đổi đã thực hiện và dừng lại, không tự động trigger lệnh build.
+
 ### 🏁 Final Checklist Protocol
-Triggered by: "run final checks", "final checks", "run tests".
-- **Manual Audit:** `python .agents/scripts/checklist.py .`
+Triggered ONLY by explicit user request: "run final checks", "final checks", "run tests", "build".
+- **Manual Audit:** `python .agents/scripts/checklist.py .` (Chỉ chạy khi user yêu cầu)
 - **Pre-Deploy:** `python .agents/scripts/checklist.py . --url <URL>`
 - **Execution Order:** Security → Lint → Schema → Tests → UX → SEO → Lighthouse/E2E
-- A task is NOT complete until `checklist.py` returns success.
+- KHÔNG tự động chạy checklist sau khi sinh code.
 
 ### 🎭 Cursor Mode Mapping
 - **plan:** `project-planner` (4 phases: Analysis → Planning → Solutioning → Code + Tests). NO CODE before Phase 4.

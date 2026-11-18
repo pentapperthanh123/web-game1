@@ -1,14 +1,14 @@
 ---
 name: verify-changes
-description: Prove code works by running it, not just checking it exists. Verification through execution rather than inspection. Use after writing or modifying code to ensure it actually functions correctly.
-when_to_use: "After writing code, completing a feature, or fixing a bug. When the user says 'does this work?', 'test this', 'verify', or when /verify workflow is invoked. NOT for writing new code — for proving existing code works."
+description: Verification through execution. Use ONLY when the user explicitly asks to verify, test, or check whether code works.
+when_to_use: "ONLY when the user explicitly requests verification (e.g. 'does this work?', 'test this', 'verify', 'build', or when /verify workflow is invoked). DO NOT run automatically after writing or modifying code."
 allowed-tools: Read, Bash, Grep, Glob
 effort: medium
 ---
 
 # Verify Changes — Prove Code Works
 
-> "Code that exists" ≠ "Code that works." This skill ensures changes are verified through execution.
+> **Note:** Run verification ONLY upon explicit user request. Do not automatically run build or tests after generating code.
 
 ## Core Principle
 

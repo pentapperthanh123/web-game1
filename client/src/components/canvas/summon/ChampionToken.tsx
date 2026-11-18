@@ -13,7 +13,6 @@ import {
   SHARED_SHIELD_RING_GEO,
   SHARED_SIGNATURE_HALO_GEO,
   SHARED_ELITE_AURA_RING_GEO,
-  SHARED_ELITE_FLOOR_AURA_GEO,
   getChampionTexture,
   getFuryFillColor,
   getNameplateTexture,
@@ -172,42 +171,21 @@ export const ChampionToken = React.memo(
         )}
 
         {isElite && (
-          <>
-            {/* VIP Golden Halo around token avatar */}
-            <mesh
-              name="elite-vip-aura"
-              position={[0, 0, -0.02]}
-              geometry={SHARED_ELITE_AURA_RING_GEO}
-            >
-              <meshBasicMaterial
-                color={eliteColor}
-                transparent
-                opacity={0.88}
-                blending={THREE.AdditiveBlending}
-                depthWrite={false}
-                toneMapped={false}
-                side={TOKEN_FACE_SIDE}
-              />
-            </mesh>
-
-            {/* Rotating Ground Aura beneath Champion */}
-            <mesh
-              name="elite-floor-aura"
-              position={[0, -0.24, -0.01]}
-              rotation={[-Math.PI / 2.3, 0, 0]}
-              geometry={SHARED_ELITE_FLOOR_AURA_GEO}
-            >
-              <meshBasicMaterial
-                color={eliteColor}
-                transparent
-                opacity={0.75}
-                blending={THREE.AdditiveBlending}
-                depthWrite={false}
-                toneMapped={false}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </>
+          <mesh
+            name="elite-vip-aura"
+            position={[0, 0, -0.02]}
+            geometry={SHARED_ELITE_AURA_RING_GEO}
+          >
+            <meshBasicMaterial
+              color={eliteColor}
+              transparent
+              opacity={COMBAT_VFX_CONSTANTS.ELITE_AURA.HALO_OPACITY}
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+              toneMapped={false}
+              side={TOKEN_FACE_SIDE}
+            />
+          </mesh>
         )}
 
         {activeStatusEffect && (

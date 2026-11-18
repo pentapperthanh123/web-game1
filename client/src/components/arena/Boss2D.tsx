@@ -25,7 +25,6 @@ import { BossAlertBanner } from './BossAlertBanner';
 import { BossSpeechBubble } from './BossSpeechBubble';
 import { BossHealthBar, BossNameTag } from '../ui/BossHealthBar';
 import { useRoundIntroStore, isRoundIntroActive, isCurrentRoundIntroActive } from '../../store/roundIntroStore';
-import { BossDeathVFX2D } from './BossDeathVFX2D';
 import { BossDefeatedCrest2D } from './BossDefeatedCrest2D';
 import { BossArmorCracks, BossPhaseVisuals } from './BossPhaseVisuals';
 import { audioService } from '../../services/audioService';
@@ -739,8 +738,8 @@ export const Boss2D = React.memo(() => {
         <div className={verticalMotionClass}>
           {/* Follows the sprite's motion only; the filter keyframes would add a second filtered layer */}
           <div className={`relative ${themeConfig.spriteSize} ${animationClass} boss-motion-only pointer-events-none`}>
-            {/* Inside the boss motion layer: name (above) and HP bar (below) follow lunges, hits and hovering */}
-            {isHealthBarVisible && (
+            {/* Inside the boss motion layer: name (above) and HP bar (below) follow lunges, hits and hovering (hidden during defeat to avoid overlapping slain banner) */}
+            {isHealthBarVisible && !isDefeated && (
               <>
                 <div className={getBossNameAnchorClass(gameTheme)}>
                   <BossNameTag />
@@ -760,8 +759,6 @@ export const Boss2D = React.memo(() => {
           </div>
         </div>
       </div>
-
-      {isDefeated && <BossDeathVFX2D />}
     </div>
   );
 

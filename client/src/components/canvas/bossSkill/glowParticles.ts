@@ -1,19 +1,8 @@
 import * as THREE from 'three';
 import { ADDITIVE_MATERIAL_PROPS, SHARED_QUAD_GEO, getSoftGlowTexture } from './bossSkill3DShared';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 
-/**
- * Instanced particles fade by darkening their colour (instances have no own opacity). Plain additive
- * blending would still add alpha, and the transparent canvas then shows dim particles as dark smudges
- * over the DOM backdrop: add colour only and leave the canvas alpha untouched.
- */
-export const COLOR_ONLY_ADDITIVE_PROPS = {
-  blending: THREE.CustomBlending,
-  blendEquation: THREE.AddEquation,
-  blendSrc: THREE.SrcAlphaFactor,
-  blendDst: THREE.OneFactor,
-  blendSrcAlpha: THREE.ZeroFactor,
-  blendDstAlpha: THREE.OneFactor,
-} as const;
+export { COLOR_ONLY_ADDITIVE_PROPS };
 
 export interface GlowParticleMesh {
   mesh: THREE.InstancedMesh;

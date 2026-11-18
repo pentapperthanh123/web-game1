@@ -84,7 +84,6 @@ export const TeamLogo = ({
   const storeProfile = useGameStore((state) => state.activeTeams[teamSlot]);
   const activeProfile = teamProfile || storeProfile;
   const logoUrl = activeProfile?.logoUrl?.trim() || '';
-  const theme = getTeamTheme(activeProfile?.colorTheme);
 
   const [hasError, setHasError] = useState(false);
 
@@ -99,7 +98,6 @@ export const TeamLogo = ({
         alt={`${activeProfile?.name || teamSlot} Logo`}
         width={size}
         height={size}
-        style={{ filter: `drop-shadow(0 0 8px ${theme.primaryHex})` }}
         className={`${className} object-contain`}
         onError={() => setHasError(true)}
         loading="lazy"

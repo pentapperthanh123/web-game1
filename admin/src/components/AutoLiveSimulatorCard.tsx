@@ -36,11 +36,11 @@ export const AutoLiveSimulatorCard: React.FC = () => {
     }, 1800);
   };
 
-  const handleStartWithReset = () => {
+  const handleStartLive = () => {
     setIsActive(true);
-    adminSocket.toggleAutoLive(true, selectedMode, true);
+    adminSocket.toggleAutoLive(true, selectedMode, false);
     showToast(
-      `🎬 Đã RESET Ván 1 & Bắt Đầu Giả Lập Live (${selectedMode === 'highlight' ? 'Highlight 60s' : 'Tự Nhiên 2-3p'})!`
+      `🎬 Đã Bắt Đầu Giả Lập Live (${selectedMode === 'highlight' ? 'Highlight 60s' : 'Tự Nhiên 2-3p'})!`
     );
   };
 
@@ -93,7 +93,7 @@ export const AutoLiveSimulatorCard: React.FC = () => {
               </span>
             </h2>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              1 click tự động reset về Ván 1 (0-0, đầy máu Boss) và tự động tương tác từ đầu để bạn quay video TikTok / Shorts!
+              1 click tự động tương tác quà/bot/kéo co liên tục để bạn quay video TikTok / Shorts tiện lợi!
             </p>
           </div>
         </div>
@@ -123,11 +123,11 @@ export const AutoLiveSimulatorCard: React.FC = () => {
           ) : (
             <button
               type="button"
-              onClick={handleStartWithReset}
+              onClick={handleStartLive}
               className="px-4 sm:px-6 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition cursor-pointer active:scale-95 shadow-lg bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 hover:from-purple-400 hover:to-amber-300 text-slate-950 shadow-purple-900/40"
             >
               <Radio className="w-4 h-4 shrink-0 animate-pulse" />
-              <span>RESET VÁN 1 & BẮT ĐẦU QUAY LIVE</span>
+              <span>BẮT ĐẦU QUAY LIVE</span>
             </button>
           )}
         </div>

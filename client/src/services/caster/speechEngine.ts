@@ -181,6 +181,11 @@ class CasterSpeechEngine {
     this.finishCurrentDonate?.(SPEECH_OUTCOME.INTERRUPTED);
   }
 
+  /** Returns true if any caster audio (main commentary or donation) is currently actively playing. */
+  public isSpeaking(): boolean {
+    return this.finishCurrent !== null || this.finishCurrentDonate !== null;
+  }
+
   private getClipUrl(text: string, lang: string, role?: string, intensity?: string): Promise<string> {
     const key = `${lang}|${role ?? ''}|${intensity ?? ''}|${text}`;
     const cached = this.clipUrls.get(key);

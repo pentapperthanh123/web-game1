@@ -21,6 +21,7 @@ import { CombatDeployBanner } from './roundIntro/CombatDeployBanner';
 import { LikeCounter } from './LikeCounter';
 import { ParticipationGuidePanel } from './ParticipationGuidePanel';
 import { FinisherAnnouncementBanner } from './FinisherAnnouncementBanner';
+import { BossDeathVFX2D } from '../arena/BossDeathVFX2D';
 import { ArenaIdleRallyCTA } from './ArenaIdleRallyCTA';
 import { VictoryOverlay } from './VictoryOverlay';
 import { SilverScrapesDuelOverlay } from './SilverScrapesDuelOverlay';
@@ -351,6 +352,7 @@ export const HUDOverlay = () => {
           {overlayVisibility.casterSubtitle && <CasterSubtitle />}
           <CasterVoiceUnlockHint />
           <FinisherAnnouncementBanner />
+          <BossDeathVFX2D />
           <VictoryOverlay />
         </>
       )}
