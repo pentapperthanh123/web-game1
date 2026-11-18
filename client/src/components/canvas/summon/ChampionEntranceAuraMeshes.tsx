@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {
   SHARED_CELESTIAL_AURA_GEO,
+  SHARED_IMPACT_SHARDS_RING_GEO,
   SHARED_LANDING_FLASH_GEO,
   SHARED_LANDING_RING_GEO,
   SHARED_LIGHT_BEAM_CORE_GEO,
@@ -13,6 +14,7 @@ const SKY_BEAM_POSITION: [number, number, number] = [0, 0.75, 0];
 const HALO_POSITION: [number, number, number] = [0, 0, -0.015];
 const RUNE_SEAL_POSITION: [number, number, number] = [0, 0, 0.025];
 const LANDING_FLASH_POSITION: [number, number, number] = [0, 0, -0.01];
+const IMPACT_SHARDS_POSITION: [number, number, number] = [0, 0, 0.03];
 const LANDING_RING_POSITION: [number, number, number] = [0, -0.25, 0];
 const LANDING_RING_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 
@@ -58,6 +60,9 @@ export const ChampionEntranceAuraMeshes = ({ auraColor, accentColor }: ChampionE
     </mesh>
     <mesh name="landing-flash" visible={false} position={LANDING_FLASH_POSITION} geometry={SHARED_LANDING_FLASH_GEO}>
       <AuraMaterial color={AURA_CORE_COLOR} />
+    </mesh>
+    <mesh name="impact-shards" visible={false} position={IMPACT_SHARDS_POSITION} geometry={SHARED_IMPACT_SHARDS_RING_GEO}>
+      <AuraMaterial color={accentColor} />
     </mesh>
     <mesh
       name="landing-ring"

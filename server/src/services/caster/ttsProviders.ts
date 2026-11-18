@@ -21,6 +21,7 @@ import {
   EMOTION_PROSODY,
   GOOGLE_FALLBACK_ENV_VALUE,
   GOOGLE_TRANSLATE_TTS,
+  VIET_TTS,
 } from '../../constants/casterTts.js';
 
 export interface TtsSynthesizeOptions {
@@ -204,6 +205,48 @@ const createEdgeProvider = (
   },
 });
 
+const createVietTtsProvider = (
+  baseUrl: string,
+  customVoices: Readonly<Record<CasterVoiceRole, string>>,
+  isForceMale = false
+): TtsProvider => {
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
+  const pickVoice = (role: CasterVoiceRole = CASTER_VOICE_ROLE.MALE): string => {
+    const effectiveRole = isForceMale ? CASTER_VOICE_ROLE.MALE : role;
+    return customVoices[effectiveRole] || VIET_TTS.DEFAULT_VOICE[effectiveRole];
+  };
+
+  return {
+    name: CASTER_TTS_PROVIDER.VIET_TTS,
+    voiceTag: (lang, role = CASTER_VOICE_ROLE.MALE) => `${CASTER_TTS_PROVIDER.VIET_TTS}:${pickVoice(role)}:${lang}`,
+    synthesize: (text, _lang, options = {}) => {
+      const voice = pickVoice(options.role);
+      const speed = options.intensity
+        ? VIET_TTS.SPEED_BY_INTENSITY[options.intensity]
+        : VIET_TTS.SPEED_BY_INTENSITY[CASTER_EMOTION_INTENSITY.NORMAL];
+
+      return fetchAudio(
+        `${normalizedBaseUrl}${VIET_TTS.SPEECH_PATH}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': CASTER_TTS.USER_AGENT,
+          },
+          body: JSON.stringify({
+            model: VIET_TTS.MODEL,
+            input: text,
+            voice,
+            response_format: VIET_TTS.RESPONSE_FORMAT,
+            speed,
+          }),
+        },
+        options.timeoutMs ?? VIET_TTS.TIMEOUT_MS
+      );
+    },
+  };
+};
+
 /** Python of server/.tts-venv (created by scripts/ops/setup-edge-tts.bat), or an explicit EDGE_TTS_PYTHON. */
 const resolveEdgePython = (env: NodeJS.ProcessEnv, serverRoot: string): string | null => {
   const explicit = env[CASTER_TTS_ENV.EDGE_PYTHON]?.trim();
@@ -219,14 +262,17 @@ const resolveProviderName = (env: NodeJS.ProcessEnv): CasterTtsProviderName => {
   if (requested === 'GOOGLE' || requested === 'GOOGLE_TRANSLATE' || requested === 'DEFAULT') {
     return CASTER_TTS_PROVIDER.GOOGLE_TRANSLATE;
   }
+  if (requested === 'VIETTTS' || requested === 'VIET-TTS' || requested === 'VIET_TTS') {
+    return CASTER_TTS_PROVIDER.VIET_TTS;
+  }
   const known = Object.values(CASTER_TTS_PROVIDER) as string[];
   return requested && known.includes(requested) ? (requested as CasterTtsProviderName) : DEFAULT_CASTER_TTS_PROVIDER;
 };
 
 /**
  * Voice chosen by CASTER_TTS_PROVIDER (default Google). EDGE needs scripts/ops/setup-edge-tts.bat,
- * AZURE needs AZURE_SPEECH_KEY + AZURE_SPEECH_REGION; if what is asked for is not available the
- * caster falls back to Google. CASTER_TTS_FALLBACK_VOICE=GOOGLE mixes Google in behind Edge/Azure.
+ * AZURE needs AZURE_SPEECH_KEY + AZURE_SPEECH_REGION, VIET_TTS connects to dangvansam/viet-tts
+ * (default http://localhost:8298); if what is asked for is not available the caster falls back to Google.
  */
 export const createTtsProviderChain = (env: NodeJS.ProcessEnv, serverRoot: string): TtsProviderChain => {
   const isForceMale = env[CASTER_TTS_ENV.FORCE_MALE]?.trim().toLowerCase() === 'true';
@@ -234,6 +280,21 @@ export const createTtsProviderChain = (env: NodeJS.ProcessEnv, serverRoot: strin
   const isGoogleFallbackEnabled = env[CASTER_TTS_ENV.FALLBACK_VOICE]?.trim().toUpperCase() === GOOGLE_FALLBACK_ENV_VALUE;
   const fallback = isGoogleFallbackEnabled ? google : null;
   const providerName = resolveProviderName(env);
+
+  if (providerName === CASTER_TTS_PROVIDER.VIET_TTS) {
+    const vietTtsUrl = env[CASTER_TTS_ENV.VIET_TTS_URL]?.trim() || VIET_TTS.DEFAULT_URL;
+    const vietTts = createVietTtsProvider(
+      vietTtsUrl,
+      {
+        [CASTER_VOICE_ROLE.MALE]:
+          env[CASTER_TTS_ENV.VIET_TTS_VOICE_MALE]?.trim() || VIET_TTS.DEFAULT_VOICE[CASTER_VOICE_ROLE.MALE],
+        [CASTER_VOICE_ROLE.FEMALE]:
+          env[CASTER_TTS_ENV.VIET_TTS_VOICE_FEMALE]?.trim() || VIET_TTS.DEFAULT_VOICE[CASTER_VOICE_ROLE.FEMALE],
+      },
+      isForceMale
+    );
+    return { primary: vietTts, fallback };
+  }
 
   const azureKey = env[CASTER_TTS_ENV.AZURE_KEY]?.trim();
   const azureRegion = env[CASTER_TTS_ENV.AZURE_REGION]?.trim();

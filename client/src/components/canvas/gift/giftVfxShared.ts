@@ -15,8 +15,8 @@ export const GIFT_VFX_DURATION_MS: Readonly<Record<GiftTier, number>> = {
 
 export const GIFT_VFX_LAYOUT = {
   FLOOR_Y: -1.68,
-  BEAM_HEIGHT: 14,
-  BEAM_CENTER_Y: 5.3,
+  BEAM_HEIGHT: 10,
+  BEAM_CENTER_Y: 3.6,
   MEGA_GOLD: '#fbbf24',
   CORE_WHITE: '#ffffff',
 } as const;
@@ -54,20 +54,21 @@ export const createGlowMaterial = (color: string): THREE.MeshBasicMaterial =>
     forceSinglePass: true,
   });
 
-/** Height share (from the floor) over which a sky beam fades in: the boss body sits there. */
+/** Height share over which a sky beam fades in at the floor and fades out before the top scoreboard. */
 const BEAM_FADE = {
   TEXTURE_HEIGHT: 64,
-  /** Fully transparent at the floor, still faint at the boss's shoulders. */
+  /** Softly faded at the floor where the boss stands, and tapered to 0 at the top. */
   CLEAR_UNTIL: 0.08,
-  SOLID_FROM: 0.34,
-  FLOOR_ALPHA: 0.12,
+  SOLID_FROM: 0.32,
+  SOLID_UNTIL: 0.66,
+  FLOOR_ALPHA: 0.08,
 } as const;
 
 let beamFadeTexture: THREE.Texture | null = null;
 
 /**
- * Vertical alpha ramp for beam cylinders (uv.y 0 = floor): the light pours from the sky and thins
- * out around the boss instead of washing the sprite out. Created once.
+ * Vertical alpha ramp for beam cylinders (uv.y 0 = floor, uv.y 1 = top):
+ * thins out around the boss at the bottom and fades out smoothly before the top scoreboard.
  */
 export const getBeamFadeAlphaMap = (): THREE.Texture => {
   if (beamFadeTexture) return beamFadeTexture;
@@ -82,7 +83,8 @@ export const getBeamFadeAlphaMap = (): THREE.Texture => {
     gradient.addColorStop(0, `rgb(${floorGray},${floorGray},${floorGray})`);
     gradient.addColorStop(BEAM_FADE.CLEAR_UNTIL, `rgb(${floorGray},${floorGray},${floorGray})`);
     gradient.addColorStop(BEAM_FADE.SOLID_FROM, 'rgb(255,255,255)');
-    gradient.addColorStop(1, 'rgb(255,255,255)');
+    gradient.addColorStop(BEAM_FADE.SOLID_UNTIL, 'rgb(255,255,255)');
+    gradient.addColorStop(1, 'rgb(0,0,0)');
     context.fillStyle = gradient;
     context.fillRect(0, 0, 1, BEAM_FADE.TEXTURE_HEIGHT);
   }

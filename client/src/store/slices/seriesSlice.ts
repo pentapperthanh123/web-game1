@@ -1,9 +1,11 @@
 import { StateCreator } from 'zustand';
 import { resetRoundDamage } from '../roundDamageTracker';
+import { resetMatchLeaderboard } from '../sessionLeaderboardStore';
 import { resetComebackState } from '../comebackRules';
 import {
   ROUND_HOLD_REASON,
   RoundHoldReason,
+  hideRoundIntro,
   playRoundIntroCinematic,
   resolveRoundIntroDurationMs,
   showRoundIntro,
@@ -69,6 +71,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     if (state.isSeriesEnded || isWon) return;
     resetCommunityQuests();
     resetRoundDamage();
+    resetMatchLeaderboard();
     resetComebackState();
     const maxRounds = state.seriesMaxRounds || GAME_CONSTANTS.BO5.MAX_ROUNDS;
     // A server-sent target wins: the series sync may already have moved currentRound (no double +1)
@@ -153,6 +156,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     clearMatchSnapshot();
     resetCommunityQuests();
     resetRoundDamage();
+    resetMatchLeaderboard();
     resetComebackState();
     const state = get();
     const round1Theme = getBossThemeForRound(1, state.seriesFormat);
@@ -291,12 +295,19 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
   },
 
   setSilverScrapesState: (patch) => {
+    const wasActive = get().silverScrapesState.isActive;
     set((state) => ({
       silverScrapesState: {
         ...state.silverScrapesState,
         ...patch,
       },
     }));
+    const isNowActive = get().silverScrapesState.isActive;
+    if (wasActive && !isNowActive) {
+      hideRoundIntro();
+      audioService.setCombatMuted(false);
+      get().advanceSummonTurnQueue();
+    }
   },
 
   isSilverScrapesBuffActive: (team: TeamType) => {

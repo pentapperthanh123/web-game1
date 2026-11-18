@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { SFX_EVENT, SFX_SOCKET_EVENT, SfxEventName } from '../constants/sfx';
 import { gameSocket } from '../services/socket';
-import { soundManager, playSound } from '../services/soundManager';
+import { soundManager } from '../services/soundManager';
+import { useAudioStore } from '../store/audioStore';
 
 /** Static sound, or a resolver that picks one from the payload (null = stay silent). */
 export type SocketSfxBinding = SfxEventName | ((payload: unknown) => SfxEventName | null);
@@ -18,13 +19,16 @@ const resolveBinding = (binding: SocketSfxBinding, payload: unknown): SfxEventNa
 /** Downloads the given sounds (all by default) once the component mounts. */
 export const useSoundPreload = (eventNames?: readonly SfxEventName[]): void => {
   useEffect(() => {
-    soundManager.preload(eventNames);
+    useAudioStore.getState().initStaticSounds();
+    if (eventNames) {
+      soundManager.preload(eventNames);
+    }
   }, [eventNames]);
 };
 
 /**
- * Plays a sound whenever a mapped Socket.io event arrives. Mount once (e.g. in App).
- * Pass a stable (module-level or memoized) bindings object to avoid re-subscribing.
+ * Plays a static sound via `useAudioStore` whenever a mapped Socket.io event arrives.
+ * Mount once (e.g. in `AudioController`).
  */
 export const useSocketSoundEffects = (
   bindings: SocketSfxBindings = DEFAULT_SOCKET_SFX_BINDINGS
@@ -33,7 +37,9 @@ export const useSocketSoundEffects = (
     const unsubscribers = Object.entries(bindings).map(([socketEventName, binding]) =>
       gameSocket.onEvent(socketEventName, (payload) => {
         const soundName = resolveBinding(binding, payload);
-        if (soundName) playSound(soundName);
+        if (soundName) {
+          useAudioStore.getState().playStatic(soundName);
+        }
       })
     );
     return () => {

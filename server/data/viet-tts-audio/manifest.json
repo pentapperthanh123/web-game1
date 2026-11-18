@@ -1,0 +1,72 @@
+{
+  "generatedAt": "2026-11-18T10:17:14.857Z",
+  "provider": "VIET_TTS",
+  "vietTtsUrl": "http://localhost:8298",
+  "voices": {
+    "male": "cdteam",
+    "female": "quynh"
+  },
+  "totalLines": 5,
+  "generatedCount": 5,
+  "cachedCount": 0,
+  "failedCount": 0,
+  "dedicatedDir": "D:\\web-game1\\server\\data\\viet-tts-audio",
+  "cacheDir": "D:\\web-game1\\server\\data\\tts-cache",
+  "entries": [
+    {
+      "index": 1,
+      "text": "Né kịp không?",
+      "category": "BOSS_SKILL",
+      "role": "male",
+      "voice": "cdteam",
+      "dedicatedFile": "0001_BOSS_SKILL_cdteam_4ac63db3e2.mp3",
+      "primaryCacheFile": "b795124cbffe356ea4b20eda4678eab4498dd4b7.mp3",
+      "bytes": 6957,
+      "status": "generated"
+    },
+    {
+      "index": 2,
+      "text": "Cú Húc Sứ Giả! Cẩn thận anh em!",
+      "category": "BOSS_SKILL",
+      "role": "male",
+      "voice": "cdteam",
+      "dedicatedFile": "0002_BOSS_SKILL_cdteam_a18c1799aa.mp3",
+      "primaryCacheFile": "e5e7fca893c4ac44eecf922b012b80b28339a9da.mp3",
+      "bytes": 12717,
+      "status": "generated"
+    },
+    {
+      "index": 3,
+      "text": "Sứ Giả Khe Nứt tung Cú Húc Sứ Giả!",
+      "category": "BOSS_SKILL",
+      "role": "male",
+      "voice": "cdteam",
+      "dedicatedFile": "0003_BOSS_SKILL_cdteam_217481feb4.mp3",
+      "primaryCacheFile": "7b2bc5763ca950294b2c79ec77ea918fc7224c3e.mp3",
+      "bytes": 14637,
+      "status": "generated"
+    },
+    {
+      "index": 4,
+      "text": "Chiêu mạnh đấy! Đội hình chịu được không?",
+      "category": "BOSS_SKILL",
+      "role": "male",
+      "voice": "cdteam",
+      "dedicatedFile": "0004_BOSS_SKILL_cdteam_e65d2fca77.mp3",
+      "primaryCacheFile": "449a6f930be21fd0a0811a41d9fe19d895b2f8b8.mp3",
+      "bytes": 15789,
+      "status": "generated"
+    },
+    {
+      "index": 5,
+      "text": "Cú Húc Sứ Giả quét qua đấu trường!",
+      "category": "BOSS_SKILL",
+      "role": "male",
+      "voice": "cdteam",
+      "dedicatedFile": "0005_BOSS_SKILL_cdteam_e6c6b5001d.mp3",
+      "primaryCacheFile": "4e0ba6278fe483f1f26039189a9b0e11757450cd.mp3",
+      "bytes": 12717,
+      "status": "generated"
+    }
+  ]
+}

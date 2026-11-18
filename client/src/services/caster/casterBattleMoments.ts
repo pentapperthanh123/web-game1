@@ -1,4 +1,4 @@
-import { CASTER_SIGNAL, CasterSignal } from '../../constants/caster';
+import { BATTLE_MOMENT_TIMING, CASTER_INTENSITY, CASTER_SIGNAL, CasterSignal } from '../../constants/caster';
 import { BOSS_PHASE } from '../../constants/bossPhases';
 import {
   BOSS_MECHANICS_CONSTANTS,
@@ -45,42 +45,86 @@ const announcePhaseShift = (state: GameState, memory: BattleMomentMemory): void 
   memory.lastPhase = state.bossPhase;
   const signal = PHASE_SIGNAL[state.bossPhase];
   if (!isEscalating || !signal || !isFightOn(state)) return;
-  castCasterDialogue(signal, { boss: getBossName(state) });
+  const now = Date.now();
+  const intensity = state.bossPhase === BOSS_PHASE.THREE ? CASTER_INTENSITY.CLIMAX : CASTER_INTENSITY.HYPE;
+  castCasterDialogue(
+    signal,
+    { boss: getBossName(state) },
+    {
+      ttlMs: BATTLE_MOMENT_TIMING.PHASE_SHIFT_TTL_MS,
+      deadlineAt: now + BATTLE_MOMENT_TIMING.PHASE_SHIFT_DEADLINE_MS,
+      intensity,
+    }
+  );
 };
 
 const announceShield = (state: GameState, prev: GameState): void => {
   const boss = getBossName(state);
   const shield = state.bossShield;
+  const now = Date.now();
   if (shield && !prev.bossShield) {
     const seconds = Math.round((shield.expiresAt - shield.createdAt) / MS_PER_SECOND);
-    castCasterDialogue(CASTER_SIGNAL.BOSS_SHIELD_UP, { boss, seconds });
+    castCasterDialogue(
+      CASTER_SIGNAL.BOSS_SHIELD_UP,
+      { boss, seconds },
+      {
+        ttlMs: BATTLE_MOMENT_TIMING.SHIELD_UP_TTL_MS,
+        deadlineAt: now + BATTLE_MOMENT_TIMING.SHIELD_UP_DEADLINE_MS,
+        intensity: CASTER_INTENSITY.HYPE,
+      }
+    );
     return;
   }
   const isJustBroken = state.bossShieldBrokenTimestamp > 0 && state.bossShieldBrokenTimestamp !== prev.bossShieldBrokenTimestamp;
   if (isJustBroken) {
-    castCasterDialogue(CASTER_SIGNAL.BOSS_SHIELD_BROKEN, {
-      boss,
-      dmg: formatSpeechNumber(BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE),
-    });
+    castCasterDialogue(
+      CASTER_SIGNAL.BOSS_SHIELD_BROKEN,
+      {
+        boss,
+        dmg: formatSpeechNumber(BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE),
+      },
+      {
+        ttlMs: BATTLE_MOMENT_TIMING.SHIELD_BROKEN_TTL_MS,
+        deadlineAt: now + BATTLE_MOMENT_TIMING.SHIELD_BROKEN_DEADLINE_MS,
+        intensity: CASTER_INTENSITY.HYPE,
+      }
+    );
     return;
   }
   // Gone without being broken while the fight goes on: it expired and healed the boss
   const isAbsorbed = !shield && Boolean(prev.bossShield) && isFightOn(state);
   if (!isAbsorbed) return;
-  castCasterDialogue(CASTER_SIGNAL.BOSS_SHIELD_ABSORBED, {
-    boss,
-    hp: formatSpeechNumber(BOSS_MECHANICS_CONSTANTS.SHIELD.HEAL_PENALTY_AMOUNT),
-  });
+  castCasterDialogue(
+    CASTER_SIGNAL.BOSS_SHIELD_ABSORBED,
+    {
+      boss,
+      hp: formatSpeechNumber(BOSS_MECHANICS_CONSTANTS.SHIELD.HEAL_PENALTY_AMOUNT),
+    },
+    {
+      ttlMs: BATTLE_MOMENT_TIMING.SHIELD_ABSORBED_TTL_MS,
+      deadlineAt: now + BATTLE_MOMENT_TIMING.SHIELD_ABSORBED_DEADLINE_MS,
+      intensity: CASTER_INTENSITY.NORMAL,
+    }
+  );
 };
 
 const announceHeartMilestone = (state: GameState, memory: BattleMomentMemory): void => {
   const banner = state.activeHeartMilestoneBanner;
   if (!banner || banner.id === memory.lastHeartBannerId) return;
   memory.lastHeartBannerId = banner.id;
-  castCasterDialogue(CASTER_SIGNAL.HEART_MILESTONE, {
-    count: formatSpeechNumber(banner.milestoneCount),
-    heal: banner.healAmount,
-  });
+  const now = Date.now();
+  castCasterDialogue(
+    CASTER_SIGNAL.HEART_MILESTONE,
+    {
+      count: formatSpeechNumber(banner.milestoneCount),
+      heal: banner.healAmount,
+    },
+    {
+      ttlMs: BATTLE_MOMENT_TIMING.HEART_MILESTONE_TTL_MS,
+      deadlineAt: now + BATTLE_MOMENT_TIMING.HEART_MILESTONE_DEADLINE_MS,
+      intensity: CASTER_INTENSITY.HYPE,
+    }
+  );
 };
 
 /**

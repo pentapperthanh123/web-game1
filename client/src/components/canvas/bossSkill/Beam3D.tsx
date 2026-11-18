@@ -18,7 +18,7 @@ import {
   phaseProgress,
   setMaterialOpacity,
 } from './bossSkill3DShared';
-import { DECAL_TEXTURE, GlowSprite, GroundDecal } from './VfxPrimitives3D';
+import { DECAL_TEXTURE, EmberBurst, GlowSprite, GroundDecal, ImpactBurst } from './VfxPrimitives3D';
 
 /** Pitch of the beam below the horizon; length is derived so the tip lands exactly on the floor. */
 const BEAM_TILT = Math.PI * 0.2;
@@ -54,6 +54,10 @@ const TIP_FLARE_SIZE = 0.9;
 const IMPACT_DECAL_SIZE = 2.2;
 const IMPACT_RING_SIZE = 1.5;
 const IMPACT_SPIN_RATE = 0.004;
+const SWEEP_SPARK_NODES = 3;
+const SWEEP_SPARK_SPAN = 0.42;
+const SWEEP_EMBER_COUNT = 5;
+const INITIAL_BURST_SIZE = 1.6;
 
 /** The beam never sweeps narrower than this, so a single target still gets a visible pass. */
 const MIN_AIM_SPREAD = 0.12;
@@ -103,6 +107,20 @@ export const Beam3D = ({
   const beamReach = resolveBeamReach(eyeOrigin[1]);
   // The beam passes over the champions it hurts, so the damage numbers appear where it burns
   const aimRange = useMemo(() => resolveAimRange(impactPoints, eyeOrigin), [impactPoints, eyeOrigin]);
+  const sweepSparkPoints = useMemo(() => {
+    const activeSpan = RELEASE_START - CHARGE_END;
+    return Array.from({ length: SWEEP_SPARK_NODES }, (_, index) => {
+      const ratio = index / Math.max(1, SWEEP_SPARK_NODES - 1);
+      const yaw = resolveYaw(direction, easeInOutSine(ratio), aimRange);
+      const start = CHARGE_END + ratio * activeSpan * 0.7;
+      return {
+        x: eyeOrigin[0] + Math.sin(yaw) * IMPACT_DISTANCE * beamReach,
+        z: eyeOrigin[2] + Math.cos(yaw) * IMPACT_DISTANCE * beamReach,
+        start,
+        end: Math.min(1, start + SWEEP_SPARK_SPAN),
+      };
+    });
+  }, [direction, aimRange, eyeOrigin, beamReach]);
   const yawRef = useRef<THREE.Group>(null);
   const widthRef = useRef<THREE.Group>(null);
   const muzzleRef = useRef<THREE.Group>(null);
@@ -184,6 +202,33 @@ export const Beam3D = ({
           <GroundDecal color={secondaryColor} texture={DECAL_TEXTURE.RING} />
         </group>
       </group>
+      {sweepSparkPoints.map((node, index) => (
+        <group key={`beam-spark-${startedAt}-${index}`}>
+          {index === 0 && (
+            <ImpactBurst
+              color={color}
+              secondaryColor={secondaryColor}
+              position={[node.x, BOSS_3D_ANCHORS.GROUND_Y + GROUND_DECAL_LIFT, node.z]}
+              size={INITIAL_BURST_SIZE * scale}
+              startedAt={startedAt}
+              durationMs={durationMs}
+              start={node.start}
+              end={node.end}
+            />
+          )}
+          <EmberBurst
+            color={secondaryColor}
+            origin={[node.x, BOSS_3D_ANCHORS.GROUND_Y, node.z]}
+            count={SWEEP_EMBER_COUNT}
+            seed={startedAt + index}
+            startedAt={startedAt}
+            durationMs={durationMs}
+            start={node.start}
+            end={node.end}
+            scale={scale}
+          />
+        </group>
+      ))}
     </group>
   );
 };

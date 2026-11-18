@@ -1,7 +1,7 @@
+import { TTS_QUEUE_PRIORITY, type TtsQueuePriority } from '../../constants/audioStore';
 import { CASTER_SPEECH } from '../../constants/caster';
+import { useAudioStore } from '../../store/audioStore';
 import { useCasterStore } from '../../store/casterStore';
-import { audioService } from '../audioService';
-import { soundManager } from '../soundManager';
 import { toVoiceText } from './casterVoiceText';
 
 /** How a spoken line ended; only FAILED counts toward the suspend threshold. */
@@ -11,7 +11,7 @@ export const SPEECH_OUTCOME = {
   AUTOPLAY_BLOCKED: 'AUTOPLAY_BLOCKED',
   /** Voice switched off on the server or text rejected by the filter. */
   REJECTED: 'REJECTED',
-  /** Cut by a higher-priority line. */
+  /** Cut by a higher-priority line or round reset. */
   INTERRUPTED: 'INTERRUPTED',
   /** Network/provider error or watchdog timeout. */
   FAILED: 'FAILED',
@@ -36,20 +36,7 @@ const waitForClip = (clip: Promise<string>): Promise<string> =>
   ]);
 
 const LOG_PREFIX = '[CasterVoice]';
-const AUTOPLAY_ERROR_NAME = 'NotAllowedError';
 const GESTURE_EVENTS = ['pointerdown', 'keydown'] as const;
-
-/** Media events after which the clip length may (newly) be known; some MP3s report it late. */
-const FIT_RATE_EVENTS = ['loadedmetadata', 'durationchange', 'playing'] as const;
-
-/** Playback rate that makes the rest of the clip end by the deadline (1 when it already fits, capped). */
-const fitToDeadline = (audio: HTMLAudioElement, deadlineAt: number): void => {
-  const remainingMs = (audio.duration - audio.currentTime) * 1000;
-  if (!Number.isFinite(remainingMs) || remainingMs <= 0) return;
-  const availableMs = deadlineAt - Date.now();
-  const neededRate = availableMs > 0 ? remainingMs / availableMs : CASTER_SPEECH.MAX_FIT_RATE;
-  audio.playbackRate = Math.min(CASTER_SPEECH.MAX_FIT_RATE, Math.max(CASTER_SPEECH.NORMAL_RATE, neededRate));
-};
 
 /** The voice gets the spoken form of the caption (scores, abbreviations); see casterVoiceText. */
 const buildClipUrl = (text: string, lang: string, role?: string, intensity?: string): string => {
@@ -63,15 +50,11 @@ const buildClipUrl = (text: string, lang: string, role?: string, intensity?: str
 };
 
 /**
- * Plays caster lines from the server TTS route (works in OBS without any installed voice).
- * One line at a time; the presentation queue decides what plays next.
+ * Plays caster lines from the server TTS route through the unified Zustand `useAudioStore` Howler queue.
+ * Strictly one line at a time (`isTTSPlaying` mutex + `onend` recursive queue progression).
  */
 class CasterSpeechEngine {
   private readonly clipUrls = new Map<string, Promise<string>>();
-  private currentAudio: HTMLAudioElement | null = null;
-  private finishCurrent: ((outcome: SpeechOutcome) => void) | null = null;
-  private currentDonateAudio: HTMLAudioElement | null = null;
-  private finishCurrentDonate: ((outcome: SpeechOutcome) => void) | null = null;
   private consecutiveFailures = 0;
   private suspendedUntil = 0;
   private isWaitingForGesture = false;
@@ -129,7 +112,7 @@ class CasterSpeechEngine {
     return this.speakMain(text, lang, onStart, deadlineAt, role, intensity);
   }
 
-  /** Speaks general caster commentary lines (ducked if donate audio is currently playing). */
+  /** Speaks general caster commentary lines sequentially via `useAudioStore`. */
   public speakMain(
     text: string,
     lang: string,
@@ -142,12 +125,13 @@ class CasterSpeechEngine {
     return waitForClip(this.getClipUrl(text, lang, role, intensity))
       .then((url) => {
         const isTooLate = deadlineAt !== undefined && Date.now() >= deadlineAt;
-        return isTooLate ? SPEECH_OUTCOME.EXPIRED : this.playMain(url, onStart, deadlineAt);
+        if (isTooLate) return SPEECH_OUTCOME.EXPIRED;
+        return this.playViaAudioStore(url, TTS_QUEUE_PRIORITY.NORMAL, onStart, deadlineAt);
       })
       .catch((error: unknown) => this.handleClipError(text, lang, error));
   }
 
-  /** Dedicated donate voice channel that plays in parallel at full volume, ducking ongoing commentary. */
+  /** Enqueues donate shoutouts with HIGH priority in `useAudioStore` so they play right after the active clip ends without overlapping. */
   public speakDonate(
     text: string,
     lang: string,
@@ -160,30 +144,48 @@ class CasterSpeechEngine {
     return waitForClip(this.getClipUrl(text, lang, role, intensity))
       .then((url) => {
         const isTooLate = deadlineAt !== undefined && Date.now() >= deadlineAt;
-        return isTooLate ? SPEECH_OUTCOME.EXPIRED : this.playDonate(url, onStart, deadlineAt);
+        if (isTooLate) return SPEECH_OUTCOME.EXPIRED;
+        return this.playViaAudioStore(url, TTS_QUEUE_PRIORITY.HIGH, onStart, deadlineAt);
       })
       .catch((error: unknown) => this.handleClipError(text, lang, error));
   }
 
-  /** Cuts the main commentary line being spoken. */
+  /** Skips the current TTS clip and advances the queue. */
   public interrupt(): void {
-    this.finishCurrent?.(SPEECH_OUTCOME.INTERRUPTED);
+    useAudioStore.getState().skipCurrentTTS();
   }
 
-  /** Cuts the donate line being spoken. */
+  /** Skips the current donate TTS clip and advances the queue. */
   public interruptDonate(): void {
-    this.finishCurrentDonate?.(SPEECH_OUTCOME.INTERRUPTED);
+    useAudioStore.getState().skipCurrentTTS();
   }
 
-  /** Cuts both commentary and donate lines. */
+  /** Clears the entire TTS queue and stops any active TTS playback. */
   public interruptAll(): void {
-    this.finishCurrent?.(SPEECH_OUTCOME.INTERRUPTED);
-    this.finishCurrentDonate?.(SPEECH_OUTCOME.INTERRUPTED);
+    useAudioStore.getState().clearTTSQueue();
   }
 
-  /** Returns true if any caster audio (main commentary or donation) is currently actively playing. */
+  /** Returns true if any caster audio is currently playing or queued in `useAudioStore`. */
   public isSpeaking(): boolean {
-    return this.finishCurrent !== null || this.finishCurrentDonate !== null;
+    const { isTTSPlaying, ttsQueue } = useAudioStore.getState();
+    return isTTSPlaying || ttsQueue.length > 0;
+  }
+
+  private async playViaAudioStore(
+    url: string,
+    priority: TtsQueuePriority,
+    onStart: () => void,
+    deadlineAt?: number
+  ): Promise<SpeechOutcome> {
+    const didPlay = await useAudioStore.getState().pushTTS(url, {
+      priority,
+      rate: CASTER_SPEECH.NORMAL_RATE,
+      deadlineAt,
+      onStart,
+    });
+    const outcome = didPlay ? SPEECH_OUTCOME.SPOKEN : SPEECH_OUTCOME.FAILED;
+    this.trackOutcome(outcome);
+    return outcome;
   }
 
   private getClipUrl(text: string, lang: string, role?: string, intensity?: string): Promise<string> {
@@ -226,112 +228,6 @@ class CasterSpeechEngine {
     oldest?.then((url) => URL.revokeObjectURL(url)).catch(() => undefined);
   }
 
-  private updateSfxDuck(): void {
-    const isAnySpeaking = this.currentAudio !== null || this.currentDonateAudio !== null;
-    soundManager.setVoiceDuck(isAnySpeaking ? CASTER_SPEECH.SFX_DUCK_FACTOR : 1);
-  }
-
-  private playMain(url: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
-    return new Promise<SpeechOutcome>((resolve) => {
-      const audio = new Audio(url);
-      const isDonateActive = this.currentDonateAudio !== null;
-      const duckFactor = isDonateActive ? CASTER_SPEECH.COMMENTARY_DUCK_WHILE_DONATE : 1;
-      audio.volume = Math.min(1, audioService.volume * CASTER_SPEECH.VOICE_VOLUME * duckFactor);
-      audio.defaultPlaybackRate = CASTER_SPEECH.NORMAL_RATE;
-      audio.playbackRate = CASTER_SPEECH.NORMAL_RATE;
-      if (deadlineAt) {
-        FIT_RATE_EVENTS.forEach((eventName) => audio.addEventListener(eventName, () => fitToDeadline(audio, deadlineAt)));
-      }
-      this.currentAudio = audio;
-
-      let watchdog: ReturnType<typeof setTimeout> | null = null;
-      const finish = (outcome: SpeechOutcome): void => {
-        if (this.currentAudio !== audio) return;
-        if (watchdog) clearTimeout(watchdog);
-        audio.pause();
-        this.currentAudio = null;
-        this.finishCurrent = null;
-        this.updateSfxDuck();
-        this.trackOutcome(outcome);
-        resolve(outcome);
-      };
-      this.finishCurrent = finish;
-
-      audio.addEventListener('ended', () => finish(SPEECH_OUTCOME.SPOKEN), { once: true });
-      audio.addEventListener('error', () => finish(SPEECH_OUTCOME.FAILED), { once: true });
-      watchdog = setTimeout(() => finish(SPEECH_OUTCOME.FAILED), CASTER_SPEECH.WATCHDOG_MS);
-
-      audio
-        .play()
-        .then(() => {
-          audio.playbackRate = CASTER_SPEECH.NORMAL_RATE;
-          this.updateSfxDuck();
-          onStart();
-        })
-        .catch((error: unknown) => {
-          const isAutoplayBlock = error instanceof DOMException && error.name === AUTOPLAY_ERROR_NAME;
-          if (isAutoplayBlock) this.waitForGesture();
-          finish(isAutoplayBlock ? SPEECH_OUTCOME.AUTOPLAY_BLOCKED : SPEECH_OUTCOME.FAILED);
-        });
-    });
-  }
-
-  private playDonate(url: string, onStart: () => void, deadlineAt?: number): Promise<SpeechOutcome> {
-    return new Promise<SpeechOutcome>((resolve) => {
-      const audio = new Audio(url);
-      audio.volume = Math.min(1, audioService.volume * CASTER_SPEECH.DONATE_VOICE_VOLUME);
-      audio.defaultPlaybackRate = CASTER_SPEECH.NORMAL_RATE;
-      audio.playbackRate = CASTER_SPEECH.NORMAL_RATE;
-      if (deadlineAt) {
-        FIT_RATE_EVENTS.forEach((eventName) => audio.addEventListener(eventName, () => fitToDeadline(audio, deadlineAt)));
-      }
-      this.currentDonateAudio = audio;
-
-      // Duck commentary voice while donate voice is reading in parallel
-      if (this.currentAudio) {
-        this.currentAudio.volume = Math.min(
-          1,
-          audioService.volume * CASTER_SPEECH.VOICE_VOLUME * CASTER_SPEECH.COMMENTARY_DUCK_WHILE_DONATE
-        );
-      }
-
-      let watchdog: ReturnType<typeof setTimeout> | null = null;
-      const finish = (outcome: SpeechOutcome): void => {
-        if (this.currentDonateAudio !== audio) return;
-        if (watchdog) clearTimeout(watchdog);
-        audio.pause();
-        this.currentDonateAudio = null;
-        this.finishCurrentDonate = null;
-
-        // Restore commentary voice volume when donate voice finishes
-        if (this.currentAudio) {
-          this.currentAudio.volume = Math.min(1, audioService.volume * CASTER_SPEECH.VOICE_VOLUME);
-        }
-        this.updateSfxDuck();
-        this.trackOutcome(outcome);
-        resolve(outcome);
-      };
-      this.finishCurrentDonate = finish;
-
-      audio.addEventListener('ended', () => finish(SPEECH_OUTCOME.SPOKEN), { once: true });
-      audio.addEventListener('error', () => finish(SPEECH_OUTCOME.FAILED), { once: true });
-      watchdog = setTimeout(() => finish(SPEECH_OUTCOME.FAILED), CASTER_SPEECH.WATCHDOG_MS);
-
-      audio
-        .play()
-        .then(() => {
-          audio.playbackRate = CASTER_SPEECH.NORMAL_RATE;
-          this.updateSfxDuck();
-          onStart();
-        })
-        .catch((error: unknown) => {
-          const isAutoplayBlock = error instanceof DOMException && error.name === AUTOPLAY_ERROR_NAME;
-          if (isAutoplayBlock) this.waitForGesture();
-          finish(isAutoplayBlock ? SPEECH_OUTCOME.AUTOPLAY_BLOCKED : SPEECH_OUTCOME.FAILED);
-        });
-    });
-  }
-
   private handleClipError(text: string, lang: string, error: unknown): SpeechOutcome {
     if (error instanceof ClipRejectedError) return SPEECH_OUTCOME.REJECTED;
     if (error instanceof ClipUnavailableError) return SPEECH_OUTCOME.UNAVAILABLE;
@@ -355,7 +251,7 @@ class CasterSpeechEngine {
   }
 
   /** In a normal browser tab audio needs one user gesture; OBS browser sources play freely. */
-  private waitForGesture(): void {
+  public waitForGesture(): void {
     if (this.isWaitingForGesture || typeof window === 'undefined') return;
     this.isWaitingForGesture = true;
     useCasterStore.setState({ isVoiceLocked: true });

@@ -80,6 +80,10 @@ export const project3DToScreen = (
 };
 
 export interface CachedChampionVfxRefs {
+  tokenBodyMesh?: THREE.Mesh;
+  flyAvatarGroup?: THREE.Group;
+  flyAvatarHaloMesh?: THREE.Mesh;
+  impactShardsMesh?: THREE.Mesh;
   sigHaloMesh?: THREE.Mesh;
   haloMesh?: THREE.Mesh;
   beamMesh?: THREE.Mesh;
@@ -121,6 +125,7 @@ const MAX_NAMEPLATE_TEXTURE_CACHE = 120;
 const textureCache = new Map<string, THREE.Texture>();
 const nameplateTextureCache = new Map<string, THREE.CanvasTexture>();
 const textureLoader = new THREE.TextureLoader();
+textureLoader.setCrossOrigin('anonymous');
 
 // Token body layers (disc, portrait, rings, gauges) are drawn by tokenBodyMaterial in one quad
 export const SHARED_PORTRAIT_GEO = new THREE.CircleGeometry(0.17, 24);
@@ -133,6 +138,16 @@ export const SHARED_ELITE_AURA_RING_GEO = new THREE.RingGeometry(
   COMBAT_VFX_CONSTANTS.ELITE_AURA.RING_INNER_RADIUS,
   COMBAT_VFX_CONSTANTS.ELITE_AURA.RING_OUTER_RADIUS,
   COMBAT_VFX_CONSTANTS.ELITE_AURA.RING_SEGMENTS
+);
+export const SHARED_AVATAR_VIP_HALO_GEO = new THREE.RingGeometry(
+  COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.VIP_HALO_INNER_RADIUS,
+  COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.VIP_HALO_OUTER_RADIUS,
+  COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.VIP_HALO_SEGMENTS
+);
+export const SHARED_IMPACT_SHARDS_RING_GEO = new THREE.RingGeometry(
+  COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.IMPACT_SHARDS_INNER_RADIUS,
+  COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.IMPACT_SHARDS_OUTER_RADIUS,
+  COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.IMPACT_SHARDS_SEGMENTS
 );
 export const SHARED_LIGHT_BEAM_GEO = new THREE.CylinderGeometry(0.05, 0.18, 1.6, 16, 1, true);
 export const SHARED_LIGHT_BEAM_CORE_GEO = new THREE.CylinderGeometry(0.015, 0.06, 1.6, 12, 1, true);
@@ -393,8 +408,60 @@ export const getNameplateTexture = (
   return texture;
 };
 
-export const getChampionTexture = (url: string): THREE.Texture => {
-  const existing = textureCache.get(url);
+const FALLBACK_AVATAR_STYLE = {
+  SIZE: 128,
+  BG_DARK: '#0f172a',
+  ACCENT_DEFAULT: '#38bdf8',
+  TEXT_COLOR: '#f8fafc',
+  FONT: '800 56px "Segoe UI", Roboto, Arial, sans-serif',
+  DEFAULT_INITIAL: '★',
+} as const;
+
+const createFallbackAvatarCanvas = (label?: string, accentColor?: string): HTMLCanvasElement => {
+  const canvas = document.createElement('canvas');
+  canvas.width = FALLBACK_AVATAR_STYLE.SIZE;
+  canvas.height = FALLBACK_AVATAR_STYLE.SIZE;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const size = FALLBACK_AVATAR_STYLE.SIZE;
+  const center = size / 2;
+  const grad = ctx.createRadialGradient(center, center * 0.75, size * 0.1, center, center, center);
+  grad.addColorStop(0, accentColor || FALLBACK_AVATAR_STYLE.ACCENT_DEFAULT);
+  grad.addColorStop(1, FALLBACK_AVATAR_STYLE.BG_DARK);
+
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  const clean = (label || '').trim().replace(/^[^\p{L}\p{N}]+/u, '');
+  const initial = clean.length > 0 ? clean.slice(0, 1).toUpperCase() : FALLBACK_AVATAR_STYLE.DEFAULT_INITIAL;
+
+  ctx.font = FALLBACK_AVATAR_STYLE.FONT;
+  ctx.fillStyle = FALLBACK_AVATAR_STYLE.TEXT_COLOR;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(initial, center, center + 3);
+  return canvas;
+};
+
+const applyTextureSampling = (tex: THREE.Texture): void => {
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
+};
+
+export const getChampionTexture = (
+  url: string,
+  fallbackUrl?: string,
+  fallbackLabel?: string,
+  accentColor?: string
+): THREE.Texture => {
+  const primaryUrl = (url || fallbackUrl || '').trim();
+  const cacheKey = primaryUrl
+    ? `${primaryUrl}__${fallbackUrl || ''}`
+    : `fallback__${fallbackLabel || ''}__${accentColor || ''}`;
+  const existing = textureCache.get(cacheKey);
   if (existing) return existing;
 
   if (textureCache.size >= MAX_CHAMPION_TEXTURE_CACHE) {
@@ -405,14 +472,40 @@ export const getChampionTexture = (url: string): THREE.Texture => {
     }
   }
 
-  const tex = textureLoader.load(url);
-  // Optimized for mass rendering: enable mipmaps with linear downsampling to reduce GPU fillrate & memory bandwidth
-  tex.generateMipmaps = true;
-  tex.minFilter = THREE.LinearMipmapLinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  // Set explicitly: the token shader reads it as a uniform, which skips R3F's automatic sRGB tagging of `map` props
-  tex.colorSpace = THREE.SRGBColorSpace;
-  textureCache.set(url, tex);
+  if (!primaryUrl) {
+    const fallbackTex = new THREE.CanvasTexture(createFallbackAvatarCanvas(fallbackLabel, accentColor));
+    applyTextureSampling(fallbackTex);
+    textureCache.set(cacheKey, fallbackTex);
+    return fallbackTex;
+  }
+
+  const applyCanvasFallback = (targetTex: THREE.Texture): void => {
+    targetTex.image = createFallbackAvatarCanvas(fallbackLabel, accentColor);
+    targetTex.needsUpdate = true;
+  };
+
+  const tex = textureLoader.load(
+    primaryUrl,
+    undefined,
+    undefined,
+    () => {
+      if (fallbackUrl && fallbackUrl !== primaryUrl) {
+        textureLoader.load(
+          fallbackUrl,
+          (loadedFallback) => {
+            tex.image = loadedFallback.image;
+            tex.needsUpdate = true;
+          },
+          undefined,
+          () => applyCanvasFallback(tex)
+        );
+        return;
+      }
+      applyCanvasFallback(tex);
+    }
+  );
+  applyTextureSampling(tex);
+  textureCache.set(cacheKey, tex);
   return tex;
 };
 

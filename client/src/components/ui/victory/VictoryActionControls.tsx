@@ -138,8 +138,8 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
   }, [executeAdvance]);
 
   return (
-    <div className="pt-1 flex flex-col items-center space-y-2 w-full">
-      {/* Action Buttons: sleek esports Glassmorphism styling */}
+    <div className="pt-2 border-t border-white/10 flex flex-col items-center space-y-2 w-full">
+      {/* Primary Action Buttons inside the Unified Bottom Card */}
       {isSeriesEnded ? (
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 w-full">
           {nextQueuedMatchLabel && (
@@ -148,9 +148,10 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
               disabled={isAdvancing}
               onClick={onAdvanceQueuedMatch}
               style={{
-                boxShadow: teamColor ? `0 0 16px ${teamColor}55` : '0 0 16px rgba(16,185,129,0.35)',
+                borderColor: teamColor ? `${teamColor}80` : undefined,
+                boxShadow: teamColor ? `0 0 18px ${teamColor}40` : '0 0 18px rgba(16,185,129,0.35)',
               }}
-              className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-slate-900/60 backdrop-blur-md border border-white/10 text-white font-black text-xs uppercase tracking-wide transition hover:bg-slate-800/80 hover:border-white/20 flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
+              className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800/95 to-slate-900 border border-white/20 text-white font-black text-xs uppercase tracking-wide transition hover:brightness-110 flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
             >
               <span>
                 {t('Victory.nextQueuedMatch', 'TRẬN TIẾP THEO: {{label}} ({{remaining}})', {
@@ -166,9 +167,10 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
             disabled={isAdvancing}
             onClick={onResetSeriesMatch}
             style={{
-              boxShadow: teamColor ? `0 0 16px ${teamColor}55` : '0 0 16px rgba(245,158,11,0.35)',
+              borderColor: teamColor ? `${teamColor}80` : undefined,
+              boxShadow: teamColor ? `0 0 18px ${teamColor}40` : '0 0 18px rgba(245,158,11,0.35)',
             }}
-            className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-slate-900/60 backdrop-blur-md border border-white/10 text-white font-black text-xs uppercase tracking-wide transition hover:bg-slate-800/80 hover:border-white/20 flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
+            className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800/95 to-slate-900 border border-white/20 text-white font-black text-xs uppercase tracking-wide transition hover:brightness-110 flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
           >
             <RotateCcw className="w-4 h-4 shrink-0 text-amber-400" />
             <span>{t('Victory.newSeries', 'BẮT ĐẦU TRẬN ĐẤU MỚI')}</span>
@@ -180,25 +182,28 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
           disabled={isAdvancing}
           onClick={onStartNextRound}
           style={{
-            boxShadow: teamColor ? `0 0 20px ${teamColor}66` : '0 0 20px rgba(6,182,212,0.45)',
+            borderColor: teamColor ? `${teamColor}80` : undefined,
+            boxShadow: teamColor ? `0 0 20px ${teamColor}45` : '0 0 20px rgba(6,182,212,0.4)',
           }}
-          className="w-full py-2.5 px-6 rounded-xl bg-slate-900/60 backdrop-blur-md border border-white/10 text-white font-black text-xs sm:text-sm uppercase tracking-wider transition hover:bg-slate-800/80 hover:border-white/20 flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
+          className="w-full py-2.5 px-6 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800/95 to-slate-900 border border-white/20 text-white font-black text-xs sm:text-sm uppercase tracking-wider transition hover:brightness-110 flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50 cursor-pointer whitespace-nowrap pointer-events-auto"
         >
           <span>{t('Victory.nextRoundNow', 'VÀO VÁN TIẾP THEO')}</span>
-          <ArrowRight className="w-4 h-4 shrink-0 text-cyan-400" />
+          <ArrowRight className="w-4 h-4 shrink-0 text-amber-400" />
         </button>
       )}
 
-      {!isAdvancing && (
-        <div className="flex items-center gap-1 text-[9.5px] sm:text-[10.5px] font-black text-cyan-300 tracking-wide">
-          <Timer className="w-3 h-3 shrink-0" />
-          <span>{captionText}</span>
-        </div>
-      )}
+      {/* Integrated Countdown & Shortcut Footer Row (No separate floating box) */}
+      <div className="flex flex-col items-center gap-0.5 pt-0.5">
+        {!isAdvancing && (
+          <div className="flex items-center gap-1 text-[9.5px] sm:text-[10.5px] font-black text-amber-300 tracking-wide">
+            <Timer className="w-3 h-3 shrink-0 text-amber-400" />
+            <span>{captionText}</span>
+          </div>
+        )}
 
-      {/* Spacebar Shortcut Hint */}
-      <div className="text-[8.5px] sm:text-[9.5px] text-slate-400 font-semibold tracking-wide">
-        {t('Victory.pressKeyHint', 'Nhấn Phím Cách (Space) hoặc bấm nút để vào ván')}
+        <div className="text-[8.5px] sm:text-[9.5px] text-slate-400 font-semibold tracking-wide">
+          {t('Victory.pressKeyHint', 'Nhấn Phím Cách (Space) hoặc bấm nút để vào ván')}
+        </div>
       </div>
     </div>
   );

@@ -113,7 +113,11 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
           triggerScreenShake(FINISHER_BANNER_CONSTANTS.SHAKE_INTENSITY);
           triggerScreenFlash(winnerTheme.primaryHex);
           playSound(SFX_EVENT.SKILL_SMITE, FINISHER_SOUND_OPTIONS);
+          playSound(SFX_EVENT.BOSS_DEATH_CRY, FINISHER_SOUND_OPTIONS);
           playSound(SFX_EVENT.BOSS_DEFEAT, FINISHER_SOUND_OPTIONS);
+          setTimeout(() => {
+            playSound(SFX_EVENT.VICTORY, FINISHER_SOUND_OPTIONS);
+          }, 300);
         }, strikeDelay);
       }
 

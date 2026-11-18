@@ -45,9 +45,9 @@ export const VictoryHeaderStage = ({
     : t('Victory.roundWinAction', 'CHIẾN THẮNG VÁN {{round}}!', { round: currentRound });
 
   return (
-    <div className="space-y-1.5">
+    <div className="w-full flex flex-col items-center text-center space-y-2">
       {/* World Championship Header Tag */}
-      <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-950/90 via-slate-900/90 to-amber-950/90 border border-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.35)] whitespace-nowrap">
+      <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/40 whitespace-nowrap">
         <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400 shrink-0" />
         <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-amber-200">
           {t('Victory.worldsBadge', 'CKTG 2026 WORLDS CHAMPIONSHIP')}
@@ -56,18 +56,18 @@ export const VictoryHeaderStage = ({
       </div>
 
       {/* Grand Champion Trophy & Team Crest Pedestal */}
-      <div className="relative flex justify-center items-center pt-1">
+      <div className="relative flex justify-center items-center pt-2 pb-1">
         <div
-          className={`absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full blur-xl opacity-45 animate-pulse ${winnerTheme.glowOrbClass}`}
+          className={`absolute w-24 h-24 rounded-full blur-2xl opacity-40 animate-pulse ${winnerTheme.glowOrbClass}`}
         />
 
-        <div className="relative p-2 sm:p-2.5 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-2 border-amber-400/80 shadow-[0_0_24px_rgba(245,158,11,0.45)] flex flex-col items-center">
-          <div className="absolute -top-3 px-2.5 py-0.2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-[9px] uppercase tracking-wider flex items-center space-x-1 shadow-md whitespace-nowrap">
+        <div className="relative p-2 rounded-2xl bg-slate-950/90 border-2 border-amber-400/80 shadow-[0_0_20px_rgba(245,158,11,0.4)] flex flex-col items-center">
+          <div className="absolute -top-2.5 px-2.5 py-0.2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-[8.5px] uppercase tracking-wider flex items-center space-x-1 shadow-md whitespace-nowrap">
             <Crown className="w-2.5 h-2.5 fill-current shrink-0" />
             <span>{t('Victory.championTag', 'CHAMPION')}</span>
           </div>
 
-          <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-1 transition-transform duration-300 hover:scale-105">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center p-1">
             <TeamLogo
               teamProfile={winnerProfile}
               teamSlot={winnerSlot}
@@ -75,15 +75,15 @@ export const VictoryHeaderStage = ({
             />
           </div>
 
-          <div className="absolute -bottom-2.5 p-1 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-950 border-2 border-slate-900 shadow-lg">
-            <Trophy className="w-3 h-3 fill-current" />
+          <div className="absolute -bottom-2 p-1 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 text-slate-950 border-2 border-slate-950 shadow-lg">
+            <Trophy className="w-2.5 h-2.5 fill-current" />
           </div>
         </div>
       </div>
 
-      {/* Responsive Victory Headline without Truncation */}
-      <div className="space-y-0.5 pt-1 px-1 text-center">
-        <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400">
+      {/* Victory Headline integrated directly inside the unified top card */}
+      <div className="space-y-0.5 pt-0.5">
+        <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-300">
           {isSeriesEnded
             ? t('Victory.seriesScore', 'TỈ SỐ CHUNG CUỘC {{format}}: {{team1}} {{score1}} - {{score2}} {{team2}}', {
                 format: seriesFormat,
@@ -98,10 +98,10 @@ export const VictoryHeaderStage = ({
         </div>
 
         <div className="flex flex-col items-center justify-center">
-          <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-100 drop-shadow-[0_2px_8px_rgba(245,158,11,0.6)]">
+          <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-100 drop-shadow-[0_2px_8px_rgba(245,158,11,0.5)]">
             {winnerName}
           </span>
-          <h1 className="text-sm sm:text-base font-black uppercase tracking-wide bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-400 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(245,158,11,0.8)]">
+          <h1 className="text-sm sm:text-base font-black uppercase tracking-wide bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-400 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(245,158,11,0.75)]">
             {headlineAction}
           </h1>
         </div>

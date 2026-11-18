@@ -27,6 +27,7 @@ export const SFX_FALLBACKS: Record<SfxEventName, () => void> = {
   [SFX_EVENT.BOSS_SKILL]: () => audioService.playDamageImpactSound(DAMAGE_TYPE.CRIT, false),
   [SFX_EVENT.BOSS_ULTIMATE]: () => audioService.playBossRoarSound(DEFAULT_PITCH_RATE, true),
   [SFX_EVENT.BOSS_DEFEAT]: () => audioService.playBossDefeatSound(DEFAULT_PITCH_RATE),
+  [SFX_EVENT.BOSS_DEATH_CRY]: () => audioService.playChampionDeathSound(),
   [SFX_EVENT.CHAMPION_SUMMON]: () => audioService.playSummonArrivalSound(),
   [SFX_EVENT.CHAMPION_DEATH]: () => audioService.playChampionDeathSound(),
   [SFX_EVENT.CHAMPION_ATTACK]: () => audioService.playAttackWhoosh(false, false),

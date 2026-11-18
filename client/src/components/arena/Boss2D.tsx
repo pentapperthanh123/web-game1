@@ -45,7 +45,7 @@ import { getBossSpriteAnchors } from '../../constants/bossSpriteAnchors';
 const getAnimationClass = (
   isDefeated: boolean,
   isAwaitingStrike: boolean,
-  isExhausted: boolean,
+  isShatterComplete: boolean,
   isPoked: boolean,
   isRoarActive: boolean,
   isRecentlyHit: boolean,
@@ -64,8 +64,8 @@ const getAnimationClass = (
     if (isAwaitingStrike) {
       return 'animate-boss-critical-stun pointer-events-none';
     }
-    if (isExhausted) {
-      return 'animate-boss-exhausted pointer-events-none';
+    if (isShatterComplete) {
+      return 'opacity-0 invisible pointer-events-none';
     }
     return 'animate-boss-defeat pointer-events-none';
   }
@@ -205,52 +205,57 @@ export const Boss2D = React.memo(() => {
   const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
   const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
 
-  const [hasStrikeImpacted, setHasStrikeImpacted] = useState<boolean>(() => {
-    if (!isDefeated || !isDonorFinisher) return true;
-    return Date.now() - bossDefeatedTimestamp >= FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS;
-  });
+  const [, setDefeatPhaseTick] = useState(0);
+  const defeatAnchorTimeRef = useRef<number>(0);
+  if (isDefeated) {
+    if (bossDefeatedTimestamp > 0) {
+      defeatAnchorTimeRef.current = bossDefeatedTimestamp;
+    } else if (defeatAnchorTimeRef.current === 0) {
+      defeatAnchorTimeRef.current = Date.now();
+    }
+  } else if (defeatAnchorTimeRef.current !== 0) {
+    defeatAnchorTimeRef.current = 0;
+  }
+
+  const strikeOffsetMs = isDonorFinisher ? FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS : 0;
+  const impactDeadline = isDefeated ? defeatAnchorTimeRef.current + strikeOffsetMs : 0;
+  const shatterCompleteDeadline = isDefeated
+    ? impactDeadline + BOSS_DEFEAT_CONSTANTS.SHATTER_ANIMATION_MS
+    : 0;
+  const nowRenderMs = Date.now();
+  const isAwaitingStrike = isDefeated && isDonorFinisher && nowRenderMs < impactDeadline;
+  const isShatterComplete = isDefeated && !isAwaitingStrike && nowRenderMs >= shatterCompleteDeadline;
 
   useEffect(() => {
-    if (!isDefeated || !isDonorFinisher) {
-      setHasStrikeImpacted(true);
-      return;
-    }
-    const elapsed = Date.now() - bossDefeatedTimestamp;
-    const remaining = FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS - elapsed;
-    if (remaining <= 0) {
-      setHasStrikeImpacted(true);
-      return;
-    }
-    setHasStrikeImpacted(false);
-    const timer = setTimeout(() => {
-      setHasStrikeImpacted(true);
-    }, remaining);
-    return () => clearTimeout(timer);
-  }, [isDefeated, isDonorFinisher, bossDefeatedTimestamp]);
+    if (!isDefeated) return;
+    const now = Date.now();
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
 
-  const isAwaitingStrike = isDefeated && isDonorFinisher && !hasStrikeImpacted;
-
-  const [isExhaustedPhase, setIsExhaustedPhase] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!isDefeated || isAwaitingStrike) {
-      setIsExhaustedPhase(false);
-      return;
+    const remainingToImpact = impactDeadline - now;
+    if (remainingToImpact > 0) {
+      timers.push(
+        setTimeout(() => {
+          setDefeatPhaseTick((tick) => tick + 1);
+        }, remainingToImpact)
+      );
     }
-    const strikeOffsetMs = isDonorFinisher ? FINISHER_BANNER_CONSTANTS.AVATAR_STRIKE_DURATION_MS : 0;
-    const impactTime = (bossDefeatedTimestamp > 0 ? bossDefeatedTimestamp : Date.now()) + strikeOffsetMs;
-    const elapsed = Date.now() - impactTime;
-    const remaining = BOSS_DEFEAT_CONSTANTS.EXHAUSTION_DELAY_MS - elapsed;
-    if (remaining > 0) {
-      setIsExhaustedPhase(true);
-      const timer = setTimeout(() => {
-        setIsExhaustedPhase(false);
-      }, remaining);
-      return () => clearTimeout(timer);
+
+    const remainingToShatterEnd = shatterCompleteDeadline - now;
+    if (remainingToShatterEnd > 0) {
+      timers.push(
+        setTimeout(() => {
+          setDefeatPhaseTick((tick) => tick + 1);
+        }, remainingToShatterEnd)
+      );
     }
-    setIsExhaustedPhase(false);
-  }, [isDefeated, isAwaitingStrike, isDonorFinisher, bossDefeatedTimestamp]);
-  const isEnraged = bossStatus === BOSS_STATUS.ENRAGED;
+
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+    };
+  }, [isDefeated, impactDeadline, shatterCompleteDeadline]);
+
+  // Preserve enraged visual form during defeat so the normal sprite never cross-fades back in
+  const isEnraged = bossStatus === BOSS_STATUS.ENRAGED || isDefeated;
   const bossStaggerUntil = useGameStore((state) => state.bossStaggerUntil);
   const isKnockedBack = useIsBeforeDeadline(bossStaggerUntil);
   const isEnragedArtShown = isEnraged && Boolean(themeConfig.bossEnragedImagePng);
@@ -665,7 +670,7 @@ export const Boss2D = React.memo(() => {
   const baseAnimationClass = getAnimationClass(
     isDefeated,
     isAwaitingStrike,
-    isExhaustedPhase,
+    isShatterComplete,
     isPoked,
     isRoarActive,
     isHitActive,
@@ -680,8 +685,8 @@ export const Boss2D = React.memo(() => {
     activeBossSkillBanner?.skillId,
     activeBossSkillBanner?.vfxType
   );
-  // MEGA gift knock-back overrides the idle/attack animation while the boss is staggered
-  const animationClass = isKnockedBack ? BOSS_KNOCKBACK_CLASS : baseAnimationClass;
+  // MEGA gift knock-back only applies while the boss is alive; never override defeat/shatter
+  const animationClass = isKnockedBack && !isDefeated ? BOSS_KNOCKBACK_CLASS : baseAnimationClass;
 
   // Dynamic 2.5D perspective tilt reacting to heavy impact recoil & user pokes
   let tiltYDeg = 0;
@@ -824,7 +829,7 @@ export const Boss2D = React.memo(() => {
                   >
                     {/* Normal Form Sprite */}
                     <picture
-                      className={`w-full h-full block transition-opacity duration-700 ${
+                      className={`w-full h-full block ${isDefeated ? '' : 'transition-opacity duration-700'} ${
                         isEnraged && themeConfig.bossEnragedImagePng
                           ? 'opacity-0'
                           : 'opacity-100'
@@ -844,7 +849,7 @@ export const Boss2D = React.memo(() => {
                     {/* Enraged / Molten Form Sprite (Triggered when Boss enters Enraged state) */}
                     {themeConfig.bossEnragedImagePng && (
                       <picture
-                        className={`w-full h-full absolute inset-0 block transition-opacity duration-700 pointer-events-none ${
+                        className={`w-full h-full absolute inset-0 block ${isDefeated ? '' : 'transition-opacity duration-700'} pointer-events-none ${
                           isEnraged ? 'opacity-100' : 'opacity-0'
                         }`}
                       >

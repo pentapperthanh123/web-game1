@@ -40,9 +40,9 @@ export const VictoryDamageSummaryCard = ({
   const finisherTheme = finisherTeamProfile ? getTeamTheme(finisherTeamProfile.colorTheme) : null;
 
   return (
-    <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/85 border border-slate-800/90 shadow-md space-y-1">
+    <div className="w-full space-y-1.5">
       {finisherPlayerName && (
-        <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[10.5px] truncate">
+        <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-[10.5px] truncate pb-0.5">
           <Swords className="w-3 h-3 text-rose-400 shrink-0" />
           <span className="text-rose-200/90 font-semibold shrink-0">
             {t('Victory.finisherLabel', 'Kết liễu bởi')}:
@@ -58,8 +58,8 @@ export const VictoryDamageSummaryCard = ({
         </div>
       )}
 
-      <div className="space-y-0.5">
-        <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono whitespace-nowrap">
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-[9.5px] sm:text-[10px] font-mono whitespace-nowrap">
           <span className={`font-black truncate ${leftTheme.textStrongClass}`}>
             {leftTeam.shortTag}: {leftPercent}% ({leftDamage.toLocaleString()})
           </span>
@@ -68,7 +68,7 @@ export const VictoryDamageSummaryCard = ({
           </span>
         </div>
 
-        <div className="h-1.5 w-full rounded-full bg-slate-950 overflow-hidden flex border border-slate-800">
+        <div className="h-2 w-full rounded-full bg-slate-950 overflow-hidden flex border border-white/10 shadow-inner">
           <div
             style={{ width: `${leftPercent}%`, backgroundColor: leftTheme.primaryHex }}
             className="h-full transition-all duration-500"

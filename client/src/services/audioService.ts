@@ -1,3 +1,4 @@
+import { Howler } from 'howler';
 import {
   GAME_CONSTANTS,
   DAMAGE_TYPE,
@@ -101,6 +102,16 @@ class AudioSynthesizerService {
   public isTtsEnabled: boolean = GAME_CONSTANTS.AUDIO.DEFAULT_TTS_ENABLED;
   public volume: number = GAME_CONSTANTS.AUDIO.DEFAULT_VOLUME;
   public isCombatMuted: boolean = false;
+
+  public setVolume(volume: number): void {
+    this.volume = Math.max(0, Math.min(1, volume));
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+    }
+    if (typeof window !== 'undefined') {
+      Howler.volume(this.volume);
+    }
+  }
 
   public setCombatMuted(muted: boolean): void {
     this.isCombatMuted = muted;
@@ -1533,7 +1544,7 @@ class AudioSynthesizerService {
     osc.stop(t + 0.7);
   }
 
-  // 10b. Cinematic Boss Execution / Shatter Explosion Sound
+  // 10b. Cinematic Boss Execution / Shatter Explosion Sound (5-layer)
   public playBossDefeatSound(pitchRateOrElder: number | boolean = 1.0): void {
     const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
     if (!this.isAudioEnabled) return;
@@ -1544,52 +1555,84 @@ class AudioSynthesizerService {
     const out = this.getOutputNode(0, AUDIO_BUS.MASTER);
     const vol = Math.min(1.5, this.volume * 1.35);
 
-    // Layer 1: Deep Tectonic Implosion Sub-Boom
+    // Layer 1: Deep Tectonic Implosion Sub-Boom (sine 100→16Hz, 2.0s, louder)
     const subOsc = ctx.createOscillator();
     const subGain = ctx.createGain();
     subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(140, t);
-    subOsc.frequency.exponentialRampToValueAtTime(22, t + 1.25);
-    subGain.gain.setValueAtTime(0.65 * vol, t);
-    subGain.gain.exponentialRampToValueAtTime(0.001, t + 1.35);
+    subOsc.frequency.setValueAtTime(100 * pitch, t);
+    subOsc.frequency.exponentialRampToValueAtTime(16, t + 2.0);
+    subGain.gain.setValueAtTime(0.75 * vol, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 2.1);
     subOsc.connect(subGain);
     subGain.connect(out);
     subOsc.start(t);
-    subOsc.stop(t + 1.35);
+    subOsc.stop(t + 2.1);
 
-    // Layer 2: Shattering Energy Blast Noise Sweep
+    // Layer 2: Wider Shattering Energy Blast Noise Sweep (bandpass 2200→80Hz, 1.4s)
     const noise = ctx.createBufferSource();
     noise.buffer = this.getNoiseBuffer(ctx);
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1500 * pitch, t);
-    filter.frequency.exponentialRampToValueAtTime(140, t + 0.9);
-    filter.Q.value = 1.4;
+    filter.frequency.setValueAtTime(2200 * pitch, t);
+    filter.frequency.exponentialRampToValueAtTime(80, t + 1.4);
+    filter.Q.value = 1.6;
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.42 * vol, t);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
+    noiseGain.gain.setValueAtTime(0.48 * vol, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 1.45);
     noise.connect(filter);
     filter.connect(noiseGain);
     noiseGain.connect(out);
     noise.start(t);
-    noise.stop(t + 0.95);
+    noise.stop(t + 1.45);
 
-    // Layer 3: Crystal Rupture High Resonance Chime
-    const chimeNotes = [440 * pitch, 660 * pitch, 990 * pitch];
+    // Layer 3: Crystal Rupture Chime Cascade (5-note triangle, staggered 0.07s, 1.2s decay)
+    const chimeNotes = [440 * pitch, 587 * pitch, 740 * pitch, 880 * pitch, 1175 * pitch];
     chimeNotes.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      const startTime = t + 0.08 + idx * 0.09;
+      const startTime = t + 0.06 + idx * 0.07;
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, startTime);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.5, startTime + 0.75);
-      gain.gain.setValueAtTime(0.22 * vol, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.8);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.4, startTime + 1.2);
+      gain.gain.setValueAtTime(0.2 * vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 1.25);
       osc.connect(gain);
       gain.connect(out);
       osc.start(startTime);
-      osc.stop(startTime + 0.85);
+      osc.stop(startTime + 1.3);
     });
+
+    // Layer 4: Metallic Resonance Ring (sawtooth 220→110Hz, filtered — "energy shatter" texture)
+    const metalOsc = ctx.createOscillator();
+    const metalFilter = ctx.createBiquadFilter();
+    const metalGain = ctx.createGain();
+    metalOsc.type = 'sawtooth';
+    metalOsc.frequency.setValueAtTime(220 * pitch, t + 0.05);
+    metalOsc.frequency.exponentialRampToValueAtTime(110, t + 1.0);
+    metalFilter.type = 'bandpass';
+    metalFilter.frequency.setValueAtTime(1800, t + 0.05);
+    metalFilter.frequency.exponentialRampToValueAtTime(400, t + 1.0);
+    metalFilter.Q.value = 3.0;
+    metalGain.gain.setValueAtTime(0.15 * vol, t + 0.05);
+    metalGain.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
+    metalOsc.connect(metalFilter);
+    metalFilter.connect(metalGain);
+    metalGain.connect(out);
+    metalOsc.start(t + 0.05);
+    metalOsc.stop(t + 1.15);
+
+    // Layer 5: Reverberant Tail — Arena Rumble Aftershock (sine 55Hz, slow fade 2.5s)
+    const rumbleOsc = ctx.createOscillator();
+    const rumbleGain = ctx.createGain();
+    rumbleOsc.type = 'sine';
+    rumbleOsc.frequency.setValueAtTime(55 * pitch, t + 0.3);
+    rumbleOsc.frequency.exponentialRampToValueAtTime(30, t + 2.8);
+    rumbleGain.gain.setValueAtTime(0.3 * vol, t + 0.3);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.001, t + 2.85);
+    rumbleOsc.connect(rumbleGain);
+    rumbleGain.connect(out);
+    rumbleOsc.start(t + 0.3);
+    rumbleOsc.stop(t + 2.9);
   }
 
   // 11. Procedural Heart Sparkle Chime

@@ -1,3 +1,4 @@
+import { getSkillVfxWindowMs } from '../../constants/bossSkillVfx';
 import {
   CASTER_BANTER,
   CASTER_BANTER_RULES,
@@ -452,21 +453,31 @@ const announceBossState = (state: GameState, memory: DirectorMemory): void => {
   const skill = state.activeBossSkillBanner;
   if (!skill || skill.timestamp === memory.lastSkillTimestamp) return;
   memory.lastSkillTimestamp = skill.timestamp;
+  const vfxWindowMs = getSkillVfxWindowMs(skill.vfxType, skill.vfxParams);
+  // Deadline = when the VFX impact is visually over: speaking after this moment is pointless
+  const deadlineAt = skill.timestamp + vfxWindowMs;
+  // TTL tight enough to drop stale skill lines before they block the queue
+  const tightTtlMs = Math.max(1400, Math.min(vfxWindowMs, 2500));
+
+  const signal = skill.isUltimate ? CASTER_SIGNAL.BOSS_ULTIMATE : CASTER_SIGNAL.BOSS_SKILL;
+  const slots = { boss: bossName, skill: skill.vietnameseName };
+
+  // Skip non-ultimate lines by chance (normal skill: 85% chance to call out)
+  if (!skill.isUltimate && Math.random() >= CASTER_EVENT_RULES.BOSS_SKILL_LINE_CHANCE) return;
+
   if (skill.isUltimate) {
-    castCasterSignal(
-      CASTER_SIGNAL.BOSS_ULTIMATE,
-      { boss: bossName, skill: skill.vietnameseName },
-      { ttlMs: CASTER_EVENT_RULES.BOSS_ULTIMATE_TTL_MS, intensity: CASTER_INTENSITY.CLIMAX }
-    );
+    castCasterSignal(signal, slots, {
+      ttlMs: Math.max(tightTtlMs, 3000),
+      deadlineAt: skill.timestamp + Math.max(vfxWindowMs, 3200),
+      intensity: CASTER_INTENSITY.CLIMAX,
+    });
     return;
   }
-  if (Math.random() < CASTER_EVENT_RULES.BOSS_SKILL_LINE_CHANCE) {
-    castCasterSignal(
-      CASTER_SIGNAL.BOSS_SKILL,
-      { boss: bossName, skill: skill.vietnameseName },
-      { ttlMs: CASTER_EVENT_RULES.BOSS_SKILL_TTL_MS, intensity: CASTER_INTENSITY.HYPE }
-    );
-  }
+  castCasterSignal(signal, slots, {
+    ttlMs: tightTtlMs,
+    deadlineAt,
+    intensity: CASTER_INTENSITY.HYPE,
+  });
 };
 
 const announceRoundFlow = (state: GameState, prev: GameState, memory: DirectorMemory): void => {

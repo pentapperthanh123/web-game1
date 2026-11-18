@@ -126,11 +126,31 @@ const createDiskCache = (serverRoot: string, provider: TtsProvider) => {
     return `${hash}${CASTER_TTS_DISK_CACHE.EXTENSION}`;
   };
 
+  /** Strips intensity/rate/pitch so warmed or pre-generated base clips match live requests with any intensity. */
+  const toBaseKey = (key: string): string => {
+    const parts = key.split('|');
+    const lang = parts[0] || CASTER_TTS.DEFAULT_LANG;
+    const role = parts[1] || '';
+    const text = parts.slice(5).join('|');
+    return `${lang}|${role}||||${text}`;
+  };
+
+  const resolveExistingPath = (key: string): string | null => {
+    const exactPath = path.join(dir, fileFor(key));
+    if (existsSync(exactPath)) return exactPath;
+    const baseKey = toBaseKey(key);
+    if (baseKey !== key) {
+      const basePath = path.join(dir, fileFor(baseKey));
+      if (existsSync(basePath)) return basePath;
+    }
+    return null;
+  };
+
   return {
-    has: (key: string): boolean => existsSync(path.join(dir, fileFor(key))),
+    has: (key: string): boolean => resolveExistingPath(key) !== null,
     read: async (key: string): Promise<Buffer | null> => {
-      const filePath = path.join(dir, fileFor(key));
-      if (!existsSync(filePath)) return null;
+      const filePath = resolveExistingPath(key);
+      if (!filePath) return null;
       return readFile(filePath).catch(() => null);
     },
     write: async (key: string, audio: Buffer): Promise<void> => {

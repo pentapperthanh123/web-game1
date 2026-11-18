@@ -75,3 +75,9 @@ server/data/tts-cache/
 
 # Heavy Background Music (> 100MB exceeds GitHub file limit)
 client/public/sfx/ARENA_AMBIENCE.mp3
+
+# Viet-TTS local models and generated audio (> 2GB exceeds GitHub limits)
+scripts/viet-tts/pretrained-models/*.pt
+scripts/viet-tts/pretrained-models/*.onnx
+scripts/viet-tts/pretrained-models/*.bin
+server/data/viet-tts-audio/*.mp3

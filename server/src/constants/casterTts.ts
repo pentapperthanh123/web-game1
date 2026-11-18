@@ -20,7 +20,7 @@ export const CASTER_TTS = {
 /** Primary-voice clips are kept on disk so repeated lines play instantly, even after a restart. */
 export const CASTER_TTS_DISK_CACHE = {
   DIR: 'data/tts-cache',
-  MAX_FILES: 6000,
+  MAX_FILES: 25_000,
   EXTENSION: '.mp3',
 } as const;
 
@@ -45,6 +45,7 @@ export const CASTER_TTS_PROVIDER = {
   AZURE: 'AZURE',
   EDGE: 'EDGE',
   GOOGLE_TRANSLATE: 'GOOGLE_TRANSLATE',
+  VIET_TTS: 'VIET_TTS',
 } as const;
 
 /** Google for now (decided 2026-11-14): Edge is too flaky from the streaming PC; switch with CASTER_TTS_PROVIDER. */
@@ -72,9 +73,9 @@ export const CASTER_TTS_HTTP_STATUS: Readonly<Record<CasterTtsFailure, number>> 
 };
 
 export const CASTER_TTS_ENV = {
-  /** Which voice the caster uses: GOOGLE_TRANSLATE (default), EDGE (HoaiMy / NamMinh) or AZURE (needs a key). */
+  /** Which voice the caster uses: GOOGLE_TRANSLATE (default), VIET_TTS (dangvansam/viet-tts), EDGE (HoaiMy / NamMinh) or AZURE (needs a key). */
   PROVIDER: 'CASTER_TTS_PROVIDER',
-  /** "GOOGLE" re-enables the Google voice as fallback behind Edge/Azure; default: no other voice is mixed in. */
+  /** "GOOGLE" re-enables the Google voice as fallback behind Edge/Azure/VietTTS; default: no other voice is mixed in. */
   FALLBACK_VOICE: 'CASTER_TTS_FALLBACK_VOICE',
   /** Force 100% Male voice across all lines, ignoring female role requests. */
   FORCE_MALE: 'CASTER_TTS_FORCE_MALE',
@@ -85,6 +86,9 @@ export const CASTER_TTS_ENV = {
   AZURE_REGION: 'AZURE_SPEECH_REGION',
   AZURE_VOICE_VI: 'AZURE_SPEECH_VOICE_VI',
   AZURE_VOICE_EN: 'AZURE_SPEECH_VOICE_EN',
+  VIET_TTS_URL: 'VIET_TTS_URL',
+  VIET_TTS_VOICE_MALE: 'VIET_TTS_VOICE_MALE',
+  VIET_TTS_VOICE_FEMALE: 'VIET_TTS_VOICE_FEMALE',
 } as const;
 
 export const CASTER_VOICE_ROLE = {
@@ -164,4 +168,27 @@ export const EDGE_TTS = {
 export const GOOGLE_TRANSLATE_TTS = {
   URL: 'https://translate.google.com/translate_tts',
   CLIENT: 'tw-ob',
+} as const;
+
+/**
+ * Local/Self-hosted Viet-TTS service (`https://huggingface.co/dangvansam/viet-tts`),
+ * compatible with OpenAI `/v1/audio/speech` API.
+ */
+export const VIET_TTS = {
+  DEFAULT_URL: 'http://localhost:8298',
+  SPEECH_PATH: '/v1/audio/speech',
+  VOICES_PATH: '/v1/voices',
+  HEALTH_PATH: '/health',
+  MODEL: 'tts-1',
+  RESPONSE_FORMAT: 'mp3',
+  DEFAULT_VOICE: {
+    [CASTER_VOICE_ROLE.MALE]: 'cdteam',
+    [CASTER_VOICE_ROLE.FEMALE]: 'quynh',
+  },
+  SPEED_BY_INTENSITY: {
+    [CASTER_EMOTION_INTENSITY.NORMAL]: 1.0,
+    [CASTER_EMOTION_INTENSITY.HYPE]: 1.08,
+    [CASTER_EMOTION_INTENSITY.CLIMAX]: 1.15,
+  },
+  TIMEOUT_MS: 45_000,
 } as const;

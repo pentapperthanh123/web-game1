@@ -497,6 +497,12 @@
   "SessionBoard": {
     "tierUpTitle": "{{name}} thăng hạng",
     "title": "TOP PHIÊN LIVE",
+    "matchTitle": "TOP VÁN HIỆN TẠI",
+    "sessionPill": "PHIÊN",
+    "matchPill": "VÁN NÀY",
+    "switchTooltip": "Bấm để chuyển nhanh giữa Top Phiên Live & Top Ván Hiện Tại",
+    "noSessionPlayersYet": "Chưa có sát thương phiên này, hãy chat tên tướng!",
+    "noMatchPlayersYet": "Tặng quà hoặc gọi tướng để mở bát ván này!",
     "toggle": "Thu gọn / mở bảng xếp hạng",
     "giftRibbon": "ra tay!",
     "takeoverTitle": "{{name}} soán ngôi Thách Đấu!",

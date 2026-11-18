@@ -1,4 +1,13 @@
-import { CASTER_SIGNAL, CASTER_SPEAKER, CASTER_WARM, CasterSignal, CasterSpeaker, resolveSpeakerRole } from '../../constants/caster';
+import {
+  CASTER_INTENSITY,
+  CASTER_SIGNAL,
+  CASTER_SPEAKER,
+  CASTER_WARM,
+  CasterSignal,
+  CasterSpeaker,
+  DEFAULT_CASTER_SPEAKER,
+  resolveSpeakerRole,
+} from '../../constants/caster';
 import { getBossSkillsByTheme } from '../../constants/bossSkills';
 import { BOSS_MECHANICS_CONSTANTS, getThemeConfig, TeamType } from '../../constants/game';
 import { useGameStore } from '../../store/gameStore';
@@ -13,6 +22,7 @@ import {
 } from './casterComposer';
 import { requestCasterWarm } from './casterWarmChannel';
 import { toSpeakableText } from './presentationQueue';
+import { casterSpeechEngine } from './speechEngine';
 import { toVoiceText } from './casterVoiceText';
 
 /** Lines whose slots are all known for a given matchup and boss (no viewer names, no live numbers). */
@@ -84,6 +94,42 @@ const collectSkillLines = (baseSlots: CasterSlots, theme: GameState['gameTheme']
     })
   );
 
+const CLIENT_SKILL_PREFETCH_STAGGER_MS = 150;
+const CLIENT_SKILL_PREFETCH_START_DELAY_MS = 800;
+
+/**
+ * Pre-downloads boss skill TTS clips into the client-side `casterSpeechEngine` cache
+ * with the exact role + intensity used at cast time, eliminating HTTP round-trip latency
+ * so commentary plays at the exact moment of the visual effect.
+ */
+const prefetchSkillClipsToClient = (
+  baseSlots: CasterSlots,
+  theme: GameState['gameTheme'],
+  lang: string
+): void => {
+  const role = resolveSpeakerRole(DEFAULT_CASTER_SPEAKER);
+  const skills = getBossSkillsByTheme(theme);
+  let delayMs = CLIENT_SKILL_PREFETCH_START_DELAY_MS;
+
+  for (const skill of skills) {
+    const signal = skill.isUltimate ? CASTER_SIGNAL.BOSS_ULTIMATE : CASTER_SIGNAL.BOSS_SKILL;
+    const intensity = skill.isUltimate ? CASTER_INTENSITY.CLIMAX : CASTER_INTENSITY.HYPE;
+    const variants = composeAllCasterVariants(signal, {
+      ...baseSlots,
+      skill: skill.vietnameseName,
+    });
+    for (const rawLine of variants) {
+      const speakable = toSpeakableText(rawLine);
+      if (!speakable) continue;
+      const scheduledDelay = delayMs;
+      setTimeout(() => {
+        casterSpeechEngine.prefetch(speakable, lang, role, intensity);
+      }, scheduledDelay);
+      delayMs += CLIENT_SKILL_PREFETCH_STAGGER_MS;
+    }
+  }
+};
+
 /**
  * Asks the server to pre-generate every predictable line of the current matchup and boss,
  * once per matchup per session. Lines with viewer names or live numbers are cached when first said.
@@ -110,7 +156,7 @@ export const warmPredictableLines = (guideChampions: readonly string[]): void =>
   const turns = [
     ...collectDialogueTurns(MATCH_SIGNALS, baseSlots),
     ...guideChampions.flatMap((champion) => collectDialogueTurns(CHAMPION_SIGNALS, { ...baseSlots, champion })),
-    ...collectDialogueTurns(SHIELD_SIGNALS, shieldSlots),
+    ...SHIELD_SIGNALS.flatMap((signal) => collectDialogueTurns([signal], shieldSlots)),
   ];
   const turnTextsOf = (speaker: CasterSpeaker): string[] =>
     turns.filter((turn) => turn.speaker === speaker).map((turn) => turn.text);
@@ -119,4 +165,5 @@ export const warmPredictableLines = (guideChampions: readonly string[]): void =>
   const textsB = uniqueTexts(turnTextsOf(CASTER_SPEAKER.B));
   if (textsA.length > 0) sendWarmTexts(lang, textsA, CASTER_SPEAKER.A);
   if (textsB.length > 0) sendWarmTexts(lang, textsB, CASTER_SPEAKER.B);
+  prefetchSkillClipsToClient(baseSlots, state.gameTheme, lang);
 };

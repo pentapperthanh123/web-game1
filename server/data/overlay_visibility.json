@@ -5,7 +5,7 @@
   "bossHealth": true,
   "teamScores": true,
   "likeCounter": false,
-  "howToPlay": true,
+  "howToPlay": false,
   "heartMilestone": false,
   "matchTitleBar": false,
   "casterSubtitle": false,

@@ -456,3 +456,38 @@ export const CASTER_NUMBER = {
   THOUSAND: 1_000,
   MILLION: 1_000_000,
 } as const;
+
+/**
+ * Combat-critical signals that immediately interrupt active non-critical commentary (`priority > P2`)
+ * and jump to the head of the queue so the voice plays in sync with the on-screen VFX/banner.
+ */
+export const CASTER_COMBAT_CRITICAL_SIGNALS: ReadonlySet<CasterSignal> = new Set([
+  CASTER_SIGNAL.BOSS_SKILL,
+  CASTER_SIGNAL.BOSS_ULTIMATE,
+  CASTER_SIGNAL.BOSS_ENRAGE,
+  CASTER_SIGNAL.BOSS_PHASE_TWO,
+  CASTER_SIGNAL.BOSS_PHASE_THREE,
+  CASTER_SIGNAL.BOSS_SHIELD_UP,
+  CASTER_SIGNAL.BOSS_SHIELD_BROKEN,
+  CASTER_SIGNAL.WIPE,
+  CASTER_SIGNAL.ROUND_FINISHER,
+  CASTER_SIGNAL.ROUND_WIN,
+  CASTER_SIGNAL.SERIES_WIN,
+]);
+
+/**
+ * Tight deadlines (ms from event trigger) for battle-moment banners so `audioStore` speeds up
+ * long lines (up to 1.35x) to finish while the corresponding visual banner is still on screen.
+ */
+export const BATTLE_MOMENT_TIMING = {
+  PHASE_SHIFT_DEADLINE_MS: 3_200,
+  PHASE_SHIFT_TTL_MS: 3_000,
+  SHIELD_UP_DEADLINE_MS: 3_400,
+  SHIELD_UP_TTL_MS: 3_200,
+  SHIELD_BROKEN_DEADLINE_MS: 2_600,
+  SHIELD_BROKEN_TTL_MS: 2_500,
+  SHIELD_ABSORBED_DEADLINE_MS: 3_000,
+  SHIELD_ABSORBED_TTL_MS: 2_800,
+  HEART_MILESTONE_DEADLINE_MS: 3_200,
+  HEART_MILESTONE_TTL_MS: 3_000,
+} as const;

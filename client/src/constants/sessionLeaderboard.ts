@@ -138,3 +138,19 @@ export const SESSION_TIER_UP_CONSTANTS = {
 
 export const isSessionTierAtLeast = (tier: SessionTier | undefined, minimum: SessionTier): boolean =>
   tier !== undefined && SESSION_TIER_STYLE[tier].order >= SESSION_TIER_STYLE[minimum].order;
+
+export const LEADERBOARD_BOARD_MODE = {
+  SESSION: 'SESSION',
+  MATCH: 'MATCH',
+} as const;
+export type LeaderboardBoardMode =
+  (typeof LEADERBOARD_BOARD_MODE)[keyof typeof LEADERBOARD_BOARD_MODE];
+
+export const LEADERBOARD_CYCLER_CONSTANTS = {
+  CYCLE_INTERVAL_MS: 10_000,
+  TICK_INTERVAL_MS: 500,
+  FLIP_HALFWAY_MS: 200,
+  FLIP_TOTAL_MS: 400,
+  DISPLAY_SIZE: 3,
+} as const;
+

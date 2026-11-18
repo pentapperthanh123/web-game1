@@ -193,7 +193,7 @@ export const GAME_CONSTANTS = {
   AUDIO: {
     DEFAULT_ENABLED: true,
     DEFAULT_TTS_ENABLED: true,
-    DEFAULT_VOLUME: 0.6,
+    DEFAULT_VOLUME: 1.0,
   },
   RENDER: {
     DPR_MIN: 1,
@@ -801,8 +801,8 @@ export const BOSS_ANIMATION_CONSTANTS = {
   HEAVY_HIT_COOLDOWN_MS: 1200,
   /** Hits closer together than this do not restart the recoil (crowds hit every frame). */
   HIT_REACTION_MIN_INTERVAL_MS: 240,
-  ATTACK_DURATION_MS: 750,
-  ULTIMATE_ATTACK_DURATION_MS: 950,
+  ATTACK_DURATION_MS: 1200,
+  ULTIMATE_ATTACK_DURATION_MS: 1500,
   GROUND_SHOCKWAVE_DURATION_MS: 700,
   ENTRANCE_DURATION_MS: 2200,
   ENTRANCE_BREATH_DELAY_MS: 550,
@@ -810,7 +810,7 @@ export const BOSS_ANIMATION_CONSTANTS = {
 
 export const BOSS_DEFEAT_CONSTANTS = {
   SHATTER_ANIMATION_MS: 1200,
-  CRACK_PHASE_END_RATIO: 0.22,
+  CRACK_PHASE_END_RATIO: 0.12,
   EXPLOSION_END_RATIO: 0.65,
   SHOCKWAVE_RADIUS_INNER: 4.5,
   SHOCKWAVE_RADIUS_MID: 7.5,
@@ -825,13 +825,41 @@ export const BOSS_DEFEAT_CONSTANTS = {
   BARON_SECONDARY_COLOR: '#38bdf8',
   ELDER_DRAGON_DEFEAT_COLOR: '#f59e0b',
   ELDER_SECONDARY_COLOR: '#fef08a',
-  /** Boss slumps for 1.5s before shattering */
-  EXHAUSTION_DELAY_MS: 1500,
-  BUFF_ORB_RADIUS: 0.35,
-  BUFF_ORB_PULSE_SPEED: 2.5,
-  BUFF_ORB_GLOW_INTENSITY: 1.8,
-  BUFF_ORB_HOVER_HEIGHT: 0.6,
-  BUFF_ORB_FADE_DURATION_MS: 2000,
+  /** Immediate shatter synchronized with explosion impact (0ms delay) */
+  EXHAUSTION_DELAY_MS: 0,
+  /** 3D VFX spatial & geometry constants */
+  ORIGIN_Y: 0.25,
+  ORIGIN_Z: 0.3,
+  SHARD_GRAVITY: 4.8,
+  SHARD_RADIUS: 0.085,
+  SOUL_ORB_RADIUS: 0.11,
+  CORE_SPHERE_RADIUS: 0.28,
+  PILLAR_HEIGHT: 5.8,
+  PILLAR_Y_OFFSET: 2.1,
+  RING_PRIMARY_INNER: 0.955,
+  RING_PRIMARY_OUTER: 1.0,
+  RING_SECONDARY_INNER: 0.96,
+  RING_SECONDARY_OUTER: 1.0,
+  RING_FISSURE_INNER: 0.94,
+  RING_FISSURE_OUTER: 1.0,
+  RING_SEGMENTS: 64,
+  RING_PRIMARY_MAX_SCALE: 4.6,
+  RING_SECONDARY_MAX_SCALE: 4.0,
+  RING_FISSURE_MAX_SCALE: 3.5,
+  BURST_RAY_COUNT: 8,
+  BURST_RAY_LENGTH: 3.1,
+  BURST_RAY_WIDTH: 0.16,
+  BURST_RAY_SPIN_SPEED: 0.45,
+  /** 3D Baron/Dragon Buff Orb dropped after shatter */
+  BUFF_ORB_RADIUS: 0.26,
+  BUFF_ORB_AURA_RADIUS: 0.42,
+  BUFF_ORB_HALO_INNER: 0.48,
+  BUFF_ORB_HALO_OUTER: 0.53,
+  BUFF_ORB_PULSE_SPEED: 3.2,
+  BUFF_ORB_GLOW_INTENSITY: 2.2,
+  BUFF_ORB_HOVER_HEIGHT: 0.12,
+  BUFF_ORB_BASE_Y: -0.15,
+  BUFF_ORB_FADE_DURATION_MS: 900,
 } as const;
 
 export const FINISHER_BANNER_CONSTANTS = {
@@ -860,12 +888,12 @@ export const FINISHER_BANNER_CONSTANTS = {
  * that is still running. Keep these in sync with the animations they describe.
  */
 export const DEFEAT_SHOWCASE_TIMELINE = {
-  /** BossDeathVFX3D: imploding core, sky pillar, blast rings and soul streams. */
-  DEATH_VFX_3D_MS: 4500,
+  /** BossDeathVFX3D: synchronized imploding core, sky pillar, blast rings, soul streams & buff orb. */
+  DEATH_VFX_3D_MS: 3200,
   /** BossDeathVFX2D "boss defeated" banner — `executionBannerPop` in index.css. */
   EXECUTION_BANNER_MS: 8000,
-  /** BossDefeatedCrest2D fade-in — its `delay-[850ms] duration-700` classes. */
-  CREST_REVEAL_DELAY_MS: 850,
+  /** BossDefeatedCrest2D fade-in — reveals at 650ms right as the boss body dissolves into light. */
+  CREST_REVEAL_DELAY_MS: 650,
   CREST_REVEAL_MS: 700,
   /** Time the crest stays fully visible so viewers can take it in. */
   CREST_HOLD_MS: 6000,
@@ -1143,6 +1171,40 @@ export const COMBAT_VFX_CONSTANTS = {
     PULSE_AMPLITUDE: 0.025,
     PULSE_FREQUENCY: 3.0,
     ROTATION_SPEED: 2.2,
+  },
+  /** 3-stage Fly Avatar Summon: Fly-in drop -> Ground impact burst -> Floating summoner tag above champion. */
+  FLY_AVATAR_SUMMON: {
+    START_Y: 2.6,
+    ARC_OFFSET_X: 0.55,
+    FLY_IN_DURATION_MS: 520,
+    PIN_RISE_DURATION_MS: 320,
+    CHAMPION_POP_DURATION_MS: 340,
+    CHAMPION_HIDDEN_SCALE: 0.001,
+    CHAMPION_OVERSHOOT_SCALE: 1.15,
+    FLYING_START_SCALE: 1.25,
+    TOUCHDOWN_SCALE: 1.0,
+    FLOATING_TAG_SCALE: 0.54,
+    FLOATING_TAG_VIP_SCALE: 0.62,
+    FLOATING_TAG_POS_Y: 0.34,
+    FLOATING_TAG_POS_Z: 0.045,
+    FLOATING_BOB_SPEED: 2.6,
+    FLOATING_BOB_AMPLITUDE: 0.028,
+    BADGE_SIZE: 0.26,
+    VIP_HALO_INNER_RADIUS: 0.128,
+    VIP_HALO_OUTER_RADIUS: 0.156,
+    VIP_HALO_SEGMENTS: 32,
+    VIP_HALO_OPACITY: 0.82,
+    VIP_HALO_ROTATION_SPEED: 2.8,
+    VIP_HALO_PULSE_SPEED: 4.2,
+    VIP_HALO_PULSE_AMPLITUDE: 0.08,
+    IMPACT_SHARDS_INNER_RADIUS: 0.14,
+    IMPACT_SHARDS_OUTER_RADIUS: 0.32,
+    IMPACT_SHARDS_SEGMENTS: 8,
+    IMPACT_SHARDS_DURATION_MS: 560,
+    IMPACT_SHARDS_START_SCALE: 0.45,
+    IMPACT_SHARDS_END_SCALE: 2.45,
+    IMPACT_SHARDS_PEAK_OPACITY: 0.88,
+    IMPACT_SHARDS_SPIN_SPEED: 5.5,
   },
   /** Level of detail for crowded fields: above ENTER the tokens drop to portrait + border + HP. */
   CROWD_LOD: {

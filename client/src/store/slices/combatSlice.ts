@@ -1195,7 +1195,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       const defeatColor = themeConfig.colors.enragedHex || themeConfig.colors.primaryHex;
 
       if (!isDonorFinisher) {
-        playSound(SFX_EVENT.BOSS_DEFEAT, { rateScale: themeConfig.audioPitchRate });
+        // Phase 1: Boss death cry (groan/kneeling)
+        playSound(SFX_EVENT.BOSS_DEATH_CRY, { rateScale: themeConfig.audioPitchRate });
+        // Phase 2: Cinematic explosion (delayed for impact layering)
+        setTimeout(() => {
+          playSound(SFX_EVENT.BOSS_DEFEAT, { rateScale: themeConfig.audioPitchRate });
+        }, BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS);
+        // Phase 3: Victory sound plays right after explosion
+        setTimeout(() => {
+          playSound(SFX_EVENT.VICTORY);
+        }, BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS * 2);
         get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
         get().triggerScreenFlash('#fbbf24');
 

@@ -97,6 +97,8 @@ const buildDeployedChampion = (
   const isElite = Boolean(req.isElite || req.isGiftBypass || isEliteMinion(req) || isSignatureSynergy);
   const baseDps = rollBaseDps(isSignatureSynergy);
   const avatarUrl = getChampionAvatarUrl(req.championName, req.team);
+  const resolvedUserAvatarUrl =
+    req.userAvatarUrl || exactSignaturePro?.avatarUrl || activeTeamProfile?.logoUrl;
   const spawnPosition = pickSpawnPositionInWing(req.team);
   const orbitDirection = req.team === TEAM_KEY.BLG ? 1 : -1;
 
@@ -105,7 +107,7 @@ const buildDeployedChampion = (
     summonerName: req.summonerName,
     championName: req.championName,
     avatarUrl,
-    userAvatarUrl: req.userAvatarUrl,
+    userAvatarUrl: resolvedUserAvatarUrl,
     team: req.team,
     spawnPosition,
     orbitRadius: SUMMON_ORBIT_RADIUS,

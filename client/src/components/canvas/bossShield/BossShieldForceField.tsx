@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { useGameStore } from '../../../store/gameStore';
 import { BOSS_SHIELD_FIELD } from './bossShieldConstants';
 import { createForceFieldMaterial } from './forceFieldShader';
@@ -95,7 +96,7 @@ export const BossShieldForceField = () => {
             color={BOSS_SHIELD_FIELD.BASE_COLOR}
             transparent
             opacity={0}
-            blending={THREE.AdditiveBlending}
+            {...COLOR_ONLY_ADDITIVE_PROPS}
             depthWrite={false}
             toneMapped={false}
           />
@@ -107,7 +108,7 @@ export const BossShieldForceField = () => {
             color={BOSS_SHIELD_FIELD.RIM_COLOR}
             transparent
             opacity={0}
-            blending={THREE.AdditiveBlending}
+            {...COLOR_ONLY_ADDITIVE_PROPS}
             depthWrite={false}
             toneMapped={false}
           />

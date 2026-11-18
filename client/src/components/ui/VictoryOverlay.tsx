@@ -17,7 +17,6 @@ import { VictoryHeaderStage } from './victory/VictoryHeaderStage';
 import { VictorySeriesScoreCard } from './victory/VictorySeriesScoreCard';
 import { VictoryDamageSummaryCard } from './victory/VictoryDamageSummaryCard';
 import { VictoryActionControls } from './victory/VictoryActionControls';
-import { VictoryStageCenterBackdrop } from './victory/VictoryStageCenterBackdrop';
 import { ROUND_HOLD_REASON } from '../../store/roundIntroStore';
 import { previewNextMatchup } from '../../store/matchRotation';
 import { useGiftVfxStore } from '../../store/giftVfxStore';
@@ -82,7 +81,7 @@ export const VictoryOverlay = () => {
     const sinceDefeatMs = bossDefeatedTimestamp > 0 ? Date.now() - bossDefeatedTimestamp : 0;
     const victoryDelay = Math.max(0, resolveDefeatShowcaseMs(isDonorFinisher) - sinceDefeatMs);
 
-    // Start playing Victory sound and reveal the Victory screen after finisher showcase
+    // Reveal the Victory screen after finisher showcase
     const revealTimer = setTimeout(() => {
       setIsVictoryVisible(true);
       playSound(SFX_EVENT.VICTORY);
@@ -176,11 +175,11 @@ export const VictoryOverlay = () => {
   };
 
   return (
-    <div className="flex flex-col justify-between h-screen w-full absolute inset-0 z-50 pointer-events-none select-none overflow-hidden animate-in fade-in duration-700">
-      {/* Top and Bottom Cinematic Broadcast Vignettes (keeps 3D Canvas center visible) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/85 via-transparent to-slate-950/90 pointer-events-none" />
+    <div className="flex items-center justify-center h-screen w-full absolute inset-0 z-50 pointer-events-none select-none overflow-hidden px-3 py-4 animate-in fade-in duration-700">
+      {/* Fullscreen Cinematic Broadcast Backdrop */}
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[3px] pointer-events-none" />
       <div
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[32rem] h-[32rem] rounded-full blur-[130px] opacity-20 pointer-events-none ${winnerTheme.glowOrbClass}`}
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30rem] h-[30rem] rounded-full blur-[120px] opacity-25 pointer-events-none ${winnerTheme.glowOrbClass}`}
       />
 
       {VICTORY_CELEBRATION_STARS.map((star) => (
@@ -193,8 +192,20 @@ export const VictoryOverlay = () => {
         </div>
       ))}
 
-      {/* TOP SECTION: Winner Header, Team Logo & Series Score at flex-start */}
-      <div className="relative z-10 max-w-sm w-full mx-auto space-y-1.5 pt-3 px-3 pointer-events-auto flex flex-col items-center">
+      {/* SINGLE UNIFIED CENTER HEXTECH CARD */}
+      <div
+        style={{
+          borderColor: `${winnerTheme.primaryHex}99`,
+          boxShadow: `0 16px 48px rgba(0, 0, 0, 0.95), 0 0 36px ${winnerTheme.primaryHex}40, inset 0 0 24px ${winnerTheme.primaryHex}22`,
+          background:
+            'linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(2, 6, 23, 0.98) 100%)',
+        }}
+        className="relative z-10 max-w-sm w-full p-4 sm:p-5 rounded-3xl border-2 backdrop-blur-2xl pointer-events-auto flex flex-col items-center space-y-3 overflow-hidden animate-in zoom-in-95 duration-500"
+      >
+        {/* Top Golden Shimmer Accent */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-44 h-0.5 bg-gradient-to-r from-transparent via-amber-300 to-transparent shadow-[0_0_12px_#fbbf24]" />
+
+        {/* 1. Winner Header & Champion Crest */}
         <VictoryHeaderStage
           winnerProfile={winnerProfile}
           winnerSlot={effectiveWinner}
@@ -207,6 +218,7 @@ export const VictoryOverlay = () => {
           gameTheme={gameTheme}
         />
 
+        {/* 2. Series Scoreboard */}
         <VictorySeriesScoreCard
           leftTeam={leftTeam}
           rightTeam={rightTeam}
@@ -218,8 +230,9 @@ export const VictoryOverlay = () => {
           seriesFormat={seriesFormat}
         />
 
+        {/* 3. Next Queued Matchup (when series ended) */}
         {isSeriesEnded && previewMatch && (
-          <div className="w-full p-2.5 rounded-xl bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-amber-950/80 border border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.35)] backdrop-blur-md flex flex-col items-center gap-1 text-center animate-in zoom-in-95 fade-in duration-300">
+          <div className="w-full p-2.5 rounded-2xl bg-gradient-to-r from-amber-950/85 via-slate-900/95 to-amber-950/85 border border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.25)] flex flex-col items-center gap-1 text-center">
             <div className="flex items-center gap-1.5 text-amber-300 text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider">
               <Swords className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
               <span>{t('Victory.nextMatchupAnnouncement', 'CẶP ĐẤU TIẾP THEO')}</span>
@@ -235,33 +248,23 @@ export const VictoryOverlay = () => {
             </div>
           </div>
         )}
-      </div>
 
-      {/* MIDDLE SECTION: Elegant Champion Seal Backdrop to fill vertical empty space while 3D Podium & fireworks play */}
-      <div className="flex-1 flex flex-col justify-center items-center pointer-events-none px-4 z-10 w-full max-w-lg mx-auto">
-        <VictoryStageCenterBackdrop
-          winnerProfile={winnerProfile}
-          winnerSlot={effectiveWinner}
-          winnerTheme={winnerTheme}
-          isSeriesEnded={isSeriesEnded}
-          seriesFormat={seriesFormat}
-        />
-      </div>
+        {/* 4. Team Damage Summary Bar */}
+        <div className="w-full pt-2.5 border-t border-white/10">
+          <VictoryDamageSummaryCard
+            leftTeam={leftTeam}
+            rightTeam={rightTeam}
+            leftTheme={leftTheme}
+            rightTheme={rightTheme}
+            leftDamage={leftScore ?? 0}
+            rightDamage={rightScore ?? 0}
+            finisherPlayerName={finisherPlayerName}
+            finisherTeam={finisherTeam}
+            activeTeams={activeTeams}
+          />
+        </div>
 
-      {/* BOTTOM SECTION: Damage Summary Bar & Glassmorphic Action Controls at flex-end */}
-      <div className="relative z-10 max-w-sm w-full mx-auto space-y-2 pb-10 px-3 pointer-events-auto flex flex-col items-center">
-        <VictoryDamageSummaryCard
-          leftTeam={leftTeam}
-          rightTeam={rightTeam}
-          leftTheme={leftTheme}
-          rightTheme={rightTheme}
-          leftDamage={leftScore ?? 0}
-          rightDamage={rightScore ?? 0}
-          finisherPlayerName={finisherPlayerName}
-          finisherTeam={finisherTeam}
-          activeTeams={activeTeams}
-        />
-
+        {/* 5. Primary Action Button & Countdown */}
         <VictoryActionControls
           isSeriesEnded={isSeriesEnded}
           seriesFormat={seriesFormat}

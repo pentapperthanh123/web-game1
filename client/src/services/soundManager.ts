@@ -51,8 +51,8 @@ const isCrossOriginUrl = (url: string): boolean => {
   return new URL(url, window.location.href).origin !== window.location.origin;
 };
 
-const resolveMixedVolume = (definition: SfxDefinition, volumeScale = 1): number =>
-  clampVolume(definition.volume * SFX_CATEGORY_LEVEL[definition.category] * volumeScale);
+const resolveMixedVolume = (definition: SfxDefinition, volumeScale = 1, duckFactor = 1): number =>
+  clampVolume(definition.volume * SFX_CATEGORY_LEVEL[definition.category] * volumeScale * duckFactor);
 
 const pickJitteredRate = (rateJitter: number, rateScale: number): number => {
   const jitter = (Math.random() * 2 - 1) * rateJitter;
@@ -89,6 +89,7 @@ class SoundManager {
       eventName !== SFX_EVENT.ROUND_START &&
       eventName !== SFX_EVENT.SILVER_SCRAPES &&
       eventName !== SFX_EVENT.BOSS_DEFEAT &&
+      eventName !== SFX_EVENT.BOSS_DEATH_CRY &&
       eventName !== SFX_EVENT.MATCH_FOUND &&
       eventName !== SFX_EVENT.MATCH_ACCEPT &&
       eventName !== SFX_EVENT.BOSS_CHARGE &&
@@ -129,6 +130,13 @@ class SoundManager {
       const channel = this.getChannel(eventName);
       if (!channel.isExhausted) this.ensureHowl(eventName, channel);
     }
+  }
+
+  /** Returns the preloaded Howl instance for a given SFX event, creating it if needed. */
+  public getHowl(eventName: SfxEventName): Howl | null {
+    const channel = this.getChannel(eventName);
+    if (channel.isExhausted) return null;
+    return this.ensureHowl(eventName, channel);
   }
 
   /** Points a sound at new file(s) at runtime, e.g. a Myinstants link pasted by an admin. */
@@ -191,7 +199,7 @@ class SoundManager {
       // Cross-origin hosts without CORS headers (Myinstants) must stream via HTML5 Audio.
       html5: isCrossOriginUrl(sourceUrl) && !definition.isCorsReady,
       preload: true,
-      volume: resolveMixedVolume(definition),
+      volume: resolveMixedVolume(definition, 1, this.voiceDuckFactor),
       pool: definition.maxVoices,
       onload: () => {
         channel.hasPendingPlay = false;
@@ -248,24 +256,33 @@ class SoundManager {
     voiceId: number,
     options: PlaySoundOptions
   ): void {
-    const { volumeScale, rateScale = SOUND_MANAGER_CONSTANTS.DEFAULT_RATE } = options;
-    if (volumeScale !== undefined) {
-      howl.volume(resolveMixedVolume(definition, volumeScale), voiceId);
-    }
+    const { volumeScale = 1, rateScale = SOUND_MANAGER_CONSTANTS.DEFAULT_RATE } = options;
+    howl.volume(resolveMixedVolume(definition, volumeScale, this.voiceDuckFactor), voiceId);
     if (definition.rateJitter > 0 || rateScale !== SOUND_MANAGER_CONSTANTS.DEFAULT_RATE) {
       howl.rate(pickJitteredRate(definition.rateJitter, rateScale), voiceId);
     }
   }
 
-  /** 1 = normal; lower values duck every SFX (e.g. while the caster talks). */
+  /** 1 = normal; lower values duck SFX channels (e.g. while the caster talks) without ducking TTS. */
   public setVoiceDuck(factor: number): void {
     this.voiceDuckFactor = clampVolume(factor);
-    this.syncMasterVolume();
+    for (const channel of this.channels.values()) {
+      if (channel.howl) {
+        channel.howl.volume(resolveMixedVolume(channel.definition, 1, this.voiceDuckFactor));
+      }
+    }
+  }
+
+  /** Explicitly sets or overrides master volume for Howler. */
+  public setMasterVolume(volume: number): void {
+    const masterVolume = clampVolume(volume);
+    Howler.volume(masterVolume);
+    this.appliedMasterVolume = masterVolume;
   }
 
   /** Follows the master volume of the existing audio settings (HUD). */
-  private syncMasterVolume(): void {
-    const masterVolume = clampVolume(audioService.volume) * this.voiceDuckFactor;
+  public syncMasterVolume(): void {
+    const masterVolume = clampVolume(audioService.volume);
     if (masterVolume === this.appliedMasterVolume) return;
     Howler.volume(masterVolume);
     this.appliedMasterVolume = masterVolume;
@@ -285,4 +302,8 @@ export const playSound = (eventName: SfxEventName, options?: PlaySoundOptions): 
 
 export const stopSound = (eventName: SfxEventName): void => {
   soundManager.stopSound(eventName);
+};
+
+export const setMasterVolume = (volume: number): void => {
+  soundManager.setMasterVolume(volume);
 };

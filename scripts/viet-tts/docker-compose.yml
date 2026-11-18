@@ -1,0 +1,13 @@
+services:
+  viet-tts:
+    image: viet-tts-cpu:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: viet-tts-service
+    ports:
+      - "8298:8298"
+    volumes:
+      - ./pretrained-models:/app/pretrained-models
+    command: viettts server --host 0.0.0.0 --port 8298 -w 1

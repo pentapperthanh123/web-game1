@@ -22,16 +22,16 @@ const RING_COUNT = 3;
 const RAY_COUNT = 8;
 const TIMELINE = { BEAM_IN_END: 0.12, BEAM_OUT_END: 0.7, RING_START: 0.1, RING_STAGGER: 0.12, RING_SPAN: 0.55, RAYS_START: 0.08, RAYS_END: 0.9 } as const;
 const SIZE = {
-  BEAM_RADIUS: 0.45, MEGA_BEAM_SCALE: 1.9, CORE_RADIUS: 0.2,
-  RING_MAX_BIG: 3.2, RING_MAX_MEGA: 4.6, RAY_LENGTH: 3.4, RAY_WIDTH: 0.22, RAY_SPIN: 0.6,
+  BEAM_RADIUS: 0.36, MEGA_BEAM_SCALE: 1.45, CORE_RADIUS: 0.16,
+  RING_MAX_BIG: 2.4, RING_MAX_MEGA: 3.2, RAY_LENGTH: 2.1, RAY_WIDTH: 0.12, RAY_SPIN: 0.55,
 } as const;
 /** The orb sits on the boss body: kept soft so the sprite stays readable under it. */
-const OPACITY = { BEAM_OUTER: 0.22, BEAM_CORE: 0.6, RING: 0.42, CORE: 0.3, RAY: 0.18 } as const;
+const OPACITY = { BEAM_OUTER: 0.16, BEAM_CORE: 0.38, RING: 0.34, CORE: 0.22, RAY: 0.14 } as const;
 
-const BEAM_OUTER_GEO = new THREE.CylinderGeometry(SIZE.BEAM_RADIUS, SIZE.BEAM_RADIUS * 1.6, GIFT_VFX_LAYOUT.BEAM_HEIGHT, 20, 1, true);
-const BEAM_CORE_GEO = new THREE.CylinderGeometry(SIZE.BEAM_RADIUS * 0.3, SIZE.BEAM_RADIUS * 0.45, GIFT_VFX_LAYOUT.BEAM_HEIGHT, 12, 1, true);
-/** Thin band: thickness stays ~4% of the radius so large rings do not become solid bars. */
-const RING_GEO = new THREE.RingGeometry(0.96, 1, 96);
+const BEAM_OUTER_GEO = new THREE.CylinderGeometry(SIZE.BEAM_RADIUS, SIZE.BEAM_RADIUS * 1.45, GIFT_VFX_LAYOUT.BEAM_HEIGHT, 20, 1, true);
+const BEAM_CORE_GEO = new THREE.CylinderGeometry(SIZE.BEAM_RADIUS * 0.28, SIZE.BEAM_RADIUS * 0.4, GIFT_VFX_LAYOUT.BEAM_HEIGHT, 12, 1, true);
+/** Thin band: thickness stays ~2.5% of the radius so large rings stay razor-sharp. */
+const RING_GEO = new THREE.RingGeometry(0.975, 1, 96);
 const CORE_GEO = new THREE.SphereGeometry(SIZE.CORE_RADIUS, 16, 16);
 /** Tapered ray: wide at the boss, a point at the tip, so the rays read as light, not slabs. */
 const RAY_GEO = new THREE.BufferGeometry().setFromPoints([

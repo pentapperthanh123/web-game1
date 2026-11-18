@@ -520,6 +520,12 @@
   "SessionBoard": {
     "tierUpTitle": "{{name}} promoted to",
     "title": "LIVE SESSION TOP",
+    "matchTitle": "CURRENT MATCH TOP",
+    "sessionPill": "SESSION",
+    "matchPill": "MATCH",
+    "switchTooltip": "Click to switch between Live Session Top & Current Match Top",
+    "noSessionPlayersYet": "No session damage yet, chat champion name to attack!",
+    "noMatchPlayersYet": "Send gifts or summon champions to claim the round lead!",
     "toggle": "Collapse / expand leaderboard",
     "giftRibbon": "strikes!",
     "takeoverTitle": "{{name}} seizes Challenger!",

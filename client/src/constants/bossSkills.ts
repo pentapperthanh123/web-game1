@@ -329,7 +329,7 @@ export const getBossSkillById = (
 
 export const BOSS_SKILL_STORAGE_KEY = 'lol_boss_skill_config_v1';
 export const CHAMPION_DEFAULT_MAX_HP = 100;
-export const BOSS_ATTACK_BANNER_DURATION_MS = 3500;
+export const BOSS_ATTACK_BANNER_DURATION_MS = 2200;
 
 export const BOSS_SKILL_MODES = {
   RANDOM_WEIGHTED: 'RANDOM_WEIGHTED',

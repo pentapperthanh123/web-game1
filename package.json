@@ -15,6 +15,9 @@
     "build:all": "pnpm --recursive run build",
     "build:client": "pnpm --filter client build",
     "build:admin": "pnpm --filter admin build",
-    "build:server": "pnpm --filter server build"
+    "build:server": "pnpm --filter server build",
+    "pregenerate:tts": "node scripts/sfx/pregenerate-caster-tts.mjs",
+    "pregenerate:viet-tts": "node scripts/sfx/pregenerate-caster-tts.mjs --provider=VIET_TTS",
+    "viet-tts:docker": "docker compose -f scripts/viet-tts/docker-compose.yml up -d --build"
   }
 }

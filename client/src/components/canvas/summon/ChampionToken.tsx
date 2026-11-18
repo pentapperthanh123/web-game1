@@ -4,11 +4,16 @@ import { getTeamTheme } from '../../../constants/teams';
 import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, isEliteMinion } from '../../../constants/game';
 import { MinionEntity } from '../../../types/game';
 import { TeamColorThemeId } from '../../../types/team';
-import { SessionTier } from '../../../constants/sessionLeaderboard';
+import {
+  SESSION_TIER,
+  SessionTier,
+  isSessionTierAtLeast,
+} from '../../../constants/sessionLeaderboard';
 import { getActiveStatusEffects } from '../../../utils/statusEffects';
 import { ChampionEntranceAuraMeshes } from './ChampionEntranceAuraMeshes';
 import {
   FURY_COLOR_FULL,
+  SHARED_AVATAR_VIP_HALO_GEO,
   SHARED_NAMEPLATE_GEO,
   SHARED_SHIELD_RING_GEO,
   SHARED_SIGNATURE_HALO_GEO,
@@ -17,6 +22,11 @@ import {
   getFuryFillColor,
   getNameplateTexture,
 } from './summonShared';
+import {
+  SHARED_AVATAR_BADGE_GEO,
+  createAvatarBadgeMaterial,
+  syncAvatarBadgeMaterial,
+} from './avatarBadgeMaterial';
 import { SHARED_TOKEN_BODY_GEO, createTokenBodyMaterial, syncTokenBodyMaterial } from './tokenBodyMaterial';
 
 /**
@@ -98,12 +108,23 @@ export const ChampionToken = React.memo(
     const primaryColor = teamTheme.primaryHex;
     const critColor = teamTheme.critHex;
 
-    const displayAvatarUrl = shouldUseUserAvatar && minion.userAvatarUrl ? minion.userAvatarUrl : minion.avatarUrl;
-    const texture = useMemo(() => getChampionTexture(displayAvatarUrl), [displayAvatarUrl]);
+    const championTexture = useMemo(
+      () => getChampionTexture(minion.avatarUrl, undefined, minion.championName, primaryColor),
+      [minion.avatarUrl, minion.championName, primaryColor]
+    );
+    const summonerAvatarUrl =
+      minion.userAvatarUrl && minion.userAvatarUrl !== minion.avatarUrl ? minion.userAvatarUrl : '';
+    const summonerAvatarTexture = useMemo(
+      () => getChampionTexture(summonerAvatarUrl, undefined, minion.summonerName, primaryColor),
+      [summonerAvatarUrl, minion.summonerName, primaryColor]
+    );
+
     const isSignature = Boolean(minion.isSignatureSynergy);
     const isElite = isEliteMinion(minion);
+    const isHighTier = Boolean(sessionTier && isSessionTierAtLeast(sessionTier, SESSION_TIER.DIAMOND));
+    const isVip = isSignature || isElite || isHighTier;
     const signatureColor = GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR;
-    const eliteColor = isSignature || isElite ? signatureColor : primaryColor;
+    const eliteColor = isVip ? signatureColor : primaryColor;
     const nameplateTexture = useMemo(() => {
       if (!hasNameplate) return null;
       return getNameplateTexture(
@@ -129,10 +150,17 @@ export const ChampionToken = React.memo(
     const borderColor = isCompact && isFullFury ? FURY_COLOR_FULL : primaryColor;
 
     const bodyMaterial = useMemo(() => createTokenBodyMaterial(), []);
-    useEffect(() => () => bodyMaterial.dispose(), [bodyMaterial]);
+    const avatarBadgeMaterial = useMemo(() => createAvatarBadgeMaterial(), []);
+    useEffect(
+      () => () => {
+        bodyMaterial.dispose();
+        avatarBadgeMaterial.dispose();
+      },
+      [bodyMaterial, avatarBadgeMaterial]
+    );
     useLayoutEffect(() => {
       syncTokenBodyMaterial(bodyMaterial, {
-        portrait: texture,
+        portrait: championTexture,
         primaryColor,
         borderColor,
         secondaryColor: teamTheme.secondaryHex,
@@ -146,11 +174,45 @@ export const ChampionToken = React.memo(
         furyBorderOpacity: isFullFury ? GAUGE_STYLE.FURY_BORDER_FULL_OPACITY : GAUGE_STYLE.FURY_BORDER_IDLE_OPACITY,
         isCompact,
       });
+      syncAvatarBadgeMaterial(avatarBadgeMaterial, {
+        avatarTexture: summonerAvatarTexture,
+        borderColor: isVip ? signatureColor : primaryColor,
+        glowColor: isVip ? signatureColor : critColor,
+        isVip,
+      });
     });
+
+    const flyCfg = COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON;
 
     return (
       <group>
-        <mesh geometry={SHARED_TOKEN_BODY_GEO} material={bodyMaterial} />
+        <mesh name="token-body" geometry={SHARED_TOKEN_BODY_GEO} material={bodyMaterial} />
+
+        <group
+          name="fly-avatar-group"
+          position={[0, flyCfg.FLOATING_TAG_POS_Y, flyCfg.FLOATING_TAG_POS_Z]}
+          scale={isVip ? flyCfg.FLOATING_TAG_VIP_SCALE : flyCfg.FLOATING_TAG_SCALE}
+        >
+          <mesh geometry={SHARED_AVATAR_BADGE_GEO} material={avatarBadgeMaterial} renderOrder={105} />
+          {isVip && (
+            <mesh
+              name="vip-avatar-halo"
+              position={[0, 0, -0.005]}
+              geometry={SHARED_AVATAR_VIP_HALO_GEO}
+              renderOrder={104}
+            >
+              <meshBasicMaterial
+                color={signatureColor}
+                transparent
+                opacity={flyCfg.VIP_HALO_OPACITY}
+                blending={THREE.AdditiveBlending}
+                depthWrite={false}
+                toneMapped={false}
+                side={TOKEN_FACE_SIDE}
+              />
+            </mesh>
+          )}
+        </group>
 
         <ChampionEntranceAuraMeshes auraColor={isSignature ? signatureColor : primaryColor} accentColor={isSignature ? signatureColor : critColor} />
 

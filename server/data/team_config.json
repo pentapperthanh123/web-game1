@@ -1,76 +1,6 @@
 {
   "activeTeams": {
     "BLG": {
-      "id": "preset-al",
-      "name": "Anyone's Legend",
-      "shortTag": "AL",
-      "aliases": [
-        "AL",
-        "ANYONE"
-      ],
-      "autoSyncRosterAliases": true,
-      "colorTheme": "violet",
-      "logoUrl": "/images/teams/al.webp",
-      "isPreset": true,
-      "roster": [
-        {
-          "id": "blg-preset-al-top-0",
-          "name": "Flandre",
-          "role": "TOP",
-          "roleName": "Đường Trên",
-          "signatureChampion": "Gnar",
-          "championKey": "Gnar",
-          "team": "BLG",
-          "color": "#a78bfa",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Gnar.png"
-        },
-        {
-          "id": "blg-preset-al-jug-1",
-          "name": "Tarzan",
-          "role": "JUG",
-          "roleName": "Đi Rừng",
-          "signatureChampion": "Lee Sin",
-          "championKey": "LeeSin",
-          "team": "BLG",
-          "color": "#8b5cf6",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/LeeSin.png"
-        },
-        {
-          "id": "blg-preset-al-mid-2",
-          "name": "Shanks",
-          "role": "MID",
-          "roleName": "Đường Giữa",
-          "signatureChampion": "Orianna",
-          "championKey": "Orianna",
-          "team": "BLG",
-          "color": "#c4b5fd",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Orianna.png"
-        },
-        {
-          "id": "blg-preset-al-adc-3",
-          "name": "Hope",
-          "role": "ADC",
-          "roleName": "Xạ Thủ",
-          "signatureChampion": "Lucian",
-          "championKey": "Lucian",
-          "team": "BLG",
-          "color": "#7c3aed",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Lucian.png"
-        },
-        {
-          "id": "blg-preset-al-sup-4",
-          "name": "Kael",
-          "role": "SUP",
-          "roleName": "Hỗ Trợ",
-          "signatureChampion": "Alistar",
-          "championKey": "Alistar",
-          "team": "BLG",
-          "color": "#a78bfa",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Alistar.png"
-        }
-      ]
-    },
-    "GENG": {
       "id": "preset-dk",
       "name": "Dplus KIA",
       "shortTag": "DK",
@@ -85,59 +15,129 @@
       "isPreset": true,
       "roster": [
         {
-          "id": "geng-preset-dk-top-0",
+          "id": "blg-preset-dk-top-0",
           "name": "Siwoo",
           "role": "TOP",
           "roleName": "Đường Trên",
           "signatureChampion": "Camille",
           "championKey": "Camille",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#60a5fa",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Camille.png"
+          "avatarUrl": "/images/players/siwoo.png"
         },
         {
-          "id": "geng-preset-dk-jug-1",
+          "id": "blg-preset-dk-jug-1",
           "name": "Lucid",
           "role": "JUG",
           "roleName": "Đi Rừng",
           "signatureChampion": "Viego",
           "championKey": "Viego",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#3b82f6",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Viego.png"
+          "avatarUrl": "/images/players/lucid.png"
         },
         {
-          "id": "geng-preset-dk-mid-2",
+          "id": "blg-preset-dk-mid-2",
           "name": "ShowMaker",
           "role": "MID",
           "roleName": "Đường Giữa",
           "signatureChampion": "LeBlanc",
           "championKey": "Leblanc",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#93c5fd",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Leblanc.png"
+          "avatarUrl": "/images/players/showmaker.png"
         },
         {
-          "id": "geng-preset-dk-adc-3",
+          "id": "blg-preset-dk-adc-3",
           "name": "Aiming",
           "role": "ADC",
           "roleName": "Xạ Thủ",
           "signatureChampion": "Zeri",
           "championKey": "Zeri",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#2563eb",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Zeri.png"
+          "avatarUrl": "/images/players/aiming.png"
         },
         {
-          "id": "geng-preset-dk-sup-4",
+          "id": "blg-preset-dk-sup-4",
           "name": "BeryL",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
           "signatureChampion": "Braum",
           "championKey": "Braum",
-          "team": "GENG",
+          "team": "BLG",
           "color": "#60a5fa",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Braum.png"
+          "avatarUrl": "/images/players/beryl.png"
+        }
+      ]
+    },
+    "GENG": {
+      "id": "preset-fly",
+      "name": "FlyQuest",
+      "shortTag": "FLY",
+      "aliases": [
+        "FLY",
+        "FLYQUEST"
+      ],
+      "autoSyncRosterAliases": true,
+      "colorTheme": "emerald",
+      "logoUrl": "/images/teams/fly.svg",
+      "isPreset": true,
+      "roster": [
+        {
+          "id": "geng-preset-fly-top-0",
+          "name": "Bwipo",
+          "role": "TOP",
+          "roleName": "Đường Trên",
+          "signatureChampion": "Mordekaiser",
+          "championKey": "Mordekaiser",
+          "team": "GENG",
+          "color": "#34d399",
+          "avatarUrl": "/images/players/bwipo.png"
+        },
+        {
+          "id": "geng-preset-fly-jug-1",
+          "name": "Inspired",
+          "role": "JUG",
+          "roleName": "Đi Rừng",
+          "signatureChampion": "Nocturne",
+          "championKey": "Nocturne",
+          "team": "GENG",
+          "color": "#10b981",
+          "avatarUrl": "/images/players/inspired.png"
+        },
+        {
+          "id": "geng-preset-fly-mid-2",
+          "name": "Quad",
+          "role": "MID",
+          "roleName": "Đường Giữa",
+          "signatureChampion": "Hwei",
+          "championKey": "Hwei",
+          "team": "GENG",
+          "color": "#6ee7b7",
+          "avatarUrl": "/images/players/quad.png"
+        },
+        {
+          "id": "geng-preset-fly-adc-3",
+          "name": "Massu",
+          "role": "ADC",
+          "roleName": "Xạ Thủ",
+          "signatureChampion": "Sivir",
+          "championKey": "Sivir",
+          "team": "GENG",
+          "color": "#059669",
+          "avatarUrl": "/images/players/massu.png"
+        },
+        {
+          "id": "geng-preset-fly-sup-4",
+          "name": "Busio",
+          "role": "SUP",
+          "roleName": "Hỗ Trợ",
+          "signatureChampion": "Bard",
+          "championKey": "Bard",
+          "team": "GENG",
+          "color": "#34d399",
+          "avatarUrl": "/images/players/busio.png"
         }
       ]
     }
@@ -377,7 +377,7 @@
           "championKey": "Aatrox",
           "team": "BLG",
           "color": "#fb923c",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Aatrox.png"
+          "avatarUrl": "/images/players/zeus.png"
         },
         {
           "id": "blg-preset-hle-jug-1",
@@ -388,7 +388,7 @@
           "championKey": "Sejuani",
           "team": "BLG",
           "color": "#f97316",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sejuani.png"
+          "avatarUrl": "/images/players/peanut.png"
         },
         {
           "id": "blg-preset-hle-mid-2",
@@ -399,7 +399,7 @@
           "championKey": "Sylas",
           "team": "BLG",
           "color": "#fdba74",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sylas.png"
+          "avatarUrl": "/images/players/zeka.png"
         },
         {
           "id": "blg-preset-hle-adc-3",
@@ -421,7 +421,7 @@
           "championKey": "Rell",
           "team": "BLG",
           "color": "#fb923c",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Rell.png"
+          "avatarUrl": "/images/players/delight.png"
         }
       ]
     },
@@ -447,7 +447,7 @@
           "championKey": "Renekton",
           "team": "BLG",
           "color": "#f87171",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Renekton.png"
+          "avatarUrl": "/images/players/369.png"
         },
         {
           "id": "blg-preset-tes-jug-1",
@@ -458,7 +458,7 @@
           "championKey": "MonkeyKing",
           "team": "BLG",
           "color": "#ef4444",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/MonkeyKing.png"
+          "avatarUrl": "/images/players/kanavi.png"
         },
         {
           "id": "blg-preset-tes-mid-2",
@@ -469,7 +469,7 @@
           "championKey": "Akali",
           "team": "BLG",
           "color": "#fca5a5",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Akali.png"
+          "avatarUrl": "/images/players/creme.png"
         },
         {
           "id": "blg-preset-tes-adc-3",
@@ -480,7 +480,7 @@
           "championKey": "Draven",
           "team": "BLG",
           "color": "#dc2626",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Draven.png"
+          "avatarUrl": "/images/players/jackeylove.png"
         },
         {
           "id": "blg-preset-tes-sup-4",
@@ -491,7 +491,7 @@
           "championKey": "Nautilus",
           "team": "BLG",
           "color": "#f87171",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nautilus.png"
+          "avatarUrl": "/images/players/crisp.png"
         }
       ]
     },
@@ -517,7 +517,7 @@
           "championKey": "Gnar",
           "team": "BLG",
           "color": "#a78bfa",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Gnar.png"
+          "avatarUrl": "/images/players/flandre.png"
         },
         {
           "id": "blg-preset-al-jug-1",
@@ -528,7 +528,7 @@
           "championKey": "LeeSin",
           "team": "BLG",
           "color": "#8b5cf6",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/LeeSin.png"
+          "avatarUrl": "/images/players/tarzan.png"
         },
         {
           "id": "blg-preset-al-mid-2",
@@ -539,7 +539,7 @@
           "championKey": "Orianna",
           "team": "BLG",
           "color": "#c4b5fd",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Orianna.png"
+          "avatarUrl": "/images/players/shanks.png"
         },
         {
           "id": "blg-preset-al-adc-3",
@@ -550,7 +550,7 @@
           "championKey": "Lucian",
           "team": "BLG",
           "color": "#7c3aed",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Lucian.png"
+          "avatarUrl": "/images/players/hope.png"
         },
         {
           "id": "blg-preset-al-sup-4",
@@ -561,7 +561,7 @@
           "championKey": "Alistar",
           "team": "BLG",
           "color": "#a78bfa",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Alistar.png"
+          "avatarUrl": "/images/players/kael.png"
         }
       ]
     },
@@ -588,7 +588,7 @@
           "championKey": "Camille",
           "team": "BLG",
           "color": "#60a5fa",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Camille.png"
+          "avatarUrl": "/images/players/siwoo.png"
         },
         {
           "id": "blg-preset-dk-jug-1",
@@ -599,7 +599,7 @@
           "championKey": "Viego",
           "team": "BLG",
           "color": "#3b82f6",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Viego.png"
+          "avatarUrl": "/images/players/lucid.png"
         },
         {
           "id": "blg-preset-dk-mid-2",
@@ -610,7 +610,7 @@
           "championKey": "Leblanc",
           "team": "BLG",
           "color": "#93c5fd",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Leblanc.png"
+          "avatarUrl": "/images/players/showmaker.png"
         },
         {
           "id": "blg-preset-dk-adc-3",
@@ -621,7 +621,7 @@
           "championKey": "Zeri",
           "team": "BLG",
           "color": "#2563eb",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Zeri.png"
+          "avatarUrl": "/images/players/aiming.png"
         },
         {
           "id": "blg-preset-dk-sup-4",
@@ -632,7 +632,7 @@
           "championKey": "Braum",
           "team": "BLG",
           "color": "#60a5fa",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Braum.png"
+          "avatarUrl": "/images/players/beryl.png"
         }
       ]
     },
@@ -659,7 +659,7 @@
           "championKey": "Garen",
           "team": "BLG",
           "color": "#facc15",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Garen.png"
+          "avatarUrl": "/images/players/kiaya.png"
         },
         {
           "id": "blg-preset-gam-jug-1",
@@ -670,7 +670,7 @@
           "championKey": "Karthus",
           "team": "BLG",
           "color": "#eab308",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Karthus.png"
+          "avatarUrl": "/images/players/levi.png"
         },
         {
           "id": "blg-preset-gam-mid-2",
@@ -681,7 +681,7 @@
           "championKey": "Syndra",
           "team": "BLG",
           "color": "#fde047",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Syndra.png"
+          "avatarUrl": "/images/players/aress.png"
         },
         {
           "id": "blg-preset-gam-adc-3",
@@ -692,7 +692,7 @@
           "championKey": "Aphelios",
           "team": "BLG",
           "color": "#f59e0b",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Aphelios.png"
+          "avatarUrl": "/images/players/artemis.png"
         },
         {
           "id": "blg-preset-gam-sup-4",
@@ -703,7 +703,7 @@
           "championKey": "Leona",
           "team": "BLG",
           "color": "#fbbf24",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Leona.png"
+          "avatarUrl": "/images/players/elio.png"
         }
       ]
     },
@@ -729,7 +729,7 @@
           "championKey": "Darius",
           "team": "BLG",
           "color": "#fb7185",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Darius.png"
+          "avatarUrl": "/images/players/brokenblade.png"
         },
         {
           "id": "blg-preset-g2-jug-1",
@@ -740,7 +740,7 @@
           "championKey": "JarvanIV",
           "team": "BLG",
           "color": "#f43f5e",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/JarvanIV.png"
+          "avatarUrl": "/images/players/skewmond.png"
         },
         {
           "id": "blg-preset-g2-mid-2",
@@ -751,7 +751,7 @@
           "championKey": "Yasuo",
           "team": "BLG",
           "color": "#e11d48",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Yasuo.png"
+          "avatarUrl": "/images/players/caps.png"
         },
         {
           "id": "blg-preset-g2-adc-3",
@@ -762,7 +762,7 @@
           "championKey": "MissFortune",
           "team": "BLG",
           "color": "#fda4af",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/MissFortune.png"
+          "avatarUrl": "/images/players/hanssama.png"
         },
         {
           "id": "blg-preset-g2-sup-4",
@@ -773,7 +773,7 @@
           "championKey": "Pyke",
           "team": "BLG",
           "color": "#fb7185",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Pyke.png"
+          "avatarUrl": "/images/players/labrov.png"
         }
       ]
     },
@@ -799,7 +799,7 @@
           "championKey": "Mordekaiser",
           "team": "BLG",
           "color": "#34d399",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Mordekaiser.png"
+          "avatarUrl": "/images/players/bwipo.png"
         },
         {
           "id": "blg-preset-fly-jug-1",
@@ -810,7 +810,7 @@
           "championKey": "Nocturne",
           "team": "BLG",
           "color": "#10b981",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Nocturne.png"
+          "avatarUrl": "/images/players/inspired.png"
         },
         {
           "id": "blg-preset-fly-mid-2",
@@ -821,7 +821,7 @@
           "championKey": "Hwei",
           "team": "BLG",
           "color": "#6ee7b7",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Hwei.png"
+          "avatarUrl": "/images/players/quad.png"
         },
         {
           "id": "blg-preset-fly-adc-3",
@@ -832,7 +832,7 @@
           "championKey": "Sivir",
           "team": "BLG",
           "color": "#059669",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Sivir.png"
+          "avatarUrl": "/images/players/massu.png"
         },
         {
           "id": "blg-preset-fly-sup-4",
@@ -843,7 +843,7 @@
           "championKey": "Bard",
           "team": "BLG",
           "color": "#34d399",
-          "avatarUrl": "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/Bard.png"
+          "avatarUrl": "/images/players/busio.png"
         }
       ]
     }

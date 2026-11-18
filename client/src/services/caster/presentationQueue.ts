@@ -1,6 +1,7 @@
 import {
   BOSS_CAPTION,
   CASTER_CALMER_INTENSITY,
+  CASTER_COMBAT_CRITICAL_SIGNALS,
   CASTER_DIALOGUE,
   CASTER_INTENSITY,
   CASTER_PRIORITY,
@@ -197,51 +198,53 @@ class PresentationQueue {
       const isMediumOpening = queued.signal === CASTER_SIGNAL.GIFT_MEDIUM && isFirstTurn;
 
       if (isMegaOpening) {
-        casterSpeechEngine.interruptAll();
         this.pendingDonate = [];
         this.pendingDonate.unshift(queued);
       } else if (isBigOpening) {
-        casterSpeechEngine.interruptDonate();
-        if (this.currentMain && this.currentMain.priority >= CASTER_PRIORITY.P3) {
-          casterSpeechEngine.interrupt();
-        }
         this.pendingDonate = this.pendingDonate.filter((l) => l.signal === CASTER_SIGNAL.GIFT_MEGA);
         this.pendingDonate.unshift(queued);
       } else if (isMediumOpening) {
-        if (
-          this.currentDonate &&
-          this.currentDonate.signal !== CASTER_SIGNAL.GIFT_MEGA &&
-          this.currentDonate.signal !== CASTER_SIGNAL.GIFT_BIG
-        ) {
-          casterSpeechEngine.interruptDonate();
-        }
         this.pendingDonate.unshift(queued);
       } else {
         this.pendingDonate.push(queued);
       }
       this.trimDonateOverflow();
       this.prefetchTurn(queued, resolveDonateDefaultIntensity(queued));
+
+      // Interrupt any active non-P1 commentary so the donor's gift explosion is announced immediately
+      if (isFirstTurn && this.currentMain && this.currentMain.priority > CASTER_PRIORITY.P1) {
+        this.currentMain = null;
+        casterSpeechEngine.interrupt();
+      }
       this.scheduleDonatePump(0);
       return;
     }
 
-    const isCombatCritical =
-      queued.signal === CASTER_SIGNAL.BOSS_SKILL ||
-      queued.signal === CASTER_SIGNAL.BOSS_ULTIMATE ||
-      queued.signal === CASTER_SIGNAL.BOSS_ENRAGE ||
-      queued.signal === CASTER_SIGNAL.ROUND_WIN ||
-      queued.signal === CASTER_SIGNAL.ROUND_FINISHER;
+    const isCombatCritical = CASTER_COMBAT_CRITICAL_SIGNALS.has(queued.signal);
 
     if (isCombatCritical && isFirstTurn) {
+      // Immediately interrupt any active non-critical commentary (banter, summon, guide)
+      // so the boss skill / phase / shield callout is spoken right at the moment of impact
+      if (this.currentMain && this.currentMain.priority > CASTER_PRIORITY.P2) {
+        this.currentMain = null;
+        casterSpeechEngine.interrupt();
+      }
       // Clear out stale low-priority lines so they never play after the critical event
       this.pendingMain = this.pendingMain.filter((l) => l.priority <= CASTER_PRIORITY.P2);
       this.pendingMain.unshift(queued);
-      if (this.currentMain !== null && this.currentMain.priority > CASTER_PRIORITY.P1) {
-        casterSpeechEngine.interrupt();
-      }
       this.prefetchTurn(queued, resolveDefaultIntensity());
       this.scheduleMainPump(0);
       return;
+    }
+
+    // Any real viewer/game event (P1..P4: summon, follow, share, heart heal) cuts active P5 idle banter
+    // so the summoner's name is called while their FlyAvatarSummon is dropping onto the arena
+    if (queued.priority <= CASTER_PRIORITY.P4 && isFirstTurn) {
+      if (this.currentMain && this.currentMain.priority === CASTER_PRIORITY.P5) {
+        this.currentMain = null;
+        casterSpeechEngine.interrupt();
+      }
+      this.pendingMain = this.pendingMain.filter((l) => l.priority < CASTER_PRIORITY.P5);
     }
 
     this.pendingMain.push(queued);
@@ -250,12 +253,6 @@ class PresentationQueue {
     if (isSpoken && (queued.priority <= CASTER_QUEUE.PREFETCH_MAX_PRIORITY || isExchangeTurn)) {
       this.prefetchTurn(queued, resolveDefaultIntensity());
     }
-    const isPreempting =
-      isFirstTurn &&
-      this.currentMain !== null &&
-      ((queued.priority === CASTER_PRIORITY.P1 && this.currentMain.priority > CASTER_PRIORITY.P1) ||
-        (queued.priority <= CASTER_PRIORITY.P2 && this.currentMain.priority >= CASTER_PRIORITY.P3));
-    if (isPreempting) casterSpeechEngine.interrupt();
     this.scheduleMainPump(0);
   }
 
@@ -334,12 +331,15 @@ class PresentationQueue {
   }
 
   private pumpDonate(): void {
-    if (this.currentDonate || casterSpeechEngine.isLocked()) return;
+    if (this.currentDonate || this.currentMain || casterSpeechEngine.isLocked()) return;
     const now = Date.now();
     this.pendingDonate = this.pendingDonate.filter(
       (line) => now - line.createdAt < (line.ttlMs ?? CASTER_SPEECH.DONATE_TTL_MS)
     );
-    if (this.pendingDonate.length === 0) return;
+    if (this.pendingDonate.length === 0) {
+      this.scheduleMainPump(0);
+      return;
+    }
     this.pendingDonate.sort((a, b) => a.createdAt - b.createdAt);
 
     const next = this.pendingDonate.shift();
@@ -366,7 +366,9 @@ class PresentationQueue {
       previousTurn = toSubtitleTurn(line);
     }
     this.currentDonate = null;
+    this.lastSpeechEndAt = Date.now();
     this.scheduleDonatePump(CASTER_SPEECH.DONATE_GAP_MS);
+    this.scheduleMainPump(CASTER_QUEUE.LINE_GAP_MS);
   }
 
   private async speakDonateTurn(
@@ -424,11 +426,16 @@ class PresentationQueue {
   }
 
   private pumpMain(): void {
-    if (this.currentMain || casterSpeechEngine.isLocked()) return;
+    if (this.currentMain || this.currentDonate || casterSpeechEngine.isLocked()) return;
+    if (this.pendingDonate.length > 0) {
+      this.scheduleDonatePump(0);
+      return;
+    }
     const now = Date.now();
-    this.pendingMain = this.pendingMain.filter(
-      (line) => now - line.createdAt < (line.ttlMs ?? CASTER_PRIORITY_TTL_MS[line.priority])
-    );
+    this.pendingMain = this.pendingMain.filter((line) => {
+      if (line.deadlineAt !== undefined && now >= line.deadlineAt) return false;
+      return now - line.createdAt < (line.ttlMs ?? CASTER_PRIORITY_TTL_MS[line.priority]);
+    });
     if (this.pendingMain.length === 0) return;
     this.pendingMain.sort(byPriorityThenAge);
 
@@ -512,13 +519,17 @@ class PresentationQueue {
         this.holdUntilMainVoiceUnlocked(playable.slice(index));
         return;
       }
-      if (EXCHANGE_STOP_OUTCOMES.has(outcome)) break;
+      if (EXCHANGE_STOP_OUTCOMES.has(outcome) || this.pendingDonate.length > 0) break;
       previousTurn = toSubtitleTurn(line);
     }
 
     this.currentMain = null;
     this.lastSpeechEndAt = Date.now();
     if (lastLine.priority === CASTER_PRIORITY.P4) this.lastP4At = this.lastSpeechEndAt;
+    if (this.pendingDonate.length > 0) {
+      this.scheduleDonatePump(0);
+      return;
+    }
     this.scheduleMainPump(CASTER_QUEUE.LINE_GAP_MS);
   }
 

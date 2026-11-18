@@ -28,16 +28,16 @@ export const VictorySeriesScoreCard = ({
   const { t } = useTranslation();
 
   return (
-    <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-slate-800/90 shadow-lg space-y-1">
+    <div className="w-full pt-2.5 mt-1 border-t border-white/10 space-y-1.5">
       <div className="text-[8.5px] font-black tracking-widest text-slate-400 uppercase flex items-center justify-center space-x-1 whitespace-nowrap">
         <Flame className="w-2.5 h-2.5 text-amber-400 shrink-0" />
         <span>{t('Victory.bo5Score', 'TỈ SỐ {{format}} HIỆN TẠI', { format: seriesFormat })}</span>
       </div>
 
-      <div className="flex items-center justify-between px-1 sm:px-2 gap-1.5">
+      <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 rounded-xl bg-slate-950/80 border border-white/10 gap-2">
         {/* Left Team Block */}
-        <div className="flex items-center space-x-1.5 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center p-0.5 shrink-0">
+        <div className="flex items-center space-x-2 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-center p-0.5 shrink-0">
             <TeamLogo teamProfile={leftTeam} teamSlot={TEAM_KEY.BLG} className="w-5 h-5 object-contain" />
           </div>
           <div className="text-left min-w-0">
@@ -58,7 +58,7 @@ export const VictorySeriesScoreCard = ({
         </div>
 
         {/* Center Score Display */}
-        <div className="flex items-center space-x-1.5 px-3 py-0.5 rounded-lg bg-slate-950 border border-slate-800 shadow-inner shrink-0 whitespace-nowrap">
+        <div className="flex items-center space-x-2 px-3.5 py-0.5 rounded-lg bg-slate-900/90 border border-slate-800 shadow-inner shrink-0 whitespace-nowrap">
           <span className={`font-mono text-sm sm:text-base font-black ${leftTheme.textStrongClass}`}>
             {leftScore}
           </span>
@@ -69,8 +69,8 @@ export const VictorySeriesScoreCard = ({
         </div>
 
         {/* Right Team Block */}
-        <div className="flex items-center space-x-1.5 flex-row-reverse space-x-reverse min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center p-0.5 shrink-0">
+        <div className="flex items-center space-x-2 flex-row-reverse space-x-reverse min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-center p-0.5 shrink-0">
             <TeamLogo teamProfile={rightTeam} teamSlot={TEAM_KEY.GENG} className="w-5 h-5 object-contain" />
           </div>
           <div className="text-right min-w-0">

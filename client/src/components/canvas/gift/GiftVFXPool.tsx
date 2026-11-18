@@ -92,13 +92,53 @@ const LaserShader = {
     varying vec2 vUv;
     void main() {
       float scroll = fract(vUv.y * 3.0 - uTime * 6.0);
-      float beamCore = pow(sin(vUv.x * 3.14159), 4.0);
+      float beamCore = pow(sin(vUv.x * 3.14159), 4.5);
       float energyPulse = 0.7 + 0.3 * sin(uTime * 15.0 + vUv.y * 10.0);
-      vec3 finalColor = uColor * (beamCore * 1.5 + scroll * 0.6) * energyPulse;
-      // Thin out at the foot of the column, where the boss stands, so the sprite stays readable
-      float footFade = mix(0.15, 1.0, smoothstep(0.0, 0.14, vUv.y));
-      float alpha = beamCore * (0.8 + 0.2 * scroll) * footFade;
+      vec3 finalColor = uColor * (beamCore * 1.4 + scroll * 0.5) * energyPulse;
+      // Thin out at the foot (boss body) and fade smoothly before the top scoreboard
+      float footFade = mix(0.1, 1.0, smoothstep(0.0, 0.22, vUv.y));
+      float topFade = smoothstep(1.0, 0.62, vUv.y);
+      float alpha = beamCore * (0.7 + 0.2 * scroll) * footFade * topFade;
       gl_FragColor = vec4(finalColor, alpha);
+    }
+  `,
+};
+
+const HeartSdfShader = {
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float uTime;
+    varying vec2 vUv;
+
+    float sdHeart(vec2 p) {
+      p.x = abs(p.x);
+      if (p.y + p.x > 1.0) {
+        return sqrt(dot(p - vec2(0.25, 0.75), p - vec2(0.25, 0.75))) - sqrt(2.0) / 4.0;
+      }
+      return sqrt(min(
+        dot(p - vec2(0.0, 1.0), p - vec2(0.0, 1.0)),
+        dot(p - 0.5 * max(p.x + p.y, 0.0), p - 0.5 * max(p.x + p.y, 0.0))
+      )) * sign(p.x - p.y);
+    }
+
+    void main() {
+      vec2 p = (vUv - vec2(0.5, 0.22)) * vec2(2.3, 2.3);
+      float d = sdHeart(p);
+      float core = 1.0 - smoothstep(-0.08, 0.02, d);
+      float glow = exp(-max(d, 0.0) * 6.5) * 0.65;
+      float alpha = clamp(core + glow, 0.0, 1.0);
+      if (alpha < 0.02) discard;
+      float pulse = 0.88 + 0.12 * sin(uTime * 10.0);
+      vec3 roseColor = vec3(0.96, 0.25, 0.45);
+      vec3 coreWhite = vec3(1.0, 0.88, 0.94);
+      vec3 finalColor = mix(roseColor, coreWhite, core * 0.55) * pulse * 1.3;
+      gl_FragColor = vec4(finalColor, alpha * 0.9);
     }
   `,
 };
@@ -521,9 +561,11 @@ export const GiftVFXPool: React.FC = React.memo(() => {
           slot.position.x = Math.cos(slot.angle) * slot.radius;
           slot.position.z = Math.sin(slot.angle) * slot.radius;
           slot.position.y += delta * slot.ySpeed;
-          if (slot.position.y > 10.0) slot.position.y = 0.2;
+          if (slot.position.y > 4.4) slot.position.y = -0.2;
           mesh.position.copy(slot.position);
-          mesh.rotation.y += delta * 3.0;
+          const heightFade = Math.sin(Math.max(0, Math.min(1, (slot.position.y + 0.2) / 4.6)) * Math.PI);
+          mesh.scale.setScalar(0.65 + heightFade * 0.45);
+          mesh.rotation.set(0, 0, Math.sin(time * 4.0 + i) * 0.18);
         });
       }
       if (lv.timer >= lv.maxDuration) {
@@ -563,8 +605,15 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       <group ref={smallMeteorGroupRef}>
         {smallSlots.current.map((_, i) => (
           <mesh key={`small-${i}`} visible={false}>
-            <sphereGeometry args={[0.22, 8, 8]} />
-            <meshBasicMaterial toneMapped={false} color="#ffffff" />
+            <octahedronGeometry args={[0.16, 1]} />
+            <meshBasicMaterial
+              toneMapped={false}
+              color="#fde68a"
+              transparent
+              opacity={0.9}
+              depthWrite={false}
+              {...COLOR_ONLY_ADDITIVE_PROPS}
+            />
           </mesh>
         ))}
       </group>
@@ -575,39 +624,98 @@ export const GiftVFXPool: React.FC = React.memo(() => {
           <group key={`big-${i}`} visible={false}>
             {/* Core glowing sphere */}
             <mesh>
-              <sphereGeometry args={[0.55, 12, 12]} />
-              <meshBasicMaterial toneMapped={false} color="#f59e0b" />
+              <sphereGeometry args={[0.38, 12, 12]} />
+              <meshBasicMaterial
+                toneMapped={false}
+                color="#fef08a"
+                transparent
+                opacity={0.92}
+                depthWrite={false}
+                {...COLOR_ONLY_ADDITIVE_PROPS}
+              />
             </mesh>
             {/* Fiery trail cone */}
-            <mesh position={[0, 0, 1.2]} rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.08, 0.5, 2.2, 8]} />
-              <meshBasicMaterial toneMapped={false} color="#ef4444" transparent opacity={0.7} />
+            <mesh position={[0, 0, 1.1]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.05, 0.36, 2.0, 8]} />
+              <meshBasicMaterial
+                toneMapped={false}
+                color="#f97316"
+                transparent
+                opacity={0.65}
+                depthWrite={false}
+                {...COLOR_ONLY_ADDITIVE_PROPS}
+              />
             </mesh>
           </group>
         ))}
       </group>
 
-      {/* 3. Royal Sword Weapon */}
+      {/* 3. Royal Hextech Greatsword Weapon */}
       <group ref={swordGroupRef} visible={false}>
-        {/* Blade */}
-        <mesh position={[0, 2.4, 0]}>
-          <boxGeometry args={[0.4, 4.8, 0.12]} />
-          <meshBasicMaterial toneMapped={false} color="#38bdf8" />
+        {/* Tapered Crystal Blade */}
+        <mesh position={[0, 2.1, 0]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.26, 4.2, 4]} />
+          <meshBasicMaterial
+            toneMapped={false}
+            color="#38bdf8"
+            transparent
+            opacity={0.92}
+            depthWrite={false}
+            {...COLOR_ONLY_ADDITIVE_PROPS}
+          />
         </mesh>
-        {/* Crossguard */}
-        <mesh position={[0, 4.8, 0]}>
-          <boxGeometry args={[1.8, 0.3, 0.3]} />
-          <meshBasicMaterial toneMapped={false} color="#fbbf24" />
+        {/* Glowing White Blade Core */}
+        <mesh position={[0, 2.2, 0]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.11, 3.9, 4]} />
+          <meshBasicMaterial
+            toneMapped={false}
+            color="#ffffff"
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+            {...COLOR_ONLY_ADDITIVE_PROPS}
+          />
+        </mesh>
+        {/* Winged Golden Hextech Crossguard */}
+        <mesh position={[0, 4.25, 0]} scale={[1.45, 0.22, 0.25]}>
+          <octahedronGeometry args={[0.8, 0]} />
+          <meshBasicMaterial
+            toneMapped={false}
+            color="#fbbf24"
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+            {...COLOR_ONLY_ADDITIVE_PROPS}
+          />
+        </mesh>
+        {/* Center Hextech Gem */}
+        <mesh position={[0, 4.25, 0]}>
+          <octahedronGeometry args={[0.24, 0]} />
+          <meshBasicMaterial
+            toneMapped={false}
+            color="#ffffff"
+            transparent
+            opacity={0.98}
+            depthWrite={false}
+            {...COLOR_ONLY_ADDITIVE_PROPS}
+          />
         </mesh>
         {/* Hilt */}
-        <mesh position={[0, 5.5, 0]}>
-          <cylinderGeometry args={[0.12, 0.12, 1.4, 8]} />
-          <meshBasicMaterial toneMapped={false} color="#1e293b" />
+        <mesh position={[0, 4.95, 0]}>
+          <cylinderGeometry args={[0.08, 0.1, 1.2, 8]} />
+          <meshBasicMaterial toneMapped={false} color="#f59e0b" />
         </mesh>
         {/* Pommel */}
-        <mesh position={[0, 6.3, 0]}>
-          <sphereGeometry args={[0.25, 8, 8]} />
-          <meshBasicMaterial toneMapped={false} color="#fbbf24" />
+        <mesh position={[0, 5.65, 0]}>
+          <octahedronGeometry args={[0.2, 0]} />
+          <meshBasicMaterial
+            toneMapped={false}
+            color="#fbbf24"
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+            {...COLOR_ONLY_ADDITIVE_PROPS}
+          />
         </mesh>
         {/* Shockwave ring */}
         <mesh ref={swordShockwaveRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]} visible={false}>
@@ -616,9 +724,9 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         </mesh>
       </group>
 
-      {/* 4. Mythic Laser Column */}
-      <mesh ref={laserMeshRef} position={[0, 15, 0]} visible={false}>
-        <cylinderGeometry args={[0.85, 1.5, 30, 16, 1, true]} />
+      {/* 4. Mythic Laser Column (Tapered before top scoreboard) */}
+      <mesh ref={laserMeshRef} position={[0, 3.6, 0]} visible={false}>
+        <cylinderGeometry args={[0.42, 0.88, 10.5, 16, 1, true]} />
         <shaderMaterial
           vertexShader={LaserShader.vertexShader}
           fragmentShader={LaserShader.fragmentShader}
@@ -630,20 +738,28 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         />
       </mesh>
       <mesh ref={laserGroundRingRef} position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-        <ringGeometry args={[1.0, 2.4, 32]} />
-        <meshBasicMaterial toneMapped={false} color="#38bdf8" transparent opacity={0.85} depthWrite={false} side={THREE.DoubleSide} {...COLOR_ONLY_ADDITIVE_PROPS} />
+        <ringGeometry args={[1.15, 1.32, 48]} />
+        <meshBasicMaterial toneMapped={false} color="#38bdf8" transparent opacity={0.75} depthWrite={false} side={THREE.DoubleSide} {...COLOR_ONLY_ADDITIVE_PROPS} />
       </mesh>
 
-      {/* 5. Love Category (Pink Beam & Orbiting Hearts) */}
-      <mesh ref={loveBeamMeshRef} position={[0, 14, 0]} visible={false}>
-        <cylinderGeometry args={[0.7, 0.7, 28, 16, 1, true]} />
-        <meshBasicMaterial toneMapped={false} color="#ec4899" transparent opacity={0.65} depthWrite={false} side={THREE.DoubleSide} alphaMap={getBeamFadeAlphaMap()} {...COLOR_ONLY_ADDITIVE_PROPS} />
+      {/* 5. Love Category (Softened Pink Beam & True SDF Glowing Hearts) */}
+      <mesh ref={loveBeamMeshRef} position={[0, 3.4, 0]} visible={false}>
+        <cylinderGeometry args={[0.38, 0.55, 9.6, 16, 1, true]} />
+        <meshBasicMaterial toneMapped={false} color="#ec4899" transparent opacity={0.34} depthWrite={false} side={THREE.DoubleSide} alphaMap={getBeamFadeAlphaMap()} {...COLOR_ONLY_ADDITIVE_PROPS} />
       </mesh>
       <group ref={loveHeartsGroupRef} visible={false}>
         {heartSlots.current.map((_, i) => (
           <mesh key={`heart-${i}`}>
-            <planeGeometry args={[0.45, 0.45]} />
-            <meshBasicMaterial toneMapped={false} color="#f43f5e" side={THREE.DoubleSide} transparent opacity={0.9} />
+            <planeGeometry args={[0.48, 0.48]} />
+            <shaderMaterial
+              vertexShader={HeartSdfShader.vertexShader}
+              fragmentShader={HeartSdfShader.fragmentShader}
+              uniforms={laserUniforms}
+              transparent
+              {...COLOR_ONLY_ADDITIVE_PROPS}
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
           </mesh>
         ))}
       </group>

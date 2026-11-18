@@ -327,7 +327,7 @@ export const runGiftExplosion = (get: () => GameState, event: GiftEvent, now: nu
   logGift(get, event, totalDamage, isQuietTick);
 
   const hasBanner = config.bannerDurationMs > 0 && !isQuietTick;
-  const tierStaggerUntil = config.bossStaggerMs > 0 ? now + config.bossStaggerMs : 0;
+  const tierStaggerUntil = !hasKilledBoss && config.bossStaggerMs > 0 ? now + config.bossStaggerMs : 0;
   return {
     tier,
     banner: hasBanner ? buildGiftAnnouncement(event, tier, now) : null,

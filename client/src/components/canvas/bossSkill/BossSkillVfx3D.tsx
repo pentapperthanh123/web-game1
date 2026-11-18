@@ -69,14 +69,34 @@ const SkillVfxLayerMount = ({ vfxProps, Component }: SkillVfxLayerMountProps) =>
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    const startInMs = Math.max(0, vfxProps.startedAt - Date.now());
+    // Compute timing inside the effect so it is stable across renders and never triggers re-runs
+    const now = Date.now();
+    const startDelayMs = Math.max(0, vfxProps.startedAt - now);
+    const elapsedMs = Math.max(0, now - vfxProps.startedAt);
+    const remainingDurationMs = Math.max(0, vfxProps.durationMs - elapsedMs);
+
+    // Already expired — do not mount at all
+    if (remainingDurationMs <= 0) {
+      setIsPlaying(false);
+      return;
+    }
+
     let cancelFrames: (() => void) | null = null;
-    const startTimer = setTimeout(() => {
-      cancelFrames = runAfterFrames(PAINT_FRAMES_BEFORE_MOUNT, () => setIsPlaying(true));
-    }, startInMs);
-    const endTimer = setTimeout(() => setIsPlaying(false), startInMs + vfxProps.durationMs);
+    let startTimer: ReturnType<typeof setTimeout> | null = null;
+
+    if (startDelayMs > 0) {
+      startTimer = setTimeout(() => {
+        cancelFrames = runAfterFrames(PAINT_FRAMES_BEFORE_MOUNT, () => setIsPlaying(true));
+      }, startDelayMs);
+    } else {
+      // Effect should already be playing — mount instantly (no RAF wait)
+      setIsPlaying(true);
+    }
+
+    const endTimer = setTimeout(() => setIsPlaying(false), remainingDurationMs);
+
     return () => {
-      clearTimeout(startTimer);
+      if (startTimer) clearTimeout(startTimer);
       clearTimeout(endTimer);
       cancelFrames?.();
     };

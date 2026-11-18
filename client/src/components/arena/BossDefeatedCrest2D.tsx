@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useGiftVfxStore } from '../../store/giftVfxStore';
 import {
+  DEFEAT_SHOWCASE_TIMELINE,
   FINISHER_BANNER_CONSTANTS,
   isDonorFinisherCheck,
   TEAM_KEY,
@@ -62,7 +63,8 @@ export const BossDefeatedCrest2D: React.FC<BossDefeatedCrest2DProps> = React.mem
     return (
       <div
         key={bossDefeatedTimestamp}
-        className="absolute inset-0 pointer-events-none z-15 flex items-center justify-center select-none overflow-visible animate-in fade-in zoom-in-90 duration-700 delay-[850ms] fill-mode-both"
+        style={{ animationDelay: `${DEFEAT_SHOWCASE_TIMELINE.CREST_REVEAL_DELAY_MS}ms` }}
+        className="absolute inset-0 pointer-events-none z-15 flex items-center justify-center select-none overflow-visible animate-in fade-in zoom-in-90 duration-700 fill-mode-both"
       >
         {/* Background Divine Light Pillars */}
         <div

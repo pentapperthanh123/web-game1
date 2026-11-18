@@ -1,17 +1,23 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BOSS_SKILL_VFX_STYLE } from '../../../constants/bossSkillVfx';
 import {
   ADDITIVE_DOUBLE_SIDED_PROPS,
+  BOSS_3D_ANCHORS,
+  GROUND_DECAL_LIFT,
   SkillVfx3DProps,
   computeProgress,
   easeOutCubic,
+  easeOutExpo,
   envelope,
+  fadeOut,
   opacityLayer,
   phaseProgress,
+  seededValues,
   setMaterialOpacity,
 } from './bossSkill3DShared';
+import { EmberBurst, GlowSprite, GroundDecal } from './VfxPrimitives3D';
 
 const BLADE_RADIUS = 2.5;
 const BLADE_ARC = Math.PI * 0.75;
@@ -53,6 +59,12 @@ const FLOOR_TILT = 0.35;
 const MAX_SWEEPS = 2;
 const SWEEP_POSITION = [0, -1.2, 0.4] as const;
 
+/** Slash trail spark constants */
+const SPARK_COUNT = 5;
+const SCORCH_SIZE = 3.8;
+const SCORCH_OPACITY = 0.4;
+const SLASH_EMBER_COUNT = 6;
+
 const CrescentBlade = ({ color, secondaryColor, opacityScale }: { color: string; secondaryColor: string; opacityScale: number }) => (
   <group userData={opacityLayer(opacityScale)}>
     <mesh geometry={SHARED_HALO_GEO} userData={opacityLayer(BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.HALO)}>
@@ -70,13 +82,32 @@ const CrescentBlade = ({ color, secondaryColor, opacityScale }: { color: string;
 /** Layered crescent slash (white edge, coloured body, soft halo) with a trailing afterimage; two when count ≥ 2. */
 export const CrescentSweep3D = ({ color, secondaryColor, scale, count, direction, startedAt, durationMs }: SkillVfx3DProps) => {
   const groupRef = useRef<THREE.Group>(null);
+  const sparkGroupRef = useRef<THREE.Group>(null);
+  const scorchRef = useRef<THREE.Group>(null);
   const sweepCount = Math.min(MAX_SWEEPS, Math.max(1, count));
   const flip = direction < 0 ? -1 : 1;
+
+  /** Pre-compute spark positions along the sweep arc for the trail effect */
+  const sparkPositions = useMemo(() => {
+    const randoms = seededValues(startedAt, SPARK_COUNT * 2);
+    return Array.from({ length: SPARK_COUNT }, (_, index) => {
+      const arcFraction = (index + 0.5) / SPARK_COUNT;
+      const angle = -SWEEP_ARC / 2 + arcFraction * SWEEP_ARC;
+      const radius = BLADE_RADIUS * (0.9 + randoms[index * 2] * 0.2);
+      return {
+        x: Math.cos(angle) * radius * flip,
+        y: Math.sin(angle) * radius,
+        delay: arcFraction * 0.6,
+      };
+    });
+  }, [startedAt, flip]);
 
   useFrame(() => {
     const group = groupRef.current;
     if (!group) return;
     const progress = computeProgress(startedAt, durationMs);
+
+    // Animate sweep blades (original logic)
     group.children.forEach((sweep, index) => {
       const start = index * SECOND_SWEEP_OFFSET;
       const local = phaseProgress(progress, start, start + SWEEP_SPAN);
@@ -89,19 +120,75 @@ export const CrescentSweep3D = ({ color, secondaryColor, scale, count, direction
       afterimage.rotation.z = flip * (-SWEEP_ARC / 2 + easeOutCubic(local - AFTERIMAGE_LAG) * SWEEP_ARC);
       setMaterialOpacity(sweep, envelope(local, ATTACK_END, RELEASE_START) * BOSS_SKILL_VFX_STYLE.MAX_CORE_OPACITY);
     });
+
+    // Animate slash trail sparks
+    if (sparkGroupRef.current) {
+      const sparkLocal = phaseProgress(progress, 0, SWEEP_SPAN);
+      sparkGroupRef.current.visible = sparkLocal > 0 && sparkLocal < 1;
+      if (sparkGroupRef.current.visible) {
+        sparkGroupRef.current.children.forEach((spark, index) => {
+          const sparkData = sparkPositions[index];
+          const localDelay = phaseProgress(sparkLocal, sparkData.delay, sparkData.delay + 0.4);
+          spark.visible = localDelay > 0 && localDelay < 1;
+          if (spark.visible) {
+            spark.scale.setScalar(scale * (0.3 + 0.4 * easeOutExpo(localDelay)));
+            setMaterialOpacity(spark, fadeOut(localDelay) * BOSS_SKILL_VFX_STYLE.MAX_FLASH_OPACITY);
+          }
+        });
+      }
+    }
+
+    // Animate ground scorch
+    if (scorchRef.current) {
+      const scorchLocal = phaseProgress(progress, ATTACK_END, 1);
+      scorchRef.current.visible = scorchLocal > 0 && scorchLocal < 1;
+      if (scorchRef.current.visible) {
+        const scorchScale = SCORCH_SIZE * scale * easeOutExpo(scorchLocal);
+        scorchRef.current.scale.set(scorchScale, scorchScale, scorchScale);
+        setMaterialOpacity(scorchRef.current, fadeOut(scorchLocal) * SCORCH_OPACITY);
+      }
+    }
   });
 
   return (
-    <group ref={groupRef} position={SWEEP_POSITION} rotation={[-Math.PI / 2 + FLOOR_TILT, 0, 0]}>
-      {Array.from({ length: sweepCount }, (_, index) => {
-        const bladeColor = index === 0 ? secondaryColor : color;
-        return (
-          <group key={`${startedAt}-${index}`} visible={false}>
-            <CrescentBlade color={color} secondaryColor={bladeColor} opacityScale={1} />
-            <CrescentBlade color={color} secondaryColor={bladeColor} opacityScale={AFTERIMAGE_OPACITY} />
-          </group>
-        );
-      })}
-    </group>
+    <>
+      <group ref={groupRef} position={SWEEP_POSITION} rotation={[-Math.PI / 2 + FLOOR_TILT, 0, 0]}>
+        {Array.from({ length: sweepCount }, (_, index) => {
+          const bladeColor = index === 0 ? secondaryColor : color;
+          return (
+            <group key={`${startedAt}-${index}`} visible={false}>
+              <CrescentBlade color={color} secondaryColor={bladeColor} opacityScale={1} />
+              <CrescentBlade color={color} secondaryColor={bladeColor} opacityScale={AFTERIMAGE_OPACITY} />
+            </group>
+          );
+        })}
+      </group>
+      {/* Slash trail sparks along the blade arc */}
+      <group ref={sparkGroupRef} position={SWEEP_POSITION} rotation={[-Math.PI / 2 + FLOOR_TILT, 0, 0]} visible={false}>
+        {sparkPositions.map((spark, index) => (
+          <GlowSprite
+            key={`spark-${startedAt}-${index}`}
+            color={BOSS_SKILL_VFX_STYLE.CORE_COLOR}
+            position={[spark.x, spark.y, 0]}
+          />
+        ))}
+      </group>
+      {/* Ground scorch decal expanding from the sweep origin */}
+      <group ref={scorchRef} position={[0, BOSS_3D_ANCHORS.GROUND_Y + GROUND_DECAL_LIFT, 0.4]} visible={false}>
+        <GroundDecal color={color} opacityScale={SCORCH_OPACITY} />
+      </group>
+      {/* Debris embers thrown from the sweep impact zone */}
+      <EmberBurst
+        color={secondaryColor}
+        origin={[flip * BOSS_3D_ANCHORS.WING_X * 0.5, BOSS_3D_ANCHORS.GROUND_Y + 0.3, 0.4]}
+        count={SLASH_EMBER_COUNT}
+        seed={startedAt}
+        startedAt={startedAt}
+        durationMs={durationMs}
+        start={ATTACK_END}
+        end={0.85}
+        scale={scale}
+      />
+    </>
   );
 };

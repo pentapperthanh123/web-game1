@@ -29,6 +29,7 @@ export const SFX_EVENT = {
   BOSS_SKILL: 'BOSS_SKILL',
   BOSS_ULTIMATE: 'BOSS_ULTIMATE',
   BOSS_DEFEAT: 'BOSS_DEFEAT',
+  BOSS_DEATH_CRY: 'BOSS_DEATH_CRY',
   CHAMPION_SUMMON: 'CHAMPION_SUMMON',
   CHAMPION_DEATH: 'CHAMPION_DEATH',
   CHAMPION_ATTACK: 'CHAMPION_ATTACK',
@@ -346,10 +347,19 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
     rateJitter: 0,
   },
   [SFX_EVENT.BOSS_DEFEAT]: {
-    src: [fromMyinstants('death-monster.mp3'), fromMyinstants('mb-monster-death.mp3')], // 2.5 s
-    volume: 0.95,
+    src: [fromMyinstants('quintiple-pound.mp3'), fromMyinstants('cinematic-boom-hq.mp3')], // Cinematic explosion ~4.9s
+    volume: 1.0,
     category: SFX_CATEGORY.STINGER,
-    duckCombatMs: 2500,
+    duckCombatMs: 3500,
+    maxVoices: 1,
+    throttleMs: 1500,
+    rateJitter: 0,
+  },
+  [SFX_EVENT.BOSS_DEATH_CRY]: {
+    src: [fromMyinstants('death-monster.mp3'), fromMyinstants('mb-monster-death.mp3')], // Boss groan/cry ~2.5s
+    volume: 0.85,
+    category: SFX_CATEGORY.STINGER,
+    duckCombatMs: 1500,
     maxVoices: 1,
     throttleMs: 1500,
     rateJitter: 0,

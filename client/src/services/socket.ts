@@ -90,6 +90,8 @@ const SERVER_URL =
     : 'http://localhost:4000');
 
 const CLIENT_INSTANCE_ID = `client-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
+const SILVER_SCRAPES_STOP_GUARD_MS = 1500;
+let lastSilverScrapesStopAt = 0;
 
 /**
  * Server says the series is now on `targetRound`. Skip it when this overlay is already fighting that
@@ -453,9 +455,10 @@ class GameSocketClient {
       });
 
       this.socket.on('game:silver-scrapes-state', (payload) => {
-        if (payload) {
-          useGameStore.getState().setSilverScrapesState(payload);
-        }
+        if (!payload) return;
+        const isWithinStopGuard = Date.now() - lastSilverScrapesStopAt < SILVER_SCRAPES_STOP_GUARD_MS;
+        if (payload.isActive && isWithinStopGuard) return;
+        useGameStore.getState().setSilverScrapesState(payload);
       });
     } catch (err) {
       console.warn('[Game Socket] Could not connect to Server, using local EventBus fallback', err);
@@ -672,6 +675,11 @@ class GameSocketClient {
     lane?: string,
     duration?: number
   ): void {
+    if (action === 'stop') {
+      lastSilverScrapesStopAt = Date.now();
+    } else if (action === 'start') {
+      lastSilverScrapesStopAt = 0;
+    }
     if (this.socket) {
       this.socket.emit('admin:silver-scrapes-duel', { action, lane, duration, senderId: CLIENT_INSTANCE_ID });
     }

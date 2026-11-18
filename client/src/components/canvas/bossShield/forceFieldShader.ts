@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 
 /**
  * Fresnel force-field: bright at the silhouette, almost clear in the middle so the boss stays readable.
@@ -34,10 +35,10 @@ varying vec3 vViewDir;
 varying vec3 vObjDir;
 varying vec2 vUv;
 
-const float FRESNEL_POWER = 2.6;
-const float RIM_ALPHA = 0.8;
-const float RIM_HIT_BOOST = 0.35;
-const float MAX_ALPHA = 0.9;
+const float FRESNEL_POWER = 3.0;
+const float RIM_ALPHA = 0.55;
+const float RIM_HIT_BOOST = 0.3;
+const float MAX_ALPHA = 0.72;
 
 // Hex lattice: HEX_COLUMNS must be an integer so the longitude seam lines up.
 const float HEX_COLUMNS = 22.0;
@@ -65,9 +66,9 @@ const float BAND_ALPHA = 0.04;
 
 // Hit ripple.
 const float RIPPLE_WIDTH = 0.14;
-const float RIPPLE_ALPHA = 0.05;
-const float INTERIOR_RIM_GAIN = 2.0;
-const float MAX_INTERIOR_ALPHA = 0.15;
+const float RIPPLE_ALPHA = 0.04;
+const float INTERIOR_RIM_GAIN = 1.6;
+const float MAX_INTERIOR_ALPHA = 0.07;
 const float RIPPLE_TINT = 0.5;
 
 float hash21(vec2 cell) {
@@ -152,7 +153,7 @@ export const createForceFieldMaterial = (baseColor: string, rimColor: string): F
     fragmentShader: FORCE_FIELD_FRAGMENT_SHADER,
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    ...COLOR_ONLY_ADDITIVE_PROPS,
     side: THREE.FrontSide,
     toneMapped: false,
   });

@@ -82,6 +82,7 @@ import {
   showChampionDamage,
 } from '../bossSkillImpact';
 import { isCurrentRoundIntroActive } from '../roundIntroStore';
+import { resetMatchLeaderboard } from '../sessionLeaderboardStore';
 import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
 import { createEmptyMinionCollections, rebuildMinionCollections } from '../minionMapHelpers';
 
@@ -562,6 +563,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     }
     audioService.setCombatMuted(false);
     playSound(SFX_EVENT.ROUND_START);
+    resetMatchLeaderboard();
     get().addLog('BOSS', '🔄 Hồi sinh Boss về trạng thái ban đầu');
     set({
       bossHp: state.bossMaxHp,
@@ -624,7 +626,14 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
     const isDefeated = clampedHp <= 0;
     if (isDefeated) {
       if (get().bossHp > 0) {
-        playSound(SFX_EVENT.BOSS_DEFEAT);
+        // Phase 1: Boss death cry, then Phase 2: Cinematic explosion, then Phase 3: Victory sound
+        playSound(SFX_EVENT.BOSS_DEATH_CRY);
+        setTimeout(() => {
+          playSound(SFX_EVENT.BOSS_DEFEAT);
+        }, BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS);
+        setTimeout(() => {
+          playSound(SFX_EVENT.VICTORY);
+        }, BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS * 2);
         get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
         get().triggerScreenFlash('#fbbf24');
       }

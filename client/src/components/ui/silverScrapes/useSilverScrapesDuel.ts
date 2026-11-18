@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../../store/gameStore';
 import { audioService } from '../../../services/audioService';
-import {
-  hideRoundIntro,
-  isCurrentRoundIntroActive,
-  resolveRoundIntroDurationMs,
-  playRoundIntroCinematic,
-} from '../../../store/roundIntroStore';
+import { hideRoundIntro } from '../../../store/roundIntroStore';
+import { gameSocket } from '../../../services/socket';
 import { playSound, stopSound } from '../../../services/soundManager';
 import { stopAllBossVoices } from '../../../services/bossVoice';
 import { SFX_EVENT } from '../../../constants/sfx';
@@ -37,14 +33,25 @@ export const useSilverScrapesDuel = (): SilverScrapesDuelView => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const wasActiveInSessionRef = useRef<boolean>(isActive);
   const hasSpokenSummaryRef = useRef(false);
-  /** The duel opened a decider round on top of its intro card; the card comes back once the duel is gone. */
-  const isIntroPendingRef = useRef(false);
-  const wasRenderedRef = useRef(false);
   const hasWinner = winner !== null;
 
   const dismiss = useCallback(() => {
     setIsDismissed(true);
     wasActiveInSessionRef.current = false;
+    stopSound(SFX_EVENT.SILVER_SCRAPES);
+    audioService.setCombatMuted(false);
+    hideRoundIntro();
+
+    const store = useGameStore.getState();
+    if (store.silverScrapesState.isActive) {
+      gameSocket.sendSilverScrapesControl('stop');
+    }
+    store.setSilverScrapesState({
+      isActive: false,
+      isIntroActive: false,
+      introRemaining: 0,
+      winner: null,
+    });
   }, []);
 
   useEffect(() => {
@@ -72,7 +79,6 @@ export const useSilverScrapesDuel = (): SilverScrapesDuelView => {
 
   useEffect(() => {
     if (isActive && !isDismissed) {
-      if (isCurrentRoundIntroActive()) isIntroPendingRef.current = true;
       stopAllBossVoices();
       // Stray browser speech only; the caster queue is cleared by the director, which then says the duel opening
       audioService.cancelSpeech();
@@ -94,16 +100,6 @@ export const useSilverScrapesDuel = (): SilverScrapesDuelView => {
   }, [lastEvent]);
 
   const shouldRender = !isDismissed && (isActive || (wasActiveInSessionRef.current && hasWinner));
-
-  useEffect(() => {
-    const wasRendered = wasRenderedRef.current;
-    wasRenderedRef.current = shouldRender;
-    if (shouldRender || !wasRendered || !isIntroPendingRef.current) return;
-    isIntroPendingRef.current = false;
-    const { roundWinner, currentRound } = useGameStore.getState();
-    // The decider opens like every other round: cinematic, then the narrated card
-    if (roundWinner === null) playRoundIntroCinematic(Date.now(), resolveRoundIntroDurationMs(currentRound));
-  }, [shouldRender]);
 
   return { shouldRender, isFadingOut, isClashFlashing, dismiss };
 };

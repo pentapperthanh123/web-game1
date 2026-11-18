@@ -1,38 +1,42 @@
 import * as THREE from 'three';
-import { TEAM_KEY, TeamType } from '../../../constants/game';
+import { COMBAT_VFX_CONSTANTS, TEAM_KEY, TeamType } from '../../../constants/game';
 import { CachedChampionVfxRefs } from './summonShared';
+
+const TOUCHDOWN_MS = COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.FLY_IN_DURATION_MS;
+const SHARDS_END_MS =
+  TOUCHDOWN_MS + COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.IMPACT_SHARDS_DURATION_MS;
 
 /**
  * Entrance aura timeline (ms since the champion was deployed):
- *  1. Sky pillar slams down (flash-in), then thins out and fades.
- *  2. A hexagonal rune seal converges onto the portrait while the token swoops in.
- *  3. On touchdown: white landing flash + ground shockwave ring.
- *  4. A soft celestial halo blooms outward for the whole entrance.
+ *  1. Sky pillar slams down (flash-in) while the summoner avatar swoops from the sky.
+ *  2. A hexagonal rune seal converges onto the ground target during the fly-in.
+ *  3. On touchdown (TOUCHDOWN_MS): white landing flash + ground shockwave ring + radial shard burst.
+ *  4. A soft celestial halo blooms outward as the champion materializes.
  */
 export const ENTRANCE_AURA = {
   TOTAL_MS: 1400,
-  BEAM_FLASH_IN_MS: 160,
-  BEAM_FADE_END_MS: 1150,
-  BEAM_PEAK_OPACITY: 0.5,
-  BEAM_CORE_PEAK_OPACITY: 0.8,
+  BEAM_FLASH_IN_MS: 140,
+  BEAM_FADE_END_MS: 1100,
+  BEAM_PEAK_OPACITY: 0.52,
+  BEAM_CORE_PEAK_OPACITY: 0.82,
   BEAM_START_WIDTH: 1.7,
   BEAM_END_WIDTH: 0.2,
-  SEAL_END_MS: 1000,
-  SEAL_CONVERGE_MS: 700,
+  SEAL_END_MS: 980,
+  SEAL_CONVERGE_MS: TOUCHDOWN_MS,
   SEAL_START_SCALE: 2.4,
   SEAL_END_SCALE: 1.0,
   SEAL_SPIN_SPEED: 4.2,
   SEAL_PEAK_OPACITY: 0.85,
-  LANDING_START_MS: 620,
-  LANDING_END_MS: 1400,
+  LANDING_START_MS: TOUCHDOWN_MS,
+  LANDING_END_MS: 1360,
   LANDING_START_SCALE: 0.5,
-  LANDING_END_SCALE: 2.3,
-  LANDING_PEAK_OPACITY: 0.6,
-  FLASH_START_MS: 640,
-  FLASH_END_MS: 980,
-  FLASH_START_SCALE: 0.9,
-  FLASH_END_SCALE: 1.7,
-  FLASH_PEAK_OPACITY: 0.55,
+  LANDING_END_SCALE: 2.4,
+  LANDING_PEAK_OPACITY: 0.68,
+  FLASH_START_MS: TOUCHDOWN_MS,
+  FLASH_END_MS: TOUCHDOWN_MS + 360,
+  FLASH_START_SCALE: 0.85,
+  FLASH_END_SCALE: 1.85,
+  FLASH_PEAK_OPACITY: 0.65,
   HALO_END_MS: 1300,
   HALO_START_SCALE: 0.7,
   HALO_END_SCALE: 1.9,
@@ -103,7 +107,7 @@ const updateRuneSeal = (refs: CachedChampionVfxRefs, ageMs: number, spinSign: nu
   refs.runeSealMesh.rotation.z = spinSign * (1 - convergeProgress) * ENTRANCE_AURA.SEAL_SPIN_SPEED;
 };
 
-const updateLandingImpact = (refs: CachedChampionVfxRefs, ageMs: number): void => {
+const updateLandingImpact = (refs: CachedChampionVfxRefs, ageMs: number, spinSign: number): void => {
   const ringProgress = getPhaseProgress(ageMs, ENTRANCE_AURA.LANDING_START_MS, ENTRANCE_AURA.LANDING_END_MS);
   const ringOpacity = ringProgress < 0 ? 0 : (1 - ringProgress) * ENTRANCE_AURA.LANDING_PEAK_OPACITY;
   if (applyPhaseOpacity(refs.landingMesh, ringOpacity)) {
@@ -118,6 +122,21 @@ const updateLandingImpact = (refs: CachedChampionVfxRefs, ageMs: number): void =
     refs.landingFlashMesh?.scale.setScalar(
       THREE.MathUtils.lerp(ENTRANCE_AURA.FLASH_START_SCALE, ENTRANCE_AURA.FLASH_END_SCALE, easeOutCubic(flashProgress))
     );
+  }
+
+  const shardCfg = COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON;
+  const shardsProgress = getPhaseProgress(ageMs, TOUCHDOWN_MS, SHARDS_END_MS);
+  const shardsOpacity =
+    shardsProgress < 0 ? 0 : Math.pow(1 - shardsProgress, 1.5) * shardCfg.IMPACT_SHARDS_PEAK_OPACITY;
+  if (applyPhaseOpacity(refs.impactShardsMesh, shardsOpacity) && refs.impactShardsMesh) {
+    refs.impactShardsMesh.scale.setScalar(
+      THREE.MathUtils.lerp(
+        shardCfg.IMPACT_SHARDS_START_SCALE,
+        shardCfg.IMPACT_SHARDS_END_SCALE,
+        easeOutCubic(shardsProgress)
+      )
+    );
+    refs.impactShardsMesh.rotation.z = spinSign * shardsProgress * shardCfg.IMPACT_SHARDS_SPIN_SPEED;
   }
 };
 
@@ -144,6 +163,7 @@ const hideAllAuraMeshes = (refs: CachedChampionVfxRefs): void => {
   hideMesh(refs.runeSealMesh);
   hideMesh(refs.landingMesh);
   hideMesh(refs.landingFlashMesh);
+  hideMesh(refs.impactShardsMesh);
   hideMesh(refs.haloMesh);
   hideMesh(refs.sigHaloMesh);
 };
@@ -170,6 +190,6 @@ export const updateChampionEntranceAura = (
     updateSkyBeam(refs, entranceAgeMs);
   }
   updateRuneSeal(refs, entranceAgeMs, spinSign);
-  updateLandingImpact(refs, entranceAgeMs);
+  updateLandingImpact(refs, entranceAgeMs, spinSign);
   updateCelestialHalo(refs, entranceAgeMs, elapsedTime, spinSign);
 };

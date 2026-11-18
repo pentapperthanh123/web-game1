@@ -19,7 +19,7 @@ import {
   seededValues,
   setMaterialOpacity,
 } from './bossSkill3DShared';
-import { DECAL_TEXTURE, GroundDecal } from './VfxPrimitives3D';
+import { DECAL_TEXTURE, EmberBurst, GroundDecal, ImpactBurst } from './VfxPrimitives3D';
 
 const SPIKE_HEIGHT = 1.1;
 /** Base sits at y = 0 so scaling Y grows the spike out of the floor. */
@@ -43,6 +43,11 @@ const TELEGRAPH_SIZE = 1.1;
 const CRACK_RING_SIZE = 1.6;
 const BODY_OPACITY = 0.82;
 const RANDOMS_PER_SPIKE = 4;
+
+/** Impact burst and ember constants */
+const IMPACT_BURST_SIZE = 1.2;
+const EMBER_COUNT_PER_SPIKE = 4;
+const MAX_IMPACT_BURSTS = 4;
 
 const resolveHeightFactor = (local: number): number => {
   if (local < TELEGRAPH_END) return 0;
@@ -76,11 +81,15 @@ export const GroundSpikes3D = ({ color, secondaryColor, scale, count, startedAt,
     });
   }, [startedAt, count, scale, impactPoints]);
 
+  /** Number of spikes that get the full impact burst (capped for performance). */
+  const burstSpikeCount = Math.min(count, MAX_IMPACT_BURSTS);
+
   useFrame(() => {
     const group = groupRef.current;
     if (!group) return;
     const progress = computeProgress(startedAt, durationMs);
     group.children.forEach((spikeGroup, index) => {
+      if (index >= count) return; // skip burst/ember groups
       const spike = spikes[index];
       const local = phaseProgress(progress, spike.offset, spike.offset + SPIKE_SPAN);
       spikeGroup.visible = local > 0 && local < 1;
@@ -116,6 +125,35 @@ export const GroundSpikes3D = ({ color, secondaryColor, scale, count, startedAt,
             </mesh>
           </group>
         </group>
+      ))}
+      {/* Eruption impact bursts at the base of the first N spikes */}
+      {spikes.slice(0, burstSpikeCount).map((spike, index) => (
+        <ImpactBurst
+          key={`impact-${startedAt}-${index}`}
+          color={color}
+          secondaryColor={secondaryColor}
+          position={[spike.x, BOSS_3D_ANCHORS.GROUND_Y + GROUND_DECAL_LIFT, spike.z]}
+          size={IMPACT_BURST_SIZE * scale}
+          startedAt={startedAt}
+          durationMs={durationMs}
+          start={spike.offset + TELEGRAPH_END}
+          end={spike.offset + SPIKE_SPAN}
+        />
+      ))}
+      {/* Debris ember sparks flying out of eruption points */}
+      {spikes.slice(0, burstSpikeCount).map((spike, index) => (
+        <EmberBurst
+          key={`ember-${startedAt}-${index}`}
+          color={secondaryColor}
+          origin={[spike.x, BOSS_3D_ANCHORS.GROUND_Y, spike.z]}
+          count={EMBER_COUNT_PER_SPIKE}
+          seed={startedAt + index}
+          startedAt={startedAt}
+          durationMs={durationMs}
+          start={spike.offset + TELEGRAPH_END}
+          end={spike.offset + SPIKE_SPAN}
+          scale={scale}
+        />
       ))}
     </group>
   );
