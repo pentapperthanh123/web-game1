@@ -1,6 +1,7 @@
 import { audioService } from './audioService';
 import { casterSpeechEngine } from './caster/speechEngine';
 import { casterQueue } from './caster/presentationQueue';
+import { VoiceManager } from './caster/VoiceManager';
 import {
   hideRoundIntro,
   isCurrentRoundIntroActive,
@@ -24,6 +25,7 @@ export const triggerStartRoundCombat = (): void => {
   audioService.cancelSpeech();
   casterSpeechEngine.interrupt();
   casterQueue.clear();
+  VoiceManager.stopAll();
   hideRoundIntro();
   audioService.setCombatMuted(false);
   syncAmbience();

@@ -95,8 +95,9 @@ export class CommentaryDirectorService {
 
   /**
    * Called when a round officially begins combat.
+   * Plays the studio pre-recorded caster clip directly, avoiding Google TTS ("chị Google") voice overlap.
    */
-  public onRoundStart(roundNumber: number, teamAName: string, teamBName: string): void {
+  public onRoundStart(roundNumber: number, _teamAName?: string, _teamBName?: string): void {
     this.currentRound = roundNumber;
     this.triggeredMilestones.clear();
     this.previousLeader = 'tie';
@@ -104,12 +105,8 @@ export class CommentaryDirectorService {
     this.lastPeriodicAt = Date.now() + 5000; // Delay first periodic chatter
     this.isRoundActive = true;
 
-    const roundWord = ROUND_NUMBER_WORDS[roundNumber] || String(roundNumber);
-    const phoneticA = getPhoneticTeamName(teamAName);
-    const phoneticB = getPhoneticTeamName(teamBName);
-
-    const introText = `Ván ${roundWord} bắt đầu! ${phoneticA} ở Đội Xanh, đối đầu ${phoneticB} ở Đội Đỏ!`;
-    VoiceManager.speakDynamic(introText, 'round_start');
+    // Play high-quality studio pre-recorded round_start clip directly
+    VoiceManager.playCaster('round_start');
   }
 
   /**
