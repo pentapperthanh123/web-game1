@@ -327,22 +327,22 @@
     {
       "id": "blue_win_1",
       "lines": [
-        { "voice": "male", "text": "Chiến thắng hoàn toàn thuộc về Đội Xanh! Màn trình diễn quá đỉnh cao!", "mood": "hype" },
-        { "voice": "female", "text": "Xứng đáng tuyệt đối! Đội Xanh đã thi đấu trên cơ hoàn toàn hôm nay!", "mood": "calm" }
+        { "voice": "male", "text": "Chiến thắng hoàn toàn thuộc về {team}! Màn trình diễn quá đỉnh cao!", "mood": "hype" },
+        { "voice": "female", "text": "Xứng đáng tuyệt đối! {team} đã thi đấu trên cơ hoàn toàn hôm nay!", "mood": "calm" }
       ]
     },
     {
       "id": "blue_win_2",
       "lines": [
-        { "voice": "male", "text": "Hạ màn ván đấu! Đội Xanh đã xuất sắc giành chiến thắng thuyết phục!", "mood": "hype" },
-        { "voice": "female", "text": "Xin chúc mừng Đội Xanh và cảm ơn tất cả anh em phòng lai đã cống hiến!", "mood": "calm" }
+        { "voice": "male", "text": "Hạ màn ván đấu! {team} đã xuất sắc giành chiến thắng thuyết phục!", "mood": "hype" },
+        { "voice": "female", "text": "Xin chúc mừng {team} và cảm ơn tất cả anh em phòng lai đã cống hiến!", "mood": "calm" }
       ]
     },
     {
       "id": "blue_win_3",
       "lines": [
-        { "voice": "male", "text": "Khúc khải hoàn vang lên! Đội Xanh chính thức ca khúc khải hoàn!", "mood": "hype" },
-        { "voice": "female", "text": "Một chiến thắng ngọt ngào dành tặng tất cả người hâm mộ Đội Xanh!", "mood": "calm" }
+        { "voice": "male", "text": "Khúc khải hoàn vang lên! {team} chính thức ca khúc khải hoàn!", "mood": "hype" },
+        { "voice": "female", "text": "Một chiến thắng ngọt ngào dành tặng tất cả người hâm mộ {team}!", "mood": "calm" }
       ]
     }
   ],
@@ -350,22 +350,22 @@
     {
       "id": "red_win_1",
       "lines": [
-        { "voice": "male", "text": "Đội Đỏ đã giành chiến thắng chung cuộc! Một chiến công cực kỳ rực rỡ!", "mood": "hype" },
-        { "voice": "female", "text": "Bản lĩnh thép của Đội Đỏ đã được đền đáp xứng đáng!", "mood": "calm" }
+        { "voice": "male", "text": "{team} đã giành chiến thắng chung cuộc! Một chiến công cực kỳ rực rỡ!", "mood": "hype" },
+        { "voice": "female", "text": "Bản lĩnh thép của {team} đã được đền đáp xứng đáng!", "mood": "calm" }
       ]
     },
     {
       "id": "red_win_2",
       "lines": [
-        { "voice": "male", "text": "Tiếng còi mãn cuộc! Vinh quang tuyệt đối thuộc về các chiến binh Đội Đỏ!", "mood": "hype" },
-        { "voice": "female", "text": "Màn lội ngược dòng ấn tượng của Đội Đỏ! Cảm ơn anh em đã ủng hộ hết mình!", "mood": "calm" }
+        { "voice": "male", "text": "Tiếng còi mãn cuộc! Vinh quang tuyệt đối thuộc về các chiến binh {team}!", "mood": "hype" },
+        { "voice": "female", "text": "Màn lội ngược dòng ấn tượng của {team}! Cảm ơn anh em đã ủng hộ hết mình!", "mood": "calm" }
       ]
     },
     {
       "id": "red_win_3",
       "lines": [
-        { "voice": "male", "text": "Đội Đỏ xuất sắc làm chủ sàn đấu và đoạt lấy trọn vẹn điểm số ván này!", "mood": "hype" },
-        { "voice": "female", "text": "Xin chúc mừng toàn thể người hâm mộ trung thành của sắc áo đỏ!", "mood": "calm" }
+        { "voice": "male", "text": "{team} xuất sắc làm chủ sàn đấu và đoạt lấy trọn vẹn điểm số ván này!", "mood": "hype" },
+        { "voice": "female", "text": "Xin chúc mừng toàn thể người hâm mộ trung thành của {team}!", "mood": "calm" }
       ]
     }
   ],

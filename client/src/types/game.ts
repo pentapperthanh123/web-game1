@@ -329,6 +329,8 @@ export interface ParticipationRuleConfig {
   autoMatchSignatureTeam: boolean;
   lockTeamAfterJoin: boolean;
   allowChampionEvolution: boolean;
+  /** Automatically spawn vanguard skirmishers when arena has < 2 minions */
+  enableAutoVanguard?: boolean;
   /** Number of queued champions entering the arena per turn (arena floor is unlimited). */
   maxDeployPerTurn?: number;
   summonTurnDelayMs?: number;

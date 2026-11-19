@@ -29,6 +29,26 @@ export function registerTikTokRoutes(
     res.json(result);
   });
 
+  app.post('/api/tiktok/check', async (req, res) => {
+    const rawUsername = typeof req.body?.username === 'string' ? req.body.username : undefined;
+    try {
+      const result = await tiktokService.checkConnection(rawUsername);
+      res.json(result);
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error, 'Lỗi hệ thống khi kiểm tra TikTok Live Connector');
+      res.status(500).json({
+        success: false,
+        status: 'ERROR',
+        username: rawUsername || ctx.state.tiktokUsername,
+        isLive: false,
+        latencyMs: 0,
+        connectorVersion: '1.2.3',
+        message: errorMessage,
+        checkedAt: Date.now(),
+      });
+    }
+  });
+
   app.post('/api/tiktok/connect', async (req, res) => {
     const username = req.body?.username;
     if (!username || typeof username !== 'string') {

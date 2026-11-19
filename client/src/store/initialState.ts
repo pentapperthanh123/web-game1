@@ -155,6 +155,7 @@ export const INITIAL_STATE = {
     autoMatchSignatureTeam: true,
     lockTeamAfterJoin: true,
     allowChampionEvolution: true,
+    enableAutoVanguard: false,
     maxDeployPerTurn: GAME_CONSTANTS.SUMMON_RULES.MAX_DEPLOY_PER_TURN,
     summonTurnDelayMs: GAME_CONSTANTS.SUMMON_RULES.SUMMON_TURN_DELAY_MS,
     championAttackSpeedMultiplier: GAME_CONSTANTS.SUMMON_RULES.CHAMPION_ATTACK_SPEED_MULTIPLIER,

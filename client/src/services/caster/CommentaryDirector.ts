@@ -14,11 +14,14 @@ import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY, TeamType } from '../../constants/game';
 
 const PRONUNCIATION_MAP: Record<string, string> = {
+  'GEN.G': 'Gen Gi',
+  'GEN G': 'Gen Gi',
+  'GENG': 'Gen Gi',
+  'GEN': 'Gen Gi',
   'T1': 'Tê Một',
   'G2': 'Gờ Hai',
   'HLE': 'Hắc Lờ E',
   'BLG': 'Bê Lờ Gờ',
-  'GEN': 'Gen Gi',
   'GAM': 'Gam',
   'TES': 'Tê E Ét',
   'DK': 'Đê Ka',
@@ -28,7 +31,7 @@ const PRONUNCIATION_MAP: Record<string, string> = {
   'FNC': 'Ép Nờ Xê',
 };
 
-const ROUND_NUMBER_WORDS: Record<number, string> = {
+export const ROUND_NUMBER_WORDS: Record<number, string> = {
   1: 'một',
   2: 'hai',
   3: 'ba',
@@ -37,14 +40,16 @@ const ROUND_NUMBER_WORDS: Record<number, string> = {
 };
 
 export function getPhoneticTeamName(nameOrTag: string): string {
-  const upper = (nameOrTag || '').trim().toUpperCase();
+  let upper = (nameOrTag || '').trim().toUpperCase();
+  upper = upper.replace(/\bESPORTS\b|\bGAMING\b/gi, '').trim();
   if (PRONUNCIATION_MAP[upper]) {
     return PRONUNCIATION_MAP[upper];
   }
-  // Try word-based matching
-  for (const [key, val] of Object.entries(PRONUNCIATION_MAP)) {
+  // Try word-based matching, longer keys first
+  const sortedKeys = Object.keys(PRONUNCIATION_MAP).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
     if (upper.includes(key)) {
-      return upper.replace(key, val);
+      return upper.replace(key, PRONUNCIATION_MAP[key]).trim();
     }
   }
   return nameOrTag || 'Đội tuyển';
@@ -118,14 +123,22 @@ export class CommentaryDirectorService {
     const teamKeys = Object.keys(state.activeTeams) as TeamType[];
     const leftKey = teamKeys[0] ?? TEAM_KEY.BLG;
     const rightKey = teamKeys[1] ?? TEAM_KEY.GENG;
-    const leftTeam = state.activeTeams[leftKey]?.name ?? 'Đội Xanh';
-    const rightTeam = state.activeTeams[rightKey]?.name ?? 'Đội Đỏ';
+    const leftTeam = state.activeTeams[leftKey]?.name ?? 'Phe Trái';
+    const rightTeam = state.activeTeams[rightKey]?.name ?? 'Phe Phải';
     const winnerName = winnerTeam === leftKey ? leftTeam : rightTeam;
-    const winnerSide = winnerTeam === leftKey ? 'Đội Xanh' : 'Đội Đỏ';
     const phoneticWinner = getPhoneticTeamName(winnerName);
 
     const roundWord = ROUND_NUMBER_WORDS[state.currentRound] || String(state.currentRound);
-    const winDynamicText = `${phoneticWinner} ở ${winnerSide} đã giành chiến thắng ván ${roundWord}!`;
+    const winTemplates = [
+      `${phoneticWinner} đã xuất sắc giành chiến thắng ván ${roundWord}! Màn trình diễn quá đỉnh cao!`,
+      `Chiến thắng hoàn toàn thuộc về ${phoneticWinner}! ${phoneticWinner} đã thi đấu trên cơ hoàn toàn ở ván ${roundWord}!`,
+      `Hạ màn ván đấu! ${phoneticWinner} đã xuất sắc giành chiến thắng ván ${roundWord} đầy thuyết phục!`,
+      `Khúc khải hoàn vang lên! ${phoneticWinner} chính thức ca khúc khải hoàn ở ván ${roundWord}!`,
+      `Một chiến thắng ngọt ngào dành tặng tất cả người hâm mộ của ${phoneticWinner}!`,
+      `${phoneticWinner} đã giành chiến thắng chung cuộc ván ${roundWord}! Một chiến công cực kỳ rực rỡ!`,
+      `Tiếng còi mãn cuộc! Vinh quang tuyệt đối thuộc về các chiến binh ${phoneticWinner} ở ván ${roundWord}!`,
+    ];
+    const winDynamicText = winTemplates[Math.floor(Math.random() * winTemplates.length)];
 
     if (winnerTeam === leftKey) {
       VoiceManager.speakDynamic(winDynamicText, 'blue_win');

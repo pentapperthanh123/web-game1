@@ -22,6 +22,32 @@ export const TIKTOK_STATUS = {
   ERROR: 'ERROR',
 } as const;
 
+export const TIKTOK_CHECK_STATUS = {
+  LIVE: 'LIVE',
+  OFFLINE: 'OFFLINE',
+  USER_NOT_FOUND: 'USER_NOT_FOUND',
+  BLOCKED: 'BLOCKED',
+  ERROR: 'ERROR',
+} as const;
+
+export type TikTokCheckStatusCode = (typeof TIKTOK_CHECK_STATUS)[keyof typeof TIKTOK_CHECK_STATUS];
+
+export const TIKTOK_DIAGNOSTIC_TEXT = {
+  CHECK_BUTTON: 'Kiểm Tra Cấu Hình',
+  CHECKING_BUTTON: 'Đang kiểm tra...',
+  CHECK_TOOLTIP: '1 click kiểm tra cấu hình & kết nối tới tiktok-live-connector',
+  DISMISS: 'Đóng',
+  COPY_ROOM_ID: 'Sao chép Room ID',
+  COPIED: 'Đã chép!',
+  STATUS_LABELS: {
+    LIVE: 'ĐANG PHÁT TRỰC TIẾP',
+    OFFLINE: 'NGOẠI TUYẾN (CHƯA LIVE)',
+    USER_NOT_FOUND: 'KHÔNG TÌM THẤY USER',
+    BLOCKED: 'TIKTOK CHẶN WAF / IP',
+    ERROR: 'LỖI KẾT NỐI API',
+  },
+} as const;
+
 export const TIKTOK_RECONNECT_TEXT = {
   ATTEMPT: 'lần thử',
   RETRY_IN: 'thử lại sau',
@@ -32,5 +58,5 @@ export const TIKTOK_RECONNECT_TEXT = {
 export const COUNTDOWN_TICK_MS = 1000;
 export const MS_PER_SECOND = 1000;
 
-export const DEFAULT_TIKTOK_USERNAME = 'bap.media.lifestyle99';
+export const DEFAULT_TIKTOK_USERNAME = 'bap.daily.lifestyle99';
 

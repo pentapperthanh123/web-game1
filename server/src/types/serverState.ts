@@ -1,7 +1,7 @@
 import type { ChampionshipTallyReport } from '../constants/championshipTally.js';
 import type { GiftCatalogState, GiftConfigState } from '../constants/giftConfig.js';
 import type { Server } from 'socket.io';
-import type { WebcastPushConnection } from 'tiktok-live-connector';
+import type { WebcastPushConnection } from 'tiktok-live-connector/legacy';
 import type { TeamConfigState } from '../constants/teams.js';
 import type { GameThemeType, SeriesFormatConfig, SilverScrapesDuelState } from '../constants/series.js';
 import type { CasterConfig, ChatLimitConfig } from '../constants/liveOps.js';
@@ -127,7 +127,7 @@ export const SUMMON_QUEUE_LIMITS = {
 
 /** Mirrors client ROUND_CLOCK_CONSTANTS: 0 turns the round time limit off. */
 export const ROUND_DURATION_LIMITS = {
-  DEFAULT_MS: 240_000,
+  DEFAULT_MS: 0,
   NO_LIMIT_MS: 0,
   MAX_MS: 900_000,
 } as const;
@@ -140,7 +140,7 @@ export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
   maxDeployPerTurn: SUMMON_QUEUE_LIMITS.DEFAULT_DEPLOY_PER_TURN,
   summonTurnDelayMs: SUMMON_QUEUE_LIMITS.DEFAULT_TURN_DELAY_MS,
   championAttackSpeedMultiplier: SUMMON_QUEUE_LIMITS.DEFAULT_CHAMPION_ATTACK_SPEED_MULTIPLIER,
-  roundDurationMs: ROUND_DURATION_LIMITS.DEFAULT_MS,
+  roundDurationMs: ROUND_DURATION_LIMITS.NO_LIMIT_MS,
   seriesAutoStartMs: 15_000,
   matchRotationMode: 'random',
   enableComebackBuff: true,

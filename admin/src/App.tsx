@@ -139,9 +139,13 @@ export function App() {
           reconnectAttempt={socketSync.reconnectAttempt}
           nextRetryAt={socketSync.nextRetryAt}
           isConnecting={socketSync.isConnecting}
+          isChecking={socketSync.isCheckingTiktok}
+          checkResult={socketSync.tiktokCheckResult}
           onUsernameChange={socketSync.setTiktokUsername}
           onConnect={socketSync.handleConnectTiktok}
           onDisconnect={socketSync.handleDisconnectTiktok}
+          onCheckConnection={socketSync.handleCheckTiktok}
+          onDismissCheck={socketSync.handleDismissCheckResult}
         />
 
         {/* Team Configuration Panel */}

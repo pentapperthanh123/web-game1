@@ -4,7 +4,7 @@ import { TeamSlotKey } from './teams.js';
 export const DEFAULT_USE_USER_AVATAR = false;
 
 /** Default TikTok account username to connect (without leading @). */
-export const DEFAULT_TIKTOK_USERNAME = 'bap.media.lifestyle99';
+export const DEFAULT_TIKTOK_USERNAME = 'bap.daily.lifestyle99';
 
 export const TIKTOK_PIPELINE_CONSTANTS = {
   AFFINITY_TTL_MS: 4 * 60 * 60 * 1000,
@@ -110,4 +110,35 @@ export interface SimulationResult {
   streakCount?: number;
   reason?: string;
   stats: PipelineStatsSummary;
+}
+
+export const TIKTOK_CHECK_STATUS = {
+  LIVE: 'LIVE',
+  OFFLINE: 'OFFLINE',
+  USER_NOT_FOUND: 'USER_NOT_FOUND',
+  BLOCKED: 'BLOCKED',
+  ERROR: 'ERROR',
+} as const;
+
+export type TikTokCheckStatusCode = (typeof TIKTOK_CHECK_STATUS)[keyof typeof TIKTOK_CHECK_STATUS];
+
+export interface TikTokCheckResult {
+  success: boolean;
+  status: TikTokCheckStatusCode;
+  username: string;
+  roomId?: string;
+  title?: string;
+  streamerNickname?: string;
+  viewerCount?: number;
+  isLive: boolean;
+  latencyMs: number;
+  connectorVersion: string;
+  message: string;
+  checkedAt: number;
+  details?: {
+    rawStatus?: number;
+    activeSessionStatus: string;
+    hasActiveConnection: boolean;
+    activeRoomId?: string;
+  };
 }

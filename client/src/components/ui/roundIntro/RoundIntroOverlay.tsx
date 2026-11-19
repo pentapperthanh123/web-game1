@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Gift, Pause, Play, Swords, Timer, Trophy, Volume2 } from 'lucide-react';
 import { ROUND_INTRO_CONSTANTS, TEAM_KEY, getBossThemeForRound, getThemeConfig } from '../../../constants/game';
-import { CASTER_SPEAKER } from '../../../constants/caster';
 import { useGameStore } from '../../../store/gameStore';
 import {
   ROUND_HOLD_REASON,
@@ -22,12 +21,11 @@ import { playSound } from '../../../services/soundManager';
 import { audioService } from '../../../services/audioService';
 import { VoiceManager } from '../../../services/caster/VoiceManager';
 import { casterSpeechEngine } from '../../../services/caster/speechEngine';
-import { speakIntroNarration } from '../../../services/caster/introNarration';
 import { casterQueue } from '../../../services/caster/presentationQueue';
+import { getPhoneticTeamName, ROUND_NUMBER_WORDS } from '../../../services/caster/CommentaryDirector';
 import { SFX_EVENT } from '../../../constants/sfx';
 import { stopAllBossVoices } from '../../../services/bossVoice';
 import { requestRoundStart, triggerStartRoundCombat } from '../../../services/roundIntroActions';
-import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../../utils/introStar';
 import { GiftsPage, MatchupPage, RulesPage } from './RoundIntroPages';
 import { CinematicEsportsIntro } from './CinematicEsportsIntro';
 import { preloadCinematicIntroScore } from '../../../services/audio/cinematicIntroScore';
@@ -104,8 +102,6 @@ export const RoundIntroOverlay = () => {
   const bossMaxHp = useGameStore((state) => state.bossMaxHp);
   const isSilverScrapesActive = useGameStore((state) => state.silverScrapesState.isActive);
 
-  const leftStar = pickIntroStar(leftTeam, INTRO_STAR_FALLBACK_CHAMPION.LEFT);
-  const rightStar = pickIntroStar(rightTeam, INTRO_STAR_FALLBACK_CHAMPION.RIGHT);
   const holdReason = useRoundIntroStore((state) => state.holdReason);
   const isNewSeries = holdReason === ROUND_HOLD_REASON.NEW_SERIES;
 
@@ -197,6 +193,7 @@ export const RoundIntroOverlay = () => {
   useEffect(() => {
     return () => {
       narrationIdRef.current += 1;
+      VoiceManager.stopAll();
       audioService.setCombatMuted(false);
     };
   }, []);
@@ -282,9 +279,15 @@ export const RoundIntroOverlay = () => {
   const autoTab = resolveAutoTab(elapsed, isCompact);
   const activeTab = manualTab ?? autoTab;
 
-  // Trigger narration speech ONLY after start has been clicked (isManualHold is FALSE)
+  // Trigger narration speech when intro starts or when user clicks a tab
   useEffect(() => {
-    if (shownAt <= 0 || isSilverScrapesActive || isManualHold) {
+    // Silence when closed, during Silver Scrapes duel, during VS cinematic, or waiting in manual hold
+    if (
+      shownAt <= 0 ||
+      isSilverScrapesActive ||
+      isPlayingCinematic ||
+      (isManualHold && manualTab === null)
+    ) {
       narrationIdRef.current += 1;
       lastSpokenTabRef.current = null;
       audioService.cancelSpeech();
@@ -298,71 +301,89 @@ export const RoundIntroOverlay = () => {
     }
     lastSpokenTabRef.current = activeTab;
 
-    // Use pre-generated static audio for RULES and GIFTS tabs
-    if (activeTab === 'RULES') {
-      audioService.cancelSpeech();
-      casterSpeechEngine.interrupt();
-      casterQueue.clear();
-      VoiceManager.playCaster('intro_rules');
-      return;
-    }
+    narrationIdRef.current += 1;
+    const currentNarrationId = narrationIdRef.current;
+    audioService.cancelSpeech();
+    casterSpeechEngine.interrupt();
+    casterQueue.clear();
+    VoiceManager.stopAll();
 
-    if (activeTab === 'GIFTS') {
-      audioService.cancelSpeech();
-      casterSpeechEngine.interrupt();
-      casterQueue.clear();
-      VoiceManager.playCaster('intro_gifts');
-      return;
-    }
-
-    let speechText = '';
     if (activeTab === 'MATCHUP') {
-      speechText = t(
+      const leftPhonetic = getPhoneticTeamName(leftTeam.name || leftTeam.shortTag);
+      const rightPhonetic = getPhoneticTeamName(rightTeam.name || rightTeam.shortTag);
+      const roundWord = ROUND_NUMBER_WORDS[activeRound] || String(activeRound);
+
+      const speechText = t(
         'RoundIntro.speechMatchup',
         'Chào mừng các bạn đến với Kỳ Chung Kết Thế Giới! Ván {{round}}: {{left}} đại chiến {{right}}. Mục tiêu tiêu diệt Boss {{boss}}!',
         {
-          round: activeRound,
-          left: leftTeam.name,
-          right: rightTeam.name,
+          round: roundWord,
+          left: leftPhonetic,
+          right: rightPhonetic,
           boss: bossName,
         }
-      ).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
+      ).replace(/\{\{\s*round\s*\}\}/gi, roundWord);
+
+      const delayTimer = window.setTimeout(() => {
+        if (narrationIdRef.current === currentNarrationId) {
+          VoiceManager.speakDynamic(speechText);
+        }
+      }, 500);
+
+      return () => window.clearTimeout(delayTimer);
     }
 
-    if (speechText) {
-      narrationIdRef.current += 1;
-      const currentNarrationId = narrationIdRef.current;
-      audioService.cancelSpeech();
-      casterSpeechEngine.interrupt();
-      casterQueue.clear();
-      // On initial MATCHUP page, give 700ms breathing room for gong sound and visual entrance
-      const initialDelayMs = 700;
-      const speaker = CASTER_SPEAKER.A;
-      const fallbackText = t(
-        'Caster.lines.ROUND_GO.1',
-        'Đại chiến bùng nổ! Ván {{round}} chính thức bắt đầu, toàn lực xung trận!',
-        { round: activeRound }
-      ).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
-      void speakIntroNarration(
-        speechText,
-        () => narrationIdRef.current === currentNarrationId,
-        initialDelayMs,
-        speaker,
-        fallbackText
+    if (activeTab === 'RULES') {
+      const rulePart1 = t(
+        'RoundIntro.speechRulesPart1',
+        'Luật chơi rất đơn giản: Khán giả chat cú pháp tên tướng cách tên đội để triệu hồi tướng vào sàn đấu.'
       );
+      const rulePart2 = t(
+        'RoundIntro.speechRulesPart2',
+        'Bấm tim liên tục nạp Nộ kích hoạt Tuyệt Kỹ, đội nào dồn nhiều sát thương hơn lên Boss sẽ giành chiến thắng!'
+      );
+
+      const delayTimer = window.setTimeout(() => {
+        if (narrationIdRef.current === currentNarrationId) {
+          VoiceManager.speakDynamic(rulePart1);
+          VoiceManager.speakDynamic(rulePart2);
+        }
+      }, 300);
+
+      return () => window.clearTimeout(delayTimer);
+    }
+
+    if (activeTab === 'GIFTS') {
+      const giftPart1 = t(
+        'RoundIntro.speechGiftsPart1',
+        'Mỗi một xu quà tặng tương ứng một trăm hai mươi sát thương trực tiếp lên Boss!'
+      );
+      const giftPart2 = t(
+        'RoundIntro.speechGiftsPart2',
+        'Khán giả hãy xem bảng quà tặng ở góc phải màn hình để tiếp lửa cho các tuyển thủ nhé!'
+      );
+
+      const delayTimer = window.setTimeout(() => {
+        if (narrationIdRef.current === currentNarrationId) {
+          VoiceManager.speakDynamic(giftPart1);
+          VoiceManager.speakDynamic(giftPart2);
+        }
+      }, 300);
+
+      return () => window.clearTimeout(delayTimer);
     }
   }, [
     shownAt,
     activeTab,
+    manualTab,
     isManualHold,
     isSilverScrapesActive,
+    isPlayingCinematic,
     activeRound,
     leftTeam.name,
     rightTeam.name,
     leftTeam.shortTag,
     rightTeam.shortTag,
-    leftStar.signatureChampion,
-    rightStar.signatureChampion,
     bossName,
     t,
   ]);

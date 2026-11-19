@@ -3,6 +3,6 @@
   "targetWins": 3,
   "maxRounds": 5,
   "blgScore": 2,
-  "gengScore": 1,
+  "gengScore": 0,
   "currentRound": 4
 }

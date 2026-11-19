@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { adminSocket, GameThemeType } from '../services/socket';
+import { adminSocket, GameThemeType, TikTokCheckResult } from '../services/socket';
 import { createDefaultTeamConfig, TeamConfigState } from '../constants/teams';
 import { SeriesFormatConfig, DEFAULT_SERIES_CONFIG } from '../constants/series';
 import { DEFAULT_TIKTOK_USERNAME, TIKTOK_STATUS } from '../constants/adminAuth';
@@ -22,6 +22,8 @@ export function useAdminSocketSync(onLog: LogHandler) {
   const [tiktokRoomId, setTiktokRoomId] = useState<string>('');
   const [tiktokError, setTiktokError] = useState<string>('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isCheckingTiktok, setIsCheckingTiktok] = useState(false);
+  const [tiktokCheckResult, setTiktokCheckResult] = useState<TikTokCheckResult | null>(null);
   const [reconnectAttempt, setReconnectAttempt] = useState<number | undefined>(undefined);
   const [nextRetryAt, setNextRetryAt] = useState<number | undefined>(undefined);
 
@@ -111,6 +113,30 @@ export function useAdminSocketSync(onLog: LogHandler) {
     onLog('SYSTEM', 'Đã ngắt kết nối phòng TikTok Live');
   }, [onLog]);
 
+  const handleCheckTiktok = useCallback(async () => {
+    setIsCheckingTiktok(true);
+    try {
+      const result = await adminSocket.checkTiktokConnection(tiktokUsername);
+      setTiktokCheckResult(result);
+      if (result.roomId && !tiktokRoomId) {
+        setTiktokRoomId(result.roomId);
+      }
+      onLog(
+        'SYSTEM',
+        `⚡ [TikTok Check] @${result.username}: ${result.status} (${result.latencyMs}ms) - ${result.message}`
+      );
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      onLog('SYSTEM', `❌ [TikTok Check] Lỗi: ${message}`);
+    } finally {
+      setIsCheckingTiktok(false);
+    }
+  }, [tiktokUsername, tiktokRoomId, onLog]);
+
+  const handleDismissCheckResult = useCallback(() => {
+    setTiktokCheckResult(null);
+  }, []);
+
   const handleSelectTheme = useCallback(
     (theme: GameThemeType) => {
       setSelectedTheme(theme);
@@ -189,6 +215,8 @@ export function useAdminSocketSync(onLog: LogHandler) {
     reconnectAttempt,
     nextRetryAt,
     isConnecting,
+    isCheckingTiktok,
+    tiktokCheckResult,
     teamConfig,
     seriesConfig,
     bo5Score,
@@ -196,6 +224,8 @@ export function useAdminSocketSync(onLog: LogHandler) {
     selectedTheme,
     handleConnectTiktok,
     handleDisconnectTiktok,
+    handleCheckTiktok,
+    handleDismissCheckResult,
     handleSelectTheme,
     handleBo5Control,
   };

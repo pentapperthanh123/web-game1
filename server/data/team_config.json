@@ -1,142 +1,144 @@
 {
   "activeTeams": {
     "BLG": {
-      "id": "preset-tes",
-      "name": "Top Esports",
-      "shortTag": "TES",
+      "id": "preset-t1",
+      "name": "T1",
+      "shortTag": "T1",
       "aliases": [
-        "TES",
-        "TOP ESPORTS"
+        "T1",
+        "SKT",
+        "FAKER"
       ],
       "autoSyncRosterAliases": true,
-      "colorTheme": "red",
-      "logoUrl": "/images/teams/tes.png",
+      "colorTheme": "rose",
+      "logoUrl": "/images/teams/t1.svg",
       "isPreset": true,
       "roster": [
         {
-          "id": "blg-preset-tes-top-0",
-          "name": "369",
+          "id": "blg-preset-t1-top-0",
+          "name": "Doran",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "Renekton",
-          "championKey": "Renekton",
+          "signatureChampion": "Ambessa",
+          "championKey": "Ambessa",
           "team": "BLG",
-          "color": "#f87171",
-          "avatarUrl": "/images/players/369.png"
+          "color": "#fb7185",
+          "avatarUrl": "/images/players/doran.png"
         },
         {
-          "id": "blg-preset-tes-jug-1",
-          "name": "Kanavi",
+          "id": "blg-preset-t1-jug-1",
+          "name": "Oner",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Wukong",
-          "championKey": "MonkeyKing",
+          "signatureChampion": "Vi",
+          "championKey": "Vi",
           "team": "BLG",
-          "color": "#ef4444",
-          "avatarUrl": "/images/players/kanavi.png"
+          "color": "#f43f5e",
+          "avatarUrl": "/images/players/oner.png"
         },
         {
-          "id": "blg-preset-tes-mid-2",
-          "name": "Creme",
+          "id": "blg-preset-t1-mid-2",
+          "name": "Faker",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "Akali",
-          "championKey": "Akali",
+          "signatureChampion": "Azir",
+          "championKey": "Azir",
           "team": "BLG",
-          "color": "#fca5a5",
-          "avatarUrl": "/images/players/creme.png"
+          "color": "#e11d48",
+          "avatarUrl": "/images/players/faker.png"
         },
         {
-          "id": "blg-preset-tes-adc-3",
-          "name": "JackeyLove",
+          "id": "blg-preset-t1-adc-3",
+          "name": "Peyz",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Draven",
-          "championKey": "Draven",
+          "signatureChampion": "Xayah",
+          "championKey": "Xayah",
           "team": "BLG",
-          "color": "#dc2626",
-          "avatarUrl": "/images/players/jackeylove.png"
+          "color": "#fb7185",
+          "avatarUrl": "/images/players/peyz.png"
         },
         {
-          "id": "blg-preset-tes-sup-4",
-          "name": "Crisp",
+          "id": "blg-preset-t1-sup-4",
+          "name": "Keria",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Nautilus",
-          "championKey": "Nautilus",
+          "signatureChampion": "Thresh",
+          "championKey": "Thresh",
           "team": "BLG",
-          "color": "#f87171",
-          "avatarUrl": "/images/players/crisp.png"
+          "color": "#fda4af",
+          "avatarUrl": "/images/players/keria.png"
         }
       ]
     },
     "GENG": {
-      "id": "preset-al",
-      "name": "Anyone's Legend",
-      "shortTag": "AL",
+      "id": "preset-geng",
+      "name": "Gen.G Esports",
+      "shortTag": "GEN",
       "aliases": [
-        "AL",
-        "ANYONE"
+        "GEN",
+        "GENG",
+        "GEN.G"
       ],
       "autoSyncRosterAliases": true,
-      "colorTheme": "violet",
-      "logoUrl": "/images/teams/al.webp",
+      "colorTheme": "amber",
+      "logoUrl": "/images/teams/geng.svg",
       "isPreset": true,
       "roster": [
         {
-          "id": "geng-preset-al-top-0",
-          "name": "Flandre",
+          "id": "geng-preset-geng-top-0",
+          "name": "Kiin",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "Gnar",
-          "championKey": "Gnar",
+          "signatureChampion": "K'Sante",
+          "championKey": "KSante",
           "team": "GENG",
-          "color": "#a78bfa",
-          "avatarUrl": "/images/players/flandre.png"
+          "color": "#f59e0b",
+          "avatarUrl": "/images/players/kiin.png"
         },
         {
-          "id": "geng-preset-al-jug-1",
-          "name": "Tarzan",
+          "id": "geng-preset-geng-jug-1",
+          "name": "Canyon",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Lee Sin",
-          "championKey": "LeeSin",
+          "signatureChampion": "Nidalee",
+          "championKey": "Nidalee",
           "team": "GENG",
-          "color": "#8b5cf6",
-          "avatarUrl": "/images/players/tarzan.png"
+          "color": "#fbbf24",
+          "avatarUrl": "/images/players/canyon.png"
         },
         {
-          "id": "geng-preset-al-mid-2",
-          "name": "Shanks",
+          "id": "geng-preset-geng-mid-2",
+          "name": "Chovy",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "Orianna",
-          "championKey": "Orianna",
+          "signatureChampion": "Yone",
+          "championKey": "Yone",
           "team": "GENG",
-          "color": "#c4b5fd",
-          "avatarUrl": "/images/players/shanks.png"
+          "color": "#eab308",
+          "avatarUrl": "/images/players/chovy.png"
         },
         {
-          "id": "geng-preset-al-adc-3",
-          "name": "Hope",
+          "id": "geng-preset-geng-adc-3",
+          "name": "Ruler",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Lucian",
-          "championKey": "Lucian",
+          "signatureChampion": "Ezreal",
+          "championKey": "Ezreal",
           "team": "GENG",
-          "color": "#7c3aed",
-          "avatarUrl": "/images/players/hope.png"
+          "color": "#f97316",
+          "avatarUrl": "/images/players/ruler.png"
         },
         {
-          "id": "geng-preset-al-sup-4",
-          "name": "Kael",
+          "id": "geng-preset-geng-sup-4",
+          "name": "Duro",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Alistar",
-          "championKey": "Alistar",
+          "signatureChampion": "Nautilus",
+          "championKey": "Nautilus",
           "team": "GENG",
-          "color": "#a78bfa",
-          "avatarUrl": "/images/players/kael.png"
+          "color": "#d97706",
+          "avatarUrl": "/images/players/duro.png"
         }
       ]
     }

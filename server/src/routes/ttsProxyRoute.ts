@@ -41,7 +41,6 @@ export function registerTtsProxyRoute(app: Express): void {
     if (cached) {
       audioCache.delete(text);
       audioCache.set(text, cached);
-      console.log(`${LOG_PREFIX} Cache hit: "${text.slice(0, 40)}…"`);
       res.set('Content-Type', TTS_PROXY.CONTENT_TYPE);
       res.set('Cache-Control', TTS_PROXY.CACHE_CONTROL);
       res.send(cached);
@@ -74,7 +73,6 @@ export function registerTtsProxyRoute(app: Express): void {
 
       evictIfFull();
       audioCache.set(text, audio);
-      console.log(`${LOG_PREFIX} Fetched & cached: "${text.slice(0, 40)}…" (${audio.length} bytes)`);
 
       res.set('Content-Type', TTS_PROXY.CONTENT_TYPE);
       res.set('Cache-Control', TTS_PROXY.CACHE_CONTROL);

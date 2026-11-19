@@ -25,7 +25,7 @@ function releaseBusyPortListener(port: number): void {
 }
 
 /**
- * Attaches graceful shutdown handlers and EADDRINUSE auto-recovery to the HTTP server.
+ * Attaches graceful shutdown handlers, uncaught error guards, and EADDRINUSE auto-recovery to the HTTP server.
  */
 export function attachServerLifecycle(
   httpServer: HttpServer,
@@ -60,6 +60,15 @@ export function attachServerLifecycle(
 
   process.on('SIGINT', () => shutdownGracefully('SIGINT'));
   process.on('SIGTERM', () => shutdownGracefully('SIGTERM'));
+
+  // Critical live guards: prevent unexpected unhandled exceptions or rejected promises from crashing the server
+  process.on('uncaughtException', (err: Error) => {
+    console.error('💥 [Server Critical] Uncaught Exception detected in live session:', err);
+  });
+
+  process.on('unhandledRejection', (reason: unknown) => {
+    console.error('⚠️ [Server Critical] Unhandled Promise Rejection detected in live session:', reason);
+  });
 
   httpServer.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code !== 'EADDRINUSE') {

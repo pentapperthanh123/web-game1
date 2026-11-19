@@ -56,6 +56,27 @@ export interface TiktokStatusPayload {
   nextRetryAt?: number;
 }
 
+export interface TikTokCheckResult {
+  success: boolean;
+  status: 'LIVE' | 'OFFLINE' | 'USER_NOT_FOUND' | 'BLOCKED' | 'ERROR';
+  username: string;
+  roomId?: string;
+  title?: string;
+  streamerNickname?: string;
+  viewerCount?: number;
+  isLive: boolean;
+  latencyMs: number;
+  connectorVersion: string;
+  message: string;
+  checkedAt: number;
+  details?: {
+    rawStatus?: number;
+    activeSessionStatus: string;
+    hasActiveConnection: boolean;
+    activeRoomId?: string;
+  };
+}
+
 export interface AuthErrorPayload {
   event?: string;
 }
@@ -722,6 +743,19 @@ class AdminSocketService {
     return () => {
       this.socket?.off('game:participation-rules', handler);
     };
+  }
+
+  public async checkTiktokConnection(username?: string): Promise<TikTokCheckResult> {
+    const res = await fetch(`${SERVER_URL}/api/tiktok/check`, {
+      method: HTTP_METHOD_POST,
+      headers: buildAdminHeaders(HTTP_METHOD_POST, JSON_HEADERS),
+      body: JSON.stringify({ username }),
+    });
+    if (!res.ok) {
+      const errJson = (await res.json().catch(() => null)) as { message?: string } | null;
+      throw new Error(errJson?.message || `HTTP ${res.status}: Không thể kiểm tra TikTok Connector`);
+    }
+    return (await res.json()) as TikTokCheckResult;
   }
 
   public async connectTiktokRoom(username: string): Promise<any> {

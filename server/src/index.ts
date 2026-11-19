@@ -133,7 +133,7 @@ attachServerLifecycle(httpServer, io, PORT, () => {
   playerProfileService.flush();
 });
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   logServerListeningBanner(PORT);
   void opsAlerts.sendOpsAlert(OPS_ALERT_KIND.SERVER_START);
 

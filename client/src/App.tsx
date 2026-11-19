@@ -461,6 +461,9 @@ export function App() {
 
     const intervalId = setInterval(() => {
       const state = useGameStore.getState();
+      if (!state.participationRuleConfig.enableAutoVanguard) {
+        return;
+      }
       if (
         isCurrentRoundIntroActive() ||
         state.bossStatus === BOSS_STATUS.DEFEATED ||

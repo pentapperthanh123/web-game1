@@ -388,6 +388,10 @@ export const AdminSummonTab: React.FC = () => {
                 key: 'allowChampionEvolution',
                 label: t('Admin.ruleEvolveLabel', 'Gõ Tướng khác để Tiến Hóa'),
               },
+              {
+                key: 'enableAutoVanguard',
+                label: t('Admin.ruleAutoVanguardLabel', 'Tự động thả lính Tiên Phong khi sàn vắng'),
+              },
             ] as const
           ).map((rule) => {
             const isEnabled = participationRuleConfig[rule.key];

@@ -18,11 +18,30 @@ export const refreshGiftCatalog = async (ctx: ServerContext): Promise<void> => {
     return;
   }
   try {
-    const rawGifts: unknown = await connection.getAvailableGifts();
+    const connAny = connection as unknown as Record<string, unknown>;
+    const cachedGifts = Array.isArray(connAny._availableGifts) && connAny._availableGifts.length > 0
+      ? connAny._availableGifts
+      : null;
+    if (cachedGifts) {
+      ctx.state.giftCatalog = { items: toGiftCatalog(cachedGifts), fetchedAt: Date.now(), error: null };
+      console.log(`${LOG_PREFIX} loaded ${ctx.state.giftCatalog.items.length} gifts from cache`);
+      ctx.io.emit(GIFT_CONFIG_EVENT.GAME_CATALOG, ctx.state.giftCatalog);
+      return;
+    }
+
+    const fetchFn = typeof connAny.fetchAvailableGifts === 'function'
+      ? (connAny.fetchAvailableGifts as () => Promise<unknown>).bind(connection)
+      : typeof connAny.getAvailableGifts === 'function'
+        ? (connAny.getAvailableGifts as () => Promise<unknown>).bind(connection)
+        : () => Promise.resolve([]);
+    const rawGifts: unknown = await fetchFn();
     ctx.state.giftCatalog = { items: toGiftCatalog(rawGifts), fetchedAt: Date.now(), error: null };
     console.log(`${LOG_PREFIX} loaded ${ctx.state.giftCatalog.items.length} gifts`);
   } catch (error) {
-    console.warn(`${LOG_PREFIX} could not load the gift list: ${describeError(error)}`);
+    const msg = describeError(error);
+    if (!msg.includes('Business plan')) {
+      console.warn(`${LOG_PREFIX} could not load the gift list: ${msg}`);
+    }
     ctx.state.giftCatalog = { ...ctx.state.giftCatalog, error: GIFT_CATALOG_ERROR.FETCH_FAILED };
   }
   ctx.io.emit(GIFT_CONFIG_EVENT.GAME_CATALOG, ctx.state.giftCatalog);
