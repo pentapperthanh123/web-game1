@@ -48,8 +48,8 @@ export const CASTER_TTS_PROVIDER = {
   VIET_TTS: 'VIET_TTS',
 } as const;
 
-/** Google for now (decided 2026-11-14): Edge is too flaky from the streaming PC; switch with CASTER_TTS_PROVIDER. */
-export const DEFAULT_CASTER_TTS_PROVIDER: CasterTtsProviderName = CASTER_TTS_PROVIDER.GOOGLE_TRANSLATE;
+/** Viet-TTS (cdteam & quynh) as standard primary esports caster voice. */
+export const DEFAULT_CASTER_TTS_PROVIDER: CasterTtsProviderName = CASTER_TTS_PROVIDER.VIET_TTS;
 
 /** Value of CASTER_TTS_FALLBACK_VOICE that keeps Google behind the primary voice. */
 export const GOOGLE_FALLBACK_ENV_VALUE = 'GOOGLE';
@@ -61,6 +61,7 @@ export const CASTER_TTS_FAILURE = {
   BLOCKED_TEXT: 'BLOCKED_TEXT',
   RATE_LIMITED: 'RATE_LIMITED',
   PROVIDER_ERROR: 'PROVIDER_ERROR',
+  NOT_IN_STATIC_CACHE: 'NOT_IN_STATIC_CACHE',
 } as const;
 export type CasterTtsFailure = (typeof CASTER_TTS_FAILURE)[keyof typeof CASTER_TTS_FAILURE];
 
@@ -70,6 +71,7 @@ export const CASTER_TTS_HTTP_STATUS: Readonly<Record<CasterTtsFailure, number>> 
   [CASTER_TTS_FAILURE.BLOCKED_TEXT]: 422,
   [CASTER_TTS_FAILURE.RATE_LIMITED]: 429,
   [CASTER_TTS_FAILURE.PROVIDER_ERROR]: 502,
+  [CASTER_TTS_FAILURE.NOT_IN_STATIC_CACHE]: 404,
 };
 
 export const CASTER_TTS_ENV = {
@@ -154,7 +156,7 @@ export const EDGE_TTS = {
   /** Without a fallback voice: a second attempt starts if the first has not answered by then (hedging). */
   HEDGE_DELAY_MS: 1_500,
   /** Without a fallback voice: the request gives up after this (the overlay shows the caption only). */
-  LIVE_DEADLINE_MS: 9_000,
+  LIVE_DEADLINE_MS: 3_000,
   /** Background upgrade attempts after a fallback answer. */
   UPGRADE_TIMEOUT_MS: 15_000,
   UPGRADE_ATTEMPTS: 3,

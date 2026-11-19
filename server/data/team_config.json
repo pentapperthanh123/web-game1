@@ -1,73 +1,73 @@
 {
   "activeTeams": {
     "BLG": {
-      "id": "preset-dk",
-      "name": "Dplus KIA",
-      "shortTag": "DK",
+      "id": "preset-geng",
+      "name": "Gen.G Esports",
+      "shortTag": "GEN",
       "aliases": [
-        "DK",
-        "DPLUS",
-        "DAMWON"
+        "GEN",
+        "GENG",
+        "GEN.G"
       ],
       "autoSyncRosterAliases": true,
-      "colorTheme": "blue",
-      "logoUrl": "/images/teams/dk.svg",
+      "colorTheme": "amber",
+      "logoUrl": "/images/teams/geng.svg",
       "isPreset": true,
       "roster": [
         {
-          "id": "blg-preset-dk-top-0",
-          "name": "Siwoo",
+          "id": "blg-preset-geng-top-0",
+          "name": "Kiin",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "Camille",
-          "championKey": "Camille",
+          "signatureChampion": "K'Sante",
+          "championKey": "KSante",
           "team": "BLG",
-          "color": "#60a5fa",
-          "avatarUrl": "/images/players/siwoo.png"
+          "color": "#f59e0b",
+          "avatarUrl": "/images/players/kiin.png"
         },
         {
-          "id": "blg-preset-dk-jug-1",
-          "name": "Lucid",
+          "id": "blg-preset-geng-jug-1",
+          "name": "Canyon",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Viego",
-          "championKey": "Viego",
+          "signatureChampion": "Nidalee",
+          "championKey": "Nidalee",
           "team": "BLG",
-          "color": "#3b82f6",
-          "avatarUrl": "/images/players/lucid.png"
+          "color": "#fbbf24",
+          "avatarUrl": "/images/players/canyon.png"
         },
         {
-          "id": "blg-preset-dk-mid-2",
-          "name": "ShowMaker",
+          "id": "blg-preset-geng-mid-2",
+          "name": "Chovy",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "LeBlanc",
-          "championKey": "Leblanc",
+          "signatureChampion": "Yone",
+          "championKey": "Yone",
           "team": "BLG",
-          "color": "#93c5fd",
-          "avatarUrl": "/images/players/showmaker.png"
+          "color": "#eab308",
+          "avatarUrl": "/images/players/chovy.png"
         },
         {
-          "id": "blg-preset-dk-adc-3",
-          "name": "Aiming",
+          "id": "blg-preset-geng-adc-3",
+          "name": "Ruler",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Zeri",
-          "championKey": "Zeri",
+          "signatureChampion": "Ezreal",
+          "championKey": "Ezreal",
           "team": "BLG",
-          "color": "#2563eb",
-          "avatarUrl": "/images/players/aiming.png"
+          "color": "#f97316",
+          "avatarUrl": "/images/players/ruler.png"
         },
         {
-          "id": "blg-preset-dk-sup-4",
-          "name": "BeryL",
+          "id": "blg-preset-geng-sup-4",
+          "name": "Duro",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Braum",
-          "championKey": "Braum",
+          "signatureChampion": "Nautilus",
+          "championKey": "Nautilus",
           "team": "BLG",
-          "color": "#60a5fa",
-          "avatarUrl": "/images/players/beryl.png"
+          "color": "#d97706",
+          "avatarUrl": "/images/players/duro.png"
         }
       ]
     },

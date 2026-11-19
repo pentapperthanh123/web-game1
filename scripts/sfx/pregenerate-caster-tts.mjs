@@ -157,8 +157,19 @@ const extractTeamTags = (source) => {
   return Array.from(tags);
 };
 
-/** Signals spoken by Speaker B (Analyst / Female voice when duo is enabled). */
-const FEMALE_ROLE_SIGNALS = new Set(['EMPTY_FIELD_RALLY', 'SERIES_OUTRO', 'PRO_MVP']);
+/** Signals spoken by Speaker B (Analyst / Female voice "quynh" when duo is enabled). */
+const FEMALE_ROLE_SIGNALS = new Set([
+  'EMPTY_FIELD_RALLY',
+  'SERIES_OUTRO',
+  'PRO_MVP',
+  'PODIUM_THANKS',
+  'NEXT_MATCH',
+  'BANTER_GUIDE',
+  'BANTER_CTA',
+  'BANTER_LEAD',
+  'BANTER_FIELD',
+  'HEART_MILESTONE',
+]);
 
 /** Collects all static / predictable spoken lines across all bosses, skills, rounds, and teams. */
 const collectAllStaticLines = (viJson, bossNames, skillsByArray, teamTags) => {
@@ -454,8 +465,10 @@ const main = async () => {
   const allEntries = loadEntries(viJson);
   const entries = limitArg > 0 ? allEntries.slice(0, limitArg) : allEntries;
 
+  const maleCount = entries.filter((e) => e.role === ROLE_MALE).length;
+  const femaleCount = entries.filter((e) => e.role === ROLE_FEMALE).length;
   console.log(
-    `[PregenerateTTS] Selected ${entries.length}/${allEntries.length} static caster lines. Provider: ${activeProvider}`
+    `[PregenerateTTS] Selected ${entries.length}/${allEntries.length} static caster lines (Male: ${maleCount}, Female: ${femaleCount}). Provider: ${activeProvider}`
   );
   if (activeProvider === 'VIET_TTS') {
     console.log(

@@ -33,6 +33,7 @@ import { TeamRosterBar } from './TeamRosterBar';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
+import { BossEnrageVignette } from '../arena/BossEnrageVignette';
 import { BossPhaseShiftBanner } from '../arena/BossPhaseShiftBanner';
 import { BossSkillBanner } from './BossSkillBanner';
 import { RoundClockBadge } from './RoundClockBadge';
@@ -186,6 +187,7 @@ export const HUDOverlay = () => {
       {/* Incandescent Flash on Ultimates */}
       {!isSilverScrapesActive && (
         <>
+          <BossEnrageVignette />
           <ScreenFlash />
           <BossSkillCastLayer />
           <SwarmLegionCanvas />

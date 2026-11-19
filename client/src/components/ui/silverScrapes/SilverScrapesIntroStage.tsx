@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Flame, Swords, ShieldAlert, Sparkles, Zap } from 'lucide-react';
 import { DuelFighter } from '../../../types/game';
 import { TeamColorPalette } from '../../../constants/teams';
+import { SilverScrapesEqualizerBars } from './SilverScrapesVisualizer';
 
 interface SilverScrapesIntroStageProps {
   leftFighter: DuelFighter;
@@ -47,9 +48,13 @@ export const SilverScrapesIntroStage: React.FC<SilverScrapesIntroStageProps> = R
             {t('SilverScrapes.introTitle', 'SILVER SCRAPES')}
           </h1>
 
-          <p className="text-xs sm:text-sm font-black tracking-[0.25em] text-cyan-300 uppercase drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
-            {t('SilverScrapes.introSubtitle', 'ĐẠI CHIẾN ĐỘC TÔN 1V1')}
-          </p>
+          <div className="inline-flex items-center gap-2">
+            <SilverScrapesEqualizerBars colorClass="bg-cyan-400" size="xs" />
+            <p className="text-xs sm:text-sm font-black tracking-[0.25em] text-cyan-300 uppercase drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+              {t('SilverScrapes.introSubtitle', 'ĐẠI CHIẾN ĐỘC TÔN 1V1')}
+            </p>
+            <SilverScrapesEqualizerBars colorClass="bg-amber-400" size="xs" />
+          </div>
         </div>
 
         {/* 2. Fighters Clash Stage (Left vs Right) */}

@@ -63,7 +63,7 @@ export interface SpeakOptions {
   rate?: number;
 }
 
-interface TtsQueueItem {
+export interface TtsQueueItem {
   text: string;
   rate: number;
 }
@@ -81,7 +81,7 @@ export const TTS_CONSTANTS = {
 /** Digit runs of 4+ are IDs or raw amounts nobody wants read aloud. */
 const LONG_NUMBER_PATTERN = /\d{4,}/g;
 
-const sanitizeSpeechText = (text: string): string =>
+export const sanitizeSpeechText = (text: string): string =>
   text
     .replace(/(_\d+)+/g, '')
     .replace(LONG_NUMBER_PATTERN, '')
@@ -102,7 +102,6 @@ class AudioSynthesizerService {
   public isTtsEnabled: boolean = GAME_CONSTANTS.AUDIO.DEFAULT_TTS_ENABLED;
   public volume: number = GAME_CONSTANTS.AUDIO.DEFAULT_VOLUME;
   public isCombatMuted: boolean = false;
-
   public setVolume(volume: number): void {
     this.volume = Math.max(0, Math.min(1, volume));
     if (this.masterGain && this.ctx) {
@@ -121,8 +120,6 @@ class AudioSynthesizerService {
     }
   }
 
-  private isSpeaking = false;
-  private ttsQueue: TtsQueueItem[] = [];
   private lastRoarSoundTime = 0;
   private lastComboSoundTime = 0;
   private lastHeartChimeTime = 0;
@@ -385,37 +382,9 @@ class AudioSynthesizerService {
   }
 
   // 1c. Subtle Ambient Breathing Whoosh (Periodic ambient idle sound)
-  public playBossIdleBreath(pitchRateOrElder: number | boolean = 1.0): void {
-    const pitch = typeof pitchRateOrElder === 'number' ? pitchRateOrElder : (pitchRateOrElder ? 1.0 : 0.85);
-    if (!this.isAudioEnabled || this.isCombatMuted) return;
-    const ctx = this.getAudioContext();
-    if (!ctx) return;
-
-    const t = ctx.currentTime;
-    const out = this.getOutputNode(0);
-    const vol = this.volume * 0.12;
-
-    const noise = ctx.createBufferSource();
-    noise.buffer = this.getNoiseBuffer(ctx);
-    const filter = ctx.createBiquadFilter();
-    const gain = ctx.createGain();
-
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(380 * pitch, t);
-    filter.frequency.linearRampToValueAtTime(620 * pitch, t + 0.4);
-    filter.frequency.exponentialRampToValueAtTime(280, t + 0.9);
-    filter.Q.value = 1.6;
-
-    gain.gain.setValueAtTime(0.01 * vol, t);
-    gain.gain.linearRampToValueAtTime(0.26 * vol, t + 0.35);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(out);
-
-    noise.start(t);
-    noise.stop(t + 0.95);
+  public playBossIdleBreath(_pitchRateOrElder: number | boolean = 1.0): void {
+    // Disabled boss breathing sound per user request
+    return;
   }
 
   // 2. Heroic Champion Summon Arrival SFX ("Bay ra ngẫu nhiên & tiếp đất")
@@ -2098,8 +2067,6 @@ class AudioSynthesizerService {
         window.speechSynthesis.resume();
       }
     }
-    this.ttsQueue = [];
-    this.isSpeaking = false;
   }
 
   public speakImmediate(text: string, options: SpeakOptions = {}): void {
@@ -2109,70 +2076,10 @@ class AudioSynthesizerService {
     }, 30);
   }
 
-  public speak(text: string, options: SpeakOptions = {}): void {
-    if (!this.isTtsEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      return;
-    }
-
-    const sanitized = sanitizeSpeechText(text);
-    if (!sanitized) return;
-
-    if (this.ttsQueue.length >= TTS_CONSTANTS.MAX_QUEUE) {
-      this.ttsQueue.shift();
-    }
-    const rate = options.rate ?? TTS_CONSTANTS.DEFAULT_RATE;
-    this.ttsQueue.push({ text: sanitized, rate });
-    this.processTtsQueue();
-  }
-
-  private processTtsQueue(): void {
-    if (this.isSpeaking || this.ttsQueue.length === 0) return;
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      this.isSpeaking = false;
-      return;
-    }
-
-    const item = this.ttsQueue.shift();
-    if (!item) return;
-
-    const { text, rate } = item;
-    this.isSpeaking = true;
-    const isEn =
-      /^[a-zA-Z0-9\s.,!?:;'"()-]+$/.test(text) &&
-      !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(text);
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = isEn ? 'en-US' : 'vi-VN';
-    utterance.rate = rate;
-    utterance.volume = this.volume;
-
-    // Pick a natural voice matching language if installed in browser
-    const voices = window.speechSynthesis.getVoices();
-    const targetPrefix = isEn ? 'en' : 'vi';
-    const matchedVoice = voices.find((v) => v.lang.toLowerCase().startsWith(targetPrefix));
-    if (matchedVoice) {
-      utterance.voice = matchedVoice;
-    } else if (!isEn) {
-      // STRICT: Never allow the OS default English voice (e.g. Microsoft David) to spell Vietnamese phonetically
-      this.isSpeaking = false;
-      this.processTtsQueue();
-      return;
-    }
-
-    utterance.onend = () => {
-      this.isSpeaking = false;
-      setTimeout(() => this.processTtsQueue(), 150);
-    };
-
-    utterance.onerror = () => {
-      this.isSpeaking = false;
-      this.processTtsQueue();
-    };
-
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-    window.speechSynthesis.speak(utterance);
+  public speak(_text: string, _options: SpeakOptions = {}): void {
+    // STRICT: Browser speechSynthesis is completely disabled to eliminate all "chị Google" voices.
+    // Audio is strictly played via pregenerated static audio clips through useAudioStore / Howler.
+    return;
   }
 }
 

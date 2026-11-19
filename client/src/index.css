@@ -1894,6 +1894,41 @@
   animation: emberDrift 2.7s ease-out 1.2s infinite;
 }
 
+/* Intro Clash Arena Ken Burns Background Animations */
+@keyframes introKenBurns {
+  0% {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: scale(1.07) translate3d(-0.8%, -0.8%, 0);
+  }
+  100% {
+    transform: scale(1.14) translate3d(0.8%, 0.4%, 0);
+  }
+}
+
+.animate-intro-ken-burns {
+  animation: introKenBurns 3.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: transform;
+}
+
+@keyframes introKenBurnsAmbient {
+  0% {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: scale(1.05) translate3d(0.8%, -0.8%, 0);
+  }
+  100% {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+.animate-intro-ken-burns-ambient {
+  animation: introKenBurnsAmbient 18s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
 /* Tier 5 God Effect & VIP Animations */
 @keyframes gradientX {
   0%, 100% {
@@ -1964,5 +1999,134 @@
 .animate-leaderboard-cycle-bar {
   animation: leaderboardCycleBar 10s linear forwards;
 }
+
+/* Silver Scrapes Equalizer Rhythm Bars */
+@keyframes silverScrapesBeat {
+  0%, 100% {
+    transform: scaleY(0.25);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-silver-scrapes-beat-1 {
+  transform-origin: bottom;
+  animation: silverScrapesBeat 0.42s ease-in-out infinite;
+}
+
+.animate-silver-scrapes-beat-2 {
+  transform-origin: bottom;
+  animation: silverScrapesBeat 0.34s ease-in-out 0.1s infinite;
+}
+
+.animate-silver-scrapes-beat-3 {
+  transform-origin: bottom;
+  animation: silverScrapesBeat 0.48s ease-in-out 0.18s infinite;
+}
+
+.animate-silver-scrapes-beat-4 {
+  transform-origin: bottom;
+  animation: silverScrapesBeat 0.38s ease-in-out 0.06s infinite;
+}
+
+/* Silver Scrapes Stadium Laser Sweep */
+@keyframes stadiumLaserLeft {
+  0%, 100% {
+    transform: rotate(-18deg) scaleY(1);
+    opacity: 0.22;
+  }
+  50% {
+    transform: rotate(12deg) scaleY(1.08);
+    opacity: 0.38;
+  }
+}
+
+@keyframes stadiumLaserRight {
+  0%, 100% {
+    transform: rotate(18deg) scaleY(1);
+    opacity: 0.22;
+  }
+  50% {
+    transform: rotate(-12deg) scaleY(1.08);
+    opacity: 0.38;
+  }
+}
+
+.animate-stadium-laser-left {
+  transform-origin: top left;
+  animation: stadiumLaserLeft 4.5s ease-in-out infinite;
+}
+
+.animate-stadium-laser-right {
+  transform-origin: top right;
+  animation: stadiumLaserRight 4.5s ease-in-out infinite;
+}
+
+/* Boss Enrage Heartbeat Danger Vignette (Compact 9:16 Safe) */
+@keyframes enrageDangerPulse {
+  0%, 100% {
+    opacity: 0.14;
+  }
+  30% {
+    opacity: 0.32;
+  }
+  50% {
+    opacity: 0.2;
+  }
+  70% {
+    opacity: 0.35;
+  }
+}
+
+.animate-enrage-vignette {
+  animation: enrageDangerPulse 1.6s ease-in-out infinite;
+}
+
+/* Electric Arc Flicker for Tug-of-War Clash */
+@keyframes electricArcFlicker {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scale(1) rotate(0deg);
+  }
+  33% {
+    opacity: 0.5;
+    transform: scale(1.12) rotate(12deg);
+  }
+  66% {
+    opacity: 1;
+    transform: scale(0.95) rotate(-10deg);
+  }
+}
+
+.animate-electric-arc {
+  animation: electricArcFlicker 0.24s linear infinite;
+}
+
+/* Silver Scrapes Kinetic Clash Micro-Shake */
+@keyframes duelClashShake {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-2px, 1px, 0);
+  }
+  40% {
+    transform: translate3d(2px, -1px, 0);
+  }
+  60% {
+    transform: translate3d(-1.5px, -1px, 0);
+  }
+  80% {
+    transform: translate3d(1.5px, 1px, 0);
+  }
+}
+
+.animate-duel-clash-shake {
+  animation: duelClashShake 0.22s ease-out;
+}
+
 
 

@@ -264,7 +264,20 @@ class MockLiveSimulator {
     const pool = roster.length > 0 ? roster.map((p) => p.signatureChampion) : FALLBACK_CHAMPIONS;
     const champion = pool[Math.floor(Math.random() * pool.length)];
 
-    state.summonMinion(viewerName, champion, targetTeam);
+    // Simulate diverse viewer levels: mostly 1-5, some 6-15, few 16-29, rare 30+
+    const rand = Math.random();
+    let simLevel = 1;
+    if (rand > 0.92) {
+      simLevel = Math.floor(Math.random() * 10) + 30;
+    } else if (rand > 0.75) {
+      simLevel = Math.floor(Math.random() * 14) + 16;
+    } else if (rand > 0.45) {
+      simLevel = Math.floor(Math.random() * 10) + 6;
+    } else {
+      simLevel = Math.floor(Math.random() * 5) + 1;
+    }
+
+    state.summonMinion(viewerName, champion, targetTeam, false, undefined, true, false, simLevel);
     state.addChatMessage(viewerName, `${champion} ${teamTag}`, targetTeam, champion);
 
     this.summonsCount += 1;

@@ -34,7 +34,7 @@ interface CasterState {
 
 /** Kept outside the game store so caster updates never re-render the arena. */
 export const useCasterStore = create<CasterState>(() => ({
-  isTtsEnabled: false,
+  isTtsEnabled: true,
   isNameReadingEnabled: true,
   isDuoEnabled: true,
   subtitle: null,

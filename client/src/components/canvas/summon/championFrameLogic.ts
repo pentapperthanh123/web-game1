@@ -1,6 +1,10 @@
 import { readChampionHitAt } from '../../../services/championHitFeedback';
 import * as THREE from 'three';
 import { DAMAGE_SOURCE, SQUAD_ENTRANCE_CONSTANTS } from '../../../constants/game';
+import {
+  CHAMPION_LEVEL_THRESHOLDS,
+  getChampionLevelConfig,
+} from '../../../constants/championLevel';
 import { useGameStore } from '../../../store/gameStore';
 import {
   GAME_CONSTANTS,
@@ -387,6 +391,20 @@ export const stepChampionFrame = (
           COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
         ];
         store.spawnProjectile([posX, posY, posZ], FURY_COLOR_FULL, true, targetPos);
+        store.spawnSlash(targetPos, FURY_COLOR_FULL, true);
+        store.spawnParticleBurst(targetPos, FURY_COLOR_FULL, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+      } else if ((minion.level ?? 1) >= CHAMPION_LEVEL_THRESHOLDS.WARLORD_MIN || minion.isSignatureSynergy) {
+        const targetPos: [number, number, number] = ai.targetBossZone || [
+          COMBAT_VFX_CONSTANTS.BOSS_TARGET[0],
+          COMBAT_VFX_CONSTANTS.BOSS_TARGET[1],
+          COMBAT_VFX_CONSTANTS.BOSS_TARGET[2],
+        ];
+        const minionLevel = minion.level ?? 1;
+        const slashColor =
+          minionLevel >= CHAMPION_LEVEL_THRESHOLDS.WARLORD_MIN
+            ? getChampionLevelConfig(minionLevel).auraColor
+            : FURY_COLOR_FULL;
+        store.spawnSlash(targetPos, slashColor, false);
       }
 
       const baseDamage = isFullFury
@@ -404,7 +422,8 @@ export const stepChampionFrame = (
   }
 
   champGroup.position.set(posX, posY, posZ);
-  champGroup.scale.setScalar(finalScale * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE);
+  const levelScaleMultiplier = minion.levelScale ?? 1.0;
+  champGroup.scale.setScalar(finalScale * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE * levelScaleMultiplier);
   champGroup.quaternion.copy(camera.quaternion);
 
   publishLivePosition(ai, minion, posX, posY, posZ, camera, viewportW, viewportH);

@@ -74,6 +74,30 @@ export interface TikTokConnectionDeps {
   opsAlerts: OpsAlertService;
 }
 
+const extractFansLevelFromTikTokEvent = (data: unknown): number => {
+  if (!data || typeof data !== 'object') return 0;
+  const raw = data as Record<string, unknown>;
+  const fansClub = raw.fansClub as Record<string, unknown> | undefined;
+  if (fansClub && typeof fansClub.fansLevel === 'number' && fansClub.fansLevel > 0) {
+    return fansClub.fansLevel;
+  }
+  if (typeof raw.fansLevel === 'number' && raw.fansLevel > 0) {
+    return raw.fansLevel;
+  }
+  if (typeof raw.badgeLevel === 'number' && raw.badgeLevel > 0) {
+    return raw.badgeLevel;
+  }
+  if (Array.isArray(raw.userBadges)) {
+    for (const badge of raw.userBadges) {
+      if (badge && typeof badge === 'object' && typeof (badge as Record<string, unknown>).level === 'number') {
+        const lvl = (badge as Record<string, unknown>).level as number;
+        if (lvl > 0) return lvl;
+      }
+    }
+  }
+  return 0;
+};
+
 /**
  * Creates the TikTok Live connection, event pipeline, and simulation service.
  */
@@ -244,6 +268,7 @@ export function createTikTokConnectionService(
         nickname: data.nickname,
         userAvatarUrl: data.profilePictureUrl,
         comment: data.comment || '',
+        fansLevel: extractFansLevelFromTikTokEvent(data),
       });
       ctx.io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
     });
@@ -260,6 +285,7 @@ export function createTikTokConnectionService(
         giftType: data.giftType,
         repeatCount: data.repeatCount,
         repeatEnd: data.repeatEnd,
+        fansLevel: extractFansLevelFromTikTokEvent(data),
       });
       ctx.io.emit('tiktok:pipeline-stats', tiktokPipeline.getStats());
     });

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { Flame, Shield, Sparkles, Timer } from 'lucide-react';
 import { DUEL_URGENT_SECONDS, formatDuelTime } from './silverScrapesShared';
+import { SilverScrapesEqualizerBars } from './SilverScrapesVisualizer';
 
 interface DuelHeaderProps {
   timeRemaining: number;
@@ -21,11 +22,13 @@ export const DuelHeader: React.FC<DuelHeaderProps> = React.memo(
       <div className="relative z-10 w-full max-w-lg flex flex-col items-center gap-2 pt-1">
         {/* Main Tournament Championship Title */}
         <div className="inline-flex max-w-full items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-950/90 via-slate-900/95 to-amber-950/90 border border-cyan-400/60 shadow-[0_0_24px_rgba(6,182,212,0.4)]">
+          <SilverScrapesEqualizerBars colorClass="bg-cyan-400" size="sm" />
           <Sparkles className="w-3.5 h-3.5 text-cyan-300 shrink-0 animate-pulse" />
           <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 via-white to-amber-200 truncate">
             {t('SilverScrapes.title', '⚡ SILVER SCRAPES: ĐẠI CHIẾN ĐỘC TÔN 1V1 ⚡')}
           </h2>
           <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+          <SilverScrapesEqualizerBars colorClass="bg-amber-400" size="sm" />
         </div>
 
         {/* Stadium Digital Clock & Progress Bar */}

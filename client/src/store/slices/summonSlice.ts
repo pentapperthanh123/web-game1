@@ -61,6 +61,7 @@ interface PendingSummonRequest {
   userAvatarUrl?: string;
   isExplicitChampion?: boolean;
   isElite?: boolean;
+  level?: number;
 }
 
 const pendingSummonQueue: PendingSummonRequest[] = [];
@@ -159,6 +160,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
           isExplicitChampion: item.isExplicitChampion,
           isGiftBypass: item.isGiftBypass,
           isElite: item.isElite,
+          level: item.level,
           queuedAt: now,
         });
       }
@@ -262,6 +264,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         isExplicitChampion: req.isExplicitChampion,
         isGiftBypass: req.isGiftBypass,
         isElite: req.isElite,
+        level: req.level,
         queuedAt: now,
       });
 
@@ -403,10 +406,11 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       isGiftBypass = false,
       userAvatarUrl?: string,
       isExplicitChampion?: boolean,
-      isElite?: boolean
+      isElite?: boolean,
+      level?: number
     ) => {
       enqueueSummons([
-        { summonerName, championName, team, isGiftBypass, userAvatarUrl, isExplicitChampion, isElite },
+        { summonerName, championName, team, isGiftBypass, userAvatarUrl, isExplicitChampion, isElite, level },
       ]);
     },
 
@@ -419,6 +423,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
         userAvatarUrl: item.userAvatarUrl,
         isExplicitChampion: item.isExplicitChampion,
         isElite: item.isElite,
+        level: item.level,
       }));
       enqueueSummons(normalized);
     },

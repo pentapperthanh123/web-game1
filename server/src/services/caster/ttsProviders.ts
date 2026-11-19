@@ -117,13 +117,9 @@ const createAzureProvider = (
 const createGoogleTranslateProvider = (): TtsProvider => ({
   name: CASTER_TTS_PROVIDER.GOOGLE_TRANSLATE,
   voiceTag: (lang) => `${CASTER_TTS_PROVIDER.GOOGLE_TRANSLATE}:${lang}`,
-  synthesize: (text, lang, options = {}) => {
-    const params = new URLSearchParams({ ie: 'UTF-8', tl: lang, client: GOOGLE_TRANSLATE_TTS.CLIENT, q: text });
-    return fetchAudio(
-      `${GOOGLE_TRANSLATE_TTS.URL}?${params.toString()}`,
-      { headers: { 'User-Agent': CASTER_TTS.USER_AGENT } },
-      options.timeoutMs ?? CASTER_TTS.REQUEST_TIMEOUT_MS
-    );
+  synthesize: () => {
+    // STRICT: Google Translate TTS is permanently blocked to enforce clean Viet-TTS audio.
+    return Promise.reject(new Error('Google Translate TTS is permanently disabled'));
   },
 });
 
@@ -276,23 +272,22 @@ const resolveProviderName = (env: NodeJS.ProcessEnv): CasterTtsProviderName => {
  */
 export const createTtsProviderChain = (env: NodeJS.ProcessEnv, serverRoot: string): TtsProviderChain => {
   const isForceMale = env[CASTER_TTS_ENV.FORCE_MALE]?.trim().toLowerCase() === 'true';
-  const google = createGoogleTranslateProvider();
-  const isGoogleFallbackEnabled = env[CASTER_TTS_ENV.FALLBACK_VOICE]?.trim().toUpperCase() === GOOGLE_FALLBACK_ENV_VALUE;
-  const fallback = isGoogleFallbackEnabled ? google : null;
+  const fallback = null; // STRICT: Google fallback completely removed
   const providerName = resolveProviderName(env);
 
+  const vietTtsUrl = env[CASTER_TTS_ENV.VIET_TTS_URL]?.trim() || VIET_TTS.DEFAULT_URL;
+  const vietTts = createVietTtsProvider(
+    vietTtsUrl,
+    {
+      [CASTER_VOICE_ROLE.MALE]:
+        env[CASTER_TTS_ENV.VIET_TTS_VOICE_MALE]?.trim() || VIET_TTS.DEFAULT_VOICE[CASTER_VOICE_ROLE.MALE],
+      [CASTER_VOICE_ROLE.FEMALE]:
+        env[CASTER_TTS_ENV.VIET_TTS_VOICE_FEMALE]?.trim() || VIET_TTS.DEFAULT_VOICE[CASTER_VOICE_ROLE.FEMALE],
+    },
+    isForceMale
+  );
+
   if (providerName === CASTER_TTS_PROVIDER.VIET_TTS) {
-    const vietTtsUrl = env[CASTER_TTS_ENV.VIET_TTS_URL]?.trim() || VIET_TTS.DEFAULT_URL;
-    const vietTts = createVietTtsProvider(
-      vietTtsUrl,
-      {
-        [CASTER_VOICE_ROLE.MALE]:
-          env[CASTER_TTS_ENV.VIET_TTS_VOICE_MALE]?.trim() || VIET_TTS.DEFAULT_VOICE[CASTER_VOICE_ROLE.MALE],
-        [CASTER_VOICE_ROLE.FEMALE]:
-          env[CASTER_TTS_ENV.VIET_TTS_VOICE_FEMALE]?.trim() || VIET_TTS.DEFAULT_VOICE[CASTER_VOICE_ROLE.FEMALE],
-      },
-      isForceMale
-    );
     return { primary: vietTts, fallback };
   }
 
@@ -322,5 +317,5 @@ export const createTtsProviderChain = (env: NodeJS.ProcessEnv, serverRoot: strin
     );
     return { primary: edge, fallback };
   }
-  return { primary: google, fallback: null };
+  return { primary: vietTts, fallback: null };
 };

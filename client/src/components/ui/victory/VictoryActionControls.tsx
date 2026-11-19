@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowRight, RotateCcw, Timer } from 'lucide-react';
 import { VICTORY_CELEBRATION_CONSTANTS } from '../../../constants/game';
 import { casterQueue } from '../../../services/caster/presentationQueue';
+import { VoiceManager } from '../../../services/caster/VoiceManager';
 import { useCasterStore } from '../../../store/casterStore';
 
 interface VictoryActionControlsProps {
@@ -84,6 +85,7 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
     if (secondsLeft > 0 || isAdvancing) return undefined;
 
     const checkCasterBusy = (): boolean => {
+      if (VoiceManager.isBusy()) return true;
       const isTtsEnabled = useCasterStore.getState().isTtsEnabled;
       if (!isTtsEnabled) return false;
       return casterQueue.isBusy() || Boolean(useCasterStore.getState().subtitle);

@@ -8,6 +8,7 @@ import {
   CASTER_TTS_DISK_CACHE,
   CASTER_TTS_FAILURE,
   CASTER_TTS_LANG,
+  CASTER_TTS_PROVIDER,
   CASTER_TTS_WARM,
   CASTER_VOICE_ROLE,
   CasterEmotionIntensity,
@@ -135,6 +136,23 @@ const createDiskCache = (serverRoot: string, provider: TtsProvider) => {
     return `${lang}|${role}||||${text}`;
   };
 
+  /** Fallback to role-less base keys so gender-specific requests can reuse existing generated audio if available. */
+  const toGenderFallbackBaseKey = (key: string): string => {
+    const parts = key.split('|');
+    const lang = parts[0] || CASTER_TTS.DEFAULT_LANG;
+    const text = parts.slice(5).join('|');
+    return `${lang}|||||${text}`;
+  };
+
+  const toOppositeRoleBaseKey = (key: string): string => {
+    const parts = key.split('|');
+    const lang = parts[0] || CASTER_TTS.DEFAULT_LANG;
+    const role = parts[1];
+    const text = parts.slice(5).join('|');
+    const oppositeRole = role === CASTER_VOICE_ROLE.FEMALE ? CASTER_VOICE_ROLE.MALE : CASTER_VOICE_ROLE.FEMALE;
+    return `${lang}|${oppositeRole}||||${text}`;
+  };
+
   const resolveExistingPath = (key: string): string | null => {
     const exactPath = path.join(dir, fileFor(key));
     if (existsSync(exactPath)) return exactPath;
@@ -143,6 +161,12 @@ const createDiskCache = (serverRoot: string, provider: TtsProvider) => {
       const basePath = path.join(dir, fileFor(baseKey));
       if (existsSync(basePath)) return basePath;
     }
+    // Check opposite gender or neutral pre-generated base key before missing
+    const oppositePath = path.join(dir, fileFor(toOppositeRoleBaseKey(key)));
+    if (existsSync(oppositePath)) return oppositePath;
+    const neutralPath = path.join(dir, fileFor(toGenderFallbackBaseKey(key)));
+    if (existsSync(neutralPath)) return neutralPath;
+
     return null;
   };
 
@@ -151,7 +175,9 @@ const createDiskCache = (serverRoot: string, provider: TtsProvider) => {
     read: async (key: string): Promise<Buffer | null> => {
       const filePath = resolveExistingPath(key);
       if (!filePath) return null;
-      return readFile(filePath).catch(() => null);
+      const buffer = await readFile(filePath).catch(() => null);
+      if (!buffer || buffer.length === 0) return null;
+      return buffer;
     },
     write: async (key: string, audio: Buffer): Promise<void> => {
       const fileName = fileFor(key);
@@ -305,6 +331,14 @@ export const createCasterTtsService = ({
   ): Promise<CachedClip> => {
     const fromDisk = await diskCache.read(key);
     if (fromDisk) return { audio: fromDisk, isPrimaryVoice: true, isOnDisk: true };
+
+    // STRICT: Static audio only mode. Live network TTS synthesis is disabled to prevent
+    // fetch failed errors, timeouts, and unwanted fallback voices.
+    const isLiveTtsEnabled = process.env.CASTER_TTS_LIVE === 'true';
+    if (!isLiveTtsEnabled) {
+      throw new Error(CASTER_TTS_FAILURE.NOT_IN_STATIC_CACHE);
+    }
+
     if (!fallback) return { audio: await hedgedPrimary(key, text, lang, options), isPrimaryVoice: true };
 
     const primaryRequest = callProvider(primary, text, lang, { ...options, timeoutMs: EDGE_TTS.TIMEOUT_MS });
@@ -373,9 +407,12 @@ export const createCasterTtsService = ({
       if (job) {
         warmKeys.delete(job.key);
         if (!isAlreadyAvailable(job.key)) {
-          void obtainClip(job.key, job.text, job.lang, job.options).catch((error: unknown) =>
-            console.warn(`${LOG_PREFIX} warm-up failed: ${getErrorMessage(error, UNKNOWN_ERROR)}`)
-          );
+          void obtainClip(job.key, job.text, job.lang, job.options).catch((error: unknown) => {
+            const msg = getErrorMessage(error, UNKNOWN_ERROR);
+            if (msg !== CASTER_TTS_FAILURE.NOT_IN_STATIC_CACHE) {
+              console.warn(`${LOG_PREFIX} warm-up failed: ${msg}`);
+            }
+          });
         }
       }
     }
@@ -383,6 +420,10 @@ export const createCasterTtsService = ({
   };
 
   const warm = (rawTexts: unknown, rawLang: unknown, rawRole?: unknown): number => {
+    // In Static Audio mode, background warm-up synthesis is completely disabled.
+    const isLiveTtsEnabled = process.env.CASTER_TTS_LIVE === 'true';
+    if (!isLiveTtsEnabled) return 0;
+
     if (!getCasterConfig().isTtsEnabled || !Array.isArray(rawTexts)) return 0;
     const lang = normalizeLang(rawLang);
     const role = normalizeRole(rawRole);
@@ -430,7 +471,11 @@ export const createCasterTtsService = ({
       const clip = await pending;
       return { audio: clip.audio, isPrimaryVoice: clip.isPrimaryVoice };
     } catch (error) {
-      console.warn(`${LOG_PREFIX} no voice available: ${getErrorMessage(error, UNKNOWN_ERROR)}`);
+      const msg = getErrorMessage(error, UNKNOWN_ERROR);
+      if (msg === CASTER_TTS_FAILURE.NOT_IN_STATIC_CACHE) {
+        return { failure: CASTER_TTS_FAILURE.NOT_IN_STATIC_CACHE };
+      }
+      console.warn(`${LOG_PREFIX} no voice available: ${msg}`);
       return { failure: CASTER_TTS_FAILURE.PROVIDER_ERROR };
     }
   };

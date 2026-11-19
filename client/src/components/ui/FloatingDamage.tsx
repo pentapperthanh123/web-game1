@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { DamageType, GAME_CONSTANTS } from '../../constants/game';
+import { DAMAGE_TYPE, DamageType, GAME_CONSTANTS } from '../../constants/game';
 import { FloatingDamageText } from '../../types/game';
 import { DamageTextSprite, getDamageTextSprite } from './damageTextSprites';
 
@@ -11,7 +11,41 @@ const DAMAGE_LIFETIME_MS = 1000;
 const MAX_ACTIVE_PARTICLES = 24;
 const RISE_DISTANCE_PX = 46;
 const FADE_EXPONENT = 1.6;
-const POP = { GROW_END: 0.18, START_SCALE: 0.75, GROW_AMOUNT: 0.35, PEAK_SCALE: 1.1, SETTLE_AMOUNT: 0.18 } as const;
+const IMPACT_SHAKE_FREQUENCY = 42;
+
+interface PopConfig {
+  growEnd: number;
+  startScale: number;
+  peakScale: number;
+  settleScale: number;
+  shakeAmpPx: number;
+}
+
+const DEFAULT_POP_CONFIG: PopConfig = {
+  growEnd: 0.18,
+  startScale: 0.75,
+  peakScale: 1.1,
+  settleScale: 0.92,
+  shakeAmpPx: 0,
+};
+
+const POP_CONFIG_BY_DAMAGE_TYPE: Readonly<Partial<Record<DamageType, PopConfig>>> = {
+  [DAMAGE_TYPE.NORMAL]: DEFAULT_POP_CONFIG,
+  [DAMAGE_TYPE.CRIT]: {
+    growEnd: 0.16,
+    startScale: 0.65,
+    peakScale: 1.3,
+    settleScale: 1.0,
+    shakeAmpPx: 1.2,
+  },
+  [DAMAGE_TYPE.ULTIMATE]: {
+    growEnd: 0.15,
+    startScale: 0.55,
+    peakScale: 1.48,
+    settleScale: 1.08,
+    shakeAmpPx: 2.4,
+  },
+};
 
 interface CanvasDamageParticle {
   id: string;
@@ -25,9 +59,14 @@ interface CanvasDamageParticle {
   sprite: DamageTextSprite;
 }
 
-const getPopScale = (progress: number): number => {
-  if (progress < POP.GROW_END) return POP.START_SCALE + (progress / POP.GROW_END) * POP.GROW_AMOUNT;
-  return POP.PEAK_SCALE - ((progress - POP.GROW_END) / (1 - POP.GROW_END)) * POP.SETTLE_AMOUNT;
+const getPopScale = (progress: number, pop: PopConfig): number => {
+  if (progress < pop.growEnd) {
+    return pop.startScale + (progress / pop.growEnd) * (pop.peakScale - pop.startScale);
+  }
+  return (
+    pop.peakScale -
+    ((progress - pop.growEnd) / (1 - pop.growEnd)) * (pop.peakScale - pop.settleScale)
+  );
 };
 
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
@@ -141,12 +180,26 @@ export const FloatingDamage = React.memo(() => {
         particles[activeCount++] = p;
 
         const progress = Math.min(1.0, age / DAMAGE_LIFETIME_MS);
+        const popConfig = POP_CONFIG_BY_DAMAGE_TYPE[p.damageType] ?? DEFAULT_POP_CONFIG;
         const yOffset = -easeOutCubic(progress) * RISE_DISTANCE_PX;
-        const finalScale = p.baseScale * getPopScale(progress);
+        const shakeX =
+          popConfig.shakeAmpPx > 0 && progress < popConfig.growEnd
+            ? Math.sin(progress * IMPACT_SHAKE_FREQUENCY) *
+              popConfig.shakeAmpPx *
+              (1 - progress / popConfig.growEnd)
+            : 0;
+        const finalScale = p.baseScale * getPopScale(progress, popConfig);
         const { image, width, height } = p.sprite;
 
         ctx.globalAlpha = Math.max(0, 1.0 - Math.pow(progress, FADE_EXPONENT));
-        ctx.setTransform(finalScale * dpr, 0, 0, finalScale * dpr, p.x * dpr, (p.y + yOffset) * dpr);
+        ctx.setTransform(
+          finalScale * dpr,
+          0,
+          0,
+          finalScale * dpr,
+          (p.x + shakeX) * dpr,
+          (p.y + yOffset) * dpr
+        );
         ctx.drawImage(image, -width / 2, -height / 2, width, height);
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0);

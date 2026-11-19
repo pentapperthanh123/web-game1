@@ -121,18 +121,18 @@ export const CASTER_CALMER_INTENSITY: Readonly<Record<CasterIntensity, CasterInt
 
 /** A two-caster exchange (several turns said back to back) instead of one line. */
 export const CASTER_DIALOGUE = {
-  /** Share of eligible moments that get an exchange (the rest stay one line); medium density. */
-  SHARE: 0.5,
+  /** Share of eligible moments that get an exchange (the rest stay one line); high density for active duo banter. */
+  SHARE: 0.9,
   /** Breath between two turns of one exchange: short, or the reply loses its timing. */
   TURN_GAP_MS: 180,
   /** Minimum time between two exchanges on the commentary channel. */
-  COOLDOWN_MS: 12_000,
+  COOLDOWN_MS: 3_500,
   /** Minimum time between two exchanges on the donate channel (big gifts can come in a row). */
-  DONATE_COOLDOWN_MS: 8_000,
+  DONATE_COOLDOWN_MS: 2_500,
   /** With this many lines still waiting, an exchange is cut to its first turn so the fight keeps pace. */
-  MAX_BACKLOG_LINES: 6,
+  MAX_BACKLOG_LINES: 20,
   MAX_TURNS: 3,
-  /** Before a reply plays, its clip gets this long to be ready; otherwise the exchange ends (no holes). */
+  /** Before a reply plays, its clip gets this long to be ready. */
   TURN_READY_WAIT_MS: 700,
 } as const;
 
@@ -231,6 +231,10 @@ export const CASTER_ALWAYS_DIALOGUE_SIGNALS: ReadonlySet<CasterSignal> = new Set
   CASTER_SIGNAL.ROUND_GO,
   CASTER_SIGNAL.ROUND_WIN,
   CASTER_SIGNAL.SERIES_WIN,
+  CASTER_SIGNAL.BOSS_ENRAGE,
+  CASTER_SIGNAL.BOSS_LOW_HP,
+  CASTER_SIGNAL.COMEBACK,
+  CASTER_SIGNAL.TIGHT_RACE,
   CASTER_SIGNAL.PODIUM_THANKS,
   CASTER_SIGNAL.GIFT_MEGA,
   CASTER_SIGNAL.BANTER_GUIDE,
@@ -312,7 +316,7 @@ export const CASTER_SPEECH = {
   /** A line whose voice clip is not ready by then is shown as a caption only, so the queue keeps moving. */
   CLIP_WAIT_MS: 7_000,
   /** Server could not produce the voice (provider slow / down): caption only, not counted as an engine failure. */
-  HTTP_VOICE_UNAVAILABLE: [502, 503, 429],
+  HTTP_VOICE_UNAVAILABLE: [404, 502, 503, 429],
 } as const;
 
 /** Mirrors server CASTER_TTS.MAX_TEXT_CHARS: longer voice texts are refused, so long lines are spoken in parts. */
@@ -366,8 +370,8 @@ export const CASTER_GIFT_BATCH_RULES = {
 
 /** Facts a data-driven banter line needs before it may be said. */
 export const CASTER_BANTER_RULES = {
-  /** "N champions on the field" / hype lines need a real crowd. */
-  MIN_FIELD_COUNT: 2,
+  /** "N champions on the field" / crowd hype lines require a genuinely large crowd. */
+  MIN_FIELD_COUNT: 8,
   /** "Boss has X % left" only after the boss has taken real damage. */
   MAX_BOSS_HP_RATIO: 0.98,
   /** "Team X is ahead" needs a lead of at least this share of total damage. */

@@ -433,7 +433,10 @@
     "superPowerBadge": "SIÊU LỰC",
     "leading": "Đang áp đảo",
     "winnerBadge": "Chiến thắng",
-    "versus": "VS"
+    "versus": "VS",
+    "deciderBadge": "SILVER SCRAPES • VÁN QUYẾT ĐỊNH",
+    "buffActiveTag": "BUFF SILVER SCRAPES +20% ST",
+    "equalizerLabel": "NHỊP ĐIỆU SILVER SCRAPES"
   },
   "BossPhase": {
     "shiftTitle": "BOSS THỨC TỈNH",
@@ -569,8 +572,8 @@
     },
     "giftBottomCallout": "Xem phần quà tặng bên dưới góc phải màn hình",
     "speechMatchup": "Chào mừng các bạn đến với Kỳ Chung Kết Thế Giới! Ván {{round}}: {{left}} đại chiến {{right}}. Mục tiêu tiêu diệt Boss {{boss}}!",
-    "speechRules": "Luật chơi: Hai phe chạy đua sát thương! Khán giả gõ tên tướng kèm tên đội như {{champ1}} {{team1}} hoặc {{champ2}} {{team2}} để triệu hồi tướng. Đội gây nhiều sát thương hơn lên Boss sẽ giành chiến thắng!",
-    "speechRulesExpanded": "Luật chơi: Khán giả gõ tên tướng kèm tên đội như {{champ1}} {{team1}} hoặc {{champ2}} {{team2}} để triệu hồi tướng vào sân. Bấm tim liên tục vào livestream để tăng tốc độ đánh và nạp Nộ kích hoạt Tuyệt Kỹ. Đội nào dồn nhiều sát thương hơn lên Boss sẽ giành chiến thắng ván đấu!",
+    "speechRules": "Luật chơi: Khán giả gõ cú pháp [Tên tướng] [Tên đội] để triệu hồi tướng vào sân. Bấm tim liên tục nạp Nộ kích hoạt Tuyệt Kỹ, đội nào dồn nhiều sát thương hơn sẽ giành chiến thắng!",
+    "speechRulesExpanded": "Luật chơi: Khán giả chat cú pháp [Tên tướng] [Tên đội] để triệu hồi tướng vào sân. Bấm tim liên tục vào livestream để tăng tốc độ đánh và nạp Nộ kích hoạt Tuyệt Kỹ. Đội nào dồn nhiều sát thương hơn lên Boss sẽ giành chiến thắng ván đấu!",
     "commentPromptTitle": "Cú pháp bình luận triệu hồi trực tiếp:",
     "liveChatReady": "Sẵn sàng",
     "speechGifts": "Một xu tương ứng một trăm hai mươi sát thương lên Boss. Hãy xem phần quà tặng bên dưới góc phải màn hình để tiếp sức cho tuyển thủ!",
@@ -636,12 +639,12 @@
         "{{name}} follow rồi kìa! Cảm ơn bạn, {{team}} nhận quà ngay!"
       ],
       "SHARE": [
-        "Cảm ơn {{name}} đã chia sẻ! Boss lĩnh trọn {{dmg}} sát thương!",
-        "Cảm ơn {{name}} đã share! {{team}} được hồi máu!",
-        "Một lượt share từ {{name}}, cảm ơn bạn, boss đau điếng!",
-        "{{name}} lan tỏa trận đấu, cảm ơn nhé! {{team}} nhận buff ngay!",
-        "Share là có sát thương! Cảm ơn {{name}} rất nhiều!",
-        "Cảm ơn {{name}} đã giới thiệu trận đấu, {{team}} mạnh thêm!"
+        "Cảm ơn {{name}} đã chia sẻ! Tiếp thêm tinh thần rực lửa cho {{team}}!",
+        "Cảm ơn {{name}} đã share! Cả phòng cùng hưởng ứng nào!",
+        "Một lượt share từ {{name}}, cảm ơn bạn đã lan tỏa trận đấu!",
+        "{{name}} lan tỏa trận đấu, cảm ơn nhé! {{team}} nhận buff tinh thần ngay!",
+        "Cảm ơn {{name}} đã chia sẻ! Hãy tiếp tục cổ vũ cho đội của bạn!",
+        "Cảm ơn {{name}} đã giới thiệu trận đấu, không khí càng thêm náo nhiệt!"
       ],
       "GIFT_COMBO": [
         "Cảm ơn {{name}} đã thả liền {{count}} {{gift}}!",
@@ -751,11 +754,11 @@
         "Chúc mừng {{team}}, nhà vô địch của series này!"
       ],
       "BANTER_GUIDE": [
-        "Gõ tên tướng kèm {{teamA}} hoặc {{teamB}}, ví dụ {{champion}} {{teamB}}, là ra sân ngay!",
-        "Muốn vào trận? Chỉ cần chat {{champion}} {{teamA}}!",
-        "Chọn phe đi anh em: chat {{teamA}} hoặc {{teamB}} là có tướng!",
+        "Gõ tên vị tướng bạn yêu thích kèm tên đội để xuất chiến ngay!",
+        "Muốn vào trận? Chỉ cần chat tên tướng kèm tên đội bạn chọn!",
+        "Chọn phe đi anh em: chat tên đội và vị tướng yêu thích là có quân ra sân!",
         "Chưa biết chơi? Gõ một tên tướng và tên đội là xong!",
-        "Mỗi tin nhắn hợp lệ là một tướng ra sân, gõ {{champion}} {{teamA}} thử xem!",
+        "Mỗi tin nhắn hợp lệ là một tướng ra sân, chat thử ngay anh em ơi!",
         "Chat trùng tướng tủ của tuyển thủ để buff nộ cho họ nhé!",
         "Gõ tên vị tướng bạn yêu thích kèm tên đội để triệu hồi ngay vào trận!",
         "Bạn thích tướng nào? Chat ngay tên tướng kèm tên đội bạn chọn để xuất chiến!",
@@ -770,12 +773,12 @@
         "Anh em chơi quá đẹp! Giữ vững phong độ nhé!"
       ],
       "BANTER_CTA": [
-        "Follow là có tướng miễn phí, share là boss ăn sát thương!",
+        "Follow kênh để nhận tướng miễn phí, gõ chat để triệu hồi tướng ra sân!",
         "Thả tim để nạp nộ cho tuyển thủ của đội mình nhé!",
-        "Một lượt share là boss mất máu ngay, thử đi anh em!",
+        "Tặng quà để dồn bão thiên thạch trừ máu Boss, thử đi anh em!",
         "Quà càng lớn, mưa thiên thạch càng dày!",
         "Follow kênh để không bỏ lỡ trận nào nhé!",
-        "Rủ bạn bè vào xem, càng đông càng vui, boss càng đau!"
+        "Rủ bạn bè vào xem, càng đông càng vui, không khí càng nóng!"
       ],
       "WIPE": [
         "{{boss}} quét sạch đấu trường! {{count}} chiến binh gục ngã!",
@@ -792,20 +795,20 @@
         "Đấu trường này thuộc về ta! Kẻ tiếp theo là ai?"
       ],
       "EMPTY_FIELD_RALLY": [
-        "Anh em ơi phản công ngay! Chat tên tướng bạn thích kèm {{teamA}} hoặc {{teamB}} để gọi tướng trở lại!",
-        "Không được bỏ cuộc! Gõ tên tướng kèm {{teamA}} hoặc {{teamB}}, đấu trường đang cần các bạn!",
+        "Anh em ơi phản công ngay! Chat tên tướng bạn thích kèm tên đội để gọi tướng trở lại!",
+        "Không được bỏ cuộc! Gõ tên tướng kèm tên đội, đấu trường đang cần các bạn!",
         "Gọi viện binh mau! Mỗi tin nhắn là một tướng, mỗi món quà là một trận mưa thiên thạch!",
         "Hồi sinh đội hình thôi! Chat tên tướng bạn yêu thích ngay, thả tim để nạp nộ cho tuyển thủ!",
         "Ai sẽ là người đầu tiên quay lại? Gõ tên vị tướng bạn thích kèm tên đội xuất chiến ngay!"
       ],
       "BANTER_EMPTY": [
-        "Sân đang trống! Chat tên tướng kèm {{teamA}} hoặc {{teamB}} để xuất trận ngay!",
+        "Sân đang trống! Chat tên tướng kèm tên đội bạn chọn để xuất trận ngay!",
         "{{boss}} đang một mình ngạo nghễ! Ai ra tay dạy cho nó một bài học?",
-        "Chỉ cần gõ {{champion}} {{teamA}}, bạn sẽ có tướng trên sân trong vài giây!",
-        "Đội nào gọi tướng trước sẽ chiếm lợi thế! {{teamA}} hay {{teamB}} đây?",
+        "Chỉ cần gõ tên tướng và tên đội, bạn sẽ có quân trên sân trong vài giây!",
+        "Đội nào gọi tướng trước sẽ chiếm lợi thế lớn lúc này!",
         "Một món quà nhỏ cũng đủ khiến {{boss}} đau! Ủng hộ đội bạn nhé!",
         "Tuyển thủ đang đơn độc chống {{boss}}, fan đâu rồi, vào hỗ trợ ngay!",
-        "Follow để nhận tướng miễn phí, share để boss mất máu ngay lập tức!",
+        "Follow để nhận tướng miễn phí, thả tim nạp Nộ kích hoạt Tuyệt Kỹ ngay lập tức!",
         "Sân trống là cơ hội! Người vào đầu tiên sẽ được BLV xướng tên!"
       ],
       "BANTER_IDLE": [
@@ -948,6 +951,956 @@
     "voice": {
       "casterTitle": "bình luận viên",
       "scoreJoiner": " "
+    },
+    "casters": {
+      "A": {
+        "name": "Bảo"
+      },
+      "B": {
+        "name": "Quỳnh"
+      }
+    },
+    "dialogues": {
+      "ROUND_GO": [
+        [
+          {
+            "speaker": "A",
+            "text": "Toàn quân xung phong! Hạ gục {{boss}} nào!"
+          },
+          {
+            "speaker": "B",
+            "text": "Ván {{round}} chính thức bắt đầu. Nhắc lại: chỉ cần gõ tên tướng kèm tên đội là bạn đã có mặt trên đấu trường!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "TẤN CÔNG! {{boss}} đang đợi anh em tới tính sổ đấy!"
+          },
+          {
+            "speaker": "B",
+            "text": "Bảo ơi bớt hét vào mic giùm cái. Nhưng mà đúng rồi, nhanh tay lên mọi người ơi, {{boss}} không tự lăn ra đất đâu!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Lên nào anh em! Ván {{round}} quyết chiến, không được lùi bước!"
+          },
+          {
+            "speaker": "B",
+            "text": "Bình tĩnh triển khai chiến thuật nhé. Gõ chat triệu hồi tướng, thả tim nạp Nộ, tặng quà dồn bão sát thương lên Boss!"
+          }
+        ]
+      ],
+      "BOSS_ENRAGE": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} ĐÃ NỔI ĐIÊN! Giữ vững đội hình!"
+          },
+          {
+            "speaker": "B",
+            "text": "Nổi điên nghĩa là tốc đánh tăng gấp rưỡi đấy. Thả tim liên tục để hồi máu, đừng để tướng gục ngã!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Ôi trời ơi, {{boss}} biến hình rồi! Nó khỏe hơn rất nhiều!"
+          },
+          {
+            "speaker": "B",
+            "text": "Càng cuồng nộ thì cướp kết liễu càng dễ. Dồn tổng lực sát thương ngay đi, sắp kết thúc rồi!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Nghe tiếng gầm kia kìa! {{boss}} đang thịnh nộ tột độ!"
+          },
+          {
+            "speaker": "B",
+            "text": "Nói thật thì thấy Bảo còn thịnh nộ hơn cả boss đấy. Bỏ qua Bảo đi mọi người ơi, tập trung đánh boss!"
+          }
+        ]
+      ],
+      "BOSS_PHASE_TWO": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} thức tỉnh! Tuyệt kỹ tối thượng đã mở khóa!"
+          },
+          {
+            "speaker": "B",
+            "text": "Từ giờ nó có thể quét sạch cả sàn đấu. Thấy boss vận chiêu là chuẩn bị gõ gọi tướng lại ngay nhé!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Giai đoạn hai rồi! Mọi chuyện bắt đầu nghiêm túc!"
+          },
+          {
+            "speaker": "B",
+            "text": "Nghiêm túc thế nào? Boss mở tuyệt chiêu, còn anh em ta mở hầu bao… à không, mở bàn phím gõ chat!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} đã bước vào giai đoạn hai!"
+          },
+          {
+            "speaker": "B",
+            "text": "Tin vui: nó đã mất một phần ba cây máu. Tin buồn: từ giờ nó bắt đầu đấm thật đau đấy."
+          }
+        ]
+      ],
+      "BOSS_PHASE_THREE": [
+        [
+          {
+            "speaker": "A",
+            "text": "GIAI ĐOẠN CUỐI CÙNG! {{boss}} ra chiêu nhanh hơn và sát thương cực khủng!"
+          },
+          {
+            "speaker": "B",
+            "text": "Sát thương tăng thêm hai mươi phần trăm. Nhưng nó chỉ còn một phần ba cây máu thôi, tiến lên!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Nó điên thật rồi! Giai đoạn ba!"
+          },
+          {
+            "speaker": "B",
+            "text": "Đây là lúc các đại gia lên tiếng. Một món quà lúc này tạo nhiệt gấp đôi bình thường!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Giai đoạn hủy diệt toàn sàn đấu! {{boss}} dốc hết vốn liếng rồi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Vậy thì anh em mình cũng tất tay luôn. Thả tim, gõ chat, tặng quà, dồn dập vào!"
+          }
+        ]
+      ],
+      "BOSS_SHIELD_UP": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} vừa dựng lá chắn! Phá giáp nó ngay!"
+          },
+          {
+            "speaker": "B",
+            "text": "Anh em có đúng {{seconds}} giây. Để hụt là boss hồi phục một đống máu đấy, công cốc hết!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Khiên năng lượng xuất hiện! Đánh đi, đánh mạnh vào!"
+          },
+          {
+            "speaker": "B",
+            "text": "Đánh đúng chỗ nhé Bảo. Mọi người ơi, dồn toàn bộ sát thương vào lá chắn trong {{seconds}} giây này!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Nó đang trốn sau lớp lá chắn dày cộm kìa!"
+          },
+          {
+            "speaker": "B",
+            "text": "Hèn thế không biết. Phá vỡ là boss bị choáng ngay, lúc đấy tha hồ mà xả chiêu!"
+          }
+        ]
+      ],
+      "BOSS_SHIELD_BROKEN": [
+        [
+          {
+            "speaker": "A",
+            "text": "VỠ KHIÊN RỒI! {{boss}} đã bị choáng váng!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cộng thêm {{dmg}} sát thương thưởng nữa. Quá tuyệt vời! Nhân lúc nó bị choáng, xả gấp đôi sát thương đi anh em!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Chúng ta phá vỡ khiên rồi! Đỉnh quá mọi người ơi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Chuẩn bài bản luôn. Phá khiên thành công bồi thêm {{dmg}} máu của {{boss}}. Tinh thần đồng đội thế này thì boss nào chịu nổi!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Vụn vỡ hoàn toàn! Cái khiên quá mỏng manh!"
+          },
+          {
+            "speaker": "B",
+            "text": "Mỏng manh là vì cả phòng live cùng đấm đấy Bảo ơi. Giữ vững nhịp độ này nhé!"
+          }
+        ]
+      ],
+      "BOSS_SHIELD_ABSORBED": [
+        [
+          {
+            "speaker": "A",
+            "text": "Không kịp rồi! {{boss}} hồi máu rồi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cộng thêm {{hp}} máu cho boss. Khiên sau nhớ đồng thanh tấn công ngay nhé, đừng để thời gian trôi mất."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Tiếc quá, lớp khiên đã đứng vững!"
+          },
+          {
+            "speaker": "B",
+            "text": "Không sao, rút kinh nghiệm nào. Khiên bật lên là tay bấm tim với gõ chat cũng phải bật theo ngay."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} đang cười vào mặt chúng ta kìa!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cười không được bao lâu đâu. Nó chỉ hồi được {{hp}} máu thôi, đấm thêm vài nhịp là bay màu ngay."
+          }
+        ]
+      ],
+      "BOSS_LOW_HP": [
+        [
+          {
+            "speaker": "A",
+            "text": "SẮP XONG RỒI! Ai sẽ là người cướp đòn kết liễu đây?!"
+          },
+          {
+            "speaker": "B",
+            "text": "Đòn đánh cuối cùng sẽ được vinh danh trực tiếp trên màn hình. Một món quà lúc này là chốt hạ luôn, không ai tranh nổi!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} đang lảo đảo đứng không vững rồi! Dứt điểm đi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Bảo cứ đếm ngược đi, Quỳnh sẽ canh xem ai là người tung đòn chí mạng."
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Gần xong rồi mọi người ơi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Gần xong chứ chưa xong hẳn đâu. Đừng ngồi nhìn, gõ ngay tên vị tướng yêu thích đi!"
+          }
+        ]
+      ],
+      "BOSS_CRITICAL_TENSION": [
+        [
+          {
+            "speaker": "A",
+            "text": "BÁO ĐỘNG ĐỎ! Máu của {{boss}} đã tụt dưới {{hpPercent}} phần trăm!"
+          },
+          {
+            "speaker": "B",
+            "text": "Khoảnh khắc đắt giá nhất của ván đấu. Muốn tên mình sáng rực trên bảng vàng thì ra tay ngay đi!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Chỉ còn {{hpPercent}} phần trăm máu thôi! Tim tôi đập thình thịch rồi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Tim Bảo đập hay tim khán giả đập vậy? Cả hai cùng bặm tim đi, bặm nhiệt tình vào!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} đang thoi thóp những hơi thở cuối cùng!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thoi thóp nhưng vẫn chưa ngã. Thêm một đợt tổng tiến công nữa là xong, cả hai phe cố lên!"
+          }
+        ]
+      ],
+      "COMEBACK": [
+        [
+          {
+            "speaker": "A",
+            "text": "LỘI NGƯỢC DÒNG! {{team}} đã chính thức vượt mặt {{teamOther}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Đã bảo là chưa hết ván thì chưa biết ai thắng mà. Fan {{teamOther}} đâu rồi, lấy lại ngôi đầu mau!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Không thể tin nổi! {{team}} vừa tạo nên một cú lật kèo ngoạn mục!"
+          },
+          {
+            "speaker": "B",
+            "text": "Rất dễ hiểu thôi. Bên {{teamOther}} chỉ cần lơ là một chút là bị vượt ngay. Giờ là lúc chứng minh bản lĩnh đấy!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} ĐÃ VƯƠN LÊN DẪN ĐẦU!"
+          },
+          {
+            "speaker": "B",
+            "text": "Và {{teamOther}} chắc chắn không bỏ cuộc đâu. Cục diện này còn đảo chiều nhiều lần nữa, cá với Bảo luôn!"
+          }
+        ]
+      ],
+      "COMEBACK_BUFF": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} nhận được bùa Lội Ngược Dòng! Tăng thêm mười lăm phần trăm sát thương!"
+          },
+          {
+            "speaker": "B",
+            "text": "Được tăng thêm sức mạnh thế này thì còn lý do gì nữa? Fan {{team}} gọi tướng ra sàn ngay đi!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Kích hoạt hiệu ứng Lội Ngược Dòng cho {{team}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cả đấu trường đang tiếp sức cho các bạn đấy. Tận dụng đi, kẻo phí cơ hội vàng này!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Kể từ lúc này {{team}} được tăng thêm mười lăm phần trăm sức mạnh!"
+          },
+          {
+            "speaker": "B",
+            "text": "Mười lăm phần trăm nghe nhỏ, nhưng nhân với hàng trăm vị tướng thì khủng khiếp lắm đấy. Lên nào!"
+          }
+        ]
+      ],
+      "TIGHT_RACE": [
+        [
+          {
+            "speaker": "A",
+            "text": "BÁM ĐUỔI NGHẸT THỞ! {{teamA}} và {{teamB}} đang ăn miếng trả miếng từng chút một!"
+          },
+          {
+            "speaker": "B",
+            "text": "Chênh lệch chưa đầy năm phần trăm. Chỉ cần một món quà lúc này là lật nghiêng cả ván đấu!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Ngang tài ngang sức luôn Quỳnh ơi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Biết rồi, không cần hét sát tai tôi đâu. Khán giả hai bên ơi, thể hiện xem ai khát khao chiến thắng hơn nào!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Không một ai chịu nhường bước!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thế trận như vậy mới hấp dẫn chứ. Đừng chỉ đứng xem, một vị tướng của bạn lúc này có thể thay đổi tất cả đấy!"
+          }
+        ]
+      ],
+      "DOMINANT_LEAD": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} QUÁ ÁP ĐẢO! Dẫn trước {{teamOther}} hơn {{leadPercent}} phần trăm sát thương!"
+          },
+          {
+            "speaker": "B",
+            "text": "Fan của {{teamOther}} đâu hết rồi? Vẫn còn thời gian, một đợt triệu hồi là san bằng khoảng cách ngay!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Thế trận một chiều rồi! {{team}} đang quá vượt trội!"
+          },
+          {
+            "speaker": "B",
+            "text": "Một chiều là vì bên kia đang im ắng quá thôi. {{teamOther}} ơi, cho thấy các bạn vẫn ở đây nào!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} đang làm chủ hoàn toàn ván đấu này!"
+          },
+          {
+            "speaker": "B",
+            "text": "Khoảng cách {{leadPercent}} phần trăm là lớn đấy, nhưng tôi từng thấy nhiều pha lật kèo còn ảo diệu hơn. Chưa thể ăn mừng sớm được đâu!"
+          }
+        ]
+      ],
+      "GIFT_BIG": [
+        [
+          {
+            "speaker": "A",
+            "text": "ÔI TRỜI ƠI! {{name}} VỪA TẶNG MỘT {{gift}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cảm ơn {{name}} rất nhiều! Đội {{team}} xúc động rớt nước mắt, còn boss thì rớt một đống máu!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{name}} GỬI TẶNG {{gift}}! Toàn bộ đấu trường rung chuyển!"
+          },
+          {
+            "speaker": "B",
+            "text": "Phải rung chuyển chứ. {{name}} ơi, đội {{team}} nợ bạn cả một ván đấu này đấy!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "QUÀ CỰC LỚN! {{name}} mang tới một {{gift}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Có những người gánh đội như {{name}} thì {{team}} chẳng ngán bất kỳ đối thủ nào. Cảm ơn bạn rất nhiều!"
+          }
+        ]
+      ],
+      "GIFT_MEGA": [
+        [
+          {
+            "speaker": "A",
+            "text": "HUYỀN THOẠI XUẤT HIỆN! {{name}} GIÁNG XUỐNG MỘT ĐẠI BẢO VẬT {{gift}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cả đấu trường nín thở trước món quà vô giá này. {{name}} ơi, cái tên này sẽ được ghi vào lịch sử giải đấu!"
+          },
+          {
+            "speaker": "A",
+            "text": "Tôn vinh {{name}}! Đúng là một huyền thoại sống!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{name}}! Một {{gift}} siêu to khổng lồ! TÔI CẠN LỜI LUÔN RỒI!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thấy Bảo cạn lời là chuyện hiếm có đấy nhé. Cảm ơn {{name}}, bạn vừa viết lại toàn bộ kịch bản cho {{team}}!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "SÀN ĐẤU BỊ SAN PHẲNG! {{name}} TUNG RA SIÊU PHẨM {{gift}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Boss bị choáng mà tôi cũng bị choáng luôn. {{name}} ơi, xin nhận một lạy từ đội {{team}}!"
+          }
+        ]
+      ],
+      "ROUND_WIN": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} CHIẾN THẮNG VÁN {{round}}! Tỉ số chuỗi trận hiện là {{score}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Rất xứng đáng. {{team}} gây nhiều sát thương hơn, đơn giản vậy thôi. Nhưng cuộc chiến vẫn chưa ngã ngũ đâu."
+          },
+          {
+            "speaker": "A",
+            "text": "Đúng thế, ván tiếp theo sẽ còn nóng hơn gấp bội!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} đã ngã gục! Ván {{round}} chính thức thuộc về {{team}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Chúc mừng các fan của {{team}}. Bên còn lại hãy hít thở sâu nào, ván sau sẽ là cơ hội đòi lại tất cả!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Kết thúc rồi! {{team}} đã đoạt lấy ván {{round}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Tỉ số hiện tại là {{score}}. Hãy chờ xem bên kia có phục thù thành công ở ván tới không nhé!"
+          }
+        ]
+      ],
+      "PODIUM_THANKS": [
+        [
+          {
+            "speaker": "A",
+            "text": "Top ba người chơi xuất sắc nhất ván này: {{a}}, {{b}} và {{c}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Ba chiến thần này đã gánh cả đấu trường trên vai. Cảm ơn mọi người, giữ vững phong độ ở ván tiếp theo nhé!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Vinh danh ba ngôi sao sáng nhất: {{a}}, {{b}}, {{c}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Muốn tên mình cũng được xướng lên rực rỡ như thế không? Ván sau biết phải làm gì rồi đấy!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{a}}, {{b}} cùng {{c}} đang dẫn đầu bảng tổng sắp sát thương!"
+          },
+          {
+            "speaker": "B",
+            "text": "Bục vinh quang tuyệt đẹp. Ván sau vị trí đó hoàn toàn có thể là của các bạn đấy!"
+          }
+        ]
+      ],
+      "SERIES_WIN": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} CHÍNH THỨC TRỞ THÀNH NHÀ VÔ ĐỊCH! Tỉ số chung cuộc {{score}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Một chiến thắng hoàn toàn xứng đáng. Xin chúc mừng {{team}}, và cảm ơn cả hai đội đã cống hiến hết mình!"
+          },
+          {
+            "speaker": "A",
+            "text": "Đừng rời màn hình nhé, trận chiến tiếp theo sắp sửa bắt đầu ngay đây!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "CHIẾC CÚP VÔ ĐỊCH ĐÃ GỌI TÊN {{team}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Chiến thắng với tỉ số {{score}}, không còn gì để bàn cãi. Xin chia buồn với đội còn lại, nhưng thể thao là vậy!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} chính thức nâng cao chiếc cúp vinh quang!"
+          },
+          {
+            "speaker": "B",
+            "text": "Fan của {{team}} ơi, khoảnh khắc này là của các bạn. Chụp màn hình lại làm kỷ niệm ngay đi!"
+          }
+        ]
+      ],
+      "HEART_MILESTONE": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{count}} lượt thả tim! Toàn bộ sàn đấu được hồi {{heal}} máu!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thấy chưa, thả tim không chỉ cho đẹp đâu nhé. Bấm tiếp đi, mốc thưởng sau sẽ tới rất nhanh!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Đạt mốc {{count}} tim! Tất cả tướng trên sân đều được hồi phục sinh lực!"
+          },
+          {
+            "speaker": "B",
+            "text": "Đầu ngón tay của các bạn chính là bình máu di động đấy. Đừng dừng lại nhé!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Tim bay rợp trời rồi! Đã chạm mốc {{count}} tim!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cộng ngay {{heal}} máu cho từng vị tướng. Cách hỗ trợ đội nhà rẻ nhất và hiệu quả nhất, tiếp tục bặm tim đi nào!"
+          }
+        ]
+      ],
+      "BANTER_GUIDE": [
+        [
+          {
+            "speaker": "B",
+            "text": "Nhắc lại cho các bạn mới vào xem: gõ tên tướng kèm tên đội, ví dụ như {{champion}} {{teamB}} nhé."
+          },
+          {
+            "speaker": "A",
+            "text": "Là vị tướng sẽ lập tức nhảy vào sân tham chiến! Đơn giản đúng không? Thử ngay xem nào!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Quỳnh ơi, hướng dẫn nhanh thể lệ cho khán giả mới vào xem đi."
+          },
+          {
+            "speaker": "B",
+            "text": "Dễ lắm. Gõ {{champion}} {{teamA}} để gọi quân phe {{teamA}}, hoặc {{champion}} {{teamB}} cho phe {{teamB}}. Đơn giản vậy thôi!"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Có bạn hỏi cách chơi kìa. Chỉ một dòng chat thôi: tên tướng, dấu cách, rồi tên đội."
+          },
+          {
+            "speaker": "A",
+            "text": "Ví dụ như {{champion}} {{teamA}} chẳng hạn! Gõ xong là bạn đang cùng mọi người tiêu diệt boss rồi!"
+          }
+        ]
+      ],
+      "BANTER_CTA": [
+        [
+          {
+            "speaker": "A",
+            "text": "Bấm theo dõi nhận ngay tướng miễn phí, chia sẻ livestream tiếp thêm sức mạnh cho toàn đội!"
+          },
+          {
+            "speaker": "B",
+            "text": "Nghe Bảo nói cứ như quảng cáo bán hàng ấy. Nhưng mà đúng thật đấy, bấm theo dõi và gọi tướng ngay đi mọi người ơi!"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Nhắc nhỏ nè: bặm tim liên tục sẽ giúp tướng đánh nhanh hơn và tích Nộ nhanh hơn đấy."
+          },
+          {
+            "speaker": "A",
+            "text": "Và cứ mỗi hai trăm tim là hồi máu toàn sân! Bặm tim, bặm tim, bặm tim liên tục nào!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Ở đây có ai chưa bấm follow kênh không? Giơ tay lên tôi xem nào!"
+          },
+          {
+            "speaker": "B",
+            "text": "Bảo nhìn qua màn hình kiểu gì mà thấy được tay? Cứ bấm follow là hệ thống tự nhận diện, tướng xuất hiện liền!"
+          }
+        ]
+      ],
+      "BANTER_HYPE": [
+        [
+          {
+            "speaker": "A",
+            "text": "Không khí đang nóng đến đỉnh điểm rồi! Cả hai bên đều đang dốc toàn lực!"
+          },
+          {
+            "speaker": "B",
+            "text": "Rất thích nhịp độ căng thẳng này. Không ai chịu lùi bước, boss chỉ có nước chịu trận thôi!"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Sàn đấu đông nghẹt thế này thì mỗi đòn đánh đều mang tính quyết định đấy Bảo."
+          },
+          {
+            "speaker": "A",
+            "text": "Chuẩn luôn! Giữ vững nhịp độ này thì boss sống sao nổi với anh em!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Nhiệt huyết đang bùng cháy dữ dội mọi người ơi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Giữ ngọn lửa này cho đến giây phút cuối cùng nhé. Phút chót mới là lúc định đoạt người chiến thắng!"
+          }
+        ]
+      ],
+      "BANTER_BOSS_HP": [
+        [
+          {
+            "speaker": "A",
+            "text": "Máu {{boss}} chỉ còn có {{hpPercent}} phần trăm thôi!"
+          },
+          {
+            "speaker": "B",
+            "text": "Tức là chỉ còn {{hpPercent}} phần trăm cơ hội để ghi tên mình lên bảng vàng. Nhanh tay lên nhé!"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "{{boss}} chỉ còn {{hpPercent}} phần trăm máu. Bảo đoán xem ai sẽ là người cướp mạng?"
+          },
+          {
+            "speaker": "A",
+            "text": "Tôi đoán là người vừa đọc xong câu này đấy! Gõ tên tướng ngay đi còn kịp!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Boss đang trượt dốc không phanh, còn {{hpPercent}} phần trăm máu!"
+          },
+          {
+            "speaker": "B",
+            "text": "Trượt dốc từ từ à? Thế thì chúng ta đẩy cho nó ngã nhanh hơn. Thả tim, gõ chat, tặng quà, lên luôn!"
+          }
+        ]
+      ],
+      "BANTER_FIELD": [
+        [
+          {
+            "speaker": "A",
+            "text": "Có tới {{fieldCount}} vị tướng đang vây quanh {{boss}}! Đội hình đông đảo áp đảo hoàn toàn!"
+          },
+          {
+            "speaker": "B",
+            "text": "Đông chỉ phát huy tác dụng khi mọi người cùng đánh thôi. Ai chưa có tướng thì tham gia lấp đầy đội hình ngay!"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Tôi đếm được {{fieldCount}} vị tướng trên sân rồi. {{boss}} đang ngộp thở thật sự."
+          },
+          {
+            "speaker": "A",
+            "text": "Cho nó hết đường thở luôn! Thêm tướng nữa đi anh em ơi, triệu hồi ngay!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Nhìn sàn đấu rực lửa chưa Quỳnh ơi, tận {{fieldCount}} vị tướng cùng xuất kích!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thấy rồi, rất ấn tượng, nhưng tôi muốn con số này phải nhân đôi lên cơ!"
+          }
+        ]
+      ],
+      "BANTER_LEAD": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} đang dẫn đầu cuộc đua sát thương! Fan của {{teamOther}} đang ở nơi đâu rồi?"
+          },
+          {
+            "speaker": "B",
+            "text": "Dẫn trước lúc này chưa nói lên điều gì đâu. {{teamOther}} chỉ cần một đợt triệu hồi là lấy lại thế trận ngay."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "{{team}} đang nhỉnh hơn một chút. {{teamOther}} có câu trả lời nào không nhỉ?"
+          },
+          {
+            "speaker": "A",
+            "text": "Chắc chắn phải có chứ! Gõ ngay tên tướng kèm {{teamOther}} để đáp trả nào!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{team}} vẫn đang nắm giữ lợi thế dẫn điểm!"
+          },
+          {
+            "speaker": "B",
+            "text": "Để xem giữ được bao lâu nhé. Tôi cảm nhận thấy fan {{teamOther}} đang bắt đầu rục rịch tổng tấn công rồi đấy!"
+          }
+        ]
+      ],
+      "BANTER_SERIES": [
+        [
+          {
+            "speaker": "A",
+            "text": "Tỉ số chuỗi trận đang là {{score}}! Ván {{round}} này cực kỳ quan trọng!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thể thức {{format}} thì ván nào cũng quan trọng cả. Nhưng ván này đúng là căng thẳng hơn thật."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Tỉ số là {{score}} rồi. Bảo thấy ván {{round}} này đang nghiêng về bên nào hơn?"
+          },
+          {
+            "speaker": "A",
+            "text": "Nghiêng về đội nào có khán giả gõ chat nhiều hơn! Đơn giản thế thôi!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Ván {{round}} của loạt trận {{format}}, tỉ số hiện tại là {{score}}!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thắng ván này là nắm chắc lợi thế tâm lý. Cổ vũ hết mình cho đội của bạn đi, đừng ngồi yên!"
+          }
+        ]
+      ],
+      "BANTER_IDLE": [
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} đang ngóng chờ đối thủ kìa! Ai sẽ là người khai chiến trước đây?"
+          },
+          {
+            "speaker": "B",
+            "text": "Sự im lặng này làm tôi hơi lo đấy. {{teamA}}, {{teamB}}, có ai ở ngoài kia không?"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Sàn đấu trống trơn, boss thì ngáp ngắn ngáp dài, còn Bảo thì sắp ngủ gật rồi kìa."
+          },
+          {
+            "speaker": "A",
+            "text": "Ai ngủ gật chứ! Tôi đang mở to mắt đợi khán giả gõ tên tướng đây này!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "Sao yên ắng quá vậy, đây đâu phải là một đấu trường rực lửa!"
+          },
+          {
+            "speaker": "B",
+            "text": "Thế thì tạo chút tiếng vang đi nào. Một dòng chat thôi là {{boss}} biết bạn đã có mặt rồi!"
+          }
+        ]
+      ],
+      "BANTER_EMPTY": [
+        [
+          {
+            "speaker": "A",
+            "text": "Sân đấu trống trơn rồi! {{boss}} đang cười đắc thắng kìa!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cứ để nó cười đi. Gõ {{champion}} {{teamA}} hoặc {{champion}} {{teamB}}, tướng nhảy ra là nó nín cười ngay."
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Chưa có vị tướng nào trên sân. Tôi đếm ba giây nhé: ba, hai…"
+          },
+          {
+            "speaker": "A",
+            "text": "Một! Chat ngay tên tướng kèm {{teamA}} hoặc {{teamB}} mau lên anh em!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{boss}} đang đứng một mình trông tội nghiệp quá!"
+          },
+          {
+            "speaker": "B",
+            "text": "Cho nó tội nghiệp hơn nữa đi. Mỗi người một vị tướng là sàn đấu lại chật ních ngay thôi!"
+          }
+        ]
+      ],
+      "BANTER_PROVOCATION": [
+        [
+          {
+            "speaker": "A",
+            "text": "Fan của {{teamTrailing}} đâu hết rồi? Định để {{teamLeading}} hạ gục {{boss}} dễ dàng thế sao?"
+          },
+          {
+            "speaker": "B",
+            "text": "Bảo lại khích tướng rồi. Nhưng mà fan {{teamTrailing}} ơi, {{starTrailing}} đang rất cần các bạn lúc này đấy!"
+          }
+        ],
+        [
+          {
+            "speaker": "A",
+            "text": "{{teamLeading}} đang làm chủ hoàn toàn sàn đấu! Chẳng lẽ {{teamTrailing}} đã buông xuôi?"
+          },
+          {
+            "speaker": "B",
+            "text": "Không có chuyện buông xuôi đâu. Tôi nghĩ fan {{teamTrailing}} chỉ đang tích chiêu thôi. Chứng minh cho tôi thấy đi nào!"
+          }
+        ],
+        [
+          {
+            "speaker": "B",
+            "text": "Tôi đặt niềm tin vào {{teamTrailing}} ở pha này. Một đợt dồn quân thôi là thế trận cân bằng lại ngay."
+          },
+          {
+            "speaker": "A",
+            "text": "Vậy thì gõ chat ngay đi chứ! Tên tướng kèm {{teamTrailing}}, cho tôi thấy sức mạnh nào!"
+          }
+        ]
+      ]
     }
   },
   "GiftConfig": {

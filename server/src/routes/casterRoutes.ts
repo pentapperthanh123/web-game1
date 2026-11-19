@@ -20,6 +20,9 @@ export function registerCasterSocketHandlers(io: Server, casterTts: CasterTtsSer
 /** GET /api/caster/tts?text=...&lang=vi&role=male&intensity=hype → audio/mpeg for one caster line. */
 export function registerCasterRoutes(app: Express, casterTts: CasterTtsService): void {
   app.get(CASTER_TTS.ROUTE, async (req, res) => {
+    const requestedText = String(req.query.text || '');
+    const requestedRole = req.query.role ? String(req.query.role) : undefined;
+    console.log(`[CasterTTS] Req: text="${requestedText}" role=${requestedRole ?? 'default'} lang=${req.query.lang}`);
     const result = await casterTts.synthesize(req.query.text, req.query.lang, {
       role: req.query.role,
       intensity: req.query.intensity,

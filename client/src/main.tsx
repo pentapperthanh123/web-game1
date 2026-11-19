@@ -7,6 +7,16 @@ import App from './App';
 import { startRoundResultReporter } from './services/roundResultReporter';
 import { restoreMatchSnapshot } from './store/matchSnapshot';
 
+// STRICT: Browser speechSynthesis is permanently disabled to eliminate all "chị Google" voices.
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  try {
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak = () => {};
+  } catch {
+    // Ignore any browser security restrictions
+  }
+}
+
 // Suppress Three.js core deprecation warning triggered internally by @react-three/fiber
 const originalConsoleWarn = console.warn;
 console.warn = (...args: unknown[]) => {

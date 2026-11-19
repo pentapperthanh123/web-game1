@@ -1,4 +1,4 @@
-import { BATTLE_MOMENT_TIMING, CASTER_INTENSITY, CASTER_SIGNAL, CasterSignal } from '../../constants/caster';
+import { BATTLE_MOMENT_TIMING, CASTER_INTENSITY, CASTER_SIGNAL, CASTER_SPEAKER, CasterSignal } from '../../constants/caster';
 import { BOSS_PHASE } from '../../constants/bossPhases';
 import {
   BOSS_MECHANICS_CONSTANTS,
@@ -123,6 +123,7 @@ const announceHeartMilestone = (state: GameState, memory: BattleMomentMemory): v
       ttlMs: BATTLE_MOMENT_TIMING.HEART_MILESTONE_TTL_MS,
       deadlineAt: now + BATTLE_MOMENT_TIMING.HEART_MILESTONE_DEADLINE_MS,
       intensity: CASTER_INTENSITY.HYPE,
+      speaker: CASTER_SPEAKER.B,
     }
   );
 };

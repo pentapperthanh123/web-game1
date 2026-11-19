@@ -312,6 +312,7 @@ export class TikTokLivePipeline {
       text: displayText,
       team: effectiveTeam,
       championName: summonChampion,
+      fansLevel: input.fansLevel,
     });
 
     if (summonChampion && effectiveTeam) {
@@ -322,6 +323,7 @@ export class TikTokLivePipeline {
         team: effectiveTeam,
         userAvatarUrl: input.userAvatarUrl,
         isExplicitChampion: Boolean(parsed.champion),
+        fansLevel: input.fansLevel,
       });
       this.deps.onDuelContribution(effectiveTeam, TIKTOK_PIPELINE_CONSTANTS.DUEL_CHAT_DELTA, {
         type: 'SKILL',
@@ -398,6 +400,7 @@ export class TikTokLivePipeline {
       isComboFinal: Boolean(input.repeatEnd),
       affinitySource: source,
       giftRule: giftRule ? toGiftRulePayload(giftRule) : undefined,
+      fansLevel: input.fansLevel,
     });
 
     this.emitFallbackReminderIfNeeded(displayName, team, shouldRemind);

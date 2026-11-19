@@ -1,4 +1,5 @@
 import type { GiftRulePayload } from '../constants/giftConfig';
+import type { ChampionLevelTier } from '../constants/championLevel';
 import { TeamType, BossStatusType, DamageType, DamageSource, GameThemeType, ChampionSkillVFXType, GiftTier } from '../constants/game';
 export type { GameThemeType };
 import type { ChampionshipTally } from '../store/championshipTally';
@@ -49,6 +50,9 @@ export interface MinionEntity {
   signaturePlayerName?: string;
   signaturePlayerRole?: string;
   isElite?: boolean;
+  level?: number;
+  levelTier?: ChampionLevelTier;
+  levelScale?: number;
   statusEffects?: ActiveStatusEffect[];
 }
 
@@ -180,6 +184,8 @@ export interface SummonPortalEntity {
   createdAt: number;
   isSignatureSynergy?: boolean;
   signaturePlayerName?: string;
+  level?: number;
+  levelTier?: ChampionLevelTier;
 }
 
 export interface HitImpactEntity {
@@ -265,6 +271,7 @@ export interface QueuedSummon {
   isExplicitChampion?: boolean;
   isGiftBypass?: boolean;
   isElite?: boolean;
+  level?: number;
   queuedAt: number;
 }
 
@@ -609,7 +616,8 @@ export interface GameState {
     isGiftBypass?: boolean,
     userAvatarUrl?: string,
     isExplicitChampion?: boolean,
-    isElite?: boolean
+    isElite?: boolean,
+    level?: number
   ) => void;
   summonMinionsBatch: (
     items: Array<{
@@ -620,6 +628,7 @@ export interface GameState {
       userAvatarUrl?: string;
       isExplicitChampion?: boolean;
       isElite?: boolean;
+      level?: number;
     }>
   ) => void;
   advanceSummonTurnQueue: () => void;

@@ -21,9 +21,7 @@ import {
   isDonateSignal,
   resolveSpeakerRole,
 } from '../../constants/caster';
-import { BOSS_VOICE_KIND } from '../../constants/sfx';
 import { useGameStore } from '../../store/gameStore';
-import { playBossVoice } from '../bossVoice';
 import { TeamType } from '../../constants/game';
 import { CasterSubtitleTurn, useCasterStore } from '../../store/casterStore';
 import { isCurrentRoundIntroActive } from '../../store/roundIntroStore';
@@ -76,11 +74,10 @@ const SUBTITLE_ONLY_OUTCOMES = new Set<SpeechOutcome>([
   SPEECH_OUTCOME.UNAVAILABLE,
 ]);
 
-/** After one of these the rest of an exchange is dropped: a reply to a line nobody heard is worse than silence. */
+/** After one of these the rest of an exchange is dropped: interrupted by user/higher priority or expired. */
 const EXCHANGE_STOP_OUTCOMES = new Set<SpeechOutcome>([
   SPEECH_OUTCOME.INTERRUPTED,
   SPEECH_OUTCOME.EXPIRED,
-  SPEECH_OUTCOME.FAILED,
 ]);
 
 const BOSS_HP_RATIO_CLIMAX = 0.2;
@@ -353,7 +350,7 @@ class PresentationQueue {
       const line = turns[index];
       const voice = resolveTurnVoice(line, resolveDonateDefaultIntensity(line));
       if (index > FIRST_TURN_INDEX) {
-        if (!(await this.isReplyReady(line, voice))) break;
+        await this.isReplyReady(line, voice);
         await wait(CASTER_DIALOGUE.TURN_GAP_MS);
       }
       this.currentDonate = line;
@@ -509,7 +506,7 @@ class PresentationQueue {
       const line = playable[index];
       const voice = resolveTurnVoice(line, defaultIntensity);
       if (index > FIRST_TURN_INDEX) {
-        if (!(await this.isReplyReady(line, voice))) break;
+        await this.isReplyReady(line, voice);
         await wait(CASTER_DIALOGUE.TURN_GAP_MS);
       }
       this.currentMain = line;
@@ -577,10 +574,9 @@ class PresentationQueue {
     void casterSpeechEngine.whenUnlocked().then(() => this.scheduleMainPump(0));
   }
 
-  /** The boss roars with its own voice SFX while its line is shown as a caption. */
+  /** The boss line is shown as a caption (voice SFX disabled). */
   private async showBossLine(line: QueuedLine, showSubtitle: () => void): Promise<SpeechOutcome> {
     if (isCurrentRoundIntroActive()) return SPEECH_OUTCOME.EXPIRED;
-    playBossVoice(useGameStore.getState().gameTheme, BOSS_VOICE_KIND.ROAR);
     showSubtitle();
     await wait(Math.max(BOSS_CAPTION.MIN_MS, line.text.length * BOSS_CAPTION.MS_PER_CHAR));
     if (useCasterStore.getState().subtitle?.id === line.id) useCasterStore.setState({ subtitle: null });

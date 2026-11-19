@@ -46,7 +46,7 @@ export const CHAT_LIMIT_BOUNDS: Readonly<Record<keyof ChatLimitConfig, NumericBo
 };
 
 export const DEFAULT_CASTER_CONFIG: CasterConfig = {
-  isTtsEnabled: false,
+  isTtsEnabled: true,
   isNameReadingEnabled: true,
   isDuoEnabled: true,
 };

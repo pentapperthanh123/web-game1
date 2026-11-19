@@ -264,7 +264,9 @@ class GameSocketClient {
             payload.team,
             payload.isGiftBypass,
             payload.userAvatarUrl,
-            payload.isExplicitChampion
+            payload.isExplicitChampion,
+            payload.isElite,
+            payload.fansLevel
           );
       });
 

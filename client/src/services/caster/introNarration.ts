@@ -50,12 +50,14 @@ export const splitSpeechChunks = (text: string): string[] => splitAtLevel(text.t
  * Speaks one intro line in voice-sized parts, back to back.
  * `isStillCurrent` turns false when the intro moves on (tab change, duel, card closed); the remaining parts are then dropped.
  * `initialDelayMs` introduces a resilient breathing room (e.g. for the round gong) without being cancelled by React re-renders.
+ * `fallbackText` is used if the primary line is missing from the static audio cache.
  */
 export const speakIntroNarration = async (
   text: string,
   isStillCurrent: () => boolean,
   initialDelayMs = 0,
-  speaker: CasterSpeaker = DEFAULT_CASTER_SPEAKER
+  speaker: CasterSpeaker = DEFAULT_CASTER_SPEAKER,
+  fallbackText?: string
 ): Promise<void> => {
   const lang = getCasterLang();
   const role = resolveSpeakerRole(speaker);
@@ -67,10 +69,22 @@ export const speakIntroNarration = async (
     if (!isStillCurrent()) return;
   }
 
+  let spokeAny = false;
   for (const chunk of chunks) {
-    await casterSpeechEngine.prepare(chunk, lang, role);
+    const isReady = await casterSpeechEngine.prepare(chunk, lang, role);
     if (!isStillCurrent()) return;
+    if (!isReady && !spokeAny && fallbackText) {
+      const fallbackChunks = splitSpeechChunks(fallbackText);
+      for (const fbChunk of fallbackChunks) {
+        await casterSpeechEngine.prepare(fbChunk, lang, role);
+        if (!isStillCurrent()) return;
+        const fbOutcome = await casterSpeechEngine.speak(fbChunk, lang, NOOP, undefined, role);
+        if (STOP_OUTCOMES.has(fbOutcome) || !isStillCurrent()) return;
+      }
+      return;
+    }
     const outcome = await casterSpeechEngine.speak(chunk, lang, NOOP, undefined, role);
+    if (outcome === SPEECH_OUTCOME.SPOKEN) spokeAny = true;
     if (STOP_OUTCOMES.has(outcome) || !isStillCurrent()) return;
   }
 };

@@ -8,6 +8,7 @@
   },
   "casterConfig": {
     "isTtsEnabled": true,
-    "isNameReadingEnabled": true
+    "isNameReadingEnabled": true,
+    "isDuoEnabled": true
   }
 }

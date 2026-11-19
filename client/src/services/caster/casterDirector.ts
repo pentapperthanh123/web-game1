@@ -55,6 +55,7 @@ import {
   speakerFor,
 } from './casterSignal';
 import { announceBattleMoments, announceDuelMoments, createBattleMomentMemory } from './casterBattleMoments';
+import { CommentaryDirector } from './CommentaryDirector';
 
 /** Names starting with a badge (💖 follow reward, 👑 gift elite) already got their own line. */
 const BADGED_NAME = /^[^\p{L}\p{N}]/u;
@@ -367,6 +368,7 @@ const announceGiftBanner = (state: GameState, memory: DirectorMemory): void => {
 
   // MEGA gifts immediately interrupt ongoing commentary and trigger personal callout
   if (banner.tier === GIFT_TIER.MEGA) {
+    CommentaryDirector.onVipDonation(banner.donorName, banner.giftName);
     flushGiftBatch(memory);
     castCasterDialogue(
       CASTER_SIGNAL.GIFT_MEGA,
@@ -383,6 +385,7 @@ const announceGiftBanner = (state: GameState, memory: DirectorMemory): void => {
 
   // BIG gifts flush previous buffer and cast with HYPE intensity
   if (banner.tier === GIFT_TIER.BIG) {
+    CommentaryDirector.onVipDonation(banner.donorName, banner.giftName);
     flushGiftBatch(memory);
     castCasterDialogue(
       CASTER_SIGNAL.GIFT_BIG,
@@ -505,8 +508,10 @@ const announceRoundFlow = (state: GameState, prev: GameState, memory: DirectorMe
     // Read the latest state: the leaderboard and finisher are final by the time the screen shows
     const latest = useGameStore.getState();
     if (latest.isSeriesEnded && latest.seriesWinner) {
+      CommentaryDirector.onRoundEnd(latest.seriesWinner);
       announceSeriesEnd(latest);
     } else if (isRoundJustWon && latest.roundWinner !== null) {
+      CommentaryDirector.onRoundEnd(latest.roundWinner);
       announceRoundEnd(latest, bossName);
     }
   });
@@ -603,7 +608,7 @@ const announceSeriesEnd = (state: GameState): void => {
   castCasterSignal(
     CASTER_SIGNAL.NEXT_MATCH,
     { teamA: findTag(nextMatch.leftTeamId), teamB: findTag(nextMatch.rightTeamId) },
-    endSequence
+    { ...endSequence, speaker: CASTER_SPEAKER.B }
   );
 };
 
@@ -935,7 +940,15 @@ const tickBanter = (memory: DirectorMemory): void => {
   const signal = pickBanterSignal(facts, isFieldEmpty, memory.lastBanterSignal);
   memory.lastBanterSignal = signal;
   memory.nextBanterSilenceMs = resolveNextBanterSilence(isIdle, isFieldEmpty);
-  castCasterDialogue(signal, buildBanterSlots(state, memory.livingCount));
+  // Signals dedicated to Analyst Anna (female voice quynh)
+  const isFemaleSignal =
+    signal === CASTER_SIGNAL.BANTER_GUIDE ||
+    signal === CASTER_SIGNAL.BANTER_CTA ||
+    signal === CASTER_SIGNAL.BANTER_LEAD ||
+    signal === CASTER_SIGNAL.BANTER_FIELD;
+  castCasterDialogue(signal, buildBanterSlots(state, memory.livingCount), {
+    speaker: isFemaleSignal ? CASTER_SPEAKER.B : CASTER_SPEAKER.A,
+  });
 };
 
 /** Starts listening to the game; returns the cleanup for the mounting effect. */

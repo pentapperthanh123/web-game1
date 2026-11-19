@@ -968,7 +968,7 @@
     },
     "Đại_Gia_TikTok": {
       "userName": "Đại_Gia_TikTok",
-      "lastSeenAt": 1794990214250,
+      "lastSeenAt": 1795080383303,
       "periods": {
         "2026-W46": {
           "totalDamage": 17468450,
@@ -976,19 +976,19 @@
           "mvpCount": 67
         },
         "2026-11": {
-          "totalDamage": 33456086,
-          "roundsPlayed": 89,
-          "mvpCount": 83
+          "totalDamage": 35464079,
+          "roundsPlayed": 95,
+          "mvpCount": 89
         },
         "2026-W47": {
-          "totalDamage": 15987636,
-          "roundsPlayed": 21,
-          "mvpCount": 16
+          "totalDamage": 17995629,
+          "roundsPlayed": 27,
+          "mvpCount": 22
         }
       },
-      "totalDamage": 33456086,
-      "roundsPlayed": 89,
-      "mvpCount": 83
+      "totalDamage": 35464079,
+      "roundsPlayed": 95,
+      "mvpCount": 89
     },
     "Gamer_Pro_99_735": {
       "userName": "Gamer_Pro_99_735",
@@ -3554,7 +3554,7 @@
     },
     "Gamer_Pro_99": {
       "userName": "Gamer_Pro_99",
-      "lastSeenAt": 1794895934401,
+      "lastSeenAt": 1795071397419,
       "periods": {
         "2026-W46": {
           "totalDamage": 5116,
@@ -3562,18 +3562,18 @@
           "mvpCount": 1
         },
         "2026-11": {
-          "totalDamage": 14675,
-          "roundsPlayed": 8,
+          "totalDamage": 14936,
+          "roundsPlayed": 10,
           "mvpCount": 1
         },
         "2026-W47": {
-          "totalDamage": 9559,
-          "roundsPlayed": 2,
+          "totalDamage": 9820,
+          "roundsPlayed": 4,
           "mvpCount": 0
         }
       },
-      "totalDamage": 14675,
-      "roundsPlayed": 8,
+      "totalDamage": 14936,
+      "roundsPlayed": 10,
       "mvpCount": 1
     },
     "Mid_Diff_VN_479": {
@@ -16763,7 +16763,7 @@
     },
     "Gamer_Pro_99_153": {
       "userName": "Gamer_Pro_99_153",
-      "lastSeenAt": 1794733447255,
+      "lastSeenAt": 1795052770912,
       "periods": {
         "2026-W46": {
           "totalDamage": 1161,
@@ -16771,13 +16771,18 @@
           "mvpCount": 0
         },
         "2026-11": {
-          "totalDamage": 1161,
-          "roundsPlayed": 2,
+          "totalDamage": 2359,
+          "roundsPlayed": 3,
+          "mvpCount": 0
+        },
+        "2026-W47": {
+          "totalDamage": 1198,
+          "roundsPlayed": 1,
           "mvpCount": 0
         }
       },
-      "totalDamage": 1161,
-      "roundsPlayed": 2,
+      "totalDamage": 2359,
+      "roundsPlayed": 3,
       "mvpCount": 0
     },
     "Gamer_Pro_99_660": {
@@ -21055,155 +21060,155 @@
     },
     "Đội hình T1": {
       "userName": "Đội hình T1",
-      "lastSeenAt": 1794989534137,
+      "lastSeenAt": 1795063774276,
       "periods": {
         "2026-W47": {
-          "totalDamage": 232136,
-          "roundsPlayed": 18,
-          "mvpCount": 10
+          "totalDamage": 992399,
+          "roundsPlayed": 76,
+          "mvpCount": 30
         },
         "2026-11": {
-          "totalDamage": 232136,
-          "roundsPlayed": 18,
-          "mvpCount": 10
+          "totalDamage": 992399,
+          "roundsPlayed": 76,
+          "mvpCount": 30
         }
       },
-      "totalDamage": 232136,
-      "roundsPlayed": 18,
-      "mvpCount": 10
+      "totalDamage": 992399,
+      "roundsPlayed": 76,
+      "mvpCount": 30
     },
     "Đội hình GAM": {
       "userName": "Đội hình GAM",
-      "lastSeenAt": 1794987304218,
+      "lastSeenAt": 1795078199238,
       "periods": {
         "2026-W47": {
-          "totalDamage": 119459,
-          "roundsPlayed": 14,
-          "mvpCount": 4
+          "totalDamage": 1182866,
+          "roundsPlayed": 88,
+          "mvpCount": 40
         },
         "2026-11": {
-          "totalDamage": 119459,
-          "roundsPlayed": 14,
-          "mvpCount": 4
+          "totalDamage": 1182866,
+          "roundsPlayed": 88,
+          "mvpCount": 40
         }
       },
-      "totalDamage": 119459,
-      "roundsPlayed": 14,
-      "mvpCount": 4
+      "totalDamage": 1182866,
+      "roundsPlayed": 88,
+      "mvpCount": 40
     },
     "Đội hình AL": {
       "userName": "Đội hình AL",
-      "lastSeenAt": 1794996268016,
+      "lastSeenAt": 1795077114999,
       "periods": {
         "2026-W47": {
-          "totalDamage": 401130,
-          "roundsPlayed": 28,
-          "mvpCount": 7
+          "totalDamage": 909638,
+          "roundsPlayed": 69,
+          "mvpCount": 24
         },
         "2026-11": {
-          "totalDamage": 401130,
-          "roundsPlayed": 28,
-          "mvpCount": 7
+          "totalDamage": 909638,
+          "roundsPlayed": 69,
+          "mvpCount": 24
         }
       },
-      "totalDamage": 401130,
-      "roundsPlayed": 28,
-      "mvpCount": 7
+      "totalDamage": 909638,
+      "roundsPlayed": 69,
+      "mvpCount": 24
     },
     "Đội hình DK": {
       "userName": "Đội hình DK",
-      "lastSeenAt": 1794981333332,
+      "lastSeenAt": 1795077114999,
       "periods": {
         "2026-W47": {
-          "totalDamage": 113130,
-          "roundsPlayed": 9,
-          "mvpCount": 3
+          "totalDamage": 670435,
+          "roundsPlayed": 49,
+          "mvpCount": 20
         },
         "2026-11": {
-          "totalDamage": 113130,
-          "roundsPlayed": 9,
-          "mvpCount": 3
+          "totalDamage": 670435,
+          "roundsPlayed": 49,
+          "mvpCount": 20
         }
       },
-      "totalDamage": 113130,
-      "roundsPlayed": 9,
-      "mvpCount": 3
+      "totalDamage": 670435,
+      "roundsPlayed": 49,
+      "mvpCount": 20
     },
     "Đội hình HLE": {
       "userName": "Đội hình HLE",
-      "lastSeenAt": 1794990700138,
+      "lastSeenAt": 1795059952263,
       "periods": {
         "2026-W47": {
-          "totalDamage": 305722,
-          "roundsPlayed": 19,
-          "mvpCount": 8
+          "totalDamage": 869343,
+          "roundsPlayed": 63,
+          "mvpCount": 27
         },
         "2026-11": {
-          "totalDamage": 305722,
-          "roundsPlayed": 19,
-          "mvpCount": 8
+          "totalDamage": 869343,
+          "roundsPlayed": 63,
+          "mvpCount": 27
         }
       },
-      "totalDamage": 305722,
-      "roundsPlayed": 19,
-      "mvpCount": 8
+      "totalDamage": 869343,
+      "roundsPlayed": 63,
+      "mvpCount": 27
     },
     "Đội hình G2": {
       "userName": "Đội hình G2",
-      "lastSeenAt": 1794996959017,
+      "lastSeenAt": 1795074025704,
       "periods": {
         "2026-W47": {
-          "totalDamage": 259972,
-          "roundsPlayed": 23,
-          "mvpCount": 8
+          "totalDamage": 833516,
+          "roundsPlayed": 69,
+          "mvpCount": 22
         },
         "2026-11": {
-          "totalDamage": 259972,
-          "roundsPlayed": 23,
-          "mvpCount": 8
+          "totalDamage": 833516,
+          "roundsPlayed": 69,
+          "mvpCount": 22
         }
       },
-      "totalDamage": 259972,
-      "roundsPlayed": 23,
-      "mvpCount": 8
+      "totalDamage": 833516,
+      "roundsPlayed": 69,
+      "mvpCount": 22
     },
     "Đội hình BLG": {
       "userName": "Đội hình BLG",
-      "lastSeenAt": 1794992340149,
+      "lastSeenAt": 1795057171300,
       "periods": {
         "2026-W47": {
-          "totalDamage": 181523,
-          "roundsPlayed": 17,
-          "mvpCount": 6
+          "totalDamage": 779539,
+          "roundsPlayed": 61,
+          "mvpCount": 20
         },
         "2026-11": {
-          "totalDamage": 181523,
-          "roundsPlayed": 17,
-          "mvpCount": 6
+          "totalDamage": 779539,
+          "roundsPlayed": 61,
+          "mvpCount": 20
         }
       },
-      "totalDamage": 181523,
-      "roundsPlayed": 17,
-      "mvpCount": 6
+      "totalDamage": 779539,
+      "roundsPlayed": 61,
+      "mvpCount": 20
     },
     "Đội hình GEN": {
       "userName": "Đội hình GEN",
-      "lastSeenAt": 1794995211268,
+      "lastSeenAt": 1795081368422,
       "periods": {
         "2026-W47": {
-          "totalDamage": 238750,
-          "roundsPlayed": 24,
-          "mvpCount": 6
+          "totalDamage": 1004816,
+          "roundsPlayed": 83,
+          "mvpCount": 28
         },
         "2026-11": {
-          "totalDamage": 238750,
-          "roundsPlayed": 24,
-          "mvpCount": 6
+          "totalDamage": 1004816,
+          "roundsPlayed": 83,
+          "mvpCount": 28
         }
       },
-      "totalDamage": 238750,
-      "roundsPlayed": 24,
-      "mvpCount": 6
+      "totalDamage": 1004816,
+      "roundsPlayed": 83,
+      "mvpCount": 28
     },
     "Bin Bổ Củi": {
       "userName": "Bin Bổ Củi",
@@ -21606,22 +21611,22 @@
     },
     "Đội hình TES": {
       "userName": "Đội hình TES",
-      "lastSeenAt": 1794996959017,
+      "lastSeenAt": 1795080383303,
       "periods": {
         "2026-W47": {
-          "totalDamage": 224678,
-          "roundsPlayed": 18,
-          "mvpCount": 5
+          "totalDamage": 972896,
+          "roundsPlayed": 77,
+          "mvpCount": 29
         },
         "2026-11": {
-          "totalDamage": 224678,
-          "roundsPlayed": 18,
-          "mvpCount": 5
+          "totalDamage": 972896,
+          "roundsPlayed": 77,
+          "mvpCount": 29
         }
       },
-      "totalDamage": 224678,
-      "roundsPlayed": 18,
-      "mvpCount": 5
+      "totalDamage": 972896,
+      "roundsPlayed": 77,
+      "mvpCount": 29
     },
     "Gamer_Pro_99_862": {
       "userName": "Gamer_Pro_99_862",
@@ -21891,22 +21896,22 @@
     },
     "Đội hình FLY": {
       "userName": "Đội hình FLY",
-      "lastSeenAt": 1794996268016,
+      "lastSeenAt": 1795081368422,
       "periods": {
         "2026-W47": {
-          "totalDamage": 294878,
-          "roundsPlayed": 29,
-          "mvpCount": 10
+          "totalDamage": 1131494,
+          "roundsPlayed": 91,
+          "mvpCount": 31
         },
         "2026-11": {
-          "totalDamage": 294878,
-          "roundsPlayed": 29,
-          "mvpCount": 10
+          "totalDamage": 1131494,
+          "roundsPlayed": 91,
+          "mvpCount": 31
         }
       },
-      "totalDamage": 294878,
-      "roundsPlayed": 29,
-      "mvpCount": 10
+      "totalDamage": 1131494,
+      "roundsPlayed": 91,
+      "mvpCount": 31
     },
     "Gamer_Pro_99_181": {
       "userName": "Gamer_Pro_99_181",
@@ -22743,208 +22748,759 @@
       "totalDamage": 76,
       "roundsPlayed": 2,
       "mvpCount": 0
+    },
+    "Esports_VIP_88_757": {
+      "userName": "Esports_VIP_88_757",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1380,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1380,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1380,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_240": {
+      "userName": "Worlds_Legend_240",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1366,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1366,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1366,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ThanhLong_CKTG_159": {
+      "userName": "ThanhLong_CKTG_159",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1354,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1354,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1354,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ADC_Crit_99_629": {
+      "userName": "ADC_Crit_99_629",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1335,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1335,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1335,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "HuyHuyenThoai_377": {
+      "userName": "HuyHuyenThoai_377",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1331,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1331,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1331,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Top1_ThachDau_254": {
+      "userName": "Top1_ThachDau_254",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1294,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1294,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1294,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Pentakill_Pro_867": {
+      "userName": "Pentakill_Pro_867",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1279,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1279,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1279,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Pentakill_Pro_709": {
+      "userName": "Pentakill_Pro_709",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1254,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1254,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1254,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_359": {
+      "userName": "Esports_VIP_88_359",
+      "lastSeenAt": 1795052770912,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 1117,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 1117,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 1117,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Top1_ThachDau_454": {
+      "userName": "Top1_ThachDau_454",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 354,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 354,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 354,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Baron_Stealer_538": {
+      "userName": "Baron_Stealer_538",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 354,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 354,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 354,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Pentakill_Pro_652": {
+      "userName": "Pentakill_Pro_652",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 327,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 327,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 327,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "HuyHuyenThoai_406": {
+      "userName": "HuyHuyenThoai_406",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 319,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 319,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 319,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_444": {
+      "userName": "Esports_VIP_88_444",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 310,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 310,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 310,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_601": {
+      "userName": "Worlds_Legend_601",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 301,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 301,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 301,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Pentakill_Pro_899": {
+      "userName": "Pentakill_Pro_899",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 298,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 298,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 298,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_280": {
+      "userName": "Support_God_280",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 275,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 275,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 275,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Pentakill_Pro_782": {
+      "userName": "Pentakill_Pro_782",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 274,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 274,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 274,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_156": {
+      "userName": "Worlds_Legend_156",
+      "lastSeenAt": 1795053435904,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 260,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 260,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 260,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Esports_VIP_88_865": {
+      "userName": "Esports_VIP_88_865",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 646,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 646,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 646,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "HuyHuyenThoai_252": {
+      "userName": "HuyHuyenThoai_252",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 613,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 613,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 613,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ThanhLong_CKTG_607": {
+      "userName": "ThanhLong_CKTG_607",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 581,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 581,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 581,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Mid_Diff_VN_869": {
+      "userName": "Mid_Diff_VN_869",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 550,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 550,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 550,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ADC_Crit_99_288": {
+      "userName": "ADC_Crit_99_288",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 486,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 486,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 486,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ADC_Crit_99_411": {
+      "userName": "ADC_Crit_99_411",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 486,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 486,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 486,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Worlds_Legend_864": {
+      "userName": "Worlds_Legend_864",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 474,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 474,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 474,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Pentakill_Pro_377": {
+      "userName": "Pentakill_Pro_377",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 453,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 453,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 453,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "Support_God_379": {
+      "userName": "Support_God_379",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 442,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 442,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 442,
+      "roundsPlayed": 1,
+      "mvpCount": 0
+    },
+    "ThanhLong_CKTG_455": {
+      "userName": "ThanhLong_CKTG_455",
+      "lastSeenAt": 1795061272763,
+      "periods": {
+        "2026-W47": {
+          "totalDamage": 403,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        },
+        "2026-11": {
+          "totalDamage": 403,
+          "roundsPlayed": 1,
+          "mvpCount": 0
+        }
+      },
+      "totalDamage": 403,
+      "roundsPlayed": 1,
+      "mvpCount": 0
     }
   },
   "recentRoundIds": [
-    "1794653135145-1",
-    "1794656468691-1",
-    "1794656746268-1",
-    "1794657374919-1",
-    "1794659239985-1",
-    "1794659339294-1",
-    "1794660457150-1",
-    "1794661990893-1",
-    "1794664040120-1",
-    "1794667878896-1",
-    "1794667878896-3",
-    "1794669265737-1",
-    "1794671042487-1",
-    "1794671641840-1",
-    "1794671758285-1",
-    "1794673219308-1",
-    "1794673572105-1",
-    "1794673580498-1",
-    "1794673616578-1",
-    "1794673767223-1",
-    "1794674873572-1",
-    "1794675118237-1",
-    "1794675118237-3",
-    "1794675306468-1",
-    "1794675687826-1",
-    "1794675687826-3",
-    "1794676405641-1",
-    "1794676708923-1",
-    "1794676708923-2",
-    "1794676875805-1",
-    "1794677190496-1",
-    "1794677613687-1",
-    "1794677613687-2",
-    "1794677930468-1",
-    "1794701924217-1",
-    "1794703283448-1",
-    "1794704986828-1",
-    "1794705331810-1",
-    "1794720571083-1",
-    "1794722845346-1",
-    "1794722845346-3",
-    "1794725829366-1",
-    "1794725918357-1",
-    "1794726098838-1",
-    "1794726152950-1",
-    "1794726312591-1",
-    "1794726415852-1",
-    "1794726552799-1",
-    "1794727158862-1",
-    "1794728270888-1",
-    "1794728270888-2",
-    "1794728846314-1",
-    "1794728846314-2",
-    "1794728846314-3",
-    "1794729905552-1",
-    "1794729978581-1",
-    "1794730399433-1",
-    "1794730935618-1",
-    "1794730935618-2",
-    "1794731291701-1",
-    "1794731291701-2",
-    "1794731786338-1",
-    "1794731786338-2",
-    "1794731786338-3",
-    "1794732163094-1",
-    "1794732554267-1",
-    "1794732861247-1",
-    "1794732988483-1",
-    "1794733057441-1",
-    "1794733094175-1",
-    "1794733203053-1",
-    "1794733195377-1",
-    "1794735194243-1",
-    "1794748196085-1",
-    "1794748235483-1",
-    "1794748281336-1",
-    "1794754591443-1",
-    "1794755511973-1",
-    "1794756834875-1",
-    "1794756834875-3",
-    "1794756834875-5",
-    "1794757746672-1",
-    "1794758124613-1",
-    "1794758595085-1",
-    "1794759095522-1",
-    "1794759288776-1",
-    "1794759397884-1",
-    "1794759717852-1",
-    "1794759717852-2",
-    "1794759717852-3",
-    "1794815090009-1",
-    "1794819113895-1",
-    "1794822906905-1",
-    "1794838639055-1",
-    "1794838639055-2",
-    "1794839351919-3",
-    "1794839705920-1",
-    "1794840383314-1",
-    "1794841471018-1",
-    "1794841952398-2",
-    "1794842169047-1",
-    "1794842961305-1",
-    "1794843588423-1",
-    "1794844157095-2",
-    "1794844350878-3",
-    "1794844674317-1",
-    "1794845538949-1",
-    "1794845580556-1",
-    "1794845706296-1",
-    "1794846248446-1",
-    "1794846518962-1",
-    "1794847062986-1",
-    "1794879029518-1",
-    "1794879743250-2",
-    "1794880027107-3",
-    "1794882355521-1",
-    "1794885515986-1",
-    "1794895654532-1",
-    "1794896658254-1",
-    "1794900389045-1",
-    "1794902063432-1",
-    "1794902063432-2",
-    "1794902063432-3",
-    "1794903013397-1",
-    "1794909360215-1",
-    "1794919666063-1",
-    "1794920582980-1",
-    "1794920660660-1",
-    "1794921841411-1",
-    "1794922174222-2",
-    "1794922174222-3",
-    "1794922849635-1",
-    "1794923297317-1",
-    "1794923665725-1",
-    "1794923971326-1",
-    "1794923971326-2",
-    "1794926769094-2",
-    "1794926769094-3",
-    "1794927791009-1",
-    "1794927791009-2",
-    "1794928842626-1",
-    "1794928842626-2",
-    "1794929680590-1",
-    "1794929680590-2",
-    "1794930341721-1",
-    "1794930341721-2",
-    "1794931027653-1",
-    "1794931027653-2",
-    "1794931713927-1",
-    "1794932300897-2",
-    "1794975091671-2",
-    "1794975755152-3",
-    "1794976546256-1",
-    "1794976546256-2",
-    "1794977240302-1",
-    "1794977821449-2",
-    "1794978077574-3",
-    "1794978744985-1",
-    "1794979228305-2",
-    "1794979228305-3",
-    "1794979656898-1",
-    "1794979656898-2",
-    "1794980344407-1",
-    "1794980344407-2",
-    "1794980987858-1",
-    "1794980987858-2",
-    "1794980987858-3",
-    "1794982049562-1",
-    "1794982049562-2",
-    "1794982949978-1",
-    "1794982949978-2",
-    "1794982949978-3",
-    "1794984888249-1",
-    "1794984888249-2",
-    "1794985801000-1",
-    "1794985801000-2",
-    "1794986690051-3",
-    "1794986959246-1",
-    "1794986959246-2",
-    "1794988044752-3",
-    "1794988131922-1",
-    "1794988131922-2",
-    "1794988131922-3",
-    "1794989188654-1",
-    "1794989188654-2",
-    "1794989868660-1",
-    "1794989868660-2",
-    "1794990354811-1",
-    "1794990354811-2",
-    "1794991250026-2",
-    "1794991250026-3",
-    "1794992602817-1",
-    "1794992602817-2",
-    "1794992602817-3",
-    "1794994865945-1",
-    "1794994865945-2",
-    "1794994865945-3",
-    "1794995922541-1",
-    "1794995922541-2",
-    "1794995922541-3"
+    "1795001897361-1",
+    "1795001897361-2",
+    "1795002587539-1",
+    "1795002587539-2",
+    "1795002587539-3",
+    "1795003644290-1",
+    "1795003644290-2",
+    "1795003644290-3",
+    "1795004702010-1",
+    "1795004702010-2",
+    "1795004702010-3",
+    "1795005821035-1",
+    "1795005821035-2",
+    "1795006510657-1",
+    "1795006510657-2",
+    "1795007196552-1",
+    "1795007196552-2",
+    "1795007196552-3",
+    "1795008253025-1",
+    "1795008253025-2",
+    "1795008253025-3",
+    "1795009350418-1",
+    "1795009350418-2",
+    "1795010036525-1",
+    "1795010036525-2",
+    "1795010036525-3",
+    "1795011093047-1",
+    "1795011093047-2",
+    "1795011093047-3",
+    "1795012181173-1",
+    "1795012181173-2",
+    "1795012867030-1",
+    "1795012867030-2",
+    "1795012867030-3",
+    "1795013923533-1",
+    "1795013923533-2",
+    "1795013923533-3",
+    "1795014980298-1",
+    "1795014980298-2",
+    "1795014980298-3",
+    "1795016036545-1",
+    "1795016036545-2",
+    "1795016723774-1",
+    "1795016723774-2",
+    "1795016723774-3",
+    "1795017780288-1",
+    "1795017780288-2",
+    "1795017780288-3",
+    "1795018836537-1",
+    "1795018836537-2",
+    "1795019522533-1",
+    "1795019522533-2",
+    "1795019522533-3",
+    "1795020579046-1",
+    "1795020579046-2",
+    "1795020579046-3",
+    "1795021635536-1",
+    "1795021635536-2",
+    "1795022321525-1",
+    "1795022321525-2",
+    "1795023016300-1",
+    "1795023016300-2",
+    "1795023016300-3",
+    "1795024084790-1",
+    "1795024084790-2",
+    "1795024084790-3",
+    "1795025144100-1",
+    "1795025144100-2",
+    "1795025144100-3",
+    "1795026200542-1",
+    "1795026200542-2",
+    "1795026200542-3",
+    "1795027263286-1",
+    "1795027263286-2",
+    "1795027949546-1",
+    "1795027949546-2",
+    "1795028635782-1",
+    "1795028635782-2",
+    "1795028635782-3",
+    "1795029692296-1",
+    "1795029692296-2",
+    "1795029692296-3",
+    "1795030749039-1",
+    "1795030749039-2",
+    "1795031477546-1",
+    "1795031477546-2",
+    "1795032163536-1",
+    "1795032163536-2",
+    "1795032851273-1",
+    "1795032851273-2",
+    "1795033537304-1",
+    "1795033537304-2",
+    "1795034223539-1",
+    "1795034223539-2",
+    "1795034910045-1",
+    "1795034910045-2",
+    "1795034910045-3",
+    "1795035967023-1",
+    "1795035967023-2",
+    "1795035967023-3",
+    "1795037023791-1",
+    "1795037023791-2",
+    "1795037023791-3",
+    "1795038081281-1",
+    "1795038081281-2",
+    "1795038081281-3",
+    "1795039138279-1",
+    "1795039138279-2",
+    "1795039824550-1",
+    "1795039824550-2",
+    "1795039824550-3",
+    "1795040885289-1",
+    "1795040885289-2",
+    "1795041572044-1",
+    "1795041572044-2",
+    "1795042258790-1",
+    "1795042258790-2",
+    "1795042996777-1",
+    "1795042996777-2",
+    "1795042996777-3",
+    "1795044057891-1",
+    "1795044057891-2",
+    "1795044744526-1",
+    "1795044744526-2",
+    "1795044744526-3",
+    "1795045802045-1",
+    "1795045802045-2",
+    "1795046488789-1",
+    "1795046488789-2",
+    "1795047178500-1",
+    "1795047178500-2",
+    "1795047178500-3",
+    "1795048236031-1",
+    "1795048236031-2",
+    "1795048236031-3",
+    "1795049293537-1",
+    "1795049293537-2",
+    "1795049980515-1",
+    "1795049980515-2",
+    "1795050667533-1",
+    "1795050667533-2",
+    "1795051816199-3",
+    "1795051958000-1",
+    "1795051958000-2",
+    "1795053117922-1",
+    "1795053451733-1",
+    "1795053451733-2",
+    "1795054833905-3",
+    "1795054833905-4",
+    "1795055489071-1",
+    "1795055489071-2",
+    "1795055489071-3",
+    "1795055489071-4",
+    "1795055489071-5",
+    "1795057293663-1",
+    "1795058389540-2",
+    "1795058767788-3",
+    "1795058946688-4",
+    "1795059395838-5",
+    "1795059606787-1",
+    "1795059976640-2",
+    "1795059976640-3",
+    "1795059976640-4",
+    "1795060927441-1",
+    "1795061517831-2",
+    "1795061627696-2",
+    "1795061698804-1",
+    "1795062231714-2",
+    "1795062231714-3",
+    "1795062830865-4",
+    "1795062830865-5",
+    "1795063428922-1",
+    "1795070005555-2",
+    "1795070005555-3",
+    "1795070005555-4",
+    "1795070853556-5",
+    "1795071084802-1",
+    "1795071084802-2",
+    "1795071775352-3",
+    "1795072142665-4",
+    "1795073850065-5",
+    "1795074096127-1",
+    "1795074096127-2",
+    "1795074096127-3",
+    "1795074096127-4",
+    "1795075413239-1",
+    "1795075413239-2",
+    "1795075413239-3",
+    "1795076585116-4",
+    "1795076769498-1",
+    "1795077803245-2",
+    "1795078088112-3",
+    "1795078219463-3",
+    "1795078403499-1",
+    "1795078403499-2",
+    "1795079138341-3",
+    "1795079572618-4",
+    "1795080169601-5",
+    "1795080803570-1",
+    "1795081307311-2"
   ]
 }

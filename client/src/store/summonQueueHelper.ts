@@ -17,6 +17,12 @@ import { CHAMPION_DEFAULT_MAX_HP } from '../constants/bossSkills';
 import { getChampionAvatarUrl } from '../constants/roster';
 import { findExactSignaturePlayer, getTeamTheme } from '../constants/teams';
 import { pickSpawnPositionInWing } from '../components/canvas/summon/championSpread';
+import {
+  CHAMPION_LEVEL_THRESHOLDS,
+  getChampionLevelConfig,
+  resolveEffectiveChampionLevel,
+} from '../constants/championLevel';
+import { getViewerSessionDamage } from './sessionLeaderboardStore';
 
 export interface DeployQueuedResult {
   nextMinions: MinionEntity[];
@@ -95,7 +101,11 @@ const buildDeployedChampion = (
   const exactSignaturePro = findExactSignaturePlayer(req.championName, activeTeamProfile?.roster ?? []);
   const isSignatureSynergy = Boolean(exactSignaturePro);
   const isElite = Boolean(req.isElite || req.isGiftBypass || isEliteMinion(req) || isSignatureSynergy);
+  const sessionDamage = getViewerSessionDamage(req.summonerName);
+  const effectiveLevel = resolveEffectiveChampionLevel(req.level, sessionDamage);
+  const levelConfig = getChampionLevelConfig(effectiveLevel);
   const baseDps = rollBaseDps(isSignatureSynergy);
+  const levelDps = Math.round(baseDps * (1 + levelConfig.dpsBonusPercent));
   const avatarUrl = getChampionAvatarUrl(req.championName, req.team);
   const resolvedUserAvatarUrl =
     req.userAvatarUrl || exactSignaturePro?.avatarUrl || activeTeamProfile?.logoUrl;
@@ -115,7 +125,7 @@ const buildDeployedChampion = (
     orbitAngle: Math.random() * Math.PI * 2,
     verticalOffset: 0,
     createdAt: now,
-    dps: baseDps,
+    dps: levelDps,
     hp: CHAMPION_DEFAULT_MAX_HP,
     maxHp: CHAMPION_DEFAULT_MAX_HP,
     fury: 0,
@@ -124,6 +134,9 @@ const buildDeployedChampion = (
     isElite,
     signaturePlayerName: exactSignaturePro?.name,
     signaturePlayerRole: exactSignaturePro?.role,
+    level: effectiveLevel,
+    levelTier: levelConfig.tier,
+    levelScale: levelConfig.scaleMultiplier,
   };
 
   const portal: SummonPortalEntity = {
@@ -135,17 +148,23 @@ const buildDeployedChampion = (
     position: spawnPosition,
     color: isSignatureSynergy ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor,
     isCrit: isSignatureSynergy,
-    dps: baseDps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER,
+    dps: levelDps * COMBAT_VFX_CONSTANTS.SUMMON.NORMAL_MULTIPLIER,
     createdAt: now,
     isSignatureSynergy,
     signaturePlayerName: exactSignaturePro?.name,
+    level: effectiveLevel,
+    levelTier: levelConfig.tier,
   };
 
+  const levelTag =
+    effectiveLevel >= CHAMPION_LEVEL_THRESHOLDS.WARRIOR_MIN
+      ? ` [Lv.${effectiveLevel} ${levelConfig.tierNameVi}]`
+      : '';
   const log: AdminEventLog = {
     id: `log-turn-${now}-${slotIndex}-${createRandomIdSuffix()}`,
     time: new Date(now).toLocaleTimeString(LOG_TIME_LOCALE, { hour12: false }),
     type: SUMMON_LOG_TYPE,
-    message: `⚔️ LƯỢT XUẤT TRẬN: [${req.championName}] của ${req.summonerName} xung trận cho ${activeTeamProfile?.shortTag || req.team}!`,
+    message: `⚔️ LƯỢT XUẤT TRẬN: [${req.championName}]${levelTag} của ${req.summonerName} xung trận cho ${activeTeamProfile?.shortTag || req.team}!`,
     team: req.team,
   };
 

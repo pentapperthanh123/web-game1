@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { ROUND_INTRO_CONSTANTS } from '../constants/game';
+import {
+  pickNextIntroBackground,
+  preloadAllIntroBackgrounds,
+} from '../constants/introBackgrounds';
 
 export const ROUND_HOLD_REASON = {
   STREAM_OPENING: 'STREAM_OPENING',
@@ -19,6 +23,8 @@ interface RoundIntroState {
   durationMs: number;
   /** The esports cinematic that plays between "start" and the narrated card. */
   isCinematicPlaying: boolean;
+  /** Dynamically rotated background image for the current round intro clash. */
+  backgroundImageUrl: string;
 }
 
 /** The opening round explains everything; later rounds only show the matchup so the fight returns fast. */
@@ -36,6 +42,7 @@ export const isCompactRoundIntro = (durationMs: number): boolean =>
  */
 export const useRoundIntroStore = create<RoundIntroState>(() => {
   const now = Date.now();
+  preloadAllIntroBackgrounds();
   return {
     shownAt: now,
     isActive: true,
@@ -44,6 +51,7 @@ export const useRoundIntroStore = create<RoundIntroState>(() => {
     autoStartAt: now + ROUND_INTRO_CONSTANTS.INITIAL_AUTO_START_MS,
     durationMs: ROUND_INTRO_CONSTANTS.TOTAL_MS,
     isCinematicPlaying: false,
+    backgroundImageUrl: pickNextIntroBackground(),
   };
 });
 
@@ -74,6 +82,7 @@ export const showRoundIntro = (
     autoStartAt,
     durationMs,
     isCinematicPlaying: false,
+    backgroundImageUrl: pickNextIntroBackground(),
   });
 };
 
@@ -100,12 +109,18 @@ export const playRoundIntroCinematic = (
     autoStartAt: 0,
     durationMs,
     isCinematicPlaying: true,
+    backgroundImageUrl: pickNextIntroBackground(),
   });
 };
 
 /** Plays the cinematic; when it ends the overlay calls `startIntroNarration`. */
 export const playIntroCinematic = (): void => {
-  useRoundIntroStore.setState({ isCinematicPlaying: true, autoStartAt: 0 });
+  const currentBg = useRoundIntroStore.getState().backgroundImageUrl;
+  useRoundIntroStore.setState({
+    isCinematicPlaying: true,
+    autoStartAt: 0,
+    backgroundImageUrl: currentBg || pickNextIntroBackground(),
+  });
 };
 
 export const endIntroCinematic = (): void => {

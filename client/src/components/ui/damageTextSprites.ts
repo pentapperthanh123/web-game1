@@ -25,10 +25,10 @@ const FONT_FAMILY = 'system-ui, -apple-system, sans-serif';
 const FONT_WEIGHT = 900;
 const MAX_CACHED_SPRITES = 96;
 
-const DEFAULT_STYLE: DamageTextStyle = { fontSize: 12, prefix: '' };
+const DEFAULT_STYLE: DamageTextStyle = { fontSize: 12.5, prefix: '' };
 const STYLE_BY_DAMAGE_TYPE: Partial<Record<DamageType, DamageTextStyle>> = {
-  [DAMAGE_TYPE.ULTIMATE]: { fontSize: 15, prefix: '🔥 ' },
-  [DAMAGE_TYPE.CRIT]: { fontSize: 13.5, prefix: '⚡ ' },
+  [DAMAGE_TYPE.ULTIMATE]: { fontSize: 17.5, prefix: '💥 ' },
+  [DAMAGE_TYPE.CRIT]: { fontSize: 15, prefix: '⚡ ' },
 };
 
 const spriteCache = new Map<string, DamageTextSprite>();

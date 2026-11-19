@@ -2,6 +2,10 @@ import React, { useEffect, useLayoutEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { getTeamTheme } from '../../../constants/teams';
 import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, isEliteMinion } from '../../../constants/game';
+import {
+  CHAMPION_LEVEL_THRESHOLDS,
+  getChampionLevelConfig,
+} from '../../../constants/championLevel';
 import { MinionEntity } from '../../../types/game';
 import { TeamColorThemeId } from '../../../types/team';
 import {
@@ -68,6 +72,23 @@ const getHpFillColor = (hpRatio: number): string => {
   return HP_COLOR.CRITICAL;
 };
 
+const resolveTokenAuraColors = (
+  level: number,
+  isSignature: boolean,
+  signatureColor: string,
+  primaryColor: string,
+  critColor: string
+): { auraColor: string; accentColor: string } => {
+  if (level >= CHAMPION_LEVEL_THRESHOLDS.WARRIOR_MIN) {
+    const levelCfg = getChampionLevelConfig(level);
+    return { auraColor: levelCfg.auraColor, accentColor: levelCfg.badgeBorderColor };
+  }
+  if (isSignature) {
+    return { auraColor: signatureColor, accentColor: signatureColor };
+  }
+  return { auraColor: primaryColor, accentColor: critColor };
+};
+
 const isFuryFull = (minion: MinionEntity): boolean =>
   minion.fury >= (minion.maxFury || GAME_CONSTANTS.MINION_FURY.MAX_FURY);
 
@@ -87,6 +108,7 @@ const areMinionVisualsEqual = (a: MinionEntity, b: MinionEntity, isCompact: bool
     a.signaturePlayerName === b.signaturePlayerName &&
     a.isSignatureSynergy === b.isSignatureSynergy &&
     a.isElite === b.isElite &&
+    a.level === b.level &&
     (a.statusEffects?.length ?? 0) === (b.statusEffects?.length ?? 0)
   );
 };
@@ -103,7 +125,7 @@ const areChampionTokenPropsEqual = (prev: ChampionTokenProps, next: ChampionToke
 };
 
 export const ChampionToken = React.memo(
-  ({ minion, colorThemeId, shouldUseUserAvatar, isCompact, hasNameplate, sessionTier }: ChampionTokenProps) => {
+  ({ minion, colorThemeId, shouldUseUserAvatar: _, isCompact, hasNameplate, sessionTier }: ChampionTokenProps) => {
     const teamTheme = getTeamTheme(colorThemeId);
     const primaryColor = teamTheme.primaryHex;
     const critColor = teamTheme.critHex;
@@ -119,11 +141,14 @@ export const ChampionToken = React.memo(
       [summonerAvatarUrl, minion.summonerName, primaryColor]
     );
 
+    const level = minion.level ?? 1;
     const isSignature = Boolean(minion.isSignatureSynergy);
     const isElite = isEliteMinion(minion);
     const isHighTier = Boolean(sessionTier && isSessionTierAtLeast(sessionTier, SESSION_TIER.DIAMOND));
-    const isVip = isSignature || isElite || isHighTier;
+    const isLevelWarlord = level >= CHAMPION_LEVEL_THRESHOLDS.WARLORD_MIN;
+    const isVip = isSignature || isElite || isHighTier || isLevelWarlord;
     const signatureColor = GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR;
+    const auraColors = resolveTokenAuraColors(level, isSignature, signatureColor, primaryColor, critColor);
     const eliteColor = isVip ? signatureColor : primaryColor;
     const nameplateTexture = useMemo(() => {
       if (!hasNameplate) return null;
@@ -133,9 +158,10 @@ export const ChampionToken = React.memo(
         minion.team,
         primaryColor,
         minion.signaturePlayerName,
-        sessionTier
+        sessionTier,
+        minion.level
       );
-    }, [hasNameplate, minion.championName, minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName, sessionTier]);
+    }, [hasNameplate, minion.championName, minion.summonerName, minion.team, primaryColor, minion.signaturePlayerName, sessionTier, minion.level]);
 
     const activeStatusEffect = getActiveStatusEffects(minion, Date.now())[0] ?? null;
 
@@ -214,7 +240,10 @@ export const ChampionToken = React.memo(
           )}
         </group>
 
-        <ChampionEntranceAuraMeshes auraColor={isSignature ? signatureColor : primaryColor} accentColor={isSignature ? signatureColor : critColor} />
+        <ChampionEntranceAuraMeshes
+          auraColor={auraColors.auraColor}
+          accentColor={auraColors.accentColor}
+        />
 
         {nameplateTexture && (
           <mesh

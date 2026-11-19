@@ -7,12 +7,14 @@ import { getTeamTheme } from '../../../constants/teams';
 import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../../utils/introStar';
 import { playCinematicIntroScore } from '../../../services/audio/cinematicIntroScore';
 import { STAR_CARD_SIDE, StarFighterCard } from './StarFighterCard';
+import { DEFAULT_INTRO_BACKGROUND } from '../../../constants/introBackgrounds';
 
 interface CinematicEsportsIntroProps {
   leftTeam: TeamProfile;
   rightTeam: TeamProfile;
   currentRound: number;
   seriesFormat: string;
+  backgroundImageUrl?: string;
   onComplete: () => void;
 }
 
@@ -25,6 +27,7 @@ export const CinematicEsportsIntro: React.FC<CinematicEsportsIntroProps> = ({
   rightTeam,
   currentRound,
   seriesFormat,
+  backgroundImageUrl = DEFAULT_INTRO_BACKGROUND,
   onComplete,
 }) => {
   const { t } = useTranslation();
@@ -88,9 +91,9 @@ export const CinematicEsportsIntro: React.FC<CinematicEsportsIntroProps> = ({
       {/* ── High-Definition 3D Cinematic Arena Background ─────────────────── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <img
-          src="/images/esports_intro_bg.jpg"
+          src={backgroundImageUrl}
           alt="Esports Arena Clash Background"
-          className="w-full h-full object-cover object-center filter brightness-[0.88] contrast-[1.12]"
+          className="w-full h-full object-cover object-center filter brightness-[0.88] contrast-[1.12] animate-intro-ken-burns"
         />
         {/* Cinematic Vignette Overlay to keep focus crisp on the center clash */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/80 pointer-events-none" />

@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, TEAM_KEY, TeamType } from '../../../constants/game';
 import {
+  CHAMPION_LEVEL_THRESHOLDS,
+  getChampionLevelConfig,
+} from '../../../constants/championLevel';
+import {
   SESSION_TIER,
   SESSION_TIER_EMBLEM_PATHS,
   SESSION_TIER_EMBLEM_VIEWBOX,
@@ -234,38 +238,78 @@ const NAMEPLATE_STYLE = {
   EMBLEM_DETAIL_COLOR: 'rgba(255, 255, 255, 0.55)',
 } as const;
 
+const LEVEL_BADGE_STYLE = {
+  PREFIX: 'Lv.',
+  FONT: '800 17px "Segoe UI", Roboto, sans-serif',
+  PADDING_X: 10,
+  HEIGHT: 22,
+  RADIUS: 11,
+  RIGHT_OFFSET: 4,
+  GAP: 6,
+  BORDER_WIDTH: 1.5,
+  TEXT_Y_OFFSET: 1,
+} as const;
+
 interface NameplateLook {
   label: string;
   accentColor: string;
   isGoldText: boolean;
   borderWidth: number;
   tier?: SessionTier;
+  level?: number;
 }
 
-/** Session tier wins over the signature look: the emblem is what viewers climb (and pay) for. */
+const resolveStandardAccentColor = (
+  isHighLevel: boolean,
+  levelAuraColor: string,
+  isSignature: boolean,
+  primaryColor: string
+): string => {
+  if (isHighLevel) return levelAuraColor;
+  if (isSignature) return GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR;
+  return primaryColor;
+};
+
+/** Session tier & Champion Level determine the emblem and accent frame. */
 const resolveNameplateLook = (
   cleanName: string,
   primaryColor: string,
   sigTag: string,
-  sessionTier: SessionTier | undefined
+  sessionTier: SessionTier | undefined,
+  level?: number
 ): NameplateLook => {
+  const safeLevel = level && level > 0 ? level : 1;
+  const levelCfg = getChampionLevelConfig(safeLevel);
+  const isHighLevel = safeLevel >= CHAMPION_LEVEL_THRESHOLDS.WARLORD_MIN;
+  const isLegendLevel = safeLevel >= CHAMPION_LEVEL_THRESHOLDS.LEGEND_MIN;
+
   if (sessionTier) {
-    const isHighTier = isSessionTierAtLeast(sessionTier, SESSION_TIER.DIAMOND);
+    const isHighTier = isSessionTierAtLeast(sessionTier, SESSION_TIER.DIAMOND) || isHighLevel;
     return {
       // Canonical name: an elite gift summon is labelled "👑 An"; the emblem replaces that prefix
       label: `@${toCanonicalViewerName(cleanName)}`,
-      accentColor: SESSION_TIER_STYLE[sessionTier].light,
-      isGoldText: isSessionTierAtLeast(sessionTier, SESSION_TIER.MASTER),
+      accentColor: isHighLevel ? levelCfg.auraColor : SESSION_TIER_STYLE[sessionTier].light,
+      isGoldText: isSessionTierAtLeast(sessionTier, SESSION_TIER.MASTER) || isLegendLevel,
       borderWidth: isHighTier ? NAMEPLATE_STYLE.HIGH_TIER_BORDER_WIDTH : NAMEPLATE_STYLE.BORDER_WIDTH,
       tier: sessionTier,
+      level: safeLevel,
     };
   }
+
   const isSignature = sigTag.length > 0;
+  const accentColor = resolveStandardAccentColor(
+    isHighLevel,
+    levelCfg.auraColor,
+    isSignature,
+    primaryColor
+  );
+
   return {
     label: isSignature ? `${NAMEPLATE_STYLE.SIGNATURE_PREFIX}@${cleanName}` : `@${cleanName}`,
-    accentColor: isSignature ? GAME_CONSTANTS.SIGNATURE_SYNERGY.GOLD_COLOR : primaryColor,
-    isGoldText: isSignature,
-    borderWidth: NAMEPLATE_STYLE.BORDER_WIDTH,
+    accentColor,
+    isGoldText: isSignature || isLegendLevel,
+    borderWidth: isHighLevel ? NAMEPLATE_STYLE.HIGH_TIER_BORDER_WIDTH : NAMEPLATE_STYLE.BORDER_WIDTH,
+    level: safeLevel,
   };
 };
 
@@ -334,7 +378,7 @@ const traceNameplatePill = (ctx: CanvasRenderingContext2D): void => {
 };
 
 const drawNameplate = (ctx: CanvasRenderingContext2D, look: NameplateLook): void => {
-  const { label, accentColor, isGoldText } = look;
+  const { label, accentColor, isGoldText, level } = look;
   ctx.clearRect(0, 0, NAMEPLATE_STYLE.CANVAS_WIDTH, NAMEPLATE_STYLE.CANVAS_HEIGHT);
 
   // Solid dark pill with one crisp accent border (no blurred glow: blur turns to mush when minified)
@@ -349,10 +393,49 @@ const drawNameplate = (ctx: CanvasRenderingContext2D, look: NameplateLook): void
   const emblemSpace = look.tier ? NAMEPLATE_STYLE.EMBLEM_INSET_X + NAMEPLATE_STYLE.EMBLEM_SIZE : 0;
   if (look.tier) drawTierEmblem(ctx, look.tier);
 
+  // Draw Level Pill at right side from Warrior tier upward
+  let levelBadgeSpace = 0;
+  if (level && level >= CHAMPION_LEVEL_THRESHOLDS.WARRIOR_MIN) {
+    const cfg = getChampionLevelConfig(level);
+    const badgeText = `${LEVEL_BADGE_STYLE.PREFIX}${level}`;
+    ctx.save();
+    ctx.font = LEVEL_BADGE_STYLE.FONT;
+    const textWidth = ctx.measureText(badgeText).width;
+    const badgeW = textWidth + LEVEL_BADGE_STYLE.PADDING_X;
+    const badgeH = LEVEL_BADGE_STYLE.HEIGHT;
+    const badgeX =
+      NAMEPLATE_STYLE.CANVAS_WIDTH - NAMEPLATE_STYLE.TEXT_INSET_X - badgeW + LEVEL_BADGE_STYLE.RIGHT_OFFSET;
+    const badgeY = (NAMEPLATE_STYLE.CANVAS_HEIGHT - badgeH) / 2;
+
+    ctx.fillStyle = cfg.badgeBgColor;
+    ctx.strokeStyle = cfg.badgeBorderColor;
+    ctx.lineWidth = LEVEL_BADGE_STYLE.BORDER_WIDTH;
+    if (typeof ctx.roundRect === 'function') {
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, LEVEL_BADGE_STYLE.RADIUS);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+      ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+    }
+
+    ctx.fillStyle = cfg.badgeTextColor;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(badgeText, badgeX + badgeW / 2, badgeY + badgeH / 2 + LEVEL_BADGE_STYLE.TEXT_Y_OFFSET);
+    ctx.restore();
+    levelBadgeSpace = badgeW + LEVEL_BADGE_STYLE.GAP;
+  }
+
   // Centred name with a dark outline instead of a soft shadow, so glyph edges stay hard
-  const maxTextWidth = NAMEPLATE_STYLE.CANVAS_WIDTH - NAMEPLATE_STYLE.TEXT_INSET_X * 2 - emblemSpace;
+  const maxTextWidth =
+    NAMEPLATE_STYLE.CANVAS_WIDTH -
+    NAMEPLATE_STYLE.TEXT_INSET_X * 2 -
+    emblemSpace -
+    levelBadgeSpace;
   const fittedLabel = fitNameplateText(ctx, label, maxTextWidth);
-  const textX = (NAMEPLATE_STYLE.CANVAS_WIDTH + emblemSpace) / 2;
+  const textX = (NAMEPLATE_STYLE.CANVAS_WIDTH + emblemSpace - levelBadgeSpace) / 2;
   const textY = NAMEPLATE_STYLE.CANVAS_HEIGHT / 2 + NAMEPLATE_STYLE.TEXT_BASELINE_SHIFT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -370,11 +453,13 @@ export const getNameplateTexture = (
   team: string,
   primaryColor: string,
   signaturePlayerName?: string,
-  sessionTier?: SessionTier
+  sessionTier?: SessionTier,
+  level?: number
 ): THREE.CanvasTexture => {
   const cleanName = (summonerName || NAMEPLATE_STYLE.FALLBACK_NAME).trim().replace(/^@+/, '');
   const sigTag = signaturePlayerName ? signaturePlayerName.trim() : '';
-  const cacheKey = `${team}_${primaryColor}_${cleanName}_${sigTag}_${sessionTier ?? ''}`;
+  const safeLvl = level && level > 0 ? level : 1;
+  const cacheKey = `${team}_${primaryColor}_${cleanName}_${sigTag}_${sessionTier ?? ''}_${safeLvl}`;
   const existing = nameplateTextureCache.get(cacheKey);
   if (existing) {
     return existing;
@@ -393,7 +478,7 @@ export const getNameplateTexture = (
   canvas.height = NAMEPLATE_STYLE.CANVAS_HEIGHT;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    drawNameplate(ctx, resolveNameplateLook(cleanName, primaryColor, sigTag, sessionTier));
+    drawNameplate(ctx, resolveNameplateLook(cleanName, primaryColor, sigTag, sessionTier, safeLvl));
   }
 
   const texture = new THREE.CanvasTexture(canvas);

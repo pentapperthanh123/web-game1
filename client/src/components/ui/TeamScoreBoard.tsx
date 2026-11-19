@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Swords } from 'lucide-react';
+import { Flame, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { TEAM_KEY, TeamType } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
@@ -11,6 +11,48 @@ import { SummonSpotlight } from './SummonShowcase';
 import { MatchupTitleTally } from './MatchupTitleTally';
 import { TeamLiveStatusRow } from './TeamLiveStatusRow';
 import { isComebackBuffActive } from '../../store/comebackRules';
+import { SilverScrapesEqualizerBars } from './silverScrapes/SilverScrapesVisualizer';
+
+const TUG_SPARK_BOUNDS = { MIN_PERCENT: 2, MAX_PERCENT: 98 } as const;
+
+const SilverScrapesBuffBadge = React.memo(({ team }: { team: TeamType }) => {
+  const { t } = useTranslation();
+  const winningTeamBuff = useGameStore((state) => state.silverScrapesState.winningTeamBuff);
+  const buffActiveUntil = useGameStore((state) => state.silverScrapesState.buffActiveUntil);
+
+  const isOwnedBuff = winningTeamBuff === team && Boolean(buffActiveUntil && buffActiveUntil > Date.now());
+  const [isActive, setIsActive] = useState(isOwnedBuff);
+
+  useEffect(() => {
+    if (winningTeamBuff !== team || !buffActiveUntil) {
+      setIsActive(false);
+      return undefined;
+    }
+
+    const remainingMs = buffActiveUntil - Date.now();
+    if (remainingMs <= 0) {
+      setIsActive(false);
+      return undefined;
+    }
+
+    setIsActive(true);
+    const expiryTimer = setTimeout(() => {
+      setIsActive(false);
+    }, remainingMs);
+
+    return () => clearTimeout(expiryTimer);
+  }, [team, winningTeamBuff, buffActiveUntil]);
+
+  if (!isActive) return null;
+
+  return (
+    <span className="flex items-center gap-0.5 text-[8.5px] sm:text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 via-amber-300 to-yellow-400 text-slate-950 shadow-[0_0_10px_rgba(251,191,36,0.75)] animate-pulse shrink-0">
+      🎵 {t('SilverScrapes.buffActiveTag', 'BUFF SILVER SCRAPES +20% ST')}
+    </span>
+  );
+});
+
+SilverScrapesBuffBadge.displayName = 'SilverScrapesBuffBadge';
 
 /**
  * Isolated continuous damage number & ratio display.
@@ -48,6 +90,7 @@ const TeamDmgDisplay = React.memo(
     return (
       <div className="min-w-0 shrink-0">
         <div className={`flex items-center space-x-1.5 ${isLeft ? '' : 'justify-end'}`}>
+          {!isLeft && <SilverScrapesBuffBadge team={team} />}
           {!isLeft && hasComebackBuff && (
             <span className="flex items-center gap-0.5 text-[8.5px] sm:text-[9.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse shrink-0">
               ⚡ {t('Game.comebackBuffBadge', 'LẬT KÈO +15%')}
@@ -77,6 +120,7 @@ const TeamDmgDisplay = React.memo(
               ⚡ {t('Game.comebackBuffBadge', 'LẬT KÈO +15%')}
             </span>
           )}
+          {isLeft && <SilverScrapesBuffBadge team={team} />}
         </div>
         <div
           className={`text-[9px] sm:text-[10px] font-mono font-extrabold tracking-tight ${theme.textStrongClass}`}
@@ -113,6 +157,10 @@ const TugOfWarBar = React.memo(
     const totalScore = leftScore + rightScore;
     const leftRatio = totalScore > 0 ? (leftScore / totalScore) * 100 : 50;
     const rightRatio = 100 - leftRatio;
+    const sparkLeftPercent = Math.max(
+      TUG_SPARK_BOUNDS.MIN_PERCENT,
+      Math.min(TUG_SPARK_BOUNDS.MAX_PERCENT, leftRatio)
+    );
 
     return (
       <div className="relative w-full h-3.5 sm:h-4 bg-slate-950/95 rounded-lg border border-slate-700/90 p-0.5 shadow-[0_0_16px_rgba(0,0,0,0.9)] overflow-hidden flex">
@@ -132,8 +180,17 @@ const TugOfWarBar = React.memo(
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#ffffff]" />
         </div>
 
-        {/* Center Tension Divider */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5 bg-white shadow-[0_0_6px_#ffffff] z-10" />
+        {/* Dynamic Clash Spark Node at the Active Frontline */}
+        <div
+          style={{ left: `${sparkLeftPercent}%` }}
+          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none transition-[left] duration-200 flex items-center justify-center"
+        >
+          <span className="absolute w-4 h-4 rounded-full bg-amber-300/45 animate-ping" />
+          <span className="relative w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_#ffffff,0_0_16px_#fbbf24] animate-pulse" />
+        </div>
+
+        {/* Center 50% Reference Marker */}
+        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-white/40 z-10" />
       </div>
     );
   }
@@ -188,6 +245,10 @@ export const TeamScoreBoard = React.memo(() => {
 
   const leftTheme = getTeamTheme(leftTeam.colorTheme);
   const rightTheme = getTeamTheme(rightTeam.colorTheme);
+  const isSilverScrapesDecider =
+    bo5TargetWins > 1 &&
+    bo5Score[TEAM_KEY.BLG] === bo5TargetWins - 1 &&
+    bo5Score[TEAM_KEY.GENG] === bo5TargetWins - 1;
 
   return (
     <div className="relative w-full max-w-lg mx-auto px-2 sm:px-3 mt-1.5 sm:mt-2 pointer-events-auto select-none">
@@ -220,15 +281,23 @@ export const TeamScoreBoard = React.memo(() => {
         {/* Center Series Format & VS Crest */}
         <div className="flex flex-col items-center justify-between px-1 sm:px-1.5 shrink-0 z-10 self-stretch">
           <div className="flex flex-col items-center">
-            <div className="text-[8px] font-black tracking-widest text-slate-300 uppercase bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full mb-1 shadow flex items-center space-x-1">
-              <Swords className="w-2.5 h-2.5 text-amber-400" />
-              <span>
-                {t('Game.roundLabel', 'VÁN {{round}} / {{format}}', {
-                  round: currentRound,
-                  format: seriesFormat,
-                })}
-              </span>
-            </div>
+            {isSilverScrapesDecider ? (
+              <div className="text-[8px] font-black tracking-wider text-amber-200 uppercase bg-gradient-to-r from-cyan-950/90 via-slate-900/95 to-amber-950/90 border border-amber-400/80 px-2 py-0.5 rounded-full mb-1 shadow-[0_0_12px_rgba(245,158,11,0.5)] flex items-center space-x-1">
+                <SilverScrapesEqualizerBars colorClass="bg-amber-400" size="xs" />
+                <span>{t('SilverScrapes.deciderBadge', 'SILVER SCRAPES • VÁN QUYẾT ĐỊNH')}</span>
+                <Flame className="w-2.5 h-2.5 text-amber-400 animate-pulse" />
+              </div>
+            ) : (
+              <div className="text-[8px] font-black tracking-widest text-slate-300 uppercase bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full mb-1 shadow flex items-center space-x-1">
+                <Swords className="w-2.5 h-2.5 text-amber-400" />
+                <span>
+                  {t('Game.roundLabel', 'VÁN {{round}} / {{format}}', {
+                    round: currentRound,
+                    format: seriesFormat,
+                  })}
+                </span>
+              </div>
+            )}
 
             {/* Win Pips + Score */}
             <div className="flex items-center space-x-1.5 bg-slate-950/90 border border-slate-800 px-2 py-0.5 rounded-md shadow-inner">

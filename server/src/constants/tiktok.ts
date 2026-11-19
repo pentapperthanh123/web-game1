@@ -54,6 +54,7 @@ export interface TikTokChatInput {
   nickname?: string;
   userAvatarUrl?: string;
   comment: string;
+  fansLevel?: number;
 }
 
 export interface TikTokGiftInput {
@@ -68,6 +69,7 @@ export interface TikTokGiftInput {
   repeatCount?: number;
   repeatEnd?: boolean;
   explicitTeam?: TeamSlotKey;
+  fansLevel?: number;
 }
 
 export interface TikTokLikeInput {

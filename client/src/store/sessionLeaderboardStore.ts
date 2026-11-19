@@ -120,6 +120,12 @@ export const getCanonicalViewerName = (actorName: string): string => {
   return canonical;
 };
 
+/** O(1) lookup for a viewer's total cumulative session damage. */
+export const getViewerSessionDamage = (actorName: string): number => {
+  const canonical = getCanonicalViewerName(actorName);
+  return damageByName.get(canonical)?.totalDamage ?? 0;
+};
+
 const isRankableViewer = (userName: string): boolean =>
   Boolean(userName) && isViewerActor(userName);
 

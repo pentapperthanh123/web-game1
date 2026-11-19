@@ -7,6 +7,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>LOL CKTG</title>
+    <script>
+      // STRICT: Completely neutralize browser SpeechSynthesis to permanently eliminate all "chị Google" voices
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak = function() {};
+        } catch (e) {}
+      }
+    </script>
   </head>
   <body class="bg-slate-950 text-white m-0 p-0 overflow-hidden select-none">
     <div id="root"></div>

@@ -456,7 +456,10 @@
     "superPowerBadge": "MEGA PUSH",
     "leading": "Winning",
     "winnerBadge": "Winner",
-    "versus": "VS"
+    "versus": "VS",
+    "deciderBadge": "SILVER SCRAPES • DECIDER GAME",
+    "buffActiveTag": "SILVER SCRAPES BUFF +20% DMG",
+    "equalizerLabel": "SILVER SCRAPES RHYTHM"
   },
   "BossPhase": {
     "shiftTitle": "BOSS AWAKENS",

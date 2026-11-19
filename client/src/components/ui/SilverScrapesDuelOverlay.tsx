@@ -12,6 +12,7 @@ import { DuelTugBar } from './silverScrapes/DuelTugBar';
 import { DuelPushGuide } from './silverScrapes/DuelPushGuide';
 import { DuelFooter } from './silverScrapes/DuelFooter';
 import { SilverScrapesIntroStage } from './silverScrapes/SilverScrapesIntroStage';
+import { SilverScrapesStadiumLasers } from './silverScrapes/SilverScrapesVisualizer';
 import { useSilverScrapesDuel } from './silverScrapes/useSilverScrapesDuel';
 import { DUEL_DRAW, DUEL_SIDE, clampDuelPercent, resolveHighlightedSide } from './silverScrapes/silverScrapesShared';
 import { gameSocket } from '../../services/socket';
@@ -80,6 +81,7 @@ export const SilverScrapesDuelOverlay: React.FC = React.memo(() => {
         />
         {/* Subtle Decider Stage Vignette */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(2,6,23,0.85)_100%)]" />
+        <SilverScrapesStadiumLasers leftColor={leftTheme.primaryHex} rightColor={rightTheme.primaryHex} />
       </div>
 
       {/* Top Right Exit / Dismiss Button */}
@@ -106,7 +108,12 @@ export const SilverScrapesDuelOverlay: React.FC = React.memo(() => {
           onSkip={handleSkipIntro}
         />
       ) : (
-        <div className="relative z-10 w-full max-w-lg flex flex-col items-center gap-3 sm:gap-3.5 my-auto px-1 sm:px-2 animate-in fade-in zoom-in-95 duration-300">
+        <div
+          className={clsx(
+            'relative z-10 w-full max-w-lg flex flex-col items-center gap-3 sm:gap-3.5 my-auto px-1 sm:px-2 animate-in fade-in zoom-in-95 duration-300',
+            isClashFlashing && 'animate-duel-clash-shake'
+          )}
+        >
           {/* 1. Championship Title & Stadium Countdown Header */}
           <DuelHeader
             timeRemaining={duel.timeRemaining}
@@ -126,7 +133,14 @@ export const SilverScrapesDuelOverlay: React.FC = React.memo(() => {
 
             {/* Central Animated Swords Clash Emblem */}
             <div className="shrink-0 flex flex-col items-center gap-1">
-              <div className="p-2.5 sm:p-3 rounded-full bg-gradient-to-b from-amber-400/25 via-slate-900 to-slate-950 border-2 border-amber-400/80 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]">
+              <div
+                className={clsx(
+                  'p-2.5 sm:p-3 rounded-full bg-gradient-to-b from-amber-400/25 via-slate-900 to-slate-950 border-2 text-amber-400 transition-all duration-150',
+                  isClashFlashing
+                    ? 'scale-110 border-yellow-300 shadow-[0_0_32px_rgba(251,191,36,0.85)]'
+                    : 'scale-100 border-amber-400/80 shadow-[0_0_20px_rgba(245,158,11,0.5)]'
+                )}
+              >
                 <Swords className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <span className="text-[11px] sm:text-xs font-black italic text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-300 tracking-widest drop-shadow">

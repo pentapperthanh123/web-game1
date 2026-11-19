@@ -5,6 +5,12 @@ import { Zap } from 'lucide-react';
 import { DUEL_PERCENT_CENTER, DUEL_PERCENT_MAX } from './silverScrapesShared';
 
 const BEAM_CORE_HIGHLIGHT = '#ffffff';
+const CLASH_ELECTRIC_ARC = {
+  VIEW_BOX: '0 0 64 64',
+  PATH: 'M32 2 L28 18 L36 16 L30 28 M32 62 L36 46 L28 48 L34 36 M2 32 L18 28 L16 36 L28 30 M62 32 L46 36 L48 28 L36 34',
+  STROKE_COLOR: '#fde047',
+  STROKE_WIDTH: 2.2,
+} as const;
 
 interface DuelTugBarProps {
   leftPercent: number;
@@ -102,6 +108,25 @@ export const DuelTugBar: React.FC<DuelTugBarProps> = React.memo(
                 isClashFlashing ? 'scale-150 border-cyan-300 opacity-90 animate-ping' : 'scale-100 opacity-60'
               )}
             />
+
+            {/* High-Voltage Electric Arc Sparks around Clash Node */}
+            <svg
+              viewBox={CLASH_ELECTRIC_ARC.VIEW_BOX}
+              className={clsx(
+                'absolute w-16 h-16 pointer-events-none animate-electric-arc',
+                isClashFlashing ? 'scale-125 opacity-100' : 'scale-100 opacity-75'
+              )}
+              aria-hidden="true"
+            >
+              <path
+                d={CLASH_ELECTRIC_ARC.PATH}
+                stroke={CLASH_ELECTRIC_ARC.STROKE_COLOR}
+                strokeWidth={CLASH_ELECTRIC_ARC.STROKE_WIDTH}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
 
             {/* Main Clash Orb */}
             <div

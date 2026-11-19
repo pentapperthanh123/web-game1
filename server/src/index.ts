@@ -1,6 +1,11 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const SERVER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+dotenv.config({ path: path.resolve(SERVER_ROOT, '../.env') });
+dotenv.config({ path: path.join(SERVER_ROOT, '.env'), override: true });
+
 import cors from 'cors';
 import express from 'express';
 import { createServer } from 'http';
@@ -10,6 +15,7 @@ import { registerConfigRoutes } from './routes/configRoutes.js';
 import { registerPlayerLeaderboardRoutes } from './routes/playerLeaderboardRoutes.js';
 import { registerTikTokRoutes } from './routes/tiktokRoutes.js';
 import { registerCasterRoutes, registerCasterSocketHandlers } from './routes/casterRoutes.js';
+import { registerTtsProxyRoute } from './routes/ttsProxyRoute.js';
 import { createCasterTtsService } from './services/caster/casterTtsService.js';
 import { createTtsProviderChain } from './services/caster/ttsProviders.js';
 import {
@@ -108,8 +114,7 @@ const liveOpsService = createLiveOpsService(ctx, moderation, opsAlerts);
 
 registerConfigRoutes(app, ctx);
 registerTikTokRoutes(app, ctx, tiktokService);
-// server/ (this file runs from server/src with tsx or server/dist when built)
-const SERVER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// server/ (SERVER_ROOT resolved at top of file for dotenv initialization)
 const casterTts = createCasterTtsService({
   providers: createTtsProviderChain(process.env, SERVER_ROOT),
   serverRoot: SERVER_ROOT,
@@ -119,6 +124,7 @@ const casterTts = createCasterTtsService({
 registerCasterRoutes(app, casterTts);
 registerCasterSocketHandlers(io, casterTts);
 console.log(`[CasterTTS] voice: ${casterTts.providerName}${casterTts.fallbackName ? ` (fallback ${casterTts.fallbackName})` : ''}`);
+registerTtsProxyRoute(app);
 registerPlayerLeaderboardRoutes(app, playerProfileService);
 registerSocketHub(ctx, duelService, tiktokService, playerProfileService, liveOpsService);
 

@@ -20,6 +20,7 @@ import {
 import { gameSocket } from '../../../services/socket';
 import { playSound } from '../../../services/soundManager';
 import { audioService } from '../../../services/audioService';
+import { VoiceManager } from '../../../services/caster/VoiceManager';
 import { casterSpeechEngine } from '../../../services/caster/speechEngine';
 import { speakIntroNarration } from '../../../services/caster/introNarration';
 import { casterQueue } from '../../../services/caster/presentationQueue';
@@ -94,6 +95,7 @@ export const RoundIntroOverlay = () => {
   const isManualHold = useRoundIntroStore((state) => state.isManualHold);
   const autoStartAt = useRoundIntroStore((state) => state.autoStartAt);
   const introDurationMs = useRoundIntroStore((state) => state.durationMs);
+  const backgroundImageUrl = useRoundIntroStore((state) => state.backgroundImageUrl);
   const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
   const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
   const gameTheme = useGameStore((state) => state.gameTheme);
@@ -287,6 +289,7 @@ export const RoundIntroOverlay = () => {
       lastSpokenTabRef.current = null;
       audioService.cancelSpeech();
       casterSpeechEngine.interrupt();
+      VoiceManager.stopAll();
       return;
     }
 
@@ -295,45 +298,35 @@ export const RoundIntroOverlay = () => {
     }
     lastSpokenTabRef.current = activeTab;
 
+    // Use pre-generated static audio for RULES and GIFTS tabs
+    if (activeTab === 'RULES') {
+      audioService.cancelSpeech();
+      casterSpeechEngine.interrupt();
+      casterQueue.clear();
+      VoiceManager.playCaster('intro_rules');
+      return;
+    }
+
+    if (activeTab === 'GIFTS') {
+      audioService.cancelSpeech();
+      casterSpeechEngine.interrupt();
+      casterQueue.clear();
+      VoiceManager.playCaster('intro_gifts');
+      return;
+    }
+
     let speechText = '';
     if (activeTab === 'MATCHUP') {
-      speechText = isNewSeries
-        ? t(
-            'RoundIntro.speechNewSeriesMatchup',
-            'Chào mừng các bạn đến với Cặp đấu mới giữa {{left}} và {{right}}! Ván 1 thể thức {{format}}. Mục tiêu tiêu diệt Boss {{boss}}!',
-            {
-              left: leftTeam.name,
-              right: rightTeam.name,
-              format: seriesFormat,
-              boss: bossName,
-            }
-          )
-        : t(
-            'RoundIntro.speechMatchup',
-            'Chào mừng các bạn đến với Kỳ Chung Kết Thế Giới! Ván {{round}}: {{left}} đại chiến {{right}}. Mục tiêu tiêu diệt Boss {{boss}}!',
-            {
-              round: activeRound,
-              left: leftTeam.name,
-              right: rightTeam.name,
-              boss: bossName,
-            }
-          ).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
-    } else if (activeTab === 'RULES') {
       speechText = t(
-        'RoundIntro.speechRulesExpanded',
-        'Luật chơi: Khán giả gõ tên tướng kèm tên đội như {{champ1}} {{team1}} hoặc {{champ2}} {{team2}} để triệu hồi tướng vào sân. Bấm tim liên tục vào livestream để tăng tốc độ đánh và nạp Nộ kích hoạt Tuyệt Kỹ. Đội nào dồn nhiều sát thương hơn lên Boss sẽ giành chiến thắng ván đấu!',
+        'RoundIntro.speechMatchup',
+        'Chào mừng các bạn đến với Kỳ Chung Kết Thế Giới! Ván {{round}}: {{left}} đại chiến {{right}}. Mục tiêu tiêu diệt Boss {{boss}}!',
         {
-          team1: leftTeam.shortTag,
-          team2: rightTeam.shortTag,
-          champ1: leftStar.signatureChampion,
-          champ2: rightStar.signatureChampion,
+          round: activeRound,
+          left: leftTeam.name,
+          right: rightTeam.name,
+          boss: bossName,
         }
-      );
-    } else if (activeTab === 'GIFTS') {
-      speechText = t(
-        'RoundIntro.speechGifts',
-        'Một xu tương ứng một trăm hai mươi sát thương lên Boss. Hãy xem phần quà tặng bên dưới góc phải màn hình để tiếp sức cho tuyển thủ!'
-      );
+      ).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
     }
 
     if (speechText) {
@@ -343,14 +336,19 @@ export const RoundIntroOverlay = () => {
       casterSpeechEngine.interrupt();
       casterQueue.clear();
       // On initial MATCHUP page, give 700ms breathing room for gong sound and visual entrance
-      const initialDelayMs = activeTab === 'MATCHUP' ? 700 : 0;
-      // The analyst caster reads the rules; the play-by-play caster does the welcome and the gifts
-      const speaker = activeTab === 'RULES' ? CASTER_SPEAKER.B : CASTER_SPEAKER.A;
+      const initialDelayMs = 700;
+      const speaker = CASTER_SPEAKER.A;
+      const fallbackText = t(
+        'Caster.lines.ROUND_GO.1',
+        'Đại chiến bùng nổ! Ván {{round}} chính thức bắt đầu, toàn lực xung trận!',
+        { round: activeRound }
+      ).replace(/\{\{\s*round\s*\}\}/gi, String(activeRound));
       void speakIntroNarration(
         speechText,
         () => narrationIdRef.current === currentNarrationId,
         initialDelayMs,
-        speaker
+        speaker,
+        fallbackText
       );
     }
   }, [
@@ -412,6 +410,7 @@ export const RoundIntroOverlay = () => {
         rightTeam={rightTeam}
         currentRound={activeRound}
         seriesFormat={seriesFormat}
+        backgroundImageUrl={backgroundImageUrl}
         onComplete={handleCinematicComplete}
       />
     );
@@ -423,6 +422,18 @@ export const RoundIntroOverlay = () => {
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
+      {/* Dynamic Themed Arena Ambient Backdrop */}
+      {backgroundImageUrl ? (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-25">
+          <img
+            src={backgroundImageUrl}
+            alt="Esports Arena Ambient Backdrop"
+            className="w-full h-full object-cover object-center filter brightness-75 contrast-125 animate-intro-ken-burns-ambient"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-slate-950/90 pointer-events-none" />
+        </div>
+      ) : null}
+
       {/* Background Cyber Ambient Lights & Dual Stadium Spotlights */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Left Team Spotlight */}
