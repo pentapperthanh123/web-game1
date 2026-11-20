@@ -1,0 +1,52 @@
+services:
+  # ========================================================
+  # 1. Backend Server (Node.js + Socket.IO + TikTok Connector)
+  # ========================================================
+  server:
+    container_name: lol-game-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: server-runner
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # Mount persistent runtime data (JSON configs, player profiles, leaderboard, TTS cache)
+      - ./server/data:/app/server/data
+    restart: unless-stopped
+
+  # ========================================================
+  # 2. Client OBS Overlay (Three.js WebGL Game - Nginx)
+  # ========================================================
+  client:
+    container_name: lol-game-client
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: client-runner
+    ports:
+      - "8000:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  # ========================================================
+  # 3. Admin Portal (Management UI - Nginx)
+  # ========================================================
+  admin:
+    container_name: lol-game-admin
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: admin-runner
+    ports:
+      - "8001:80"
+    depends_on:
+      - server
+    restart: unless-stopped
