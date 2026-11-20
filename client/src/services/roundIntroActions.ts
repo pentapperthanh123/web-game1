@@ -13,6 +13,7 @@ import { SFX_EVENT } from '../constants/sfx';
 import { useGameStore } from '../store/gameStore';
 import { triggerCombatDeployBanner } from '../store/combatDeployBannerStore';
 import { syncAmbience } from './arenaAmbience';
+import { flushPreRoundBuffer } from '../store/preRoundBuffer';
 
 /**
  * Triggers the immediate start of the round combat.
@@ -27,6 +28,8 @@ export const triggerStartRoundCombat = (): void => {
   casterQueue.clear();
   VoiceManager.stopAll();
   hideRoundIntro();
+  flushPreRoundBuffer();
+  useGameStore.getState().advanceSummonTurnQueue();
   audioService.setCombatMuted(false);
   syncAmbience();
 

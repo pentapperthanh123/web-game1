@@ -41,7 +41,7 @@ import { SFX_EVENT } from '../../constants/sfx';
 import { audioService } from '../../services/audioService';
 import { useGiftVfxStore } from '../giftVfxStore';
 import { playSound } from '../../services/soundManager';
-import { createInitialTeamScores, isBattleHalted } from '../storeHelpers';
+import { createInitialTeamScores, isBattleHalted, isRoundEndedOrIntermission } from '../storeHelpers';
 import {
   CancelTimer,
   isRenderThrottled,
@@ -115,7 +115,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
 
     const batch = pendingSummonQueue.splice(0, pendingSummonQueue.length);
     const state = get();
-    if (isBattleHalted(state)) return;
+    if (isRoundEndedOrIntermission(state)) return;
 
     const now = Date.now();
     lastBatchFlushAt = now;
@@ -379,7 +379,8 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
 
   const enqueueSummons = (items: PendingSummonRequest[]) => {
     const state = get();
-    if (isBattleHalted(state) || items.length === 0) {
+    // Allow queueing summons during the round intro; only drop if the round has truly finished
+    if (isRoundEndedOrIntermission(state) || items.length === 0) {
       return;
     }
 

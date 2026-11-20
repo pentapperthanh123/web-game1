@@ -46,7 +46,7 @@ const replayBufferedActions = (): void => {
   });
 };
 
-const startRound = (): void => {
+export const flushPreRoundBuffer = (): void => {
   if (cancelFallbackTimer) {
     cancelFallbackTimer();
     cancelFallbackTimer = null;
@@ -55,9 +55,15 @@ const startRound = (): void => {
   replayBufferedActions();
 };
 
+const startRound = (): void => {
+  flushPreRoundBuffer();
+};
+
 const armFallback = (shownAt: number): void => {
   if (cancelFallbackTimer) cancelFallbackTimer();
-  const remainingMs = shownAt + useRoundIntroStore.getState().durationMs - Date.now();
+  const introState = useRoundIntroStore.getState();
+  if (introState.isManualHold) return;
+  const remainingMs = shownAt + introState.durationMs - Date.now();
   cancelFallbackTimer = workerSetTimeout(startRound, Math.max(0, remainingMs) + PRE_ROUND_BUFFER.FALLBACK_MARGIN_MS);
 };
 
