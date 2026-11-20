@@ -10,7 +10,7 @@ export const HeartMilestoneBanner = () => {
 
   return (
     <div className="w-full pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="px-3 py-2 rounded-2xl border border-emerald-400/90 bg-slate-950/95 backdrop-blur-xl shadow-[0_0_26px_rgba(16,185,129,0.65)] flex items-center space-x-2.5 text-white">
+      <div className="px-3 py-2 rounded-2xl border border-emerald-400/90 bg-slate-950/95 shadow-[0_0_26px_rgba(16,185,129,0.65)] flex items-center space-x-2.5 text-white">
         <div className="p-1.5 rounded-xl border border-emerald-400/80 bg-emerald-950/85 flex items-center justify-center shrink-0 shadow-[0_0_12px_#10b981]">
           <Heart className="w-4 h-4 fill-current text-rose-400 animate-pulse" />
         </div>

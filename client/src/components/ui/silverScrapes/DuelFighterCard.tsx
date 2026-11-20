@@ -70,7 +70,7 @@ export const DuelFighterCard: React.FC<DuelFighterCardProps> = React.memo(
             : `0 0 ${IDLE_GLOW_PX}px ${accent}${IDLE_GLOW_ALPHA}`,
         }}
         className={clsx(
-          'relative flex-1 min-w-0 flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-900/90 px-2 pt-2.5 pb-2.5 backdrop-blur-md transition-all duration-300',
+          'relative flex-1 min-w-0 flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-900/90 px-2 pt-2.5 pb-2.5 transition-all duration-300',
           isLeading && 'scale-[1.03] ring-1 ring-white/30'
         )}
       >

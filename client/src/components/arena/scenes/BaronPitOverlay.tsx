@@ -7,22 +7,24 @@ import { RisingParticles, buildRisingParticles } from './arenaSceneShared';
  * spores rising out of it and a slow sheen on the underground river.
  */
 const BARON_PALETTE = {
-  ACID_CORE: 'rgba(192, 132, 252, 0.55)',
+  ACID_CORE: 'rgba(192, 132, 252, 0.62)',
   ACID_MID: 'rgba(126, 34, 206, 0.35)',
   ACID_TOXIC: 'rgba(45, 212, 191, 0.18)',
   RIM: 'rgba(216, 180, 254, 0.55)',
   RAY: 'rgba(253, 224, 171, 0.5)',
   RIVER: 'rgba(216, 180, 254, 0.28)',
   CEILING_SHADE: 'rgba(2, 6, 23, 0.5)',
-  /** Soft-light grade that pushes the shared cave painting toward Baron's toxic violet. */
-  GRADE_TOP: 'rgba(30, 27, 75, 0.55)',
-  GRADE_BOTTOM: 'rgba(147, 51, 234, 0.6)',
+  /** Translucent colour grade that pushes the shared cave painting toward Baron's toxic violet. */
+  GRADE_TOP: 'rgba(30, 27, 75, 0.32)',
+  GRADE_BOTTOM: 'rgba(147, 51, 234, 0.28)',
   PIT_HAZE: 'rgba(88, 28, 135, 0.45)',
 } as const;
 
+const GOD_RAY_EDGE_MASK = 'linear-gradient(to right, transparent, black 30%, black 70%, transparent)';
+
 const SPORE_PARTICLES = buildRisingParticles({
   seed: 7331,
-  count: 32,
+  count: 18,
   colors: ['#c084fc', '#a78bfa', '#5eead4', '#e9d5ff', '#f0abfc'],
   minSizePx: 2.5,
   maxSizePx: 5.5,
@@ -52,12 +54,14 @@ const GodRays = () => (
     {GOD_RAYS.map((ray) => (
       <div
         key={ray.leftPercent}
-        className="absolute top-[6%] h-[80%] arena-god-ray mix-blend-screen blur-[8px]"
+        className="absolute top-[6%] h-[80%] arena-god-ray"
         style={
           {
             left: `${ray.leftPercent}%`,
             width: `${ray.widthPercent}%`,
             background: `linear-gradient(to bottom, ${BARON_PALETTE.RAY}, transparent 85%)`,
+            maskImage: GOD_RAY_EDGE_MASK,
+            WebkitMaskImage: GOD_RAY_EDGE_MASK,
             animationDelay: `${ray.delayS}s`,
             '--arena-ray-angle': `${ray.angleDeg}deg`,
           } as React.CSSProperties
@@ -70,7 +74,7 @@ const GodRays = () => (
 const AcidPool = () => (
   <>
     <div
-      className="absolute left-1/2 top-[79%] w-[115vmin] h-[34vmin] rounded-[50%] arena-acid-pulse mix-blend-screen"
+      className="absolute left-1/2 top-[79%] w-[115vmin] h-[34vmin] rounded-[50%] arena-acid-pulse"
       style={{
         background: `radial-gradient(ellipse at center, ${BARON_PALETTE.ACID_CORE} 0%, ${BARON_PALETTE.ACID_MID} 38%, ${BARON_PALETTE.ACID_TOXIC} 60%, transparent 74%)`,
       }}
@@ -83,12 +87,11 @@ const AcidPool = () => (
 );
 
 const RiverSheen = () => (
-  <div className="absolute inset-x-0 bottom-0 h-[20%] overflow-hidden mix-blend-screen [mask-image:linear-gradient(to_top,black_40%,transparent)]">
+  <div className="absolute inset-x-0 bottom-0 h-[20%] overflow-hidden [mask-image:linear-gradient(to_top,black_40%,transparent)]">
     <div
       className="absolute inset-y-0 -left-1/4 w-[150%] arena-river-sheen"
       style={{
-        background: `repeating-linear-gradient(174deg, transparent 0 14px, ${BARON_PALETTE.RIVER} 14px 16px, transparent 16px 30px)`,
-        filter: 'blur(1.5px)',
+        background: `repeating-linear-gradient(174deg, transparent 0 12px, ${BARON_PALETTE.RIVER} 15px, transparent 18px 30px)`,
       }}
     />
   </div>
@@ -98,7 +101,7 @@ export const BaronPitOverlay = () => (
   <div className="absolute inset-0 pointer-events-none">
     {/* Colour grade: same painting as the Herald cave, but sunk into Baron's violet acid gloom */}
     <div
-      className="absolute inset-0 mix-blend-soft-light"
+      className="absolute inset-0"
       style={{ background: `linear-gradient(to bottom, ${BARON_PALETTE.GRADE_TOP}, ${BARON_PALETTE.GRADE_BOTTOM})` }}
     />
     <div

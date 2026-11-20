@@ -18,6 +18,8 @@ import { LiveChatStream } from './LiveChatStream';
 import { KillFeed, WipeStamp } from './KillFeed';
 import { RoundIntroOverlay } from './roundIntro/RoundIntroOverlay';
 import { CombatDeployBanner } from './roundIntro/CombatDeployBanner';
+import { ComebackBanner } from './ComebackBanner';
+import { CombatHypeBanner } from './CombatHypeBanner';
 import { LikeCounter } from './LikeCounter';
 import { ParticipationGuidePanel } from './ParticipationGuidePanel';
 import { FinisherAnnouncementBanner } from './FinisherAnnouncementBanner';
@@ -52,12 +54,14 @@ const ClutchStatusBadge = React.memo(() => {
   const { t } = useTranslation();
   const isAutoProEnabled = useGameStore((state) => state.autoProBattleConfig.enabled);
   const hasMinions = useGameStore((state) => state.minions.length > 0);
-  const bossHp = useGameStore((state) => state.bossHp);
-  const bossMaxHp = useGameStore((state) => state.bossMaxHp);
+  const isBossAlive = useGameStore((state) => state.bossHp > 0);
+  const isBossClutchZone = useGameStore(
+    (state) =>
+      state.bossHp > 0 &&
+      state.bossHp <= Math.ceil(state.bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT)
+  );
 
-  const isSoloAutoHolding = isAutoProEnabled && !hasMinions && bossHp > 0;
-  const isBossClutchZone =
-    bossHp > 0 && bossHp <= Math.ceil(bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT);
+  const isSoloAutoHolding = isAutoProEnabled && !hasMinions && isBossAlive;
 
   if (!isSoloAutoHolding && !isBossClutchZone) return null;
 
@@ -86,7 +90,7 @@ const ClutchStatusBadge = React.memo(() => {
 
 ClutchStatusBadge.displayName = 'ClutchStatusBadge';
 
-export const HUDOverlay = () => {
+export const HUDOverlay = React.memo(() => {
   const { t } = useTranslation();
   const overlayVisibility = useGameStore((state) => state.overlayVisibility);
   const gameTheme = useGameStore((state) => state.gameTheme);
@@ -174,13 +178,15 @@ export const HUDOverlay = () => {
         return;
       }
       if (e.key === 'a' || e.key === 'A') {
-        toggleAdminMode();
+        const nextActive = !useGameStore.getState().isAdminModeActive;
+        setAdminMode(nextActive);
+        audioService.playUiToggleSound(nextActive);
       }
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [isAdminModeActive]);
+  }, [setAdminMode]);
 
   return (
     <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none overflow-hidden select-none">
@@ -361,6 +367,8 @@ export const HUDOverlay = () => {
       <SilverScrapesDuelOverlay />
       <RoundIntroOverlay />
       <CombatDeployBanner />
+      <ComebackBanner />
+      <CombatHypeBanner />
       <GuestSimulationDock />
       <AdminControlModal />
 
@@ -386,4 +394,6 @@ export const HUDOverlay = () => {
       )}
     </div>
   );
-};
+});
+
+HUDOverlay.displayName = 'HUDOverlay';

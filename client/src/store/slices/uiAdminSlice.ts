@@ -3,6 +3,7 @@ import {
   AdminEventLog,
   AutoProBattleConfig,
   AutoSummonConfig,
+  ChatMessageInput,
   GameState,
   LiveChatMessage,
   ParticipationRuleConfig,
@@ -36,6 +37,7 @@ export type UiAdminSlice = Pick<
   | 'setParticipationRuleConfig'
   | 'addLog'
   | 'addChatMessage'
+  | 'addChatMessagesBatch'
   | 'toggleSimulation'
 >;
 
@@ -124,17 +126,27 @@ export const createUiAdminSlice: StateCreator<GameState, [], [], UiAdminSlice> =
   },
 
   addChatMessage: (userName: string, text: string, team?: TeamType, championName?: string) => {
-    const newMessage: LiveChatMessage = {
-      id: `chat-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
-      userName,
-      text,
-      team,
-      championName,
-      timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-    };
+    get().addChatMessagesBatch([{ userName, text, team, championName }]);
+  },
+
+  addChatMessagesBatch: (items: readonly ChatMessageInput[]) => {
+    if (items.length === 0) return;
+    const now = Date.now();
+    const formattedTime = new Date(now).toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const newMessages: LiveChatMessage[] = items.map((item, idx) => ({
+      id: `chat-${now}-${idx}-${Math.random().toString(36).substring(2, 5)}`,
+      userName: item.userName,
+      text: item.text,
+      team: item.team,
+      championName: item.championName,
+      timestamp: formattedTime,
+    }));
 
     set((state) => ({
-      chatMessages: [...state.chatMessages.slice(-GAME_CONSTANTS.CHAT.MAX_MESSAGES), newMessage],
+      chatMessages: [...state.chatMessages, ...newMessages].slice(-GAME_CONSTANTS.CHAT.MAX_MESSAGES),
     }));
   },
 

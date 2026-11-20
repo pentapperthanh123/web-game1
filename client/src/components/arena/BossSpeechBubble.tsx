@@ -50,7 +50,7 @@ export const BossSpeechBubble: React.FC<BossSpeechBubbleProps> = React.memo(
         <div className="animate-speech-bubble opacity-100">
           {/* Main Comic Dialogue Pill */}
           <div
-            className={`px-3 py-1.5 rounded-xl border-2 text-[10px] sm:text-[11px] font-bold tracking-normal flex items-center gap-2 shadow-2xl backdrop-blur-sm ${bubbleThemeClass}`}
+            className={`px-3 py-1.5 rounded-xl border-2 text-[10px] sm:text-[11px] font-bold tracking-normal flex items-center gap-2 shadow-2xl ${bubbleThemeClass}`}
           >
             {renderSpeechIcon(speech.icon)}
             <span className="leading-tight drop-shadow text-center text-balance">{speech.text}</span>

@@ -56,6 +56,8 @@ export interface SessionLeaderboardState {
   sessionDonators: SessionLeaderboardEntry[];
   /** Cumulative top donators/attackers in the current match/round only (sorted descending). */
   matchDonators: SessionLeaderboardEntry[];
+  /** Current-round MVP per team tag (highest match damage within each team). */
+  matchMvpByTag: Readonly<Record<string, SessionLeaderboardEntry>>;
   /** Active leaderboard board mode ('SESSION' | 'MATCH'). Cycles every 10s. */
   currentBoard: LeaderboardBoardMode;
   /** Timestamp (ms) when current board was last switched. */
@@ -241,6 +243,19 @@ const accumulateMapEntry = (
   targetMap.set(userName, { userName, teamTag, colorTheme, totalDamage: damage });
 };
 
+const pickMatchMvpByTag = (): Record<string, SessionLeaderboardEntry> => {
+  const mvpByTag: Record<string, SessionLeaderboardEntry> = {};
+  for (const entry of matchDamageByName.values()) {
+    if (!entry.teamTag) continue;
+    const current = mvpByTag[entry.teamTag];
+    if (!current || entry.totalDamage > current.totalDamage) {
+      mvpByTag[entry.teamTag] = entry;
+      mvpByTag[entry.teamTag.toUpperCase()] = entry;
+    }
+  }
+  return mvpByTag;
+};
+
 const flushRanking = (shouldAnnounce = true): void => {
   flushTimer = null;
   const now = Date.now();
@@ -263,6 +278,7 @@ const flushRanking = (shouldAnnounce = true): void => {
     topEntries: topSession,
     sessionDonators: topSession,
     matchDonators: topMatch,
+    matchMvpByTag: pickMatchMvpByTag(),
     tierByName: changes.length > 0 ? Object.fromEntries(tierCache) : state.tierByName,
     takeover: takeover ?? state.takeover,
     tierUp: tierUp ?? state.tierUp,
@@ -297,13 +313,14 @@ export const recordSessionDamage = (
 /** Resets only the current match's leaderboard (`matchDonators`), keeping `sessionDonators` intact. */
 export const resetMatchLeaderboard = (): void => {
   matchDamageByName.clear();
-  useSessionLeaderboardStore.setState({ matchDonators: [] });
+  useSessionLeaderboardStore.setState({ matchDonators: [], matchMvpByTag: {} });
 };
 
 export const useSessionLeaderboardStore = create<SessionLeaderboardState>(() => ({
   topEntries: [],
   sessionDonators: [],
   matchDonators: [],
+  matchMvpByTag: {},
   currentBoard: LEADERBOARD_BOARD_MODE.SESSION,
   lastBoardSwitchedAt: Date.now(),
   tierByName: EMPTY_TIERS,
@@ -450,6 +467,7 @@ export const resetSessionLeaderboard = (): void => {
     topEntries: [],
     sessionDonators: [],
     matchDonators: [],
+    matchMvpByTag: {},
     tierByName: EMPTY_TIERS,
     takeover: null,
     tierUp: null,

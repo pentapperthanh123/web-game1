@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { DAMAGE_TYPE, DamageType, GAME_CONSTANTS } from '../../constants/game';
 import { FloatingDamageText } from '../../types/game';
+import { createAdaptiveFrameLoop } from '../../services/workerScheduler';
 import { DamageTextSprite, getDamageTextSprite } from './damageTextSprites';
 
 const CANVAS_WIDTH = 360;
@@ -74,100 +75,30 @@ const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 export const FloatingDamage = React.memo(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<CanvasDamageParticle[]>([]);
-  const animFrameIdRef = useRef<number | null>(null);
-  const isLoopRunningRef = useRef<boolean>(false);
-  const dprRef = useRef<number>(
-    typeof window !== 'undefined'
-      ? Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.DPR_MAX)
-      : 1
-  );
+  const dprRef = useRef<number>(GAME_CONSTANTS.RENDER.FIXED_DPR);
 
-  // Resize canvas according to high-DPI device pixel ratio
+  // Lock canvas buffer to fixed pixel ratio (DPR = 1)
   useEffect(() => {
-    const updateCanvasScale = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const dpr = typeof window !== 'undefined'
-        ? Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.DPR_MAX)
-        : 1;
-      dprRef.current = dpr;
-      canvas.width = Math.round(CANVAS_WIDTH * dpr);
-      canvas.height = Math.round(CANVAS_HEIGHT * dpr);
-    };
-
-    updateCanvasScale();
-    window.addEventListener('resize', updateCanvasScale);
-    return () => window.removeEventListener('resize', updateCanvasScale);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = GAME_CONSTANTS.RENDER.FIXED_DPR;
+    dprRef.current = dpr;
+    canvas.width = Math.round(CANVAS_WIDTH * dpr);
+    canvas.height = Math.round(CANVAS_HEIGHT * dpr);
   }, []);
 
   // Subscribe to floatingDamages in store without triggering React DOM re-renders
   useEffect(() => {
-    const unsub = useGameStore.subscribe((state, prevState) => {
-      if (state.floatingDamages === prevState.floatingDamages) return;
-
-      const newItems = state.floatingDamages;
-      if (!newItems || newItems.length === 0) return;
-
-      const existingIds = new Set(particlesRef.current.map((p) => p.id));
-      const now = Date.now();
-
-      for (let i = 0; i < newItems.length; i++) {
-        const item: FloatingDamageText = newItems[i];
-        // Chỉ giữ lại số sát thương gây lên Quái vật (ẩn toàn bộ số hồi máu hoặc phụ trợ)
-        if (!item.text || item.text.startsWith('+')) continue;
-
-        if (particlesRef.current.length >= MAX_ACTIVE_PARTICLES) break;
-        if (!existingIds.has(item.id) && now - item.createdAt < DAMAGE_LIFETIME_MS) {
-          const sprite = getDamageTextSprite(item.text, item.damageType, item.color);
-          if (!sprite) continue;
-          particlesRef.current.push({
-            id: item.id,
-            text: item.text,
-            damageType: item.damageType,
-            x: CANVAS_WIDTH * 0.5 + item.x,
-            y: CANVAS_HEIGHT * 0.5 + item.y,
-            color: item.color,
-            baseScale: item.scale || 1.0,
-            createdAt: item.createdAt || now,
-            sprite,
-          });
-        }
-      }
-
-      // Start canvas render loop if not already running
-      if (!isLoopRunningRef.current && particlesRef.current.length > 0) {
-        startCanvasLoop();
-      }
-    });
-
-    return () => {
-      unsub();
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
-      }
-    };
-  }, []);
-
-  const startCanvasLoop = () => {
-    isLoopRunningRef.current = true;
-
-    const render = () => {
+    const renderFrame = (now: number): boolean => {
       const canvas = canvasRef.current;
-      if (!canvas) {
-        isLoopRunningRef.current = false;
-        return;
-      }
+      if (!canvas) return false;
 
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        isLoopRunningRef.current = false;
-        return;
-      }
+      if (!ctx) return false;
 
       const dpr = dprRef.current;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const now = Date.now();
       // Expired particles are compacted out in place (no per-frame array allocation)
       const particles = particlesRef.current;
       let activeCount = 0;
@@ -206,16 +137,53 @@ export const FloatingDamage = React.memo(() => {
       ctx.globalAlpha = 1;
 
       particles.length = activeCount;
-
-      if (activeCount > 0) {
-        animFrameIdRef.current = requestAnimationFrame(render);
-      } else {
-        isLoopRunningRef.current = false;
-      }
+      return activeCount > 0;
     };
 
-    animFrameIdRef.current = requestAnimationFrame(render);
-  };
+    const loop = createAdaptiveFrameLoop(renderFrame);
+
+    const unsub = useGameStore.subscribe((state, prevState) => {
+      if (state.floatingDamages === prevState.floatingDamages) return;
+
+      const newItems = state.floatingDamages;
+      if (!newItems || newItems.length === 0) return;
+
+      const existingIds = new Set(particlesRef.current.map((p) => p.id));
+      const now = Date.now();
+
+      for (let i = 0; i < newItems.length; i++) {
+        const item: FloatingDamageText = newItems[i];
+        // Chỉ giữ lại số sát thương gây lên Quái vật (ẩn toàn bộ số hồi máu hoặc phụ trợ)
+        if (!item.text || item.text.startsWith('+')) continue;
+
+        if (particlesRef.current.length >= MAX_ACTIVE_PARTICLES) break;
+        if (!existingIds.has(item.id) && now - item.createdAt < DAMAGE_LIFETIME_MS) {
+          const sprite = getDamageTextSprite(item.text, item.damageType, item.color);
+          if (!sprite) continue;
+          particlesRef.current.push({
+            id: item.id,
+            text: item.text,
+            damageType: item.damageType,
+            x: CANVAS_WIDTH * 0.5 + item.x,
+            y: CANVAS_HEIGHT * 0.5 + item.y,
+            color: item.color,
+            baseScale: item.scale || 1.0,
+            createdAt: item.createdAt || now,
+            sprite,
+          });
+        }
+      }
+
+      if (particlesRef.current.length > 0) {
+        loop.start();
+      }
+    });
+
+    return () => {
+      unsub();
+      loop.stop();
+    };
+  }, []);
 
   const initialDpr = dprRef.current;
 

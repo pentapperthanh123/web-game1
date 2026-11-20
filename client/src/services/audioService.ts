@@ -94,6 +94,7 @@ class AudioSynthesizerService {
   private masterGain: GainNode | null = null;
   private combatGain: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
+  private readonly pannerPool = new Map<string, StereoPannerNode>();
   private readonly impactGate = new AudioDensityGate(AUDIO_SFX_CONSTANTS.IMPACT_THROTTLE_MS);
   private readonly skillGate = new AudioDensityGate(AUDIO_SFX_CONSTANTS.SKILL_THROTTLE_MS);
   private readonly whooshGate = new AudioDensityGate(AUDIO_SFX_CONSTANTS.WHOOSH_THROTTLE_MS);
@@ -201,9 +202,16 @@ class AudioSynthesizerService {
 
     const busNode = bus === AUDIO_BUS.COMBAT && this.combatGain ? this.combatGain : this.masterGain;
     if (typeof ctx.createStereoPanner === 'function' && Math.abs(pan) > 0.05) {
-      const panner = ctx.createStereoPanner();
-      panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), ctx.currentTime);
-      panner.connect(busNode);
+      const clampedPan = Math.max(-1, Math.min(1, pan));
+      const quantizedPan = Math.round(clampedPan * 10) / 10;
+      const poolKey = `${bus}_${quantizedPan}`;
+      let panner = this.pannerPool.get(poolKey);
+      if (!panner || panner.context !== ctx) {
+        panner = ctx.createStereoPanner();
+        panner.pan.setValueAtTime(quantizedPan, ctx.currentTime);
+        panner.connect(busNode);
+        this.pannerPool.set(poolKey, panner);
+      }
       return panner;
     }
 

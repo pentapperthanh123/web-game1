@@ -53,7 +53,7 @@ export const GiftBattleBar: React.FC = React.memo(() => {
   return (
     <div className="fixed top-12 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-sm pointer-events-none select-none">
       {/* Background Container */}
-      <div className="relative rounded-2xl bg-slate-950/90 border border-slate-800/80 backdrop-blur-md px-3 py-2 shadow-2xl overflow-hidden">
+      <div className="relative rounded-2xl bg-slate-950/95 border border-slate-800/80 px-3 py-2 shadow-2xl overflow-hidden">
         {/* Subtle Ambient Team Glow Underlay */}
         <div
           className="absolute inset-0 opacity-20 pointer-events-none"

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Zap } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { useCombatMomentStore, COMBAT_MOMENT_CONSTANTS } from '../../store/combatMomentStore';
 import { getTeamTheme } from '../../constants/teams';
@@ -84,6 +85,10 @@ export const WipeStamp = React.memo(() => {
           {wipeKillCount > 0
             ? t('KillFeed.wipeSubtitle', { defaultValue: '{{count}} tướng gục ngã — Sàn đấu trống!', count: wipeKillCount })
             : t('KillFeed.wipeEmptyField', 'Toàn bộ tướng đã gục ngã — Sàn đấu trống!')}
+        </div>
+        <div className="mt-2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 text-[10px] sm:text-[11px] font-black uppercase tracking-wide shadow-lg flex items-center gap-1.5 animate-bounce">
+          <Zap className="w-3.5 h-3.5 fill-slate-950 shrink-0" />
+          <span>{t('KillFeed.wipeCta', 'TOÀN QUÂN GỤC NGÃ — Gõ 1 hoặc 2 tiếp viện ngay!')}</span>
         </div>
       </div>
     </div>

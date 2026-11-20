@@ -57,13 +57,13 @@ export const buildRisingParticles = (config: RisingParticleConfig): RisingPartic
   });
 };
 
-const PARTICLE_GLOW_RATIO = 3;
+const PARTICLE_GLOW_SCALE = 2.2;
 
 interface RisingParticlesProps {
   particles: readonly RisingParticleSpec[];
 }
 
-/** Glowing motes drifting upward (void spores, cosmic dust). Pure CSS animation. */
+/** Glowing motes drifting upward (void spores, cosmic dust). Uses radial-gradient instead of box-shadow to stay GPU-light. */
 export const RisingParticles = React.memo(({ particles }: RisingParticlesProps) => (
   <div className="absolute inset-0 overflow-hidden">
     {particles.map((particle, index) => (
@@ -74,10 +74,9 @@ export const RisingParticles = React.memo(({ particles }: RisingParticlesProps) 
           {
             left: `${particle.leftPercent}%`,
             bottom: `${particle.bottomPercent}%`,
-            width: particle.sizePx,
-            height: particle.sizePx,
-            background: particle.color,
-            boxShadow: `0 0 ${particle.sizePx * PARTICLE_GLOW_RATIO}px ${particle.color}`,
+            width: particle.sizePx * PARTICLE_GLOW_SCALE,
+            height: particle.sizePx * PARTICLE_GLOW_SCALE,
+            background: `radial-gradient(circle, ${particle.color} 0%, ${particle.color}88 45%, transparent 72%)`,
             animationDuration: `${particle.durationS}s`,
             animationDelay: `${particle.delayS}s`,
             '--arena-particle-sway': `${particle.swayPx}px`,

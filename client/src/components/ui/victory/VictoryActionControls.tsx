@@ -5,6 +5,7 @@ import { VICTORY_CELEBRATION_CONSTANTS } from '../../../constants/game';
 import { casterQueue } from '../../../services/caster/presentationQueue';
 import { VoiceManager } from '../../../services/caster/VoiceManager';
 import { useCasterStore } from '../../../store/casterStore';
+import { CancelTimer, workerSetInterval, workerSetTimeout } from '../../../services/workerScheduler';
 
 interface VictoryActionControlsProps {
   isSeriesEnded: boolean;
@@ -45,6 +46,9 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
   const { t } = useTranslation();
   /** One advance per victory screen, whatever triggers it (countdown, Space/Enter or button). */
   const hasAdvancedRef = useRef(false);
+  const countdownDeadlineRef = useRef(
+    Date.now() + VICTORY_CELEBRATION_CONSTANTS.AUTO_ADVANCE_SECONDS * 1000
+  );
   const [secondsLeft, setSecondsLeft] = useState<number>(VICTORY_CELEBRATION_CONSTANTS.AUTO_ADVANCE_SECONDS);
   const [isWaitingForCaster, setIsWaitingForCaster] = useState<boolean>(false);
 
@@ -71,14 +75,17 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
     onStartNextRound,
   ]);
 
-  // The updater only counts down: React StrictMode runs updaters twice in dev, so no side effects here
+  // Wall-clock anchored countdown so hidden-tab throttling never drifts round auto-advance
   useEffect(() => {
     if (isAdvancing) return undefined;
-    const timer = setInterval(
-      () => setSecondsLeft((previous) => Math.max(0, previous - 1)),
-      VICTORY_CELEBRATION_CONSTANTS.COUNTDOWN_TICK_MS
-    );
-    return () => clearInterval(timer);
+    countdownDeadlineRef.current =
+      Date.now() + VICTORY_CELEBRATION_CONSTANTS.AUTO_ADVANCE_SECONDS * 1000;
+    const syncSeconds = () => {
+      const remaining = Math.max(0, Math.ceil((countdownDeadlineRef.current - Date.now()) / 1000));
+      setSecondsLeft((prev) => (prev === remaining ? prev : remaining));
+    };
+    syncSeconds();
+    return workerSetInterval(syncSeconds, 250);
   }, [isAdvancing]);
 
   useEffect(() => {
@@ -98,17 +105,22 @@ export const VictoryActionControls: React.FC<VictoryActionControlsProps> = ({
 
     setIsWaitingForCaster(true);
     const safetyDeadline = Date.now() + 15000;
-    const interval = setInterval(() => {
+    let cancelHandoffTimer: CancelTimer | null = null;
+    const cancelPoll = workerSetInterval(() => {
       if (!checkCasterBusy() || Date.now() >= safetyDeadline) {
-        clearInterval(interval);
+        cancelPoll();
         setIsWaitingForCaster(false);
-        setTimeout(() => {
+        cancelHandoffTimer = workerSetTimeout(() => {
+          cancelHandoffTimer = null;
           executeAdvance();
         }, 800);
       }
     }, 400);
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelPoll();
+      cancelHandoffTimer?.();
+    };
   }, [secondsLeft, isAdvancing, executeAdvance]);
 
   const autoAdvanceCaption = resolveAutoAdvanceCaption(isSeriesEnded, Boolean(nextQueuedMatchLabel));

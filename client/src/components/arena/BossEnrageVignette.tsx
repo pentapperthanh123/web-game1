@@ -13,11 +13,11 @@ const ENRAGE_VIGNETTE_STYLE = {
  */
 export const BossEnrageVignette: React.FC = React.memo(() => {
   const bossStatus = useGameStore((state) => state.bossStatus);
-  const bossHp = useGameStore((state) => state.bossHp);
+  const isBossHpAlive = useGameStore((state) => state.bossHp > 0);
   const gameTheme = useGameStore((state) => state.gameTheme);
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
 
-  const isEnraged = bossStatus === BOSS_STATUS.ENRAGED && bossHp > 0 && !isRoundIntermission;
+  const isEnraged = bossStatus === BOSS_STATUS.ENRAGED && isBossHpAlive && !isRoundIntermission;
   if (!isEnraged) return null;
 
   const enragedColor = getThemeConfig(gameTheme).colors.enragedHex;

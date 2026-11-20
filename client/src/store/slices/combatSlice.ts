@@ -11,6 +11,7 @@ import {
   persistChampionshipTally,
 } from '../championshipTally';
 import {
+  AdminEventLog,
   BossShieldState,
   DamageBossOptions,
   FloatingDamageText,
@@ -23,6 +24,7 @@ import {
   ShockwaveEntity,
   SlashEntity,
 } from '../../types/game';
+import { isRenderThrottled, workerSetTimeout } from '../../services/workerScheduler';
 import {
   ARROW_VFX_CONFIG,
   AUTO_PRO_BATTLE_CONSTANTS,
@@ -231,14 +233,70 @@ const resolveMergedTextScale = (baseScale: number, hitCount: number): number => 
 const pendingFuryByMinionId = new Map<string, number>();
 let isFuryFlushScheduled = false;
 
-const isPageHidden = (): boolean => typeof document !== 'undefined' && document.hidden;
-
 const requestNextFrame = (callback: () => void): void => {
-  if (!isPageHidden() && typeof requestAnimationFrame === 'function') {
+  if (!isRenderThrottled() && typeof requestAnimationFrame === 'function') {
     requestAnimationFrame(() => callback());
     return;
   }
-  setTimeout(callback, COMBAT_VFX_CONSTANTS.DAMAGE.FRAME_FALLBACK_MS);
+  workerSetTimeout(callback, COMBAT_VFX_CONSTANTS.DAMAGE.FRAME_FALLBACK_MS);
+};
+
+const buildParticleBurst = (
+  origin: [number, number, number],
+  color: string,
+  intensity: number,
+  now = Date.now()
+): ParticleBurst => ({
+  id: `burst-${now}-${Math.random()}`,
+  timestamp: now,
+  origin,
+  color,
+  intensity,
+});
+
+const buildSlashEntity = (
+  position: [number, number, number],
+  color: string,
+  isCrit = false,
+  now = Date.now()
+): SlashEntity => ({
+  id: `slash-${now}-${Math.random()}`,
+  position,
+  rotationZ: Math.random() * Math.PI * 2,
+  tiltX: (Math.random() - 0.5) * 0.7,
+  tiltY: (Math.random() - 0.5) * 0.7,
+  isCrit,
+  color,
+  scale: isCrit ? 1.25 + Math.random() * 0.4 : 0.85 + Math.random() * 0.35,
+  createdAt: now,
+});
+
+const buildAdminLog = (
+  type: AdminEventLog['type'],
+  message: string,
+  team?: TeamType,
+  now = Date.now()
+): AdminEventLog => ({
+  id: `log-${now}-${Math.random().toString(36).substring(2, 5)}`,
+  time: new Date(now).toLocaleTimeString('vi-VN', { hour12: false }),
+  type,
+  message,
+  team,
+});
+
+const mergeCappedSlashes = (
+  current: SlashEntity[],
+  incoming: SlashEntity[],
+  isCleared: boolean
+): SlashEntity[] => {
+  if (isCleared) return [];
+  if (incoming.length === 0) return current;
+  return [...current, ...incoming].slice(-COMBAT_VFX_CONSTANTS.DAMAGE.MAX_ACTIVE_SLASHES);
+};
+
+const mergeCappedBursts = (current: ParticleBurst[], incoming: ParticleBurst[]): ParticleBurst[] => {
+  if (incoming.length === 0) return current;
+  return [...current, ...incoming].slice(-COMBAT_VFX_CONSTANTS.PARTICLES.MAX_BURST_QUEUE);
 };
 
 /**
@@ -417,7 +475,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       },
     }));
 
-    setTimeout(() => {
+    workerSetTimeout(() => {
       const latest = get();
       if (isBattleHalted(latest)) {
         return;
@@ -619,38 +677,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
   },
 
   spawnParticleBurst: (origin: [number, number, number], color: string, intensity: number) => {
-    const newBurst: ParticleBurst = {
-      id: `burst-${Date.now()}-${Math.random()}`,
-      timestamp: Date.now(),
-      origin,
-      color,
-      intensity,
-    };
+    const newBurst = buildParticleBurst(origin, color, intensity);
     set((state) => ({
-      activeBursts: [
-        ...state.activeBursts.slice(-(COMBAT_VFX_CONSTANTS.PARTICLES.MAX_BURST_QUEUE - 1)),
-        newBurst,
-      ],
+      activeBursts: mergeCappedBursts(state.activeBursts, [newBurst]),
     }));
   },
 
   spawnSlash: (position: [number, number, number], color: string, isCrit = false) => {
-    const newSlash: SlashEntity = {
-      id: `slash-${Date.now()}-${Math.random()}`,
-      position,
-      rotationZ: Math.random() * Math.PI * 2,
-      tiltX: (Math.random() - 0.5) * 0.7,
-      tiltY: (Math.random() - 0.5) * 0.7,
-      isCrit,
-      color,
-      scale: isCrit ? 1.25 + Math.random() * 0.4 : 0.85 + Math.random() * 0.35,
-      createdAt: Date.now(),
-    };
+    const newSlash = buildSlashEntity(position, color, isCrit);
     set((state) => ({
-      activeSlashes: [
-        ...state.activeSlashes.slice(-(COMBAT_VFX_CONSTANTS.DAMAGE.MAX_ACTIVE_SLASHES - 1)),
-        newSlash,
-      ],
+      activeSlashes: mergeCappedSlashes(state.activeSlashes, [newSlash], false),
     }));
   },
 
@@ -757,12 +793,15 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         );
       }
 
-      const nextMinions = prev.minions.map((minion) => {
-        if (minion.team !== team) return minion;
-        const updated = { ...minion, fury: Math.min(minion.maxFury, minion.fury + minionHeartFuryGain) };
-        prev.minionMap?.set(minion.id, updated);
-        return updated;
-      });
+      const hasTeamMinion = prev.minions.some((minion) => minion.team === team);
+      const nextMinions = hasTeamMinion
+        ? prev.minions.map((minion) => {
+            if (minion.team !== team) return minion;
+            const updated = { ...minion, fury: Math.min(minion.maxFury, minion.fury + minionHeartFuryGain) };
+            prev.minionMap?.set(minion.id, updated);
+            return updated;
+          })
+        : prev.minions;
 
       return {
         totalLikesBLG: newLikesLeft,
@@ -909,14 +948,17 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           floorHpAfterBreak,
           state.bossHp - BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE
         );
-
-        get().triggerScreenShake(0.9);
-        get().triggerScreenFlash('#38bdf8');
-        get().spawnParticleBurst([0, 0.4, 0.6], '#38bdf8', COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
-        get().addLog(
+        const breakBurst = buildParticleBurst(
+          [0, 0.4, 0.6],
+          '#38bdf8',
+          COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE,
+          now
+        );
+        const breakLog = buildAdminLog(
           'BOSS',
           `💥 ${playerName} phá vỡ KHIÊN NĂNG LƯỢNG! Boss choáng nhận ${BOSS_MECHANICS_CONSTANTS.SHIELD.BREAK_BONUS_DAMAGE.toLocaleString()} ST!`,
-          team
+          team,
+          now
         );
 
         set((prev) => ({
@@ -926,6 +968,12 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           bossHitTimestamp: now,
           lastHitTeam: team,
           lastHitDamageType: DAMAGE_TYPE.ULTIMATE,
+          screenShakeTimestamp: now,
+          screenShakeIntensity: 0.9,
+          screenFlashColor: '#38bdf8',
+          screenFlashTimestamp: now,
+          activeBursts: mergeCappedBursts(prev.activeBursts, [breakBurst]),
+          eventLogs: [breakLog, ...prev.eventLogs].slice(0, 100),
           teamScores: nextTeamScores,
           teamScoreBLG: nextScoreLeft,
           teamScoreGENG: nextScoreRight,
@@ -945,12 +993,15 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         return;
       }
 
-      if (shieldFeedback.shouldShow) get().spawnParticleBurst([0, 0.4, 0.7], '#38bdf8', 0.8);
+      const shieldHitBurst = shieldFeedback.shouldShow
+        ? [buildParticleBurst([0, 0.4, 0.7], '#38bdf8', 0.8, now)]
+        : [];
       set((prev) => ({
         bossShield: prev.bossShield ? { ...prev.bossShield, hp: remainingShieldHp } : null,
         bossHitTimestamp: now,
         lastHitTeam: team,
         lastHitDamageType: effectiveDamageType,
+        activeBursts: mergeCappedBursts(prev.activeBursts, shieldHitBurst),
         teamScores: nextTeamScores,
         teamScoreBLG: nextScoreLeft,
         teamScoreGENG: nextScoreRight,
@@ -976,6 +1027,12 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     const hpLost = Math.max(0, state.bossHp - newHp);
     if (hpLost <= 0) return;
     const effectiveDamage = options?.hpDamageCap ? scaledAmount : hpLost;
+
+    const pendingLogs: AdminEventLog[] = [];
+    const pendingBursts: ParticleBurst[] = [];
+    const pendingSlashes: SlashEntity[] = [];
+    let pendingShakeIntensity: number | null = null;
+    let pendingFlashColor: string | null = null;
 
     const isCritHit = effectiveDamageType === DAMAGE_TYPE.CRIT;
     playSound(isCritHit ? SFX_EVENT.CRIT_HIT : SFX_EVENT.CHAMPION_HIT);
@@ -1004,9 +1061,13 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           };
           nextTriggeredShieldThresholds = [...state.triggeredShieldThresholds, threshold];
           playSound(SFX_EVENT.BOSS_SHIELD, { rateScale: getThemeConfig(state.gameTheme).audioPitchRate });
-          get().addLog(
-            'BOSS',
-            `🛡️ [KHIÊN NĂNG LƯỢNG] Boss bật khiên ${BOSS_MECHANICS_CONSTANTS.SHIELD.SHIELD_HP.toLocaleString()} HP! Phá trong 12s kẻo Boss hồi máu!`
+          pendingLogs.unshift(
+            buildAdminLog(
+              'BOSS',
+              `🛡️ [KHIÊN NĂNG LƯỢNG] Boss bật khiên ${BOSS_MECHANICS_CONSTANTS.SHIELD.SHIELD_HP.toLocaleString()} HP! Phá trong 12s kẻo Boss hồi máu!`,
+              undefined,
+              now
+            )
           );
           break;
         }
@@ -1016,11 +1077,15 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     if (isJustEnraged) {
       const themeConfig = getThemeConfig(state.gameTheme);
       playBossVoice(state.gameTheme, BOSS_VOICE_KIND.ENRAGE);
-      get().triggerScreenShake(BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY);
-      get().triggerScreenFlash(BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR);
-      get().addLog(
-        'BOSS',
-        `🔥 [CẢNH BÁO: ${themeConfig.bossName.toUpperCase()} CUỒNG NỘ!] Máu dưới ${Math.round(enrageThreshold * 100)}% - Sát thương & Tốc đánh tăng vọt!`
+      pendingShakeIntensity = BOSS_ENRAGED_CONSTANTS.SCREEN_SHAKE_INTENSITY;
+      pendingFlashColor = BOSS_ENRAGED_CONSTANTS.SCREEN_FLASH_COLOR;
+      pendingLogs.unshift(
+        buildAdminLog(
+          'BOSS',
+          `🔥 [CẢNH BÁO: ${themeConfig.bossName.toUpperCase()} CUỒNG NỘ!] Máu dưới ${Math.round(enrageThreshold * 100)}% - Sát thương & Tốc đánh tăng vọt!`,
+          undefined,
+          now
+        )
       );
     }
 
@@ -1077,14 +1142,22 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           winnerProfile,
           state.activeTeams[loserSlot]
         );
-        get().addLog(
-          'SYSTEM',
-          `🏆 ${winnerTag} VÔ ĐỊCH CKTG 2026 ${state.seriesFormat} (${nextBO5Score[TEAM_SLOT_LEFT]} - ${nextBO5Score[TEAM_SLOT_RIGHT]})! Lần vô địch thứ ${winnerTitleCount} trước ${state.activeTeams[loserSlot]?.shortTag ?? loserSlot}.`
+        pendingLogs.unshift(
+          buildAdminLog(
+            'SYSTEM',
+            `🏆 ${winnerTag} VÔ ĐỊCH CKTG 2026 ${state.seriesFormat} (${nextBO5Score[TEAM_SLOT_LEFT]} - ${nextBO5Score[TEAM_SLOT_RIGHT]})! Lần vô địch thứ ${winnerTitleCount} trước ${state.activeTeams[loserSlot]?.shortTag ?? loserSlot}.`,
+            undefined,
+            now
+          )
         );
       } else {
-        get().addLog(
-          'SYSTEM',
-          `🚩 ${winnerTag} THẮNG VÁN ${state.currentRound}! (BO5: ${leftTag} ${nextBO5Score[TEAM_SLOT_LEFT]} - ${nextBO5Score[TEAM_SLOT_RIGHT]} ${rightTag})`
+        pendingLogs.unshift(
+          buildAdminLog(
+            'SYSTEM',
+            `🚩 ${winnerTag} THẮNG VÁN ${state.currentRound}! (BO5: ${leftTag} ${nextBO5Score[TEAM_SLOT_LEFT]} - ${nextBO5Score[TEAM_SLOT_RIGHT]} ${rightTag})`,
+            undefined,
+            now
+          )
         );
       }
     }
@@ -1112,10 +1185,10 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
 
     const impactColor = effectiveDamageType === DAMAGE_TYPE.ULTIMATE ? '#fbbf24' : teamPalette.secondary;
     if (isCritOrUlt) {
-      get().spawnSlash(hitPoint, impactColor, true);
+      pendingSlashes.push(buildSlashEntity(hitPoint, impactColor, true, now));
     }
     if (hitFeedback.shouldShow) {
-      get().spawnParticleBurst(hitPoint, impactColor, DAMAGE_INTENSITY_MAP[effectiveDamageType]);
+      pendingBursts.push(buildParticleBurst(hitPoint, impactColor, DAMAGE_INTENSITY_MAP[effectiveDamageType], now));
     }
 
     const newShockwaves: ShockwaveEntity[] = [...state.activeShockwaves];
@@ -1130,9 +1203,9 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       });
     }
     if (isCritOrUlt) {
-      get().triggerScreenShake(
-        isUltimateHit ? COMBAT_VFX_CONSTANTS.DAMAGE.ULTIMATE_SCREEN_SHAKE : COMBAT_VFX_CONSTANTS.DAMAGE.CRIT_SCREEN_SHAKE
-      );
+      pendingShakeIntensity = isUltimateHit
+        ? COMBAT_VFX_CONSTANTS.DAMAGE.ULTIMATE_SCREEN_SHAKE
+        : COMBAT_VFX_CONSTANTS.DAMAGE.CRIT_SCREEN_SHAKE;
     }
 
     const safeAmount = Number.isFinite(effectiveDamage) ? effectiveDamage : 0;
@@ -1198,15 +1271,15 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
         // Phase 1: Boss death cry (groan/kneeling)
         playSound(SFX_EVENT.BOSS_DEATH_CRY, { rateScale: themeConfig.audioPitchRate });
         // Phase 2: Cinematic explosion (delayed for impact layering)
-        setTimeout(() => {
+        workerSetTimeout(() => {
           playSound(SFX_EVENT.BOSS_DEFEAT, { rateScale: themeConfig.audioPitchRate });
         }, BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS);
         // Phase 3: Victory sound plays right after explosion
-        setTimeout(() => {
+        workerSetTimeout(() => {
           playSound(SFX_EVENT.VICTORY);
         }, BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS * 2);
-        get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);
-        get().triggerScreenFlash('#fbbf24');
+        pendingShakeIntensity = BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY;
+        pendingFlashColor = '#fbbf24';
 
         newShockwaves.push(
           {
@@ -1229,12 +1302,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
           }
         );
 
-        get().spawnParticleBurst([0, 0.5, 0.6], defeatColor, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
-        get().spawnParticleBurst([-1.1, 0.9, 0.4], teamPalette.primary, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
-        get().spawnParticleBurst([1.1, 0.2, 0.4], '#ffffff', COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE);
+        pendingBursts.push(
+          buildParticleBurst([0, 0.5, 0.6], defeatColor, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE, now),
+          buildParticleBurst([-1.1, 0.9, 0.4], teamPalette.primary, COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE, now),
+          buildParticleBurst([1.1, 0.2, 0.4], '#ffffff', COMBAT_VFX_CONSTANTS.PARTICLES.INTENSITY_ULTIMATE, now)
+        );
       }
 
-      get().addLog('BOSS', `🏆 [TIÊU DIỆT BOSS] ${themeConfig.bossName} ĐÃ BỊ HẠ GỤC!`);
+      pendingLogs.unshift(
+        buildAdminLog('BOSS', `🏆 [TIÊU DIỆT BOSS] ${themeConfig.bossName} ĐÃ BỊ HẠ GỤC!`, undefined, now)
+      );
     }
 
     set((prev) => ({
@@ -1267,6 +1344,16 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       leaderboard: topLeaderboard,
       proLeaderboard: nextProLeaderboard,
       activeShockwaves: newShockwaves.slice(-8),
+      activeBursts: mergeCappedBursts(prev.activeBursts, pendingBursts),
+      eventLogs:
+        pendingLogs.length > 0
+          ? [...pendingLogs, ...prev.eventLogs].slice(0, 100)
+          : prev.eventLogs,
+      screenShakeTimestamp: pendingShakeIntensity !== null ? now : prev.screenShakeTimestamp,
+      screenShakeIntensity:
+        pendingShakeIntensity !== null ? pendingShakeIntensity : prev.screenShakeIntensity,
+      screenFlashColor: pendingFlashColor !== null ? pendingFlashColor : prev.screenFlashColor,
+      screenFlashTimestamp: pendingFlashColor !== null ? now : prev.screenFlashTimestamp,
       floatingDamages: resolveNextCappedList(
         prev.floatingDamages,
         newFloat,
@@ -1290,7 +1377,7 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
       activeSummonPortals: isDefeated ? [] : prev.activeSummonPortals,
       activeProjectiles: isDefeated ? [] : prev.activeProjectiles,
       activeFlyingArrows: isDefeated ? [] : prev.activeFlyingArrows,
-      activeSlashes: isDefeated ? [] : prev.activeSlashes,
+      activeSlashes: mergeCappedSlashes(prev.activeSlashes, pendingSlashes, isDefeated),
       activeMeteors: isDefeated ? [] : prev.activeMeteors,
       bo5Score: nextBO5Score,
       roundWinner: nextRoundWinner,

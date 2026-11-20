@@ -19,7 +19,19 @@ const SWORD_SHOCKWAVE = {
 import { useGameStore } from '../../../store/gameStore';
 import { useGiftVfxStore, MegaWeaponCategory } from '../../../store/giftVfxStore';
 import { getTeamTheme } from '../../../constants/teams';
-import { GIFT_TIER, GIFT_TIER_CONFIG, TEAM_SLOT_LEFT, TeamType } from '../../../constants/game';
+import {
+  BACKGROUND_PERF_CONSTANTS,
+  GIFT_TIER,
+  GIFT_TIER_CONFIG,
+  TEAM_SLOT_LEFT,
+  TeamType,
+} from '../../../constants/game';
+
+const SHARED_SMALL_METEOR_GEO = new THREE.OctahedronGeometry(0.16, 1);
+const SHARED_BIG_METEOR_CORE_GEO = new THREE.SphereGeometry(0.38, 12, 12);
+const SHARED_BIG_METEOR_TRAIL_GEO = new THREE.CylinderGeometry(0.05, 0.36, 2.0, 8);
+const SHARED_HEART_PLANE_GEO = new THREE.PlaneGeometry(0.48, 0.48);
+const SHARED_BUBBLE_SPHERE_GEO = new THREE.SphereGeometry(0.35, 12, 12);
 
 // ==========================================
 // CONSTANTS & POOL CAPACITIES
@@ -206,6 +218,63 @@ export const GiftVFXPool: React.FC = React.memo(() => {
     []
   );
 
+  const sharedMaterials = useMemo(
+    () => ({
+      smallMeteor: new THREE.MeshBasicMaterial({
+        toneMapped: false,
+        color: '#fde68a',
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        ...COLOR_ONLY_ADDITIVE_PROPS,
+      }),
+      bigMeteorCore: new THREE.MeshBasicMaterial({
+        toneMapped: false,
+        color: '#fef08a',
+        transparent: true,
+        opacity: 0.92,
+        depthWrite: false,
+        ...COLOR_ONLY_ADDITIVE_PROPS,
+      }),
+      bigMeteorTrail: new THREE.MeshBasicMaterial({
+        toneMapped: false,
+        color: '#f97316',
+        transparent: true,
+        opacity: 0.65,
+        depthWrite: false,
+        ...COLOR_ONLY_ADDITIVE_PROPS,
+      }),
+      heartShader: new THREE.ShaderMaterial({
+        vertexShader: HeartSdfShader.vertexShader,
+        fragmentShader: HeartSdfShader.fragmentShader,
+        uniforms: laserUniforms,
+        transparent: true,
+        ...COLOR_ONLY_ADDITIVE_PROPS,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+      waterBubble: new THREE.ShaderMaterial({
+        vertexShader: WaterRefractionShader.vertexShader,
+        fragmentShader: WaterRefractionShader.fragmentShader,
+        uniforms: waterUniforms,
+        transparent: true,
+        ...COLOR_ONLY_ADDITIVE_PROPS,
+        depthWrite: false,
+      }),
+    }),
+    [laserUniforms, waterUniforms]
+  );
+
+  useEffect(() => {
+    return () => {
+      sharedMaterials.smallMeteor.dispose();
+      sharedMaterials.bigMeteorCore.dispose();
+      sharedMaterials.bigMeteorTrail.dispose();
+      sharedMaterials.heartShader.dispose();
+      sharedMaterials.waterBubble.dispose();
+    };
+  }, [sharedMaterials]);
+
   // ----------------------------------------
   // PRE-ALLOCATED DATA SLOTS (OBJECT POOLING)
   // ----------------------------------------
@@ -374,31 +443,21 @@ export const GiftVFXPool: React.FC = React.memo(() => {
   };
 
   // ----------------------------------------
-  // LISTEN TO STORES (POLL IN USEFRAME OR SUBSCRIPTION)
+  // LISTEN TO STORES (EVENT-DRIVEN SO BACKGROUND GIFTS ARE NEVER DROPPED)
   // ----------------------------------------
   useEffect(() => {
-    const unsub = useGiftVfxStore.subscribe((state, prevState) => {
+    const unsubMega = useGiftVfxStore.subscribe((state, prevState) => {
       if (state.activeMegaWeapon && state.activeMegaWeapon !== prevState.activeMegaWeapon) {
         const weapon = state.activeMegaWeapon;
         const theme = getTeamTheme(useGameStore.getState().activeTeams[weapon.team]?.colorTheme);
         spawnMegaWeapon(weapon.category, weapon.team, weapon.donorName, theme.primaryHex);
       }
     });
-    return () => unsub();
-  }, [laserUniforms, waterUniforms]);
 
-  // ----------------------------------------
-  // MAIN ANIMATION LOOP (MUTATES AT 60 FPS)
-  // ----------------------------------------
-  useFrame((state, delta) => {
-    const time = state.clock.getElapsedTime();
-    laserUniforms.uTime.value = time;
-    waterUniforms.uTime.value = time;
+    const handleGiftBanner = (gameState: ReturnType<typeof useGameStore.getState>): void => {
+      const currentGiftBanner = gameState.activeGiftBanner;
+      if (!currentGiftBanner || currentGiftBanner.timestamp <= lastGiftTime.current) return;
 
-    // 1. Detect incoming gifts from main GameStore
-    const gameState = useGameStore.getState();
-    const currentGiftBanner = gameState.activeGiftBanner;
-    if (currentGiftBanner && currentGiftBanner.timestamp > lastGiftTime.current) {
       lastGiftTime.current = currentGiftBanner.timestamp;
       const coins = currentGiftBanner.coins || 1;
       const fallbackTeam = (Object.keys(gameState.activeTeams || {})[0] || TEAM_SLOT_LEFT) as TeamType;
@@ -429,9 +488,30 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       } else {
         spawnSmallMeteor(theme.primaryHex);
       }
-    }
+    };
 
-    // 2. Animate Small Meteors Pool
+    const unsubGame = useGameStore.subscribe((state, prevState) => {
+      if (state.activeGiftBanner && state.activeGiftBanner !== prevState.activeGiftBanner) {
+        handleGiftBanner(state);
+      }
+    });
+
+    return () => {
+      unsubMega();
+      unsubGame();
+    };
+  }, [laserUniforms, waterUniforms]);
+
+  // ----------------------------------------
+  // MAIN ANIMATION LOOP (MUTATES AT 60 FPS / 30 FPS IN BACKGROUND)
+  // ----------------------------------------
+  useFrame((state, delta) => {
+    const safeDelta = Math.min(BACKGROUND_PERF_CONSTANTS.MAX_FRAME_DELTA_S, delta);
+    const time = state.clock.getElapsedTime();
+    laserUniforms.uTime.value = time;
+    waterUniforms.uTime.value = time;
+
+    // 1. Animate Small Meteors Pool
     if (smallMeteorGroupRef.current) {
       const children = smallMeteorGroupRef.current.children;
       smallSlots.current.forEach((slot, i) => {
@@ -444,7 +524,7 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         }
 
         mesh.visible = true;
-        slot.position.addScaledVector(slot.velocity, delta);
+        slot.position.addScaledVector(slot.velocity, safeDelta);
         mesh.position.copy(slot.position);
 
         // Ground impact check
@@ -455,7 +535,7 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       });
     }
 
-    // 3. Animate Big Meteors Pool
+    // 2. Animate Big Meteors Pool
     if (bigMeteorGroupRef.current) {
       const children = bigMeteorGroupRef.current.children;
       bigSlots.current.forEach((slot, i) => {
@@ -468,7 +548,7 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         }
 
         group.visible = true;
-        slot.progress += delta * (FALL_SPEED.BIG / 18.0);
+        slot.progress += safeDelta * (FALL_SPEED.BIG / 18.0);
         slot.position.lerpVectors(slot.startPos, BOSS_TARGET, slot.progress);
         group.position.copy(slot.position);
         group.lookAt(BOSS_TARGET);
@@ -483,15 +563,15 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       });
     }
 
-    // 4. Animate Royal Sword Strike
+    // 3. Animate Royal Sword Strike
     if (swordAnim.current.active && swordGroupRef.current) {
       const s = swordAnim.current;
       const group = swordGroupRef.current;
 
       if (!s.slammed) {
         // Falling fast
-        group.position.y -= delta * FALL_SPEED.SWORD;
-        group.rotation.y += delta * 15.0; // Rapid spin
+        group.position.y -= safeDelta * FALL_SPEED.SWORD;
+        group.rotation.y += safeDelta * 15.0; // Rapid spin
 
         if (group.position.y <= 0.6) {
           group.position.y = 0.6;
@@ -512,13 +592,13 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         }
       } else {
         // Sword impaled, trembling
-        s.lingerTimer += delta;
+        s.lingerTimer += safeDelta;
         group.position.x = (Math.random() - 0.5) * 0.06;
         group.position.z = (Math.random() - 0.5) * 0.06;
 
         // Shockwave expansion
         if (swordShockwaveRef.current && swordShockwaveRef.current.visible) {
-          const sc = swordShockwaveRef.current.scale.x + delta * SWORD_SHOCKWAVE.GROWTH_PER_SECOND;
+          const sc = swordShockwaveRef.current.scale.x + safeDelta * SWORD_SHOCKWAVE.GROWTH_PER_SECOND;
           swordShockwaveRef.current.scale.set(sc, sc, sc);
           const mat = swordShockwaveRef.current.material as THREE.MeshBasicMaterial;
           mat.opacity = Math.max(0, SWORD_SHOCKWAVE.PEAK_OPACITY * (1 - sc / SWORD_SHOCKWAVE.MAX_SCALE));
@@ -532,12 +612,12 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       }
     }
 
-    // 5. Animate Mythic Laser Beam
+    // 4. Animate Mythic Laser Beam
     if (laserAnim.current.active) {
       const l = laserAnim.current;
-      l.timer += delta;
+      l.timer += safeDelta;
       if (laserGroundRingRef.current) {
-        laserGroundRingRef.current.rotation.z += delta * 3.0;
+        laserGroundRingRef.current.rotation.z += safeDelta * 3.0;
         const pulse = 1.0 + Math.sin(l.timer * 20.0) * 0.15;
         laserGroundRingRef.current.scale.set(pulse, pulse, pulse);
       }
@@ -548,19 +628,19 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       }
     }
 
-    // 6. Animate Love Category (Pink Beam & Orbiting Hearts)
+    // 5. Animate Love Category (Pink Beam & Orbiting Hearts)
     if (loveAnim.current.active) {
       const lv = loveAnim.current;
-      lv.timer += delta;
+      lv.timer += safeDelta;
       if (loveHeartsGroupRef.current) {
         const children = loveHeartsGroupRef.current.children;
         heartSlots.current.forEach((slot, i) => {
           const mesh = children[i] as THREE.Mesh;
           if (!mesh) return;
-          slot.angle += delta * 2.2;
+          slot.angle += safeDelta * 2.2;
           slot.position.x = Math.cos(slot.angle) * slot.radius;
           slot.position.z = Math.sin(slot.angle) * slot.radius;
-          slot.position.y += delta * slot.ySpeed;
+          slot.position.y += safeDelta * slot.ySpeed;
           if (slot.position.y > 4.4) slot.position.y = -0.2;
           mesh.position.copy(slot.position);
           const heightFade = Math.sin(Math.max(0, Math.min(1, (slot.position.y + 0.2) / 4.6)) * Math.PI);
@@ -575,16 +655,16 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       }
     }
 
-    // 7. Animate Water Bubbles
+    // 6. Animate Water Bubbles
     if (waterAnim.current.active && waterGroupRef.current) {
       const w = waterAnim.current;
-      w.timer += delta;
+      w.timer += safeDelta;
       const children = waterGroupRef.current.children;
       bubbleSlots.current.forEach((b, i) => {
         const mesh = children[i] as THREE.Mesh;
         if (!mesh) return;
-        b.life += delta;
-        b.position.addScaledVector(b.velocity, delta);
+        b.life += safeDelta;
+        b.position.addScaledVector(b.velocity, safeDelta);
         mesh.position.copy(b.position);
         mesh.scale.setScalar(b.scale * (1.0 + Math.sin(time * 8.0 + b.wobbleSeed) * 0.15));
         if (b.life >= b.maxLife) {
@@ -604,17 +684,12 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       {/* 1. Small Meteors Pool */}
       <group ref={smallMeteorGroupRef}>
         {smallSlots.current.map((_, i) => (
-          <mesh key={`small-${i}`} visible={false}>
-            <octahedronGeometry args={[0.16, 1]} />
-            <meshBasicMaterial
-              toneMapped={false}
-              color="#fde68a"
-              transparent
-              opacity={0.9}
-              depthWrite={false}
-              {...COLOR_ONLY_ADDITIVE_PROPS}
-            />
-          </mesh>
+          <mesh
+            key={`small-${i}`}
+            visible={false}
+            geometry={SHARED_SMALL_METEOR_GEO}
+            material={sharedMaterials.smallMeteor}
+          />
         ))}
       </group>
 
@@ -622,30 +697,13 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       <group ref={bigMeteorGroupRef}>
         {bigSlots.current.map((_, i) => (
           <group key={`big-${i}`} visible={false}>
-            {/* Core glowing sphere */}
-            <mesh>
-              <sphereGeometry args={[0.38, 12, 12]} />
-              <meshBasicMaterial
-                toneMapped={false}
-                color="#fef08a"
-                transparent
-                opacity={0.92}
-                depthWrite={false}
-                {...COLOR_ONLY_ADDITIVE_PROPS}
-              />
-            </mesh>
-            {/* Fiery trail cone */}
-            <mesh position={[0, 0, 1.1]} rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.05, 0.36, 2.0, 8]} />
-              <meshBasicMaterial
-                toneMapped={false}
-                color="#f97316"
-                transparent
-                opacity={0.65}
-                depthWrite={false}
-                {...COLOR_ONLY_ADDITIVE_PROPS}
-              />
-            </mesh>
+            <mesh geometry={SHARED_BIG_METEOR_CORE_GEO} material={sharedMaterials.bigMeteorCore} />
+            <mesh
+              position={[0, 0, 1.1]}
+              rotation={[Math.PI / 2, 0, 0]}
+              geometry={SHARED_BIG_METEOR_TRAIL_GEO}
+              material={sharedMaterials.bigMeteorTrail}
+            />
           </group>
         ))}
       </group>
@@ -749,35 +807,22 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       </mesh>
       <group ref={loveHeartsGroupRef} visible={false}>
         {heartSlots.current.map((_, i) => (
-          <mesh key={`heart-${i}`}>
-            <planeGeometry args={[0.48, 0.48]} />
-            <shaderMaterial
-              vertexShader={HeartSdfShader.vertexShader}
-              fragmentShader={HeartSdfShader.fragmentShader}
-              uniforms={laserUniforms}
-              transparent
-              {...COLOR_ONLY_ADDITIVE_PROPS}
-              depthWrite={false}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
+          <mesh
+            key={`heart-${i}`}
+            geometry={SHARED_HEART_PLANE_GEO}
+            material={sharedMaterials.heartShader}
+          />
         ))}
       </group>
 
       {/* 6. Water Category (Bubble Cluster) */}
       <group ref={waterGroupRef} visible={false}>
         {bubbleSlots.current.map((_, i) => (
-          <mesh key={`bubble-${i}`}>
-            <sphereGeometry args={[0.35, 12, 12]} />
-            <shaderMaterial
-              vertexShader={WaterRefractionShader.vertexShader}
-              fragmentShader={WaterRefractionShader.fragmentShader}
-              uniforms={waterUniforms}
-              transparent
-              {...COLOR_ONLY_ADDITIVE_PROPS}
-              depthWrite={false}
-            />
-          </mesh>
+          <mesh
+            key={`bubble-${i}`}
+            geometry={SHARED_BUBBLE_SPHERE_GEO}
+            material={sharedMaterials.waterBubble}
+          />
         ))}
       </group>
     </group>

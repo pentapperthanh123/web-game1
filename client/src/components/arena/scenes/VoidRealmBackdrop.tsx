@@ -46,9 +46,9 @@ const COSMIC_MOTES = buildRisingParticles({
 
 const NebulaLayer = () => (
   <>
-    {/* Distant galaxy band crossing the sky behind everything */}
+    {/* Distant galaxy band crossing the sky behind everything (soft radial gradient avoids full-viewport blur cost) */}
     <div
-      className="absolute left-1/2 top-[30%] w-[180vmax] h-[22vmin] blur-xl"
+      className="absolute left-1/2 top-[30%] w-[180vmax] h-[22vmin]"
       style={{
         transform: 'translate(-50%, -50%) rotate(-24deg)',
         background: `radial-gradient(ellipse at center, ${VOID_REALM_COLORS.GALAXY_CORE} 0%, ${VOID_REALM_COLORS.GALAXY_BAND} 35%, transparent 70%)`,
@@ -57,7 +57,7 @@ const NebulaLayer = () => (
     {NEBULA_CLOUDS.map((cloud) => (
       <div
         key={cloud.color}
-        className="absolute rounded-full arena-nebula-breathe blur-2xl"
+        className="absolute rounded-full arena-nebula-breathe"
         style={{
           left: cloud.left,
           top: cloud.top,

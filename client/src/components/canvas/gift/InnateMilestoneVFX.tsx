@@ -4,7 +4,16 @@ import * as THREE from 'three';
 import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { useGameStore } from '../../../store/gameStore';
 import { getTeamTheme } from '../../../constants/teams';
-import { GIFT_TIER, GIFT_TIER_CONFIG, TEAM_SLOT_LEFT, TEAM_SLOT_RIGHT, TeamType } from '../../../constants/game';
+import {
+  BACKGROUND_PERF_CONSTANTS,
+  GIFT_TIER,
+  GIFT_TIER_CONFIG,
+  TEAM_SLOT_LEFT,
+  TEAM_SLOT_RIGHT,
+  TeamType,
+} from '../../../constants/game';
+
+const SHARED_SHIELD_DOME_GEO = new THREE.SphereGeometry(3.8, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.5);
 
 // ==========================================
 // CONSTANTS & SHADERS
@@ -101,23 +110,38 @@ export const InnateMilestoneVFX: React.FC = React.memo(() => {
   // FRAME ANIMATION (60 FPS MUTATION)
   // ----------------------------------------
   useFrame((state, delta) => {
+    const safeDelta = Math.min(BACKGROUND_PERF_CONSTANTS.MAX_FRAME_DELTA_S, delta);
     const time = state.clock.getElapsedTime();
     const now = Date.now();
     const gameState = useGameStore.getState();
 
-    // Dynamically resolve left & right team slot keys from activeTeams
-    const activeTeamKeys = Object.keys(gameState.activeTeams || {}) as TeamType[];
-    const leftTeamKey = activeTeamKeys[0] || TEAM_SLOT_LEFT;
-    const rightTeamKey = activeTeamKeys[1] || TEAM_SLOT_RIGHT;
+    // Zero-allocation check for active team keys & battle frenzy
+    let leftTeamKey: TeamType = TEAM_SLOT_LEFT;
+    let rightTeamKey: TeamType = TEAM_SLOT_RIGHT;
+    let teamKeyIndex = 0;
+    for (const key in gameState.activeTeams) {
+      if (teamKeyIndex === 0) leftTeamKey = key as TeamType;
+      else if (teamKeyIndex === 1) {
+        rightTeamKey = key as TeamType;
+        break;
+      }
+      teamKeyIndex += 1;
+    }
 
-    // 1. Fully Dynamic Battle Frenzy Check across all active teams
-    const isFrenzyActive = Object.values(gameState.teamHeartMomentum || {}).some(
-      (momentum) => (momentum?.frenzyUntil ?? 0) > now
-    );
+    let isFrenzyActive = false;
+    const momentumMap = gameState.teamHeartMomentum;
+    if (momentumMap) {
+      for (const teamKey in momentumMap) {
+        if ((momentumMap[teamKey as TeamType]?.frenzyUntil ?? 0) > now) {
+          isFrenzyActive = true;
+          break;
+        }
+      }
+    }
 
     // Smooth lerp frenzy berserker light intensity
     const targetFrenzy = isFrenzyActive ? 1.0 : 0.0;
-    frenzyIntensity.current = THREE.MathUtils.lerp(frenzyIntensity.current, targetFrenzy, delta * 3.5);
+    frenzyIntensity.current = THREE.MathUtils.lerp(frenzyIntensity.current, targetFrenzy, safeDelta * 3.5);
 
     if (frenzyLightRef.current) {
       if (frenzyIntensity.current > 0.01) {
@@ -155,7 +179,7 @@ export const InnateMilestoneVFX: React.FC = React.memo(() => {
     }
 
     // Animate Left Wing Shield Fade & Scale
-    leftShieldOpacity.current = Math.max(0, leftShieldOpacity.current - delta * 0.45);
+    leftShieldOpacity.current = Math.max(0, leftShieldOpacity.current - safeDelta * 0.45);
     leftShieldUniforms.uOpacity.value = leftShieldOpacity.current;
     if (leftShieldRef.current) {
       leftShieldRef.current.visible = leftShieldOpacity.current > 0.01;
@@ -164,7 +188,7 @@ export const InnateMilestoneVFX: React.FC = React.memo(() => {
     }
 
     // Animate Right Wing Shield Fade & Scale
-    rightShieldOpacity.current = Math.max(0, rightShieldOpacity.current - delta * 0.45);
+    rightShieldOpacity.current = Math.max(0, rightShieldOpacity.current - safeDelta * 0.45);
     rightShieldUniforms.uOpacity.value = rightShieldOpacity.current;
     if (rightShieldRef.current) {
       rightShieldRef.current.visible = rightShieldOpacity.current > 0.01;
@@ -182,9 +206,9 @@ export const InnateMilestoneVFX: React.FC = React.memo(() => {
       <mesh
         ref={leftShieldRef}
         position={WING_POSITIONS.LEFT}
+        geometry={SHARED_SHIELD_DOME_GEO}
         visible={false}
       >
-        <sphereGeometry args={[3.8, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
         <shaderMaterial
           vertexShader={HexShieldShader.vertexShader}
           fragmentShader={HexShieldShader.fragmentShader}
@@ -200,9 +224,9 @@ export const InnateMilestoneVFX: React.FC = React.memo(() => {
       <mesh
         ref={rightShieldRef}
         position={WING_POSITIONS.RIGHT}
+        geometry={SHARED_SHIELD_DOME_GEO}
         visible={false}
       >
-        <sphereGeometry args={[3.8, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
         <shaderMaterial
           vertexShader={HexShieldShader.vertexShader}
           fragmentShader={HexShieldShader.fragmentShader}

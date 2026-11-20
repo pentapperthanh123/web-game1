@@ -65,7 +65,7 @@ export const SilverScrapesIntroStage: React.FC<SilverScrapesIntroStageProps> = R
               borderColor: `${leftTheme.primaryHex}88`,
               boxShadow: `0 0 28px ${leftTheme.primaryHex}33`,
             }}
-            className="col-span-5 rounded-2xl p-3 sm:p-4 bg-slate-900/90 border-2 backdrop-blur-md flex flex-col items-center text-center relative overflow-hidden group"
+            className="col-span-5 rounded-2xl p-3 sm:p-4 bg-slate-900/95 border-2 flex flex-col items-center text-center relative overflow-hidden group"
           >
             <div
               style={{
@@ -124,7 +124,7 @@ export const SilverScrapesIntroStage: React.FC<SilverScrapesIntroStageProps> = R
               borderColor: `${rightTheme.primaryHex}88`,
               boxShadow: `0 0 28px ${rightTheme.primaryHex}33`,
             }}
-            className="col-span-5 rounded-2xl p-3 sm:p-4 bg-slate-900/90 border-2 backdrop-blur-md flex flex-col items-center text-center relative overflow-hidden group"
+            className="col-span-5 rounded-2xl p-3 sm:p-4 bg-slate-900/95 border-2 flex flex-col items-center text-center relative overflow-hidden group"
           >
             <div
               style={{

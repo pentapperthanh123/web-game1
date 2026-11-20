@@ -13,6 +13,7 @@ import {
   isSessionTierAtLeast,
 } from '../../../constants/sessionLeaderboard';
 import { toCanonicalViewerName } from '../../../store/roundDamageTracker';
+import { useGameStore } from '../../../store/gameStore';
 
 export const tempProjVec = new THREE.Vector3();
 const tempRayOrigin = new THREE.Vector3();
@@ -123,13 +124,36 @@ export interface ChampionAIState {
   liveScreen?: { x: number; y: number };
 }
 
-const MAX_CHAMPION_TEXTURE_CACHE = 80;
-const MAX_NAMEPLATE_TEXTURE_CACHE = 120;
+const MAX_CHAMPION_TEXTURE_CACHE = 160;
+const MAX_NAMEPLATE_TEXTURE_CACHE = 240;
 
 const textureCache = new Map<string, THREE.Texture>();
+const championKeyTarget = new Map<string, { url: string; label: string }>();
 const nameplateTextureCache = new Map<string, THREE.CanvasTexture>();
+const nameplateOwnerByKey = new Map<string, string>();
 const textureLoader = new THREE.TextureLoader();
 textureLoader.setCrossOrigin('anonymous');
+
+const refreshLruEntry = <T>(cache: Map<string, T>, key: string, value: T): void => {
+  cache.delete(key);
+  cache.set(key, value);
+};
+
+const evictOldestUnused = <T extends THREE.Texture>(
+  cache: Map<string, T>,
+  maxSize: number,
+  isKeyInUse: (key: string) => boolean,
+  onDelete?: (key: string) => void
+): void => {
+  if (cache.size < maxSize) return;
+  for (const key of cache.keys()) {
+    if (isKeyInUse(key)) continue;
+    cache.get(key)?.dispose();
+    cache.delete(key);
+    onDelete?.(key);
+    if (cache.size < maxSize) return;
+  }
+};
 
 // Token body layers (disc, portrait, rings, gauges) are drawn by tokenBodyMaterial in one quad
 export const SHARED_PORTRAIT_GEO = new THREE.CircleGeometry(0.17, 24);
@@ -462,15 +486,28 @@ export const getNameplateTexture = (
   const cacheKey = `${team}_${primaryColor}_${cleanName}_${sigTag}_${sessionTier ?? ''}_${safeLvl}`;
   const existing = nameplateTextureCache.get(cacheKey);
   if (existing) {
+    refreshLruEntry(nameplateTextureCache, cacheKey, existing);
     return existing;
   }
 
-  if (nameplateTextureCache.size > MAX_NAMEPLATE_TEXTURE_CACHE) {
-    const firstKey = nameplateTextureCache.keys().next().value;
-    if (firstKey) {
-      nameplateTextureCache.get(firstKey)?.dispose();
-      nameplateTextureCache.delete(firstKey);
+  if (nameplateTextureCache.size >= MAX_NAMEPLATE_TEXTURE_CACHE) {
+    const activeSummonerNames = new Set<string>();
+    const minions = useGameStore.getState().minions;
+    for (let i = 0; i < minions.length; i += 1) {
+      const m = minions[i];
+      if ((m.hp ?? 1) <= 0) continue;
+      const activeClean = (m.summonerName || NAMEPLATE_STYLE.FALLBACK_NAME).trim().replace(/^@+/, '');
+      activeSummonerNames.add(activeClean);
     }
+    evictOldestUnused(
+      nameplateTextureCache,
+      MAX_NAMEPLATE_TEXTURE_CACHE,
+      (key) => {
+        const owner = nameplateOwnerByKey.get(key);
+        return Boolean(owner && activeSummonerNames.has(owner));
+      },
+      (key) => nameplateOwnerByKey.delete(key)
+    );
   }
 
   const canvas = document.createElement('canvas');
@@ -489,6 +526,7 @@ export const getNameplateTexture = (
   texture.anisotropy = NAMEPLATE_STYLE.ANISOTROPY;
   texture.colorSpace = THREE.SRGBColorSpace;
 
+  nameplateOwnerByKey.set(cacheKey, cleanName);
   nameplateTextureCache.set(cacheKey, texture);
   return texture;
 };
@@ -547,19 +585,40 @@ export const getChampionTexture = (
     ? `${primaryUrl}__${fallbackUrl || ''}`
     : `fallback__${fallbackLabel || ''}__${accentColor || ''}`;
   const existing = textureCache.get(cacheKey);
-  if (existing) return existing;
+  if (existing) {
+    refreshLruEntry(textureCache, cacheKey, existing);
+    return existing;
+  }
 
   if (textureCache.size >= MAX_CHAMPION_TEXTURE_CACHE) {
-    const firstKey = textureCache.keys().next().value;
-    if (firstKey) {
-      textureCache.get(firstKey)?.dispose();
-      textureCache.delete(firstKey);
+    const activeUrls = new Set<string>();
+    const activeLabels = new Set<string>();
+    const minions = useGameStore.getState().minions;
+    for (let i = 0; i < minions.length; i += 1) {
+      const m = minions[i];
+      if ((m.hp ?? 1) <= 0) continue;
+      if (m.avatarUrl) activeUrls.add(m.avatarUrl.trim());
+      if (m.userAvatarUrl) activeUrls.add(m.userAvatarUrl.trim());
+      activeLabels.add(m.championName);
+      activeLabels.add(m.summonerName);
     }
+    evictOldestUnused(
+      textureCache,
+      MAX_CHAMPION_TEXTURE_CACHE,
+      (key) => {
+        const meta = championKeyTarget.get(key);
+        if (!meta) return false;
+        if (meta.url) return activeUrls.has(meta.url);
+        return Boolean(meta.label && activeLabels.has(meta.label));
+      },
+      (key) => championKeyTarget.delete(key)
+    );
   }
 
   if (!primaryUrl) {
     const fallbackTex = new THREE.CanvasTexture(createFallbackAvatarCanvas(fallbackLabel, accentColor));
     applyTextureSampling(fallbackTex);
+    championKeyTarget.set(cacheKey, { url: '', label: fallbackLabel || '' });
     textureCache.set(cacheKey, fallbackTex);
     return fallbackTex;
   }
@@ -590,6 +649,7 @@ export const getChampionTexture = (
     }
   );
   applyTextureSampling(tex);
+  championKeyTarget.set(cacheKey, { url: primaryUrl, label: fallbackLabel || '' });
   textureCache.set(cacheKey, tex);
   return tex;
 };

@@ -1,10 +1,27 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 import { MEME_AUDIO_CONFIG, MEME_AUDIO_EVENT, type MemePlayPayload } from '../../constants/memeAudio';
 import { useAudioManagerInit } from '../../hooks/useAudioManager';
 import { useSocketSoundEffects } from '../../hooks/useSoundEffects';
 import { gameSocket } from '../../services/socket';
+import { workerSetTimeout } from '../../services/workerScheduler';
 import { useGameStore } from '../../store/gameStore';
+
+const CLIMAX_PHASE = {
+  DEFEATED: 'DEFEATED',
+  CLIMAX: 'CLIMAX',
+  RESET: 'RESET',
+  NORMAL: 'NORMAL',
+} as const;
+type ClimaxPhase = (typeof CLIMAX_PHASE)[keyof typeof CLIMAX_PHASE];
+
+const resolveClimaxPhase = (bossHp: number, bossMaxHp: number): ClimaxPhase => {
+  if (bossHp <= 0) return CLIMAX_PHASE.DEFEATED;
+  const healthRatio = bossMaxHp > 0 ? bossHp / bossMaxHp : 1;
+  if (healthRatio >= MEME_AUDIO_CONFIG.CLIMAX_RESET_HP_THRESHOLD) return CLIMAX_PHASE.RESET;
+  if (healthRatio <= MEME_AUDIO_CONFIG.CLIMAX_HP_THRESHOLD) return CLIMAX_PHASE.CLIMAX;
+  return CLIMAX_PHASE.NORMAL;
+};
 
 const isMemePlayPayload = (payload: unknown): payload is MemePlayPayload =>
   typeof payload === 'object' &&
@@ -18,12 +35,11 @@ const isMemePlayPayload = (payload: unknown): payload is MemePlayPayload =>
  * 2. Binds Socket.io SFX events (`useSocketSoundEffects`).
  * 3. Listens for manual meme soundboard triggers (`client:play_meme`) and automated Boss Climax Music.
  */
-export function AudioController(): null {
+function AudioControllerBase(): null {
   useAudioManagerInit();
   useSocketSoundEffects();
 
-  const bossHp = useGameStore((state) => state.bossHp);
-  const bossMaxHp = useGameStore((state) => state.bossMaxHp);
+  const climaxPhase = useGameStore((state) => resolveClimaxPhase(state.bossHp, state.bossMaxHp));
 
   // Cached Howl instances for meme sound effects
   const soundCacheRef = useRef<Map<string, Howl>>(new Map());
@@ -70,11 +86,9 @@ export function AudioController(): null {
     };
   }, []);
 
-  // 2. Automated Boss Climax Music based on Boss HP ratio
+  // 2. Automated Boss Climax Music based on Boss HP threshold phase
   useEffect(() => {
-    const healthRatio = bossMaxHp > 0 ? bossHp / bossMaxHp : 1;
-
-    if (healthRatio >= MEME_AUDIO_CONFIG.CLIMAX_RESET_HP_THRESHOLD) {
+    if (climaxPhase === CLIMAX_PHASE.RESET) {
       hasPlayedClimaxRef.current = false;
       if (climaxHowlRef.current?.playing()) {
         climaxHowlRef.current.fade(
@@ -82,29 +96,28 @@ export function AudioController(): null {
           0,
           MEME_AUDIO_CONFIG.CLIMAX_FADE_RESET_MS
         );
-        setTimeout(() => {
+        workerSetTimeout(() => {
           climaxHowlRef.current?.stop();
         }, MEME_AUDIO_CONFIG.CLIMAX_FADE_RESET_MS);
       }
+      return;
     }
 
-    if (bossHp <= 0 && climaxHowlRef.current?.playing()) {
-      climaxHowlRef.current.fade(
-        climaxHowlRef.current.volume(),
-        0,
-        MEME_AUDIO_CONFIG.CLIMAX_FADE_DEFEAT_MS
-      );
-      setTimeout(() => {
-        climaxHowlRef.current?.stop();
-      }, MEME_AUDIO_CONFIG.CLIMAX_FADE_DEFEAT_MS);
+    if (climaxPhase === CLIMAX_PHASE.DEFEATED) {
+      if (climaxHowlRef.current?.playing()) {
+        climaxHowlRef.current.fade(
+          climaxHowlRef.current.volume(),
+          0,
+          MEME_AUDIO_CONFIG.CLIMAX_FADE_DEFEAT_MS
+        );
+        workerSetTimeout(() => {
+          climaxHowlRef.current?.stop();
+        }, MEME_AUDIO_CONFIG.CLIMAX_FADE_DEFEAT_MS);
+      }
+      return;
     }
 
-    const isClimaxCondition =
-      healthRatio <= MEME_AUDIO_CONFIG.CLIMAX_HP_THRESHOLD &&
-      bossHp > 0 &&
-      !hasPlayedClimaxRef.current;
-
-    if (isClimaxCondition) {
+    if (climaxPhase === CLIMAX_PHASE.CLIMAX && !hasPlayedClimaxRef.current) {
       hasPlayedClimaxRef.current = true;
 
       if (!climaxHowlRef.current) {
@@ -125,7 +138,7 @@ export function AudioController(): null {
       climaxHowlRef.current.volume(MEME_AUDIO_CONFIG.CLIMAX_MUSIC_VOLUME);
       climaxHowlRef.current.play();
     }
-  }, [bossHp, bossMaxHp]);
+  }, [climaxPhase]);
 
   // 3. Cleanup on unmount to prevent any memory leak
   useEffect(() => {
@@ -145,3 +158,6 @@ export function AudioController(): null {
 
   return null;
 }
+
+export const AudioController = React.memo(AudioControllerBase);
+AudioController.displayName = 'AudioController';

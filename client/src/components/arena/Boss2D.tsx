@@ -37,10 +37,12 @@ import {
   getSkillVfxWindowMs,
 } from '../../constants/bossSkillVfx';
 import { BossSkillVfx2D } from './skillVfx/BossSkillVfx2D';
+import { resolveBossPhase } from '../../constants/bossPhases';
 import { BossEntranceBreathVFX } from './BossEntranceBreathVFX';
 import { BossSpriteAnchorMarkers } from './BossSpriteAnchorMarkers';
 import '../ui/gift/gift.css';
 import { getBossSpriteAnchors } from '../../constants/bossSpriteAnchors';
+import { CancelTimer, workerSetInterval, workerSetTimeout } from '../../services/workerScheduler';
 
 const getAnimationClass = (
   isDefeated: boolean,
@@ -165,8 +167,7 @@ const useIsBeforeDeadline = (deadline: number): boolean => {
     const remainingMs = deadline - Date.now();
     setIsBefore(remainingMs > 0);
     if (remainingMs <= 0) return;
-    const timer = setTimeout(() => setIsBefore(false), remainingMs);
-    return () => clearTimeout(timer);
+    return workerSetTimeout(() => setIsBefore(false), remainingMs);
   }, [deadline]);
   return isBefore;
 };
@@ -174,17 +175,14 @@ const useIsBeforeDeadline = (deadline: number): boolean => {
 export const Boss2D = React.memo(() => {
   const { t } = useTranslation();
   const bossStatus = useGameStore((state) => state.bossStatus);
-  const bossHp = useGameStore((state) => state.bossHp);
-  const bossMaxHp = useGameStore((state) => state.bossMaxHp);
+  const isBossHpDepleted = useGameStore((state) => state.bossHp <= 0);
+  const bossArmorPhase = useGameStore((state) => resolveBossPhase(state.bossHp, state.bossMaxHp));
   // Subscribe only to length to avoid re-renders on every minion position tick
   const minionCount = useGameStore((state) => state.minions.length);
-  const bossHitTimestamp = useGameStore((state) => state.bossHitTimestamp);
   const bossAttackTimestamp = useGameStore((state) => state.bossAttackTimestamp);
   const gameTheme = useGameStore((state) => state.gameTheme);
   const isHealthBarVisible = useGameStore((state) => state.overlayVisibility.bossHealth);
   const activeBossSkillBanner = useGameStore((state) => state.activeBossSkillBanner);
-  const lastHitTeam = useGameStore((state) => state.lastHitTeam);
-  const lastHitDamageType = useGameStore((state) => state.lastHitDamageType);
   const bossAttackTargetTeam = useGameStore((state) => state.bossAttackTargetTeam);
   const spawnParticleBurst = useGameStore((state) => state.spawnParticleBurst);
 
@@ -202,7 +200,9 @@ export const Boss2D = React.memo(() => {
   const isRoundIntroShown = useRoundIntroStore(
     (state) => state.isActive && isRoundIntroActive(state.shownAt, Date.now(), state.isManualHold, state.durationMs)
   );
-  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
+  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || isBossHpDepleted || isRoundIntermission || roundWinner !== null;
+  const isDefeatedRef = useRef(isDefeated);
+  isDefeatedRef.current = isDefeated;
   const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
 
   const [, setDefeatPhaseTick] = useState(0);
@@ -229,12 +229,12 @@ export const Boss2D = React.memo(() => {
   useEffect(() => {
     if (!isDefeated) return;
     const now = Date.now();
-    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    const cancelTimers: CancelTimer[] = [];
 
     const remainingToImpact = impactDeadline - now;
     if (remainingToImpact > 0) {
-      timers.push(
-        setTimeout(() => {
+      cancelTimers.push(
+        workerSetTimeout(() => {
           setDefeatPhaseTick((tick) => tick + 1);
         }, remainingToImpact)
       );
@@ -242,15 +242,15 @@ export const Boss2D = React.memo(() => {
 
     const remainingToShatterEnd = shatterCompleteDeadline - now;
     if (remainingToShatterEnd > 0) {
-      timers.push(
-        setTimeout(() => {
+      cancelTimers.push(
+        workerSetTimeout(() => {
           setDefeatPhaseTick((tick) => tick + 1);
         }, remainingToShatterEnd)
       );
     }
 
     return () => {
-      timers.forEach((timer) => clearTimeout(timer));
+      cancelTimers.forEach((cancel) => cancel());
     };
   }, [isDefeated, impactDeadline, shatterCompleteDeadline]);
 
@@ -264,6 +264,10 @@ export const Boss2D = React.memo(() => {
   // Combat Animation States
   const [isHitActive, setIsHitActive] = useState(false);
   const [hitNonce, setHitNonce] = useState(0);
+  const [heavyHitMeta, setHeavyHitMeta] = useState<{
+    team: TeamType | null;
+    damageType: DamageType | null;
+  }>({ team: null, damageType: null });
   const [isRoarActive, setIsRoarActive] = useState(false);
   const [isEntranceActive, setIsEntranceActive] = useState(false);
   const [isEntranceBreathActive, setIsEntranceBreathActive] = useState(false);
@@ -297,8 +301,8 @@ export const Boss2D = React.memo(() => {
   const lastFlipTimestampRef = useRef<number>(0);
   /** While a breath plays the boss keeps facing its target: the 3D jet follows the jaw. */
   const facingLockedUntilRef = useRef<number>(0);
-  const pokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const speechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelPokeTimerRef = useRef<CancelTimer | null>(null);
+  const cancelSpeechTimerRef = useRef<CancelTimer | null>(null);
 
   // Trigger dramatic cave-to-arena swoop & mouth fire breath on spawn / theme change
   useEffect(() => {
@@ -311,22 +315,22 @@ export const Boss2D = React.memo(() => {
     setIsEntranceActive(true);
     setIsEntranceBreathActive(false);
 
-    const breathTimer = isDragon
-      ? setTimeout(() => {
+    const cancelBreathTimer = isDragon
+      ? workerSetTimeout(() => {
           if (isCurrentRoundIntroActive()) return;
           setIsEntranceBreathActive(true);
           playBossVoice(gameTheme, BOSS_VOICE_KIND.ROAR);
         }, BOSS_ANIMATION_CONSTANTS.ENTRANCE_BREATH_DELAY_MS)
       : null;
 
-    const endTimer = setTimeout(() => {
+    const cancelEndTimer = workerSetTimeout(() => {
       setIsEntranceActive(false);
       setIsEntranceBreathActive(false);
     }, BOSS_ANIMATION_CONSTANTS.ENTRANCE_DURATION_MS);
 
     return () => {
-      if (breathTimer) clearTimeout(breathTimer);
-      clearTimeout(endTimer);
+      cancelBreathTimer?.();
+      cancelEndTimer();
     };
   }, [gameTheme, isDefeated, isDragon]);
 
@@ -369,51 +373,65 @@ export const Boss2D = React.memo(() => {
     });
   }, []);
 
-  // Mark activity whenever combat events fire
+  // Mark activity whenever combat events fire (attacks/minions; hit timestamps handled below without re-rendering on normal hits)
   useEffect(() => {
-    if (bossHitTimestamp > 0 || bossAttackTimestamp > 0 || minionCount > 0) {
+    if (bossAttackTimestamp > 0 || minionCount > 0) {
       lastActivityTimestampRef.current = Date.now();
       setIsRestless(false);
     }
-  }, [bossHitTimestamp, bossAttackTimestamp, minionCount]);
+  }, [bossAttackTimestamp, minionCount]);
 
-  // Dynamic hit animation timer
-  const hitEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Dynamic heavy-hit animation listener (ignores normal hits via Super Armor so Boss2D avoids hit-by-hit re-renders)
+  const cancelHitEndTimerRef = useRef<CancelTimer | null>(null);
   const lastHitReactionAtRef = useRef(0);
-  useEffect(() => () => {
-    if (hitEndTimerRef.current) clearTimeout(hitEndTimerRef.current);
-  }, []);
 
   useEffect(() => {
-    if (bossHitTimestamp === 0 || isDefeated) return;
+    const unsubscribe = useGameStore.subscribe((state, prevState) => {
+      if (state.bossHitTimestamp === 0 || state.bossHitTimestamp === prevState.bossHitTimestamp) {
+        return;
+      }
 
-    // Super Armor: normal attacks deal damage and sparks without shaking the boss body
-    const isHeavy =
-      lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
-    if (!isHeavy) return;
+      const now = Date.now();
+      lastActivityTimestampRef.current = now;
+      setIsRestless(false);
 
-    // Heavy Hit Cooldown: prevent jitter spasms when multiple ultimates land together
-    const now = Date.now();
-    if (now - lastHitReactionAtRef.current < BOSS_ANIMATION_CONSTANTS.HEAVY_HIT_COOLDOWN_MS) {
-      return;
-    }
-    lastHitReactionAtRef.current = now;
+      if (isDefeatedRef.current) return;
 
-    setHitNonce((prev) => (prev + 1) % 1000);
-    setIsHitActive(true);
+      // Super Armor: normal attacks deal damage and sparks without shaking the boss body
+      const isHeavy =
+        state.lastHitDamageType === DAMAGE_TYPE.CRIT ||
+        state.lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
+      if (!isHeavy) return;
 
-    if (hitEndTimerRef.current) clearTimeout(hitEndTimerRef.current);
-    hitEndTimerRef.current = setTimeout(() => {
-      setIsHitActive(false);
-    }, BOSS_ANIMATION_CONSTANTS.HEAVY_HIT_DURATION_MS);
+      // Heavy Hit Cooldown: prevent jitter spasms when multiple ultimates land together
+      if (now - lastHitReactionAtRef.current < BOSS_ANIMATION_CONSTANTS.HEAVY_HIT_COOLDOWN_MS) {
+        return;
+      }
+      lastHitReactionAtRef.current = now;
 
-    // Turn toward attacker on heavy Crit or Ultimate hits (guarded by flip cooldown)
-    if (lastHitTeam === TEAM_KEY.BLG) {
-      updateFacingSide(false);
-    } else if (lastHitTeam === TEAM_KEY.GENG) {
-      updateFacingSide(true);
-    }
-  }, [bossHitTimestamp, lastHitDamageType, lastHitTeam, isDefeated, updateFacingSide]);
+      setHeavyHitMeta({ team: state.lastHitTeam, damageType: state.lastHitDamageType });
+      setHitNonce((prev) => (prev + 1) % 1000);
+      setIsHitActive(true);
+
+      cancelHitEndTimerRef.current?.();
+      cancelHitEndTimerRef.current = workerSetTimeout(() => {
+        cancelHitEndTimerRef.current = null;
+        setIsHitActive(false);
+      }, BOSS_ANIMATION_CONSTANTS.HEAVY_HIT_DURATION_MS);
+
+      // Turn toward attacker on heavy Crit or Ultimate hits (guarded by flip cooldown)
+      if (state.lastHitTeam === TEAM_KEY.BLG) {
+        updateFacingSide(false);
+      } else if (state.lastHitTeam === TEAM_KEY.GENG) {
+        updateFacingSide(true);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      cancelHitEndTimerRef.current?.();
+    };
+  }, [updateFacingSide]);
 
   // Dynamic attack animation timer (faster recovery when enraged)
   useEffect(() => {
@@ -450,11 +468,9 @@ export const Boss2D = React.memo(() => {
       : BOSS_ANIMATION_CONSTANTS.ATTACK_DURATION_MS;
     const duration = isEnraged ? Math.round(baseDuration * 0.7) : baseDuration;
 
-    const timer = setTimeout(() => {
+    return workerSetTimeout(() => {
       setIsRoarActive(false);
     }, duration);
-
-    return () => clearTimeout(timer);
   }, [
     bossAttackTimestamp,
     bossAttackTargetTeam,
@@ -464,12 +480,11 @@ export const Boss2D = React.memo(() => {
     themeConfig.audioPitchRate,
     isEnraged,
     updateFacingSide,
-    shiftVerticalPatrolTier,
   ]);
 
   // Periodic Ambient Idle Lifecycle Loop with non-repeating speech queue and cooldown
   useEffect(() => {
-    const idleInterval = setInterval(() => {
+    return workerSetInterval(() => {
       if (isDefeated || isHitActive || isRoarActive || isPoked || useGameStore.getState().silverScrapesState.isActive) {
         return;
       }
@@ -492,8 +507,9 @@ export const Boss2D = React.memo(() => {
           );
           setActiveSpeech(nextRestlessSpeech);
 
-          if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
-          speechTimerRef.current = setTimeout(() => {
+          cancelSpeechTimerRef.current?.();
+          cancelSpeechTimerRef.current = workerSetTimeout(() => {
+            cancelSpeechTimerRef.current = null;
             setActiveSpeech(null);
           }, BOSS_IDLE_CONSTANTS.SPEECH_BUBBLE_DURATION_MS);
         }
@@ -519,30 +535,32 @@ export const Boss2D = React.memo(() => {
         );
         setActiveSpeech(nextAmbientSpeech);
 
-        if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
-        speechTimerRef.current = setTimeout(() => {
+        cancelSpeechTimerRef.current?.();
+        cancelSpeechTimerRef.current = workerSetTimeout(() => {
+          cancelSpeechTimerRef.current = null;
           setActiveSpeech(null);
         }, BOSS_IDLE_CONSTANTS.SPEECH_BUBBLE_DURATION_MS);
       }
     }, BOSS_IDLE_CONSTANTS.AMBIENT_ACTION_INTERVAL_MS);
-
-    return () => clearInterval(idleInterval);
   }, [isDefeated, isHitActive, isRoarActive, isPoked, minionCount, gameTheme, themeConfig.audioPitchRate]);
 
   // Periodic Living Boss Roar Loop (roars every 12-20s even during ongoing pro pokes)
-  const isBossAlive = !isDefeated && bossHp > 0;
+  const isBossAlive = !isDefeated && !isBossHpDepleted;
   useEffect(() => {
     if (!isBossAlive) return;
 
-    let roarTimer: ReturnType<typeof setTimeout> | undefined;
-    let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    let cancelRoarTimer: CancelTimer | null = null;
+    let cancelSettleTimer: CancelTimer | null = null;
+    let isDisposed = false;
 
     const scheduleNextRoar = () => {
+      if (isDisposed) return;
       const span =
         BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_MAX_MS - BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_MIN_MS;
       const delay = BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_MIN_MS + Math.round(Math.random() * span);
 
-      roarTimer = setTimeout(() => {
+      cancelRoarTimer = workerSetTimeout(() => {
+        if (isDisposed) return;
         const latestState = useGameStore.getState();
         if (
           latestState.bossStatus !== BOSS_STATUS.DEFEATED &&
@@ -559,8 +577,9 @@ export const Boss2D = React.memo(() => {
           updateFacingSide('TOGGLE');
           shiftVerticalPatrolTier();
 
-          if (settleTimer) clearTimeout(settleTimer);
-          settleTimer = setTimeout(() => {
+          cancelSettleTimer?.();
+          cancelSettleTimer = workerSetTimeout(() => {
+            cancelSettleTimer = null;
             setIsRoarActive(false);
           }, BOSS_IDLE_CONSTANTS.AMBIENT_ROAR_DURATION_MS);
         }
@@ -571,8 +590,9 @@ export const Boss2D = React.memo(() => {
     scheduleNextRoar();
 
     return () => {
-      if (roarTimer) clearTimeout(roarTimer);
-      if (settleTimer) clearTimeout(settleTimer);
+      isDisposed = true;
+      cancelRoarTimer?.();
+      cancelSettleTimer?.();
     };
   }, [isBossAlive, updateFacingSide, shiftVerticalPatrolTier]);
 
@@ -580,16 +600,19 @@ export const Boss2D = React.memo(() => {
   useEffect(() => {
     if (!isBossAlive) return;
 
-    let patrolTimer: ReturnType<typeof setTimeout> | undefined;
+    let cancelPatrolTimer: CancelTimer | null = null;
+    let isDisposed = false;
 
     const scheduleNextPatrol = () => {
+      if (isDisposed) return;
       const span =
         BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_MAX_INTERVAL_MS -
         BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_MIN_INTERVAL_MS;
       const delay =
         BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_MIN_INTERVAL_MS + Math.round(Math.random() * span);
 
-      patrolTimer = setTimeout(() => {
+      cancelPatrolTimer = workerSetTimeout(() => {
+        if (isDisposed) return;
         shiftVerticalPatrolTier();
         scheduleNextPatrol();
       }, delay);
@@ -598,7 +621,8 @@ export const Boss2D = React.memo(() => {
     scheduleNextPatrol();
 
     return () => {
-      if (patrolTimer) clearTimeout(patrolTimer);
+      isDisposed = true;
+      cancelPatrolTimer?.();
     };
   }, [isBossAlive, shiftVerticalPatrolTier]);
 
@@ -606,13 +630,16 @@ export const Boss2D = React.memo(() => {
   useEffect(() => {
     if (!isBossAlive) return;
 
-    let flipTimer: ReturnType<typeof setTimeout> | undefined;
+    let cancelFlipTimer: CancelTimer | null = null;
+    let isDisposed = false;
 
     const scheduleNextFlip = () => {
+      if (isDisposed) return;
       const span = BOSS_IDLE_CONSTANTS.FLIP_MAX_INTERVAL_MS - BOSS_IDLE_CONSTANTS.FLIP_MIN_INTERVAL_MS;
       const delay = BOSS_IDLE_CONSTANTS.FLIP_MIN_INTERVAL_MS + Math.round(Math.random() * span);
 
-      flipTimer = setTimeout(() => {
+      cancelFlipTimer = workerSetTimeout(() => {
+        if (isDisposed) return;
         updateFacingSide('TOGGLE');
         scheduleNextFlip();
       }, delay);
@@ -621,15 +648,16 @@ export const Boss2D = React.memo(() => {
     scheduleNextFlip();
 
     return () => {
-      if (flipTimer) clearTimeout(flipTimer);
+      isDisposed = true;
+      cancelFlipTimer?.();
     };
   }, [isBossAlive, updateFacingSide]);
 
   // Clean up timers on unmount
   useEffect(() => {
     return () => {
-      if (pokeTimerRef.current) clearTimeout(pokeTimerRef.current);
-      if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
+      cancelPokeTimerRef.current?.();
+      cancelSpeechTimerRef.current?.();
     };
   }, []);
 
@@ -654,13 +682,15 @@ export const Boss2D = React.memo(() => {
     );
     setActiveSpeech(nextPokeSpeech);
 
-    if (pokeTimerRef.current) clearTimeout(pokeTimerRef.current);
-    pokeTimerRef.current = setTimeout(() => {
+    cancelPokeTimerRef.current?.();
+    cancelPokeTimerRef.current = workerSetTimeout(() => {
+      cancelPokeTimerRef.current = null;
       setIsPoked(false);
     }, BOSS_IDLE_CONSTANTS.POKE_DURATION_MS);
 
-    if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
-    speechTimerRef.current = setTimeout(() => {
+    cancelSpeechTimerRef.current?.();
+    cancelSpeechTimerRef.current = workerSetTimeout(() => {
+      cancelSpeechTimerRef.current = null;
       setActiveSpeech(null);
     }, BOSS_IDLE_CONSTANTS.SPEECH_BUBBLE_DURATION_MS);
   }, [isDefeated, themeConfig.audioPitchRate, themeConfig.colors.primaryHex, gameTheme, spawnParticleBurst]);
@@ -679,8 +709,8 @@ export const Boss2D = React.memo(() => {
     themeConfig,
     bossAttackTargetTeam,
     isUltimateAttack,
-    lastHitTeam,
-    lastHitDamageType,
+    heavyHitMeta.team,
+    heavyHitMeta.damageType,
     hitNonce,
     activeBossSkillBanner?.skillId,
     activeBossSkillBanner?.vfxType
@@ -693,11 +723,11 @@ export const Boss2D = React.memo(() => {
   let tiltXDeg = 0;
   if (isHitActive && !isDefeated) {
     const isHeavyHit =
-      lastHitDamageType === DAMAGE_TYPE.CRIT || lastHitDamageType === DAMAGE_TYPE.ULTIMATE;
+      heavyHitMeta.damageType === DAMAGE_TYPE.CRIT || heavyHitMeta.damageType === DAMAGE_TYPE.ULTIMATE;
     const hitStrength = isHeavyHit ? 5 : 0;
-    if (lastHitTeam === TEAM_KEY.BLG) {
+    if (heavyHitMeta.team === TEAM_KEY.BLG) {
       tiltYDeg = hitStrength;
-    } else if (lastHitTeam === TEAM_KEY.GENG) {
+    } else if (heavyHitMeta.team === TEAM_KEY.GENG) {
       tiltYDeg = -hitStrength;
     }
     tiltXDeg = isHeavyHit ? -3 : 0;
@@ -714,7 +744,6 @@ export const Boss2D = React.memo(() => {
   const shadowHeightFactor = Math.max(0, Math.min(1, (-verticalOffsetPx) / 160));
   const dynamicShadowScale = (1 - shadowHeightFactor * 0.35).toFixed(3);
   const dynamicShadowOpacity = isDefeated ? 0 : Number((0.68 - shadowHeightFactor * 0.35).toFixed(3));
-  const dynamicShadowBlurPx = (6 + shadowHeightFactor * 12).toFixed(1);
 
   const bossNotificationOverlay = isSilverScrapesActive ? null : (
     <div
@@ -781,10 +810,9 @@ export const Boss2D = React.memo(() => {
           style={{
             transform: `translate3d(0, 0, 0) scale(${dynamicShadowScale})`,
             opacity: dynamicShadowOpacity,
-            filter: `blur(${dynamicShadowBlurPx}px)`,
-            transition: `transform ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms cubic-bezier(0.37, 0, 0.63, 1), opacity ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms ease, filter ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms ease`,
+            transition: `transform ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms cubic-bezier(0.37, 0, 0.63, 1), opacity ${BOSS_IDLE_CONSTANTS.VERTICAL_PATROL_TRANSITION_MS}ms ease`,
           }}
-          className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 rounded-[50%] pointer-events-none ${groundShadowAnimationClass}`}
+          className={`absolute top-[82%] left-1/2 -translate-x-1/2 w-44 sm:w-60 h-7 sm:h-10 bg-black/60 blur-[8px] rounded-[50%] pointer-events-none ${groundShadowAnimationClass}`}
         />
 
         {/* 8. Vertical Altitude Patrol + Cave Entrance Swoop + Uninterrupted Hover/Coil Wrapper */}
@@ -901,8 +929,7 @@ export const Boss2D = React.memo(() => {
 
                     {/* Phase 2 & 3 Glowing Armor Cracks flipped in sync with Boss body */}
                     <BossArmorCracks
-                      bossHp={bossHp}
-                      bossMaxHp={bossMaxHp}
+                      phase={bossArmorPhase}
                       crackColor={themeConfig.crackStrokeHex}
                       isDefeated={isDefeated}
                     />
@@ -910,11 +937,7 @@ export const Boss2D = React.memo(() => {
                 </div>
 
                 {/* 8b. Upright Energy Shield HUD Card & Clickable Weak Point Reticle */}
-                <BossPhaseVisuals
-                  bossHp={bossHp}
-                  bossMaxHp={bossMaxHp}
-                  isDefeated={isDefeated}
-                />
+                <BossPhaseVisuals isDefeated={isDefeated} />
               </div>
 
               {/* Crisp Impact Flares aligned directly over Boss */}

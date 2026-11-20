@@ -34,6 +34,7 @@ class VoiceManagerService {
   private isPlaying = false;
   private readonly lastPlayedIndex = new Map<string, number>();
   private onSpeakingChangeCb: ((isSpeaking: boolean) => void) | null = null;
+  private readonly speakingListeners = new Set<(isSpeaking: boolean) => void>();
   private safetyTimer: ReturnType<typeof setTimeout> | null = null;
   private isSpeakingState = false;
 
@@ -50,6 +51,13 @@ class VoiceManagerService {
         this.onSpeakingChangeCb(isSpeaking);
       } catch (err) {
         console.error(`${VOICE_MANAGER_CONSTANTS.LOG_PREFIX} Error in onSpeakingChange:`, err);
+      }
+    }
+    for (const listener of this.speakingListeners) {
+      try {
+        listener(isSpeaking);
+      } catch (err) {
+        console.error(`${VOICE_MANAGER_CONSTANTS.LOG_PREFIX} Error in speaking listener:`, err);
       }
     }
   }
@@ -73,8 +81,11 @@ class VoiceManagerService {
   /**
    * Register callback to handle BGM ducking (volume reduction while voices play).
    */
-  public onSpeakingChange(cb: (isSpeaking: boolean) => void): void {
-    this.onSpeakingChangeCb = cb;
+  public onSpeakingChange(cb: (isSpeaking: boolean) => void): () => void {
+    this.speakingListeners.add(cb);
+    return () => {
+      this.speakingListeners.delete(cb);
+    };
   }
 
   /**
@@ -194,6 +205,7 @@ class VoiceManagerService {
     this.notifySpeaking(true);
 
     const audio = new Audio(url);
+    audio.volume = 1.0;
     this.currentAudio = audio;
 
     let hasCleanedUp = false;
@@ -290,3 +302,4 @@ class VoiceManagerService {
 }
 
 export const VoiceManager = new VoiceManagerService();
+export const voiceManager = VoiceManager;

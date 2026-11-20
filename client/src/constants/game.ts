@@ -196,8 +196,12 @@ export const GAME_CONSTANTS = {
     DEFAULT_VOLUME: 1.0,
   },
   RENDER: {
+    /** Forced pixel ratio = 1 across WebGL and 2D overlays regardless of Windows DPI scaling. */
+    FIXED_DPR: 1,
     DPR_MIN: 1,
-    DPR_MAX: 1.25,
+    DPR_MAX: 1,
+    /** Locked frame-rate cap (foreground & background) to halve GPU/compositor load during live streaming. */
+    TARGET_FPS: 30,
     CAMERA_FOV: 42,
     CAMERA_POS_Z: 10.8,
     CAMERA_POS_Y: 6.8,
@@ -2169,7 +2173,18 @@ export const ROUND_INTRO_CONSTANTS = {
 } as const;
 
 export const BACKGROUND_PERF_CONSTANTS = {
-  COMBAT_TICK_INTERVAL_MS: 1000,
+  /** Dedicated Web Worker heartbeat (~30Hz), exempt from Chromium hidden-tab timer clamping. */
+  WORKER_TICK_MS: 33,
+  /** Locked target rendering interval (~30 FPS) for WebGL & 2D canvases across foreground and background/occluded states. */
+  BACKGROUND_FRAME_INTERVAL_MS: 33,
+  /** Tolerance (ms) to avoid skipping a 33ms render step due to minor timer/VSync jitter. */
+  FRAME_GAP_TOLERANCE_MS: 4,
+  /** If native rAF has not fired for this long while page reports visible (e.g. occluded window), Worker takes over. */
+  RAF_STALL_THRESHOLD_MS: 120,
+  /** Clamp max frame delta (seconds) so tab-resume / GC stalls never teleport animations. */
+  MAX_FRAME_DELTA_S: 0.1,
+  /** Persistent Web Lock name signaling Chromium Energy Saver / Memory Saver not to freeze this broadcast tab. */
+  KEEPALIVE_LOCK_NAME: 'lol-live-broadcast-keepalive',
 } as const;
 
 /** Round clock phases: regular time, then overtime (boss weakens), then the round is decided on damage. */

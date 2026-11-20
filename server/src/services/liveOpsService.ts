@@ -72,6 +72,12 @@ export function createLiveOpsService(
     const patch = pickCasterConfigPatch(rawPayload);
     if (Object.keys(patch).length === 0) return;
     ctx.state.casterConfig = { ...ctx.state.casterConfig, ...patch };
+    if (patch.voiceMale) {
+      process.env.VIET_TTS_VOICE_MALE = patch.voiceMale;
+    }
+    if (patch.voiceFemale) {
+      process.env.VIET_TTS_VOICE_FEMALE = patch.voiceFemale;
+    }
     persistConfig();
     ctx.io.emit(LIVE_OPS_EVENT.GAME_CASTER_CONFIG, ctx.state.casterConfig);
     broadcastAdminState();

@@ -56,7 +56,7 @@ const DuelEventTicker: React.FC<DuelEventTickerProps> = React.memo(({ lastEvent,
   return (
     <div
       style={eventColor ? { borderColor: `${eventColor}${EVENT_BORDER_ALPHA}` } : undefined}
-      className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-xl backdrop-blur-md"
+      className="flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900/95 border border-slate-700/80 shadow-xl"
     >
       <Flame className="w-4 h-4 mt-0.5 text-amber-400 shrink-0 animate-pulse" />
       <p className="flex-1 min-w-0 text-xs font-semibold leading-snug text-slate-200 text-pretty break-words">

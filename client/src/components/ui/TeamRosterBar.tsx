@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../store/gameStore';
 import { RosterPlayer } from '../../constants/roster';
@@ -40,33 +40,53 @@ const getFuryBarFillClass = (isFullFury: boolean, fury: number): string => {
   return 'bg-gradient-to-r from-cyan-500/80 to-amber-400/80';
 };
 
-export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps) => {
+export const TeamRosterBar = React.memo(({ side, topOffset, isInFlow }: TeamRosterBarProps) => {
   const { t } = useTranslation();
   const team = side === 'left' ? TEAM_KEY.BLG : TEAM_KEY.GENG;
   const teamProfile = useGameStore((state) => state.activeTeams[team]);
   const roster = teamProfile.roster;
   const teamTheme = getTeamTheme(teamProfile.colorTheme);
-  const minions = useGameStore((state) => state.minions);
+  // Primitive string key avoids re-rendering on fury-only ticks of the minions array
+  const summonCountsKey = useGameStore((state) => {
+    const teamRoster = state.activeTeams[team]?.roster ?? [];
+    if (teamRoster.length === 0 || state.minions.length === 0) return '';
+    return teamRoster
+      .map((player) => {
+        const playerLower = player.name.toLowerCase();
+        const champLower = player.signatureChampion.toLowerCase();
+        let count = 0;
+        for (let i = 0; i < state.minions.length; i += 1) {
+          const m = state.minions[i];
+          if (m.team !== team) continue;
+          const mChampLower = m.championName.toLowerCase();
+          if (mChampLower.includes(playerLower) || mChampLower === champLower) count += 1;
+        }
+        return count;
+      })
+      .join(',');
+  });
+  const summonCounts = useMemo(
+    () => (summonCountsKey ? summonCountsKey.split(',').map(Number) : []),
+    [summonCountsKey]
+  );
   const rosterAttackTimestamps = useGameStore((state) => state.rosterAttackTimestamps);
   const rosterPlayerFury = useGameStore((state) => state.rosterPlayerFury);
   const triggerAutoProAttack = useGameStore((state) => state.triggerAutoProAttack);
   const bossStatus = useGameStore((state) => state.bossStatus);
-  const bossHp = useGameStore((state) => state.bossHp);
+  const isBossHpDepleted = useGameStore((state) => state.bossHp <= 0);
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const roundWinner = useGameStore((state) => state.roundWinner);
   const isBattlePaused =
-    bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0 || isRoundIntermission || roundWinner !== null;
+    bossStatus === BOSS_STATUS.DEFEATED || isBossHpDepleted || isRoundIntermission || roundWinner !== null;
   const isLeft = side === 'left';
 
-  const getSummonCount = (player: RosterPlayer) => {
-    const playerNameLower = player.name.toLowerCase();
-    const champLower = player.signatureChampion.toLowerCase();
-    return minions.filter((m) => {
-      if (m.team !== team) return false;
-      const mChampLower = m.championName.toLowerCase();
-      return mChampLower.includes(playerNameLower) || mChampLower === champLower;
-    }).length;
-  };
+  const handlePlayerAttack = useCallback(
+    (playerIndex: number) => {
+      if (isBattlePaused) return;
+      triggerAutoProAttack(team, playerIndex);
+    },
+    [isBattlePaused, team, triggerAutoProAttack]
+  );
 
   const isFlowLayout = Boolean(isInFlow || topOffset === undefined);
 
@@ -85,7 +105,7 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
     >
       {/* Sleek Ultra-Compact Pro Player Cards */}
       {roster.map((player, playerIndex) => {
-        const count = getSummonCount(player);
+        const count = summonCounts[playerIndex] ?? 0;
         const isAttacking = Boolean(rosterAttackTimestamps[player.id]);
         const fury = rosterPlayerFury[player.id] ?? 0;
         const isFullFury = fury >= GAME_CONSTANTS.PRO_FURY.MAX_FURY;
@@ -95,6 +115,7 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
           <RosterItem
             key={player.id}
             player={player}
+            playerIndex={playerIndex}
             count={count}
             fury={fury}
             isFullFury={isFullFury}
@@ -105,19 +126,19 @@ export const TeamRosterBar = ({ side, topOffset, isInFlow }: TeamRosterBarProps)
             isBattlePaused={isBattlePaused}
             furyReadyLabel={t('HUD.furyReady', 'NỘ')}
             clickToAttackLabel={t('HUD.clickToAttack', 'Nhấn để xuất chiêu!')}
-            onAttack={() => {
-              if (isBattlePaused) return;
-              triggerAutoProAttack(team, playerIndex);
-            }}
+            onAttack={handlePlayerAttack}
           />
         );
       })}
     </aside>
   );
-};
+});
+
+TeamRosterBar.displayName = 'TeamRosterBar';
 
 interface RosterItemProps {
   player: RosterPlayer;
+  playerIndex: number;
   count: number;
   fury: number;
   isFullFury: boolean;
@@ -128,7 +149,7 @@ interface RosterItemProps {
   isBattlePaused: boolean;
   furyReadyLabel: string;
   clickToAttackLabel: string;
-  onAttack: () => void;
+  onAttack: (playerIndex: number) => void;
 }
 
 const getRosterItemCardClass = (
@@ -149,8 +170,9 @@ const getRosterItemCardClass = (
   return teamTheme.rosterCardActiveClass;
 };
 
-const RosterItem = ({
+const RosterItem = React.memo(({
   player,
+  playerIndex,
   count,
   fury,
   isFullFury,
@@ -169,17 +191,22 @@ const RosterItem = ({
     setImageError(false);
   }, [player.avatarUrl]);
 
+  const handleActivate = () => {
+    if (isBattlePaused) return;
+    onAttack(playerIndex);
+  };
+
   return (
     <div
       id={`roster-card-${player.id}`}
-      onClick={isBattlePaused ? undefined : onAttack}
+      onClick={isBattlePaused ? undefined : handleActivate}
       role="button"
       tabIndex={isBattlePaused ? -1 : 0}
       onKeyDown={(e) => {
         if (isBattlePaused) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onAttack();
+          handleActivate();
         }
       }}
       title={`${player.name} (${player.role}) • Tướng tủ: ${player.signatureChampion} • ${clickToAttackLabel}`}
@@ -260,4 +287,6 @@ const RosterItem = ({
       </div>
     </div>
   );
-};
+});
+
+RosterItem.displayName = 'RosterItem';

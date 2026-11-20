@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand';
 import { resetRoundDamage } from '../roundDamageTracker';
 import { resetMatchLeaderboard } from '../sessionLeaderboardStore';
 import { resetComebackState } from '../comebackRules';
+import { resetHypeForRound } from '../combatHypeStore';
 import {
   ROUND_HOLD_REASON,
   RoundHoldReason,
@@ -77,6 +78,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     // A server-sent target wins: the series sync may already have moved currentRound (no double +1)
     const isValidTarget = typeof targetRound === 'number' && Number.isInteger(targetRound) && targetRound >= 1;
     const nextRound = Math.min(maxRounds, isValidTarget ? targetRound : state.currentRound + 1);
+    resetHypeForRound(nextRound);
     const nextTheme = getBossThemeForRound(nextRound, state.seriesFormat);
     const difficulty = BOSS_DIFFICULTY_SCALE[nextTheme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];
     const nextMaxHp = Math.ceil(GAME_CONSTANTS.BOSS.MAX_HP * difficulty.hpMultiplier);
@@ -158,6 +160,7 @@ export const createSeriesSlice: StateCreator<GameState, [], [], SeriesSlice> = (
     resetRoundDamage();
     resetMatchLeaderboard();
     resetComebackState();
+    resetHypeForRound(1);
     const state = get();
     const round1Theme = getBossThemeForRound(1, state.seriesFormat);
     const difficulty = BOSS_DIFFICULTY_SCALE[round1Theme] || BOSS_DIFFICULTY_SCALE[GAME_THEME.BARON];

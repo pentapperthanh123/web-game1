@@ -27,6 +27,7 @@ import { CasterSubtitleTurn, useCasterStore } from '../../store/casterStore';
 import { isCurrentRoundIntroActive } from '../../store/roundIntroStore';
 import { composeCasterLine, getCasterLang, joinSpokenNames } from './casterComposer';
 import { casterSpeechEngine, SPEECH_OUTCOME, SpeechOutcome } from './speechEngine';
+import { CancelTimer, workerSetTimeout } from '../workerScheduler';
 
 export interface CasterLine {
   signal: CasterSignal;
@@ -84,7 +85,10 @@ const BOSS_HP_RATIO_CLIMAX = 0.2;
 const BOSS_HP_RATIO_HYPE = 0.5;
 const FIRST_TURN_INDEX = 0;
 
-const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+const wait = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    workerSetTimeout(resolve, ms);
+  });
 
 const estimateSubtitleMs = (text: string): number =>
   Math.max(CASTER_SPEECH.SUBTITLE_MIN_MS, text.length * CASTER_SPEECH.SUBTITLE_MS_PER_CHAR);
@@ -166,8 +170,8 @@ class PresentationQueue {
   private lastP4At = 0;
   private lastSummonTeam: TeamType | null = null;
   private lastSpeechEndAt = Date.now();
-  private mainPumpTimer: ReturnType<typeof setTimeout> | null = null;
-  private donatePumpTimer: ReturnType<typeof setTimeout> | null = null;
+  private cancelMainPumpTimer: CancelTimer | null = null;
+  private cancelDonatePumpTimer: CancelTimer | null = null;
 
   public enqueue(line: CasterLine): void {
     this.enqueueLine(line, false);
@@ -320,9 +324,9 @@ class PresentationQueue {
   // ── Donate Voice Channel (Parallel) ───────────────────────────────────────────
 
   private scheduleDonatePump(delayMs: number): void {
-    if (this.donatePumpTimer) clearTimeout(this.donatePumpTimer);
-    this.donatePumpTimer = setTimeout(() => {
-      this.donatePumpTimer = null;
+    if (this.cancelDonatePumpTimer) this.cancelDonatePumpTimer();
+    this.cancelDonatePumpTimer = workerSetTimeout(() => {
+      this.cancelDonatePumpTimer = null;
       this.pumpDonate();
     }, delayMs);
   }
@@ -415,9 +419,9 @@ class PresentationQueue {
   // ── Main Commentary Channel ───────────────────────────────────────────────────
 
   private scheduleMainPump(delayMs: number): void {
-    if (this.mainPumpTimer) clearTimeout(this.mainPumpTimer);
-    this.mainPumpTimer = setTimeout(() => {
-      this.mainPumpTimer = null;
+    if (this.cancelMainPumpTimer) this.cancelMainPumpTimer();
+    this.cancelMainPumpTimer = workerSetTimeout(() => {
+      this.cancelMainPumpTimer = null;
       this.pumpMain();
     }, delayMs);
   }

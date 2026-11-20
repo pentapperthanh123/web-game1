@@ -16,6 +16,7 @@ import {
 import { deployQueuedMinions, holdQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
 import { deferUntilRoundStart, onRoundStart, runWhenRoundLive } from '../preRoundBuffer';
 import { isCurrentRoundIntroActive } from '../roundIntroStore';
+import { recordHypeSummon } from '../combatHypeStore';
 import i18n from '../../i18n';
 import { isMinionLiving, rebuildMinionCollections } from '../minionMapHelpers';
 import {
@@ -41,6 +42,11 @@ import { audioService } from '../../services/audioService';
 import { useGiftVfxStore } from '../giftVfxStore';
 import { playSound } from '../../services/soundManager';
 import { createInitialTeamScores, isBattleHalted } from '../storeHelpers';
+import {
+  CancelTimer,
+  isRenderThrottled,
+  workerSetTimeout,
+} from '../../services/workerScheduler';
 
 export type SummonSlice = Pick<
   GameState,
@@ -78,26 +84,24 @@ const playSummonEntranceSfx = (now: number, deployedPortals: readonly SummonPort
   playSound(hasSignatureEntrance ? SFX_EVENT.SIGNATURE_SUMMON : SFX_EVENT.CHAMPION_SUMMON);
 };
 let lastBatchFlushAt = 0;
-let turnTimerId: ReturnType<typeof setTimeout> | null = null;
+let cancelTurnTimer: CancelTimer | null = null;
 
 const scheduleTurnAdvance = (get: () => GameState, delayMs: number): void => {
-  if (turnTimerId !== null) return;
-  turnTimerId = setTimeout(() => {
-    turnTimerId = null;
+  if (cancelTurnTimer !== null) return;
+  cancelTurnTimer = workerSetTimeout(() => {
+    cancelTurnTimer = null;
     get().advanceSummonTurnQueue();
   }, Math.max(GAME_CONSTANTS.SUMMON_RULES.MIN_TURN_ADVANCE_DELAY_MS, delayMs));
 };
 
-const isPageHidden = (): boolean => typeof document !== 'undefined' && document.hidden;
-
 const scheduleBatchFlush = (callback: () => void, delayMs: number): void => {
-  // If the browser tab is in the background or unfocused, requestAnimationFrame freezes completely.
-  // Fall back immediately to setTimeout so summon processing never hangs waiting for focus.
-  if (!isPageHidden() && delayMs <= 0 && typeof requestAnimationFrame === 'function') {
+  // If the browser tab is hidden or occluded, requestAnimationFrame freezes completely.
+  // Fall back immediately to workerSetTimeout so summon processing never hangs.
+  if (!isRenderThrottled() && delayMs <= 0 && typeof requestAnimationFrame === 'function') {
     requestAnimationFrame(() => callback());
     return;
   }
-  setTimeout(callback, Math.max(0, delayMs));
+  workerSetTimeout(callback, Math.max(0, delayMs));
 };
 
 /** Creates the champion summon, TikTok gift, follow, and share reward slice. */
@@ -168,6 +172,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
 
     for (let i = 0; i < effectiveBatch.length; i += 1) {
       const req = effectiveBatch[i];
+      recordHypeSummon(req.summonerName, req.championName, req.team, state.currentRound, now);
       const normalizedUser = req.summonerName.trim().toLowerCase();
 
       if (!req.isGiftBypass) {

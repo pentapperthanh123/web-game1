@@ -41,7 +41,7 @@ export const SessionTakeoverBanner = React.memo(() => {
         style={{
           boxShadow: `0 0 22px rgba(251, 191, 36, 0.45), inset 0 0 14px ${teamTheme.primaryHex}35`,
         }}
-        className="relative flex-1 min-w-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 border-amber-300/85 bg-gradient-to-r from-amber-950/96 via-slate-950/96 to-amber-950/96 backdrop-blur-xl overflow-hidden"
+        className="relative flex-1 min-w-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 border-amber-300/85 bg-gradient-to-r from-amber-950/96 via-slate-950/96 to-amber-950/96 overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/15 to-transparent animate-gift-shimmer pointer-events-none" />
 

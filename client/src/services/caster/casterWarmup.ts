@@ -2,6 +2,7 @@ import {
   CASTER_INTENSITY,
   CASTER_SIGNAL,
   CASTER_SPEAKER,
+  CASTER_SPEECH,
   CASTER_WARM,
   CasterSignal,
   CasterSpeaker,
@@ -135,6 +136,7 @@ const prefetchSkillClipsToClient = (
  * once per matchup per session. Lines with viewer names or live numbers are cached when first said.
  */
 export const warmPredictableLines = (guideChampions: readonly string[]): void => {
+  if (CASTER_SPEECH.STATIC_ONLY_LIVE) return;
   const state = useGameStore.getState();
   const lang = getCasterLang();
   const [teamA, teamB] = getTeamTags(state);

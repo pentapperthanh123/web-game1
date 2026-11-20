@@ -1,0 +1,470 @@
+[
+  {
+    "id": "match_start_01",
+    "category": "match_start",
+    "tone": "hype",
+    "text": "Khai chiến! Hai đội toàn lực xông lên!",
+    "file": "/audio/casters/match_start_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "match_start_02",
+    "category": "match_start",
+    "tone": "hype",
+    "text": "Tiếng còi khai trận vang lên! Đấu trường bùng nổ!",
+    "file": "/audio/casters/match_start_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "match_start_03",
+    "category": "match_start",
+    "tone": "normal",
+    "text": "Ván đấu bắt đầu! Gõ tên tướng tiếp sức ngay nào!",
+    "file": "/audio/casters/match_start_03.mp3",
+    "volume": 0.85,
+    "gender": "male"
+  },
+  {
+    "id": "match_end_01",
+    "category": "match_end",
+    "tone": "hype",
+    "text": "Tiếng còi mãn cuộc! Chiến thắng cực kỳ thuyết phục!",
+    "file": "/audio/casters/match_end_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "match_end_02",
+    "category": "match_end",
+    "tone": "hype",
+    "text": "Hạ màn ván đấu! Khúc khải hoàn rực rỡ đã vang lên!",
+    "file": "/audio/casters/match_end_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "match_end_03",
+    "category": "match_end",
+    "tone": "normal",
+    "text": "Ván đấu khép lại! Cảm ơn anh em phòng lai đã cống hiến!",
+    "file": "/audio/casters/match_end_03.mp3",
+    "volume": 0.85,
+    "gender": "male"
+  },
+  {
+    "id": "lead_change_01",
+    "category": "lead_change",
+    "tone": "hype",
+    "text": "Đổi ngôi dẫn đầu rồi! Pha lật kèo quá gắt!",
+    "file": "/audio/casters/lead_change_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "lead_change_02",
+    "category": "lead_change",
+    "tone": "hype",
+    "text": "Thế trận đảo chiều chóng mặt! Vượt mặt ngoạn mục!",
+    "file": "/audio/casters/lead_change_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "lead_change_03",
+    "category": "lead_change",
+    "tone": "hype",
+    "text": "Cú bứt tốc không tưởng! Ngôi đầu vừa đổi chủ!",
+    "file": "/audio/casters/lead_change_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "close_race_01",
+    "category": "close_race",
+    "tone": "hype",
+    "text": "Giằng co nghẹt thở! Hai đội bám đuổi từng điểm một!",
+    "file": "/audio/casters/close_race_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "close_race_02",
+    "category": "close_race",
+    "tone": "normal",
+    "text": "Tỷ số sát nút quá! Chỉ một đòn chí mạng là định đoạt!",
+    "file": "/audio/casters/close_race_02.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "close_race_03",
+    "category": "close_race",
+    "tone": "hype",
+    "text": "Một chín một mười! Ai sẽ bứt phá trước đây?",
+    "file": "/audio/casters/close_race_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_hp_50_01",
+    "category": "boss_hp_50",
+    "tone": "normal",
+    "text": "Máu đã tụt xuống một nửa! Giai đoạn quyết định bắt đầu!",
+    "file": "/audio/casters/boss_hp_50_01.mp3",
+    "volume": 0.85,
+    "gender": "male"
+  },
+  {
+    "id": "boss_hp_50_02",
+    "category": "boss_hp_50",
+    "tone": "hype",
+    "text": "Mất nửa cây máu rồi! Tốc độ dồn sát thương quá khủng!",
+    "file": "/audio/casters/boss_hp_50_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_low_hp_01",
+    "category": "boss_low_hp",
+    "tone": "hype",
+    "text": "Máu còn cực ít! Chuẩn bị cho đòn kết liễu định mệnh!",
+    "file": "/audio/casters/boss_low_hp_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_low_hp_02",
+    "category": "boss_low_hp",
+    "tone": "hype",
+    "text": "Báo động đỏ! Ai sẽ giành đòn kết liễu cuối cùng đây?",
+    "file": "/audio/casters/boss_low_hp_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_low_hp_03",
+    "category": "boss_low_hp",
+    "tone": "hype",
+    "text": "Sắp gục ngã rồi! Dồn tổng lực sát thương ngay lúc này!",
+    "file": "/audio/casters/boss_low_hp_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_killed_01",
+    "category": "boss_killed",
+    "tone": "hype",
+    "text": "Hạ gục thành công! Cú kết liễu quá mãn nhãn!",
+    "file": "/audio/casters/boss_killed_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_killed_02",
+    "category": "boss_killed",
+    "tone": "hype",
+    "text": "Gục ngã hoàn toàn! Đòn kết liễu đỉnh cao!",
+    "file": "/audio/casters/boss_killed_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_killed_03",
+    "category": "boss_killed",
+    "tone": "hype",
+    "text": "Bùng nổ đấu trường! Mục tiêu lớn đã bị hạ gục!",
+    "file": "/audio/casters/boss_killed_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_enrage_01",
+    "category": "boss_enrage",
+    "tone": "hype",
+    "text": "Nổi thịnh nộ rồi! Sát thương diện rộng cực kỳ nguy hiểm!",
+    "file": "/audio/casters/boss_enrage_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_enrage_02",
+    "category": "boss_enrage",
+    "tone": "hype",
+    "text": "Bật chế độ cuồng nộ! Cả đấu trường rung chuyển dữ dội!",
+    "file": "/audio/casters/boss_enrage_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_enrage_03",
+    "category": "boss_enrage",
+    "tone": "hype",
+    "text": "Hóa điên rồi anh em ơi! Tập trung dồn sát thương ngay!",
+    "file": "/audio/casters/boss_enrage_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "shield_up_01",
+    "category": "shield_up",
+    "tone": "normal",
+    "text": "Khiên hộ mệnh kích hoạt! Tập trung phá giáp ngay!",
+    "file": "/audio/casters/shield_up_01.mp3",
+    "volume": 0.85,
+    "gender": "male"
+  },
+  {
+    "id": "shield_up_02",
+    "category": "shield_up",
+    "tone": "normal",
+    "text": "Lớp giáp phòng thủ xuất hiện! Bấm tim phá khiên nhanh nào!",
+    "file": "/audio/casters/shield_up_02.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "shield_broken_01",
+    "category": "shield_broken",
+    "tone": "hype",
+    "text": "Vỡ khiên rồi! Cơ hội vàng dồn sát thương là đây!",
+    "file": "/audio/casters/shield_broken_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "shield_broken_02",
+    "category": "shield_broken",
+    "tone": "hype",
+    "text": "Bẻ giáp thành công! Xả toàn bộ chiêu thức ngay đi!",
+    "file": "/audio/casters/shield_broken_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "shield_broken_03",
+    "category": "shield_broken",
+    "tone": "hype",
+    "text": "Lớp phòng thủ tan tành! Quá tuyệt vời anh em ơi!",
+    "file": "/audio/casters/shield_broken_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_skill_01",
+    "category": "boss_skill",
+    "tone": "hype",
+    "text": "Tung tuyệt kỹ hủy diệt! Đòn quét sàn quá gắt!",
+    "file": "/audio/casters/boss_skill_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_skill_02",
+    "category": "boss_skill",
+    "tone": "hype",
+    "text": "Kỹ năng tối thượng giáng xuống! Gọi tướng chi viện gấp!",
+    "file": "/audio/casters/boss_skill_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_skill_03",
+    "category": "boss_skill",
+    "tone": "hype",
+    "text": "Một chiêu quét sạch chiến trường! Sát thương quá khủng khiếp!",
+    "file": "/audio/casters/boss_skill_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "silver_scrapes_start_01",
+    "category": "silver_scrapes_start",
+    "tone": "hype",
+    "text": "Đại chiến độc tôn mở màn! Trận quyết chiến sinh tử!",
+    "file": "/audio/casters/silver_scrapes_start_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "silver_scrapes_start_02",
+    "category": "silver_scrapes_start",
+    "tone": "hype",
+    "text": "Đấu trường tay đôi kích hoạt! Một mất một còn tại đây!",
+    "file": "/audio/casters/silver_scrapes_start_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "silver_scrapes_start_03",
+    "category": "silver_scrapes_start",
+    "tone": "hype",
+    "text": "Thời khắc phân định thắng bại! Toàn lực ủng hộ nào!",
+    "file": "/audio/casters/silver_scrapes_start_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "clutch_final_10s_01",
+    "category": "clutch_final_10s",
+    "tone": "hype",
+    "text": "Mười giây cuối cùng! Một pha bứt tốc là định đoạt tất cả!",
+    "file": "/audio/casters/clutch_final_10s_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "clutch_final_10s_02",
+    "category": "clutch_final_10s",
+    "tone": "hype",
+    "text": "Đếm ngược mười giây nghẹt thở! Xả hết nộ chiêu đi anh em!",
+    "file": "/audio/casters/clutch_final_10s_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "one_sided_final_10s_01",
+    "category": "one_sided_final_10s",
+    "tone": "normal",
+    "text": "Mười giây cuối! Chiến thắng gần như đã nằm gọn trong tay!",
+    "file": "/audio/casters/one_sided_final_10s_01.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "one_sided_final_10s_02",
+    "category": "one_sided_final_10s",
+    "tone": "calm",
+    "text": "Thời gian cạn dần, khoảng cách hiện tại đã quá an toàn!",
+    "file": "/audio/casters/one_sided_final_10s_02.mp3",
+    "volume": 0.75,
+    "gender": "female"
+  },
+  {
+    "id": "cta_hype_01",
+    "category": "cta_hype",
+    "tone": "hype",
+    "text": "Thả tim nhiệt lên anh em ơi! Nạp nộ tung tuyệt kỹ nào!",
+    "file": "/audio/casters/cta_hype_01.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "cta_hype_02",
+    "category": "cta_hype",
+    "tone": "normal",
+    "text": "Gõ tên tướng ngay để triệu hồi chiến binh vào sân!",
+    "file": "/audio/casters/cta_hype_02.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "cta_hype_03",
+    "category": "cta_hype",
+    "tone": "hype",
+    "text": "Cần thêm viện binh gấp! Bấm tim tiếp lửa ngay nào!",
+    "file": "/audio/casters/cta_hype_03.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "cta_trailing_01",
+    "category": "cta_trailing",
+    "tone": "calm",
+    "text": "Đội đang bị dẫn cần chi viện gấp, thả tim gỡ lại đi anh em!",
+    "file": "/audio/casters/cta_trailing_01.mp3",
+    "volume": 0.75,
+    "gender": "female"
+  },
+  {
+    "id": "cta_trailing_02",
+    "category": "cta_trailing",
+    "tone": "normal",
+    "text": "Cách biệt đang giãn ra rồi! Phe bám đuổi mau dồn lực lật kèo!",
+    "file": "/audio/casters/cta_trailing_02.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "cta_trailing_03",
+    "category": "cta_trailing",
+    "tone": "calm",
+    "text": "Đừng bỏ cuộc sớm, chỉ cần vài món quà là lật ngược thế cờ!",
+    "file": "/audio/casters/cta_trailing_03.mp3",
+    "volume": 0.75,
+    "gender": "female"
+  },
+  {
+    "id": "hype_short_01",
+    "category": "hype_short",
+    "tone": "hype",
+    "text": "Quá gắt luôn anh em ơi!",
+    "file": "/audio/casters/hype_short_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "hype_short_02",
+    "category": "hype_short",
+    "tone": "hype",
+    "text": "Đỉnh chóp! Quá uy tín!",
+    "file": "/audio/casters/hype_short_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "hype_short_03",
+    "category": "hype_short",
+    "tone": "hype",
+    "text": "Cháy máy rồi đấu trường ơi!",
+    "file": "/audio/casters/hype_short_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "hype_short_04",
+    "category": "hype_short",
+    "tone": "hype",
+    "text": "Pha xử lý không tưởng!",
+    "file": "/audio/casters/hype_short_04.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "donate_react_vip_01",
+    "category": "donate_react_vip",
+    "tone": "hype",
+    "text": "Cú nổ quà quá chất! Cảm ơn sếp lớn đã tiếp lửa!",
+    "file": "/audio/casters/donate_react_vip_01.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "donate_react_vip_02",
+    "category": "donate_react_vip",
+    "tone": "hype",
+    "text": "Đỉnh chóp luôn! Món quà thay đổi hoàn toàn cục diện!",
+    "file": "/audio/casters/donate_react_vip_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "donate_react_vip_03",
+    "category": "donate_react_vip",
+    "tone": "hype",
+    "text": "Món quà chấn động phòng lai! Quá uy tín sếp ơi!",
+    "file": "/audio/casters/donate_react_vip_03.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "donate_react_vip_04",
+    "category": "donate_react_vip",
+    "tone": "hype",
+    "text": "Quá đẳng cấp! Sát thương bùng nổ nhờ bàn tay của sếp!",
+    "file": "/audio/casters/donate_react_vip_04.mp3",
+    "volume": 1,
+    "gender": "female"
+  }
+]

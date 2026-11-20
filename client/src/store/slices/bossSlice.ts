@@ -85,6 +85,7 @@ import { isCurrentRoundIntroActive } from '../roundIntroStore';
 import { resetMatchLeaderboard } from '../sessionLeaderboardStore';
 import { deployQueuedMinions, resolveSummonTurnLimits } from '../summonQueueHelper';
 import { createEmptyMinionCollections, rebuildMinionCollections } from '../minionMapHelpers';
+import { workerSetTimeout } from '../../services/workerScheduler';
 
 export type BossSlice = Pick<
   GameState,
@@ -389,7 +390,7 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
         lifestealBudget,
         bossName,
       };
-      setTimeout(() => applyBossSkillImpact(set, get, pendingImpact), wave.delayMs);
+      workerSetTimeout(() => applyBossSkillImpact(set, get, pendingImpact), wave.delayMs);
     });
   },
 
@@ -628,10 +629,10 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       if (get().bossHp > 0) {
         // Phase 1: Boss death cry, then Phase 2: Cinematic explosion, then Phase 3: Victory sound
         playSound(SFX_EVENT.BOSS_DEATH_CRY);
-        setTimeout(() => {
+        workerSetTimeout(() => {
           playSound(SFX_EVENT.BOSS_DEFEAT);
         }, BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS);
-        setTimeout(() => {
+        workerSetTimeout(() => {
           playSound(SFX_EVENT.VICTORY);
         }, BOSS_DEFEAT_CONSTANTS.BURST_STAGGER_MS * 2);
         get().triggerScreenShake(BOSS_DEFEAT_CONSTANTS.SCREEN_SHAKE_INTENSITY);

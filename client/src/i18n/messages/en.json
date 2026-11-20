@@ -113,7 +113,15 @@
   },
   "IdleRally": {
     "doubleTapToHeart": "Double-tap screen to send heart reinforcement!",
-    "typeToSummon": "Chat champion name with {{teamA}} or {{teamB}} to deploy!"
+    "typeToSummon": "Type 1 for {{teamA}} · Type 2 for {{teamB}}",
+    "overtimeTitle": "⚡ FINAL 15S: SURGE DAMAGE!",
+    "overtimeSubtitle": "Rush damage now — Type 1 ({{teamA}}) or 2 ({{teamB}})!",
+    "bossLowTitle": "💥 BOSS UNDER 20% HP — FINISH IT!",
+    "bossLowSubtitle": "Type 1 ({{teamA}}) or 2 ({{teamB}}) to claim MVP!",
+    "emptyFieldTitle": "🚨 ARENA IS EMPTY!",
+    "emptyFieldSubtitle": "Type 1 ({{teamA}}) or 2 ({{teamB}}) to enter battle!",
+    "comebackTitle": "⚡ {{team}} COMEBACK BUFF (+15%) ACTIVE!",
+    "comebackSubtitle": "Type {{number}} to help {{team}} turn it around!"
   },
   "Controls": {
     "title": "TikTok Live Simulator Panel",
@@ -505,7 +513,8 @@
     "byKiller": "— {{killer}}",
     "wipeTitle": "ACE / WIPED OUT!",
     "wipeSubtitle": "{{count}} champions down — Arena wiped!",
-    "wipeEmptyField": "All champions defeated — Arena wiped!"
+    "wipeEmptyField": "All champions defeated — Arena wiped!",
+    "wipeCta": "ALL CHAMPIONS DOWN — Type 1 or 2 to reinforce now!"
   },
   "Audio": {
     "ambienceOn": "Turn on ambience",
@@ -542,6 +551,24 @@
     "overtimeLabel": "Overtime",
     "overtimeMultiplier": "x{{multiplier}} DMG"
   },
+  "Comeback": {
+    "buffTitle": "⚡ {{team}} COMEBACK MODE!",
+    "buffSubtitle": "+{{percent}}% damage • Type {{number}} to push damage!",
+    "successTitle": "🔥 {{team}} TURNED IT AROUND!",
+    "successSubtitle": "{{team}} has taken the lead!"
+  },
+  "MvpStrip": {
+    "beMvpPrompt": "Type {{number}} to become MVP!",
+    "mvpTitle": "{{team}} MVP: @{{name}} ({{damage}} DMG)"
+  },
+  "CombatHype": {
+    "firstBloodTitle": "⚔️ GAME {{round}} FIRST BLOOD!",
+    "firstBloodSubtitle": "@{{name}} summoned {{champ}} first for {{team}}!",
+    "streakTitle": "🔥 {{team}} SUMMON SURGE x{{count}}!",
+    "streakSubtitle": "{{team}} fans are storming the arena!",
+    "overtimeTitle": "⚡ FINAL 15S: SURGE DAMAGE!",
+    "overtimeSubtitle": "Rush damage now before time expires!"
+  },
   "RoundIntro": {
     "roundLabel": "Round {{round}} is about to start",
     "clashTitle": "ROUND {{round}} • CLASH!",
@@ -563,6 +590,10 @@
     "titleGifts": "Gifts",
     "buffNotice": "⭐ Boost Fury",
     "callToAction": "Type any champion you like to summon:",
+    "mainSummonPrefix": "Type",
+    "mainSummonSuffix": "to summon instantly",
+    "subSummonSyntax": "Or type [Champion] 1 / [Champion] 2 to pick a champion",
+    "orKeyword": "or",
     "quickRule": "Most DMG wins",
     "quickGift": "1 coin = {{damage}} DMG",
     "quickHeart": "Hearts charge Fury",
@@ -572,7 +603,7 @@
     "ruleTeamsTitle": "Damage Battle on Boss",
     "ruleTeams": "Both teams compete to deal damage to the Boss. When Boss falls or time expires, the team with highest damage wins the round.",
     "ruleSummonTitle": "Chat Summon Syntax",
-    "ruleSummon": "Viewers chat syntax: [Champion name] [Team tag] (e.g. '{{champ1}} {{team1}}' or '{{champ2}} {{team2}}') to summon their champion into the battle arena!",
+    "ruleSummon": "Type 1 ({{team1}}) or 2 ({{team2}}) to summon instantly. Or type [Champion] 1 / 2 (e.g. '{{champ1}} 1' or '{{champ2}} 2') to select a champion!",
     "ruleFuryTitle": "Tap Hearts to Charge Fury & Ultimate",
     "ruleFury": "Tap hearts on the livestream to charge team Fury. At 100% Fury, champions unleash their Ultimate abilities for explosive damage!",
     "ruleSeriesTitle": "{{format}} World Championship Series",

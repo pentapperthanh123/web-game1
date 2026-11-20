@@ -75,6 +75,16 @@ export function parseCommentCommand(
     }
   }
 
+  // If viewer entered 1 / 2 without a champion name, auto-summon a random champion
+  if (
+    team &&
+    !detectedChampion &&
+    /^\s*(?:team|doi|đội|chọn|chon|#)?\s*[12]\s*[\.!\?]?\s*$/i.test(comment.trim())
+  ) {
+    const randomChamp = getRandomChampion();
+    detectedChampion = randomChamp.name;
+  }
+
   return {
     team: team || fallbackTeam,
     champion: detectedChampion,

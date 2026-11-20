@@ -3,6 +3,7 @@ import i18n from '../i18n';
 import { ROUND_CLOCK_CONSTANTS, ROUND_CLOCK_PHASE, RoundClockPhase } from '../constants/game';
 import { SFX_EVENT } from '../constants/sfx';
 import { playSound } from '../services/soundManager';
+import { workerSetInterval } from '../services/workerScheduler';
 import { GameState } from '../types/game';
 import { useGameStore } from './gameStore';
 import {
@@ -13,6 +14,7 @@ import {
   useRoundClockStore,
 } from './roundClockStore';
 import { isBattleHalted } from './storeHelpers';
+import { triggerOvertimeSurgeAlert } from './combatHypeStore';
 
 const isRoundDecided = (state: GameState): boolean => state.roundWinner !== null || state.bossHp <= 0;
 
@@ -80,19 +82,22 @@ const advanceRoundClock = (deltaMs: number): void => {
     PHASE_ENTRY_EFFECTS[phase]?.();
     return;
   }
-  playWarningTick(prevRemainingMs, getPhaseRemainingMs({ elapsedMs, durationMs, phase }));
+  const remainingMs = getPhaseRemainingMs({ elapsedMs, durationMs, phase });
+  if (phase === ROUND_CLOCK_PHASE.OVERTIME || (durationMs > 0 && remainingMs <= 15_000 && remainingMs > 0)) {
+    triggerOvertimeSurgeAlert(game.currentRound);
+  }
+  playWarningTick(prevRemainingMs, remainingMs);
 };
 
 /** Mount once at the app root: runs the round clock while the fight is live. */
 export const useRoundClockTicker = (): void => {
   useEffect(() => {
     let lastTickAt = Date.now();
-    const intervalId = window.setInterval(() => {
+    return workerSetInterval(() => {
       const now = Date.now();
       const deltaMs = Math.min(ROUND_CLOCK_CONSTANTS.MAX_TICK_DELTA_MS, Math.max(0, now - lastTickAt));
       lastTickAt = now;
       advanceRoundClock(deltaMs);
     }, ROUND_CLOCK_CONSTANTS.TICK_MS);
-    return () => window.clearInterval(intervalId);
   }, []);
 };

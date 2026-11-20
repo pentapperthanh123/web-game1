@@ -38,12 +38,12 @@ export const Boss3DPresence = () => {
   const enrageOuterRingRef = useRef<THREE.Mesh>(null);
   const enrageInnerRingRef = useRef<THREE.Mesh>(null);
 
-  const bossHp = useGameStore((state) => state.bossHp);
+  const isBossHpDepleted = useGameStore((state) => state.bossHp <= 0);
   const bossStatus = useGameStore((state) => state.bossStatus);
   const bossShield = useGameStore((state) => state.bossShield);
   const bossWeakPoint = useGameStore((state) => state.bossWeakPoint);
 
-  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || bossHp <= 0;
+  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || isBossHpDepleted;
   const isEnraged = bossStatus === BOSS_STATUS.ENRAGED && !isDefeated;
 
   useFrame(({ clock }) => {

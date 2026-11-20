@@ -15,7 +15,6 @@ import { createInitialChampionAI, stepChampionFrame } from './summon/championFra
 import { SummonGroundPortalsInstanced } from './summon/SummonGroundPortalsInstanced';
 import { SquadEntrancePulse3D } from './summon/SquadEntrancePulse3D';
 import { ChampionToken } from './summon/ChampionToken';
-import { allocSlot, freeSlot } from '../../workers/physicsSharedBuffer';
 import { DefeatedChampionToken } from './summon/DefeatedChampionToken';
 import { CHAMPION_DEFAULT_MAX_HP } from '../../constants/bossSkills';
 import { getCanonicalViewerName, useSessionLeaderboardStore } from '../../store/sessionLeaderboardStore';
@@ -85,7 +84,6 @@ export const SummonPortals3D = () => {
       if (!minion) continue;
 
       activeMinionIdsSet.add(minion.id);
-      allocSlot(minion.id);
 
       let ai = aiStatesRef.current.get(minion.id);
       if (!ai) {
@@ -111,7 +109,6 @@ export const SummonPortals3D = () => {
       if (!activeMinionIdsSet.has(id)) {
         aiStatesRef.current.delete(id);
         removeLiveMinionPositions(id);
-        freeSlot(id);
       }
     }
   });

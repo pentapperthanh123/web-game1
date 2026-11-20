@@ -222,6 +222,30 @@ const HIT_FLINCH = {
 /** Shared, never mutated: no per-hit allocation in the frame loop. */
 const CHAMPION_HIT_OPTIONS: DamageBossOptions = { source: DAMAGE_SOURCE.CHAMPION };
 
+const updateChampionShieldMesh = (
+  refs: CachedChampionVfxRefs,
+  entranceAgeMs: number,
+  elapsedTime: number,
+  isGraceActive: boolean
+): void => {
+  const shieldMesh = refs.shieldMesh;
+  if (!(shieldMesh?.material instanceof THREE.MeshBasicMaterial)) return;
+
+  if (!isGraceActive) {
+    if (shieldMesh.visible) shieldMesh.visible = false;
+    if (entranceAgeMs >= GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS) {
+      refs.shieldMesh = undefined;
+    }
+    return;
+  }
+
+  const shieldProg = entranceAgeMs / GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
+  shieldMesh.scale.setScalar(1.0 + Math.sin(elapsedTime * 12) * 0.08);
+  shieldMesh.rotation.z = -elapsedTime * 4.0;
+  shieldMesh.material.opacity = Math.max(0.2, (1.0 - shieldProg * 0.35) * 0.9);
+  shieldMesh.visible = true;
+};
+
 export const stepChampionFrame = (
   champGroup: THREE.Group,
   minion: MinionEntity,
@@ -456,16 +480,5 @@ export const stepChampionFrame = (
 
   const isSquadMember = (minion.entranceSquadSize ?? 1) >= SQUAD_ENTRANCE_CONSTANTS.MIN_SIZE;
   updateChampionEntranceAura(vfxRefs, entranceAgeMs, elapsedTime, minion.team, isSquadMember);
-
-  if (vfxRefs.shieldMesh?.material instanceof THREE.MeshBasicMaterial) {
-    if (isGraceActive) {
-      const shieldProg = entranceAgeMs / GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
-      vfxRefs.shieldMesh.scale.setScalar(1.0 + Math.sin(elapsedTime * 12) * 0.08);
-      vfxRefs.shieldMesh.rotation.z = -elapsedTime * 4.0;
-      vfxRefs.shieldMesh.material.opacity = Math.max(0.2, (1.0 - shieldProg * 0.35) * 0.9);
-      vfxRefs.shieldMesh.visible = true;
-    } else if (vfxRefs.shieldMesh.visible) {
-      vfxRefs.shieldMesh.visible = false;
-    }
-  }
+  updateChampionShieldMesh(vfxRefs, entranceAgeMs, elapsedTime, isGraceActive);
 };

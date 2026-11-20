@@ -64,7 +64,7 @@ const SummonSpotlightCard = ({
     <div
       key={portal.id}
       style={{ boxShadow: cardShadowStyle }}
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border bg-slate-950/90 backdrop-blur-md shadow-md max-w-[125px] sm:max-w-[145px] transition-all duration-300 select-none ${
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border bg-slate-950/95 shadow-md max-w-[125px] sm:max-w-[145px] transition-all duration-300 select-none ${
         isFadingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100 animate-in fade-in zoom-in-95'
       } ${cardBorderClass} ${isRight ? 'flex-row-reverse text-right' : 'text-left'}`}
     >

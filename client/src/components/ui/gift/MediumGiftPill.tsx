@@ -43,7 +43,7 @@ export const MediumGiftPill = ({ banner, teamTheme }: MediumGiftPillProps) => {
           borderColor: teamTheme.primaryHex,
           boxShadow: `inset 0 0 14px ${teamTheme.primaryHex}30, 0 6px 20px rgba(0,0,0,0.85)`,
         }}
-        className="relative overflow-hidden flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border-2 bg-slate-950/95 backdrop-blur-xl max-w-full"
+        className="relative overflow-hidden flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border-2 bg-slate-950/95 max-w-full"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-gift-shimmer pointer-events-none" />
         <DonorAvatar

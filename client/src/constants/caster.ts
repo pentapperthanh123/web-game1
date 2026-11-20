@@ -281,6 +281,8 @@ export const CASTER_QUEUE = {
 
 export const CASTER_SPEECH = {
   ROUTE: '/api/caster/tts',
+  /** When true, live mode never calls `/api/caster/tts` (viet-tts runtime); static MP3 clips in VoiceManager handle live audio. */
+  STATIC_ONLY_LIVE: true,
   /** A clip that has not finished after this long is cut (hung audio, network stall). */
   WATCHDOG_MS: 12_000,
   MAX_CONSECUTIVE_FAILURES: 3,

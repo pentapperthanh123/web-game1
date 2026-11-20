@@ -322,35 +322,41 @@ export const MatchupPage = ({
       </div>
 
       {/* Action Callout Box */}
-      <div className="rounded-xl border border-amber-400/30 bg-slate-900/80 p-2 text-center shadow-inner">
-        <p className="text-[10px] sm:text-[10.5px] font-extrabold text-slate-300 whitespace-nowrap">
-          💬 {t('RoundIntro.callToAction', 'Gõ tên tướng bạn thích để triệu hồi:')}
-        </p>
-        <div className="mt-1 flex items-center justify-center gap-2 text-xs font-black whitespace-nowrap">
+      <div className="rounded-xl border border-amber-400/35 bg-slate-900/85 p-2 text-center shadow-inner">
+        {/* Dòng chính (to, nổi bật nhất): Gõ 1 (GAM) hoặc 2 (G2) để triệu hồi ngay */}
+        <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-black text-amber-100 flex-wrap">
+          <MessageSquare className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>{t('RoundIntro.mainSummonPrefix', 'Gõ')}</span>
           <span
-            className="rounded-lg px-2.5 py-0.5 shadow-sm whitespace-nowrap shrink-0"
+            className="rounded-md px-1.5 py-0.5 font-mono shadow-sm"
             style={{
-              backgroundColor: `${leftTheme.primaryHex}25`,
+              backgroundColor: `${leftTheme.primaryHex}30`,
               color: '#ffffff',
-              border: `1px solid ${leftTheme.primaryHex}60`,
+              border: `1px solid ${leftTheme.primaryHex}80`,
             }}
           >
-            "[Tên tướng] {leftTeam.shortTag}"
+            1 ({leftTeam.shortTag})
           </span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap shrink-0">
-            hoặc
+          <span className="text-[10px] font-bold text-slate-300 uppercase">
+            {t('RoundIntro.orKeyword', 'hoặc')}
           </span>
           <span
-            className="rounded-lg px-2.5 py-0.5 shadow-sm whitespace-nowrap shrink-0"
+            className="rounded-md px-1.5 py-0.5 font-mono shadow-sm"
             style={{
-              backgroundColor: `${rightTheme.primaryHex}25`,
+              backgroundColor: `${rightTheme.primaryHex}30`,
               color: '#ffffff',
-              border: `1px solid ${rightTheme.primaryHex}60`,
+              border: `1px solid ${rightTheme.primaryHex}80`,
             }}
           >
-            "[Tên tướng] {rightTeam.shortTag}"
+            2 ({rightTeam.shortTag})
           </span>
+          <span>{t('RoundIntro.mainSummonSuffix', 'để triệu hồi ngay')}</span>
         </div>
+
+        {/* Dòng phụ (chữ nhỏ hơn bên dưới): Hoặc gõ [Tên tướng] 1 / [Tên tướng] 2 để chọn tướng riêng */}
+        <p className="mt-1 text-[9.5px] sm:text-[10px] font-semibold text-slate-400 whitespace-nowrap">
+          {t('RoundIntro.subSummonSyntax', 'Hoặc gõ [Tên tướng] 1 / [Tên tướng] 2 để chọn tướng riêng')}
+        </p>
       </div>
 
       {/* Quick Highlights Row */}
@@ -412,7 +418,7 @@ export const RulesPage = ({
       title: t('RoundIntro.ruleSummonTitle', 'Cú Pháp Chat Triệu Hồi Tướng'),
       desc: t(
         'RoundIntro.ruleSummon',
-        "Khán giả chat cú pháp: [Tên tướng] [Tên đội] (ví dụ: '{{champ1}} {{team1}}' hoặc '{{champ2}} {{team2}}') để triệu hồi tướng yêu thích ra sàn đấu xả chiêu!",
+        'Gõ 1 ({{team1}}) hoặc 2 ({{team2}}) để triệu hồi ngay. Hoặc gõ [Tên tướng] 1 / 2 (ví dụ: "{{champ1}} 1" hoặc "{{champ2}} 2") để chọn tướng riêng!',
         {
           team1,
           team2,
@@ -470,13 +476,19 @@ export const RulesPage = ({
             ⚡ {t('RoundIntro.liveChatReady', 'Sẵn sàng')}
           </span>
         </div>
-        <div className="mt-1 flex items-center justify-center gap-2 text-xs font-black">
-          <span className="rounded-lg px-2.5 py-0.5 bg-emerald-500/20 text-emerald-200 border border-emerald-400/60 shadow-sm font-mono">
-            "{champ1} {team1}"
+        <div className="mt-1 flex items-center justify-center gap-1.5 sm:gap-2 text-xs font-black flex-wrap">
+          <span className="rounded-lg px-2 py-0.5 bg-emerald-500/20 text-emerald-200 border border-emerald-400/60 shadow-sm font-mono">
+            "1" ({team1})
           </span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase">hoặc</span>
-          <span className="rounded-lg px-2.5 py-0.5 bg-cyan-500/20 text-cyan-200 border border-cyan-400/60 shadow-sm font-mono">
-            "{champ2} {team2}"
+          <span className="text-[10px] font-bold text-slate-400 uppercase">
+            {t('RoundIntro.orKeyword', 'hoặc')}
+          </span>
+          <span className="rounded-lg px-2 py-0.5 bg-cyan-500/20 text-cyan-200 border border-cyan-400/60 shadow-sm font-mono">
+            "2" ({team2})
+          </span>
+          <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">•</span>
+          <span className="text-[10.5px] font-semibold text-slate-300 font-mono">
+            "{champ1} 1" / "{champ2} 2"
           </span>
         </div>
       </div>

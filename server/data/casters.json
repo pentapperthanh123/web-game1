@@ -1,457 +1,470 @@
-{
-  "round_start": [
-    {
-      "id": "round_start_1",
-      "lines": [
-        { "voice": "male", "text": "Trận đấu chính thức bắt đầu! Hai đội toàn lực xông lên!", "mood": "hype" },
-        { "voice": "female", "text": "Xem hôm nay Đội Xanh hay Đội Đỏ sẽ chứng tỏ bản lĩnh trước nào!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "round_start_2",
-      "lines": [
-        { "voice": "male", "text": "Khai chiến rồi anh em ơi! Đội Xanh và Đội Đỏ lao vào giao tranh!", "mood": "hype" },
-        { "voice": "female", "text": "Khán giả phòng lai hãy mau gõ tên tướng tiếp sức cho đội mình nào!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "round_start_3",
-      "lines": [
-        { "voice": "male", "text": "Tiếng còi khai trận đã vang lên! Khí thế đôi bên cực kỳ ngút trời!", "mood": "hype" },
-        { "voice": "female", "text": "Cùng chờ xem Đội Xanh hay Đội Đỏ sẽ áp đảo trước đây!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "round_start_4",
-      "lines": [
-        { "voice": "female", "text": "Trận chiến bắt đầu rồi! Gõ tên tướng ngay để đưa chiến binh vào sân!", "mood": "calm" },
-        { "voice": "male", "text": "Chuẩn luôn! Toàn quân xuất kích, đoạt lấy vinh quang ván đấu!", "mood": "hype" }
-      ]
-    }
-  ],
-  "blue_comeback": [
-    {
-      "id": "blue_comeback_1",
-      "lines": [
-        { "voice": "male", "text": "Đổi ngôi dẫn đầu rồi! Đội Xanh bất ngờ lật ngược thế cờ!", "mood": "hype" },
-        { "voice": "female", "text": "Đội Đỏ chủ quan là trả giá ngay, thế trận đảo chiều quá gắt!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "blue_comeback_2",
-      "lines": [
-        { "voice": "male", "text": "Pha bứt phá không tưởng! Đội Xanh chính thức vươn lên dẫn trước!", "mood": "hype" },
-        { "voice": "female", "text": "Đội Đỏ đang hụt hơi rồi, cần thêm sát thương ngay lập tức!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "blue_comeback_3",
-      "lines": [
-        { "voice": "male", "text": "Thế trận đảo chiều chóng mặt! Đội Xanh đã chiếm lại thế thượng phong!", "mood": "hype" },
-        { "voice": "female", "text": "Pha bẻ lái ngoạn mục! Phe Đỏ không chi viện là mất ván đấu này đấy!", "mood": "calm" }
-      ]
-    }
-  ],
-  "red_comeback": [
-    {
-      "id": "red_comeback_1",
-      "lines": [
-        { "voice": "male", "text": "Đội Đỏ vùng lên mạnh mẽ! Đã lật kèo vươn lên dẫn điểm!", "mood": "hype" },
-        { "voice": "female", "text": "Đấy thấy chưa, đừng vội mừng sớm với sức mạnh của Đội Đỏ!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "red_comeback_2",
-      "lines": [
-        { "voice": "male", "text": "Cú lội ngược dòng xuất sắc! Đội Đỏ vượt lên dẫn đầu ngoạn mục!", "mood": "hype" },
-        { "voice": "female", "text": "Đội Xanh phải phản công ngay, đừng để Đội Đỏ bỏ quá xa!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "red_comeback_3",
-      "lines": [
-        { "voice": "male", "text": "Quá bất ngờ! Đội Đỏ đã chính thức vượt mặt đối thủ!", "mood": "hype" },
-        { "voice": "female", "text": "Tinh thần chiến đấu kiên cường! Đội Đỏ đang lấy lại những gì đã mất!", "mood": "calm" }
-      ]
-    }
-  ],
-  "blue_dominating": [
-    {
-      "id": "blue_dominating_1",
-      "lines": [
-        { "voice": "male", "text": "Cách biệt quá lớn! Đội Xanh đang hoàn toàn hủy diệt đối phương!", "mood": "hype" },
-        { "voice": "female", "text": "Bảo nói nhỏ thôi, Đội Đỏ người ta đang cố gắng gỡ gạc kìa!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "blue_dominating_2",
-      "lines": [
-        { "voice": "male", "text": "Sức ép nghẹt thở từ Đội Xanh! Sát thương áp đảo tuyệt đối!", "mood": "hype" },
-        { "voice": "female", "text": "Các fan Đội Đỏ đâu hết rồi? Mau thả quà và gõ tướng gỡ lại đi!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "blue_dominating_3",
-      "lines": [
-        { "voice": "male", "text": "Đội Xanh đang lăn quả cầu tuyết! Một thế trận một chiều áp đảo!", "mood": "hype" },
-        { "voice": "female", "text": "Thế trận này mà Đội Đỏ lật lại được thì chỉ có phép màu!", "mood": "calm" }
-      ]
-    }
-  ],
-  "red_dominating": [
-    {
-      "id": "red_dominating_1",
-      "lines": [
-        { "voice": "male", "text": "Đội Đỏ tấn công vũ bão! Cách biệt điểm số đang dãn ra quá xa!", "mood": "hype" },
-        { "voice": "female", "text": "Đội Xanh đang bất lực hoàn toàn trước hỏa lực của đối phương!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "red_dominating_2",
-      "lines": [
-        { "voice": "male", "text": "Đội Đỏ đang kiểm soát hoàn toàn ván đấu! Quá khủng khiếp!", "mood": "hype" },
-        { "voice": "female", "text": "Đội Xanh đứng hình rồi sao? Khán giả Đội Xanh chi viện gấp nào!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "red_dominating_3",
-      "lines": [
-        { "voice": "male", "text": "Cơn cuồng nộ màu đỏ! Đội Đỏ đang đè bẹp hoàn toàn trận địa!", "mood": "hype" },
-        { "voice": "female", "text": "Ai fan Đội Xanh mau bấm tim tiếp sức gỡ lại chút thể diện đi!", "mood": "calm" }
-      ]
-    }
-  ],
-  "neck_and_neck": [
-    {
-      "id": "neck_and_neck_1",
-      "lines": [
-        { "voice": "male", "text": "Trận đấu nghẹt thở từng giây! Hai đội đang giằng co từng phần trăm!", "mood": "hype" },
-        { "voice": "female", "text": "Kịch tính đến nghẹt thở! Chỉ cần một đòn chí mạng là định đoạt ván đấu!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "neck_and_neck_2",
-      "lines": [
-        { "voice": "male", "text": "Kè sát nút nhau luôn anh em ơi! Chưa biết ai sẽ bứt tốc trước!", "mood": "hype" },
-        { "voice": "female", "text": "Chỉ một cú kết liễu lúc này là có thể định đoạt số phận ván đấu!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "neck_and_neck_3",
-      "lines": [
-        { "voice": "male", "text": "Tỷ số quá cân bằng! Cuộc so tài đỉnh cao của Đội Xanh và Đội Đỏ!", "mood": "hype" },
-        { "voice": "female", "text": "Một chín một mười, khán giả phòng lai hãy mau dồn lực chi viện!", "mood": "calm" }
-      ]
-    }
-  ],
-  "boss_hp_50": [
-    {
-      "id": "boss_hp_50_1",
-      "lines": [
-        { "voice": "male", "text": "Máu Boss đã tụt xuống nửa cây! Giai đoạn quyết định bắt đầu!", "mood": "hype" },
-        { "voice": "female", "text": "Từ mốc này Boss sẽ tung chiêu liên tục, hai đội cẩn thận đấy!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "boss_hp_50_2",
-      "lines": [
-        { "voice": "male", "text": "Boss mất một nửa lượng máu rồi! Tốc độ đẩy sát thương quá khủng!", "mood": "hype" },
-        { "voice": "female", "text": "Cẩn thận Boss nổi điên, hai bên phải dồn lực tối đa ngay lúc này!", "mood": "calm" }
-      ]
-    }
-  ],
-  "boss_low_hp": [
-    {
-      "id": "boss_low_hp_1",
-      "lines": [
-        { "voice": "male", "text": "Boss sắp ngã xuống rồi! Chuẩn bị cho đòn kết liễu định mệnh!", "mood": "hype" },
-        { "voice": "female", "text": "Ai kết liễu phát này là ghi tên lên bảng vàng vinh danh luôn đấy!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "boss_low_hp_2",
-      "lines": [
-        { "voice": "male", "text": "Máu Boss còn cực kỳ ít! Ai sẽ là người giành đòn đánh cuối cùng đây?", "mood": "hype" },
-        { "voice": "female", "text": "Dồn quà và nộ chiêu đi khán giả ơi! Thời khắc sinh tử đã tới!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "boss_low_hp_3",
-      "lines": [
-        { "voice": "male", "text": "Boss báo động đỏ! Cả hai đội đang dồn sát thương như điên dại!", "mood": "hype" },
-        { "voice": "female", "text": "Đừng chớp mắt lúc này! Kết quả ván đấu sắp ngã ngũ rồi!", "mood": "calm" }
-      ]
-    }
-  ],
-  "boss_enrage": [
-    {
-      "id": "boss_enrage_1",
-      "lines": [
-        { "voice": "male", "text": "Boss đã nổi thịnh nộ! Sát thương diện rộng cực kỳ nguy hiểm!", "mood": "hype" },
-        { "voice": "female", "text": "Thấy Bảo còn thịnh nộ hơn Boss đấy! Mọi người tập trung đấm Boss đi!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "boss_enrage_2",
-      "lines": [
-        { "voice": "male", "text": "Trời ơi Boss bật chế độ cuồng nộ! Cả đấu trường rung chuyển dữ dội!", "mood": "hype" },
-        { "voice": "female", "text": "Cần thêm tướng vào sân để chống chịu ngay, không là toang đấy!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "boss_enrage_3",
-      "lines": [
-        { "voice": "male", "text": "Boss hóa điên rồi! Sát thương trả lại đang quét sạch đội hình!", "mood": "hype" },
-        { "voice": "female", "text": "Càng cuồng nộ thì càng dễ sơ hở, dồn tổng lực sát thương ngay đi!", "mood": "calm" }
-      ]
-    }
-  ],
-  "shield_up": [
-    {
-      "id": "shield_up_1",
-      "lines": [
-        { "voice": "male", "text": "Boss kích hoạt khiên hộ mệnh! Cần tập trung phá giáp ngay!", "mood": "hype" },
-        { "voice": "female", "text": "Không phá khiên kịp là Boss hồi lại cả tấn máu đấy anh em!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "shield_up_2",
-      "lines": [
-        { "voice": "male", "text": "Khiên phòng thủ đã xuất hiện! Dồn toàn lực bẻ gãy lớp giáp này nào!", "mood": "hype" },
-        { "voice": "female", "text": "Bấm tim và thả chiêu liên tục để phá khiên đi khán giả ơi!", "mood": "calm" }
-      ]
-    }
-  ],
-  "shield_broken": [
-    {
-      "id": "shield_broken_1",
-      "lines": [
-        { "voice": "male", "text": "Khiên Boss đã vỡ vụn! Cơ hội vàng dồn sát thương là đây!", "mood": "hype" },
-        { "voice": "female", "text": "Mỏng manh là vì cả phòng lai cùng đấm đấy Bảo ơi! Đánh tiếp nào!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "shield_broken_2",
-      "lines": [
-        { "voice": "male", "text": "Bẻ khiên thành công rực rỡ! Boss đang rơi vào trạng thái choáng!", "mood": "hype" },
-        { "voice": "female", "text": "Tuyệt vời quá! Tranh thủ xả chiêu kết liễu Boss đi mọi người!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "shield_broken_3",
-      "lines": [
-        { "voice": "male", "text": "Lớp phòng thủ tan tành! Boss hoàn toàn bất lực trước hỏa lực!", "mood": "hype" },
-        { "voice": "female", "text": "Thời cơ ngàn năm có một! Hai đội xả hết mọi chiêu thức đi!", "mood": "calm" }
-      ]
-    }
-  ],
-  "boss_skill": [
-    {
-      "id": "boss_skill_1",
-      "lines": [
-        { "voice": "male", "text": "Boss tung tuyệt kỹ hủy diệt! Một loạt tướng đã nằm xuống!", "mood": "hype" },
-        { "voice": "female", "text": "Đòn quét sàn quá gắt, anh em mau gọi tướng mới vào chi viện!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "boss_skill_2",
-      "lines": [
-        { "voice": "male", "text": "Kỹ năng tối thượng từ Boss! Đòn tấn công quá khủng khiếp!", "mood": "hype" },
-        { "voice": "female", "text": "Đội hình tổn thất nặng nề, cần bổ sung quân số gấp vào sân!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "boss_skill_3",
-      "lines": [
-        { "voice": "male", "text": "Một chiêu quét sạch chiến trường! Sát thương lan quá đau đớn!", "mood": "hype" },
-        { "voice": "female", "text": "Chỉ huy hai đội phải bình tĩnh, nhanh tay bấm tim nạp lại Nộ!", "mood": "calm" }
-      ]
-    }
-  ],
-  "silver_scrapes_start": [
-    {
-      "id": "silver_scrapes_start_1",
-      "lines": [
-        { "voice": "male", "text": "Màn Đại Chiến Độc Tôn chính thức mở màn! Trận quyết chiến sinh tử!", "mood": "hype" },
-        { "voice": "female", "text": "Không còn đường lui cho cả hai phe, một mất một còn tại đây!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "silver_scrapes_start_2",
-      "lines": [
-        { "voice": "male", "text": "Đấu trường một chọi một đã kích hoạt! Thời khắc anh tài so tài đỉnh cao!", "mood": "hype" },
-        { "voice": "female", "text": "Chỉ một phe được bước lên đỉnh vinh quang, toàn lực ủng hộ nào!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "silver_scrapes_start_3",
-      "lines": [
-        { "voice": "male", "text": "Thời khắc phân định thắng bại! Đội Xanh đối đầu Đội Đỏ tay đôi rực lửa!", "mood": "hype" },
-        { "voice": "female", "text": "Ai sẽ trở thành người hùng của ván đấu quyết định này đây?", "mood": "calm" }
-      ]
-    }
-  ],
-  "clutch_final_10s": [
-    {
-      "id": "clutch_final_10s_1",
-      "lines": [
-        { "voice": "male", "text": "Mười giây cuối cùng! Điểm số quá sát sao, ai sẽ giật vé thắng đây!", "mood": "hype" },
-        { "voice": "female", "text": "Một món quà nhỏ lúc này cũng đủ để lật ngược tình thế!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "clutch_final_10s_2",
-      "lines": [
-        { "voice": "male", "text": "Đếm ngược mười giây nghẹt thở! Từng đòn đánh lúc này đều là vàng bạc!", "mood": "hype" },
-        { "voice": "female", "text": "Thả tim xả quà hết mức đi mọi người ơi, chỉ còn tích tắc nữa thôi!", "mood": "calm" }
-      ]
-    }
-  ],
-  "one_sided_final_10s": [
-    {
-      "id": "one_sided_final_10s_1",
-      "lines": [
-        { "voice": "male", "text": "Mười giây đếm ngược cuối! Chiến thắng gần như đã nằm trọn trong tay!", "mood": "hype" },
-        { "voice": "female", "text": "Đẳng cấp lên tiếng đúng lúc, khoảng cách là không thể san lấp!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "one_sided_final_10s_2",
-      "lines": [
-        { "voice": "male", "text": "Thời gian cạn dần! Khoảng cách quá an toàn để định đoạt ván đấu!", "mood": "hype" },
-        { "voice": "female", "text": "Phe thua vẫn đang cố gắng gỡ gạc thể diện trong những giây cuối!", "mood": "calm" }
-      ]
-    }
-  ],
-  "blue_win": [
-    {
-      "id": "blue_win_1",
-      "lines": [
-        { "voice": "male", "text": "Chiến thắng hoàn toàn thuộc về {team}! Màn trình diễn quá đỉnh cao!", "mood": "hype" },
-        { "voice": "female", "text": "Xứng đáng tuyệt đối! {team} đã thi đấu trên cơ hoàn toàn hôm nay!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "blue_win_2",
-      "lines": [
-        { "voice": "male", "text": "Hạ màn ván đấu! {team} đã xuất sắc giành chiến thắng thuyết phục!", "mood": "hype" },
-        { "voice": "female", "text": "Xin chúc mừng {team} và cảm ơn tất cả anh em phòng lai đã cống hiến!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "blue_win_3",
-      "lines": [
-        { "voice": "male", "text": "Khúc khải hoàn vang lên! {team} chính thức ca khúc khải hoàn!", "mood": "hype" },
-        { "voice": "female", "text": "Một chiến thắng ngọt ngào dành tặng tất cả người hâm mộ {team}!", "mood": "calm" }
-      ]
-    }
-  ],
-  "red_win": [
-    {
-      "id": "red_win_1",
-      "lines": [
-        { "voice": "male", "text": "{team} đã giành chiến thắng chung cuộc! Một chiến công cực kỳ rực rỡ!", "mood": "hype" },
-        { "voice": "female", "text": "Bản lĩnh thép của {team} đã được đền đáp xứng đáng!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "red_win_2",
-      "lines": [
-        { "voice": "male", "text": "Tiếng còi mãn cuộc! Vinh quang tuyệt đối thuộc về các chiến binh {team}!", "mood": "hype" },
-        { "voice": "female", "text": "Màn lội ngược dòng ấn tượng của {team}! Cảm ơn anh em đã ủng hộ hết mình!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "red_win_3",
-      "lines": [
-        { "voice": "male", "text": "{team} xuất sắc làm chủ sàn đấu và đoạt lấy trọn vẹn điểm số ván này!", "mood": "hype" },
-        { "voice": "female", "text": "Xin chúc mừng toàn thể người hâm mộ trung thành của {team}!", "mood": "calm" }
-      ]
-    }
-  ],
-  "donate_react_vip": [
-    {
-      "id": "donate_react_vip_1",
-      "lines": [
-        { "voice": "male", "text": "Cú nổ quà quá chất chơi! Cảm ơn sếp lớn đã tiếp lửa trận địa!", "mood": "hype" },
-        { "voice": "female", "text": "Đúng là đại gia ra tay, sát thương đội nhà nhảy số ầm ầm luôn!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "donate_react_vip_2",
-      "lines": [
-        { "voice": "female", "text": "Đỉnh chóp luôn ạ! Một món quà VIP thay đổi hoàn toàn cục diện!", "mood": "hype" },
-        { "voice": "male", "text": "Quá uy tín! Cảm ơn sếp đã mang chiến thắng đến gần hơn!", "mood": "hype" }
-      ]
-    },
-    {
-      "id": "donate_react_vip_3",
-      "lines": [
-        { "voice": "male", "text": "Món quà chấn động phòng lai! Uy tín luôn người anh em ơi!", "mood": "hype" },
-        { "voice": "female", "text": "Tầm này Boss chỉ có khóc thét trước độ chịu chơi của các sếp!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "donate_react_vip_4",
-      "lines": [
-        { "voice": "female", "text": "Tuyệt vời ông mặt trời! Sát thương bùng nổ nhờ bàn tay của sếp!", "mood": "hype" },
-        { "voice": "male", "text": "Món quà quá đẳng cấp! Toàn thể anh em xin nghiêng mình cảm ơn!", "mood": "hype" }
-      ]
-    }
-  ],
-  "room_quiet_cta": [
-    {
-      "id": "room_quiet_cta_1",
-      "lines": [
-        { "voice": "female", "text": "Phòng lai đang hơi im ắng nha! Anh em gõ tướng và thả tim nhiệt lên nào!", "mood": "calm" },
-        { "voice": "male", "text": "Đúng vậy! Mau triệu hồi tướng ra sân để tạo đột biến đi anh em ơi!", "mood": "hype" }
-      ]
-    },
-    {
-      "id": "room_quiet_cta_2",
-      "lines": [
-        { "voice": "male", "text": "Cần thêm viện binh gấp! Khán giả bấm tim màn hình để nạp nộ chiêu đi nào!", "mood": "hype" },
-        { "voice": "female", "text": "Mỗi lượt thả tim là thêm sức mạnh cho tướng tủ của mình đấy!", "mood": "calm" }
-      ]
-    },
-    {
-      "id": "room_quiet_cta_3",
-      "lines": [
-        { "voice": "female", "text": "Ai chưa chọn phe thì mau gõ tên tướng triệu hồi vào sân trợ chiến nhé!", "mood": "calm" },
-        { "voice": "male", "text": "Đúng rồi! Một lượt thả tim là thêm một cơ hội lật kèo ngoạn mục!", "mood": "hype" }
-      ]
-    },
-    {
-      "id": "room_quiet_cta_4",
-      "lines": [
-        { "voice": "female", "text": "Tặng quà tiếp sức hoặc thả tim màn hình để tướng xuất chiêu mạnh mẽ hơn nào!", "mood": "calm" },
-        { "voice": "male", "text": "Thời điểm then chốt rồi! Đừng ngần ngại tiếp lửa cho đội tuyển!", "mood": "hype" }
-      ]
-    }
-  ],
-  "intro_rules": [
-    {
-      "id": "intro_rules_1",
-      "lines": [
-        { "voice": "female", "text": "Luật chơi rất đơn giản: khán giả chat cú pháp tên tướng cách tên đội để triệu hồi tướng.", "mood": "calm" },
-        { "voice": "male", "text": "Bấm tim liên tục để nạp nộ tung tuyệt kỹ, đội nào dồn nhiều sát thương hơn sẽ thắng!", "mood": "hype" }
-      ]
-    },
-    {
-      "id": "intro_rules_2",
-      "lines": [
-        { "voice": "female", "text": "Hãy gõ tên tướng kèm tên đội bạn chọn để đưa chiến binh vào sàn đấu.", "mood": "calm" },
-        { "voice": "male", "text": "Mau thả tim và dồn quà tiếp sức để đưa đội nhà lên ngôi vô địch nào!", "mood": "hype" }
-      ]
-    }
-  ],
-  "intro_gifts": [
-    {
-      "id": "intro_gifts_1",
-      "lines": [
-        { "voice": "male", "text": "Mỗi một xu tương ứng một trăm hai mươi sát thương trực tiếp lên Boss!", "mood": "hype" },
-        { "voice": "female", "text": "Khán giả hãy xem bảng quà tặng ở góc phải màn hình để tiếp lửa cho các tuyển thủ nhé!", "mood": "calm" }
-      ]
-    }
-  ]
-}
+[
+  {
+    "id": "match_start_01",
+    "category": "match_start",
+    "tone": "hype",
+    "text": "Khai chiến! Hai đội toàn lực xông lên!",
+    "file": "/audio/casters/match_start_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "match_start_02",
+    "category": "match_start",
+    "tone": "hype",
+    "text": "Tiếng còi khai trận vang lên! Đấu trường bùng nổ!",
+    "file": "/audio/casters/match_start_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "match_start_03",
+    "category": "match_start",
+    "tone": "normal",
+    "text": "Ván đấu bắt đầu! Gõ tên tướng tiếp sức ngay nào!",
+    "file": "/audio/casters/match_start_03.mp3",
+    "volume": 0.85,
+    "gender": "male"
+  },
+  {
+    "id": "match_end_01",
+    "category": "match_end",
+    "tone": "hype",
+    "text": "Tiếng còi mãn cuộc! Chiến thắng cực kỳ thuyết phục!",
+    "file": "/audio/casters/match_end_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "match_end_02",
+    "category": "match_end",
+    "tone": "hype",
+    "text": "Hạ màn ván đấu! Khúc khải hoàn rực rỡ đã vang lên!",
+    "file": "/audio/casters/match_end_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "match_end_03",
+    "category": "match_end",
+    "tone": "normal",
+    "text": "Ván đấu khép lại! Cảm ơn anh em phòng lai đã cống hiến!",
+    "file": "/audio/casters/match_end_03.mp3",
+    "volume": 0.85,
+    "gender": "male"
+  },
+  {
+    "id": "lead_change_01",
+    "category": "lead_change",
+    "tone": "hype",
+    "text": "Đổi ngôi dẫn đầu rồi! Pha lật kèo quá gắt!",
+    "file": "/audio/casters/lead_change_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "lead_change_02",
+    "category": "lead_change",
+    "tone": "hype",
+    "text": "Thế trận đảo chiều chóng mặt! Vượt mặt ngoạn mục!",
+    "file": "/audio/casters/lead_change_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "lead_change_03",
+    "category": "lead_change",
+    "tone": "hype",
+    "text": "Cú bứt tốc không tưởng! Ngôi đầu vừa đổi chủ!",
+    "file": "/audio/casters/lead_change_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "close_race_01",
+    "category": "close_race",
+    "tone": "hype",
+    "text": "Giằng co nghẹt thở! Hai đội bám đuổi từng điểm một!",
+    "file": "/audio/casters/close_race_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "close_race_02",
+    "category": "close_race",
+    "tone": "normal",
+    "text": "Tỷ số sát nút quá! Chỉ một đòn chí mạng là định đoạt!",
+    "file": "/audio/casters/close_race_02.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "close_race_03",
+    "category": "close_race",
+    "tone": "hype",
+    "text": "Một chín một mười! Ai sẽ bứt phá trước đây?",
+    "file": "/audio/casters/close_race_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_hp_50_01",
+    "category": "boss_hp_50",
+    "tone": "normal",
+    "text": "Máu đã tụt xuống một nửa! Giai đoạn quyết định bắt đầu!",
+    "file": "/audio/casters/boss_hp_50_01.mp3",
+    "volume": 0.85,
+    "gender": "male"
+  },
+  {
+    "id": "boss_hp_50_02",
+    "category": "boss_hp_50",
+    "tone": "hype",
+    "text": "Mất nửa cây máu rồi! Tốc độ dồn sát thương quá khủng!",
+    "file": "/audio/casters/boss_hp_50_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_low_hp_01",
+    "category": "boss_low_hp",
+    "tone": "hype",
+    "text": "Máu còn cực ít! Chuẩn bị cho đòn kết liễu định mệnh!",
+    "file": "/audio/casters/boss_low_hp_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_low_hp_02",
+    "category": "boss_low_hp",
+    "tone": "hype",
+    "text": "Báo động đỏ! Ai sẽ giành đòn kết liễu cuối cùng đây?",
+    "file": "/audio/casters/boss_low_hp_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_low_hp_03",
+    "category": "boss_low_hp",
+    "tone": "hype",
+    "text": "Sắp gục ngã rồi! Dồn tổng lực sát thương ngay lúc này!",
+    "file": "/audio/casters/boss_low_hp_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_killed_01",
+    "category": "boss_killed",
+    "tone": "hype",
+    "text": "Hạ gục thành công! Cú kết liễu quá mãn nhãn!",
+    "file": "/audio/casters/boss_killed_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_killed_02",
+    "category": "boss_killed",
+    "tone": "hype",
+    "text": "Gục ngã hoàn toàn! Đòn kết liễu đỉnh cao!",
+    "file": "/audio/casters/boss_killed_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_killed_03",
+    "category": "boss_killed",
+    "tone": "hype",
+    "text": "Bùng nổ đấu trường! Mục tiêu lớn đã bị hạ gục!",
+    "file": "/audio/casters/boss_killed_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_enrage_01",
+    "category": "boss_enrage",
+    "tone": "hype",
+    "text": "Nổi thịnh nộ rồi! Sát thương diện rộng cực kỳ nguy hiểm!",
+    "file": "/audio/casters/boss_enrage_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_enrage_02",
+    "category": "boss_enrage",
+    "tone": "hype",
+    "text": "Bật chế độ cuồng nộ! Cả đấu trường rung chuyển dữ dội!",
+    "file": "/audio/casters/boss_enrage_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_enrage_03",
+    "category": "boss_enrage",
+    "tone": "hype",
+    "text": "Hóa điên rồi anh em ơi! Tập trung dồn sát thương ngay!",
+    "file": "/audio/casters/boss_enrage_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "shield_up_01",
+    "category": "shield_up",
+    "tone": "normal",
+    "text": "Khiên hộ mệnh kích hoạt! Tập trung phá giáp ngay!",
+    "file": "/audio/casters/shield_up_01.mp3",
+    "volume": 0.85,
+    "gender": "male"
+  },
+  {
+    "id": "shield_up_02",
+    "category": "shield_up",
+    "tone": "normal",
+    "text": "Lớp giáp phòng thủ xuất hiện! Bấm tim phá khiên nhanh nào!",
+    "file": "/audio/casters/shield_up_02.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "shield_broken_01",
+    "category": "shield_broken",
+    "tone": "hype",
+    "text": "Vỡ khiên rồi! Cơ hội vàng dồn sát thương là đây!",
+    "file": "/audio/casters/shield_broken_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "shield_broken_02",
+    "category": "shield_broken",
+    "tone": "hype",
+    "text": "Bẻ giáp thành công! Xả toàn bộ chiêu thức ngay đi!",
+    "file": "/audio/casters/shield_broken_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "shield_broken_03",
+    "category": "shield_broken",
+    "tone": "hype",
+    "text": "Lớp phòng thủ tan tành! Quá tuyệt vời anh em ơi!",
+    "file": "/audio/casters/shield_broken_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_skill_01",
+    "category": "boss_skill",
+    "tone": "hype",
+    "text": "Tung tuyệt kỹ hủy diệt! Đòn quét sàn quá gắt!",
+    "file": "/audio/casters/boss_skill_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "boss_skill_02",
+    "category": "boss_skill",
+    "tone": "hype",
+    "text": "Kỹ năng tối thượng giáng xuống! Gọi tướng chi viện gấp!",
+    "file": "/audio/casters/boss_skill_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "boss_skill_03",
+    "category": "boss_skill",
+    "tone": "hype",
+    "text": "Một chiêu quét sạch chiến trường! Sát thương quá khủng khiếp!",
+    "file": "/audio/casters/boss_skill_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "silver_scrapes_start_01",
+    "category": "silver_scrapes_start",
+    "tone": "hype",
+    "text": "Đại chiến độc tôn mở màn! Trận quyết chiến sinh tử!",
+    "file": "/audio/casters/silver_scrapes_start_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "silver_scrapes_start_02",
+    "category": "silver_scrapes_start",
+    "tone": "hype",
+    "text": "Đấu trường tay đôi kích hoạt! Một mất một còn tại đây!",
+    "file": "/audio/casters/silver_scrapes_start_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "silver_scrapes_start_03",
+    "category": "silver_scrapes_start",
+    "tone": "hype",
+    "text": "Thời khắc phân định thắng bại! Toàn lực ủng hộ nào!",
+    "file": "/audio/casters/silver_scrapes_start_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "clutch_final_10s_01",
+    "category": "clutch_final_10s",
+    "tone": "hype",
+    "text": "Mười giây cuối cùng! Một pha bứt tốc là định đoạt tất cả!",
+    "file": "/audio/casters/clutch_final_10s_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "clutch_final_10s_02",
+    "category": "clutch_final_10s",
+    "tone": "hype",
+    "text": "Đếm ngược mười giây nghẹt thở! Xả hết nộ chiêu đi anh em!",
+    "file": "/audio/casters/clutch_final_10s_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "one_sided_final_10s_01",
+    "category": "one_sided_final_10s",
+    "tone": "normal",
+    "text": "Mười giây cuối! Chiến thắng gần như đã nằm gọn trong tay!",
+    "file": "/audio/casters/one_sided_final_10s_01.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "one_sided_final_10s_02",
+    "category": "one_sided_final_10s",
+    "tone": "calm",
+    "text": "Thời gian cạn dần, khoảng cách hiện tại đã quá an toàn!",
+    "file": "/audio/casters/one_sided_final_10s_02.mp3",
+    "volume": 0.75,
+    "gender": "female"
+  },
+  {
+    "id": "cta_hype_01",
+    "category": "cta_hype",
+    "tone": "hype",
+    "text": "Thả tim nhiệt lên anh em ơi! Nạp nộ tung tuyệt kỹ nào!",
+    "file": "/audio/casters/cta_hype_01.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "cta_hype_02",
+    "category": "cta_hype",
+    "tone": "normal",
+    "text": "Gõ tên tướng ngay để triệu hồi chiến binh vào sân!",
+    "file": "/audio/casters/cta_hype_02.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "cta_hype_03",
+    "category": "cta_hype",
+    "tone": "hype",
+    "text": "Cần thêm viện binh gấp! Bấm tim tiếp lửa ngay nào!",
+    "file": "/audio/casters/cta_hype_03.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "cta_trailing_01",
+    "category": "cta_trailing",
+    "tone": "calm",
+    "text": "Đội đang bị dẫn cần chi viện gấp, thả tim gỡ lại đi anh em!",
+    "file": "/audio/casters/cta_trailing_01.mp3",
+    "volume": 0.75,
+    "gender": "female"
+  },
+  {
+    "id": "cta_trailing_02",
+    "category": "cta_trailing",
+    "tone": "normal",
+    "text": "Cách biệt đang giãn ra rồi! Phe bám đuổi mau dồn lực lật kèo!",
+    "file": "/audio/casters/cta_trailing_02.mp3",
+    "volume": 0.85,
+    "gender": "female"
+  },
+  {
+    "id": "cta_trailing_03",
+    "category": "cta_trailing",
+    "tone": "calm",
+    "text": "Đừng bỏ cuộc sớm, chỉ cần vài món quà là lật ngược thế cờ!",
+    "file": "/audio/casters/cta_trailing_03.mp3",
+    "volume": 0.75,
+    "gender": "female"
+  },
+  {
+    "id": "hype_short_01",
+    "category": "hype_short",
+    "tone": "hype",
+    "text": "Quá gắt luôn anh em ơi!",
+    "file": "/audio/casters/hype_short_01.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "hype_short_02",
+    "category": "hype_short",
+    "tone": "hype",
+    "text": "Đỉnh chóp! Quá uy tín!",
+    "file": "/audio/casters/hype_short_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "hype_short_03",
+    "category": "hype_short",
+    "tone": "hype",
+    "text": "Cháy máy rồi đấu trường ơi!",
+    "file": "/audio/casters/hype_short_03.mp3",
+    "volume": 1,
+    "gender": "male"
+  },
+  {
+    "id": "hype_short_04",
+    "category": "hype_short",
+    "tone": "hype",
+    "text": "Pha xử lý không tưởng!",
+    "file": "/audio/casters/hype_short_04.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "donate_react_vip_01",
+    "category": "donate_react_vip",
+    "tone": "hype",
+    "text": "Cú nổ quà quá chất! Cảm ơn sếp lớn đã tiếp lửa!",
+    "file": "/audio/casters/donate_react_vip_01.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "donate_react_vip_02",
+    "category": "donate_react_vip",
+    "tone": "hype",
+    "text": "Đỉnh chóp luôn! Món quà thay đổi hoàn toàn cục diện!",
+    "file": "/audio/casters/donate_react_vip_02.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "donate_react_vip_03",
+    "category": "donate_react_vip",
+    "tone": "hype",
+    "text": "Món quà chấn động phòng lai! Quá uy tín sếp ơi!",
+    "file": "/audio/casters/donate_react_vip_03.mp3",
+    "volume": 1,
+    "gender": "female"
+  },
+  {
+    "id": "donate_react_vip_04",
+    "category": "donate_react_vip",
+    "tone": "hype",
+    "text": "Quá đẳng cấp! Sát thương bùng nổ nhờ bàn tay của sếp!",
+    "file": "/audio/casters/donate_react_vip_04.mp3",
+    "volume": 1,
+    "gender": "female"
+  }
+]

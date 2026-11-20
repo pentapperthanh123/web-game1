@@ -76,7 +76,7 @@ export const BigGiftBanner = ({ banner, teamTheme, teamProfile }: BigGiftBannerP
               style={{
                 boxShadow: `inset 0 0 18px ${teamTheme.primaryHex}25`,
               }}
-              className={`relative overflow-hidden rounded-[14px] px-3 py-2 bg-slate-950/96 backdrop-blur-xl ${teamTheme.giftBannerGradientClass}`}
+              className={`relative overflow-hidden rounded-[14px] px-3 py-2 bg-slate-950/96 ${teamTheme.giftBannerGradientClass}`}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-gift-shimmer pointer-events-none" />
 

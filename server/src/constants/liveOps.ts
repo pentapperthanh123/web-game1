@@ -22,6 +22,10 @@ export interface CasterConfig {
   isNameReadingEnabled: boolean;
   /** Two casters banter on the overlay (A + B voices); false = one voice says everything. */
   isDuoEnabled: boolean;
+  /** Primary male voice ID for Viet-TTS (e.g. 'cdteam', 'nsnd-le-chuc', 'atuan'). */
+  voiceMale?: string;
+  /** Primary female voice ID for Viet-TTS (e.g. 'quynh', 'nu-nhe-nhang'). */
+  voiceFemale?: string;
 }
 
 export interface NumericBound {
@@ -49,6 +53,8 @@ export const DEFAULT_CASTER_CONFIG: CasterConfig = {
   isTtsEnabled: true,
   isNameReadingEnabled: true,
   isDuoEnabled: true,
+  voiceMale: 'cdteam',
+  voiceFemale: 'quynh',
 };
 
 export const CHAT_LIMITER = {

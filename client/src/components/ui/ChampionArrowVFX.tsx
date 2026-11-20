@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { getTeamTheme } from '../../constants/teams';
+import { createAdaptiveFrameLoop } from '../../services/workerScheduler';
 import {
   TEAM_KEY,
   TeamType,
@@ -1023,11 +1024,9 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    let animFrameId: number | null = null;
-
     const resize = () => {
       if (!canvas) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.DPR_MAX);
+      const dpr = GAME_CONSTANTS.RENDER.FIXED_DPR;
       const width = window.innerWidth;
       const height = window.innerHeight;
       canvas.width = Math.round(width * dpr);
@@ -1042,23 +1041,20 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
 
     let isCanvasDirty = false;
 
-    const renderLoop = () => {
+    const renderFrame = (now: number): boolean => {
       const activeFlyingArrows = useGameStore.getState().activeFlyingArrows;
       if (activeFlyingArrows.length === 0) {
         if (isCanvasDirty) {
           ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
           isCanvasDirty = false;
         }
-        animFrameId = null;
-        return;
+        return false;
       }
 
       isCanvasDirty = true;
       const width = window.innerWidth;
       const height = window.innerHeight;
       ctx.clearRect(0, 0, width, height);
-
-      const now = Date.now();
 
       for (let i = 0; i < activeFlyingArrows.length; i++) {
         const arrow = activeFlyingArrows[i];
@@ -1153,12 +1149,14 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
         ctx.restore();
       }
 
-      animFrameId = requestAnimationFrame(renderLoop);
+      return true;
     };
 
+    const loop = createAdaptiveFrameLoop(renderFrame);
+
     const startLoopIfNeeded = () => {
-      if (animFrameId === null && useGameStore.getState().activeFlyingArrows.length > 0) {
-        animFrameId = requestAnimationFrame(renderLoop);
+      if (useGameStore.getState().activeFlyingArrows.length > 0) {
+        loop.start();
       }
     };
 
@@ -1170,9 +1168,7 @@ export const ChampionArrowVFX: React.FC = React.memo(() => {
     });
 
     return () => {
-      if (animFrameId !== null) {
-        cancelAnimationFrame(animFrameId);
-      }
+      loop.stop();
       unsubscribeArrows();
       window.removeEventListener('resize', resize);
     };

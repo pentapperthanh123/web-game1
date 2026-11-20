@@ -43,6 +43,10 @@ export const CombatDeployBanner = () => {
 
   if (!isVisible) return null;
 
+  const titleText = t('CombatDeploy.title', 'XUNG TRẬN!');
+  const roundBadgeText = t('CombatDeploy.roundBadge', 'VÁN {{round}} CHÍNH THỨC BẮT ĐẦU', { round })
+    .replace(/\{\{\s*round\s*\}\}/gi, String(round));
+
   return (
     <div className="fixed inset-0 z-[70] pointer-events-none select-none flex flex-col items-center justify-center overflow-hidden">
       {/* 1. Dramatic Expanding Radial Shockwave Ring */}
@@ -53,26 +57,78 @@ export const CombatDeployBanner = () => {
       <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent blur-sm -translate-y-1/2" />
 
       {/* 3. Central 3D Slam Card */}
-      <div className="relative z-10 flex flex-col items-center justify-center px-8 py-5 rounded-3xl bg-slate-950/95 border-2 border-amber-400/90 shadow-[0_0_80px_rgba(245,158,11,0.9),inset_0_2px_8px_rgba(255,255,255,0.4)] animate-in zoom-in-50 fade-in duration-200 transform-gpu max-w-sm sm:max-w-md w-[92%]">
-        {/* Subtle Top Gold Highlight */}
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-yellow-200 to-transparent rounded-full shadow-[0_0_12px_#fde047]" />
+      <div className="relative z-10 flex flex-col items-center justify-center px-6 sm:px-10 py-5 sm:py-6 rounded-3xl bg-slate-950/96 border-2 border-amber-400/90 shadow-[0_0_90px_rgba(245,158,11,0.85),inset_0_2px_12px_rgba(255,255,255,0.4)] animate-in zoom-in-75 fade-in duration-200 max-w-md sm:max-w-xl w-[94%] overflow-hidden">
+        {/* Animated Top/Bottom Gold Highlight Lines */}
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent shadow-[0_0_15px_#fde047]" />
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-25deg] animate-gold-shimmer" />
+        </div>
 
         {/* Badge: Ván đấu */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/60 shadow-md">
           <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-bounce" />
           <span className="text-[11px] sm:text-xs font-black tracking-widest text-amber-200 uppercase font-mono">
-            {t('CombatDeploy.roundBadge', 'VÁN {{round}} CHÍNH THỨC BẮT ĐẦU', { round })}
+            {roundBadgeText}
           </span>
           <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-bounce" />
         </div>
 
-        {/* Epic Main Headline: XUNG TRẬN! */}
-        <div className="my-2 flex items-center justify-center gap-3">
-          <Swords className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400 drop-shadow-[0_0_16px_rgba(245,158,11,1)] animate-pulse" />
-          <h1 className="text-4xl sm:text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-600 drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] [text-shadow:0_0_30px_rgba(245,158,11,1),0_2px_4px_rgba(0,0,0,0.9)]">
-            {t('CombatDeploy.title', 'XUNG TRẬN!')}
-          </h1>
-          <Swords className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400 drop-shadow-[0_0_16px_rgba(245,158,11,1)] animate-pulse" />
+        {/* ── Epic Main Headline: XUNG TRẬN! (3D Radiant Typography) ── */}
+        <div className="relative my-2 sm:my-3.5 flex items-center justify-center gap-2 sm:gap-4 w-full px-2">
+          {/* Left Flaming Sword */}
+          <div className="relative shrink-0 flex items-center justify-center animate-sword-clash-left">
+            <Swords className="w-8 h-8 sm:w-11 sm:h-11 text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.9)]" />
+            <Flame className="absolute -top-2 -right-1 w-4 h-4 text-orange-400 fill-orange-400 animate-bounce" />
+          </div>
+
+          {/* ── 3D Ultra-Sharp High-Contrast Headline Container ── */}
+          <div className="relative flex items-center justify-center animate-combat-title-slam">
+            {/* 1. Underlying Crisp Anamorphic Laser Flare (Clean, Thin, Zero Haze) */}
+            <div className="absolute inset-x-[-20%] h-[2px] bg-gradient-to-r from-transparent via-amber-200 to-transparent opacity-80 pointer-events-none" />
+
+            {/* 2. Deep 3D Shadow Base Layer (translateY 4px, dark chocolate depth) */}
+            <span
+              aria-hidden="true"
+              className="absolute select-none font-black italic uppercase tracking-wider text-4xl sm:text-6xl md:text-7xl font-sans whitespace-nowrap"
+              style={{
+                color: '#1c0701',
+                transform: 'translateY(4px)',
+                filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.95))',
+              }}
+            >
+              {titleText}
+            </span>
+
+            {/* 3. Mid 3D Gold Bevel Rim (translateY 2px, burnished bronze-gold) */}
+            <span
+              aria-hidden="true"
+              className="absolute select-none font-black italic uppercase tracking-wider text-4xl sm:text-6xl md:text-7xl font-sans whitespace-nowrap"
+              style={{
+                color: '#78350f',
+                transform: 'translateY(2px)',
+              }}
+            >
+              {titleText}
+            </span>
+
+            {/* 4. Foreground Radiant Incandescent Face (100% Vector Crisp, Brilliant White-to-Gold) */}
+            <h1
+              className="relative z-10 font-black italic uppercase tracking-wider text-4xl sm:text-6xl md:text-7xl font-sans select-none whitespace-nowrap"
+              style={{
+                background: 'linear-gradient(180deg, #FFFFFF 0%, #FEF9C3 20%, #FDE047 45%, #F59E0B 75%, #B45309 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              {titleText}
+            </h1>
+          </div>
+
+          {/* Right Flaming Sword */}
+          <div className="relative shrink-0 flex items-center justify-center animate-sword-clash-right">
+            <Swords className="w-8 h-8 sm:w-11 sm:h-11 text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.9)]" />
+            <Flame className="absolute -top-2 -left-1 w-4 h-4 text-orange-400 fill-orange-400 animate-bounce" />
+          </div>
         </div>
 
         {/* Dual Team Clash Subtitle */}

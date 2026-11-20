@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { DAMAGE_TYPE, GAME_CONSTANTS } from '../../constants/game';
 import { ChampionHitEvent, onChampionHit } from '../../services/championHitFeedback';
+import { createAdaptiveFrameLoop } from '../../services/workerScheduler';
 import { DamageTextSprite, getDamageTextSprite } from './damageTextSprites';
 
 const NUMBER_LIFETIME_MS = 1100;
@@ -33,7 +34,7 @@ const getPopScale = (progress: number): number => {
 
 const easeOutCubic = (value: number): number => 1 - Math.pow(1 - value, 3);
 
-const resolvePixelRatio = (): number => Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.DPR_MAX);
+const resolvePixelRatio = (): number => GAME_CONSTANTS.RENDER.FIXED_DPR;
 
 const buildDamageNumber = (event: ChampionHitEvent): DamageNumber | null => {
   if (event.amount <= 0) return null;
@@ -86,7 +87,6 @@ export const ChampionDamageNumbers = React.memo(() => {
     if (!canvas || !ctx) return undefined;
 
     const numbers: DamageNumber[] = [];
-    let frameId: number | null = null;
     let pixelRatio = resolvePixelRatio();
 
     const resizeCanvas = () => {
@@ -95,18 +95,17 @@ export const ChampionDamageNumbers = React.memo(() => {
       canvas.height = Math.round(window.innerHeight * pixelRatio);
     };
 
-    const renderFrame = () => {
+    const loop = createAdaptiveFrameLoop((now) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const activeCount = drawDamageNumbers(ctx, numbers, pixelRatio, Date.now());
-      frameId = activeCount > 0 ? requestAnimationFrame(renderFrame) : null;
-    };
+      return drawDamageNumbers(ctx, numbers, pixelRatio, now) > 0;
+    });
 
     const handleHit = (event: ChampionHitEvent) => {
       if (numbers.length >= MAX_ACTIVE_NUMBERS) return;
       const damageNumber = buildDamageNumber(event);
       if (!damageNumber) return;
       numbers.push(damageNumber);
-      if (frameId === null) frameId = requestAnimationFrame(renderFrame);
+      loop.start();
     };
 
     resizeCanvas();
@@ -115,7 +114,7 @@ export const ChampionDamageNumbers = React.memo(() => {
     return () => {
       unsubscribe();
       window.removeEventListener('resize', resizeCanvas);
-      if (frameId !== null) cancelAnimationFrame(frameId);
+      loop.stop();
     };
   }, []);
 

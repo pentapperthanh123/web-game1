@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { workerSetInterval } from '../../../services/workerScheduler';
 import { Vec3Tuple, resolveBossAnchorWorld } from './bossSkill3DShared';
 
 export const BOSS_ANCHOR_TRACKING = {
@@ -31,8 +32,7 @@ export const useTrackedBossAnchor = (elementId: string, initial: Vec3Tuple): Tra
       anchor.target.set(x, y, z);
     };
     sampleAnchor();
-    const timer = window.setInterval(sampleAnchor, BOSS_ANCHOR_TRACKING.SAMPLE_INTERVAL_MS);
-    return () => window.clearInterval(timer);
+    return workerSetInterval(sampleAnchor, BOSS_ANCHOR_TRACKING.SAMPLE_INTERVAL_MS);
   }, [anchor, elementId, initial]);
 
   return anchor;

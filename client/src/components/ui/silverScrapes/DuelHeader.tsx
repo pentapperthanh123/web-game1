@@ -32,7 +32,7 @@ export const DuelHeader: React.FC<DuelHeaderProps> = React.memo(
         </div>
 
         {/* Stadium Digital Clock & Progress Bar */}
-        <div className="w-full max-w-[260px] flex flex-col items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-900/80 border border-slate-700/60 backdrop-blur-md shadow-lg">
+        <div className="w-full max-w-[260px] flex flex-col items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-900/94 border border-slate-700/60 shadow-lg">
           <div
             className={clsx(
               'flex items-center gap-2 font-mono text-3xl sm:text-4xl font-black tracking-widest tabular-nums',

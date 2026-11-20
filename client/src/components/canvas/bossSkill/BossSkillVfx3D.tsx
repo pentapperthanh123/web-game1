@@ -3,6 +3,11 @@ import { useGameStore } from '../../../store/gameStore';
 import { BOSS_SKILL_VFX, BossSkillVfxType } from '../../../types/bossSkill';
 import { BOSS_STATUS } from '../../../constants/game';
 import { getSkillVfxWindowMs } from '../../../constants/bossSkillVfx';
+import {
+  CancelTimer,
+  isRenderThrottled,
+  workerSetTimeout,
+} from '../../../services/workerScheduler';
 import { SkillVfx3DProps, buildSkillVfx3DProps, buildSkillVfxLayerProps } from './bossSkill3DShared';
 import { ProjectileArc3D } from './ProjectileArc3D';
 import { GroundSpikes3D } from './GroundSpikes3D';
@@ -48,11 +53,17 @@ interface SkillVfxLayerMountProps {
  */
 const PAINT_FRAMES_BEFORE_MOUNT = 2;
 
-/** Runs `callback` after `frameCount` animation frames; returns a cancel function. */
+/** Runs `callback` after `frameCount` animation frames (or immediately via Worker when throttled); returns a cancel function. */
 const runAfterFrames = (frameCount: number, callback: () => void): (() => void) => {
+  if (isRenderThrottled() || typeof requestAnimationFrame !== 'function') {
+    return workerSetTimeout(callback, 0);
+  }
+
   let frameId = 0;
+  let isCancelled = false;
   const waitFrames = (framesLeft: number): void => {
     frameId = requestAnimationFrame(() => {
+      if (isCancelled) return;
       if (framesLeft <= 1) {
         callback();
         return;
@@ -61,7 +72,10 @@ const runAfterFrames = (frameCount: number, callback: () => void): (() => void) 
     });
   };
   waitFrames(frameCount);
-  return () => cancelAnimationFrame(frameId);
+  return () => {
+    isCancelled = true;
+    cancelAnimationFrame(frameId);
+  };
 };
 
 /** Mounts one archetype (main VFX or extra layer) only while its own clip plays. */
@@ -82,10 +96,10 @@ const SkillVfxLayerMount = ({ vfxProps, Component }: SkillVfxLayerMountProps) =>
     }
 
     let cancelFrames: (() => void) | null = null;
-    let startTimer: ReturnType<typeof setTimeout> | null = null;
+    let cancelStartTimer: CancelTimer | null = null;
 
     if (startDelayMs > 0) {
-      startTimer = setTimeout(() => {
+      cancelStartTimer = workerSetTimeout(() => {
         cancelFrames = runAfterFrames(PAINT_FRAMES_BEFORE_MOUNT, () => setIsPlaying(true));
       }, startDelayMs);
     } else {
@@ -93,11 +107,11 @@ const SkillVfxLayerMount = ({ vfxProps, Component }: SkillVfxLayerMountProps) =>
       setIsPlaying(true);
     }
 
-    const endTimer = setTimeout(() => setIsPlaying(false), remainingDurationMs);
+    const cancelEndTimer = workerSetTimeout(() => setIsPlaying(false), remainingDurationMs);
 
     return () => {
-      if (startTimer) clearTimeout(startTimer);
-      clearTimeout(endTimer);
+      cancelStartTimer?.();
+      cancelEndTimer();
       cancelFrames?.();
     };
   }, [vfxProps.startedAt, vfxProps.durationMs]);
@@ -124,8 +138,7 @@ export const BossSkillVfx3D = () => {
       return;
     }
     setIsWindowOpen(true);
-    const timer = setTimeout(() => setIsWindowOpen(false), remainingMs);
-    return () => clearTimeout(timer);
+    return workerSetTimeout(() => setIsWindowOpen(false), remainingMs);
   }, [activeBossSkillBanner]);
 
   // Anchors are read once per cast: the boss keeps patrolling, but the attack leaves from where it was

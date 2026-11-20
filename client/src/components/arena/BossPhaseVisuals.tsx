@@ -1,34 +1,27 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { BOSS_MECHANICS_CONSTANTS } from '../../constants/game';
+import { BossPhase } from '../../types/bossSkill';
+import { workerSetInterval } from '../../services/workerScheduler';
 
-interface BossPhaseVisualsProps {
-  bossHp: number;
-  bossMaxHp: number;
+interface BossArmorCracksProps {
+  phase: BossPhase;
   crackColor?: string;
   isDefeated: boolean;
 }
 
-const resolveBossPhase = (bossHp: number, bossMaxHp: number): 1 | 2 | 3 => {
-  if (bossMaxHp <= 0) return 1;
-  const ratio = bossHp / bossMaxHp;
-  if (ratio <= BOSS_MECHANICS_CONSTANTS.PHASES.PHASE_3_THRESHOLD_PERCENT) return 3;
-  if (ratio <= BOSS_MECHANICS_CONSTANTS.PHASES.PHASE_2_THRESHOLD_PERCENT) return 2;
-  return 1;
-};
+interface BossPhaseVisualsProps {
+  isDefeated: boolean;
+}
 
-export const BossArmorCracks = ({
-  bossHp,
-  bossMaxHp,
+export const BossArmorCracks = React.memo(({
+  phase,
   crackColor = '#c084fc',
   isDefeated,
-}: BossPhaseVisualsProps) => {
-  if (isDefeated) return null;
-
-  const phase = resolveBossPhase(bossHp, bossMaxHp);
-  if (phase < 2) return null;
+}: BossArmorCracksProps) => {
+  if (isDefeated || phase < 2) return null;
 
   const crackStrokeColor = crackColor;
   const crackSecondaryColor = phase === 3 ? '#f43f5e' : '#38bdf8';
@@ -68,27 +61,42 @@ export const BossArmorCracks = ({
       )}
     </svg>
   );
-};
+});
 
-export const BossPhaseVisuals = ({
-  bossHp,
-  bossMaxHp,
+BossArmorCracks.displayName = 'BossArmorCracks';
+
+export const BossPhaseVisuals = React.memo(({
   isDefeated,
-}: Omit<BossPhaseVisualsProps, 'crackColor'>) => {
+}: BossPhaseVisualsProps) => {
   const { t } = useTranslation();
   const bossShield = useGameStore((state) => state.bossShield);
   const bossShieldBrokenTimestamp = useGameStore((state) => state.bossShieldBrokenTimestamp);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!bossShield && bossShieldBrokenTimestamp === 0) {
+    const currentNow = Date.now();
+    const isBrokenBannerActive =
+      bossShieldBrokenTimestamp > 0 &&
+      currentNow - bossShieldBrokenTimestamp <= BOSS_MECHANICS_CONSTANTS.SHIELD.BROKEN_BANNER_MS;
+    if (!bossShield && !isBrokenBannerActive) {
       return;
     }
-    const timer = setInterval(() => setNow(Date.now()), 200);
-    return () => clearInterval(timer);
+
+    setNow(currentNow);
+    const cancelTimer = workerSetInterval(() => {
+      const tickNow = Date.now();
+      setNow(tickNow);
+      const stillBrokenNotice =
+        bossShieldBrokenTimestamp > 0 &&
+        tickNow - bossShieldBrokenTimestamp <= BOSS_MECHANICS_CONSTANTS.SHIELD.BROKEN_BANNER_MS;
+      if (!bossShield && !stillBrokenNotice) {
+        cancelTimer();
+      }
+    }, 200);
+    return cancelTimer;
   }, [bossShield, bossShieldBrokenTimestamp]);
 
-  if (isDefeated || bossHp <= 0 || bossMaxHp <= 0) return null;
+  if (isDefeated) return null;
 
   const showShieldBrokenNotice =
     bossShieldBrokenTimestamp > 0 &&
@@ -144,4 +152,6 @@ export const BossPhaseVisuals = ({
       )}
     </>
   );
-};
+});
+
+BossPhaseVisuals.displayName = 'BossPhaseVisuals';

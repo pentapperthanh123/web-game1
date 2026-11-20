@@ -1,5 +1,6 @@
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
+import { BackgroundFrameDriver } from './BackgroundFrameDriver';
 import { CameraRig } from './CameraRig';
 import { ChampionBarrage } from './ChampionBarrage';
 import { FloatingHearts } from './FloatingHearts';
@@ -31,7 +32,7 @@ export const GameCanvas = React.memo(() => {
           position: [0, GAME_CONSTANTS.RENDER.CAMERA_POS_Y, GAME_CONSTANTS.RENDER.CAMERA_POS_Z],
           fov: GAME_CONSTANTS.RENDER.CAMERA_FOV,
         }}
-        dpr={[GAME_CONSTANTS.RENDER.DPR_MIN, GAME_CONSTANTS.RENDER.DPR_MAX]}
+        dpr={GAME_CONSTANTS.RENDER.FIXED_DPR}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -39,8 +40,9 @@ export const GameCanvas = React.memo(() => {
           stencil: false,
           depth: true,
         }}
-        frameloop="always"
+        frameloop="never"
       >
+        <BackgroundFrameDriver />
         <CameraRig />
         <CinematicCameraController />
         <ArenaEnvironment />

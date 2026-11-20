@@ -29,6 +29,7 @@ import { requestRoundStart, triggerStartRoundCombat } from '../../../services/ro
 import { GiftsPage, MatchupPage, RulesPage } from './RoundIntroPages';
 import { CinematicEsportsIntro } from './CinematicEsportsIntro';
 import { preloadCinematicIntroScore } from '../../../services/audio/cinematicIntroScore';
+import { workerSetInterval, workerSetTimeout } from '../../../services/workerScheduler';
 
 type IntroTab = 'MATCHUP' | 'RULES' | 'GIFTS';
 const TICK_MS = 200;
@@ -49,7 +50,7 @@ const useIntroElapsed = (
     }
     setElapsed(Date.now() - shownAt);
 
-    const timer = window.setInterval(() => {
+    return workerSetInterval(() => {
       const now = Date.now();
       const nextElapsed = now - shownAt;
       setElapsed(nextElapsed);
@@ -58,8 +59,6 @@ const useIntroElapsed = (
         onComplete();
       }
     }, TICK_MS);
-
-    return () => window.clearInterval(timer);
   }, [shownAt, totalMs, isManualHold, onComplete]);
 
   return isManualHold ? 0 : elapsed;
@@ -180,8 +179,7 @@ export const RoundIntroOverlay = () => {
     };
 
     checkAutoStart();
-    const interval = window.setInterval(checkAutoStart, 250);
-    return () => window.clearInterval(interval);
+    return workerSetInterval(checkAutoStart, 250);
   }, [isManualHold, autoStartAt]);
 
   // Decode the VS cinematic files while the intro card waits, so its first cue plays on time
@@ -324,13 +322,11 @@ export const RoundIntroOverlay = () => {
         }
       ).replace(/\{\{\s*round\s*\}\}/gi, roundWord);
 
-      const delayTimer = window.setTimeout(() => {
+      return workerSetTimeout(() => {
         if (narrationIdRef.current === currentNarrationId) {
           VoiceManager.speakDynamic(speechText);
         }
       }, 500);
-
-      return () => window.clearTimeout(delayTimer);
     }
 
     if (activeTab === 'RULES') {
@@ -343,14 +339,12 @@ export const RoundIntroOverlay = () => {
         'Bấm tim liên tục nạp Nộ kích hoạt Tuyệt Kỹ, đội nào dồn nhiều sát thương hơn lên Boss sẽ giành chiến thắng!'
       );
 
-      const delayTimer = window.setTimeout(() => {
+      return workerSetTimeout(() => {
         if (narrationIdRef.current === currentNarrationId) {
           VoiceManager.speakDynamic(rulePart1);
           VoiceManager.speakDynamic(rulePart2);
         }
       }, 300);
-
-      return () => window.clearTimeout(delayTimer);
     }
 
     if (activeTab === 'GIFTS') {
@@ -363,14 +357,12 @@ export const RoundIntroOverlay = () => {
         'Khán giả hãy xem bảng quà tặng ở góc phải màn hình để tiếp lửa cho các tuyển thủ nhé!'
       );
 
-      const delayTimer = window.setTimeout(() => {
+      return workerSetTimeout(() => {
         if (narrationIdRef.current === currentNarrationId) {
           VoiceManager.speakDynamic(giftPart1);
           VoiceManager.speakDynamic(giftPart2);
         }
       }, 300);
-
-      return () => window.clearTimeout(delayTimer);
     }
   }, [
     shownAt,
@@ -439,7 +431,7 @@ export const RoundIntroOverlay = () => {
 
   return (
     <div
-      className={`fixed inset-0 z-[65] pointer-events-auto flex flex-col items-center justify-center p-2 sm:p-4 select-none bg-slate-950/96 backdrop-blur-3xl transition-opacity duration-300 overflow-hidden ${
+      className={`fixed inset-0 z-[65] pointer-events-auto flex flex-col items-center justify-center p-2 sm:p-4 select-none bg-slate-950/98 transition-opacity duration-300 overflow-hidden ${
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
@@ -455,18 +447,14 @@ export const RoundIntroOverlay = () => {
         </div>
       ) : null}
 
-      {/* Background Cyber Ambient Lights & Dual Stadium Spotlights */}
+      {/* Background Cyber Ambient Lights & Stage Glows */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Left Team Spotlight */}
-        <div className="absolute -top-16 left-1/4 w-[320px] h-[750px] bg-gradient-to-b from-cyan-400/25 via-blue-600/10 to-transparent blur-3xl origin-top animate-spotlight-left pointer-events-none" />
-        {/* Right Team Spotlight */}
-        <div className="absolute -top-16 right-1/4 w-[320px] h-[750px] bg-gradient-to-b from-amber-400/25 via-yellow-600/10 to-transparent blur-3xl origin-top animate-spotlight-right pointer-events-none" />
         {/* Ambient Stage Glows */}
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[400px] bg-gradient-to-b from-amber-500/25 via-yellow-500/15 to-transparent blur-3xl opacity-90" />
         <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[680px] h-[380px] bg-gradient-to-t from-blue-600/25 via-cyan-500/15 to-transparent blur-3xl opacity-80" />
       </div>
 
-      <div className="relative z-10 w-full max-w-xl md:max-w-2xl h-[95vh] max-h-[850px] flex flex-col justify-between rounded-3xl border-2 border-amber-400/70 bg-slate-950/95 p-3.5 sm:p-5 shadow-[0_20px_70px_rgba(0,0,0,0.95),0_0_55px_rgba(245,158,11,0.4)] backdrop-blur-3xl animate-round-intro-in animate-hextech-glow select-none overflow-hidden">
+      <div className="relative z-10 w-full max-w-xl md:max-w-2xl h-[95vh] max-h-[850px] flex flex-col justify-between rounded-3xl border-2 border-amber-400/70 bg-slate-950/95 p-3.5 sm:p-5 shadow-[0_20px_70px_rgba(0,0,0,0.95),0_0_55px_rgba(245,158,11,0.4)] animate-round-intro-in animate-hextech-glow select-none overflow-hidden">
         {/* Top Header */}
         <div className="shrink-0 mb-2 border-b border-white/10 pb-2">
           <div className="flex flex-wrap items-center justify-between gap-y-1 gap-x-2">

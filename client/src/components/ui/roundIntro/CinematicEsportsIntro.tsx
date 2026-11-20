@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Swords, FastForward, Trophy } from 'lucide-react';
 import { TeamProfile } from '../../../types/team';
 import { TEAM_KEY } from '../../../constants/game';
-import { getTeamTheme } from '../../../constants/teams';
 import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../../utils/introStar';
 import { playCinematicIntroScore } from '../../../services/audio/cinematicIntroScore';
 import { STAR_CARD_SIDE, StarFighterCard } from './StarFighterCard';
 import { DEFAULT_INTRO_BACKGROUND } from '../../../constants/introBackgrounds';
+import { workerSetTimeout } from '../../../services/workerScheduler';
 
 interface CinematicEsportsIntroProps {
   leftTeam: TeamProfile;
@@ -33,8 +33,6 @@ export const CinematicEsportsIntro: React.FC<CinematicEsportsIntroProps> = ({
   const { t } = useTranslation();
   const isFinishedRef = useRef(false);
 
-  const leftTheme = getTeamTheme(leftTeam.colorTheme);
-  const rightTheme = getTeamTheme(rightTeam.colorTheme);
   const leftTeamKey = TEAM_KEY.BLG;
   const rightTeamKey = TEAM_KEY.GENG;
 
@@ -53,12 +51,12 @@ export const CinematicEsportsIntro: React.FC<CinematicEsportsIntroProps> = ({
     const score = playCinematicIntroScore();
 
     // Auto complete when the cinematic ends (3.5s)
-    const finishTimer = window.setTimeout(() => {
+    const cancelFinishTimer = workerSetTimeout(() => {
       handleFinish();
     }, CINEMATIC_TIMING_MS.AUTO_FINISH);
 
     return () => {
-      window.clearTimeout(finishTimer);
+      cancelFinishTimer();
       // Skip or unmount: fade the score instead of letting it play over the next screen
       score.stop();
     };
@@ -105,37 +103,6 @@ export const CinematicEsportsIntro: React.FC<CinematicEsportsIntroProps> = ({
         {/* Full-screen impact white flash */}
         <div className="absolute inset-0 bg-white pointer-events-none animate-impact-flash z-30" />
 
-        {/* Ambient Stadium Dual Spotlights */}
-        <div
-          className="absolute -top-24 left-1/4 w-[480px] h-[850px] blur-3xl opacity-60 pointer-events-none animate-spotlight-left mix-blend-screen"
-          style={{
-            background: `radial-gradient(circle, ${leftTheme.primaryHex}60 0%, ${leftTheme.primaryHex}10 60%, transparent 100%)`,
-          }}
-        />
-        <div
-          className="absolute -top-24 right-1/4 w-[480px] h-[850px] blur-3xl opacity-60 pointer-events-none animate-spotlight-right mix-blend-screen"
-          style={{
-            background: `radial-gradient(circle, ${rightTheme.primaryHex}60 0%, ${rightTheme.primaryHex}10 60%, transparent 100%)`,
-          }}
-        />
-
-        {/* ── Diagonal Kinetic Team Slashes (Dual Team Color Clash) ──────── */}
-        <div
-          className="absolute -top-32 -bottom-32 -left-1/4 w-3/4 animate-kinetic-slash-left pointer-events-none mix-blend-screen"
-          style={{
-            background: `linear-gradient(115deg, ${leftTheme.primaryHex}60 0%, ${leftTheme.primaryHex}15 60%, transparent 100%)`,
-          }}
-        />
-        <div
-          className="absolute -top-32 -bottom-32 -right-1/4 w-3/4 animate-kinetic-slash-right pointer-events-none mix-blend-screen"
-          style={{
-            background: `linear-gradient(295deg, ${rightTheme.primaryHex}60 0%, ${rightTheme.primaryHex}15 60%, transparent 100%)`,
-          }}
-        />
-
-        {/* ── Center Energy Fissure Seam ─────────────────────────────────── */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-1 sm:w-1.5 bg-gradient-to-b from-amber-300 via-white to-amber-400 opacity-80 skew-x-[-15deg] shadow-[0_0_25px_rgba(251,191,36,0.9)] animate-fissure-glow pointer-events-none z-10" />
-
         {/* ── Floating Embers & Sparks ───────────────────────────────────── */}
         <div className="absolute bottom-10 left-[18%] w-2 h-2 rounded-full bg-rose-400 blur-[0.5px] animate-ember-1 pointer-events-none" />
         <div className="absolute bottom-16 left-[46%] w-2.5 h-2.5 rounded-full bg-amber-300 blur-[0.5px] animate-ember-2 pointer-events-none" />
@@ -174,7 +141,7 @@ export const CinematicEsportsIntro: React.FC<CinematicEsportsIntroProps> = ({
 
           {/* 4. Bottom Kinetic Typography Recoil Banner */}
           <div className="absolute bottom-14 sm:bottom-20 left-1/2 -translate-x-1/2 text-center pointer-events-none z-30 animate-round-title-recoil w-full px-4">
-            <div className="inline-block px-4 py-1 rounded-full bg-slate-900/80 border border-amber-400/40 mb-2 shadow-lg backdrop-blur-md">
+            <div className="inline-block px-4 py-1 rounded-full bg-slate-900/92 border border-amber-400/40 mb-2 shadow-lg">
               <span className="text-[10px] sm:text-xs font-black tracking-widest uppercase text-amber-300 font-mono">
                 ⚔️ {leftTeam.shortTag} VS {rightTeam.shortTag} • {seriesFormat}
               </span>

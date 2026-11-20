@@ -230,6 +230,13 @@ export interface FloatingDamageText {
   createdAt: number;
 }
 
+export interface ChatMessageInput {
+  userName: string;
+  text: string;
+  team?: TeamType;
+  championName?: string;
+}
+
 export interface LiveChatMessage {
   id: string;
   userName: string;
@@ -659,6 +666,7 @@ export interface GameState {
   ) => void;
   addLikes: (count: number, team: TeamType, userName?: string) => void;
   addChatMessage: (userName: string, text: string, team?: TeamType, championName?: string) => void;
+  addChatMessagesBatch: (items: readonly ChatMessageInput[]) => void;
   spawnProjectile: (
     from: [number, number, number],
     color: string,

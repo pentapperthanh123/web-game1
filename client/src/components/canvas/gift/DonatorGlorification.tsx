@@ -6,6 +6,7 @@ import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
 import { useGameStore } from '../../../store/gameStore';
 import { useGiftVfxStore } from '../../../store/giftVfxStore';
 import { getTeamTheme } from '../../../constants/teams';
+import { BACKGROUND_PERF_CONSTANTS } from '../../../constants/game';
 
 // ==========================================
 // CONSTANTS & POOLS
@@ -65,6 +66,8 @@ export const DonatorGlorification: React.FC = React.memo(() => {
   // ----------------------------------------
   const hologramMeshRef = useRef<THREE.Mesh>(null);
   const decalPoolGroupRef = useRef<THREE.Group>(null);
+  const decalRingRefs = useRef<(THREE.Mesh | null)[]>([]);
+  const hasBurnDecals = useGiftVfxStore((s) => s.activeBurnDecals.length > 0);
 
   // Dynamic Avatar Texture Loader
   const avatarTextureRef = useRef<THREE.Texture | null>(null);
@@ -90,6 +93,13 @@ export const DonatorGlorification: React.FC = React.memo(() => {
   // MEGA GIFT LISTENER (TRIGGERS SKY HOLOGRAM)
   // ----------------------------------------
   useEffect(() => {
+    let isDisposed = false;
+    const disposeAvatarTexture = () => {
+      if (!avatarTextureRef.current) return;
+      avatarTextureRef.current.dispose();
+      avatarTextureRef.current = null;
+    };
+
     const unsub = useGiftVfxStore.subscribe((state, prevState) => {
       if (state.activeMegaWeapon && state.activeMegaWeapon !== prevState.activeMegaWeapon) {
         const weapon = state.activeMegaWeapon;
@@ -110,6 +120,11 @@ export const DonatorGlorification: React.FC = React.memo(() => {
           loader.load(
             weapon.donorAvatarUrl,
             (texture) => {
+              if (isDisposed) {
+                texture.dispose();
+                return;
+              }
+              disposeAvatarTexture();
               texture.minFilter = THREE.LinearFilter;
               avatarTextureRef.current = texture;
               hologramUniforms.uTexture.value = texture;
@@ -117,10 +132,14 @@ export const DonatorGlorification: React.FC = React.memo(() => {
             },
             undefined,
             () => {
-              hologramUniforms.uHasTexture.value = false;
+              if (!isDisposed) {
+                hologramUniforms.uHasTexture.value = false;
+              }
             }
           );
         } else {
+          disposeAvatarTexture();
+          hologramUniforms.uTexture.value = null;
           hologramUniforms.uHasTexture.value = false;
         }
 
@@ -130,19 +149,24 @@ export const DonatorGlorification: React.FC = React.memo(() => {
       }
     });
 
-    return () => unsub();
+    return () => {
+      isDisposed = true;
+      unsub();
+      disposeAvatarTexture();
+    };
   }, [hologramUniforms]);
 
   // ----------------------------------------
-  // FRAME ANIMATION (60 FPS MUTATION)
+  // FRAME ANIMATION (60 FPS / 30 FPS IN BACKGROUND)
   // ----------------------------------------
   useFrame((state, delta) => {
+    const safeDelta = Math.min(BACKGROUND_PERF_CONSTANTS.MAX_FRAME_DELTA_S, delta);
     const time = state.clock.getElapsedTime();
     hologramUniforms.uTime.value = time;
 
     // 1. Sky Hologram Pulse & Fade
     if (hologramState.current.active && hologramMeshRef.current) {
-      hologramState.current.timer += delta;
+      hologramState.current.timer += safeDelta;
       const progress = hologramState.current.timer / hologramState.current.maxDuration;
 
       // Slight floating motion
@@ -173,9 +197,9 @@ export const DonatorGlorification: React.FC = React.memo(() => {
         group.position.set(decal.pos[0], decal.pos[1], decal.pos[2]);
 
         // Breathing flame pulse
-        const ring = group.getObjectByName('DecalRing') as THREE.Mesh;
+        const ring = decalRingRefs.current[i];
         if (ring) {
-          ring.rotation.z += delta * 0.8;
+          ring.rotation.z += safeDelta * 0.8;
           const pulse = 1.0 + Math.sin(time * 4.0 + i * 2.0) * 0.05;
           ring.scale.set(pulse, pulse, 1);
         }
@@ -204,43 +228,47 @@ export const DonatorGlorification: React.FC = React.memo(() => {
         />
       </mesh>
 
-      {/* 2. Pre-allocated Finisher Decals (Permanent Burn Marks) */}
-      <group ref={decalPoolGroupRef}>
-        {Array.from({ length: MAX_BURN_DECALS }, (_, i) => (
-          <group key={`decal-holder-${i}`} visible={false}>
-            {/* Scorched Ground Ring */}
-            <mesh
-              name="DecalRing"
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, 0.02, 0]}
-            >
-              <ringGeometry args={[1.6, 2.3, 32]} />
-              <meshBasicMaterial
-                toneMapped={false}
-                color="#f59e0b"
-                transparent
-                opacity={0.65}
-                side={THREE.DoubleSide}
-                {...COLOR_ONLY_ADDITIVE_PROPS}
-              />
-            </mesh>
-
-            {/* Etched Rune Text on Arena Floor */}
-            <group position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <Text
-                fontSize={0.28}
-                color="#fbbf24"
-                anchorX="center"
-                anchorY="middle"
-                outlineWidth={0.03}
-                outlineColor="#78350f"
+      {/* 2. Finisher Decals (Mounted only when a finisher decal is present to avoid idle Troika Text overhead) */}
+      {hasBurnDecals && (
+        <group ref={decalPoolGroupRef}>
+          {Array.from({ length: MAX_BURN_DECALS }, (_, i) => (
+            <group key={`decal-holder-${i}`} visible={false}>
+              {/* Scorched Ground Ring */}
+              <mesh
+                ref={(mesh) => {
+                  decalRingRefs.current[i] = mesh;
+                }}
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[0, 0.02, 0]}
               >
-                🔥 KẾT LIỄU THẦN THÁNH
-              </Text>
+                <ringGeometry args={[1.6, 2.3, 32]} />
+                <meshBasicMaterial
+                  toneMapped={false}
+                  color="#f59e0b"
+                  transparent
+                  opacity={0.65}
+                  side={THREE.DoubleSide}
+                  {...COLOR_ONLY_ADDITIVE_PROPS}
+                />
+              </mesh>
+
+              {/* Etched Rune Text on Arena Floor */}
+              <group position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <Text
+                  fontSize={0.28}
+                  color="#fbbf24"
+                  anchorX="center"
+                  anchorY="middle"
+                  outlineWidth={0.03}
+                  outlineColor="#78350f"
+                >
+                  🔥 KẾT LIỄU THẦN THÁNH
+                </Text>
+              </group>
             </group>
-          </group>
-        ))}
-      </group>
+          ))}
+        </group>
+      )}
     </group>
   );
 });

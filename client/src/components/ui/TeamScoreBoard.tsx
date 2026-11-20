@@ -10,6 +10,7 @@ import { TeamComboBadge, MIN_COMBO_DISPLAY_COUNT } from './TeamComboBadge';
 import { SummonSpotlight } from './SummonShowcase';
 import { MatchupTitleTally } from './MatchupTitleTally';
 import { TeamLiveStatusRow } from './TeamLiveStatusRow';
+import { TeamMatchMvpStrip } from './TeamMatchMvpStrip';
 import { isComebackBuffActive } from '../../store/comebackRules';
 import { SilverScrapesEqualizerBars } from './silverScrapes/SilverScrapesVisualizer';
 
@@ -374,6 +375,9 @@ export const TeamScoreBoard = React.memo(() => {
       <div className="relative w-full mt-1 sm:mt-1.5">
         <TugOfWarBar leftTheme={leftTheme} rightTheme={rightTheme} />
       </div>
+
+      {/* Per-team Round MVP Strip */}
+      <TeamMatchMvpStrip />
 
       <TeamLiveStatusRow />
 

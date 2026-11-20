@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { GIFT_TIER } from '../../../constants/game';
+import { BACKGROUND_PERF_CONSTANTS, GIFT_TIER } from '../../../constants/game';
 import { getMegaGradeConfig, resolveAnnouncementCoins } from '../../../store/giftTier';
 import { BOSS_ANCHOR_ELEMENT_ID } from '../../../constants/bossSpriteAnchors';
 import { resolveBossAnchorWorld } from '../bossSkill/bossSkill3DShared';
@@ -95,9 +95,10 @@ export const GiftSkyBeam = () => {
     });
     materials.ring.opacity = pulseWindow(progress, TIMELINE.RING_START, 1) * OPACITY.RING;
 
+    const safeDelta = Math.min(BACKGROUND_PERF_CONSTANTS.MAX_FRAME_DELTA_S, delta);
     if (!raysRef.current) return;
     raysRef.current.visible = isMega;
-    raysRef.current.rotation.y += delta * SIZE.RAY_SPIN;
+    raysRef.current.rotation.y += safeDelta * SIZE.RAY_SPIN;
     materials.ray.opacity = pulseWindow(progress, TIMELINE.RAYS_START, TIMELINE.RAYS_END) * OPACITY.RAY;
   });
 

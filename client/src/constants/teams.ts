@@ -338,6 +338,36 @@ export const getTeamTheme = (themeId?: TeamColorThemeId): TeamColorPalette => {
   return TEAM_COLOR_THEMES.cyan;
 };
 
+/**
+ * Resolves the 1 or 2 quick-summon command number for a team based on active matchup slots.
+ * Slot 0 (left team) -> 1
+ * Slot 1 (right team) -> 2
+ */
+export const getTeamCommandNumber = (
+  team: string | undefined,
+  activeTeams?: ActiveTeamsMap
+): number => {
+  if (!team) return 1;
+  if (!activeTeams) {
+    return team === TEAM_KEY.GENG ? 2 : 1;
+  }
+  const keys = Object.keys(activeTeams) as TeamType[];
+  if (keys[1] === team) return 2;
+  if (keys[0] === team) return 1;
+
+  const rightTeam = activeTeams[keys[1] ?? TEAM_KEY.GENG];
+  if (
+    rightTeam &&
+    (rightTeam.shortTag === team ||
+      rightTeam.id === team ||
+      rightTeam.name.toLowerCase() === team.toLowerCase())
+  ) {
+    return 2;
+  }
+
+  return 1;
+};
+
 export const HOT_MATCHUPS: readonly HotMatchupPreset[] = [
   { id: 't1-blg', label: 'T1 vs BLG', leftTeamId: 'preset-t1', rightTeamId: 'preset-blg' },
   { id: 't1-gen', label: 'T1 vs GEN', leftTeamId: 'preset-t1', rightTeamId: 'preset-geng' },
@@ -1493,14 +1523,22 @@ export const matchCommentTeam = (
 ): TeamType | undefined => {
   if (!comment || !comment.trim()) return undefined;
   const normalized = normalizeMatchText(comment);
-  const leftKeywords = getEffectiveTeamKeywords(activeTeams[TEAM_KEY.BLG]);
-  const rightKeywords = getEffectiveTeamKeywords(activeTeams[TEAM_KEY.GENG]);
+  const teamKeys = Object.keys(activeTeams || {}) as TeamType[];
+  const leftSlot = teamKeys[0] ?? TEAM_KEY.BLG;
+  const rightSlot = teamKeys[1] ?? TEAM_KEY.GENG;
+
+  const leftKeywords = activeTeams[leftSlot]
+    ? [...getEffectiveTeamKeywords(activeTeams[leftSlot]), '1']
+    : ['1'];
+  const rightKeywords = activeTeams[rightSlot]
+    ? [...getEffectiveTeamKeywords(activeTeams[rightSlot]), '2']
+    : ['2'];
 
   const leftIdx = findKeywordMatchIndex(normalized, leftKeywords);
   const rightIdx = findKeywordMatchIndex(normalized, rightKeywords);
 
   if (leftIdx === -1 && rightIdx === -1) return undefined;
-  if (leftIdx !== -1 && rightIdx === -1) return TEAM_KEY.BLG;
-  if (rightIdx !== -1 && leftIdx === -1) return TEAM_KEY.GENG;
-  return leftIdx <= rightIdx ? TEAM_KEY.BLG : TEAM_KEY.GENG;
+  if (leftIdx !== -1 && rightIdx === -1) return leftSlot;
+  if (rightIdx !== -1 && leftIdx === -1) return rightSlot;
+  return leftIdx <= rightIdx ? leftSlot : rightSlot;
 };

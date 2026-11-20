@@ -41,7 +41,7 @@ const BOARD_THEME_MAP: Readonly<Record<LeaderboardBoardMode, BoardThemeStyle>> =
     emptyKey: 'SessionBoard.noSessionPlayersYet',
     emptyFallback: 'Chưa có sát thương phiên này, hãy chat tên tướng!',
     containerBorderClass:
-      'border-amber-400/50 bg-gradient-to-b from-slate-950/85 via-slate-950/70 to-amber-950/30 shadow-[0_0_20px_rgba(245,158,11,0.22)]',
+      'border-amber-400/50 bg-gradient-to-b from-slate-950/94 via-slate-950/90 to-amber-950/45 shadow-[0_0_20px_rgba(245,158,11,0.22)]',
     headerGradientClass: 'border-amber-400/30',
     titleTextClass:
       'bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-400 bg-clip-text text-transparent',
@@ -59,7 +59,7 @@ const BOARD_THEME_MAP: Readonly<Record<LeaderboardBoardMode, BoardThemeStyle>> =
     emptyKey: 'SessionBoard.noMatchPlayersYet',
     emptyFallback: 'Tặng quà hoặc gọi tướng để mở bát ván này!',
     containerBorderClass:
-      'border-orange-500/55 bg-gradient-to-b from-slate-950/85 via-slate-950/70 to-rose-950/35 shadow-[0_0_20px_rgba(249,115,22,0.26)]',
+      'border-orange-500/55 bg-gradient-to-b from-slate-950/94 via-slate-950/90 to-rose-950/45 shadow-[0_0_20px_rgba(249,115,22,0.26)]',
     headerGradientClass: 'border-orange-400/35',
     titleTextClass:
       'bg-gradient-to-r from-orange-200 via-amber-300 to-rose-400 bg-clip-text text-transparent',
@@ -159,7 +159,7 @@ export const LeaderboardCycler: React.FC = React.memo(() => {
   return (
     <aside
       style={{ perspective: '900px' }}
-      className={`relative z-[35] w-full sm:w-60 max-w-full border rounded-xl p-1.5 sm:p-2 backdrop-blur-md pointer-events-auto select-none transition-colors duration-500 ${boardTheme.containerBorderClass}`}
+      className={`relative z-[35] w-full sm:w-60 max-w-full border rounded-xl p-1.5 sm:p-2 pointer-events-auto select-none transition-colors duration-500 ${boardTheme.containerBorderClass}`}
     >
       {/* Header with 3D Flip Title & Mode Indicator Dots */}
       <div

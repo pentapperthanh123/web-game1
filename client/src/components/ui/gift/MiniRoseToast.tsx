@@ -48,7 +48,7 @@ const SingleRoseToastItem: React.FC<SingleRoseToastItemProps> = React.memo(
 
     return (
       <div
-        className={`relative flex items-center justify-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-2xl border backdrop-blur-xl bg-slate-950/92 shadow-xl overflow-hidden select-none pointer-events-none transition-all duration-300 max-w-[90vw] sm:max-w-xs ${
+        className={`relative flex items-center justify-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-2xl border bg-slate-950/95 shadow-xl overflow-hidden select-none pointer-events-none transition-all duration-300 max-w-[90vw] sm:max-w-xs ${
           isExiting ? 'animate-rose-toast-out' : 'animate-rose-toast-in'
         }`}
         style={{

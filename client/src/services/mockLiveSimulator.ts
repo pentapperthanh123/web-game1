@@ -2,6 +2,7 @@ import { TeamType } from '../constants/game';
 import { useGameStore } from '../store/gameStore';
 import { isCurrentRoundIntroActive } from '../store/roundIntroStore';
 import { gameSocket } from './socket';
+import { CancelTimer, workerSetTimeout } from './workerScheduler';
 
 export type MockLiveMode = 'natural' | 'highlight';
 
@@ -107,7 +108,7 @@ const PAUSED_TICK_DELAY_MS = 2000;
 class MockLiveSimulator {
   private active = false;
   private currentMode: MockLiveMode = 'natural';
-  private timer: ReturnType<typeof setTimeout> | null = null;
+  private cancelTimer: CancelTimer | null = null;
   private summonsCount = 0;
   private giftsCount = 0;
   private likesCount = 0;
@@ -133,9 +134,9 @@ class MockLiveSimulator {
 
   public stop(): void {
     this.active = false;
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
+    if (this.cancelTimer) {
+      this.cancelTimer();
+      this.cancelTimer = null;
     }
     this.notifyStatus('Đã dừng giả lập live');
   }
@@ -193,11 +194,15 @@ class MockLiveSimulator {
 
   private scheduleNextTick(delayMs?: number): void {
     if (!this.active) return;
+    if (this.cancelTimer) {
+      this.cancelTimer();
+      this.cancelTimer = null;
+    }
     const timing = SIMULATION_TIMING[this.currentMode === 'highlight' ? 'HIGHLIGHT' : 'NATURAL'];
     const nextDelay = delayMs ?? timing.minMs + Math.random() * (timing.maxMs - timing.minMs);
 
-    this.timer = setTimeout(() => {
-      this.timer = null;
+    this.cancelTimer = workerSetTimeout(() => {
+      this.cancelTimer = null;
       this.tick();
     }, nextDelay);
   }

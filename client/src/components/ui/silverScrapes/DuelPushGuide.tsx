@@ -11,7 +11,7 @@ export const DuelPushGuide: React.FC = React.memo(() => {
   const { t } = useTranslation();
 
   return (
-    <div className="w-full rounded-2xl border border-slate-700/80 bg-slate-900/85 backdrop-blur-md px-3 pt-2.5 pb-3 shadow-xl">
+    <div className="w-full rounded-2xl border border-slate-700/80 bg-slate-900/94 px-3 pt-2.5 pb-3 shadow-xl">
       {/* Title */}
       <div className="mb-2.5 flex items-center justify-center gap-1.5 text-center text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-300">
         <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />

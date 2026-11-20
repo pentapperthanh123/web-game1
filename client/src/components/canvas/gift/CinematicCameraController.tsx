@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { CameraControls } from '@react-three/drei';
 import { useGiftVfxStore } from '../../../store/giftVfxStore';
 import { useGameStore } from '../../../store/gameStore';
-import { BOSS_STATUS } from '../../../constants/game';
+import { BACKGROUND_PERF_CONSTANTS, BOSS_STATUS } from '../../../constants/game';
 
 // ==========================================
 // CAMERA PERSPECTIVE PRESETS
@@ -38,8 +38,9 @@ export const CinematicCameraController: React.FC = React.memo(() => {
 
   // Smooth continuous 360-degree orbit around Victory Podium
   useFrame((_, delta) => {
+    const safeDelta = Math.min(BACKGROUND_PERF_CONSTANTS.MAX_FRAME_DELTA_S, delta);
     if (cameraControlsRef.current && isPodiumOrbitRef.current) {
-      cameraControlsRef.current.azimuthAngle += delta * PODIUM_ORBIT_CAM.AUTO_ROTATE_SPEED;
+      cameraControlsRef.current.azimuthAngle += safeDelta * PODIUM_ORBIT_CAM.AUTO_ROTATE_SPEED;
     }
   });
 

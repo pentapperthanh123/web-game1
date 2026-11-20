@@ -1054,8 +1054,16 @@ export const matchCommentTeam = (
   }
 
   const normalized = normalizeMatchText(comment);
-  const leftKeywords = getEffectiveTeamKeywords(activeTeams.BLG);
-  const rightKeywords = getEffectiveTeamKeywords(activeTeams.GENG);
+  const teamKeys = Object.keys(activeTeams || {}) as TeamSlotKey[];
+  const leftSlot: TeamSlotKey = teamKeys[0] || 'BLG';
+  const rightSlot: TeamSlotKey = teamKeys[1] || 'GENG';
+
+  const leftKeywords = activeTeams?.[leftSlot]
+    ? [...getEffectiveTeamKeywords(activeTeams[leftSlot]), '1']
+    : ['1'];
+  const rightKeywords = activeTeams?.[rightSlot]
+    ? [...getEffectiveTeamKeywords(activeTeams[rightSlot]), '2']
+    : ['2'];
 
   const leftIdx = findKeywordMatchIndex(normalized, leftKeywords);
   const rightIdx = findKeywordMatchIndex(normalized, rightKeywords);
@@ -1064,10 +1072,10 @@ export const matchCommentTeam = (
     return undefined;
   }
   if (leftIdx !== -1 && rightIdx === -1) {
-    return 'BLG';
+    return leftSlot;
   }
   if (rightIdx !== -1 && leftIdx === -1) {
-    return 'GENG';
+    return rightSlot;
   }
-  return leftIdx <= rightIdx ? 'BLG' : 'GENG';
+  return leftIdx <= rightIdx ? leftSlot : rightSlot;
 };

@@ -1,11 +1,10 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useRef } from 'react';
 import { ArenaBackground2D } from './components/arena/ArenaBackground2D';
 import { Boss2D } from './components/arena/Boss2D';
 import { GameCanvas } from './components/canvas/GameCanvas';
 import { HUDOverlay } from './components/ui/HUDOverlay';
 import { AudioController } from './components/audio/AudioController';
 import { useGameStore } from './store/gameStore';
-import { useScreenRumbleAmplitudePx } from './hooks/useScreenRumbleAmplitude';
 import { useMatchSnapshotPersistence } from './store/matchSnapshot';
 import { useRoundClockTicker } from './store/roundClockTicker';
 import { useSessionLeaderboardPersistence } from './store/sessionLeaderboardStore';
@@ -22,11 +21,8 @@ import {
   AUTO_SUMMON_CONSTANTS,
   BOSS_ENRAGED_CONSTANTS,
   BOSS_DIFFICULTY_SCALE,
-  BACKGROUND_PERF_CONSTANTS,
-  DAMAGE_SOURCE,
-  DAMAGE_TYPE,
 } from './constants/game';
-
+import { SCREEN_RUMBLE_CONSTANTS } from './constants/bossUltimateFeedback';
 import { getRandomChampion } from './constants/champions';
 import { gameSocket } from './services/socket'; // Auto-connects to Socket.io backend on port 4000
 import { startCasterDirector } from './services/caster/casterDirector';
@@ -34,20 +30,17 @@ import { CommentaryDirector } from './services/caster/CommentaryDirector';
 import { getBossPhaseRule } from './constants/bossPhases';
 import { STATUS_EFFECT_CONSTANTS } from './constants/bossStatusEffects';
 import { useRoundIntroStore, isCurrentRoundIntroActive } from './store/roundIntroStore';
+import { CancelTimer, workerSetInterval, workerSetTimeout } from './services/workerScheduler';
 
 /** Read by the `screenRumble` keyframes in index.css. */
 const SCREEN_RUMBLE_CSS_VAR = '--screen-rumble-px';
+const SCREEN_SHAKE_DURATION_MS = 350;
+const VANGUARD_CHECK_INTERVAL_MS = 4500;
+const VANGUARD_STAGGER_MS = 1200;
 const SCREEN_MOTION_CLASS = {
   RUMBLE: 'animate-screen-rumble',
   SHAKE: 'animate-screen-shake',
-  NONE: '',
 } as const;
-
-const resolveScreenMotionClass = (isRumbling: boolean, isShaking: boolean): string => {
-  if (isRumbling) return SCREEN_MOTION_CLASS.RUMBLE;
-  if (isShaking) return SCREEN_MOTION_CLASS.SHAKE;
-  return SCREEN_MOTION_CLASS.NONE;
-};
 
 export function App() {
   useMatchSnapshotPersistence();
@@ -62,7 +55,6 @@ export function App() {
   const triggerGiftExplosion = useGameStore((state) => state.triggerGiftExplosion);
   const addLikes = useGameStore((state) => state.addLikes);
   const triggerAutoProAttack = useGameStore((state) => state.triggerAutoProAttack);
-  const screenShakeTimestamp = useGameStore((state) => state.screenShakeTimestamp);
   const pruneEntities = useGameStore((state) => state.pruneEntities);
   const tickBossMechanics = useGameStore((state) => state.tickBossMechanics);
   const tickStatusEffects = useGameStore((state) => state.tickStatusEffects);
@@ -74,6 +66,7 @@ export function App() {
   const activeTeams = useGameStore((state) => state.activeTeams);
   const gameTheme = useGameStore((state) => state.gameTheme);
 
+  const stageRef = useRef<HTMLDivElement>(null);
   const nextFireAtRef = useRef<Record<string, number>>({});
   const autoUltQueuedRef = useRef<Set<string>>(new Set());
   const autoSummonTickRef = useRef(0);
@@ -99,7 +92,7 @@ export function App() {
       : BOSS_ENRAGED_CONSTANTS.NORMAL_RETALIATION_INTERVAL_MS;
     const retaliationInterval = Math.round(baseRetaliation / phaseSpeedMultiplier);
 
-    const interval = setInterval(() => {
+    return workerSetInterval(() => {
       const state = useGameStore.getState();
       if (
         isCurrentRoundIntroActive() ||
@@ -114,8 +107,6 @@ export function App() {
         state.triggerBossAttack();
       }
     }, retaliationInterval);
-
-    return () => clearInterval(interval);
   }, [isBattlePaused, isBossEnraged, gameTheme]);
 
   // Periodic Boss Counterattack Loop with 4 Configurable Skills targeting Champions
@@ -124,9 +115,11 @@ export function App() {
       return;
     }
 
-    let timerId: ReturnType<typeof setTimeout>;
+    let cancelTimer: CancelTimer | null = null;
+    let isDisposed = false;
 
     const runAttackCycle = () => {
+      if (isDisposed) return;
       const state = useGameStore.getState();
       const isEnraged = state.bossStatus === BOSS_STATUS.ENRAGED;
       const phaseSpeedMultiplier = BOSS_DIFFICULTY_SCALE[state.gameTheme]?.phaseSpeedMultiplier ?? 1.0;
@@ -142,7 +135,8 @@ export function App() {
         ? Math.round(baseInterval * (0.7 + Math.random() * 0.6))
         : Math.round(baseInterval);
 
-      timerId = setTimeout(() => {
+      cancelTimer = workerSetTimeout(() => {
+        if (isDisposed) return;
         const latestState = useGameStore.getState();
         if (
           !isCurrentRoundIntroActive() &&
@@ -160,7 +154,10 @@ export function App() {
 
     runAttackCycle();
 
-    return () => clearTimeout(timerId);
+    return () => {
+      isDisposed = true;
+      cancelTimer?.();
+    };
   }, [
     isBattlePaused,
     isBossEnraged,
@@ -182,31 +179,127 @@ export function App() {
 
   // Expose store for debugging and prevent mobile browser scroll offset
   useEffect(() => {
-    (window as any).__GAME_STORE__ = useGameStore;
+    (window as unknown as { __GAME_STORE__?: typeof useGameStore }).__GAME_STORE__ = useGameStore;
     window.scrollTo(0, 0);
   }, []);
 
-  const isScreenShaking = Date.now() - screenShakeTimestamp < 350;
-  const screenRumblePx = useScreenRumbleAmplitudePx();
-  // A running quake wins over the short kick: both animate the same transform
-  const screenMotionClass = resolveScreenMotionClass(screenRumblePx > 0, isScreenShaking);
+  // Drive DOM screen shake & rumble directly via ref so hits never re-render the App root
+  useEffect(() => {
+    let isShaking = false;
+    let rumblePx = 0;
+    let cancelShakeTimer: CancelTimer | null = null;
+    let cancelRumbleTailTimer: CancelTimer | null = null;
+    let cancelRumbleIdleTimer: CancelTimer | null = null;
+
+    const syncStageMotion = (): void => {
+      const stageEl = stageRef.current;
+      if (!stageEl) return;
+      stageEl.style.setProperty(SCREEN_RUMBLE_CSS_VAR, `${rumblePx}px`);
+      stageEl.classList.toggle(SCREEN_MOTION_CLASS.RUMBLE, rumblePx > 0);
+      stageEl.classList.toggle(SCREEN_MOTION_CLASS.SHAKE, rumblePx === 0 && isShaking);
+    };
+
+    const applyShake = (timestamp: number): void => {
+      cancelShakeTimer?.();
+      cancelShakeTimer = null;
+      const remainingMs = timestamp + SCREEN_SHAKE_DURATION_MS - Date.now();
+      if (remainingMs <= 0) {
+        isShaking = false;
+        syncStageMotion();
+        return;
+      }
+      isShaking = true;
+      syncStageMotion();
+      cancelShakeTimer = workerSetTimeout(() => {
+        cancelShakeTimer = null;
+        isShaking = false;
+        syncStageMotion();
+      }, remainingMs);
+    };
+
+    const applyRumble = (startedAt: number, durationMs: number, intensity: number): void => {
+      cancelRumbleTailTimer?.();
+      cancelRumbleTailTimer = null;
+      cancelRumbleIdleTimer?.();
+      cancelRumbleIdleTimer = null;
+
+      const remainingMs = startedAt + durationMs - Date.now();
+      if (remainingMs <= 0) {
+        rumblePx = 0;
+        syncStageMotion();
+        return;
+      }
+
+      const tailMs = durationMs * SCREEN_RUMBLE_CONSTANTS.RELEASE_RATIO;
+      const fullPx = Math.round(intensity * SCREEN_RUMBLE_CONSTANTS.DOM_PX_PER_INTENSITY);
+      const tailPx = Math.round(fullPx * SCREEN_RUMBLE_CONSTANTS.DOM_TAIL_SCALE);
+
+      rumblePx = remainingMs > tailMs ? fullPx : tailPx;
+      syncStageMotion();
+
+      if (remainingMs > tailMs) {
+        cancelRumbleTailTimer = workerSetTimeout(() => {
+          cancelRumbleTailTimer = null;
+          rumblePx = tailPx;
+          syncStageMotion();
+        }, remainingMs - tailMs);
+      }
+
+      cancelRumbleIdleTimer = workerSetTimeout(() => {
+        cancelRumbleIdleTimer = null;
+        rumblePx = 0;
+        syncStageMotion();
+      }, remainingMs);
+    };
+
+    const initialState = useGameStore.getState();
+    applyShake(initialState.screenShakeTimestamp);
+    applyRumble(
+      initialState.screenRumbleStartedAt,
+      initialState.screenRumbleDurationMs,
+      initialState.screenRumbleIntensity
+    );
+
+    const unsubscribe = useGameStore.subscribe((state, prevState) => {
+      if (state.screenShakeTimestamp !== prevState.screenShakeTimestamp) {
+        applyShake(state.screenShakeTimestamp);
+      }
+      if (
+        state.screenRumbleStartedAt !== prevState.screenRumbleStartedAt ||
+        state.screenRumbleDurationMs !== prevState.screenRumbleDurationMs ||
+        state.screenRumbleIntensity !== prevState.screenRumbleIntensity
+      ) {
+        applyRumble(
+          state.screenRumbleStartedAt,
+          state.screenRumbleDurationMs,
+          state.screenRumbleIntensity
+        );
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      cancelShakeTimer?.();
+      cancelRumbleTailTimer?.();
+      cancelRumbleIdleTimer?.();
+    };
+  }, []);
 
   // Background entity cleanup & Boss Phase/Shield/WeakPoint tick
   useEffect(() => {
-    const pruneInterval = setInterval(() => {
+    return workerSetInterval(() => {
       pruneEntities();
       tickBossMechanics();
       tickStatusEffects();
       syncBossPhase();
     }, STATUS_EFFECT_CONSTANTS.LOOP_INTERVAL_MS);
-    return () => clearInterval(pruneInterval);
   }, [pruneEntities, tickBossMechanics, tickStatusEffects, syncBossPhase]);
 
   // Background bot simulation runner (pauses automatically when Boss is defeated or during round intermission)
   useEffect(() => {
     if (!isSimulationActive || isBattlePaused) return;
 
-    const intervalId = setInterval(() => {
+    return workerSetInterval(() => {
       const currentState = useGameStore.getState();
       if (
         isCurrentRoundIntroActive() ||
@@ -241,8 +334,6 @@ export function App() {
         triggerGiftExplosion(gift.name, botSlot, viewerName, gift.coins);
       }
     }, botSpeedMs);
-
-    return () => clearInterval(intervalId);
   }, [isSimulationActive, isBattlePaused, botSpeedMs, summonMinion, triggerGiftExplosion, addLikes]);
 
   // Manual-toggled Auto Pro-Player Combat: all 10 pro players fire continuously by role speed
@@ -254,8 +345,8 @@ export function App() {
 
     const activeTeamKeys = Object.keys(activeTeams) as TeamType[];
     const leftTeamKey = activeTeamKeys[0] ?? TEAM_KEY.BLG;
-    const rightTeamKey = activeTeamKeys[1] ?? TEAM_KEY.GENG;
     const leftRoster = activeTeams[leftTeamKey]?.roster ?? [];
+    const rightTeamKey = activeTeamKeys[1] ?? TEAM_KEY.GENG;
     const rightRoster = activeTeams[rightTeamKey]?.roster ?? [];
     const allPlayers = [...leftRoster, ...rightRoster];
     const baseIntervalMs =
@@ -270,7 +361,7 @@ export function App() {
         startNow + laneIndex * AUTO_PRO_BATTLE_CONSTANTS.INITIAL_STAGGER_MS + teamOffset;
     });
 
-    const intervalId = setInterval(() => {
+    return workerSetInterval(() => {
       const state = useGameStore.getState();
       if (
         isCurrentRoundIntroActive() ||
@@ -307,8 +398,6 @@ export function App() {
         }
       }
     }, AUTO_PRO_BATTLE_CONSTANTS.TICK_MS);
-
-    return () => clearInterval(intervalId);
   }, [
     autoProBattleConfig.enabled,
     autoProBattleConfig.onlyWhenIdle,
@@ -326,6 +415,8 @@ export function App() {
       return;
     }
 
+    const pendingUltTimers = new Set<CancelTimer>();
+
     const checkAndTriggerUlts = (rosterPlayerFury: Record<string, number>) => {
       const state = useGameStore.getState();
       const teams: TeamType[] = Object.keys(state.activeTeams) as TeamType[];
@@ -340,7 +431,8 @@ export function App() {
             const currentDelay = staggerDelay;
             staggerDelay += 350;
 
-            setTimeout(() => {
+            const cancelUlt = workerSetTimeout(() => {
+              pendingUltTimers.delete(cancelUlt);
               autoUltQueuedRef.current.delete(player.id);
               const currentState = useGameStore.getState();
               if (
@@ -358,6 +450,7 @@ export function App() {
                 nextFireAtRef.current[player.id] = Date.now() + 1500;
               }
             }, 250 + currentDelay);
+            pendingUltTimers.add(cancelUlt);
           }
         });
       }
@@ -373,7 +466,11 @@ export function App() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      pendingUltTimers.forEach((cancel) => cancel());
+      pendingUltTimers.clear();
+    };
   }, [isBattlePaused, triggerAutoProAttack]);
 
   // Continuous Auto-Summon Loop configured from Admin Panel
@@ -385,7 +482,7 @@ export function App() {
       autoSummonConfig.speedMs || AUTO_SUMMON_CONSTANTS.DEFAULT_SPEED_MS
     );
 
-    const intervalId = setInterval(() => {
+    return workerSetInterval(() => {
       const currentState = useGameStore.getState();
       if (
         isCurrentRoundIntroActive() ||
@@ -441,8 +538,6 @@ export function App() {
       summonMinionsBatch(batchItems);
       gameSocket.sendSummonBatch(batchItems);
     }, clampedSpeed);
-
-    return () => clearInterval(intervalId);
   }, [
     autoSummonConfig.enabled,
     autoSummonConfig.speedMs,
@@ -459,7 +554,9 @@ export function App() {
   useEffect(() => {
     if (isBattlePaused) return;
 
-    const intervalId = setInterval(() => {
+    const pendingDelayedSummons = new Set<CancelTimer>();
+
+    const cancelVanguardInterval = workerSetInterval(() => {
       const state = useGameStore.getState();
       if (!state.participationRuleConfig.enableAutoVanguard) {
         return;
@@ -493,56 +590,27 @@ export function App() {
         const rightTag = rightProfile?.shortTag || rightTeam;
 
         summonMinion(`🛡️ ${VANGUARD_ACTOR_LABEL} ${leftTag}`, leftChamp, leftTeam, false);
-        setTimeout(() => {
+        const cancelSecond = workerSetTimeout(() => {
+          pendingDelayedSummons.delete(cancelSecond);
           summonMinion(`⚔️ ${VANGUARD_ACTOR_LABEL} ${rightTag}`, rightChamp, rightTeam, false);
-        }, 1200);
+        }, VANGUARD_STAGGER_MS);
+        pendingDelayedSummons.add(cancelSecond);
       }
-    }, 4500);
+    }, VANGUARD_CHECK_INTERVAL_MS);
 
-    return () => clearInterval(intervalId);
+    return () => {
+      cancelVanguardInterval();
+      pendingDelayedSummons.forEach((cancel) => cancel());
+      pendingDelayedSummons.clear();
+    };
   }, [isBattlePaused, summonMinion]);
-
-  // Background Combat Ticker: Keeps minion combat and turn queues moving smoothly even when the tab is in background / unfocused
-  useEffect(() => {
-    const backgroundCombatInterval = setInterval(() => {
-      if (typeof document === 'undefined' || !document.hidden || isBattlePaused) return;
-      const state = useGameStore.getState();
-      if (state.bossHp <= 0 || state.bossStatus === BOSS_STATUS.DEFEATED) return;
-
-      const livingMinions = state.minions.filter((m) => (m.hp ?? 1) > 0);
-      if (livingMinions.length === 0) return;
-
-      const teamDamageMap: Record<TeamType, number> = {
-        [TEAM_KEY.BLG]: 0,
-        [TEAM_KEY.GENG]: 0,
-      };
-
-      for (const minion of livingMinions) {
-        teamDamageMap[minion.team] = (teamDamageMap[minion.team] ?? 0) + Math.round(minion.dps);
-      }
-
-      for (const team of Object.keys(teamDamageMap) as TeamType[]) {
-        const dmg = teamDamageMap[team];
-        if (dmg > 0) {
-          const teamTag = state.activeTeams[team]?.shortTag ?? team;
-          state.damageBoss(dmg, team, `Đội hình ${teamTag}`, DAMAGE_TYPE.NORMAL, {
-            source: DAMAGE_SOURCE.CHAMPION,
-          });
-        }
-      }
-
-      state.advanceSummonTurnQueue();
-    }, BACKGROUND_PERF_CONSTANTS.COMBAT_TICK_INTERVAL_MS);
-
-    return () => clearInterval(backgroundCombatInterval);
-  }, [isBattlePaused]);
 
   return (
     <main className="fixed inset-0 w-full h-full bg-slate-950 overflow-hidden font-sans select-none">
       {/* 100% Fullscreen on all mobile devices and browsers, zero letterboxing */}
       <div
-        style={{ [SCREEN_RUMBLE_CSS_VAR]: `${screenRumblePx}px` } as CSSProperties}
-        className={`relative w-full h-full overflow-hidden bg-slate-950 transition-transform ${screenMotionClass}`}
+        ref={stageRef}
+        className="relative w-full h-full overflow-hidden bg-slate-950 transition-transform"
       >
         {/* Layer 0: High-Resolution 2D Arena Background */}
         <ArenaBackground2D />

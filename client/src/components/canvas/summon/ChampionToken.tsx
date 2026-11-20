@@ -1,7 +1,8 @@
-import React, { useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { getTeamTheme } from '../../../constants/teams';
 import { GAME_CONSTANTS, COMBAT_VFX_CONSTANTS, isEliteMinion } from '../../../constants/game';
+import { workerSetTimeout } from '../../../services/workerScheduler';
 import {
   CHAMPION_LEVEL_THRESHOLDS,
   getChampionLevelConfig,
@@ -14,6 +15,7 @@ import {
   isSessionTierAtLeast,
 } from '../../../constants/sessionLeaderboard';
 import { getActiveStatusEffects } from '../../../utils/statusEffects';
+import { ENTRANCE_AURA } from './championEntranceAura';
 import { ChampionEntranceAuraMeshes } from './ChampionEntranceAuraMeshes';
 import {
   FURY_COLOR_FULL,
@@ -53,6 +55,10 @@ const GAUGE_STYLE = {
 const HP_COLOR = { HEALTHY: '#10b981', WOUNDED: '#f59e0b', CRITICAL: '#ef4444' } as const;
 const HP_THRESHOLD = { HEALTHY: 0.5, WOUNDED: 0.25 } as const;
 const DEFAULT_MAX_HP = 100;
+const SPAWN_VFX_CLEANUP_BUFFER_MS = 150;
+const SPAWN_VFX_LIFETIME_MS =
+  Math.max(ENTRANCE_AURA.TOTAL_MS, GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS) +
+  SPAWN_VFX_CLEANUP_BUFFER_MS;
 
 export interface ChampionTokenProps {
   minion: MinionEntity;
@@ -129,6 +135,19 @@ export const ChampionToken = React.memo(
     const teamTheme = getTeamTheme(colorThemeId);
     const primaryColor = teamTheme.primaryHex;
     const critColor = teamTheme.critHex;
+
+    // Unmount one-shot entrance aura, signature halo, and spawn-grace shield once the entrance finishes
+    const [isSpawnVfxMounted, setIsSpawnVfxMounted] = useState<boolean>(
+      () => Date.now() - (minion.createdAt || 0) < SPAWN_VFX_LIFETIME_MS
+    );
+    useEffect(() => {
+      const remainingMs = SPAWN_VFX_LIFETIME_MS - (Date.now() - (minion.createdAt || 0));
+      if (remainingMs <= 0) {
+        setIsSpawnVfxMounted(false);
+        return;
+      }
+      return workerSetTimeout(() => setIsSpawnVfxMounted(false), remainingMs);
+    }, [minion.createdAt]);
 
     const championTexture = useMemo(
       () => getChampionTexture(minion.avatarUrl, undefined, minion.championName, primaryColor),
@@ -240,10 +259,12 @@ export const ChampionToken = React.memo(
           )}
         </group>
 
-        <ChampionEntranceAuraMeshes
-          auraColor={auraColors.auraColor}
-          accentColor={auraColors.accentColor}
-        />
+        {isSpawnVfxMounted && (
+          <ChampionEntranceAuraMeshes
+            auraColor={auraColors.auraColor}
+            accentColor={auraColors.accentColor}
+          />
+        )}
 
         {nameplateTexture && (
           <mesh
@@ -255,7 +276,7 @@ export const ChampionToken = React.memo(
           </mesh>
         )}
 
-        {isSignature && (
+        {isSpawnVfxMounted && isSignature && (
           <mesh name="signature-synergy-halo" visible={false} position={[0, 0, -0.025]} geometry={SHARED_SIGNATURE_HALO_GEO}>
             <meshBasicMaterial color={signatureColor} transparent opacity={SIGNATURE_HALO_OPACITY} blending={THREE.AdditiveBlending} depthWrite={false} side={TOKEN_FACE_SIDE} />
           </mesh>
@@ -285,9 +306,11 @@ export const ChampionToken = React.memo(
           </mesh>
         )}
 
-        <mesh position={[0, 0, 0.035]} name="invuln-shield" visible={false} geometry={SHARED_SHIELD_RING_GEO}>
-          <meshBasicMaterial color="#facc15" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} side={TOKEN_FACE_SIDE} />
-        </mesh>
+        {isSpawnVfxMounted && (
+          <mesh position={[0, 0, 0.035]} name="invuln-shield" visible={false} geometry={SHARED_SHIELD_RING_GEO}>
+            <meshBasicMaterial color="#facc15" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} side={TOKEN_FACE_SIDE} />
+          </mesh>
+        )}
       </group>
     );
   },

@@ -12,13 +12,11 @@
 .arena-nebula-breathe { animation: arenaNebulaBreathe 22s ease-in-out infinite; }
 
 @keyframes arenaStarTwinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.15); }
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
 }
 .arena-star-twinkle {
   animation: arenaStarTwinkle 3.6s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
 }
 
 @keyframes arenaStarDrift {

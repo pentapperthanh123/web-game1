@@ -161,7 +161,7 @@ export const MegaGiftHeroCard = ({
                   'linear-gradient(135deg, rgba(2, 6, 23, 0.97) 0%, rgba(15, 23, 42, 0.96) 50%, rgba(23, 15, 8, 0.97) 100%)',
                 boxShadow: `inset 0 0 22px ${teamTheme.primaryHex}28, inset 0 1px 0 rgba(254, 240, 138, 0.45)`,
               }}
-              className="relative overflow-hidden rounded-[14px] px-3 pb-2.5 pt-3.5 backdrop-blur-2xl"
+              className="relative overflow-hidden rounded-[14px] px-3 pb-2.5 pt-3.5"
             >
               {/* Sweeping metallic light sheen */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/20 to-transparent animate-gift-shimmer pointer-events-none" />

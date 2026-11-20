@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  Mic,
 } from 'lucide-react';
 import {
   ADMIN_PORTAL_TAB,
@@ -35,6 +36,7 @@ const TAB_ICON_MAP: Record<AdminPortalTabId, typeof Swords> = {
   [ADMIN_PORTAL_TAB.GIFTS]: Gift,
   [ADMIN_PORTAL_TAB.BOSS_MAP]: Compass,
   [ADMIN_PORTAL_TAB.LIVE_OPS]: ShieldCheck,
+  [ADMIN_PORTAL_TAB.VIET_TTS_STUDIO]: Mic,
   [ADMIN_PORTAL_TAB.LOGS]: MessageSquare,
 };
 

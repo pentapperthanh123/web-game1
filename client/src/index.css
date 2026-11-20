@@ -124,11 +124,11 @@
 @keyframes bossHit {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
-    filter: brightness(2.2) drop-shadow(0 0 25px rgba(239, 68, 68, 0.9));
+    filter: brightness(2.2);
   }
   20% {
     transform: translate3d(-6px, 4px, 0) scale(0.96);
-    filter: brightness(2.0) drop-shadow(0 0 20px rgba(239, 68, 68, 0.8));
+    filter: brightness(2.0);
   }
   40% {
     transform: translate3d(6px, -4px, 0) scale(0.98);
@@ -141,7 +141,7 @@
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
-    filter: brightness(1) drop-shadow(0 0 15px rgba(168, 85, 247, 0.5));
+    filter: brightness(1);
   }
 }
 
@@ -152,19 +152,19 @@
 @keyframes bossRoar {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
-    filter: brightness(1.2) drop-shadow(0 0 20px #a855f7);
+    filter: brightness(1.2);
   }
   30% {
     transform: translate3d(0, -14px, 0) scale(1.15);
-    filter: brightness(1.8) drop-shadow(0 0 45px #c084fc);
+    filter: brightness(1.8);
   }
   60% {
     transform: translate3d(0, -10px, 0) scale(1.12);
-    filter: brightness(1.6) drop-shadow(0 0 35px #a855f7);
+    filter: brightness(1.6);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
-    filter: brightness(1) drop-shadow(0 0 20px #9333ea);
+    filter: brightness(1);
   }
 }
 
@@ -338,12 +338,10 @@
   0%, 100% {
     transform: scale(1);
     opacity: 0.65;
-    filter: blur(6px);
   }
   50% {
     transform: scale(0.78);
     opacity: 0.34;
-    filter: blur(12px);
   }
 }
 
@@ -452,12 +450,10 @@
   0%, 100% {
     transform: scale(1);
     opacity: 0.85;
-    filter: drop-shadow(0 0 8px #d946ef);
   }
   50% {
     transform: scale(1.25);
     opacity: 1;
-    filter: drop-shadow(0 0 20px #f43f5e);
   }
 }
 
@@ -518,11 +514,11 @@
   }
   18% {
     transform: translate3d(14px, -16px, 0) scale(0.96) rotate(3deg);
-    filter: brightness(1.3) drop-shadow(0 0 30px currentColor);
+    filter: brightness(1.3);
   }
   38% {
     transform: translate3d(-54px, 32px, 0) scale(1.22) rotate(-8deg);
-    filter: brightness(1.7) drop-shadow(0 0 50px currentColor);
+    filter: brightness(1.7);
   }
   65% {
     transform: translate3d(-42px, 24px, 0) scale(1.16) rotate(-5deg);
@@ -546,11 +542,11 @@
   }
   18% {
     transform: translate3d(-14px, -16px, 0) scale(0.96) rotate(-3deg);
-    filter: brightness(1.3) drop-shadow(0 0 30px currentColor);
+    filter: brightness(1.3);
   }
   38% {
     transform: translate3d(54px, 32px, 0) scale(1.22) rotate(8deg);
-    filter: brightness(1.7) drop-shadow(0 0 50px currentColor);
+    filter: brightness(1.7);
   }
   65% {
     transform: translate3d(42px, 24px, 0) scale(1.16) rotate(5deg);
@@ -574,11 +570,11 @@
   }
   22% {
     transform: translate3d(0, -42px, 0) scale(1.08);
-    filter: brightness(1.6) drop-shadow(0 0 45px currentColor);
+    filter: brightness(1.6);
   }
   42% {
     transform: translate3d(0, 52px, 0) scale(1.3);
-    filter: brightness(2.2) drop-shadow(0 0 75px currentColor);
+    filter: brightness(2.2);
   }
   60% {
     transform: translate3d(0, 38px, 0) scale(1.22);
@@ -809,7 +805,7 @@
   }
   20% {
     transform: scale(0.92) translate3d(0, -14px, 0) rotate(-3.5deg);
-    filter: brightness(2.1) drop-shadow(0 0 35px #f59e0b);
+    filter: brightness(2.1);
   }
   50% {
     transform: scale(1.09) translate3d(0, 10px, 0) rotate(2.5deg);
@@ -900,7 +896,6 @@
   50% {
     opacity: 1;
     transform: scale(1.55);
-    filter: drop-shadow(0 0 16px currentColor);
   }
 }
 
@@ -1732,17 +1727,41 @@
 }
 
 @keyframes kineticSlashLeft {
-  0% { transform: translateX(-120%) skewX(-16deg); opacity: 0; }
-  18% { transform: translateX(0) skewX(-16deg); opacity: 1; }
-  85% { transform: translateX(0) skewX(-16deg); opacity: 1; }
-  100% { transform: translateX(-120%) skewX(-16deg); opacity: 0; }
+  0% {
+    transform: translateX(-60%) skewX(-16deg);
+    opacity: 0;
+  }
+  18% {
+    transform: translateX(0) skewX(-16deg);
+    opacity: 0.55;
+  }
+  86% {
+    transform: translateX(0) skewX(-16deg);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateX(-40%) skewX(-16deg);
+    opacity: 0;
+  }
 }
 
 @keyframes kineticSlashRight {
-  0% { transform: translateX(120%) skewX(-16deg); opacity: 0; }
-  18% { transform: translateX(0) skewX(-16deg); opacity: 1; }
-  85% { transform: translateX(0) skewX(-16deg); opacity: 1; }
-  100% { transform: translateX(120%) skewX(-16deg); opacity: 0; }
+  0% {
+    transform: translateX(60%) skewX(-16deg);
+    opacity: 0;
+  }
+  18% {
+    transform: translateX(0) skewX(-16deg);
+    opacity: 0.55;
+  }
+  86% {
+    transform: translateX(0) skewX(-16deg);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateX(40%) skewX(-16deg);
+    opacity: 0;
+  }
 }
 
 @keyframes cardSlamLeft {
@@ -1798,34 +1817,6 @@
   100% { transform: translateY(15px) scale(0.92); opacity: 0; }
 }
 
-@keyframes cinemaLetterboxTop {
-  0% { transform: translateY(-100%); }
-  12% { transform: translateY(0); }
-  88% { transform: translateY(0); }
-  100% { transform: translateY(-100%); }
-}
-
-@keyframes cinemaLetterboxBottom {
-  0% { transform: translateY(100%); }
-  12% { transform: translateY(0); }
-  88% { transform: translateY(0); }
-  100% { transform: translateY(100%); }
-}
-
-@keyframes kineticSlashLeft {
-  0% { transform: translateX(-60%) skewX(-20deg); opacity: 0; }
-  18% { transform: translateX(0) skewX(-20deg); opacity: 0.65; }
-  88% { transform: translateX(0) skewX(-20deg); opacity: 0.65; }
-  100% { transform: translateX(-30%) skewX(-20deg); opacity: 0; }
-}
-
-@keyframes kineticSlashRight {
-  0% { transform: translateX(60%) skewX(-20deg); opacity: 0; }
-  18% { transform: translateX(0) skewX(-20deg); opacity: 0.65; }
-  88% { transform: translateX(0) skewX(-20deg); opacity: 0.65; }
-  100% { transform: translateX(30%) skewX(-20deg); opacity: 0; }
-}
-
 @keyframes emberDrift {
   0% { transform: translateY(0) translateX(0) scale(0.6); opacity: 0; }
   25% { opacity: 0.9; }
@@ -1833,9 +1824,250 @@
   100% { transform: translateY(-140px) translateX(15px) scale(1.2); opacity: 0; }
 }
 
+/* =========================================================================
+   Esports Cinematic Diagonal Slicing & Rotating Beam System
+   ========================================================================= */
+
+@keyframes diagonalKineticBeam {
+  0% {
+    transform: translate(-50%, -50%) rotate(-38deg) scaleY(0.3) scaleX(1.8);
+    opacity: 0;
+    filter: blur(4px) brightness(1.2);
+  }
+  12% {
+    transform: translate(-50%, -50%) rotate(-27deg) scaleY(0.9) scaleX(1.3);
+    opacity: 0.8;
+    filter: blur(1px) brightness(1.5);
+  }
+  22% {
+    transform: translate(-50%, -50%) rotate(-19deg) scaleY(1.02) scaleX(1.1);
+    opacity: 0.95;
+    filter: blur(0px) brightness(1.8);
+  }
+  27% {
+    /* Impact snap with subtle recoil (synchronized with VS Slam at 0.945s) */
+    transform: translate(-50%, -50%) rotate(-13.5deg) scaleY(1.06) scaleX(1.4);
+    opacity: 1;
+    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 1)) drop-shadow(0 0 45px rgba(251, 191, 36, 1)) brightness(2.2);
+  }
+  33% {
+    /* Settles into resting pro diagonal angle (-16deg) */
+    transform: translate(-50%, -50%) rotate(-16deg) scaleY(1) scaleX(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 28px rgba(251, 191, 36, 0.9)) brightness(1.3);
+  }
+  60% {
+    /* Micro living breath */
+    transform: translate(-50%, -50%) rotate(-16.8deg) scaleY(1.01) scaleX(1.02);
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 1)) drop-shadow(0 0 32px rgba(251, 191, 36, 0.95)) brightness(1.4);
+  }
+  86% {
+    transform: translate(-50%, -50%) rotate(-16deg) scaleY(1) scaleX(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 28px rgba(251, 191, 36, 0.9)) brightness(1.3);
+  }
+  92% {
+    /* Closing rotation commences: high-speed sleek slash recoil */
+    transform: translate(-50%, -50%) rotate(-26deg) scaleY(1.15) scaleX(0.85);
+    opacity: 0.9;
+    filter: blur(1px) brightness(1.6);
+  }
+  97% {
+    /* Accelerating slash exit */
+    transform: translate(-50%, -50%) rotate(-38deg) scaleY(1.4) scaleX(0.4);
+    opacity: 0.55;
+    filter: blur(3px) brightness(1.4);
+  }
+  100% {
+    /* Clean blade exit */
+    transform: translate(-50%, -50%) rotate(-45deg) scaleY(1.8) scaleX(0.05);
+    opacity: 0;
+    filter: blur(6px) brightness(1);
+  }
+}
+
+@keyframes diagonalGhostTrail {
+  0% {
+    transform: translate(-50%, -50%) rotate(-44deg) scaleY(0.3) scaleX(2.5);
+    opacity: 0;
+  }
+  14% {
+    transform: translate(-50%, -50%) rotate(-32deg) scaleY(0.9) scaleX(1.6);
+    opacity: 0.4;
+  }
+  27% {
+    transform: translate(-50%, -50%) rotate(-16deg) scaleY(1.05) scaleX(1.8);
+    opacity: 0.6;
+    filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.8));
+  }
+  35% {
+    transform: translate(-50%, -50%) rotate(-16deg) scaleY(1) scaleX(1);
+    opacity: 0;
+  }
+  86% {
+    transform: translate(-50%, -50%) rotate(-16deg) scaleY(1) scaleX(1);
+    opacity: 0;
+  }
+  93% {
+    transform: translate(-50%, -50%) rotate(-30deg) scaleY(1.2) scaleX(1.2);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-50deg) scaleY(1.6) scaleX(0.1);
+    opacity: 0;
+  }
+}
+
+@keyframes diagonalNexusFlare {
+  0%, 20% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  27% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 1));
+  }
+  35% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  86% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  95% {
+    transform: translate(-50%, -50%) scale(1.3);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes diagonalTravelingSparkUp {
+  0% {
+    transform: translateY(120%) scaleY(2);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-120%) scaleY(2);
+    opacity: 0;
+  }
+}
+
+@keyframes diagonalTravelingSparkDown {
+  0% {
+    transform: translateY(-120%) scaleY(2);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120%) scaleY(2);
+    opacity: 0;
+  }
+}
+
 @keyframes fissureSeamGlow {
   0%, 100% { opacity: 0.45; filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.6)); }
   50% { opacity: 0.95; filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.95)); }
+}
+
+/* =========================================================================
+   Esports Star Gamer Avatar Rotating Border Light (Zero Outer Blur)
+   ========================================================================= */
+
+@keyframes avatarBorderSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-avatar-border-spin {
+  animation: avatarBorderSpin 2.5s linear infinite;
+  will-change: transform;
+}
+
+/* =========================================================================
+   Combat Deploy "XUNG TRẬN!" Headline 3D Slam Animations
+   ========================================================================= */
+
+@keyframes combatDeployTitleSlam {
+  0% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(0.96);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes swordClashLeft {
+  0% {
+    transform: translate(-30px, -15px) rotate(-30deg) scale(0.6);
+    opacity: 0;
+  }
+  40% {
+    transform: translate(4px, 0) rotate(-6deg) scale(1.15);
+    opacity: 1;
+  }
+  65% {
+    transform: translate(0, 0) rotate(-12deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes swordClashRight {
+  0% {
+    transform: translate(30px, -15px) rotate(30deg) scale(0.6);
+    opacity: 0;
+  }
+  40% {
+    transform: translate(-4px, 0) rotate(6deg) scale(1.15);
+    opacity: 1;
+  }
+  65% {
+    transform: translate(0, 0) rotate(12deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-combat-title-slam {
+  animation: combatDeployTitleSlam 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-sword-clash-left {
+  animation: swordClashLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-sword-clash-right {
+  animation: swordClashRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-cinema-bar-top {
@@ -1880,6 +2112,29 @@
 
 .animate-fissure-glow {
   animation: fissureSeamGlow 2s ease-in-out infinite;
+}
+
+.animate-diagonal-kinetic-beam {
+  animation: diagonalKineticBeam 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity, filter;
+}
+
+.animate-diagonal-ghost-trail {
+  animation: diagonalGhostTrail 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-diagonal-nexus-flare {
+  animation: diagonalNexusFlare 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-diagonal-spark-up {
+  animation: diagonalTravelingSparkUp 1.8s ease-in-out infinite;
+}
+
+.animate-diagonal-spark-down {
+  animation: diagonalTravelingSparkDown 2.2s ease-in-out infinite 0.4s;
 }
 
 .animate-ember-1 {

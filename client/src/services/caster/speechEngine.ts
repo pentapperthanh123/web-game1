@@ -77,11 +77,13 @@ class CasterSpeechEngine {
 
   /** Starts downloading a clip early so a high-priority line starts without delay. */
   public prefetch(text: string, lang: string, role?: string, intensity?: string): void {
+    if (CASTER_SPEECH.STATIC_ONLY_LIVE) return;
     this.getClipUrl(text, lang, role, intensity).catch(() => undefined);
   }
 
   /** Resolves once the clip is downloaded (true) or could not be (false), so a caller can still cancel before it plays. */
   public prepare(text: string, lang: string, role?: string, intensity?: string): Promise<boolean> {
+    if (CASTER_SPEECH.STATIC_ONLY_LIVE) return Promise.resolve(false);
     return waitForClip(this.getClipUrl(text, lang, role, intensity)).then(
       () => true,
       () => false
@@ -90,6 +92,7 @@ class CasterSpeechEngine {
 
   /** True when the clip is ready within `timeoutMs`: a reply in a two-caster exchange must not leave a hole. */
   public isClipReady(text: string, lang: string, role: string, intensity: string, timeoutMs: number): Promise<boolean> {
+    if (CASTER_SPEECH.STATIC_ONLY_LIVE) return Promise.resolve(false);
     const clip = this.getClipUrl(text, lang, role, intensity).then(
       () => true,
       () => false
@@ -121,6 +124,7 @@ class CasterSpeechEngine {
     role?: string,
     intensity?: string
   ): Promise<SpeechOutcome> {
+    if (CASTER_SPEECH.STATIC_ONLY_LIVE) return Promise.resolve(SPEECH_OUTCOME.UNAVAILABLE);
     if (this.isSuspended(Date.now())) return Promise.resolve(SPEECH_OUTCOME.SUSPENDED);
     return waitForClip(this.getClipUrl(text, lang, role, intensity))
       .then((url) => {
@@ -140,6 +144,7 @@ class CasterSpeechEngine {
     role?: string,
     intensity?: string
   ): Promise<SpeechOutcome> {
+    if (CASTER_SPEECH.STATIC_ONLY_LIVE) return Promise.resolve(SPEECH_OUTCOME.UNAVAILABLE);
     if (this.isSuspended(Date.now())) return Promise.resolve(SPEECH_OUTCOME.SUSPENDED);
     return waitForClip(this.getClipUrl(text, lang, role, intensity))
       .then((url) => {

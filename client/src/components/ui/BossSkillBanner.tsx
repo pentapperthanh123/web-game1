@@ -64,7 +64,7 @@ export const BossSkillBanner = React.memo(() => {
           : `0 0 24px ${bannerColor}66, 0 8px 30px rgba(0,0,0,0.85)`,
         borderColor: `${bannerColor}cc`,
       }}
-      className={`pointer-events-none flex items-center gap-1.5 rounded-full border bg-slate-950/90 text-white backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 select-none shadow-2xl z-[46] max-w-[92vw] transition-all ${
+      className={`pointer-events-none flex items-center gap-1.5 rounded-full border bg-slate-950/95 text-white animate-in fade-in zoom-in-95 duration-200 select-none shadow-2xl z-[46] max-w-[92vw] transition-all ${
         isCrowded
           ? 'px-2.5 py-0.5 scale-90 sm:scale-95'
           : 'px-3 py-1 sm:px-3.5 sm:py-1.5'

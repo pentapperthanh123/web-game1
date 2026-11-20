@@ -27,6 +27,7 @@ import { recordRoseGift } from '../store/roseGratitudeStore';
 import { mockLiveSimulator } from './mockLiveSimulator';
 import { casterQueue } from './caster/presentationQueue';
 import { casterSpeechEngine } from './caster/speechEngine';
+import { CancelTimer, workerSetInterval, workerSetTimeout } from './workerScheduler';
 
 export const LIVE_OPS_SOCKET_EVENT = {
   AUTH_ERROR: 'server:auth-error',
@@ -114,13 +115,13 @@ class GameSocketClient {
   // Prevents setState spam when many viewers send chat simultaneously
   private readonly CHAT_BATCH_FLUSH_MS = 100;
   private chatBatchQueue: Array<{ userName: string; text: string; team?: TeamType; championName?: string }> = [];
-  private chatBatchTimer: ReturnType<typeof setInterval> | null = null;
+  private cancelChatBatchTimer: CancelTimer | null = null;
 
   // Gift batching: queue rapid gift bursts and flush every GIFT_BATCH_FLUSH_MS ms
   // Consolidates rapid ticks (e.g. 50 roses/sec) to avoid state & micro-render storms
   private readonly GIFT_BATCH_FLUSH_MS = 60;
   private giftBatchQueue: QueuedGiftPayload[] = [];
-  private giftBatchTimer: ReturnType<typeof setInterval> | null = null;
+  private cancelGiftBatchTimer: CancelTimer | null = null;
   /** Reports the matchup's series titles to the admin portal while connected. */
   private stopTallyReporter: (() => void) | null = null;
   /** Reports round results so the server's series state follows the game. */
@@ -377,7 +378,7 @@ class GameSocketClient {
             useGameStore.getState().resetBO5Match();
             casterQueue.clear();
             casterSpeechEngine.interruptAll();
-            setTimeout(() => {
+            workerSetTimeout(() => {
               triggerStartRoundCombat();
             }, 1200);
           }
@@ -751,24 +752,21 @@ class GameSocketClient {
   // setState call every CHAT_BATCH_FLUSH_MS ms, preventing render storms.
 
   private startChatBatchFlush(): void {
-    if (this.chatBatchTimer !== null) return;
-    this.chatBatchTimer = setInterval(() => this.flushChatBatch(), this.CHAT_BATCH_FLUSH_MS);
+    if (this.cancelChatBatchTimer !== null) return;
+    this.cancelChatBatchTimer = workerSetInterval(() => this.flushChatBatch(), this.CHAT_BATCH_FLUSH_MS);
   }
 
   private stopChatBatchFlush(): void {
-    if (this.chatBatchTimer === null) return;
-    clearInterval(this.chatBatchTimer);
-    this.chatBatchTimer = null;
+    if (this.cancelChatBatchTimer === null) return;
+    this.cancelChatBatchTimer();
+    this.cancelChatBatchTimer = null;
     this.flushChatBatch(); // drain remaining messages on disconnect
   }
 
   private flushChatBatch(): void {
     if (this.chatBatchQueue.length === 0) return;
     const batch = this.chatBatchQueue.splice(0);
-    const store = useGameStore.getState();
-    batch.forEach((msg) =>
-      store.addChatMessage(msg.userName, msg.text, msg.team, msg.championName)
-    );
+    useGameStore.getState().addChatMessagesBatch(batch);
   }
 
   // ─── Gift Batch Flush ───────────────────────────────────────────────────────
@@ -776,14 +774,14 @@ class GameSocketClient {
   // to avoid blocking OBS rendering thread with state & VFX micro-storms.
 
   private startGiftBatchFlush(): void {
-    if (this.giftBatchTimer !== null) return;
-    this.giftBatchTimer = setInterval(() => this.flushGiftBatch(), this.GIFT_BATCH_FLUSH_MS);
+    if (this.cancelGiftBatchTimer !== null) return;
+    this.cancelGiftBatchTimer = workerSetInterval(() => this.flushGiftBatch(), this.GIFT_BATCH_FLUSH_MS);
   }
 
   private stopGiftBatchFlush(): void {
-    if (this.giftBatchTimer === null) return;
-    clearInterval(this.giftBatchTimer);
-    this.giftBatchTimer = null;
+    if (this.cancelGiftBatchTimer === null) return;
+    this.cancelGiftBatchTimer();
+    this.cancelGiftBatchTimer = null;
     this.flushGiftBatch();
   }
 

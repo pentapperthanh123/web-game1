@@ -7,6 +7,7 @@ import { useGameStore } from '../../store/gameStore';
 import { useGiftVfxStore } from '../../store/giftVfxStore';
 import { getTeamTheme } from '../../constants/teams';
 import {
+  BACKGROUND_PERF_CONSTANTS,
   BOSS_DEFEAT_CONSTANTS,
   BOSS_STATUS,
   DEFEAT_SHOWCASE_TIMELINE,
@@ -316,7 +317,7 @@ export const BossDeathVFX3D = () => {
   );
 
   const bossStatus = useGameStore((state) => state.bossStatus);
-  const bossHp = useGameStore((state) => state.bossHp);
+  const isBossHpDepleted = useGameStore((state) => state.bossHp <= 0);
   const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const roundWinner = useGameStore((state) => state.roundWinner);
   const bossDefeatedTimestamp = useGameStore((state) => state.bossDefeatedTimestamp);
@@ -329,7 +330,7 @@ export const BossDeathVFX3D = () => {
   const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
   const rawIsDefeated =
     bossStatus === BOSS_STATUS.DEFEATED ||
-    bossHp <= 0 ||
+    isBossHpDepleted ||
     isRoundIntermission ||
     roundWinner !== null;
 
@@ -374,6 +375,7 @@ export const BossDeathVFX3D = () => {
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
+    const safeDelta = Math.min(BACKGROUND_PERF_CONSTANTS.MAX_FRAME_DELTA_S, delta);
 
     if (!isDefeated || activeTimestamp <= 0) {
       groupRef.current.visible = false;
@@ -409,7 +411,7 @@ export const BossDeathVFX3D = () => {
         exhaustionRingRef.current.visible = true;
         const implodeCycle = 1 - ((exhaustProgress * 3) % 1);
         exhaustionRingRef.current.scale.setScalar(0.35 + implodeCycle * 1.65);
-        exhaustionRingRef.current.rotation.z += delta * 2.4;
+        exhaustionRingRef.current.rotation.z += safeDelta * 2.4;
         (exhaustionRingRef.current.material as THREE.MeshBasicMaterial).opacity =
           (1 - implodeCycle) * (0.35 + exhaustProgress * 0.45);
       }
@@ -482,7 +484,7 @@ export const BossDeathVFX3D = () => {
       ringPrimaryRef.current.scale.setScalar(
         0.45 + ease * BOSS_DEFEAT_CONSTANTS.RING_PRIMARY_MAX_SCALE
       );
-      ringPrimaryRef.current.rotation.z += delta * 1.8;
+      ringPrimaryRef.current.rotation.z += safeDelta * 1.8;
       (ringPrimaryRef.current.material as THREE.MeshBasicMaterial).opacity =
         Math.max(0, 1 - blastProgress * 1.15) * 0.78;
     }
@@ -494,7 +496,7 @@ export const BossDeathVFX3D = () => {
       ringSecondaryRef.current.scale.setScalar(
         0.4 + ease * BOSS_DEFEAT_CONSTANTS.RING_SECONDARY_MAX_SCALE
       );
-      ringSecondaryRef.current.rotation.z -= delta * 2.1;
+      ringSecondaryRef.current.rotation.z -= safeDelta * 2.1;
       (ringSecondaryRef.current.material as THREE.MeshBasicMaterial).opacity =
         Math.max(0, 1 - delayed * 1.12) * 0.85;
     }
@@ -516,7 +518,7 @@ export const BossDeathVFX3D = () => {
       if (isRayVisible) {
         const rayScale = 0.35 + easeOutCubic(rayProgress) * 1.15;
         burstRaysGroupRef.current.scale.setScalar(rayScale);
-        burstRaysGroupRef.current.rotation.z += delta * BOSS_DEFEAT_CONSTANTS.BURST_RAY_SPIN_SPEED;
+        burstRaysGroupRef.current.rotation.z += safeDelta * BOSS_DEFEAT_CONSTANTS.BURST_RAY_SPIN_SPEED;
         burstRayMaterial.opacity = Math.sin(rayProgress * Math.PI) * 0.52;
       }
     }
@@ -571,7 +573,7 @@ export const BossDeathVFX3D = () => {
             0.38 * envelope * pulse;
         }
         if (buffOrbHaloRef.current) {
-          buffOrbHaloRef.current.rotation.z += delta * 1.6;
+          buffOrbHaloRef.current.rotation.z += safeDelta * 1.6;
           buffOrbHaloRef.current.scale.setScalar(envelope * (0.95 + pulse * 0.12));
           (buffOrbHaloRef.current.material as THREE.MeshBasicMaterial).opacity = 0.72 * envelope;
         }

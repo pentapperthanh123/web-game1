@@ -112,7 +112,15 @@
   },
   "IdleRally": {
     "doubleTapToHeart": "Chạm 2 lần để thả tim tiếp viện!",
-    "typeToSummon": "Chat tên tướng kèm {{teamA}} hoặc {{teamB}} để xung trận ngay!"
+    "typeToSummon": "Gõ 1 chọn {{teamA}} · Gõ 2 chọn {{teamB}}",
+    "overtimeTitle": "⚡ 15S CUỐI: GẤP BỘI SÁT THƯƠNG!",
+    "overtimeSubtitle": "Dồn sát thương ngay — Gõ 1 ({{teamA}}) hoặc 2 ({{teamB}})!",
+    "bossLowTitle": "💥 BOSS DƯỚI 20% HP — DỨT ĐIỂM!",
+    "bossLowSubtitle": "Gõ 1 ({{teamA}}) hoặc 2 ({{teamB}}) để dứt điểm & giành MVP!",
+    "emptyFieldTitle": "🚨 SÀN ĐẤU ĐANG TRỐNG!",
+    "emptyFieldSubtitle": "Gõ 1 ({{teamA}}) hoặc 2 ({{teamB}}) để xuất chiến ngay!",
+    "comebackTitle": "⚡ {{team}} ĐANG ĐƯỢC BUFF LẬT KÈO (+15%)!",
+    "comebackSubtitle": "Gõ {{number}} để giúp {{team}} lội ngược dòng ngay!"
   },
   "Controls": {
     "title": "Bảng Giả Lập Tương Tác TikTok Live",
@@ -482,7 +490,8 @@
     "byKiller": "— {{killer}}",
     "wipeTitle": "QUÉT SẠCH!",
     "wipeSubtitle": "{{count}} tướng gục ngã — Sàn đấu trống!",
-    "wipeEmptyField": "Toàn bộ tướng đã gục ngã — Sàn đấu trống!"
+    "wipeEmptyField": "Toàn bộ tướng đã gục ngã — Sàn đấu trống!",
+    "wipeCta": "TOÀN QUÂN GỤC NGÃ — Gõ 1 hoặc 2 tiếp viện ngay!"
   },
   "Audio": {
     "ambienceOn": "Bật nhạc nền",
@@ -519,6 +528,24 @@
     "overtimeLabel": "Hiệp phụ",
     "overtimeMultiplier": "x{{multiplier}} ST"
   },
+  "Comeback": {
+    "buffTitle": "⚡ {{team}} KÍCH HOẠT LẬT KÈO!",
+    "buffSubtitle": "+{{percent}}% sát thương • Gõ {{number}} dồn sát thương!",
+    "successTitle": "🔥 {{team}} LẬT KÈO THÀNH CÔNG!",
+    "successSubtitle": "{{team}} đã vượt lên dẫn trước!"
+  },
+  "MvpStrip": {
+    "beMvpPrompt": "Gõ {{number}} để làm MVP!",
+    "mvpTitle": "MVP {{team}}: @{{name}} ({{damage}} ST)"
+  },
+  "CombatHype": {
+    "firstBloodTitle": "⚔️ KHAI HOẢ VÁN {{round}}!",
+    "firstBloodSubtitle": "@{{name}} gọi {{champ}} mở màn cho {{team}}!",
+    "streakTitle": "🔥 SÓNG TRIỆU HỒI {{team}} x{{count}}!",
+    "streakSubtitle": "Khán giả {{team}} đang dồn quân ồ ạt!",
+    "overtimeTitle": "⚡ 15S CUỐI: GẤP BỘI SÁT THƯƠNG!",
+    "overtimeSubtitle": "Dồn sát thương lật kèo ngay trước khi hết giờ!"
+  },
   "RoundIntro": {
     "roundLabel": "Ván {{round}} sắp bắt đầu",
     "clashTitle": "VÁN {{round}} • KHAI CHIẾN!",
@@ -539,6 +566,10 @@
     "titleGifts": "Quà tặng",
     "buffNotice": "⭐ Buff Nộ",
     "callToAction": "Gõ tên tướng bạn thích để triệu hồi:",
+    "mainSummonPrefix": "Gõ",
+    "mainSummonSuffix": "để triệu hồi ngay",
+    "subSummonSyntax": "Hoặc gõ [Tên tướng] 1 / [Tên tướng] 2 để chọn tướng riêng",
+    "orKeyword": "hoặc",
     "quickRule": "Thắng theo ST ván",
     "quickGift": "1 xu = {{damage}} ST",
     "quickHeart": "Thả tim nạp Nộ",
@@ -548,7 +579,7 @@
     "ruleTeamsTitle": "Đại Chiến Sát Thương Lên Boss",
     "ruleTeams": "Hai đội cùng dồn sát thương vào Boss. Khi Boss gục ngã hoặc hết giờ, đội nào có tổng điểm sát thương cao hơn sẽ giành chiến thắng ván đấu.",
     "ruleSummonTitle": "Cú Pháp Chat Triệu Hồi Tướng",
-    "ruleSummon": "Khán giả chat cú pháp: [Tên tướng] [Tên đội] (ví dụ: '{{champ1}} {{team1}}' hoặc '{{champ2}} {{team2}}') để triệu hồi tướng yêu thích ra sàn đấu xả chiêu!",
+    "ruleSummon": "Gõ 1 ({{team1}}) hoặc 2 ({{team2}}) để triệu hồi ngay. Hoặc gõ [Tên tướng] 1 / 2 (ví dụ: '{{champ1}} 1' hoặc '{{champ2}} 2') để chọn tướng riêng!",
     "ruleFuryTitle": "Thả Tim Nạp Nộ & Kích Hoạt Ultimate",
     "ruleFury": "Bấm tim liên tục vào livestream để nạp thanh Nộ. Khi nộ đầy 100%, tướng sẽ tung Tuyệt Kỹ Tối Thượng dồn bão sát thương cực khủng!",
     "ruleSeriesTitle": "Thể Thức {{format}} Vô Địch Thế Giới",

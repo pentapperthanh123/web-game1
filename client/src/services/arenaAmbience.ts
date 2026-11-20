@@ -1,10 +1,14 @@
 import { Howl } from 'howler';
 import { useGameStore } from '../store/gameStore';
 import { audioService } from './audioService';
+import { VoiceManager } from './caster/VoiceManager';
 
 const AMBIENCE_CONSTANTS = {
   STORAGE_KEY: 'lol_ambience_enabled',
-  DEFAULT_VOLUME: 0.45,
+  DEFAULT_VOLUME: 0.20,
+  DUCKED_VOLUME: 0.05,
+  DUCK_FADE_MS: 150,
+  RESTORE_FADE_MS: 350,
   FADE_MS: 1200,
   SYNC_INTERVAL_MS: 1000,
 } as const;
@@ -12,6 +16,21 @@ const AMBIENCE_CONSTANTS = {
 let ambienceHowl: Howl | null = null;
 let isPlaying = false;
 let syncTimerId: number | null = null;
+let isCasterSpeaking = false;
+
+const resolveEffectiveVolume = (): number => {
+  const baseVol = isCasterSpeaking ? AMBIENCE_CONSTANTS.DUCKED_VOLUME : AMBIENCE_CONSTANTS.DEFAULT_VOLUME;
+  return baseVol * audioService.volume;
+};
+
+export const setCasterSpeaking = (speaking: boolean): void => {
+  if (isCasterSpeaking === speaking) return;
+  isCasterSpeaking = speaking;
+  if (!ambienceHowl || !isPlaying) return;
+  const targetVol = resolveEffectiveVolume();
+  const duration = speaking ? AMBIENCE_CONSTANTS.DUCK_FADE_MS : AMBIENCE_CONSTANTS.RESTORE_FADE_MS;
+  ambienceHowl.fade(ambienceHowl.volume(), targetVol, duration);
+};
 
 const readStoredPreference = (): boolean => {
   try {
@@ -41,11 +60,11 @@ const getAmbienceHowl = (): Howl => {
       src: ['/sfx/ARENA_AMBIENCE.mp3'],
       loop: true,
       html5: false, // Use Web Audio API for seamless loop and reliable autoplay
-      volume: AMBIENCE_CONSTANTS.DEFAULT_VOLUME * audioService.volume,
+      volume: resolveEffectiveVolume(),
       preload: true,
       onload: () => {
         if (isPlaying && ambienceHowl) {
-          const targetVol = AMBIENCE_CONSTANTS.DEFAULT_VOLUME * audioService.volume;
+          const targetVol = resolveEffectiveVolume();
           ambienceHowl.volume(targetVol);
         }
       },
@@ -63,7 +82,7 @@ const startBed = (): void => {
     void Howler.ctx.resume();
   }
   const howl = getAmbienceHowl();
-  const targetVol = AMBIENCE_CONSTANTS.DEFAULT_VOLUME * audioService.volume;
+  const targetVol = resolveEffectiveVolume();
   isPlaying = true;
   if (howl.state() === 'loaded') {
     howl.volume(0);
@@ -100,8 +119,11 @@ export const syncAmbience = (): void => {
   if (!isPlaying) {
     startBed();
   } else if (ambienceHowl) {
-    const targetVol = AMBIENCE_CONSTANTS.DEFAULT_VOLUME * audioService.volume;
-    ambienceHowl.volume(targetVol);
+    const targetVol = resolveEffectiveVolume();
+    // Only adjust if the volume is substantially off to avoid interrupting active fades
+    if (Math.abs(ambienceHowl.volume() - targetVol) > 0.05) {
+      ambienceHowl.volume(targetVol);
+    }
   }
 };
 
@@ -109,6 +131,11 @@ export const syncAmbience = (): void => {
 export const startArenaAmbience = (): void => {
   if (syncTimerId !== null || typeof window === 'undefined') return;
   syncTimerId = window.setInterval(syncAmbience, AMBIENCE_CONSTANTS.SYNC_INTERVAL_MS);
+
+  // Hook voice speaking change for automatic esports-style BGM ducking
+  VoiceManager.onSpeakingChange((speaking) => {
+    setCasterSpeaking(speaking);
+  });
 
   // Resume or start on first user interaction in case the browser blocked autoplay
   const handleInteraction = (): void => {

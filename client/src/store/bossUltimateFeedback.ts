@@ -14,6 +14,7 @@ import { playSound } from '../services/soundManager';
 import { BossSkillDefinition, BossSkillVfxLayer } from '../types/bossSkill';
 import { GameState } from '../types/game';
 import { isBattleHalted } from './storeHelpers';
+import { workerSetTimeout } from '../services/workerScheduler';
 
 const MS_PER_SECOND = 1000;
 
@@ -130,6 +131,6 @@ export const playBossUltimateFeedback = (get: () => GameState, skill: BossSkillD
   get().triggerScreenRumble(BOSS_ULTIMATE_FEEDBACK.RUMBLE_INTENSITY * plan.quakeWeight, plan.rumbleDurationMs);
   audioService.playQuakeRumble(plan.rumbleDurationMs / MS_PER_SECOND, plan.quakeWeight, pitchRate, true);
   plan.cues.forEach((cue) => {
-    setTimeout(() => playCue(get, cue, pitchRate), cue.atMs);
+    workerSetTimeout(() => playCue(get, cue, pitchRate), cue.atMs);
   });
 };

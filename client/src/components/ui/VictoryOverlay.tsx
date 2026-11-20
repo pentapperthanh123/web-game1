@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -22,15 +22,14 @@ import { previewNextMatchup } from '../../store/matchRotation';
 import { useGiftVfxStore } from '../../store/giftVfxStore';
 import { useRoseGratitudeStore } from '../../store/roseGratitudeStore';
 import { hideCombatDeployBanner } from '../../store/combatDeployBannerStore';
+import { workerSetTimeout } from '../../services/workerScheduler';
 import {
   VICTORY_CELEBRATION_STARS,
   resolveEffectiveWinner,
 } from './victory/victoryHelpers';
 
-export const VictoryOverlay = () => {
+const VictoryOverlayContent = () => {
   const { t } = useTranslation();
-  const bossStatus = useGameStore((state) => state.bossStatus);
-  const isRoundIntermission = useGameStore((state) => state.isRoundIntermission);
   const leftScore = useGameStore((state) => state.teamScores?.[TEAM_KEY.BLG] ?? state.teamScoreBLG);
   const rightScore = useGameStore((state) => state.teamScores?.[TEAM_KEY.GENG] ?? state.teamScoreGENG);
   const bo5Score = useGameStore((state) => state.bo5Score);
@@ -42,8 +41,6 @@ export const VictoryOverlay = () => {
   const seriesWinner = useGameStore((state) => state.seriesWinner);
   const finisherPlayerName = useGameStore((state) => state.finisherPlayerName);
   const finisherTeam = useGameStore((state) => state.finisherTeam);
-  const finisherGiftName = useGameStore((state) => state.finisherGiftName);
-  const finisherCoins = useGameStore((state) => state.finisherCoins);
   const startNextRound = useGameStore((state) => state.startNextRound);
   const resetBO5Match = useGameStore((state) => state.resetBO5Match);
   const advanceNextMatchQueue = useGameStore((state) => state.advanceNextMatchQueue);
@@ -60,29 +57,20 @@ export const VictoryOverlay = () => {
   /** Set synchronously: two calls in the same tick both still see the old `isAdvancing` state. */
   const isAdvancingRef = useRef(false);
 
-  const isDefeated = bossStatus === BOSS_STATUS.DEFEATED || isRoundIntermission;
-
   useEffect(() => {
-    if (!isDefeated) {
-      setIsVictoryVisible(false);
-      setIsAdvancing(false);
-      isAdvancingRef.current = false;
-      audioService.setCombatMuted(false);
-      return;
-    }
-
     // Silence combat synths and speech
     audioService.setCombatMuted(true);
 
-    const isDonorFinisher = isDonorFinisherCheck(finisherGiftName, finisherCoins);
+    const { bossDefeatedTimestamp, finisherGiftName: latestGift, finisherCoins: latestCoins } =
+      useGameStore.getState();
+    const isDonorFinisher = isDonorFinisherCheck(latestGift, latestCoins);
     // Anchored to the moment the boss died (like the finisher cinematic and the caster), not to
     // when this effect happened to run, so a slow render cannot push the screen out of sync.
-    const { bossDefeatedTimestamp } = useGameStore.getState();
     const sinceDefeatMs = bossDefeatedTimestamp > 0 ? Date.now() - bossDefeatedTimestamp : 0;
     const victoryDelay = Math.max(0, resolveDefeatShowcaseMs(isDonorFinisher) - sinceDefeatMs);
 
     // Reveal the Victory screen after finisher showcase
-    const revealTimer = setTimeout(() => {
+    const cancelRevealTimer = workerSetTimeout(() => {
       setIsVictoryVisible(true);
       playSound(SFX_EVENT.VICTORY);
       useGiftVfxStore.getState().setPodiumOrbitActive(true);
@@ -95,14 +83,14 @@ export const VictoryOverlay = () => {
     }, victoryDelay);
 
     return () => {
-      clearTimeout(revealTimer);
+      cancelRevealTimer();
       audioService.setCombatMuted(false);
       useGiftVfxStore.getState().setPodiumOrbitActive(false);
       useGiftVfxStore.getState().setContinuousFireworksActive(false);
     };
-  }, [isDefeated]);
+  }, []);
 
-  if (!isDefeated || !isVictoryVisible) return null;
+  if (!isVictoryVisible) return null;
 
   const effectiveWinner = resolveEffectiveWinner(
     isSeriesEnded,
@@ -177,7 +165,7 @@ export const VictoryOverlay = () => {
   return (
     <div className="flex items-center justify-center h-screen w-full absolute inset-0 z-50 pointer-events-none select-none overflow-hidden px-3 py-4 animate-in fade-in duration-700">
       {/* Fullscreen Cinematic Broadcast Backdrop */}
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[3px] pointer-events-none" />
+      <div className="absolute inset-0 bg-slate-950/86 pointer-events-none" />
       <div
         className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30rem] h-[30rem] rounded-full blur-[120px] opacity-25 pointer-events-none ${winnerTheme.glowOrbClass}`}
       />
@@ -200,7 +188,7 @@ export const VictoryOverlay = () => {
           background:
             'linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(2, 6, 23, 0.98) 100%)',
         }}
-        className="relative z-10 max-w-sm w-full p-4 sm:p-5 rounded-3xl border-2 backdrop-blur-2xl pointer-events-auto flex flex-col items-center space-y-3 overflow-hidden animate-in zoom-in-95 duration-500"
+        className="relative z-10 max-w-sm w-full p-4 sm:p-5 rounded-3xl border-2 pointer-events-auto flex flex-col items-center space-y-3 overflow-hidden animate-in zoom-in-95 duration-500"
       >
         {/* Top Golden Shimmer Accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-44 h-0.5 bg-gradient-to-r from-transparent via-amber-300 to-transparent shadow-[0_0_12px_#fbbf24]" />
@@ -280,3 +268,14 @@ export const VictoryOverlay = () => {
     </div>
   );
 };
+
+export const VictoryOverlay = React.memo(() => {
+  const isDefeated = useGameStore(
+    (state) => state.bossStatus === BOSS_STATUS.DEFEATED || state.isRoundIntermission
+  );
+
+  if (!isDefeated) return null;
+  return <VictoryOverlayContent />;
+});
+
+VictoryOverlay.displayName = 'VictoryOverlay';

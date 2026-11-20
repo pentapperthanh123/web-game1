@@ -17,7 +17,7 @@ interface DamageTextStyle {
   prefix: string;
 }
 
-const SPRITE_PIXEL_RATIO = 3;
+const SPRITE_PIXEL_RATIO = 1.5;
 const STROKE_WIDTH = 3;
 const LINE_HEIGHT_FACTOR = 1.45;
 const STROKE_COLOR = 'rgba(2, 6, 23, 0.95)';

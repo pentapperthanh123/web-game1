@@ -47,10 +47,13 @@ export const StarFighterCard: React.FC<StarFighterCardProps> = ({ team, teamKey,
   const layout = SIDE_LAYOUT[side];
   const fallbackAvatarUrl = getChampionAvatarUrl(star.signatureChampion, teamKey);
 
+  // Dual-comet rotating laser beam around the avatar border track (zero outer blur)
+  const rotatingBorderGradient = `conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 40deg, ${theme.primaryHex}66 90deg, ${theme.primaryHex} 140deg, #ffffff 180deg, transparent 180deg, transparent 220deg, ${theme.primaryHex}66 270deg, ${theme.primaryHex} 320deg, #ffffff 360deg)`;
+
   return (
     <div className={`flex-1 flex z-20 min-w-0 ${layout.wrapperClass}`}>
       <div
-        className="relative overflow-hidden w-full max-w-[220px] sm:max-w-xs rounded-3xl border-2 px-2.5 py-3 sm:p-5 shadow-2xl backdrop-blur-xl"
+        className="relative overflow-hidden w-full max-w-[220px] sm:max-w-xs rounded-3xl border-2 px-2.5 py-3 sm:p-5 shadow-2xl"
         style={{
           borderColor: `${theme.primaryHex}ee`,
           background: `linear-gradient(${layout.gradientAngle}, ${theme.primaryHex}45 0%, rgba(2, 6, 23, 0.94) 75%)`,
@@ -68,26 +71,41 @@ export const StarFighterCard: React.FC<StarFighterCardProps> = ({ team, teamKey,
         </div>
 
         <div className="relative z-10 flex flex-col items-center text-center gap-1.5 min-w-0">
-          {/* Avatar with the team badge on its corner */}
-          <div className="relative shrink-0">
-            <div
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 overflow-hidden shadow-xl"
-              style={{ borderColor: theme.primaryHex }}
-            >
-              <img
-                src={star.avatarUrl || fallbackAvatarUrl}
-                alt={star.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = fallbackAvatarUrl;
-                }}
+          {/* Running Border Avatar (Rotating Border Light, Zero Outer Blur) */}
+          <div className="relative shrink-0 my-1 select-none flex items-center justify-center">
+            {/* Outer Box with strictly clipped running border */}
+            <div className="relative p-[2px] rounded-2xl overflow-hidden bg-slate-950 shadow-md">
+              {/* Rotating Conic Light Beam (Restricted inside 2px border track) */}
+              <div
+                className="absolute -inset-[100%] animate-avatar-border-spin pointer-events-none"
+                style={{ background: rotatingBorderGradient }}
               />
+
+              {/* Faint Base Border Guide */}
+              <div
+                className="absolute inset-0 rounded-2xl border pointer-events-none opacity-25"
+                style={{ borderColor: theme.primaryHex }}
+              />
+
+              {/* Inner Avatar Image */}
+              <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-[14px] overflow-hidden bg-slate-950">
+                <img
+                  src={star.avatarUrl || fallbackAvatarUrl}
+                  alt={star.name}
+                  className="w-full h-full object-cover select-none"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = fallbackAvatarUrl;
+                  }}
+                />
+              </div>
             </div>
+
+            {/* Team badge on corner */}
             <div
-              className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950 border-2 shadow-md"
+              className="absolute -bottom-1 -right-1 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950 border-2 shadow-md overflow-hidden"
               style={{ borderColor: theme.primaryHex }}
             >
-              <TeamLogo teamProfile={team} className="w-4 h-4 object-contain" />
+              <TeamLogo teamProfile={team} className="w-[18px] h-[18px] object-contain" />
             </div>
           </div>
 

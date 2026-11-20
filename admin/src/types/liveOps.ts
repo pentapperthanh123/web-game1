@@ -13,6 +13,10 @@ export interface CasterConfig {
   isNameReadingEnabled: boolean;
   /** Two casters banter (Bảo + Anna); off = one male voice. */
   isDuoEnabled: boolean;
+  /** Primary male voice ID for Viet-TTS (e.g. 'atuan', 'nsnd-le-chuc', 'cdteam'). */
+  voiceMale?: string;
+  /** Primary female voice ID for Viet-TTS (e.g. 'quynh', 'nu-nhe-nhang'). */
+  voiceFemale?: string;
 }
 
 export interface ModerationSnapshot {

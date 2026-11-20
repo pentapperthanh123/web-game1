@@ -46,7 +46,7 @@ export const BossPhaseShiftBanner: React.FC<BossPhaseShiftBannerProps> = React.m
     >
       {/* Slim Esports Ribbon Ticker: Only 28px height, never blocks the 3D Boss */}
       <div
-        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border bg-slate-950/95 backdrop-blur-md shadow-lg"
+        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border bg-slate-950/95 shadow-lg"
         style={{
           borderColor: accentColor,
           boxShadow: `0 0 16px ${accentColor}66`,

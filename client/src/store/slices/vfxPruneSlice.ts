@@ -122,6 +122,8 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
         nextSummonPortals = [...activeSummonPortals, ...deployed.newPortals];
       }
     }
+    const hasDeployedFromQueue =
+      finalMinions !== activeMinions || nextSummonPortals !== activeSummonPortals;
     const hasHeartsChanged = activeHearts.length !== state.activeHearts.length;
     const hasProjChanged = activeProj.length !== state.activeProjectiles.length;
     const hasFloatsChanged = activeFloats.length !== state.floatingDamages.length;
@@ -139,6 +141,7 @@ export const createVfxPruneSlice: StateCreator<GameState, [], [], VfxPruneSlice>
       (state.activeHeartMilestoneBanner !== null) !== isHeartMilestoneBannerActive;
 
     const hasAnyChange =
+      hasDeployedFromQueue ||
       hasMinionsChanged ||
       hasHeartsChanged ||
       hasProjChanged ||

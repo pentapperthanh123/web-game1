@@ -272,7 +272,7 @@ export const FinisherAnnouncementBanner: React.FC = React.memo(() => {
                   ? '0 0 65px rgba(251,191,36,0.85), inset 0 0 30px rgba(251,191,36,0.35)'
                   : `0 0 50px ${winnerTheme.primaryHex}88, inset 0 0 25px ${winnerTheme.primaryHex}44`,
               }}
-              className="relative max-w-md w-full bg-slate-950/95 backdrop-blur-2xl rounded-3xl border-2 p-5 sm:p-6 text-center space-y-3.5 pointer-events-auto shadow-2xl animate-finisher-card-appear"
+              className="relative max-w-md w-full bg-slate-950/95 rounded-3xl border-2 p-5 sm:p-6 text-center space-y-3.5 pointer-events-auto shadow-2xl animate-finisher-card-appear"
             >
             {/* Top Accent Line */}
             <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent rounded-full shadow-[0_0_16px_rgba(251,191,36,0.95)]" />

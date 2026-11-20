@@ -6,6 +6,7 @@ export const ADMIN_PORTAL_TAB = {
   BOSS_MAP: 'BOSS_MAP',
   OVERLAYS: 'OVERLAYS',
   LIVE_OPS: 'LIVE_OPS',
+  VIET_TTS_STUDIO: 'VIET_TTS_STUDIO',
   LOGS: 'LOGS',
   ALL: 'ALL',
 } as const;
@@ -28,6 +29,7 @@ export const ADMIN_PORTAL_TABS: readonly AdminPortalTabMeta[] = [
   { id: ADMIN_PORTAL_TAB.INTERACTION, label: 'Tương Tác & Quà' },
   { id: ADMIN_PORTAL_TAB.GIFTS, label: 'Cấu Hình Quà' },
   { id: ADMIN_PORTAL_TAB.BOSS_MAP, label: 'Boss & Bản Đồ' },
+  { id: ADMIN_PORTAL_TAB.VIET_TTS_STUDIO, label: 'Viet-TTS Studio (Giọng BLV)' },
   { id: ADMIN_PORTAL_TAB.LIVE_OPS, label: 'Live Ops & Kiểm Duyệt' },
   { id: ADMIN_PORTAL_TAB.LOGS, label: 'Nhật Ký Live' },
 ];

@@ -64,11 +64,11 @@ const AccretionDisc = ({ isFrontHalf }: AccretionDiscProps) => (
     }}
   >
     <div
-      className="absolute inset-0 rounded-full arena-accretion-spin blur-[2px]"
+      className="absolute inset-0 rounded-full arena-accretion-spin"
       style={{ background: ACCRETION_GRADIENT, maskImage: ACCRETION_RING_MASK, WebkitMaskImage: ACCRETION_RING_MASK }}
     />
     <div
-      className="absolute inset-0 rounded-full arena-accretion-spin-reverse blur-[3px]"
+      className="absolute inset-0 rounded-full arena-accretion-spin-reverse"
       style={{ background: OUTER_DUST_GRADIENT, maskImage: OUTER_DUST_MASK, WebkitMaskImage: OUTER_DUST_MASK }}
     />
   </div>
@@ -80,7 +80,7 @@ const EventHorizon = () => (
       className="absolute inset-0 rounded-full arena-horizon-pulse"
       style={{
         background: `radial-gradient(circle, #020008 0 58%, ${VOID_COLORS.HORIZON_INNER} 67%, ${VOID_COLORS.PHOTON_RING} 69.5%, ${VOID_COLORS.PHOTON_RING_CYAN} 71%, transparent 75%)`,
-        boxShadow: `0 0 20px 4px ${VOID_COLORS.HORIZON}, 0 0 60px 18px ${VOID_COLORS.HORIZON_GLOW}, 0 0 110px 35px ${VOID_COLORS.HORIZON_OUTER_GLOW}, 0 0 160px 50px ${VOID_COLORS.HALO_INNER}`,
+        boxShadow: `0 0 22px 4px ${VOID_COLORS.HORIZON}, 0 0 54px 14px ${VOID_COLORS.HORIZON_GLOW}`,
       }}
     />
   </div>

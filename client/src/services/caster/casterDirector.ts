@@ -32,6 +32,7 @@ import { useCasterStore } from '../../store/casterStore';
 import { useGameStore } from '../../store/gameStore';
 import { isCurrentRoundIntroActive, useRoundIntroStore } from '../../store/roundIntroStore';
 import { evaluateComebackBuff } from '../../store/comebackRules';
+import { COMEBACK_BANNER_KIND, triggerComebackBanner } from '../../store/comebackBannerStore';
 import { triggerFieldWipe } from '../../store/combatMomentStore';
 import { bossSpeechManager, resolveBossSpeechItem } from '../../constants/bossSpeech';
 import { INTRO_STAR_FALLBACK_CHAMPION, pickIntroStar } from '../../utils/introStar';
@@ -56,6 +57,7 @@ import {
 } from './casterSignal';
 import { announceBattleMoments, announceDuelMoments, createBattleMomentMemory } from './casterBattleMoments';
 import { CommentaryDirector } from './CommentaryDirector';
+import { CancelTimer, workerSetInterval, workerSetTimeout } from '../workerScheduler';
 
 /** Names starting with a badge (💖 follow reward, 👑 gift elite) already got their own line. */
 const BADGED_NAME = /^[^\p{L}\p{N}]/u;
@@ -139,7 +141,7 @@ interface DirectorMemory {
   lastProvocationAt: number;
   lastActivityByTeam: Record<string, number>;
   giftBatchBuffer: BufferedGift[];
-  giftBatchTimer: ReturnType<typeof setTimeout> | null;
+  cancelGiftBatchTimer: CancelTimer | null;
   lastBanterSignal: CasterSignal | null;
   nextBanterSilenceMs: number;
   damageLeader: TeamType | null;
@@ -155,7 +157,7 @@ interface DirectorMemory {
   preparedGoRound: number;
   hasAnnouncedSeriesEnd: boolean;
   /** Round-end narration waiting for the victory screen (cleared when a new round starts). */
-  pendingRoundEndTimer: ReturnType<typeof setTimeout> | null;
+  cancelPendingRoundEndTimer: CancelTimer | null;
 }
 
 const getTeamKeys = (state: GameState): TeamType[] => Object.keys(state.activeTeams) as TeamType[];
@@ -230,7 +232,7 @@ const createMemory = (state: GameState): DirectorMemory => ({
   lastProvocationAt: 0,
   lastActivityByTeam: initActivityByTeam(state),
   giftBatchBuffer: [],
-  giftBatchTimer: null,
+  cancelGiftBatchTimer: null,
   lastBanterSignal: null,
   nextBanterSilenceMs: CASTER_BANTER.ACTIVE_SILENCE_MS,
   damageLeader: getDamageLeader(state),
@@ -241,7 +243,7 @@ const createMemory = (state: GameState): DirectorMemory => ({
   preparedGoTurns: null,
   preparedGoRound: 0,
   hasAnnouncedSeriesEnd: state.isSeriesEnded,
-  pendingRoundEndTimer: null,
+  cancelPendingRoundEndTimer: null,
 });
 
 const announceNewSummons = (state: GameState, memory: DirectorMemory): void => {
@@ -293,9 +295,9 @@ const announceNewSummons = (state: GameState, memory: DirectorMemory): void => {
 };
 
 const flushGiftBatch = (memory: DirectorMemory): void => {
-  if (memory.giftBatchTimer) {
-    clearTimeout(memory.giftBatchTimer);
-    memory.giftBatchTimer = null;
+  if (memory.cancelGiftBatchTimer) {
+    memory.cancelGiftBatchTimer();
+    memory.cancelGiftBatchTimer = null;
   }
   const batch = memory.giftBatchBuffer.splice(0, memory.giftBatchBuffer.length);
   if (batch.length === 0) return;
@@ -428,8 +430,8 @@ const announceGiftBanner = (state: GameState, memory: DirectorMemory): void => {
 
   if (banner.isComboFinal || (banner.streakCount && banner.streakCount >= 5)) {
     flushGiftBatch(memory);
-  } else if (!memory.giftBatchTimer) {
-    memory.giftBatchTimer = setTimeout(() => flushGiftBatch(memory), CASTER_GIFT_BATCH_RULES.BUFFER_MS);
+  } else if (!memory.cancelGiftBatchTimer) {
+    memory.cancelGiftBatchTimer = workerSetTimeout(() => flushGiftBatch(memory), CASTER_GIFT_BATCH_RULES.BUFFER_MS);
   }
 };
 
@@ -518,9 +520,9 @@ const announceRoundFlow = (state: GameState, prev: GameState, memory: DirectorMe
 };
 
 const cancelPendingRoundEnd = (memory: DirectorMemory): void => {
-  if (memory.pendingRoundEndTimer === null) return;
-  clearTimeout(memory.pendingRoundEndTimer);
-  memory.pendingRoundEndTimer = null;
+  if (memory.cancelPendingRoundEndTimer === null) return;
+  memory.cancelPendingRoundEndTimer();
+  memory.cancelPendingRoundEndTimer = null;
 };
 
 /**
@@ -533,8 +535,8 @@ const scheduleAtVictoryReveal = (state: GameState, memory: DirectorMemory, narra
   const isDonorFinisher = isDonorFinisherCheck(state.finisherGiftName, state.finisherCoins);
   const sinceDefeatMs = state.bossDefeatedTimestamp > 0 ? Date.now() - state.bossDefeatedTimestamp : 0;
   const delayMs = Math.max(0, resolveDefeatShowcaseMs(isDonorFinisher) - sinceDefeatMs);
-  memory.pendingRoundEndTimer = setTimeout(() => {
-    memory.pendingRoundEndTimer = null;
+  memory.cancelPendingRoundEndTimer = workerSetTimeout(() => {
+    memory.cancelPendingRoundEndTimer = null;
     narrate();
   }, delayMs);
 };
@@ -639,6 +641,7 @@ const announceComeback = (state: GameState, memory: DirectorMemory): void => {
     now - memory.lastComebackAt >= CASTER_EVENT_RULES.COMEBACK_COOLDOWN_MS;
   if (!isRealComeback) return;
   memory.lastComebackAt = now;
+  triggerComebackBanner(COMEBACK_BANNER_KIND.SUCCESS, leader);
   castCasterDialogue(CASTER_SIGNAL.COMEBACK, { team: getTeamTag(leader), teamOther: getTeamTag(previousLeader) });
 };
 
@@ -990,6 +993,7 @@ export const startCasterDirector = (): (() => void) => {
         state.teamScores,
         state.participationRuleConfig.enableComebackBuff ?? true,
         (buffedTeam) => {
+          triggerComebackBanner(COMEBACK_BANNER_KIND.BUFF, buffedTeam);
           castCasterDialogue(CASTER_SIGNAL.COMEBACK_BUFF, { team: getTeamTag(buffedTeam) });
         }
       );
@@ -1006,13 +1010,13 @@ export const startCasterDirector = (): (() => void) => {
     warmPredictableLines(GUIDE_CHAMPIONS);
   });
   narrateActiveIntro(memory);
-  const banterTimer = setInterval(() => tickBanter(memory), CASTER_BANTER.TICK_MS);
+  const cancelBanterTimer = workerSetInterval(() => tickBanter(memory), CASTER_BANTER.TICK_MS);
   return () => {
     unsubscribe();
     unsubscribeIntro();
     unsubscribeVoice();
-    clearInterval(banterTimer);
-    if (memory.giftBatchTimer) clearTimeout(memory.giftBatchTimer);
+    cancelBanterTimer();
+    if (memory.cancelGiftBatchTimer) memory.cancelGiftBatchTimer();
     cancelPendingRoundEnd(memory);
     casterQueue.clear();
   };

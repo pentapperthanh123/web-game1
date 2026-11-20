@@ -1,3 +1,4 @@
+import { CancelTimer, workerSetTimeout } from '../services/workerScheduler';
 import { isCurrentRoundIntroActive, useRoundIntroStore } from './roundIntroStore';
 
 /**
@@ -19,9 +20,16 @@ type RoundStartListener = () => void;
 
 const bufferedActions: Array<() => void> = [];
 const roundStartListeners = new Set<RoundStartListener>();
-let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+const pendingReplayTimers = new Set<CancelTimer>();
+let cancelFallbackTimer: CancelTimer | null = null;
+
+const clearPendingReplays = (): void => {
+  pendingReplayTimers.forEach((cancel) => cancel());
+  pendingReplayTimers.clear();
+};
 
 const replayBufferedActions = (): void => {
+  clearPendingReplays();
   const actions = bufferedActions.splice(0);
   if (actions.length === 0) return;
   const interval = Math.min(PRE_ROUND_BUFFER.REPLAY_INTERVAL_MS, PRE_ROUND_BUFFER.MAX_REPLAY_SPREAD_MS / actions.length);
@@ -30,23 +38,27 @@ const replayBufferedActions = (): void => {
       action();
       return;
     }
-    setTimeout(action, Math.round(index * interval));
+    const cancelTimer = workerSetTimeout(() => {
+      pendingReplayTimers.delete(cancelTimer);
+      action();
+    }, Math.round(index * interval));
+    pendingReplayTimers.add(cancelTimer);
   });
 };
 
 const startRound = (): void => {
-  if (fallbackTimer) {
-    clearTimeout(fallbackTimer);
-    fallbackTimer = null;
+  if (cancelFallbackTimer) {
+    cancelFallbackTimer();
+    cancelFallbackTimer = null;
   }
   roundStartListeners.forEach((listener) => listener());
   replayBufferedActions();
 };
 
 const armFallback = (shownAt: number): void => {
-  if (fallbackTimer) clearTimeout(fallbackTimer);
+  if (cancelFallbackTimer) cancelFallbackTimer();
   const remainingMs = shownAt + useRoundIntroStore.getState().durationMs - Date.now();
-  fallbackTimer = setTimeout(startRound, Math.max(0, remainingMs) + PRE_ROUND_BUFFER.FALLBACK_MARGIN_MS);
+  cancelFallbackTimer = workerSetTimeout(startRound, Math.max(0, remainingMs) + PRE_ROUND_BUFFER.FALLBACK_MARGIN_MS);
 };
 
 useRoundIntroStore.subscribe((intro, prevIntro) => {
@@ -61,7 +73,7 @@ useRoundIntroStore.subscribe((intro, prevIntro) => {
 export const deferUntilRoundStart = (action: () => void): boolean => {
   if (!isCurrentRoundIntroActive()) return false;
   if (bufferedActions.length < PRE_ROUND_BUFFER.MAX_BUFFERED_ACTIONS) bufferedActions.push(action);
-  if (!fallbackTimer) armFallback(useRoundIntroStore.getState().shownAt);
+  if (!cancelFallbackTimer) armFallback(useRoundIntroStore.getState().shownAt);
   return true;
 };
 

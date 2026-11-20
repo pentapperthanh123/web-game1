@@ -61,7 +61,7 @@ export const SilverScrapesDuelOverlay: React.FC = React.memo(() => {
   const overlayContent = (
     <div
       className={clsx(
-        'fixed inset-0 z-[9999] pointer-events-auto flex flex-col items-center justify-center p-3 sm:p-4 select-none bg-slate-950/96 backdrop-blur-2xl transition-opacity duration-700 overflow-y-auto overflow-x-hidden',
+        'fixed inset-0 z-[9999] pointer-events-auto flex flex-col items-center justify-center p-3 sm:p-4 select-none bg-slate-950/96 transition-opacity duration-700 overflow-y-auto overflow-x-hidden',
         isFadingOut ? 'opacity-0' : 'animate-in fade-in zoom-in-95 duration-300'
       )}
     >

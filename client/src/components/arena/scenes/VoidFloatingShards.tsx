@@ -41,10 +41,10 @@ const ShardIsland = ({ gradientId }: { gradientId: string }) => (
       d="M6 24 L30 16 L58 20 L84 13 L114 22 L104 34 L92 52 L76 58 L66 74 L56 60 L40 62 L30 48 L16 40 Z"
       fill={`url(#${gradientId})`}
       stroke={SHARD_COLORS.RIM}
-      strokeOpacity="0.55"
-      strokeWidth="1.2"
+      strokeOpacity="0.72"
+      strokeWidth="1.5"
     />
-    <path d="M8 24 L30 16 L58 20 L84 13 L112 22" fill="none" stroke={SHARD_COLORS.RIM} strokeWidth="1.6" strokeOpacity="0.9" />
+    <path d="M8 24 L30 16 L58 20 L84 13 L112 22" fill="none" stroke={SHARD_COLORS.RIM} strokeWidth="1.8" strokeOpacity="0.9" />
     <path d="M60 20 L66 4 L71 19 Z" fill={SHARD_COLORS.CRYSTAL} opacity="0.85" />
     <path d="M64 18 L66 8 L68 18 Z" fill={SHARD_COLORS.CRYSTAL_CORE} opacity="0.9" />
     <path d="M42 19 L46 10 L49 19 Z" fill={SHARD_COLORS.CRYSTAL} opacity="0.6" />
@@ -63,7 +63,6 @@ export const VoidFloatingShards = () => (
           width: `${shard.widthVmin}vmin`,
           opacity: shard.opacity,
           transform: shard.isMirrored ? 'scaleX(-1)' : undefined,
-          filter: 'drop-shadow(0 0 10px rgba(192, 132, 252, 0.35))',
         }}
       >
         <div

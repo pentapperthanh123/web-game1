@@ -194,7 +194,7 @@ export const GuestSimulationDock: React.FC = () => {
       aria-label="Guest Simulation Dock"
       className="fixed bottom-2 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)] max-w-lg z-50 pointer-events-auto select-none animate-in slide-in-from-bottom-5 duration-300"
     >
-      <div className="rounded-2xl bg-slate-950/92 border border-slate-700/80 backdrop-blur-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col">
+      <div className="rounded-2xl bg-slate-950/95 border border-slate-700/80 shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col">
         {/* Top Header: Guest identity & Team Switcher */}
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800/80 bg-slate-900/70">
           <div className="flex items-center space-x-1.5 min-w-0">

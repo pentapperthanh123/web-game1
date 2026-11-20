@@ -1,19 +1,18 @@
 /**
  * CommentaryDirector.ts
- * 
- * Event director that reads real-time game state and dispatches appropriate
- * commentary lines to VoiceManager:
- * - onRoundStart: Calls speakDynamic with team names mapped to Blue (Team A) & Red (Team B)
- * - Comebacks: Triggered when leading team changes with difference >= 2% (cooldown: 12s)
- * - Milestones: boss_hp_50, boss_low_hp (<=20%), clutch_final_10s, one_sided_final_10s (triggered once per round)
- * - Periodic commentary (idle / dominating / neck and neck) every 15-20s
+ *
+ * Event director that reads real-time game state and dispatches standardized
+ * static caster categories to `VoiceManager` (offline MP3s, zero `viet-tts` runtime calls):
+ * - `match_start`, `match_end`, `lead_change`, `close_race`, `boss_low_hp`, `boss_killed`,
+ *   `cta_hype`, `cta_trailing`, `hype_short`, plus boss mechanics & VIP donor reactions.
  */
 
-import { VoiceManager } from './VoiceManager';
-import { useGameStore } from '../../store/gameStore';
+import { CASTER_CATEGORY } from '../../data/castersIndex';
 import { TEAM_KEY, TeamType } from '../../constants/game';
+import { useGameStore } from '../../store/gameStore';
+import { VoiceManager } from './VoiceManager';
 
-const PRONUNCIATION_MAP: Record<string, string> = {
+const PRONUNCIATION_MAP: Readonly<Record<string, string>> = {
   'GEN.G': 'Gen Gi',
   'GEN G': 'Gen Gi',
   'GENG': 'Gen Gi',
@@ -31,7 +30,7 @@ const PRONUNCIATION_MAP: Record<string, string> = {
   'FNC': 'Ép Nờ Xê',
 };
 
-export const ROUND_NUMBER_WORDS: Record<number, string> = {
+export const ROUND_NUMBER_WORDS: Readonly<Record<number, string>> = {
   1: 'một',
   2: 'hai',
   3: 'ba',
@@ -45,7 +44,6 @@ export function getPhoneticTeamName(nameOrTag: string): string {
   if (PRONUNCIATION_MAP[upper]) {
     return PRONUNCIATION_MAP[upper];
   }
-  // Try word-based matching, longer keys first
   const sortedKeys = Object.keys(PRONUNCIATION_MAP).sort((a, b) => b.length - a.length);
   for (const key of sortedKeys) {
     if (upper.includes(key)) {
@@ -56,22 +54,42 @@ export function getPhoneticTeamName(nameOrTag: string): string {
 }
 
 export const COMMENTARY_CONFIG = {
-  TICK_INTERVAL_MS: 1500,
-  COMEBACK_COOLDOWN_MS: 12000,
-  PERIODIC_COOLDOWN_MS: 16000,
+  TICK_INTERVAL_MS: 1_500,
+  COMEBACK_COOLDOWN_MS: 12_000,
+  PERIODIC_COOLDOWN_MS: 16_000,
+  INITIAL_PERIODIC_DELAY_MS: 5_000,
+  QUIET_CHECK_WINDOW_MS: 5_000,
   COMEBACK_THRESHOLD_PERCENT: 2,
   DOMINATING_THRESHOLD_PERCENT: 20,
   NECK_AND_NECK_THRESHOLD_PERCENT: 5,
-  BOSS_LOW_HP_RATIO: 0.20,
-  BOSS_HALF_HP_RATIO: 0.50,
+  CLUTCH_FINAL_DIFF_PERCENT: 10,
+  LEADER_TIE_MARGIN_PERCENT: 0.5,
+  BOSS_LOW_HP_RATIO: 0.2,
+  BOSS_HALF_HP_RATIO: 0.5,
   FINAL_COUNTDOWN_SECONDS: 10,
+  HYPE_SHORT_CHANCE: 0.25,
 } as const;
+
+const MILESTONE_KEY = {
+  BOSS_HP_50: 'boss_hp_50',
+  BOSS_LOW_HP: 'boss_low_hp',
+  BOSS_KILLED: 'boss_killed',
+  FINAL_10S: 'final_10s',
+} as const;
+
+type LeaderSide = 'blue' | 'red' | 'tie';
+
+function resolveLeaderSide(bluePct: number, redPct: number): LeaderSide {
+  if (bluePct > redPct + COMMENTARY_CONFIG.LEADER_TIE_MARGIN_PERCENT) return 'blue';
+  if (redPct > bluePct + COMMENTARY_CONFIG.LEADER_TIE_MARGIN_PERCENT) return 'red';
+  return 'tie';
+}
 
 export class CommentaryDirectorService {
   private timerId: ReturnType<typeof setInterval> | null = null;
   private currentRound = -1;
   private triggeredMilestones = new Set<string>();
-  private previousLeader: 'blue' | 'red' | 'tie' = 'tie';
+  private previousLeader: LeaderSide = 'tie';
   private lastComebackAt = 0;
   private lastPeriodicAt = 0;
   private lastInteractionCount = 0;
@@ -84,125 +102,84 @@ export class CommentaryDirectorService {
     }
 
     this.timerId = setInterval(() => this.tick(), COMMENTARY_CONFIG.TICK_INTERVAL_MS);
-
-    // Initial check
     this.tick();
 
     return () => this.stop();
   }
 
   public stop(): void {
-    if (this.timerId) {
-      clearInterval(this.timerId);
-      this.timerId = null;
-    }
+    if (!this.timerId) return;
+    clearInterval(this.timerId);
+    this.timerId = null;
   }
 
-  /**
-   * Called when a round officially begins combat.
-   * Plays the studio pre-recorded caster clip directly, avoiding Google TTS ("chị Google") voice overlap.
-   */
+  /** Called when a round officially begins combat. */
   public onRoundStart(roundNumber: number, _teamAName?: string, _teamBName?: string): void {
     this.currentRound = roundNumber;
     this.triggeredMilestones.clear();
     this.previousLeader = 'tie';
     this.lastComebackAt = Date.now();
-    this.lastPeriodicAt = Date.now() + 5000; // Delay first periodic chatter
+    this.lastPeriodicAt = Date.now() + COMMENTARY_CONFIG.INITIAL_PERIODIC_DELAY_MS;
     this.isRoundActive = true;
 
-    // Play high-quality studio pre-recorded round_start clip directly
-    VoiceManager.playCaster('round_start');
+    VoiceManager.playCaster(CASTER_CATEGORY.MATCH_START);
   }
 
-  /**
-   * Called when round ends.
-   */
-  public onRoundEnd(winnerTeam: TeamType | null): void {
+  /** Called when round ends — plays static offline `match_end` clip. */
+  public onRoundEnd(_winnerTeam: TeamType | null): void {
     this.isRoundActive = false;
-    const state = useGameStore.getState();
-    const teamKeys = Object.keys(state.activeTeams) as TeamType[];
-    const leftKey = teamKeys[0] ?? TEAM_KEY.BLG;
-    const rightKey = teamKeys[1] ?? TEAM_KEY.GENG;
-    const leftTeam = state.activeTeams[leftKey]?.name ?? 'Phe Trái';
-    const rightTeam = state.activeTeams[rightKey]?.name ?? 'Phe Phải';
-    const winnerName = winnerTeam === leftKey ? leftTeam : rightTeam;
-    const phoneticWinner = getPhoneticTeamName(winnerName);
-
-    const roundWord = ROUND_NUMBER_WORDS[state.currentRound] || String(state.currentRound);
-    const winTemplates = [
-      `${phoneticWinner} đã xuất sắc giành chiến thắng ván ${roundWord}! Màn trình diễn quá đỉnh cao!`,
-      `Chiến thắng hoàn toàn thuộc về ${phoneticWinner}! ${phoneticWinner} đã thi đấu trên cơ hoàn toàn ở ván ${roundWord}!`,
-      `Hạ màn ván đấu! ${phoneticWinner} đã xuất sắc giành chiến thắng ván ${roundWord} đầy thuyết phục!`,
-      `Khúc khải hoàn vang lên! ${phoneticWinner} chính thức ca khúc khải hoàn ở ván ${roundWord}!`,
-      `Một chiến thắng ngọt ngào dành tặng tất cả người hâm mộ của ${phoneticWinner}!`,
-      `${phoneticWinner} đã giành chiến thắng chung cuộc ván ${roundWord}! Một chiến công cực kỳ rực rỡ!`,
-      `Tiếng còi mãn cuộc! Vinh quang tuyệt đối thuộc về các chiến binh ${phoneticWinner} ở ván ${roundWord}!`,
-    ];
-    const winDynamicText = winTemplates[Math.floor(Math.random() * winTemplates.length)];
-
-    if (winnerTeam === leftKey) {
-      VoiceManager.speakDynamic(winDynamicText, 'blue_win');
-    } else {
-      VoiceManager.speakDynamic(winDynamicText, 'red_win');
-    }
+    VoiceManager.playCaster(CASTER_CATEGORY.MATCH_END);
   }
 
-  /**
-   * Called when a VIP gift is received.
-   */
+  /** Called when boss is defeated. */
+  public onBossKilled(): void {
+    if (this.triggeredMilestones.has(MILESTONE_KEY.BOSS_KILLED)) return;
+    this.triggeredMilestones.add(MILESTONE_KEY.BOSS_KILLED);
+    VoiceManager.playCaster(CASTER_CATEGORY.BOSS_KILLED);
+  }
+
+  /** Called when a VIP gift is received — reads dynamic donor name via `/api/tts` then chains static reaction. */
   public onVipDonation(donorName: string, giftName: string): void {
     const cleanName = VoiceManager.cleanNickname(donorName);
     const text = `Cảm ơn ${cleanName} đã gửi tặng ${giftName}!`;
-    VoiceManager.speakDynamic(text, 'donate_react_vip');
+    VoiceManager.speakDynamic(text, CASTER_CATEGORY.DONATE_REACT_VIP);
   }
 
-  /**
-   * Called when boss triggers a shield.
-   */
   public onShieldUp(): void {
-    VoiceManager.playCaster('shield_up');
+    VoiceManager.playCaster(CASTER_CATEGORY.SHIELD_UP);
   }
 
-  /**
-   * Called when boss shield is broken.
-   */
   public onShieldBroken(): void {
-    VoiceManager.playCaster('shield_broken');
+    VoiceManager.playCaster(CASTER_CATEGORY.SHIELD_BROKEN);
   }
 
-  /**
-   * Called when boss enrages.
-   */
   public onBossEnrage(): void {
-    VoiceManager.playCaster('boss_enrage');
+    VoiceManager.playCaster(CASTER_CATEGORY.BOSS_ENRAGE);
   }
 
-  /**
-   * Called when boss casts a skill.
-   */
   public onBossSkill(): void {
-    VoiceManager.playCaster('boss_skill');
+    VoiceManager.playCaster(CASTER_CATEGORY.BOSS_SKILL);
   }
 
-  /**
-   * Called when silver scrapes duel starts.
-   */
   public onSilverScrapesStart(): void {
-    VoiceManager.playCaster('silver_scrapes_start');
+    VoiceManager.playCaster(CASTER_CATEGORY.SILVER_SCRAPES_START);
+  }
+
+  public playShortHype(): void {
+    VoiceManager.playCaster(CASTER_CATEGORY.HYPE_SHORT);
   }
 
   private tick(): void {
     const state = useGameStore.getState();
     const now = Date.now();
 
-    // Check round start transition (only trigger when active and not in intermission/intro)
     if (state.currentRound !== this.currentRound && !state.isRoundIntermission) {
-      const teamKeys = Object.keys(state.activeTeams) as TeamType[];
-      const leftKey = teamKeys[0] ?? TEAM_KEY.BLG;
-      const rightKey = teamKeys[1] ?? TEAM_KEY.GENG;
-      const leftTeam = state.activeTeams[leftKey]?.name ?? 'Đội Xanh';
-      const rightTeam = state.activeTeams[rightKey]?.name ?? 'Đội Đỏ';
-      this.onRoundStart(state.currentRound, leftTeam, rightTeam);
+      this.onRoundStart(state.currentRound);
+      return;
+    }
+
+    if (this.isRoundActive && state.bossHp <= 0 && !this.triggeredMilestones.has(MILESTONE_KEY.BOSS_KILLED)) {
+      this.onBossKilled();
       return;
     }
 
@@ -210,104 +187,106 @@ export class CommentaryDirectorService {
       return;
     }
 
-    // Scores & Leader
     const scoreBlue = state.teamScores[TEAM_KEY.BLG] || 0;
     const scoreRed = state.teamScores[TEAM_KEY.GENG] || 0;
     const totalScore = scoreBlue + scoreRed;
 
-    let bluePct = 50;
-    let redPct = 50;
-    if (totalScore > 0) {
-      bluePct = (scoreBlue / totalScore) * 100;
-      redPct = (scoreRed / totalScore) * 100;
-    }
-
+    const bluePct = totalScore > 0 ? (scoreBlue / totalScore) * 100 : 50;
+    const redPct = totalScore > 0 ? (scoreRed / totalScore) * 100 : 50;
     const diffPct = Math.abs(bluePct - redPct);
-    const currentLeader: 'blue' | 'red' | 'tie' =
-      bluePct > redPct + 0.5 ? 'blue' : redPct > bluePct + 0.5 ? 'red' : 'tie';
+    const currentLeader = resolveLeaderSide(bluePct, redPct);
 
-    // 1. Check Comeback (Leader changed with gap >= 2%, cooldown 12s)
-    if (
+    // 1. Lead change / comeback
+    const isLeadChanged =
       this.previousLeader !== 'tie' &&
       currentLeader !== 'tie' &&
       currentLeader !== this.previousLeader &&
       diffPct >= COMMENTARY_CONFIG.COMEBACK_THRESHOLD_PERCENT &&
-      now - this.lastComebackAt >= COMMENTARY_CONFIG.COMEBACK_COOLDOWN_MS
-    ) {
+      now - this.lastComebackAt >= COMMENTARY_CONFIG.COMEBACK_COOLDOWN_MS;
+
+    if (isLeadChanged) {
       this.lastComebackAt = now;
       this.previousLeader = currentLeader;
-      if (currentLeader === 'blue') {
-        VoiceManager.playCaster('blue_comeback');
-      } else {
-        VoiceManager.playCaster('red_comeback');
-      }
+      VoiceManager.playCaster(CASTER_CATEGORY.LEAD_CHANGE);
       return;
     }
     if (this.previousLeader === 'tie' && currentLeader !== 'tie') {
       this.previousLeader = currentLeader;
     }
 
-    // 2. Boss HP Milestones (triggered once per round)
+    // 2. Boss HP milestones
     const bossMaxHp = state.bossMaxHp || 1;
     const bossHpRatio = state.bossHp / bossMaxHp;
 
     if (
       bossHpRatio <= COMMENTARY_CONFIG.BOSS_HALF_HP_RATIO &&
       bossHpRatio > COMMENTARY_CONFIG.BOSS_LOW_HP_RATIO &&
-      !this.triggeredMilestones.has('boss_hp_50')
+      !this.triggeredMilestones.has(MILESTONE_KEY.BOSS_HP_50)
     ) {
-      this.triggeredMilestones.add('boss_hp_50');
-      VoiceManager.playCaster('boss_hp_50');
+      this.triggeredMilestones.add(MILESTONE_KEY.BOSS_HP_50);
+      VoiceManager.playCaster(CASTER_CATEGORY.BOSS_HP_50);
       return;
     }
 
     if (
       bossHpRatio <= COMMENTARY_CONFIG.BOSS_LOW_HP_RATIO &&
-      !this.triggeredMilestones.has('boss_low_hp')
+      !this.triggeredMilestones.has(MILESTONE_KEY.BOSS_LOW_HP)
     ) {
-      this.triggeredMilestones.add('boss_low_hp');
-      VoiceManager.playCaster('boss_low_hp');
+      this.triggeredMilestones.add(MILESTONE_KEY.BOSS_LOW_HP);
+      VoiceManager.playCaster(CASTER_CATEGORY.BOSS_LOW_HP);
       return;
     }
 
-    // 3. Final 10 seconds check in Silver Scrapes or timer phase
+    // 3. Final 10 seconds in Silver Scrapes
     if (state.silverScrapesState?.isActive) {
-      const remainingSec = Math.max(0, Math.floor(state.silverScrapesState.timeRemaining / 1000));
-      if (remainingSec <= COMMENTARY_CONFIG.FINAL_COUNTDOWN_SECONDS && remainingSec > 0) {
-        if (!this.triggeredMilestones.has('final_10s')) {
-          this.triggeredMilestones.add('final_10s');
-          if (diffPct <= 10) {
-            VoiceManager.playCaster('clutch_final_10s');
-          } else {
-            VoiceManager.playCaster('one_sided_final_10s');
-          }
-          return;
-        }
+      const remainingSec = Math.max(0, Math.floor(state.silverScrapesState.timeRemaining / 1_000));
+      if (
+        remainingSec <= COMMENTARY_CONFIG.FINAL_COUNTDOWN_SECONDS &&
+        remainingSec > 0 &&
+        !this.triggeredMilestones.has(MILESTONE_KEY.FINAL_10S)
+      ) {
+        this.triggeredMilestones.add(MILESTONE_KEY.FINAL_10S);
+        const category =
+          diffPct <= COMMENTARY_CONFIG.CLUTCH_FINAL_DIFF_PERCENT
+            ? CASTER_CATEGORY.CLUTCH_FINAL_10S
+            : CASTER_CATEGORY.ONE_SIDED_FINAL_10S;
+        VoiceManager.playCaster(category);
+        return;
       }
     }
 
-    // 4. Periodic Commentary when channel is idle (Cooldown 16s)
-    if (now - this.lastPeriodicAt >= COMMENTARY_CONFIG.PERIODIC_COOLDOWN_MS) {
-      // Check interactions in last 5s (likes + chat + minions)
-      const totalLikes = (state.totalLikesBLG || 0) + (state.totalLikesGENG || 0);
-      const currentInteractions = totalLikes + (state.minions?.length || 0);
-      const isQuiet = currentInteractions === this.lastInteractionCount && (now - this.lastInteractionCheckAt >= 5000);
+    // 4. Periodic commentary (CTA / close race / trailing rally / short hype)
+    if (now - this.lastPeriodicAt < COMMENTARY_CONFIG.PERIODIC_COOLDOWN_MS) {
+      return;
+    }
 
-      this.lastInteractionCount = currentInteractions;
-      this.lastInteractionCheckAt = now;
-      this.lastPeriodicAt = now;
+    const totalLikes = (state.totalLikesBLG || 0) + (state.totalLikesGENG || 0);
+    const currentInteractions = totalLikes + (state.minions?.length || 0);
+    const isQuiet =
+      currentInteractions === this.lastInteractionCount &&
+      now - this.lastInteractionCheckAt >= COMMENTARY_CONFIG.QUIET_CHECK_WINDOW_MS;
 
-      if (isQuiet) {
-        VoiceManager.playCaster('room_quiet_cta');
-      } else if (diffPct <= COMMENTARY_CONFIG.NECK_AND_NECK_THRESHOLD_PERCENT) {
-        VoiceManager.playCaster('neck_and_neck');
-      } else if (diffPct >= COMMENTARY_CONFIG.DOMINATING_THRESHOLD_PERCENT) {
-        if (currentLeader === 'blue') {
-          VoiceManager.playCaster('blue_dominating');
-        } else if (currentLeader === 'red') {
-          VoiceManager.playCaster('red_dominating');
-        }
-      }
+    this.lastInteractionCount = currentInteractions;
+    this.lastInteractionCheckAt = now;
+    this.lastPeriodicAt = now;
+
+    if (isQuiet) {
+      VoiceManager.playCaster(CASTER_CATEGORY.CTA_HYPE);
+      return;
+    }
+
+    if (diffPct <= COMMENTARY_CONFIG.NECK_AND_NECK_THRESHOLD_PERCENT) {
+      VoiceManager.playCaster(CASTER_CATEGORY.CLOSE_RACE);
+      return;
+    }
+
+    if (diffPct >= COMMENTARY_CONFIG.DOMINATING_THRESHOLD_PERCENT) {
+      VoiceManager.playCaster(CASTER_CATEGORY.CTA_TRAILING);
+      return;
+    }
+
+    if (Math.random() < COMMENTARY_CONFIG.HYPE_SHORT_CHANCE) {
+      VoiceManager.playCaster(CASTER_CATEGORY.HYPE_SHORT);
     }
   }
 }

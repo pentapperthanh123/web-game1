@@ -121,7 +121,7 @@ const casterTts = createCasterTtsService({
   getCasterConfig: () => ctx.state.casterConfig,
   containsBlocked: (text) => moderation.containsBlocked(text),
 });
-registerCasterRoutes(app, casterTts);
+registerCasterRoutes(app, casterTts, SERVER_ROOT, ctx);
 registerCasterSocketHandlers(io, casterTts);
 console.log(`[CasterTTS] voice: ${casterTts.providerName}${casterTts.fallbackName ? ` (fallback ${casterTts.fallbackName})` : ''}`);
 registerTtsProxyRoute(app);
