@@ -1,144 +1,143 @@
 {
   "activeTeams": {
     "BLG": {
-      "id": "preset-t1",
-      "name": "T1",
-      "shortTag": "T1",
+      "id": "preset-gam",
+      "name": "GAM Esports",
+      "shortTag": "GAM",
       "aliases": [
-        "T1",
-        "SKT",
-        "FAKER"
+        "GAM",
+        "GIGABYTE",
+        "VCS"
       ],
       "autoSyncRosterAliases": true,
-      "colorTheme": "rose",
-      "logoUrl": "/images/teams/t1.svg",
+      "colorTheme": "amber",
+      "logoUrl": "/images/teams/gam.png",
       "isPreset": true,
       "roster": [
         {
-          "id": "blg-preset-t1-top-0",
-          "name": "Doran",
+          "id": "blg-preset-gam-top-0",
+          "name": "Kiaya",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "Ambessa",
-          "championKey": "Ambessa",
+          "signatureChampion": "Garen",
+          "championKey": "Garen",
           "team": "BLG",
-          "color": "#fb7185",
-          "avatarUrl": "/images/players/doran.png"
+          "color": "#facc15",
+          "avatarUrl": "/images/players/kiaya.png"
         },
         {
-          "id": "blg-preset-t1-jug-1",
-          "name": "Oner",
+          "id": "blg-preset-gam-jug-1",
+          "name": "Levi",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Vi",
-          "championKey": "Vi",
+          "signatureChampion": "Karthus",
+          "championKey": "Karthus",
           "team": "BLG",
-          "color": "#f43f5e",
-          "avatarUrl": "/images/players/oner.png"
+          "color": "#eab308",
+          "avatarUrl": "/images/players/levi.png"
         },
         {
-          "id": "blg-preset-t1-mid-2",
-          "name": "Faker",
+          "id": "blg-preset-gam-mid-2",
+          "name": "Aress",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "Azir",
-          "championKey": "Azir",
+          "signatureChampion": "Syndra",
+          "championKey": "Syndra",
           "team": "BLG",
-          "color": "#e11d48",
-          "avatarUrl": "/images/players/faker.png"
+          "color": "#fde047",
+          "avatarUrl": "/images/players/aress.png"
         },
         {
-          "id": "blg-preset-t1-adc-3",
-          "name": "Peyz",
+          "id": "blg-preset-gam-adc-3",
+          "name": "Artemis",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Xayah",
-          "championKey": "Xayah",
+          "signatureChampion": "Aphelios",
+          "championKey": "Aphelios",
           "team": "BLG",
-          "color": "#fb7185",
-          "avatarUrl": "/images/players/peyz.png"
+          "color": "#f59e0b",
+          "avatarUrl": "/images/players/artemis.png"
         },
         {
-          "id": "blg-preset-t1-sup-4",
-          "name": "Keria",
+          "id": "blg-preset-gam-sup-4",
+          "name": "Elio",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Thresh",
-          "championKey": "Thresh",
+          "signatureChampion": "Leona",
+          "championKey": "Leona",
           "team": "BLG",
-          "color": "#fda4af",
-          "avatarUrl": "/images/players/keria.png"
+          "color": "#fbbf24",
+          "avatarUrl": "/images/players/elio.png"
         }
       ]
     },
     "GENG": {
-      "id": "preset-geng",
-      "name": "Gen.G Esports",
-      "shortTag": "GEN",
+      "id": "preset-g2",
+      "name": "G2 Esports",
+      "shortTag": "G2",
       "aliases": [
-        "GEN",
-        "GENG",
-        "GEN.G"
+        "G2",
+        "SAMURAI"
       ],
       "autoSyncRosterAliases": true,
-      "colorTheme": "amber",
-      "logoUrl": "/images/teams/geng.svg",
+      "colorTheme": "rose",
+      "logoUrl": "/images/teams/g2.svg",
       "isPreset": true,
       "roster": [
         {
-          "id": "geng-preset-geng-top-0",
-          "name": "Kiin",
+          "id": "geng-preset-g2-top-0",
+          "name": "BrokenBlade",
           "role": "TOP",
           "roleName": "Đường Trên",
-          "signatureChampion": "K'Sante",
-          "championKey": "KSante",
+          "signatureChampion": "Darius",
+          "championKey": "Darius",
           "team": "GENG",
-          "color": "#f59e0b",
-          "avatarUrl": "/images/players/kiin.png"
+          "color": "#fb7185",
+          "avatarUrl": "/images/players/brokenblade.png"
         },
         {
-          "id": "geng-preset-geng-jug-1",
-          "name": "Canyon",
+          "id": "geng-preset-g2-jug-1",
+          "name": "SkewMond",
           "role": "JUG",
           "roleName": "Đi Rừng",
-          "signatureChampion": "Nidalee",
-          "championKey": "Nidalee",
+          "signatureChampion": "Jarvan IV",
+          "championKey": "JarvanIV",
           "team": "GENG",
-          "color": "#fbbf24",
-          "avatarUrl": "/images/players/canyon.png"
+          "color": "#f43f5e",
+          "avatarUrl": "/images/players/skewmond.png"
         },
         {
-          "id": "geng-preset-geng-mid-2",
-          "name": "Chovy",
+          "id": "geng-preset-g2-mid-2",
+          "name": "Caps",
           "role": "MID",
           "roleName": "Đường Giữa",
-          "signatureChampion": "Yone",
-          "championKey": "Yone",
+          "signatureChampion": "Yasuo",
+          "championKey": "Yasuo",
           "team": "GENG",
-          "color": "#eab308",
-          "avatarUrl": "/images/players/chovy.png"
+          "color": "#e11d48",
+          "avatarUrl": "/images/players/caps.png"
         },
         {
-          "id": "geng-preset-geng-adc-3",
-          "name": "Ruler",
+          "id": "geng-preset-g2-adc-3",
+          "name": "Hans Sama",
           "role": "ADC",
           "roleName": "Xạ Thủ",
-          "signatureChampion": "Ezreal",
-          "championKey": "Ezreal",
+          "signatureChampion": "Miss Fortune",
+          "championKey": "MissFortune",
           "team": "GENG",
-          "color": "#f97316",
-          "avatarUrl": "/images/players/ruler.png"
+          "color": "#fda4af",
+          "avatarUrl": "/images/players/hanssama.png"
         },
         {
-          "id": "geng-preset-geng-sup-4",
-          "name": "Duro",
+          "id": "geng-preset-g2-sup-4",
+          "name": "Labrov",
           "role": "SUP",
           "roleName": "Hỗ Trợ",
-          "signatureChampion": "Nautilus",
-          "championKey": "Nautilus",
+          "signatureChampion": "Pyke",
+          "championKey": "Pyke",
           "team": "GENG",
-          "color": "#d97706",
-          "avatarUrl": "/images/players/duro.png"
+          "color": "#fb7185",
+          "avatarUrl": "/images/players/labrov.png"
         }
       ]
     }

@@ -1,4 +1,4 @@
-import { Radio, RotateCcw, ExternalLink, Play, Sparkles, Square, Clock } from 'lucide-react';
+import { Radio, RotateCcw, ExternalLink, Play, Sparkles, Square, Clock, Columns2, Monitor } from 'lucide-react';
 import { START_ROUND_BUTTON_HINT } from '../constants/adminPortal';
 import { SUMMON_QUEUE_UI } from '../constants/summonQueue';
 
@@ -9,6 +9,8 @@ interface AdminHeaderProps {
   onToggleAutoSummon?: () => void;
   roundDurationMs?: number;
   onChangeRoundDuration?: (ms: number) => void;
+  isLiveDrawerOpen?: boolean;
+  onToggleLiveDrawer?: () => void;
 }
 
 /**
@@ -21,6 +23,8 @@ export function AdminHeader({
   onToggleAutoSummon,
   roundDurationMs = SUMMON_QUEUE_UI.DEFAULT_ROUND_DURATION_MS,
   onChangeRoundDuration,
+  isLiveDrawerOpen,
+  onToggleLiveDrawer,
 }: AdminHeaderProps) {
   return (
     <header className="flex flex-col md:flex-row md:items-center justify-end pb-3.5 sm:pb-5 border-b border-slate-800 gap-3 sm:gap-4">
@@ -77,15 +81,21 @@ export function AdminHeader({
           </button>
         )}
 
-        <a
-          href="http://localhost:8000"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 sm:flex-initial justify-center px-3 sm:px-4 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-xs font-bold text-cyan-300 flex items-center space-x-1.5 sm:space-x-2 shadow-lg transition text-center"
-        >
-          <span>Mở Màn Hình Game OBS (Port 8000)</span>
-          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-        </a>
+        {onToggleLiveDrawer && (
+          <button
+            type="button"
+            onClick={onToggleLiveDrawer}
+            title={isLiveDrawerOpen ? 'Đóng màn hình Game chia đôi' : 'Mở màn hình Game chia đôi (Split View)'}
+            className={`flex-1 sm:flex-initial justify-center px-3 sm:px-4 py-2 rounded-xl border text-xs font-bold flex items-center space-x-1.5 sm:space-x-2 shadow-lg transition text-center cursor-pointer active:scale-95 ${
+              isLiveDrawerOpen
+                ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.6)] font-black'
+                : 'bg-cyan-950/80 hover:bg-cyan-900 border-cyan-800 text-cyan-300'
+            }`}
+          >
+            <Columns2 className="w-3.5 h-3.5 shrink-0" />
+            <span>{isLiveDrawerOpen ? 'Đóng Live Game' : 'Chia Đôi Màn Hình (Live Game)'}</span>
+          </button>
+        )}
 
         <button
           type="button"

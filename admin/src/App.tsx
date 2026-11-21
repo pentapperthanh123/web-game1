@@ -36,6 +36,7 @@ import { LiveOpsSection } from './components/liveOps/LiveOpsSection';
 import { VietTtsStudioSection } from './components/vietTts/VietTtsStudioSection';
 import { MemeSoundboard } from './components/MemeSoundboard';
 import { AutoLiveSimulatorCard } from './components/AutoLiveSimulatorCard';
+import { GameLiveDrawer } from './components/GameLiveDrawer';
 
 export { detectSummonCommand } from './utils/commentCommand';
 
@@ -83,6 +84,21 @@ export function App() {
     adminSocket.emitParticipationRules({ roundDurationMs: ms });
   };
 
+  const [isLiveDrawerOpen, setIsLiveDrawerOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('lol_admin_live_drawer_open') === 'true';
+  });
+
+  const toggleLiveDrawer = () => {
+    setIsLiveDrawerOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('lol_admin_live_drawer_open', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const [activeTab, setActiveTab] = useState<AdminPortalTabId>(loadStoredAdminTab);
   const [activeOverlayCount, setActiveOverlayCount] = useState<number>(() =>
     countVisibleOverlays(loadStoredOverlayVisibility())
@@ -119,7 +135,11 @@ export function App() {
   const shouldShowVietTtsStudio = isAllTab || activeTab === ADMIN_PORTAL_TAB.VIET_TTS_STUDIO;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-2.5 sm:p-4 md:p-8 font-sans">
+    <div
+      className={`min-h-screen bg-slate-950 text-slate-100 p-2.5 sm:p-4 md:p-8 font-sans transition-[padding] duration-300 ${
+        isLiveDrawerOpen ? 'lg:pr-[560px]' : ''
+      }`}
+    >
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <ServerConnectionBanner />
         <AdminHeader
@@ -131,6 +151,8 @@ export function App() {
           }
           roundDurationMs={roundDurationMs}
           onChangeRoundDuration={handleChangeRoundDuration}
+          isLiveDrawerOpen={isLiveDrawerOpen}
+          onToggleLiveDrawer={toggleLiveDrawer}
         />
 
         {/* Section Navigation Tabs (Top-most & Sticky) */}
@@ -312,6 +334,12 @@ export function App() {
           onClearLogs={() => setLogs([])}
         />
       </div>
+
+      {/* Live Game Drawer rendering localhost:8000 directly inside Admin Portal */}
+      <GameLiveDrawer
+        isOpen={isLiveDrawerOpen}
+        onClose={() => toggleLiveDrawer()}
+      />
     </div>
   );
 }
