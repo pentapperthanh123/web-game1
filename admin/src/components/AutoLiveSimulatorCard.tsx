@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Clapperboard, Sparkles, Zap, Radio, Check, Square, RotateCcw } from 'lucide-react';
+import { Clapperboard, Sparkles, Zap, Radio, Check, Square, RotateCcw, Play, X, Download } from 'lucide-react';
 import { adminSocket } from '../services/socket';
 
 export interface AutoLiveStatusPayload {
@@ -19,6 +19,7 @@ export const AutoLiveSimulatorCard: React.FC = () => {
   const [selectedMode, setSelectedMode] = useState<'natural' | 'highlight'>('natural');
   const [status, setStatus] = useState<AutoLiveStatusPayload | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   useEffect(() => {
     const unsub = adminSocket.onAutoLiveStatus((incoming) => {
@@ -100,6 +101,15 @@ export const AutoLiveSimulatorCard: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsVideoModalOpen(true)}
+            className="px-3 sm:px-4 py-2.5 rounded-xl font-bold text-xs bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-cyan-500/50 flex items-center space-x-1.5 transition active:scale-95 cursor-pointer shadow-[0_0_8px_rgba(6,182,212,0.25)]"
+            title="Xem Video Demo Giới Thiệu Game"
+          >
+            <Play className="w-3.5 h-3.5 shrink-0 text-cyan-400 fill-cyan-400" />
+            <span>Xem Video Demo</span>
+          </button>
           {isActive ? (
             <>
               <button
@@ -232,6 +242,57 @@ export const AutoLiveSimulatorCard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Demo Video Modal */}
+      {isVideoModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm rounded-2xl bg-slate-950 border border-cyan-500/70 p-4 shadow-[0_0_30px_rgba(6,182,212,0.4)] flex flex-col items-center">
+            <div className="w-full flex items-center justify-between pb-2.5 border-b border-slate-800 mb-3">
+              <div className="flex items-center gap-2">
+                <Play className="w-4 h-4 text-cyan-400 fill-cyan-400" />
+                <span className="font-black text-xs text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-amber-300 uppercase tracking-wide">
+                  Video Demo Giới Thiệu (27s)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsVideoModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white bg-slate-900 border border-slate-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="w-full relative aspect-[9/16] max-h-[58vh] rounded-xl overflow-hidden border border-slate-800 bg-black shadow-inner flex items-center justify-center">
+              <video
+                src="/videos/lol_live_game_promo.mp4"
+                controls
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            <div className="w-full flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-800">
+              <a
+                href="/videos/lol_live_game_promo.mp4"
+                download="lol_live_game_promo.mp4"
+                className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs text-center flex items-center justify-center gap-1.5 transition shadow active:scale-95 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Tải Video MP4</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsVideoModalOpen(false)}
+                className="py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700 transition cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
