@@ -10,6 +10,7 @@
 import { CASTER_CATEGORY } from '../../data/castersIndex';
 import { TEAM_KEY, TeamType } from '../../constants/game';
 import { useGameStore } from '../../store/gameStore';
+import { isCurrentRoundIntroActive } from '../../store/roundIntroStore';
 import { VoiceManager } from './VoiceManager';
 
 const PRONUNCIATION_MAP: Readonly<Record<string, string>> = {
@@ -115,6 +116,17 @@ export class CommentaryDirectorService {
 
   /** Called when a round officially begins combat. */
   public onRoundStart(roundNumber: number, _teamAName?: string, _teamBName?: string): void {
+    const state = useGameStore.getState();
+    if (
+      isCurrentRoundIntroActive() ||
+      state.isRoundIntermission ||
+      state.isSeriesEnded ||
+      state.bossHp <= 0 ||
+      state.roundWinner !== null
+    ) {
+      return;
+    }
+
     this.currentRound = roundNumber;
     this.triggeredMilestones.clear();
     this.previousLeader = 'tie';
@@ -133,7 +145,7 @@ export class CommentaryDirectorService {
 
   /** Called when boss is defeated. */
   public onBossKilled(): void {
-    if (this.triggeredMilestones.has(MILESTONE_KEY.BOSS_KILLED)) return;
+    if (!this.isRoundActive || this.triggeredMilestones.has(MILESTONE_KEY.BOSS_KILLED)) return;
     this.triggeredMilestones.add(MILESTONE_KEY.BOSS_KILLED);
     VoiceManager.playCaster(CASTER_CATEGORY.BOSS_KILLED);
   }
@@ -146,26 +158,32 @@ export class CommentaryDirectorService {
   }
 
   public onShieldUp(): void {
+    if (!this.isRoundActive || isCurrentRoundIntroActive()) return;
     VoiceManager.playCaster(CASTER_CATEGORY.SHIELD_UP);
   }
 
   public onShieldBroken(): void {
+    if (!this.isRoundActive || isCurrentRoundIntroActive()) return;
     VoiceManager.playCaster(CASTER_CATEGORY.SHIELD_BROKEN);
   }
 
   public onBossEnrage(): void {
+    if (!this.isRoundActive || isCurrentRoundIntroActive()) return;
     VoiceManager.playCaster(CASTER_CATEGORY.BOSS_ENRAGE);
   }
 
   public onBossSkill(): void {
+    if (!this.isRoundActive || isCurrentRoundIntroActive()) return;
     VoiceManager.playCaster(CASTER_CATEGORY.BOSS_SKILL);
   }
 
   public onSilverScrapesStart(): void {
+    if (!this.isRoundActive || isCurrentRoundIntroActive()) return;
     VoiceManager.playCaster(CASTER_CATEGORY.SILVER_SCRAPES_START);
   }
 
   public playShortHype(): void {
+    if (!this.isRoundActive || isCurrentRoundIntroActive()) return;
     VoiceManager.playCaster(CASTER_CATEGORY.HYPE_SHORT);
   }
 
@@ -173,7 +191,18 @@ export class CommentaryDirectorService {
     const state = useGameStore.getState();
     const now = Date.now();
 
-    if (state.currentRound !== this.currentRound && !state.isRoundIntermission) {
+    if (
+      isCurrentRoundIntroActive() ||
+      state.isRoundIntermission ||
+      state.isSeriesEnded ||
+      state.bossHp <= 0 ||
+      state.roundWinner !== null
+    ) {
+      this.isRoundActive = false;
+      return;
+    }
+
+    if (state.currentRound !== this.currentRound) {
       this.onRoundStart(state.currentRound);
       return;
     }
@@ -183,7 +212,7 @@ export class CommentaryDirectorService {
       return;
     }
 
-    if (!this.isRoundActive || state.bossHp <= 0 || state.isRoundIntermission) {
+    if (!this.isRoundActive || state.bossHp <= 0) {
       return;
     }
 

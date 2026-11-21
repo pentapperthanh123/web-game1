@@ -595,7 +595,7 @@
     "subSummonSyntax": "Or type [Champion] 1 / [Champion] 2 to pick a champion",
     "orKeyword": "or",
     "quickRule": "Most DMG wins",
-    "quickGift": "1 coin = {{damage}} DMG",
+    "quickGift": "Gift reinforcements",
     "quickHeart": "Hearts charge Fury",
     "rosterTitle": "Official 5v5 Starting Lineup",
     "bossHpBadge": "{{hp}} HP",
@@ -613,7 +613,7 @@
     "joinChat": "Chat champion + team: \"{{champ}} {{tag}}\" or \"{{champ2}} {{tag2}}\"",
     "joinHeart": "Tap hearts to charge Fury faster; every {{milestone}} hearts heals the team.",
     "joinSignature": "Chat a pro player's signature champion to boost that player's Fury.",
-    "giftDamage": "1 coin = {{damage}} damage to the Boss",
+    "giftDamage": "Send Gifts To Power Up • Trigger Reinforcements",
     "giftTierTitle": {
       "SMALL": "Roses & Small Gifts",
       "MEDIUM": "Medium Gifts",
@@ -621,7 +621,7 @@
       "MEGA": "Mythic Trophies"
     },
     "giftTier": {
-      "SMALL": "From {{coins}} coin: heal + damage for your team",
+      "SMALL": "From {{coins}} coin: heal + support your team",
       "MEDIUM": "From {{coins}} coins: fireworks + 3 meteors",
       "BIG": "From {{coins}} coins: light pillar + 8 meteors + your name banner",
       "MEGA": "From {{coins}} coins: TYCOON - Boss stunned + 16 meteors"
@@ -630,13 +630,13 @@
     "speechMatchup": "Welcome to the World Championship! Round {{round}}: {{left}} versus {{right}}. Target: defeat Boss {{boss}}!",
     "speechRulesPart1": "The rules are simple: Chat champion name and team name to summon champions into battle.",
     "speechRulesPart2": "Tap heart continuously to charge Fury for Ultimates, the team dealing more damage to the Boss wins!",
-    "speechGiftsPart1": "Each gift coin equals one hundred twenty direct damage to the Boss!",
-    "speechGiftsPart2": "Viewers please check the gift board at the bottom right to power up your team!",
+    "speechGiftsPart1": "Send gifts to power up your team and trigger special reinforcement effects!",
+    "speechGiftsPart2": "Each gift summons meteor strikes, fireworks, and powers up pro players to take down the Boss!",
     "speechRules": "Rules: Damage race between both teams! Chat champion name with team tag like {{champ1}} {{team1}} or {{champ2}} {{team2}} to summon. Highest damage wins!",
     "speechRulesExpanded": "Rules: Chat champion name with team tag like {{champ1}} {{team1}} or {{champ2}} {{team2}} to summon champions into battle. Tap heart continuously on live to boost attack speed and charge Fury for Ultimate skills. Highest damage on the Boss wins!",
     "commentPromptTitle": "Live summon chat prompt:",
     "liveChatReady": "Ready",
-    "speechGifts": "Gifts: 1 coin equals 120 damage to the Boss. Check out the gift guide at the bottom right corner of the screen!",
+    "speechGifts": "Send gifts to power up your team and trigger special reinforcement effects!",
     "skipButton": "Deploy battle now",
     "statusIntro": "INTRO IN PROGRESS"
   },

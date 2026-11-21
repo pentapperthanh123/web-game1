@@ -48,9 +48,10 @@ export interface CasterSignalMeta {
  * Donate / gift shoutouts are ALWAYS allowed in any state so viewer contributions are never silenced. */
 const isSignalAllowedNow = (signal: CasterSignal): boolean => {
   if (isDonateSignal(signal)) return true;
-  const isDuelActive = useGameStore.getState().silverScrapesState.isActive;
-  if (isDuelActive) return CASTER_DUEL_SIGNALS.has(signal);
+  const state = useGameStore.getState();
+  if (state.silverScrapesState.isActive) return CASTER_DUEL_SIGNALS.has(signal);
   if (isCurrentRoundIntroActive()) return CASTER_INTRO_SIGNALS.has(signal);
+  if (state.bossHp <= 0 || state.roundWinner !== null || state.isRoundIntermission) return false;
   return true;
 };
 

@@ -932,7 +932,7 @@
     "allowTeamOnlySummon": true,
     "autoMatchSignatureTeam": true,
     "lockTeamAfterJoin": true,
-    "allowChampionEvolution": true,
+    "allowChampionEvolution": false,
     "maxDeployPerTurn": 1,
     "summonTurnDelayMs": 1300,
     "championAttackSpeedMultiplier": 1.5,

@@ -17,6 +17,7 @@
     "build:admin": "pnpm --filter admin build",
     "build:server": "pnpm --filter server build",
     "audio:gen": "node scripts/generateCasterAudio.mjs",
+    "audio:elevenlabs": "node scripts/generateElevenLabsAudio.mjs",
     "pregenerate:tts": "node scripts/sfx/pregenerate-caster-tts.mjs",
     "pregenerate:viet-tts": "node scripts/sfx/pregenerate-caster-tts.mjs --provider=VIET_TTS",
     "pregenerate:clean": "node scripts/sfx/pregenerate-clean-tts.mjs",

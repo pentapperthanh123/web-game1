@@ -17,6 +17,7 @@ import {
   CasterTtsProviderName,
   CasterVoiceRole,
   EDGE_TTS,
+  ELEVENLABS_TTS,
 } from '../../constants/casterTts.js';
 import { CasterConfig } from '../../constants/liveOps.js';
 import { getErrorMessage } from '../../utils/payloadSanitizers.js';
@@ -332,11 +333,26 @@ export const createCasterTtsService = ({
     const fromDisk = await diskCache.read(key);
     if (fromDisk) return { audio: fromDisk, isPrimaryVoice: true, isOnDisk: true };
 
-    // STRICT: Static audio only mode. Live network TTS synthesis is disabled to prevent
-    // fetch failed errors, timeouts, and unwanted fallback voices.
-    const isLiveTtsEnabled = process.env.CASTER_TTS_LIVE === 'true';
+    // Live network TTS synthesis is enabled if CASTER_TTS_LIVE === 'true' or ElevenLabs is primary.
+    const isLiveTtsEnabled =
+      process.env.CASTER_TTS_LIVE === 'true' || primary.name === CASTER_TTS_PROVIDER.ELEVENLABS;
     if (!isLiveTtsEnabled) {
       throw new Error(CASTER_TTS_FAILURE.NOT_IN_STATIC_CACHE);
+    }
+
+    // ElevenLabs: Direct request with dedicated timeout, avoiding short Edge hedging that triggers 429 concurrency limits
+    if (primary.name === CASTER_TTS_PROVIDER.ELEVENLABS) {
+      try {
+        const audio = await callProvider(primary, text, lang, { ...options, timeoutMs: ELEVENLABS_TTS.TIMEOUT_MS });
+        return { audio, isPrimaryVoice: true };
+      } catch (err) {
+        if (fallback) {
+          console.warn(`${LOG_PREFIX} ElevenLabs synthesis failed, falling back to ${fallback.name}:`, getErrorMessage(err, UNKNOWN_ERROR));
+          const audio = await callProvider(fallback, text, lang, options);
+          return { audio, isPrimaryVoice: false };
+        }
+        throw err;
+      }
     }
 
     if (!fallback) return { audio: await hedgedPrimary(key, text, lang, options), isPrimaryVoice: true };
@@ -421,7 +437,8 @@ export const createCasterTtsService = ({
 
   const warm = (rawTexts: unknown, rawLang: unknown, rawRole?: unknown): number => {
     // In Static Audio mode, background warm-up synthesis is completely disabled.
-    const isLiveTtsEnabled = process.env.CASTER_TTS_LIVE === 'true';
+    const isLiveTtsEnabled =
+      process.env.CASTER_TTS_LIVE === 'true' || primary.name === CASTER_TTS_PROVIDER.ELEVENLABS;
     if (!isLiveTtsEnabled) return 0;
 
     if (!getCasterConfig().isTtsEnabled || !Array.isArray(rawTexts)) return 0;

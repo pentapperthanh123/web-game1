@@ -195,7 +195,11 @@ const countLiving = (state: GameState): number => {
 };
 
 const isBattleRunning = (state: GameState): boolean =>
-  state.bossHp > 0 && state.roundWinner === null && !state.isRoundIntermission && !state.isSeriesEnded;
+  state.bossHp > 0 &&
+  state.roundWinner === null &&
+  !state.isRoundIntermission &&
+  !state.isSeriesEnded &&
+  !isCurrentRoundIntroActive();
 
 /** Lead as a share of total team damage (0 = tied or no damage yet). */
 const getLeadRatio = (state: GameState): number => {
@@ -436,7 +440,7 @@ const announceGiftBanner = (state: GameState, memory: DirectorMemory): void => {
 };
 
 const announceBossState = (state: GameState, memory: DirectorMemory): void => {
-  if (isCurrentRoundIntroActive()) return;
+  if (isCurrentRoundIntroActive() || !isBattleRunning(state)) return;
   const bossName = getThemeConfig(state.gameTheme).bossName;
   if (state.bossStatus === BOSS_STATUS.ENRAGED && !memory.hasAnnouncedEnrage && state.bossHp > 0) {
     memory.hasAnnouncedEnrage = true;
@@ -619,7 +623,7 @@ const announceSeriesEnd = (state: GameState): void => {
  * ahead, there was a real fight, and champions are on the field (not pros trading hits).
  */
 const announceComeback = (state: GameState, memory: DirectorMemory): void => {
-  if (isCurrentRoundIntroActive()) return;
+  if (isCurrentRoundIntroActive() || !isBattleRunning(state)) return;
   const leader = getDamageLeader(state);
   const leadRatio = getLeadRatio(state);
   if (!leader) return;
@@ -987,7 +991,7 @@ export const startCasterDirector = (): (() => void) => {
     const hasScoreChanged = teams.some(
       (team) => getScoreForTeam(state, team) !== getScoreForTeam(prev, team)
     );
-    if (hasScoreChanged) {
+    if (hasScoreChanged && isBattleRunning(state)) {
       announceComeback(state, memory);
       evaluateComebackBuff(
         state.teamScores,

@@ -11,6 +11,8 @@
 
 import { CASTERS_INDEX } from '../../data/castersIndex';
 import { audioService } from '../audioService';
+import { isCurrentRoundIntroActive } from '../../store/roundIntroStore';
+import { useAudioStore } from '../../store/audioStore';
 
 export const VOICE_MANAGER_CONSTANTS = {
   TTS_ROUTE: '/api/tts',
@@ -90,10 +92,16 @@ class VoiceManagerService {
 
   /**
    * Play a static pre-generated caster MP3 by eventKey.
-   * If any voice is active or the dynamic queue has pending items, this request is dropped immediately.
+   * If any voice is active, dynamic queue has pending items, TTS is playing,
+   * or the round intro / stream opening is active, this request is dropped immediately.
    */
   public playCaster(eventKey: string): void {
-    if (this.isPlaying || this.dynamicQueue.length > 0) {
+    if (
+      this.isPlaying ||
+      this.dynamicQueue.length > 0 ||
+      useAudioStore.getState().isTTSPlaying ||
+      (isCurrentRoundIntroActive() && eventKey !== 'donate_react_vip')
+    ) {
       return;
     }
 

@@ -332,11 +332,11 @@ export const RoundIntroOverlay = () => {
     if (activeTab === 'RULES') {
       const rulePart1 = t(
         'RoundIntro.speechRulesPart1',
-        'Luật chơi rất đơn giản: Khán giả chat cú pháp tên tướng cách tên đội để triệu hồi tướng vào sàn đấu.'
+        'Luật chơi cực kỳ đơn giản! Khán giả gõ một hoặc hai để triệu hồi tướng vào sân, hoặc gõ tên tướng kèm số một hoặc hai để chọn tướng riêng!'
       );
       const rulePart2 = t(
         'RoundIntro.speechRulesPart2',
-        'Bấm tim liên tục nạp Nộ kích hoạt Tuyệt Kỹ, đội nào dồn nhiều sát thương hơn lên Boss sẽ giành chiến thắng!'
+        'Bấm tim liên tục nạp Nộ tung Tuyệt Kỹ tối thượng. Hết giờ hoặc khi Boss gục ngã, đội nào dồn nhiều sát thương hơn sẽ giành chiến thắng!'
       );
 
       return workerSetTimeout(() => {
@@ -350,11 +350,11 @@ export const RoundIntroOverlay = () => {
     if (activeTab === 'GIFTS') {
       const giftPart1 = t(
         'RoundIntro.speechGiftsPart1',
-        'Mỗi một xu quà tặng tương ứng một trăm hai mươi sát thương trực tiếp lên Boss!'
+        'Tặng quà để tiếp lửa cho đội tuyển của bạn và kích hoạt các hiệu ứng chi viện đặc biệt!'
       );
       const giftPart2 = t(
         'RoundIntro.speechGiftsPart2',
-        'Khán giả hãy xem bảng quà tặng ở góc phải màn hình để tiếp lửa cho các tuyển thủ nhé!'
+        'Mỗi món quà sẽ triệu hồi mưa thiên thạch, pháo hoa và trợ lực mạnh mẽ giúp tuyển thủ hạ gục Boss!'
       );
 
       return workerSetTimeout(() => {

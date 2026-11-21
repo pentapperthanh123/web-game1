@@ -3,7 +3,6 @@ import { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Swords, Trophy, ShieldAlert, Sparkles, Heart, Gift, Zap, MessageSquare } from 'lucide-react';
 import {
-  GAME_CONSTANTS,
   GIFT_TIER,
   GIFT_TIER_CONFIG,
   GiftTier,
@@ -369,7 +368,7 @@ export const MatchupPage = ({
         <span className="flex items-center gap-1 whitespace-nowrap shrink-0">
           <Gift className="w-3 h-3 text-amber-400 shrink-0" />
           <span className="whitespace-nowrap">
-            {t('RoundIntro.quickGift', '1 xu = {{damage}} ST', { damage: 120 })}
+            {t('RoundIntro.quickGift', 'Quà tặng chi viện')}
           </span>
         </span>
         <span className="text-slate-600 shrink-0">•</span>
@@ -554,9 +553,7 @@ export const GiftsPage = (): ReactElement => {
       <div className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/25 via-yellow-400/20 to-amber-500/25 py-1 px-2.5 text-center shadow-inner">
         <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0 animate-bounce" />
         <span className="text-[10px] sm:text-[10.5px] font-black uppercase tracking-wide text-amber-200 whitespace-nowrap">
-          {t('RoundIntro.giftDamage', '1 xu = {{damage}} sát thương lên Boss', {
-            damage: GAME_CONSTANTS.TIKTOK_ENGAGEMENT.GIFT_DAMAGE_PER_COIN,
-          })}
+          {t('RoundIntro.giftDamage', 'Tặng quà tiếp lửa • Kích hoạt hiệu ứng chi viện')}
         </span>
       </div>
 

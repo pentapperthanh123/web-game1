@@ -124,7 +124,7 @@ const casterTts = createCasterTtsService({
 registerCasterRoutes(app, casterTts, SERVER_ROOT, ctx);
 registerCasterSocketHandlers(io, casterTts);
 console.log(`[CasterTTS] voice: ${casterTts.providerName}${casterTts.fallbackName ? ` (fallback ${casterTts.fallbackName})` : ''}`);
-registerTtsProxyRoute(app);
+registerTtsProxyRoute(app, casterTts);
 registerPlayerLeaderboardRoutes(app, playerProfileService);
 registerSocketHub(ctx, duelService, tiktokService, playerProfileService, liveOpsService);
 

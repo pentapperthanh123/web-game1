@@ -175,7 +175,7 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
       recordHypeSummon(req.summonerName, req.championName, req.team, state.currentRound, now);
       const normalizedUser = req.summonerName.trim().toLowerCase();
 
-      if (!req.isGiftBypass) {
+      if (!req.isGiftBypass && state.participationRuleConfig.allowChampionEvolution) {
         const livingIdx = nextMinions.findIndex((m) => {
           const isSameUser = m.summonerName.trim().toLowerCase() === normalizedUser;
           return isSameUser && isMinionLiving(m);
@@ -188,7 +188,6 @@ export const createSummonSlice: StateCreator<GameState, [], [], SummonSlice> = (
           const curHp = targetMinion.hp ?? CHAMPION_DEFAULT_MAX_HP;
           const maxHp = targetMinion.maxHp ?? CHAMPION_DEFAULT_MAX_HP;
           const shouldEvolve =
-            state.participationRuleConfig.allowChampionEvolution &&
             Boolean(req.isExplicitChampion) &&
             targetMinion.championName.trim().toLowerCase() !== req.championName.trim().toLowerCase();
 

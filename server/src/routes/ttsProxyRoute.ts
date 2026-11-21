@@ -1,4 +1,6 @@
 import type { Express } from 'express';
+import type { CasterTtsService } from '../services/caster/casterTtsService.js';
+import { CASTER_VOICE_ROLE } from '../constants/casterTts.js';
 
 const TTS_PROXY = {
   ROUTE: '/api/tts',
@@ -23,7 +25,7 @@ function evictIfFull(): void {
   audioCache.delete(oldestKey);
 }
 
-export function registerTtsProxyRoute(app: Express): void {
+export function registerTtsProxyRoute(app: Express, casterTts?: CasterTtsService): void {
   app.get(TTS_PROXY.ROUTE, async (req, res) => {
     const text = typeof req.query.text === 'string' ? req.query.text.trim() : '';
 
@@ -47,6 +49,25 @@ export function registerTtsProxyRoute(app: Express): void {
       return;
     }
 
+    // Attempt primary synthesis via CasterTts (ElevenLabs, disk cache, etc.)
+    if (casterTts) {
+      try {
+        const role = req.query.role === 'female' ? CASTER_VOICE_ROLE.FEMALE : CASTER_VOICE_ROLE.MALE;
+        const result = await casterTts.synthesize(text, 'vi', { role });
+        if (result.audio) {
+          evictIfFull();
+          audioCache.set(text, result.audio);
+          res.set('Content-Type', TTS_PROXY.CONTENT_TYPE);
+          res.set('Cache-Control', TTS_PROXY.CACHE_CONTROL);
+          res.send(result.audio);
+          return;
+        }
+      } catch (err) {
+        console.warn(`${LOG_PREFIX} Caster TTS synthesis failed, trying Google fallback:`, err);
+      }
+    }
+
+    // Fallback to Google Translate TTS
     const url = `${TTS_PROXY.GOOGLE_TTS_URL}?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(text)}`;
 
     try {

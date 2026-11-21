@@ -46,6 +46,7 @@ export const CASTER_TTS_PROVIDER = {
   EDGE: 'EDGE',
   GOOGLE_TRANSLATE: 'GOOGLE_TRANSLATE',
   VIET_TTS: 'VIET_TTS',
+  ELEVENLABS: 'ELEVENLABS',
 } as const;
 
 /** Viet-TTS (cdteam & quynh) as standard primary esports caster voice. */
@@ -91,6 +92,10 @@ export const CASTER_TTS_ENV = {
   VIET_TTS_URL: 'VIET_TTS_URL',
   VIET_TTS_VOICE_MALE: 'VIET_TTS_VOICE_MALE',
   VIET_TTS_VOICE_FEMALE: 'VIET_TTS_VOICE_FEMALE',
+  ELEVENLABS_KEY: 'ELEVENLABS_API_KEY',
+  ELEVENLABS_VOICE_MALE: 'ELEVENLABS_VOICE_MALE',
+  ELEVENLABS_VOICE_FEMALE: 'ELEVENLABS_VOICE_FEMALE',
+  ELEVENLABS_MODEL: 'ELEVENLABS_MODEL',
 } as const;
 
 export const CASTER_VOICE_ROLE = {
@@ -193,4 +198,25 @@ export const VIET_TTS = {
     [CASTER_EMOTION_INTENSITY.CLIMAX]: 1.15,
   },
   TIMEOUT_MS: 45_000,
+} as const;
+
+/**
+ * ElevenLabs Multilingual V2 TTS service (https://elevenlabs.io).
+ * High-quality neural voices supporting Vietnamese, with free tier (10,000 chars/month).
+ */
+export const ELEVENLABS_TTS = {
+  ENDPOINT_TEMPLATE: 'https://api.elevenlabs.io/v1/text-to-speech/{voice_id}',
+  DEFAULT_MODEL: 'eleven_multilingual_v2',
+  DEFAULT_VOICE: {
+    [CASTER_VOICE_ROLE.MALE]: 'pNInz6obpgDQGcFmaJgB', // Adam (Premade Free)
+    [CASTER_VOICE_ROLE.FEMALE]: 'cgSgspJ2msm6clMCkdW9', // Jessica (Premade Free)
+  },
+  DEFAULT_SETTINGS: {
+    stability: 0.5,
+    similarity_boost: 0.8,
+    style: 0.0,
+    use_speaker_boost: true,
+  },
+  OUTPUT_FORMAT: 'mp3_44100_128',
+  TIMEOUT_MS: 15_000,
 } as const;

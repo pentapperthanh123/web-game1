@@ -2,6 +2,7 @@ import { audioService } from './audioService';
 import { casterSpeechEngine } from './caster/speechEngine';
 import { casterQueue } from './caster/presentationQueue';
 import { VoiceManager } from './caster/VoiceManager';
+import { CommentaryDirector } from './caster/CommentaryDirector';
 import {
   hideRoundIntro,
   isCurrentRoundIntroActive,
@@ -44,6 +45,8 @@ export const triggerStartRoundCombat = (): void => {
   const store = useGameStore.getState();
   store.triggerScreenFlash('#f59e0b');
   store.triggerScreenShake(0.95);
+
+  CommentaryDirector.onRoundStart(currentRound);
 };
 
 /**

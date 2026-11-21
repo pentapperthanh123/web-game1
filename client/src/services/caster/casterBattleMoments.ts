@@ -10,6 +10,7 @@ import {
 } from '../../constants/game';
 import { BossPhase } from '../../types/bossSkill';
 import { GameState } from '../../types/game';
+import { isCurrentRoundIntroActive } from '../../store/roundIntroStore';
 import { formatSpeechNumber } from './casterComposer';
 import { castCasterDialogue, castCasterSignal, getTeamTag, speakerFor } from './casterSignal';
 
@@ -34,7 +35,10 @@ export const createBattleMomentMemory = (state: GameState): BattleMomentMemory =
 });
 
 const isFightOn = (state: GameState): boolean =>
-  state.bossHp > 0 && state.roundWinner === null && !state.isRoundIntermission;
+  state.bossHp > 0 &&
+  state.roundWinner === null &&
+  !state.isRoundIntermission &&
+  !isCurrentRoundIntroActive();
 
 const getBossName = (state: GameState): string => getThemeConfig(state.gameTheme).bossName;
 

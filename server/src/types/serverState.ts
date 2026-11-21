@@ -136,7 +136,7 @@ export const DEFAULT_PARTICIPATION_RULE_CONFIG: ParticipationRuleConfig = {
   allowTeamOnlySummon: true,
   autoMatchSignatureTeam: true,
   lockTeamAfterJoin: true,
-  allowChampionEvolution: true,
+  allowChampionEvolution: false,
   maxDeployPerTurn: SUMMON_QUEUE_LIMITS.DEFAULT_DEPLOY_PER_TURN,
   summonTurnDelayMs: SUMMON_QUEUE_LIMITS.DEFAULT_TURN_DELAY_MS,
   championAttackSpeedMultiplier: SUMMON_QUEUE_LIMITS.DEFAULT_CHAMPION_ATTACK_SPEED_MULTIPLIER,
