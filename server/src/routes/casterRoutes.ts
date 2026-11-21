@@ -253,15 +253,26 @@ function scanCustomWavVoices(voicesDir: string): VietTtsVoiceItem[] {
     const files = readdirSync(voicesDir);
     return files
       .filter((file) => file.toLowerCase().endsWith('.wav'))
-      .map((file) => ({
-        id: file,
-        name: file.replace(/\.wav$/i, ''),
-        gender: 'male',
-        category: 'esports',
-        tag: 'Custom Clone .wav',
-        description: `Giọng mẫu riêng từ ${file} trong thư mục voices/`,
-        isCustomClone: true,
-      }));
+      .map((file) => {
+        const lower = file.toLowerCase();
+        const isFemale = lower.includes('female') || lower.includes('nu') || lower.includes('my') || lower.includes('chi') || lower.includes('quynh');
+        const rawName = file.replace(/\.wav$/i, '');
+        let displayName = rawName;
+        if (rawName === 'nam_minh' || rawName === 'nam-minh') {
+          displayName = 'Nam Minh (Clone)';
+        } else if (rawName === 'hoai_my' || rawName === 'hoai-my') {
+          displayName = 'Hoài My (Clone)';
+        }
+        return {
+          id: file,
+          name: displayName,
+          gender: isFemale ? 'female' : 'male',
+          category: 'esports',
+          tag: 'Custom Clone .wav',
+          description: `Giọng mẫu riêng từ ${file} trong thư mục voices/`,
+          isCustomClone: true,
+        };
+      });
   } catch {
     return [];
   }

@@ -431,6 +431,21 @@ function resolveVoiceSpec(entry) {
     ? VIET_TTS_CONFIG.DEFAULT_FEMALE_VOICE
     : VIET_TTS_CONFIG.DEFAULT_MALE_VOICE;
 
+  if (targetVoice && targetVoice.toLowerCase().endsWith('.wav')) {
+    const customWav = path.isAbsolute(targetVoice)
+      ? targetVoice
+      : path.join(PATHS.VOICES_DIR, targetVoice);
+    if (existsSync(customWav)) {
+      return {
+        mode: VOICE_MODE.CUSTOM_WAV,
+        voice: targetVoice,
+        wavPath: customWav,
+        speed,
+        gender: isFemale ? 'female' : 'male',
+      };
+    }
+  }
+
   return {
     mode: VOICE_MODE.BUILTIN,
     voice: targetVoice,

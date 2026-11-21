@@ -19,7 +19,7 @@ export const BatchGeneratorBar: React.FC<BatchGeneratorBarProps> = ({
 }) => {
   const [showLogs, setShowLogs] = useState(false);
 
-  const maleVoices = allVoices.filter((v) => v.gender === 'male' || v.isCustomClone);
+  const maleVoices = allVoices.filter((v) => v.gender === 'male');
   const femaleVoices = allVoices.filter((v) => v.gender === 'female');
 
   return (
