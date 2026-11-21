@@ -61,7 +61,7 @@ export const BossNameTag = React.memo(() => {
 
   return (
     <div className="flex items-center justify-center gap-1 pointer-events-none select-none whitespace-nowrap">
-      <span className="tracking-wide uppercase text-white font-black text-[10px] sm:text-[11px] drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+      <span className="tracking-wide uppercase text-white font-black text-[11px] sm:text-[12px] drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
         {t(themeConfig.i18nKey, themeConfig.bossName)}
       </span>
       {badgeConfig.isFlame && <Flame className="w-3 h-3 text-amber-300 animate-bounce shrink-0" />}
@@ -100,7 +100,7 @@ export const BossHealthBar = React.memo(() => {
 
   return (
     <div
-      className={`relative ${BOSS_HEALTH_BAR_LAYOUT.WIDTH_CLASS} h-3.5 bg-slate-950/95 rounded-md border p-px shadow-[0_0_12px_rgba(0,0,0,0.9)] overflow-hidden pointer-events-none select-none transition-[border-color,opacity] duration-500 ${containerBorderClass}`}
+      className={`relative ${BOSS_HEALTH_BAR_LAYOUT.WIDTH_CLASS} h-4 bg-slate-950/95 rounded-md border p-px shadow-[0_0_12px_rgba(0,0,0,0.9)] overflow-hidden pointer-events-none select-none transition-[border-color,opacity] duration-500 ${containerBorderClass}`}
     >
       {/* Trailing Ghost Damage Bar - uses GPU composited scaleX to prevent layout reflows */}
       <div
@@ -120,7 +120,7 @@ export const BossHealthBar = React.memo(() => {
       </div>
 
       {/* HP Numeric Overlay */}
-      <div className="absolute inset-0 flex items-center justify-center text-[8px] font-mono font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] tracking-wide">
+      <div className="absolute inset-0 flex items-center justify-center text-[9px] sm:text-[9.5px] font-mono font-black text-white [text-shadow:0_1px_2px_rgba(0,0,0,1)] tracking-wide">
         <span>{bossHp.toLocaleString()}</span>
         <span className="ml-1 text-cyan-300">({hpPercentage.toFixed(1)}%)</span>
       </div>

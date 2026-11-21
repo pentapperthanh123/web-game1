@@ -99,7 +99,7 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = React.memo(
     const rowStyleClass = isLeader
       ? boardTheme.leaderRowClass
       : 'bg-slate-950/35 border-white/10';
-    const nameColorClass = isLeader ? boardTheme.leaderNameClass : 'text-slate-200';
+    const nameColorClass = isLeader ? boardTheme.leaderNameClass : 'text-slate-100';
 
     return (
       <div
@@ -112,7 +112,7 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = React.memo(
             {isLeader ? <Crown className="w-2.5 h-2.5" fill="currentColor" /> : rank}
           </span>
           <SessionTierBadge tier={tier} />
-          <span className={`font-bold truncate text-[10px] ${nameColorClass}`}>
+          <span className={`font-bold truncate text-[10.5px] sm:text-[11px] ${nameColorClass}`}>
             {entry.userName}
           </span>
           <span

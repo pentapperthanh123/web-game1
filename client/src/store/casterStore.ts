@@ -46,7 +46,14 @@ export const applyCasterConfig = (payload: unknown): void => {
   if (!payload || typeof payload !== 'object') return;
   const source = payload as Record<string, unknown>;
   const patch: Partial<CasterState> = {};
-  if (typeof source.isTtsEnabled === 'boolean') patch.isTtsEnabled = source.isTtsEnabled;
+  if (typeof source.isTtsEnabled === 'boolean') {
+    patch.isTtsEnabled = source.isTtsEnabled;
+    if (!source.isTtsEnabled) {
+      import('../services/caster/VoiceManager').then(({ VoiceManager }) => {
+        VoiceManager.stopAll();
+      });
+    }
+  }
   if (typeof source.isNameReadingEnabled === 'boolean') patch.isNameReadingEnabled = source.isNameReadingEnabled;
   if (typeof source.isDuoEnabled === 'boolean') patch.isDuoEnabled = source.isDuoEnabled;
   useCasterStore.setState(patch);

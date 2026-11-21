@@ -64,7 +64,7 @@ const SummonSpotlightCard = ({
     <div
       key={portal.id}
       style={{ boxShadow: cardShadowStyle }}
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border bg-slate-950/95 shadow-md max-w-[125px] sm:max-w-[145px] transition-all duration-300 select-none ${
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border bg-slate-950/95 shadow-md max-w-[114px] sm:max-w-[130px] transition-all duration-300 select-none ${
         isFadingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100 animate-in fade-in zoom-in-95'
       } ${cardBorderClass} ${isRight ? 'flex-row-reverse text-right' : 'text-left'}`}
     >
@@ -79,7 +79,7 @@ const SummonSpotlightCard = ({
 
       <div className="min-w-0 flex-1 leading-none py-0.5">
         <div className={`flex items-center gap-0.5 ${isRight ? 'flex-row-reverse' : ''}`}>
-          <span className={`text-[9px] sm:text-[9.5px] font-black uppercase tracking-wider drop-shadow truncate ${nameColorClass}`}>
+          <span className={`text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-wider drop-shadow truncate ${nameColorClass}`}>
             {portal.championName}
           </span>
           {portal.isCrit && (
@@ -91,7 +91,7 @@ const SummonSpotlightCard = ({
         </div>
         <div className={`flex items-center gap-0.5 mt-0.5 min-w-0 ${isRight ? 'flex-row-reverse' : ''}`}>
           <SessionTierBadge tier={sessionTier} hasLabel={isHighTier} />
-          <p className={`text-[8px] sm:text-[8.5px] font-bold text-amber-300 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,1)] ${isRight ? 'text-right' : 'text-left'}`}>
+          <p className={`text-[9px] sm:text-[9.5px] font-bold text-amber-300 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,1)] ${isRight ? 'text-right' : 'text-left'}`}>
             @{portal.summonerName.replace(/^@+/, '')}
           </p>
         </div>

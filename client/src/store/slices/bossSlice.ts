@@ -48,6 +48,7 @@ import { buildSkillImpactWaves } from '../bossSkillWaves';
 import {
   BOSS_METEOR_RAIN_CONSTANTS,
   BOSS_PHASE_SHIFT_SHAKE_INTENSITY,
+  BOSS_SKILL_HIT_RULES,
   CHAMPION_HIT_FEEDBACK,
 } from '../../constants/bossSkillVfx';
 import {
@@ -346,6 +347,8 @@ export const createBossSlice: StateCreator<GameState, [], [], BossSlice> = (set,
       vfxParams: skill.vfxParams,
       statusEffectType: skill.statusEffect?.type,
       impactPoints: skillHit.impactPoints,
+      impactPositions: skillHit.impactPositions,
+      targetedMinionIds: Array.from(targetedMinionIds).slice(0, BOSS_SKILL_HIT_RULES.MAX_IMPACT_POINTS),
     };
 
     const archetypeSound = BOSS_SKILL_VFX_SFX[skill.vfxType];

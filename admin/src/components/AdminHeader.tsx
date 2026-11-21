@@ -1,35 +1,70 @@
-import { Radio, RotateCcw, ExternalLink, Play } from 'lucide-react';
+import { Radio, RotateCcw, ExternalLink, Play, Sparkles, Square, Clock } from 'lucide-react';
 import { START_ROUND_BUTTON_HINT } from '../constants/adminPortal';
+import { SUMMON_QUEUE_UI } from '../constants/summonQueue';
 
 interface AdminHeaderProps {
   onResetBoss: () => void;
   onStartMatch?: () => void;
+  isAutoSummonActive?: boolean;
+  onToggleAutoSummon?: () => void;
+  roundDurationMs?: number;
+  onChangeRoundDuration?: (ms: number) => void;
 }
 
 /**
- * Top portal header with title, OBS Game View link, quick match start, and quick Boss reset button.
+ * Top portal header with title, quick Auto-Summon toggle, Round duration config, OBS Game View link, quick match start, and quick Boss reset button.
  */
-export function AdminHeader({ onResetBoss, onStartMatch }: AdminHeaderProps) {
+export function AdminHeader({
+  onResetBoss,
+  onStartMatch,
+  isAutoSummonActive,
+  onToggleAutoSummon,
+  roundDurationMs = SUMMON_QUEUE_UI.DEFAULT_ROUND_DURATION_MS,
+  onChangeRoundDuration,
+}: AdminHeaderProps) {
   return (
-    <header className="flex flex-col md:flex-row md:items-center justify-between pb-3.5 sm:pb-5 border-b border-slate-800 gap-3 sm:gap-4">
-      <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
-        <div className="p-2 sm:p-2.5 rounded-xl bg-purple-950/80 text-purple-400 border border-purple-800/80 shadow-[0_0_15px_rgba(168,85,247,0.3)] shrink-0">
-          <Radio className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-base sm:text-2xl font-black tracking-wide text-white flex items-center flex-wrap gap-2">
-            <span>TIKTOK LIVE ADMIN PORTAL</span>
-            <span className="shrink-0 text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono font-semibold">
-              PORT 8001
-            </span>
-          </h1>
-          <p className="text-[11px] sm:text-xs text-slate-400 leading-snug mt-0.5 truncate">
-            Bảng điều khiển độc lập kết nối WebSocket tới Server (Port 4000) & Game View (Port 8000)
-          </p>
-        </div>
-      </div>
-
+    <header className="flex flex-col md:flex-row md:items-center justify-end pb-3.5 sm:pb-5 border-b border-slate-800 gap-3 sm:gap-4">
       <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full md:w-auto">
+        {/* Quick Auto Summon Toggle Button */}
+        {onToggleAutoSummon && (
+          <button
+            type="button"
+            onClick={onToggleAutoSummon}
+            title={
+              isAutoSummonActive
+                ? 'Đang Tự Động Triệu Hồi (Kích thích người xem). Nhấn để DỪNG.'
+                : 'BẬT Tự Động Triệu Hồi mồi để người xem comment theo.'
+            }
+            className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-black flex items-center space-x-1.5 transition active:scale-95 cursor-pointer shadow ${
+              isAutoSummonActive
+                ? 'bg-rose-950/90 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.5)]'
+                : 'bg-emerald-950/90 border-emerald-500 text-emerald-200 hover:bg-emerald-900/80 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+            }`}
+          >
+            <Sparkles className={`w-3.5 h-3.5 ${isAutoSummonActive ? 'animate-spin text-rose-400' : 'text-emerald-400'}`} />
+            <span>{isAutoSummonActive ? 'DỪNG AUTO TRIỆU HỒI' : 'BẬT AUTO TRIỆU HỒI'}</span>
+          </button>
+        )}
+
+        {/* Quick Round Duration Config Dropdown / Select */}
+        {onChangeRoundDuration && (
+          <div className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-xs text-slate-300">
+            <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="text-[11px] font-bold text-slate-400">Thời lượng:</span>
+            <select
+              value={roundDurationMs}
+              onChange={(e) => onChangeRoundDuration(Number(e.target.value))}
+              className="bg-slate-950 text-emerald-400 font-mono font-bold text-xs rounded border border-slate-700/60 px-1.5 py-0.5 outline-none cursor-pointer focus:border-cyan-500"
+            >
+              <option value={0}>Không giới hạn</option>
+              <option value={180000}>3 phút</option>
+              <option value={240000}>4 phút</option>
+              <option value={300000}>5 phút</option>
+              <option value={420000}>7 phút</option>
+            </select>
+          </div>
+        )}
+
         {onStartMatch && (
           <button
             type="button"

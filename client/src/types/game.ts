@@ -172,6 +172,7 @@ export interface SlashEntity {
 
 export interface SummonPortalEntity {
   id: string;
+  minionId?: string;
   summonerName: string;
   championName: string;
   avatarUrl: string;

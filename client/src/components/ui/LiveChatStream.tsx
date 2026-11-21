@@ -54,10 +54,10 @@ export const LiveChatStream = () => {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0 text-[10px] leading-tight">
+                <div className="flex-1 min-w-0 text-[10.5px] sm:text-[11px] leading-tight">
                   <div className="flex items-center space-x-1">
                     <SessionTierBadge tier={sessionTier} />
-                    <span className="font-bold text-slate-300 truncate max-w-[80px]">
+                    <span className="font-extrabold text-slate-100 truncate max-w-[96px]">
                       {msg.userName}
                     </span>
 

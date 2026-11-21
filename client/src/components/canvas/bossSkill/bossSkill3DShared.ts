@@ -35,6 +35,10 @@ export interface SkillVfx3DProps {
   coreOrigin: Vec3Tuple;
   /** Floor positions (x, z) of the champions this cast hurts; effects land on them first. */
   impactPoints: readonly BossSkillImpactPoint[];
+  /** Full 3D positions (x, y, z) of the champions at cast time. */
+  impactPositions: readonly Vec3Tuple[];
+  /** IDs of the targeted champions for real-time live tracking. */
+  targetedMinionIds: readonly string[];
 }
 
 export type SkillVfxStyleProps = Omit<SkillVfx3DProps, 'mouthOrigin' | 'eyeOrigin' | 'coreOrigin'>;
@@ -57,6 +61,8 @@ export const FLAT_ON_GROUND: readonly [number, number, number] = [-Math.PI / 2, 
 
 const DEFAULT_SCALE = 1;
 const NO_IMPACT_POINTS: readonly BossSkillImpactPoint[] = [];
+const NO_IMPACT_POSITIONS: readonly Vec3Tuple[] = [];
+const NO_TARGET_IDS: readonly string[] = [];
 const LANDING_SPREAD = 1.6;
 const CENTER_LANDING_SPREAD = 2.4;
 const SEED_MODULUS = 233280;
@@ -70,6 +76,61 @@ export const resolveDirection3D = (targetTeam: ActiveBossSkillBanner['targetTeam
 };
 
 const CORE_FALLBACK: Vec3Tuple = [0, 0.5, 0.3];
+const tempAnchorRayOrigin = new THREE.Vector3();
+const tempAnchorRayDir = new THREE.Vector3();
+const MIN_ANCHOR_RAY_Z = 0.0001;
+
+/**
+ * Projects a Boss2D anchor marker into a caller-supplied Vector3 every frame with zero allocations.
+ * Returns true if successful, or false (with out set to fallback) if the marker is not in DOM.
+ */
+export const resolveBossAnchorWorldInto = (
+  out: THREE.Vector3,
+  elementId: string,
+  camera: THREE.Camera,
+  canvasDomElement: HTMLElement | null | undefined,
+  fallback: Vec3Tuple
+): boolean => {
+  if (typeof document === 'undefined') {
+    out.set(fallback[0], fallback[1], fallback[2]);
+    return false;
+  }
+  const marker = document.getElementById(elementId);
+  if (!marker) {
+    out.set(fallback[0], fallback[1], fallback[2]);
+    return false;
+  }
+  const markerRect = marker.getBoundingClientRect();
+  const containerRect = canvasDomElement ? canvasDomElement.getBoundingClientRect() : null;
+  const containerW = containerRect?.width || window.innerWidth || 1;
+  const containerH = containerRect?.height || window.innerHeight || 1;
+  const containerLeft = containerRect?.left ?? 0;
+  const containerTop = containerRect?.top ?? 0;
+
+  const screenX = markerRect.left - containerLeft;
+  const screenY = markerRect.top - containerTop;
+  const ndcX = (screenX / containerW) * 2 - 1;
+  const ndcY = -(screenY / containerH) * 2 + 1;
+  const targetZ = fallback[2];
+
+  tempAnchorRayOrigin.copy(camera.position);
+  tempAnchorRayDir.set(ndcX, ndcY, 0.5).unproject(camera).sub(tempAnchorRayOrigin).normalize();
+  if (Math.abs(tempAnchorRayDir.z) < MIN_ANCHOR_RAY_Z) {
+    out.set(fallback[0], fallback[1], fallback[2]);
+    return false;
+  }
+  const t = (targetZ - tempAnchorRayOrigin.z) / tempAnchorRayDir.z;
+  if (t <= 0) {
+    out.set(fallback[0], fallback[1], fallback[2]);
+    return false;
+  }
+  out.set(
+    tempAnchorRayOrigin.x + tempAnchorRayDir.x * t,
+    tempAnchorRayOrigin.y + tempAnchorRayDir.y * t,
+    targetZ
+  );
+  return true;
+};
 
 /**
  * Projects a Boss2D anchor marker (see BossSpriteAnchorMarkers) onto the 3D plane at
@@ -108,6 +169,8 @@ export const buildSkillVfxStyleProps = (banner: ActiveBossSkillBanner, vfxType: 
   startedAt: banner.timestamp,
   durationMs: getSkillVfxDurationMs(vfxType, banner.vfxParams),
   impactPoints: banner.impactPoints ?? NO_IMPACT_POINTS,
+  impactPositions: (banner.impactPositions as readonly Vec3Tuple[]) ?? NO_IMPACT_POSITIONS,
+  targetedMinionIds: banner.targetedMinionIds ?? NO_TARGET_IDS,
 });
 
 /** Props of one extra layer of a cast: same anchors and targets, its own look and timing. */

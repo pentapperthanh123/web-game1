@@ -1,7 +1,12 @@
-import { useMemo, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BOSS_SKILL_VFX_STYLE } from '../../../constants/bossSkillVfx';
+import { BOSS_ANCHOR_ELEMENT_ID } from '../../../constants/bossSpriteAnchors';
+import {
+  getLiveMinionPosition,
+  getLiveMinionPositionSnapshot,
+} from '../../../services/minionPositionRegistry';
 import {
   ADDITIVE_DOUBLE_SIDED_PROPS,
   BOSS_3D_ANCHORS,
@@ -10,91 +15,357 @@ import {
   SkillVfx3DProps,
   Vec3Tuple,
   computeProgress,
-  easeInOutSine,
   easeOutCubic,
   easeOutExpo,
   fadeOut,
   opacityLayer,
   phaseProgress,
+  resolveBossAnchorWorldInto,
   setMaterialOpacity,
 } from './bossSkill3DShared';
-import { DECAL_TEXTURE, EmberBurst, GlowSprite, GroundDecal, ImpactBurst } from './VfxPrimitives3D';
+import { DECAL_TEXTURE, GlowSprite, GroundDecal } from './VfxPrimitives3D';
 
-/** Pitch of the beam below the horizon; length is derived so the tip lands exactly on the floor. */
-const BEAM_TILT = Math.PI * 0.2;
-const EYE_HEIGHT_ABOVE_GROUND = BOSS_3D_ANCHORS.EYE[1] - BOSS_3D_ANCHORS.GROUND_Y;
-const BEAM_LENGTH = EYE_HEIGHT_ABOVE_GROUND / Math.sin(BEAM_TILT);
-const IMPACT_DISTANCE = EYE_HEIGHT_ABOVE_GROUND / Math.tan(BEAM_TILT);
 const RADIAL_SEGMENTS = 12;
 
-const createBeamGeometry = (radius: number): THREE.CylinderGeometry =>
-  new THREE.CylinderGeometry(radius, radius, BEAM_LENGTH, RADIAL_SEGMENTS, 1, true).rotateX(Math.PI / 2).translate(0, 0, BEAM_LENGTH / 2);
+/**
+ * Unit cylinder pointing along +Z, anchored at (0, 0, 0) and extending to (0, 0, 1).
+ * Allows single setFromUnitVectors + scale(w, w, dist) to perfectly bridge eye to target.
+ */
+const createUnitBeamGeometry = (radius: number): THREE.CylinderGeometry =>
+  new THREE.CylinderGeometry(radius, radius, 1, RADIAL_SEGMENTS, 1, true)
+    .rotateX(Math.PI / 2)
+    .translate(0, 0, 0.5);
 
-const SHARED_CORE_GEO = createBeamGeometry(0.035);
-const SHARED_GLOW_GEO = createBeamGeometry(0.09);
-const SHARED_HALO_GEO = createBeamGeometry(0.22);
+const CORE_RADIUS = 0.028;
+const GLOW_RADIUS = 0.075;
+const HALO_RADIUS = 0.16;
 
-const BASE_YAW = Math.PI * 0.25;
-const SIDE_SWEEP = Math.PI * 0.16;
-const BOTH_SIDES_SWEEP = Math.PI * 0.32;
+const SHARED_CORE_GEO = createUnitBeamGeometry(CORE_RADIUS);
+const SHARED_GLOW_GEO = createUnitBeamGeometry(GLOW_RADIUS);
+const SHARED_HALO_GEO = createUnitBeamGeometry(HALO_RADIUS);
 
-/** Timeline (fraction of the clip). */
-const CHARGE_END = 0.18;
-const IGNITE_SPAN = 0.08;
-const RELEASE_START = 0.78;
+const TIMELINE = {
+  CHARGE_END: 0.18,
+  IGNITE_SPAN: 0.08,
+  RELEASE_START: 0.78,
+} as const;
 
-const TELEGRAPH_WIDTH = 0.2;
-const TELEGRAPH_OPACITY = 0.3;
-const FLICKER_AMPLITUDE = 0.08;
-const FLICKER_RATE = 0.045;
-const MUZZLE_MIN_SIZE = 0.3;
-const MUZZLE_GROW = 0.9;
-const MUZZLE_CORE_RATIO = 0.45;
-const TIP_FLARE_SIZE = 0.9;
-const IMPACT_DECAL_SIZE = 2.2;
-const IMPACT_RING_SIZE = 1.5;
-const IMPACT_SPIN_RATE = 0.004;
-const SWEEP_SPARK_NODES = 3;
-const SWEEP_SPARK_SPAN = 0.42;
-const SWEEP_EMBER_COUNT = 5;
-const INITIAL_BURST_SIZE = 1.6;
+const BEAM_DIMENSIONS = {
+  TELEGRAPH_WIDTH: 0.22,
+  TELEGRAPH_OPACITY: 0.35,
+  FLICKER_AMPLITUDE: 0.09,
+  FLICKER_RATE: 0.05,
+  MUZZLE_MIN_SIZE: 0.35,
+  MUZZLE_GROW: 0.95,
+  MUZZLE_CORE_RATIO: 0.45,
+  TIP_FLARE_SIZE: 1.25,
+  IMPACT_RING_SIZE: 1.45,
+  IMPACT_SPIN_RATE: 0.005,
+  MIN_DISTANCE: 0.01,
+  MAX_TARGETS: 3,
+  DEFAULT_TARGET_Z: 1.2,
+  DEFAULT_TARGET_ELEVATION: 0.4,
+} as const;
 
-/** The beam never sweeps narrower than this, so a single target still gets a visible pass. */
-const MIN_AIM_SPREAD = 0.12;
-/** Targets this far apart (radians) are not one group; fall back to the wing sweep. */
-const MAX_AIM_SPREAD = Math.PI * 0.75;
+// Module-level scratch vectors to ensure zero heap allocations inside useFrame
+const UNIT_Z = new THREE.Vector3(0, 0, 1);
+const tempMuzzleOrigin = new THREE.Vector3();
+const tempBeamOrigin = new THREE.Vector3();
+const tempBeamTarget = new THREE.Vector3();
+const tempBeamDir = new THREE.Vector3();
 
-interface AimRange {
-  from: number;
-  to: number;
+interface BeamMuzzleProps {
+  eyeOriginFallback: Vec3Tuple;
+  color: string;
+  scale: number;
+  startedAt: number;
+  durationMs: number;
 }
 
-/** Yaw range (from the eye) that covers the champions the beam hurts; null without targets. */
-const resolveAimRange = (impactPoints: readonly BossSkillImpactPoint[], eyeOrigin: Vec3Tuple): AimRange | null => {
-  if (impactPoints.length === 0) return null;
-  const yaws = impactPoints.map(([x, z]) => Math.atan2(x - eyeOrigin[0], z - eyeOrigin[2]));
-  const from = Math.min(...yaws);
-  const to = Math.max(...yaws);
-  if (to - from > MAX_AIM_SPREAD) return null;
-  const centre = (from + to) / 2;
-  const halfSpread = Math.max((to - from) / 2, MIN_AIM_SPREAD / 2);
-  return { from: centre - halfSpread, to: centre + halfSpread };
+/** Eye-level charging muzzle flare that follows the boss eye anchor live */
+const BeamMuzzle: React.FC<BeamMuzzleProps> = ({
+  eyeOriginFallback,
+  color,
+  scale,
+  startedAt,
+  durationMs,
+}) => {
+  const muzzleRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    const muzzle = muzzleRef.current;
+    if (!muzzle) return;
+
+    const progress = computeProgress(startedAt, durationMs);
+    const elapsedMs = progress * durationMs;
+    const isAlive = progress > 0 && progress < 1;
+
+    if (!isAlive) {
+      muzzle.visible = false;
+      return;
+    }
+
+    resolveBossAnchorWorldInto(
+      tempMuzzleOrigin,
+      BOSS_ANCHOR_ELEMENT_ID.EYE,
+      state.camera,
+      state.gl.domElement,
+      eyeOriginFallback
+    );
+
+    const charge = easeOutCubic(phaseProgress(progress, 0, TIMELINE.CHARGE_END));
+    const ignite = easeOutExpo(phaseProgress(progress, TIMELINE.CHARGE_END, TIMELINE.CHARGE_END + TIMELINE.IGNITE_SPAN));
+    const release = fadeOut(phaseProgress(progress, TIMELINE.RELEASE_START, 1));
+    const fireLevel = ignite * release;
+    const flicker = 1 + Math.sin(elapsedMs * BEAM_DIMENSIONS.FLICKER_RATE) * BEAM_DIMENSIONS.FLICKER_AMPLITUDE;
+
+    muzzle.visible = true;
+    muzzle.position.copy(tempMuzzleOrigin);
+    muzzle.scale.setScalar(scale * (BEAM_DIMENSIONS.MUZZLE_MIN_SIZE + BEAM_DIMENSIONS.MUZZLE_GROW * charge) * flicker);
+    const muzzleOpacity = Math.max(charge, fireLevel) * release * BOSS_SKILL_VFX_STYLE.MAX_CORE_OPACITY;
+    setMaterialOpacity(muzzle, muzzleOpacity);
+  });
+
+  return (
+    <group ref={muzzleRef} visible={false}>
+      <GlowSprite color={color} opacityScale={BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.GLOW} />
+      <group scale={BEAM_DIMENSIONS.MUZZLE_CORE_RATIO}>
+        <GlowSprite color={BOSS_SKILL_VFX_STYLE.CORE_COLOR} />
+      </group>
+    </group>
+  );
 };
 
-const resolveYaw = (direction: number, sweepProgress: number, aim: AimRange | null): number => {
-  if (aim) return aim.from + (aim.to - aim.from) * sweepProgress;
-  if (direction === 0) return Math.sin(sweepProgress * Math.PI * 2) * BOTH_SIDES_SWEEP;
-  return direction * (BASE_YAW + (sweepProgress - 0.5) * 2 * SIDE_SWEEP);
+interface SingleTrackedBeamProps {
+  minionId?: string;
+  initialTarget: [number, number, number];
+  eyeOriginFallback: Vec3Tuple;
+  color: string;
+  secondaryColor: string;
+  scale: number;
+  startedAt: number;
+  durationMs: number;
+}
+
+/** Individual beam ray dynamically connecting live boss eye to live champion position */
+const SingleTrackedBeam: React.FC<SingleTrackedBeamProps> = ({
+  minionId,
+  initialTarget,
+  eyeOriginFallback,
+  color,
+  secondaryColor,
+  scale,
+  startedAt,
+  durationMs,
+}) => {
+  const beamGroupRef = useRef<THREE.Group>(null);
+  const widthGroupRef = useRef<THREE.Group>(null);
+  const impactGroupRef = useRef<THREE.Group>(null);
+  const floorDecalRef = useRef<THREE.Group>(null);
+  const lastTargetPosRef = useRef<[number, number, number]>([...initialTarget]);
+
+  useFrame((state) => {
+    const progress = computeProgress(startedAt, durationMs);
+    const elapsedMs = progress * durationMs;
+    const isAlive = progress > 0 && progress < 1;
+
+    if (!isAlive) {
+      if (beamGroupRef.current) beamGroupRef.current.visible = false;
+      if (impactGroupRef.current) impactGroupRef.current.visible = false;
+      if (floorDecalRef.current) floorDecalRef.current.visible = false;
+      return;
+    }
+
+    // 1. Update live boss eye anchor position
+    resolveBossAnchorWorldInto(
+      tempBeamOrigin,
+      BOSS_ANCHOR_ELEMENT_ID.EYE,
+      state.camera,
+      state.gl.domElement,
+      eyeOriginFallback
+    );
+
+    // 2. Update live champion target position (retaining last known coordinates if champion dies mid-beam)
+    if (minionId) {
+      const live = getLiveMinionPosition(minionId);
+      if (live) {
+        lastTargetPosRef.current[0] = live[0];
+        lastTargetPosRef.current[1] = live[1];
+        lastTargetPosRef.current[2] = live[2];
+      }
+    }
+    tempBeamTarget.set(
+      lastTargetPosRef.current[0],
+      lastTargetPosRef.current[1],
+      lastTargetPosRef.current[2]
+    );
+
+    // 3. Compute vector from boss eye to champion
+    tempBeamDir.subVectors(tempBeamTarget, tempBeamOrigin);
+    const dist = tempBeamDir.length();
+
+    // 4. Compute animation timeline curves
+    const charge = easeOutCubic(phaseProgress(progress, 0, TIMELINE.CHARGE_END));
+    const ignite = easeOutExpo(phaseProgress(progress, TIMELINE.CHARGE_END, TIMELINE.CHARGE_END + TIMELINE.IGNITE_SPAN));
+    const release = fadeOut(phaseProgress(progress, TIMELINE.RELEASE_START, 1));
+    const fireLevel = ignite * release;
+    const flicker = 1 + Math.sin(elapsedMs * BEAM_DIMENSIONS.FLICKER_RATE) * BEAM_DIMENSIONS.FLICKER_AMPLITUDE;
+
+    // 5. Orient and scale unit cylinder beam
+    if (beamGroupRef.current && widthGroupRef.current) {
+      beamGroupRef.current.visible = true;
+      beamGroupRef.current.position.copy(tempBeamOrigin);
+      if (dist > BEAM_DIMENSIONS.MIN_DISTANCE) {
+        tempBeamDir.divideScalar(dist);
+        beamGroupRef.current.quaternion.setFromUnitVectors(UNIT_Z, tempBeamDir);
+      }
+      const currentWidth =
+        scale *
+        (BEAM_DIMENSIONS.TELEGRAPH_WIDTH + (1 - BEAM_DIMENSIONS.TELEGRAPH_WIDTH) * fireLevel) *
+        flicker;
+      widthGroupRef.current.scale.set(currentWidth, currentWidth, dist);
+      const beamOpacity = Math.max(charge * BEAM_DIMENSIONS.TELEGRAPH_OPACITY, ignite) * release;
+      setMaterialOpacity(widthGroupRef.current, beamOpacity * BOSS_SKILL_VFX_STYLE.MAX_CORE_OPACITY);
+    }
+
+    // 6. Position impact flare on champion token
+    if (impactGroupRef.current) {
+      impactGroupRef.current.visible = true;
+      impactGroupRef.current.position.copy(tempBeamTarget);
+      impactGroupRef.current.scale.setScalar(
+        scale * BEAM_DIMENSIONS.TIP_FLARE_SIZE * (0.8 + 0.4 * fireLevel) * flicker
+      );
+      setMaterialOpacity(impactGroupRef.current, fireLevel * BOSS_SKILL_VFX_STYLE.MAX_GLOW_OPACITY);
+    }
+
+    // 7. Position scorched decal on arena floor below champion
+    if (floorDecalRef.current) {
+      floorDecalRef.current.visible = true;
+      floorDecalRef.current.position.set(
+        tempBeamTarget.x,
+        BOSS_3D_ANCHORS.GROUND_Y + GROUND_DECAL_LIFT,
+        tempBeamTarget.z
+      );
+      floorDecalRef.current.rotation.y = elapsedMs * BEAM_DIMENSIONS.IMPACT_SPIN_RATE;
+      floorDecalRef.current.scale.setScalar(scale * flicker);
+      setMaterialOpacity(floorDecalRef.current, fireLevel * BOSS_SKILL_VFX_STYLE.MAX_DECAL_OPACITY);
+    }
+  });
+
+  return (
+    <group>
+      {/* 3D Cylinder Beam from Eye to Champion */}
+      <group ref={beamGroupRef} visible={false}>
+        <group ref={widthGroupRef}>
+          <mesh
+            geometry={SHARED_CORE_GEO}
+            userData={opacityLayer(BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.CORE)}
+          >
+            <meshBasicMaterial
+              {...ADDITIVE_DOUBLE_SIDED_PROPS}
+              color={BOSS_SKILL_VFX_STYLE.CORE_COLOR}
+            />
+          </mesh>
+          <mesh
+            geometry={SHARED_GLOW_GEO}
+            userData={opacityLayer(BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.GLOW)}
+          >
+            <meshBasicMaterial {...ADDITIVE_DOUBLE_SIDED_PROPS} color={secondaryColor} />
+          </mesh>
+          <mesh
+            geometry={SHARED_HALO_GEO}
+            userData={opacityLayer(BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.HALO)}
+          >
+            <meshBasicMaterial {...ADDITIVE_DOUBLE_SIDED_PROPS} color={color} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* Target Impact Flare (positioned on champion token) */}
+      <group ref={impactGroupRef} visible={false}>
+        <GlowSprite color={secondaryColor} />
+        <group scale={BEAM_DIMENSIONS.MUZZLE_CORE_RATIO}>
+          <GlowSprite color={BOSS_SKILL_VFX_STYLE.CORE_COLOR} />
+        </group>
+        <group scale={1.3}>
+          <GlowSprite color={color} opacityScale={0.5} />
+        </group>
+      </group>
+
+      {/* Scorched Decal & Plasma Ring on Arena Floor */}
+      <group ref={floorDecalRef} visible={false}>
+        <group scale={BEAM_DIMENSIONS.IMPACT_RING_SIZE}>
+          <GroundDecal color={secondaryColor} texture={DECAL_TEXTURE.RING} />
+        </group>
+      </group>
+    </group>
+  );
 };
 
-/** A layered energy beam: charge at the eye, ignite, sweep the wing scorching the floor, then thin out. */
-const MIN_EYE_HEIGHT = 0.5;
+interface TrackedSlotData {
+  slotKey: string;
+  minionId?: string;
+  initialTarget: [number, number, number];
+}
 
-/** Length factor so the tip still lands on the floor when the eye sits higher or lower than the default. */
-const resolveBeamReach = (eyeY: number): number =>
-  Math.max(MIN_EYE_HEIGHT, eyeY - BOSS_3D_ANCHORS.GROUND_Y) / EYE_HEIGHT_ABOVE_GROUND;
+const resolveTargetSlots = (
+  targetedMinionIds: readonly string[],
+  impactPositions: readonly Vec3Tuple[],
+  impactPoints: readonly BossSkillImpactPoint[],
+  direction: number
+): TrackedSlotData[] => {
+  if (targetedMinionIds.length > 0) {
+    const capped = targetedMinionIds.slice(0, BEAM_DIMENSIONS.MAX_TARGETS);
+    return capped.map((id, index) => {
+      const live = getLiveMinionPositionSnapshot(id);
+      const impactPos = impactPositions[index];
+      const fallbackPos: [number, number, number] = live
+        ? [live[0], live[1], live[2]]
+        : impactPos
+        ? [impactPos[0], impactPos[1], impactPos[2]]
+        : [direction * 1.5, BOSS_3D_ANCHORS.GROUND_Y + BEAM_DIMENSIONS.DEFAULT_TARGET_ELEVATION, BEAM_DIMENSIONS.DEFAULT_TARGET_Z];
+      return {
+        slotKey: `beam-target-${id}-${index}`,
+        minionId: id,
+        initialTarget: fallbackPos,
+      };
+    });
+  }
 
-export const Beam3D = ({
+  if (impactPositions.length > 0) {
+    const capped = impactPositions.slice(0, BEAM_DIMENSIONS.MAX_TARGETS);
+    return capped.map((pos, index) => ({
+      slotKey: `beam-pos-${index}`,
+      initialTarget: [pos[0], pos[1], pos[2]],
+    }));
+  }
+
+  if (impactPoints.length > 0) {
+    const capped = impactPoints.slice(0, BEAM_DIMENSIONS.MAX_TARGETS);
+    return capped.map(([x, z], index) => ({
+      slotKey: `beam-point-${index}`,
+      initialTarget: [x, BOSS_3D_ANCHORS.GROUND_Y + BEAM_DIMENSIONS.DEFAULT_TARGET_ELEVATION, z],
+    }));
+  }
+
+  return [
+    {
+      slotKey: 'beam-fallback-0',
+      initialTarget: [
+        direction * 1.5,
+        BOSS_3D_ANCHORS.GROUND_Y + BEAM_DIMENSIONS.DEFAULT_TARGET_ELEVATION,
+        BEAM_DIMENSIONS.DEFAULT_TARGET_Z,
+      ],
+    },
+  ];
+};
+
+/**
+ * High-precision 3D Annihilation Beam VFX ("Tia Phân Rã Hư Không").
+ * Rigidly locks its origin to the Boss eye anchor marker and real-time tracks
+ * living champion 3D positions with continuous orientation and distance bridging.
+ */
+export const Beam3D: React.FC<SkillVfx3DProps> = ({
   color,
   secondaryColor,
   scale,
@@ -103,131 +374,35 @@ export const Beam3D = ({
   durationMs,
   eyeOrigin,
   impactPoints,
-}: SkillVfx3DProps) => {
-  const beamReach = resolveBeamReach(eyeOrigin[1]);
-  // The beam passes over the champions it hurts, so the damage numbers appear where it burns
-  const aimRange = useMemo(() => resolveAimRange(impactPoints, eyeOrigin), [impactPoints, eyeOrigin]);
-  const sweepSparkPoints = useMemo(() => {
-    const activeSpan = RELEASE_START - CHARGE_END;
-    return Array.from({ length: SWEEP_SPARK_NODES }, (_, index) => {
-      const ratio = index / Math.max(1, SWEEP_SPARK_NODES - 1);
-      const yaw = resolveYaw(direction, easeInOutSine(ratio), aimRange);
-      const start = CHARGE_END + ratio * activeSpan * 0.7;
-      return {
-        x: eyeOrigin[0] + Math.sin(yaw) * IMPACT_DISTANCE * beamReach,
-        z: eyeOrigin[2] + Math.cos(yaw) * IMPACT_DISTANCE * beamReach,
-        start,
-        end: Math.min(1, start + SWEEP_SPARK_SPAN),
-      };
-    });
-  }, [direction, aimRange, eyeOrigin, beamReach]);
-  const yawRef = useRef<THREE.Group>(null);
-  const widthRef = useRef<THREE.Group>(null);
-  const muzzleRef = useRef<THREE.Group>(null);
-  const tipRef = useRef<THREE.Sprite>(null);
-  const impactRef = useRef<THREE.Group>(null);
-
-  useFrame(() => {
-    const progress = computeProgress(startedAt, durationMs);
-    const elapsedMs = progress * durationMs;
-    const isAlive = progress > 0 && progress < 1;
-    const charge = easeOutCubic(phaseProgress(progress, 0, CHARGE_END));
-    const ignite = easeOutExpo(phaseProgress(progress, CHARGE_END, CHARGE_END + IGNITE_SPAN));
-    const release = fadeOut(phaseProgress(progress, RELEASE_START, 1));
-    const fireLevel = ignite * release;
-    const flicker = 1 + Math.sin(elapsedMs * FLICKER_RATE) * FLICKER_AMPLITUDE;
-    const yaw = resolveYaw(direction, easeInOutSine(phaseProgress(progress, CHARGE_END, RELEASE_START)), aimRange);
-
-    if (yawRef.current && widthRef.current) {
-      yawRef.current.visible = isAlive;
-      yawRef.current.rotation.y = yaw;
-      const width = scale * (TELEGRAPH_WIDTH + (1 - TELEGRAPH_WIDTH) * fireLevel) * flicker;
-      widthRef.current.scale.set(width, width, 1);
-      const beamOpacity = Math.max(charge * TELEGRAPH_OPACITY, ignite) * release;
-      setMaterialOpacity(widthRef.current, beamOpacity * BOSS_SKILL_VFX_STYLE.MAX_CORE_OPACITY);
-    }
-    if (tipRef.current) {
-      tipRef.current.scale.setScalar(TIP_FLARE_SIZE * scale * flicker);
-      setMaterialOpacity(tipRef.current, fireLevel * BOSS_SKILL_VFX_STYLE.MAX_GLOW_OPACITY);
-    }
-    if (muzzleRef.current) {
-      muzzleRef.current.visible = isAlive;
-      muzzleRef.current.scale.setScalar(scale * (MUZZLE_MIN_SIZE + MUZZLE_GROW * charge) * flicker);
-      setMaterialOpacity(muzzleRef.current, charge * release * BOSS_SKILL_VFX_STYLE.MAX_CORE_OPACITY);
-    }
-    if (impactRef.current) {
-      impactRef.current.visible = isAlive;
-      impactRef.current.position.set(
-        eyeOrigin[0] + Math.sin(yaw) * IMPACT_DISTANCE * beamReach,
-        BOSS_3D_ANCHORS.GROUND_Y + GROUND_DECAL_LIFT,
-        eyeOrigin[2] + Math.cos(yaw) * IMPACT_DISTANCE * beamReach,
-      );
-      impactRef.current.rotation.y = elapsedMs * IMPACT_SPIN_RATE;
-      impactRef.current.scale.setScalar(scale * flicker);
-      setMaterialOpacity(impactRef.current, fireLevel * BOSS_SKILL_VFX_STYLE.MAX_DECAL_OPACITY);
-    }
-  });
+  impactPositions,
+  targetedMinionIds,
+}) => {
+  const targetSlots = useMemo(
+    () => resolveTargetSlots(targetedMinionIds, impactPositions, impactPoints, direction),
+    [targetedMinionIds, impactPositions, impactPoints, direction]
+  );
 
   return (
     <group>
-      <group position={eyeOrigin}>
-        <group ref={muzzleRef} visible={false}>
-          <GlowSprite color={color} opacityScale={BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.GLOW} />
-          <group scale={MUZZLE_CORE_RATIO}>
-            <GlowSprite color={BOSS_SKILL_VFX_STYLE.CORE_COLOR} />
-          </group>
-        </group>
-        <group ref={yawRef} visible={false}>
-          <group rotation={[BEAM_TILT, 0, 0]} scale={[1, 1, beamReach]}>
-            <group ref={widthRef}>
-              <mesh geometry={SHARED_CORE_GEO} userData={opacityLayer(BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.CORE)}>
-                <meshBasicMaterial {...ADDITIVE_DOUBLE_SIDED_PROPS} color={BOSS_SKILL_VFX_STYLE.CORE_COLOR} />
-              </mesh>
-              <mesh geometry={SHARED_GLOW_GEO} userData={opacityLayer(BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.GLOW)}>
-                <meshBasicMaterial {...ADDITIVE_DOUBLE_SIDED_PROPS} color={secondaryColor} />
-              </mesh>
-              <mesh geometry={SHARED_HALO_GEO} userData={opacityLayer(BOSS_SKILL_VFX_STYLE.LAYER_OPACITY.HALO)}>
-                <meshBasicMaterial {...ADDITIVE_DOUBLE_SIDED_PROPS} color={color} />
-              </mesh>
-            </group>
-            <GlowSprite ref={tipRef} color={secondaryColor} position={[0, 0, BEAM_LENGTH]} />
-          </group>
-        </group>
-      </group>
-      <group ref={impactRef} visible={false}>
-        <group scale={IMPACT_DECAL_SIZE}>
-          <GroundDecal color={color} />
-        </group>
-        <group scale={IMPACT_RING_SIZE}>
-          <GroundDecal color={secondaryColor} texture={DECAL_TEXTURE.RING} />
-        </group>
-      </group>
-      {sweepSparkPoints.map((node, index) => (
-        <group key={`beam-spark-${startedAt}-${index}`}>
-          {index === 0 && (
-            <ImpactBurst
-              color={color}
-              secondaryColor={secondaryColor}
-              position={[node.x, BOSS_3D_ANCHORS.GROUND_Y + GROUND_DECAL_LIFT, node.z]}
-              size={INITIAL_BURST_SIZE * scale}
-              startedAt={startedAt}
-              durationMs={durationMs}
-              start={node.start}
-              end={node.end}
-            />
-          )}
-          <EmberBurst
-            color={secondaryColor}
-            origin={[node.x, BOSS_3D_ANCHORS.GROUND_Y, node.z]}
-            count={SWEEP_EMBER_COUNT}
-            seed={startedAt + index}
-            startedAt={startedAt}
-            durationMs={durationMs}
-            start={node.start}
-            end={node.end}
-            scale={scale}
-          />
-        </group>
+      <BeamMuzzle
+        eyeOriginFallback={eyeOrigin}
+        color={color}
+        scale={scale}
+        startedAt={startedAt}
+        durationMs={durationMs}
+      />
+      {targetSlots.map((slot) => (
+        <SingleTrackedBeam
+          key={slot.slotKey}
+          minionId={slot.minionId}
+          initialTarget={slot.initialTarget}
+          eyeOriginFallback={eyeOrigin}
+          color={color}
+          secondaryColor={secondaryColor}
+          scale={scale}
+          startedAt={startedAt}
+          durationMs={durationMs}
+        />
       ))}
     </group>
   );

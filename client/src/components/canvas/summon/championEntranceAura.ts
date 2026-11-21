@@ -15,12 +15,6 @@ const SHARDS_END_MS =
  */
 export const ENTRANCE_AURA = {
   TOTAL_MS: 1400,
-  BEAM_FLASH_IN_MS: 140,
-  BEAM_FADE_END_MS: 1100,
-  BEAM_PEAK_OPACITY: 0.52,
-  BEAM_CORE_PEAK_OPACITY: 0.82,
-  BEAM_START_WIDTH: 1.7,
-  BEAM_END_WIDTH: 0.2,
   SEAL_END_MS: 980,
   SEAL_CONVERGE_MS: TOUCHDOWN_MS,
   SEAL_START_SCALE: 2.4,
@@ -73,26 +67,6 @@ const applyPhaseOpacity = (mesh: THREE.Mesh | undefined, opacity: number): boole
   material.opacity = opacity;
   mesh.visible = true;
   return true;
-};
-
-const getBeamOpacityFactor = (ageMs: number): number => {
-  if (ageMs < ENTRANCE_AURA.BEAM_FLASH_IN_MS) return ageMs / ENTRANCE_AURA.BEAM_FLASH_IN_MS;
-  const fadeProgress = getPhaseProgress(ageMs, ENTRANCE_AURA.BEAM_FLASH_IN_MS, ENTRANCE_AURA.BEAM_FADE_END_MS);
-  if (fadeProgress < 0) return 0;
-  return 1 - easeOutCubic(fadeProgress);
-};
-
-const updateSkyBeam = (refs: CachedChampionVfxRefs, ageMs: number): void => {
-  const opacityFactor = getBeamOpacityFactor(ageMs);
-  const thinProgress = easeOutCubic(Math.min(1, ageMs / ENTRANCE_AURA.BEAM_FADE_END_MS));
-  const width = THREE.MathUtils.lerp(ENTRANCE_AURA.BEAM_START_WIDTH, ENTRANCE_AURA.BEAM_END_WIDTH, thinProgress);
-
-  if (applyPhaseOpacity(refs.beamMesh, opacityFactor * ENTRANCE_AURA.BEAM_PEAK_OPACITY)) {
-    refs.beamMesh?.scale.set(width, 1, width);
-  }
-  if (applyPhaseOpacity(refs.beamCoreMesh, opacityFactor * ENTRANCE_AURA.BEAM_CORE_PEAK_OPACITY)) {
-    refs.beamCoreMesh?.scale.set(width, 1, width);
-  }
 };
 
 const updateRuneSeal = (refs: CachedChampionVfxRefs, ageMs: number, spinSign: number): void => {
@@ -158,16 +132,12 @@ const updateCelestialHalo = (
 };
 
 const hideAllAuraMeshes = (refs: CachedChampionVfxRefs): void => {
-  hideMesh(refs.beamMesh);
-  hideMesh(refs.beamCoreMesh);
   hideMesh(refs.runeSealMesh);
   hideMesh(refs.landingMesh);
   hideMesh(refs.landingFlashMesh);
   hideMesh(refs.impactShardsMesh);
   hideMesh(refs.haloMesh);
   hideMesh(refs.sigHaloMesh);
-  refs.beamMesh = undefined;
-  refs.beamCoreMesh = undefined;
   refs.runeSealMesh = undefined;
   refs.landingMesh = undefined;
   refs.landingFlashMesh = undefined;
@@ -181,8 +151,7 @@ export const updateChampionEntranceAura = (
   refs: CachedChampionVfxRefs,
   entranceAgeMs: number,
   elapsedTime: number,
-  team: TeamType,
-  isSquadMember = false
+  team: TeamType
 ): void => {
   if (entranceAgeMs < 0 || entranceAgeMs >= ENTRANCE_AURA.TOTAL_MS) {
     hideAllAuraMeshes(refs);
@@ -190,13 +159,6 @@ export const updateChampionEntranceAura = (
   }
 
   const spinSign = team === TEAM_KEY.BLG ? 1 : -1;
-  // Squad members share one big pulse (SquadEntrancePulse3D), so their own sky beams stay off
-  if (isSquadMember) {
-    hideMesh(refs.beamMesh);
-    hideMesh(refs.beamCoreMesh);
-  } else {
-    updateSkyBeam(refs, entranceAgeMs);
-  }
   updateRuneSeal(refs, entranceAgeMs, spinSign);
   updateLandingImpact(refs, entranceAgeMs, spinSign);
   updateCelestialHalo(refs, entranceAgeMs, elapsedTime, spinSign);

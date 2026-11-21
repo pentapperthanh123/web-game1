@@ -246,23 +246,23 @@ const RosterItem = React.memo(({
         </div>
 
         <span
-          className={`absolute -bottom-0.5 -right-0.5 text-[5px] sm:text-[5.5px] font-mono font-black px-0.5 rounded-[2px] leading-none shadow ${teamTheme.bgBadgeClass}`}
+          className={`absolute -bottom-0.5 -right-0.5 text-[6px] sm:text-[6.5px] font-mono font-black px-0.5 rounded-[2px] leading-none shadow ${teamTheme.bgBadgeClass}`}
         >
           {player.role}
         </span>
       </div>
 
       {/* Compact Player Name & Hairline Fury Progress */}
-      <div className={`text-[8px] sm:text-[8.5px] leading-none min-w-0 flex-1 ${isLeft ? 'text-left' : 'text-right'}`}>
+      <div className={`text-[9px] sm:text-[9.5px] leading-none min-w-0 flex-1 ${isLeft ? 'text-left' : 'text-right'}`}>
         <div
-          className={`font-black text-slate-100 flex items-center gap-1 min-w-0 ${
+          className={`font-black text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.95)] flex items-center gap-1 min-w-0 ${
             isLeft ? 'justify-start' : 'justify-end'
           }`}
         >
           <span className="truncate min-w-0">{player.name}</span>
           {count > 0 && (
             <span
-              className={`text-[6.5px] px-0.5 rounded font-mono font-black shrink-0 ${teamTheme.bgBadgeClass}`}
+              className={`text-[7.5px] px-0.5 rounded font-mono font-black shrink-0 ${teamTheme.bgBadgeClass}`}
             >
               x{count}
             </span>

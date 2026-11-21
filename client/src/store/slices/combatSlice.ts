@@ -660,7 +660,6 @@ export const createCombatSlice: StateCreator<GameState, [], [], CombatSlice> = (
     get().triggerScreenFlash(isEnraged ? '#dc2626' : '#7c3aed');
 
     audioService.playShockwaveExplosion(isEnraged ? 1.25 : 0.95, pitchRate, true);
-    playBossVoice(state.gameTheme, isEnraged ? BOSS_VOICE_KIND.ENRAGE : BOSS_VOICE_KIND.ROAR);
 
     get().addLog(
       'BOSS',

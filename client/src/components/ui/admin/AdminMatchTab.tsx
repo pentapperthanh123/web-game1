@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Heart, RefreshCw, FastForward, RotateCcw, Check, Trophy, Play, Swords, Zap } from 'lucide-react';
+import { Heart, RefreshCw, FastForward, RotateCcw, Check, Trophy, Play, Swords, Zap, Timer } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
 import { ADMIN_CONSTANTS, TEAM_KEY } from '../../../constants/game';
 import { ParticipationRuleConfig } from '../../../types/game';
@@ -12,6 +12,7 @@ import {
   showRoundIntro,
 } from '../../../store/roundIntroStore';
 import { requestRoundStart, triggerStartRoundCombat } from '../../../services/roundIntroActions';
+import { RoundTimerRulePanel } from './RoundTimerRulePanel';
 
 export const AdminMatchTab: React.FC = () => {
   const { t } = useTranslation();
@@ -391,8 +392,11 @@ export const AdminMatchTab: React.FC = () => {
       <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3">
         <div className="flex items-center space-x-1.5 font-bold text-amber-300">
           <Zap className="w-3.5 h-3.5 text-amber-400" />
-          <span>{t('Admin.matchFlowSectionTitle', 'Cài Đặt Luồng Trận & Lật Kèo')}</span>
+          <span>{t('Admin.matchFlowSectionTitle', 'Cài Đặt Luồng Trận & Thời Lượng')}</span>
         </div>
+
+        {/* Cấu hình thời gian ván đấu */}
+        <RoundTimerRulePanel />
 
         {/* Series Auto Start Countdown */}
         <div>

@@ -324,7 +324,7 @@ export const RoundIntroOverlay = () => {
 
       return workerSetTimeout(() => {
         if (narrationIdRef.current === currentNarrationId) {
-          VoiceManager.speakDynamic(speechText);
+          VoiceManager.speakDynamic(speechText, undefined, true);
         }
       }, 500);
     }
@@ -341,8 +341,8 @@ export const RoundIntroOverlay = () => {
 
       return workerSetTimeout(() => {
         if (narrationIdRef.current === currentNarrationId) {
-          VoiceManager.speakDynamic(rulePart1);
-          VoiceManager.speakDynamic(rulePart2);
+          VoiceManager.speakDynamic(rulePart1, undefined, true);
+          VoiceManager.speakDynamic(rulePart2, undefined, true);
         }
       }, 300);
     }
@@ -359,8 +359,8 @@ export const RoundIntroOverlay = () => {
 
       return workerSetTimeout(() => {
         if (narrationIdRef.current === currentNarrationId) {
-          VoiceManager.speakDynamic(giftPart1);
-          VoiceManager.speakDynamic(giftPart2);
+          VoiceManager.speakDynamic(giftPart1, undefined, true);
+          VoiceManager.speakDynamic(giftPart2, undefined, true);
         }
       }, 300);
     }

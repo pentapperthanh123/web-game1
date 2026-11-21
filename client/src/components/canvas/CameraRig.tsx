@@ -41,6 +41,7 @@ export const CameraRig = () => {
     if (shake <= 0 && rumble <= 0) {
       camera.position.lerp(basePos.current, SCREEN_SHAKE_CONSTANTS.RETURN_LERP);
       camera.lookAt(0, CAMERA_LOOK_AT_Y, 0);
+      camera.updateMatrixWorld();
       return;
     }
 
@@ -54,6 +55,7 @@ export const CameraRig = () => {
     camera.position.z =
       basePos.current.z + (Math.random() - 0.5) * jitter * SCREEN_SHAKE_CONSTANTS.CAMERA_DEPTH_RATIO;
     camera.lookAt(0, CAMERA_LOOK_AT_Y, 0);
+    camera.updateMatrixWorld();
   });
 
   return null;

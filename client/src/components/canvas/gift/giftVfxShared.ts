@@ -15,8 +15,8 @@ export const GIFT_VFX_DURATION_MS: Readonly<Record<GiftTier, number>> = {
 
 export const GIFT_VFX_LAYOUT = {
   FLOOR_Y: -1.68,
-  BEAM_HEIGHT: 10,
-  BEAM_CENTER_Y: 3.6,
+  BEAM_HEIGHT: 5.5,
+  BEAM_CENTER_Y: 1.07,
   MEGA_GOLD: '#fbbf24',
   CORE_WHITE: '#ffffff',
 } as const;
@@ -57,18 +57,20 @@ export const createGlowMaterial = (color: string): THREE.MeshBasicMaterial =>
 /** Height share over which a sky beam fades in at the floor and fades out before the top scoreboard. */
 const BEAM_FADE = {
   TEXTURE_HEIGHT: 64,
-  /** Softly faded at the floor where the boss stands, and tapered to 0 at the top. */
-  CLEAR_UNTIL: 0.08,
-  SOLID_FROM: 0.32,
-  SOLID_UNTIL: 0.66,
-  FLOOR_ALPHA: 0.08,
+  /** Softly faded at the floor where the boss stands, and tapered to 0 below the top scoreboard. */
+  CLEAR_UNTIL: 0.06,
+  SOLID_FROM: 0.24,
+  SOLID_UNTIL: 0.45,
+  MID_FADE_AT: 0.74,
+  MID_FADE_ALPHA: 0.22,
+  FLOOR_ALPHA: 0.06,
 } as const;
 
 let beamFadeTexture: THREE.Texture | null = null;
 
 /**
  * Vertical alpha ramp for beam cylinders (uv.y 0 = floor, uv.y 1 = top):
- * thins out around the boss at the bottom and fades out smoothly before the top scoreboard.
+ * thins out around the boss at the bottom and dissolves smoothly before the top scoreboard.
  */
 export const getBeamFadeAlphaMap = (): THREE.Texture => {
   if (beamFadeTexture) return beamFadeTexture;
@@ -80,10 +82,12 @@ export const getBeamFadeAlphaMap = (): THREE.Texture => {
     // Canvas y grows downward while uv.y grows upward (flipY), so the floor is the bottom row
     const gradient = context.createLinearGradient(0, BEAM_FADE.TEXTURE_HEIGHT, 0, 0);
     const floorGray = Math.round(BEAM_FADE.FLOOR_ALPHA * 255);
+    const midGray = Math.round(BEAM_FADE.MID_FADE_ALPHA * 255);
     gradient.addColorStop(0, `rgb(${floorGray},${floorGray},${floorGray})`);
     gradient.addColorStop(BEAM_FADE.CLEAR_UNTIL, `rgb(${floorGray},${floorGray},${floorGray})`);
     gradient.addColorStop(BEAM_FADE.SOLID_FROM, 'rgb(255,255,255)');
     gradient.addColorStop(BEAM_FADE.SOLID_UNTIL, 'rgb(255,255,255)');
+    gradient.addColorStop(BEAM_FADE.MID_FADE_AT, `rgb(${midGray},${midGray},${midGray})`);
     gradient.addColorStop(1, 'rgb(0,0,0)');
     context.fillStyle = gradient;
     context.fillRect(0, 0, 1, BEAM_FADE.TEXTURE_HEIGHT);

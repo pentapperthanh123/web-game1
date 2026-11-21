@@ -200,6 +200,8 @@ export const GAME_CONSTANTS = {
     FIXED_DPR: 1,
     DPR_MIN: 1,
     DPR_MAX: 1,
+    /** HiDPI cap for lightweight 2D damage-number canvases so text stays crisp without taxing WebGL. */
+    TEXT_CANVAS_DPR_MAX: 2,
     /** Locked frame-rate cap (foreground & background) to halve GPU/compositor load during live streaming. */
     TARGET_FPS: 30,
     CAMERA_FOV: 42,
@@ -1088,6 +1090,11 @@ export const DAMAGE_TYPE = {
 
 export type DamageType = (typeof DAMAGE_TYPE)[keyof typeof DAMAGE_TYPE];
 
+export const HUD_DEADZONE_ELEMENT_IDS = {
+  BOTTOM_LEFT: 'hud-bottom-left',
+  BOTTOM_RIGHT: 'hud-bottom-right',
+} as const;
+
 export const COMBAT_VFX_CONSTANTS = {
   TEAM_COLORS: {
     [TEAM_KEY.BLG]: {
@@ -1114,24 +1121,24 @@ export const COMBAT_VFX_CONSTANTS = {
     [TEAM_KEY.BLG]: {
       minX: -2.75,
       maxX: -1.35,
-      minY: -0.32,
-      maxY: 0.85,
+      minY: -1.35,
+      maxY: 0.75,
       minZ: 0.3,
       maxZ: 2.4,
     },
     [TEAM_KEY.GENG]: {
       minX: 1.35,
       maxX: 2.75,
-      minY: -0.05,
-      maxY: 0.85,
+      minY: -1.35,
+      maxY: 0.75,
       minZ: 0.3,
       maxZ: 2.4,
     },
     GEN: {
       minX: 1.35,
       maxX: 2.75,
-      minY: -0.05,
-      maxY: 0.85,
+      minY: -1.35,
+      maxY: 0.75,
       minZ: 0.3,
       maxZ: 2.4,
     },
@@ -1140,8 +1147,8 @@ export const COMBAT_VFX_CONSTANTS = {
     TOKEN_SCALE: 0.98,
     MIN_SPEED: 0.35,
     MAX_SPEED: 0.65,
-    WANDER_INTERVAL_MIN_S: 3.5,
-    WANDER_INTERVAL_MAX_S: 6.5,
+    WANDER_INTERVAL_MIN_S: 4.5,
+    WANDER_INTERVAL_MAX_S: 8.0,
     ATTACK_INTERVAL_MIN_S: 2.6,
     ATTACK_INTERVAL_MAX_S: 3.6,
     CAST_RECOIL_DISTANCE: 0.06,
@@ -1157,14 +1164,14 @@ export const COMBAT_VFX_CONSTANTS = {
     ENTRANCE_SWOOP_Y: 0.32,
     ENTRANCE_SWOOP_X: 0.0,
     DEFEAT_DURATION_MS: 1200,
-    VIEWPORT_SAFE_NDC_X: 0.86,
-    VIEWPORT_SAFE_NDC_Y_MIN: -0.32,
-    VIEWPORT_SAFE_NDC_Y_MIN_RIGHT: -0.05,
-    VIEWPORT_SAFE_NDC_Y_MAX: 0.42,
+    VIEWPORT_SAFE_NDC_X: 0.82,
+    VIEWPORT_SAFE_NDC_Y_MIN: -0.72,
+    VIEWPORT_SAFE_NDC_Y_MIN_RIGHT: -0.72,
+    VIEWPORT_SAFE_NDC_Y_MAX: 0.34,
     NAMEPLATE_WIDTH: 0.44,
     NAMEPLATE_HEIGHT: 0.11,
-    NAMEPLATE_POS_Y: -0.26,
-    NAMEPLATE_POS_Z: 0.04,
+    NAMEPLATE_POS_Y: -0.205,
+    NAMEPLATE_POS_Z: 0,
   },
   ELITE_AURA: {
     RING_INNER_RADIUS: 0.182,
@@ -1172,8 +1179,8 @@ export const COMBAT_VFX_CONSTANTS = {
     RING_SEGMENTS: 36,
     HALO_OPACITY: 0.55,
     PULSE_BASE_SCALE: 1.0,
-    PULSE_AMPLITUDE: 0.025,
-    PULSE_FREQUENCY: 3.0,
+    PULSE_AMPLITUDE: 0.012,
+    PULSE_FREQUENCY: 2.2,
     ROTATION_SPEED: 2.2,
   },
   /** 3-stage Fly Avatar Summon: Fly-in drop -> Ground impact burst -> Floating summoner tag above champion. */

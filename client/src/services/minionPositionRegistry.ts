@@ -1,12 +1,36 @@
 // Shared position registry for live moving champion tokens
 export const liveMinionPositionMap = new Map<string, [number, number, number]>();
 export const liveMinionScreenMap = new Map<string, { x: number; y: number }>();
+export interface ChampionNameplateAnchor {
+  x: number;
+  y: number;
+  visible: boolean;
+  zIndex: number;
+}
+
 /** Screen positions keyed only by minion id (one entry per living champion, no name aliases). */
 const liveChampionScreenById = new Map<string, { x: number; y: number }>();
+const liveChampionNameplateById = new Map<string, ChampionNameplateAnchor>();
+let nameplateSyncListener: (() => void) | null = null;
 
 /** Every living champion's current screen position — used to find empty space on screen. */
 export const getLiveChampionScreenEntries = (): IterableIterator<[string, { x: number; y: number }]> =>
   liveChampionScreenById.entries();
+
+export const getLiveChampionNameplateAnchor = (id: string): ChampionNameplateAnchor | undefined =>
+  liveChampionNameplateById.get(id);
+
+export const setLiveChampionNameplateAnchor = (id: string, anchor: ChampionNameplateAnchor): void => {
+  liveChampionNameplateById.set(id, anchor);
+};
+
+export const setNameplateSyncListener = (listener: (() => void) | null): void => {
+  nameplateSyncListener = listener;
+};
+
+export const notifyNameplateSync = (): void => {
+  nameplateSyncListener?.();
+};
 
 export const getLiveMinionPosition = (idOrName: string): [number, number, number] | undefined => {
   const norm = idOrName.trim().toLowerCase();
@@ -43,6 +67,7 @@ export const removeLiveMinionPositions = (id: string, championName?: string): vo
   liveMinionPositionMap.delete(id);
   liveMinionScreenMap.delete(id);
   liveChampionScreenById.delete(id);
+  liveChampionNameplateById.delete(id);
   if (championName) {
     const norm = championName.trim().toLowerCase();
     liveMinionPositionMap.delete(norm);

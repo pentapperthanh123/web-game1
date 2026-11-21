@@ -156,9 +156,11 @@ const getAnimationClass = (
 
 const BOSS_KNOCKBACK_CLASS = 'animate-boss-knockback';
 
-/** Skills whose fire leaves the jaw (FireBreath3D tracks it), so the boss must keep facing its target. */
-const isMouthBreathBanner = (banner: ActiveBossSkillBanner | null | undefined): banner is ActiveBossSkillBanner =>
-  banner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH || Boolean(banner?.vfxParams?.isMouthBreath);
+/** Skills whose 3D effect tracks a head anchor (jaw breath, eye beam), so the boss must keep facing its target. */
+const isTrackedDirectionalBanner = (banner: ActiveBossSkillBanner | null | undefined): banner is ActiveBossSkillBanner =>
+  banner?.vfxType === BOSS_SKILL_VFX.FIRE_BREATH ||
+  banner?.vfxType === BOSS_SKILL_VFX.BEAM ||
+  Boolean(banner?.vfxParams?.isMouthBreath);
 
 /** True until `deadline` passes; re-renders once when it does. */
 const useIsBeforeDeadline = (deadline: number): boolean => {
@@ -439,7 +441,7 @@ export const Boss2D = React.memo(() => {
 
     // The cast and its banner share a timestamp; later basic attacks during the breath do not
     const breathBanner =
-      activeBossSkillBanner?.timestamp === bossAttackTimestamp && isMouthBreathBanner(activeBossSkillBanner)
+      activeBossSkillBanner?.timestamp === bossAttackTimestamp && isTrackedDirectionalBanner(activeBossSkillBanner)
         ? activeBossSkillBanner
         : null;
     if (breathBanner) facingLockedUntilRef.current = 0;
@@ -459,7 +461,6 @@ export const Boss2D = React.memo(() => {
 
     if (themeConfig.archetype === 'HERALD' && !activeBossSkillBanner) {
       audioService.playShockwaveExplosion(1.0, themeConfig.audioPitchRate, true);
-      playBossVoice(gameTheme, BOSS_VOICE_KIND.ROAR);
     }
 
     // Cho phép quái vật tấn công từ độ cao hiện tại mà không bị ép đè sát đáy sàn đấu
@@ -570,9 +571,6 @@ export const Boss2D = React.memo(() => {
           !latestState.silverScrapesState.isActive &&
           !isCurrentRoundIntroActive()
         ) {
-          const enragedNow = latestState.bossStatus === BOSS_STATUS.ENRAGED;
-          const voiceKind = enragedNow ? BOSS_VOICE_KIND.ENRAGE : BOSS_VOICE_KIND.ROAR;
-          playBossVoice(latestState.gameTheme, voiceKind);
           setIsRoarActive(true);
           updateFacingSide('TOGGLE');
           shiftVerticalPatrolTier();

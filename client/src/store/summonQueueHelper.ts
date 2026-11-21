@@ -141,6 +141,7 @@ const buildDeployedChampion = (
 
   const portal: SummonPortalEntity = {
     id: `portal-${now}-${slotIndex}-${createRandomIdSuffix()}`,
+    minionId: minion.id,
     summonerName: req.summonerName,
     championName: req.championName,
     avatarUrl,

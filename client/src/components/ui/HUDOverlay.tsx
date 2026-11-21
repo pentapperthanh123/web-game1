@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getIsAmbienceEnabled, setIsAmbienceEnabled } from '../../services/arenaAmbience';
 import { useTranslation } from 'react-i18next';
-import { Volume2, VolumeX, UserCheck, ShieldAlert, Music } from 'lucide-react';
+import { Volume2, VolumeX, UserCheck, ShieldAlert, Music, Play, Square, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { audioService } from '../../services/audioService';
 import { TeamScoreBoard } from './TeamScoreBoard';
@@ -31,8 +31,10 @@ import { GuestSimulationDock } from './GuestSimulationDock';
 import { AdminControlModal } from './AdminControlModal';
 import { ScreenFlash } from './ScreenFlash';
 import { SwarmLegionCanvas } from './SwarmLegionCanvas';
+import { ChampionNameplatesOverlay } from './ChampionNameplatesOverlay';
 import { TeamRosterBar } from './TeamRosterBar';
 import { ChampionArrowVFX } from './ChampionArrowVFX';
+import { SummonSpotlight } from './SummonShowcase';
 import { HeartMilestoneBanner } from './HeartMilestoneBanner';
 import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
 import { BossEnrageVignette } from '../arena/BossEnrageVignette';
@@ -46,6 +48,7 @@ import {
   DEBUG_CONTROLS_QUERY_PARAM,
   DEV_CONTROLS_QUERY_PARAM,
   getThemeConfig,
+  HUD_DEADZONE_ELEMENT_IDS,
   TEAM_KEY,
 } from '../../constants/game';
 import { getTeamTheme } from '../../constants/teams';
@@ -105,6 +108,8 @@ export const HUDOverlay = React.memo(() => {
   const isAdminModeActive = useGameStore((state) => state.isAdminModeActive);
   const setAdminMode = useGameStore((state) => state.setAdminMode);
   const isSilverScrapesActive = useGameStore((state) => state.silverScrapesState.isActive);
+  const autoSummonConfig = useGameStore((state) => state.autoSummonConfig);
+  const setAutoSummonConfig = useGameStore((state) => state.setAutoSummonConfig);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
   const isDevControlsVisible =
     typeof window !== 'undefined' &&
@@ -118,7 +123,8 @@ export const HUDOverlay = React.memo(() => {
       if (!headerRef.current) return;
       const top = headerRef.current.offsetTop;
       const height = headerRef.current.offsetHeight;
-      setHeaderBottomOffset(Math.round(top + height + 8));
+      const nextOffset = Math.round(top + height + 8);
+      setHeaderBottomOffset((prev) => (Math.abs(prev - nextOffset) >= 2 ? nextOffset : prev));
     };
 
     updateHeaderOffset();
@@ -205,7 +211,7 @@ export const HUDOverlay = React.memo(() => {
       {!isSilverScrapesActive && (
         <div
           style={{ top: `${headerBottomOffset + 10}px` }}
-          className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-[46] pointer-events-none flex flex-col items-center gap-1.5 transition-[top] duration-200"
+          className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-[46] pointer-events-none flex flex-col items-center gap-1.5"
         >
           {/* First in the stack: the round clock stays on top, toasts flow below it */}
           <RoundClockBadge />
@@ -298,6 +304,28 @@ export const HUDOverlay = React.memo(() => {
                   <ShieldAlert className={`w-2.5 h-2.5 ${isAdminModeActive ? 'animate-pulse text-amber-400' : ''}`} />
                   <span>{t('HUD.adminMode', 'Admin')}</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAutoSummonConfig({ enabled: !autoSummonConfig.enabled })}
+                  title={
+                    autoSummonConfig.enabled
+                      ? 'Đang Tự Động Triệu Hồi (Kích thích người xem). Nhấn để DỪNG.'
+                      : 'BẬT Tự Động Triệu Hồi bot để mồi và kích thích người xem comment theo.'
+                  }
+                  className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+                    autoSummonConfig.enabled
+                      ? 'bg-emerald-950/90 border-emerald-400/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.55)] ring-1 ring-emerald-400/50'
+                      : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles
+                    className={`w-2.5 h-2.5 ${autoSummonConfig.enabled ? 'animate-spin text-emerald-300' : 'text-slate-500'}`}
+                  />
+                  <span>
+                    {autoSummonConfig.enabled ? 'Auto Triệu Hồi: BẬT' : 'Auto Triệu Hồi: TẮT'}
+                  </span>
+                </button>
               </>
             )}
           </div>
@@ -338,23 +366,26 @@ export const HUDOverlay = React.memo(() => {
         <>
           <div
             style={{ top: `${headerBottomOffset}px` }}
-        className="absolute left-1 sm:left-1.5 z-[36] pointer-events-none flex flex-col items-start gap-1.5 transition-[top] duration-200"
-      >
-        {overlayVisibility.teamRosters && <TeamRosterBar side="left" isInFlow />}
-      </div>
+            className="absolute left-1 sm:left-1.5 z-[36] pointer-events-none flex flex-col items-start gap-1.5"
+          >
+            {overlayVisibility.teamRosters && <TeamRosterBar side="left" isInFlow />}
+            <SummonSpotlight side="left" />
+          </div>
 
-      <div
-        style={{ top: `${headerBottomOffset}px` }}
-        className="absolute right-1 sm:right-1.5 z-[36] pointer-events-none flex flex-col items-end gap-1.5 transition-[top] duration-200"
-      >
-        {overlayVisibility.teamRosters && <TeamRosterBar side="right" isInFlow />}
-      </div>
-    </>
-  )}
+          <div
+            style={{ top: `${headerBottomOffset}px` }}
+            className="absolute right-1 sm:right-1.5 z-[36] pointer-events-none flex flex-col items-end gap-1.5"
+          >
+            {overlayVisibility.teamRosters && <TeamRosterBar side="right" isInFlow />}
+            <SummonSpotlight side="right" />
+          </div>
+        </>
+      )}
 
       {/* Floating 3D & Combat Elements */}
       {!isSilverScrapesActive && (
         <>
+          <ChampionNameplatesOverlay />
           <FloatingDamage />
           <ChampionDamageNumbers />
           {overlayVisibility.casterSubtitle && <CasterSubtitle />}
@@ -376,12 +407,18 @@ export const HUDOverlay = React.memo(() => {
       {!isSilverScrapesActive && (
         <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0 w-full min-w-0">
         <div className="flex items-end justify-between w-full min-w-0 px-0.5 sm:px-1 gap-1.5 sm:gap-2">
-          <div className="flex flex-col items-start space-y-1.5 pointer-events-auto min-w-0 w-[50%] max-w-[196px] sm:w-auto sm:max-w-[54%]">
+          <div
+            id={HUD_DEADZONE_ELEMENT_IDS.BOTTOM_LEFT}
+            className="flex flex-col items-start space-y-1.5 pointer-events-auto min-w-0 w-[50%] max-w-[196px] sm:w-auto sm:max-w-[54%]"
+          >
             {overlayVisibility.leaderboard && <DPSLeaderboard />}
             {overlayVisibility.chat && <LiveChatStream />}
           </div>
 
-          <div className="flex flex-col items-end space-y-1.5 pointer-events-auto min-w-0 w-[48%] max-w-[180px] sm:w-auto sm:max-w-[44%]">
+          <div
+            id={HUD_DEADZONE_ELEMENT_IDS.BOTTOM_RIGHT}
+            className="flex flex-col items-end space-y-1.5 pointer-events-auto min-w-0 w-[48%] max-w-[180px] sm:w-auto sm:max-w-[44%]"
+          >
             <KillFeed />
             {overlayVisibility.howToPlay && <ParticipationGuidePanel />}
             {overlayVisibility.likeCounter && <LikeCounter />}

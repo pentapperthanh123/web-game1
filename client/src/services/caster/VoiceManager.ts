@@ -13,6 +13,7 @@ import { CASTERS_INDEX } from '../../data/castersIndex';
 import { audioService } from '../audioService';
 import { isCurrentRoundIntroActive } from '../../store/roundIntroStore';
 import { useAudioStore } from '../../store/audioStore';
+import { useCasterStore } from '../../store/casterStore';
 
 export const VOICE_MANAGER_CONSTANTS = {
   TTS_ROUTE: '/api/tts',
@@ -28,6 +29,7 @@ export const VOICE_MANAGER_CONSTANTS = {
 interface DynamicQueueItem {
   text: string;
   reactEventKey?: string;
+  forceGoogle?: boolean;
 }
 
 class VoiceManagerService {
@@ -97,6 +99,7 @@ class VoiceManagerService {
    */
   public playCaster(eventKey: string): void {
     if (
+      !useCasterStore.getState().isTtsEnabled ||
       this.isPlaying ||
       this.dynamicQueue.length > 0 ||
       useAudioStore.getState().isTTSPlaying ||
@@ -136,11 +139,12 @@ class VoiceManagerService {
    * Enqueue dynamic Google TTS speech into the FIFO queue.
    * After the dynamic clip completes, an optional static reaction audio can be chained.
    */
-  public speakDynamic(text: string, reactEventKey?: string): void {
+  public speakDynamic(text: string, reactEventKey?: string, forceGoogle: boolean = false): void {
+    if (!useCasterStore.getState().isTtsEnabled) return;
     const trimmed = text.trim();
     if (!trimmed) return;
 
-    this.dynamicQueue.push({ text: trimmed, reactEventKey });
+    this.dynamicQueue.push({ text: trimmed, reactEventKey, forceGoogle });
 
     if (!this.isPlaying) {
       this.processDynamicQueue();
@@ -161,7 +165,8 @@ class VoiceManagerService {
       return;
     }
 
-    const ttsUrl = `${VOICE_MANAGER_CONSTANTS.TTS_ROUTE}?text=${encodeURIComponent(item.text)}`;
+    const googleParam = item.forceGoogle ? '&provider=google' : '';
+    const ttsUrl = `${VOICE_MANAGER_CONSTANTS.TTS_ROUTE}?text=${encodeURIComponent(item.text)}${googleParam}`;
 
     this.playAudioFile(ttsUrl, () => {
       if (item.reactEventKey) {

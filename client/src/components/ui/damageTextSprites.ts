@@ -17,11 +17,11 @@ interface DamageTextStyle {
   prefix: string;
 }
 
-const SPRITE_PIXEL_RATIO = 1.5;
-const STROKE_WIDTH = 3;
+const SPRITE_PIXEL_RATIO = 2;
+const STROKE_WIDTH = 2.8;
 const LINE_HEIGHT_FACTOR = 1.45;
 const STROKE_COLOR = 'rgba(2, 6, 23, 0.95)';
-const FONT_FAMILY = 'system-ui, -apple-system, sans-serif';
+const FONT_FAMILY = '"Segoe UI", system-ui, -apple-system, Roboto, sans-serif';
 const FONT_WEIGHT = 900;
 const MAX_CACHED_SPRITES = 96;
 

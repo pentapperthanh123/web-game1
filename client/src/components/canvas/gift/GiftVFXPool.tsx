@@ -2,7 +2,7 @@ import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { COLOR_ONLY_ADDITIVE_PROPS } from '../vfxBlending';
-import { getBeamFadeAlphaMap } from './giftVfxShared';
+import { LoveBurstVFX, LoveBurstVfxHandle } from './LoveBurstVFX';
 
 /**
  * Sword slam shockwave: a thin bright band. The old 0.6–1.2 band grew to a 4-unit-wide disc at full
@@ -30,7 +30,6 @@ import {
 const SHARED_SMALL_METEOR_GEO = new THREE.OctahedronGeometry(0.16, 1);
 const SHARED_BIG_METEOR_CORE_GEO = new THREE.SphereGeometry(0.38, 12, 12);
 const SHARED_BIG_METEOR_TRAIL_GEO = new THREE.CylinderGeometry(0.05, 0.36, 2.0, 8);
-const SHARED_HEART_PLANE_GEO = new THREE.PlaneGeometry(0.48, 0.48);
 const SHARED_BUBBLE_SPHERE_GEO = new THREE.SphereGeometry(0.35, 12, 12);
 
 // ==========================================
@@ -40,7 +39,6 @@ const POOL_SIZE = {
   SMALL_METEORS: 16,
   BIG_METEORS: 4,
   WATER_BUBBLES: 12,
-  LOVE_HEARTS: 8,
 } as const;
 
 const BOSS_TARGET = new THREE.Vector3(0, 0.4, 0);
@@ -78,15 +76,6 @@ interface BubbleSlot {
   maxLife: number;
 }
 
-interface HeartSlot {
-  active: boolean;
-  position: THREE.Vector3;
-  angle: number;
-  radius: number;
-  ySpeed: number;
-  opacity: number;
-}
-
 // ==========================================
 // SHADER DEFINITIONS FOR 60 FPS GLOW
 // ==========================================
@@ -109,48 +98,9 @@ const LaserShader = {
       vec3 finalColor = uColor * (beamCore * 1.4 + scroll * 0.5) * energyPulse;
       // Thin out at the foot (boss body) and fade smoothly before the top scoreboard
       float footFade = mix(0.1, 1.0, smoothstep(0.0, 0.22, vUv.y));
-      float topFade = smoothstep(1.0, 0.62, vUv.y);
+      float topFade = pow(smoothstep(1.0, 0.42, vUv.y), 1.3);
       float alpha = beamCore * (0.7 + 0.2 * scroll) * footFade * topFade;
       gl_FragColor = vec4(finalColor, alpha);
-    }
-  `,
-};
-
-const HeartSdfShader = {
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform float uTime;
-    varying vec2 vUv;
-
-    float sdHeart(vec2 p) {
-      p.x = abs(p.x);
-      if (p.y + p.x > 1.0) {
-        return sqrt(dot(p - vec2(0.25, 0.75), p - vec2(0.25, 0.75))) - sqrt(2.0) / 4.0;
-      }
-      return sqrt(min(
-        dot(p - vec2(0.0, 1.0), p - vec2(0.0, 1.0)),
-        dot(p - 0.5 * max(p.x + p.y, 0.0), p - 0.5 * max(p.x + p.y, 0.0))
-      )) * sign(p.x - p.y);
-    }
-
-    void main() {
-      vec2 p = (vUv - vec2(0.5, 0.22)) * vec2(2.3, 2.3);
-      float d = sdHeart(p);
-      float core = 1.0 - smoothstep(-0.08, 0.02, d);
-      float glow = exp(-max(d, 0.0) * 6.5) * 0.65;
-      float alpha = clamp(core + glow, 0.0, 1.0);
-      if (alpha < 0.02) discard;
-      float pulse = 0.88 + 0.12 * sin(uTime * 10.0);
-      vec3 roseColor = vec3(0.96, 0.25, 0.45);
-      vec3 coreWhite = vec3(1.0, 0.88, 0.94);
-      vec3 finalColor = mix(roseColor, coreWhite, core * 0.55) * pulse * 1.3;
-      gl_FragColor = vec4(finalColor, alpha * 0.9);
     }
   `,
 };
@@ -196,8 +146,7 @@ export const GiftVFXPool: React.FC = React.memo(() => {
   const swordShockwaveRef = useRef<THREE.Mesh>(null);
   const laserMeshRef = useRef<THREE.Mesh>(null);
   const laserGroundRingRef = useRef<THREE.Mesh>(null);
-  const loveBeamMeshRef = useRef<THREE.Mesh>(null);
-  const loveHeartsGroupRef = useRef<THREE.Group>(null);
+  const loveBurstRef = useRef<LoveBurstVfxHandle>(null);
   const waterGroupRef = useRef<THREE.Group>(null);
 
   // Shader Uniform References
@@ -244,15 +193,6 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         depthWrite: false,
         ...COLOR_ONLY_ADDITIVE_PROPS,
       }),
-      heartShader: new THREE.ShaderMaterial({
-        vertexShader: HeartSdfShader.vertexShader,
-        fragmentShader: HeartSdfShader.fragmentShader,
-        uniforms: laserUniforms,
-        transparent: true,
-        ...COLOR_ONLY_ADDITIVE_PROPS,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
       waterBubble: new THREE.ShaderMaterial({
         vertexShader: WaterRefractionShader.vertexShader,
         fragmentShader: WaterRefractionShader.fragmentShader,
@@ -262,7 +202,7 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         depthWrite: false,
       }),
     }),
-    [laserUniforms, waterUniforms]
+    [waterUniforms]
   );
 
   useEffect(() => {
@@ -270,7 +210,6 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       sharedMaterials.smallMeteor.dispose();
       sharedMaterials.bigMeteorCore.dispose();
       sharedMaterials.bigMeteorTrail.dispose();
-      sharedMaterials.heartShader.dispose();
       sharedMaterials.waterBubble.dispose();
     };
   }, [sharedMaterials]);
@@ -312,17 +251,6 @@ export const GiftVFXPool: React.FC = React.memo(() => {
     }))
   );
 
-  const heartSlots = useRef<HeartSlot[]>(
-    Array.from({ length: POOL_SIZE.LOVE_HEARTS }, (_, i) => ({
-      active: false,
-      position: new THREE.Vector3(0, -1000, 0),
-      angle: (i / POOL_SIZE.LOVE_HEARTS) * Math.PI * 2,
-      radius: 1.2 + Math.random() * 0.6,
-      ySpeed: 1.8 + Math.random() * 1.2,
-      opacity: 1,
-    }))
-  );
-
   // Mega Weapon State
   const swordAnim = useRef({
     active: false,
@@ -338,12 +266,6 @@ export const GiftVFXPool: React.FC = React.memo(() => {
     timer: 0,
     maxDuration: 3.5,
     team: TEAM_SLOT_LEFT as TeamType,
-  });
-
-  const loveAnim = useRef({
-    active: false,
-    timer: 0,
-    maxDuration: 3.0,
   });
 
   const waterAnim = useRef({
@@ -410,20 +332,7 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       if (laserMeshRef.current) laserMeshRef.current.visible = true;
       if (laserGroundRingRef.current) laserGroundRingRef.current.visible = true;
     } else if (category === 'LOVE') {
-      loveAnim.current = {
-        active: true,
-        timer: 0,
-        maxDuration: 3.2,
-      };
-      if (loveBeamMeshRef.current) loveBeamMeshRef.current.visible = true;
-      if (loveHeartsGroupRef.current) {
-        loveHeartsGroupRef.current.visible = true;
-        heartSlots.current.forEach((h, i) => {
-          h.active = true;
-          h.position.set(Math.cos(h.angle) * h.radius, 0.2 + i * 0.4, Math.sin(h.angle) * h.radius);
-          h.opacity = 1;
-        });
-      }
+      loveBurstRef.current?.trigger();
     } else if (category === 'WATER') {
       waterAnim.current = {
         active: true,
@@ -628,34 +537,7 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       }
     }
 
-    // 5. Animate Love Category (Pink Beam & Orbiting Hearts)
-    if (loveAnim.current.active) {
-      const lv = loveAnim.current;
-      lv.timer += safeDelta;
-      if (loveHeartsGroupRef.current) {
-        const children = loveHeartsGroupRef.current.children;
-        heartSlots.current.forEach((slot, i) => {
-          const mesh = children[i] as THREE.Mesh;
-          if (!mesh) return;
-          slot.angle += safeDelta * 2.2;
-          slot.position.x = Math.cos(slot.angle) * slot.radius;
-          slot.position.z = Math.sin(slot.angle) * slot.radius;
-          slot.position.y += safeDelta * slot.ySpeed;
-          if (slot.position.y > 4.4) slot.position.y = -0.2;
-          mesh.position.copy(slot.position);
-          const heightFade = Math.sin(Math.max(0, Math.min(1, (slot.position.y + 0.2) / 4.6)) * Math.PI);
-          mesh.scale.setScalar(0.65 + heightFade * 0.45);
-          mesh.rotation.set(0, 0, Math.sin(time * 4.0 + i) * 0.18);
-        });
-      }
-      if (lv.timer >= lv.maxDuration) {
-        lv.active = false;
-        if (loveBeamMeshRef.current) loveBeamMeshRef.current.visible = false;
-        if (loveHeartsGroupRef.current) loveHeartsGroupRef.current.visible = false;
-      }
-    }
-
-    // 6. Animate Water Bubbles
+    // 5. Water Bubbles
     if (waterAnim.current.active && waterGroupRef.current) {
       const w = waterAnim.current;
       w.timer += safeDelta;
@@ -783,8 +665,8 @@ export const GiftVFXPool: React.FC = React.memo(() => {
       </group>
 
       {/* 4. Mythic Laser Column (Tapered before top scoreboard) */}
-      <mesh ref={laserMeshRef} position={[0, 3.6, 0]} visible={false}>
-        <cylinderGeometry args={[0.42, 0.88, 10.5, 16, 1, true]} />
+      <mesh ref={laserMeshRef} position={[0, 1.07, 0]} visible={false}>
+        <cylinderGeometry args={[0.38, 0.82, 5.5, 16, 1, true]} />
         <shaderMaterial
           vertexShader={LaserShader.vertexShader}
           fragmentShader={LaserShader.fragmentShader}
@@ -800,20 +682,8 @@ export const GiftVFXPool: React.FC = React.memo(() => {
         <meshBasicMaterial toneMapped={false} color="#38bdf8" transparent opacity={0.75} depthWrite={false} side={THREE.DoubleSide} {...COLOR_ONLY_ADDITIVE_PROPS} />
       </mesh>
 
-      {/* 5. Love Category (Softened Pink Beam & True SDF Glowing Hearts) */}
-      <mesh ref={loveBeamMeshRef} position={[0, 3.4, 0]} visible={false}>
-        <cylinderGeometry args={[0.38, 0.55, 9.6, 16, 1, true]} />
-        <meshBasicMaterial toneMapped={false} color="#ec4899" transparent opacity={0.34} depthWrite={false} side={THREE.DoubleSide} alphaMap={getBeamFadeAlphaMap()} {...COLOR_ONLY_ADDITIVE_PROPS} />
-      </mesh>
-      <group ref={loveHeartsGroupRef} visible={false}>
-        {heartSlots.current.map((_, i) => (
-          <mesh
-            key={`heart-${i}`}
-            geometry={SHARED_HEART_PLANE_GEO}
-            material={sharedMaterials.heartShader}
-          />
-        ))}
-      </group>
+      {/* 5. Love Category (Rose-Gold Aura, Floor Magic Circle, Crystal Hearts & Starlight Sparkles) */}
+      <LoveBurstVFX ref={loveBurstRef} />
 
       {/* 6. Water Category (Bubble Cluster) */}
       <group ref={waterGroupRef} visible={false}>

@@ -1,6 +1,6 @@
 import { readChampionHitAt } from '../../../services/championHitFeedback';
 import * as THREE from 'three';
-import { DAMAGE_SOURCE, SQUAD_ENTRANCE_CONSTANTS } from '../../../constants/game';
+import { DAMAGE_SOURCE } from '../../../constants/game';
 import {
   CHAMPION_LEVEL_THRESHOLDS,
   getChampionLevelConfig,
@@ -12,12 +12,12 @@ import {
   TEAM_KEY,
   DAMAGE_TYPE,
   DamageType,
-  isEliteMinion,
 } from '../../../constants/game';
 import { DamageBossOptions, MinionEntity } from '../../../types/game';
 import { getMinionDamageMultiplier, isMinionStunned } from '../../../utils/statusEffects';
 import {
   setLiveMinionPositions,
+  setLiveChampionNameplateAnchor,
 } from '../../../services/minionPositionRegistry';
 import {
   CachedChampionVfxRefs,
@@ -25,13 +25,17 @@ import {
   FURY_COLOR_FULL,
   getMinionAttackSpeedFactor,
   project3DToScreen,
+  projectToScreenFloatInto,
   projectToScreenInto,
   randomInRange,
-  tempProjVec,
 } from './summonShared';
 import { ENTRANCE_AURA, updateChampionEntranceAura } from './championEntranceAura';
 import { SIGNATURE_HALO_OPACITY } from './ChampionToken';
-import { pickSpreadTargetInWing } from './championSpread';
+import {
+  clampWorldTargetToSafeArena,
+  computeScreenSeparationNudge,
+  pickSpreadTargetInWing,
+} from './championSpread';
 import { isCurrentRoundIntroActive } from '../../../store/roundIntroStore';
 import { resolveChampionAttackSpeedMultiplier } from '../../../store/summonQueueHelper';
 
@@ -43,16 +47,11 @@ const resolveCachedVfxRefs = (
   if (!tokenSubgroup) return {};
   if (ai.cachedVfxRefs && ai.cachedVfxGroupId === tokenSubgroup.uuid) return ai.cachedVfxRefs;
 
-  const flyAvatarGroup = tokenSubgroup.getObjectByName('fly-avatar-group') as THREE.Group | undefined;
   const refs: CachedChampionVfxRefs = {
-    tokenBodyMesh: tokenSubgroup.getObjectByName('token-body') as THREE.Mesh | undefined,
-    flyAvatarGroup,
-    flyAvatarHaloMesh: flyAvatarGroup?.getObjectByName('vip-avatar-halo') as THREE.Mesh | undefined,
+    tokenUnitGroup: tokenSubgroup.getObjectByName('token-unit') as THREE.Group | undefined,
     impactShardsMesh: tokenSubgroup.getObjectByName('impact-shards') as THREE.Mesh | undefined,
     sigHaloMesh: tokenSubgroup.getObjectByName('signature-synergy-halo') as THREE.Mesh | undefined,
     haloMesh: tokenSubgroup.getObjectByName('celestial-halo') as THREE.Mesh | undefined,
-    beamMesh: tokenSubgroup.getObjectByName('sky-beam') as THREE.Mesh | undefined,
-    beamCoreMesh: tokenSubgroup.getObjectByName('sky-beam-core') as THREE.Mesh | undefined,
     runeSealMesh: tokenSubgroup.getObjectByName('rune-seal') as THREE.Mesh | undefined,
     landingMesh: tokenSubgroup.getObjectByName('landing-ring') as THREE.Mesh | undefined,
     landingFlashMesh: tokenSubgroup.getObjectByName('landing-flash') as THREE.Mesh | undefined,
@@ -81,71 +80,29 @@ const computeChampionImpactPopScale = (impactAgeMs: number, popDurationMs: numbe
 };
 
 /**
- * Drives the 3-stage Fly Avatar Summon sequence:
- *  1. Fly-in (0 .. FLY_IN_DURATION_MS): Avatar drops from sky along a curved arc to ground (Y=0) while champion body stays hidden.
- *  2. Impact (at FLY_IN_DURATION_MS): Champion body pops out at Y=0; Avatar shrinks and rises to pin above champion's head.
- *  3. Floating Tag (after rise): Avatar bobs gently above the champion with an active VIP glow ring when applicable.
+ * Drives the champion body spawn pop-in after the entrance sky-beam & rune seal touch down:
+ *  1. Before touchdown (0 .. FLY_IN_DURATION_MS): champion body stays hidden while the portal charges.
+ *  2. Touchdown (after FLY_IN_DURATION_MS): champion body pops out with an overshoot bounce.
  */
-const updateFlyAvatarSummon = (
+const updateChampionSpawnPop = (
   refs: CachedChampionVfxRefs,
-  minion: MinionEntity,
-  entranceAgeMs: number,
-  elapsedTime: number,
-  bobPhase: number
+  entranceAgeMs: number
 ): void => {
+  const tokenUnit = refs.tokenUnitGroup;
+  if (!tokenUnit) return;
+
   const cfg = COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON;
   const flyDurationMs = cfg.FLY_IN_DURATION_MS;
-  const isVip = isEliteMinion(minion) || Boolean(minion.isSignatureSynergy);
-  const pinnedScale = isVip ? cfg.FLOATING_TAG_VIP_SCALE : cfg.FLOATING_TAG_SCALE;
 
-  if (refs.flyAvatarHaloMesh) {
-    refs.flyAvatarHaloMesh.rotation.z = elapsedTime * cfg.VIP_HALO_ROTATION_SPEED;
-    const haloPulse = 1.0 + Math.sin(elapsedTime * cfg.VIP_HALO_PULSE_SPEED) * cfg.VIP_HALO_PULSE_AMPLITUDE;
-    refs.flyAvatarHaloMesh.scale.setScalar(haloPulse);
-  }
-
-  // Stage 1: Avatar Fly-in drop to ground (0 .. flyDurationMs)
   if (entranceAgeMs >= 0 && entranceAgeMs < flyDurationMs) {
-    if (refs.tokenBodyMesh) {
-      refs.tokenBodyMesh.visible = false;
-      refs.tokenBodyMesh.scale.setScalar(cfg.CHAMPION_HIDDEN_SCALE);
-    }
-    if (refs.flyAvatarGroup) {
-      const flyProgress = Math.min(1.0, entranceAgeMs / flyDurationMs);
-      const gravityDrop = flyProgress * flyProgress;
-      const arcSign = minion.team === TEAM_KEY.BLG ? -1 : 1;
-      const arcX = arcSign * (1 - flyProgress) * Math.sin(flyProgress * Math.PI * 0.85) * cfg.ARC_OFFSET_X;
-      const dropY = (1 - gravityDrop) * cfg.START_Y;
-      const dropScale = THREE.MathUtils.lerp(cfg.FLYING_START_SCALE, cfg.TOUCHDOWN_SCALE, flyProgress);
-
-      refs.flyAvatarGroup.position.set(arcX, dropY, cfg.FLOATING_TAG_POS_Z);
-      refs.flyAvatarGroup.scale.setScalar(dropScale);
-    }
+    tokenUnit.visible = false;
+    tokenUnit.scale.setScalar(cfg.CHAMPION_HIDDEN_SCALE);
     return;
   }
 
-  // Stage 2 & 3: Touchdown impact pop + transition to floating tag above champion
   const impactAgeMs = Math.max(0, entranceAgeMs - flyDurationMs);
-  if (refs.tokenBodyMesh) {
-    refs.tokenBodyMesh.visible = true;
-    const bodyScale = computeChampionImpactPopScale(impactAgeMs, cfg.CHAMPION_POP_DURATION_MS);
-    refs.tokenBodyMesh.scale.setScalar(bodyScale);
-  }
-
-  if (!refs.flyAvatarGroup) return;
-
-  const bobY = Math.sin(elapsedTime * cfg.FLOATING_BOB_SPEED + bobPhase) * cfg.FLOATING_BOB_AMPLITUDE;
-  if (impactAgeMs < cfg.PIN_RISE_DURATION_MS) {
-    const riseProgress = easeOutCubic(impactAgeMs / cfg.PIN_RISE_DURATION_MS);
-    const currentY = THREE.MathUtils.lerp(0, cfg.FLOATING_TAG_POS_Y + bobY, riseProgress);
-    const currentScale = THREE.MathUtils.lerp(cfg.TOUCHDOWN_SCALE, pinnedScale, riseProgress);
-    refs.flyAvatarGroup.position.set(0, currentY, cfg.FLOATING_TAG_POS_Z);
-    refs.flyAvatarGroup.scale.setScalar(currentScale);
-    return;
-  }
-
-  refs.flyAvatarGroup.position.set(0, cfg.FLOATING_TAG_POS_Y + bobY, cfg.FLOATING_TAG_POS_Z);
-  refs.flyAvatarGroup.scale.setScalar(pinnedScale);
+  tokenUnit.visible = true;
+  tokenUnit.scale.setScalar(computeChampionImpactPopScale(impactAgeMs, cfg.CHAMPION_POP_DURATION_MS));
 };
 
 export const createInitialChampionAI = (minion: MinionEntity, elapsedTime: number): ChampionAIState => {
@@ -211,12 +168,71 @@ const publishLivePosition = (
   projectToScreenInto(ai.liveScreen, worldX, worldY, worldZ, camera, viewportW, viewportH);
 };
 
+const tempNameplateOffset = new THREE.Vector3();
+const tempSepNudge = { dx: 0, dy: 0 };
+const tempClampedTarget = { x: 0, y: 0 };
+const SEPARATION_WORLD_SPEED = 0.28;
+const SEPARATION_Y_RATIO = 0.72;
+const UPPER_FLANK_WORLD_Y_CUTOFF = -0.35;
+const TEAM_FLANK_MIN_UPPER_X = 0.25;
+const TEAM_FLANK_MIN_LOWER_X = 0.15;
+const SHIELD_PULSE_BASE = 1.0;
+const SHIELD_PULSE_AMPLITUDE = 0.035;
+const SHIELD_PULSE_SPEED = 6;
+const ATTACK_SCALE_PULSE_AMPLITUDE = 0.12;
+const SMOOTH_FOLLOW_RATE = 0.85;
+const NAMEPLATE_DEPTH_BASE_Z_INDEX = 40;
+const NAMEPLATE_Z_INDEX_MIN = 10;
+const NAMEPLATE_Z_INDEX_MAX = 80;
+const NAMEPLATE_Z_DEPTH_FACTOR = 10;
+
+const publishNameplateAnchor = (
+  ai: ChampionAIState,
+  minionId: string,
+  posX: number,
+  posY: number,
+  posZ: number,
+  groupScale: number,
+  isVisible: boolean,
+  camera: THREE.Camera,
+  viewportW: number,
+  viewportH: number
+): void => {
+  tempNameplateOffset
+    .set(
+      0,
+      COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.NAMEPLATE_POS_Y * groupScale,
+      COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.NAMEPLATE_POS_Z * groupScale
+    )
+    .applyQuaternion(camera.quaternion);
+
+  if (!ai.liveNameplateAnchor) {
+    ai.liveNameplateAnchor = { x: 0, y: 0, visible: isVisible, zIndex: NAMEPLATE_DEPTH_BASE_Z_INDEX };
+    setLiveChampionNameplateAnchor(minionId, ai.liveNameplateAnchor);
+  }
+
+  projectToScreenFloatInto(
+    ai.liveNameplateAnchor,
+    posX + tempNameplateOffset.x,
+    posY + tempNameplateOffset.y,
+    posZ + tempNameplateOffset.z,
+    camera,
+    viewportW,
+    viewportH
+  );
+  ai.liveNameplateAnchor.visible = isVisible;
+  ai.liveNameplateAnchor.zIndex = Math.max(
+    NAMEPLATE_Z_INDEX_MIN,
+    Math.min(NAMEPLATE_Z_INDEX_MAX, Math.round(NAMEPLATE_DEPTH_BASE_Z_INDEX + posZ * NAMEPLATE_Z_DEPTH_FACTOR))
+  );
+};
+
 /** Token reaction to a boss hit (see championHitFeedback). */
 const HIT_FLINCH = {
-  DURATION_MS: 320,
-  SHAKE_AMPLITUDE: 0.07,
-  SHAKE_FREQUENCY: 0.07,
-  SQUASH: 0.16,
+  DURATION_MS: 260,
+  SHAKE_AMPLITUDE: 0.035,
+  SHAKE_FREQUENCY: 0.032,
+  SQUASH: 0.08,
 } as const;
 
 /** Shared, never mutated: no per-hit allocation in the frame loop. */
@@ -240,7 +256,9 @@ const updateChampionShieldMesh = (
   }
 
   const shieldProg = entranceAgeMs / GAME_CONSTANTS.MINIONS.SPAWN_GRACE_PERIOD_MS;
-  shieldMesh.scale.setScalar(1.0 + Math.sin(elapsedTime * 12) * 0.08);
+  shieldMesh.scale.setScalar(
+    SHIELD_PULSE_BASE + Math.sin(elapsedTime * SHIELD_PULSE_SPEED) * SHIELD_PULSE_AMPLITUDE
+  );
   shieldMesh.rotation.z = -elapsedTime * 4.0;
   shieldMesh.material.opacity = Math.max(0.2, (1.0 - shieldProg * 0.35) * 0.9);
   shieldMesh.visible = true;
@@ -256,13 +274,22 @@ export const stepChampionFrame = (
   camera: THREE.Camera,
   viewportW: number,
   viewportH: number,
-  isBossAlive: boolean
+  isBossAlive: boolean,
+  isCameraStable: boolean
 ): void => {
   const store = useGameStore.getState();
   const entranceAgeMs = now - (minion.createdAt || 0);
+  const isFlyInActive = entranceAgeMs < COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.FLY_IN_DURATION_MS;
 
   if (elapsedTime >= ai.nextWanderTime) {
-    const [tx, ty, tz] = pickSpreadTargetInWing(minion.team, camera, viewportW, viewportH, minion.id);
+    const [tx, ty, tz] = pickSpreadTargetInWing(
+      minion.team,
+      camera,
+      viewportW,
+      viewportH,
+      minion.id,
+      ai.liveScreen
+    );
     ai.targetX = tx;
     ai.targetY = ty;
     ai.targetZ = tz;
@@ -278,7 +305,50 @@ export const stepChampionFrame = (
     );
   }
 
-  const lerpFactor = Math.min(1.0, clampedDelta * ai.moveSpeed * 0.75);
+  if (isCameraStable && !isFlyInActive) {
+    if (
+      ai.liveScreen &&
+      computeScreenSeparationNudge(
+        tempSepNudge,
+        minion.id,
+        ai.liveScreen.x,
+        ai.liveScreen.y,
+        viewportW,
+        viewportH
+      )
+    ) {
+      const pushX = tempSepNudge.dx * clampedDelta * SEPARATION_WORLD_SPEED;
+      const pushY = tempSepNudge.dy * clampedDelta * SEPARATION_WORLD_SPEED * SEPARATION_Y_RATIO;
+      ai.targetX += pushX;
+      ai.targetY += pushY;
+
+      const minSideX =
+        ai.targetY > UPPER_FLANK_WORLD_Y_CUTOFF ? TEAM_FLANK_MIN_UPPER_X : TEAM_FLANK_MIN_LOWER_X;
+      if (minion.team === TEAM_KEY.BLG) {
+        ai.targetX = Math.min(ai.targetX, -minSideX);
+      } else {
+        ai.targetX = Math.max(ai.targetX, minSideX);
+      }
+    }
+
+    if (
+      clampWorldTargetToSafeArena(
+        tempClampedTarget,
+        ai.targetX,
+        ai.targetY,
+        ai.targetZ,
+        minion.team,
+        camera,
+        viewportW,
+        viewportH
+      )
+    ) {
+      ai.targetX = tempClampedTarget.x;
+      ai.targetY = tempClampedTarget.y;
+    }
+  }
+
+  const lerpFactor = 1 - Math.exp(-ai.moveSpeed * SMOOTH_FOLLOW_RATE * clampedDelta);
   ai.currentX = THREE.MathUtils.lerp(ai.currentX, ai.targetX, lerpFactor);
   ai.currentY = THREE.MathUtils.lerp(ai.currentY, ai.targetY, lerpFactor);
   ai.currentZ = THREE.MathUtils.lerp(ai.currentZ, ai.targetZ, lerpFactor);
@@ -328,7 +398,7 @@ export const stepChampionFrame = (
       const teamAwaySign = minion.team === TEAM_KEY.BLG ? -1 : 1;
       castRecoilX = teamAwaySign * castCurve * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.CAST_RECOIL_DISTANCE;
       castLiftY = castCurve * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.CAST_LIFT_HEIGHT;
-      scalePulse = 1.0 + castCurve * 0.16;
+      scalePulse = 1.0 + castCurve * ATTACK_SCALE_PULSE_AMPLITUDE;
     }
   }
 
@@ -345,7 +415,6 @@ export const stepChampionFrame = (
     store.spawnFlyingArrow(minion.championName, minion.team, false, scrStart);
   }
 
-  const isFlyInActive = entranceAgeMs < COMBAT_VFX_CONSTANTS.FLY_AVATAR_SUMMON.FLY_IN_DURATION_MS;
   const bobOffset = isFlyInActive
     ? 0
     : Math.sin(elapsedTime * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.BOB_SPEED + ai.bobPhase) *
@@ -357,42 +426,10 @@ export const stepChampionFrame = (
   const flinchLevel = isFlinching ? 1 - hitAgeMs / HIT_FLINCH.DURATION_MS : 0;
   const flinchShakeX = Math.sin(hitAgeMs * HIT_FLINCH.SHAKE_FREQUENCY) * HIT_FLINCH.SHAKE_AMPLITUDE * flinchLevel;
 
-  let posX = ai.currentX + castRecoilX + flinchShakeX;
-  let posY = ai.currentY + castLiftY + bobOffset;
-  let posZ = ai.currentZ;
+  const posX = ai.currentX + castRecoilX + flinchShakeX;
+  const posY = ai.currentY + castLiftY + bobOffset;
+  const posZ = ai.currentZ;
   const finalScale = scalePulse * (1 - HIT_FLINCH.SQUASH * flinchLevel);
-
-  tempProjVec.set(posX, posY, posZ).project(camera);
-  let isClamped = false;
-  const safeNdcX = COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_X;
-  const isRightSide = minion.team === TEAM_KEY.GENG;
-  const safeNdcYMin = isRightSide
-    ? COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_Y_MIN_RIGHT
-    : COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_Y_MIN;
-  const safeNdcYMax = COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.VIEWPORT_SAFE_NDC_Y_MAX;
-
-  if (tempProjVec.x < -safeNdcX) {
-    tempProjVec.x = -safeNdcX;
-    isClamped = true;
-  } else if (tempProjVec.x > safeNdcX) {
-    tempProjVec.x = safeNdcX;
-    isClamped = true;
-  }
-
-  if (tempProjVec.y < safeNdcYMin) {
-    tempProjVec.y = safeNdcYMin;
-    isClamped = true;
-  } else if (tempProjVec.y > safeNdcYMax) {
-    tempProjVec.y = safeNdcYMax;
-    isClamped = true;
-  }
-
-  if (isClamped) {
-    tempProjVec.unproject(camera);
-    posX = tempProjVec.x;
-    posY = tempProjVec.y;
-    posZ = tempProjVec.z;
-  }
 
   const isStunned = isMinionStunned(minion, Date.now());
   if (isBossAlive && wasAttackingThisFrame && !ai.hasFiredInThisAttack && !isGraceActive && !isStunned && !isIntroActive) {
@@ -447,13 +484,26 @@ export const stepChampionFrame = (
 
   champGroup.position.set(posX, posY, posZ);
   const levelScaleMultiplier = minion.levelScale ?? 1.0;
-  champGroup.scale.setScalar(finalScale * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE * levelScaleMultiplier);
+  const groupScale = finalScale * COMBAT_VFX_CONSTANTS.CHAMPION_MOVEMENT.TOKEN_SCALE * levelScaleMultiplier;
+  champGroup.scale.setScalar(groupScale);
   champGroup.quaternion.copy(camera.quaternion);
 
   publishLivePosition(ai, minion, posX, posY, posZ, camera, viewportW, viewportH);
+  publishNameplateAnchor(
+    ai,
+    minion.id,
+    posX,
+    posY,
+    posZ,
+    groupScale,
+    !isFlyInActive,
+    camera,
+    viewportW,
+    viewportH
+  );
 
   const vfxRefs = resolveCachedVfxRefs(ai, champGroup.children[0] as THREE.Group | undefined);
-  updateFlyAvatarSummon(vfxRefs, minion, entranceAgeMs, elapsedTime, ai.bobPhase);
+  updateChampionSpawnPop(vfxRefs, entranceAgeMs);
 
   if (vfxRefs.sigHaloMesh) {
     if (entranceAgeMs >= 0 && entranceAgeMs < ENTRANCE_AURA.TOTAL_MS) {
@@ -478,7 +528,6 @@ export const stepChampionFrame = (
     vfxRefs.eliteAuraMesh.scale.set(auraPulse, auraPulse, 1);
   }
 
-  const isSquadMember = (minion.entranceSquadSize ?? 1) >= SQUAD_ENTRANCE_CONSTANTS.MIN_SIZE;
-  updateChampionEntranceAura(vfxRefs, entranceAgeMs, elapsedTime, minion.team, isSquadMember);
+  updateChampionEntranceAura(vfxRefs, entranceAgeMs, elapsedTime, minion.team);
   updateChampionShieldMesh(vfxRefs, entranceAgeMs, elapsedTime, isGraceActive);
 };

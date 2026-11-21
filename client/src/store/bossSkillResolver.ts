@@ -3,6 +3,7 @@ import {
   BossSkillConfig,
   BossSkillDefinition,
   BossSkillImpactPoint,
+  BossSkillImpactPosition,
   BossSkillStatusEffect,
 } from '../types/bossSkill';
 import {
@@ -92,6 +93,7 @@ export interface SkillHit {
   /** Side the boss attacks (drives its facing, its lunge and the VFX direction). */
   targetTeam: SkillTargetTeam;
   impactPoints: BossSkillImpactPoint[];
+  impactPositions: BossSkillImpactPosition[];
 }
 
 type MinionPositionReader = (minion: MinionEntity) => readonly [number, number, number];
@@ -174,12 +176,18 @@ export const pickSkillHit = (
     : vulnerableMinions;
   const targets = AREA_PICKERS[area]({ minions: minionsInArea, skill, readPosition });
 
+  const cappedTargets = targets.slice(0, BOSS_SKILL_HIT_RULES.MAX_IMPACT_POINTS);
+
   return {
     targetedMinionIds: new Set(targets.map((minion) => minion.id)),
     targetTeam: attackedSide ?? 'ALL',
-    impactPoints: targets.slice(0, BOSS_SKILL_HIT_RULES.MAX_IMPACT_POINTS).map((minion) => {
+    impactPoints: cappedTargets.map((minion) => {
       const position = readPosition(minion);
       return [position[0], position[2]] as const;
+    }),
+    impactPositions: cappedTargets.map((minion) => {
+      const position = readPosition(minion);
+      return [position[0], position[1], position[2]] as const;
     }),
   };
 };

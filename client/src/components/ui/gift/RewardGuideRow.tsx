@@ -25,14 +25,14 @@ export const RewardGuideRow: React.FC<RewardGuideRowProps> = ({ item }) => {
         >
           {item.emoji}
         </span>
-        <span className="text-[8px] sm:text-[8.5px] font-black text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+        <span className="text-[8.5px] sm:text-[9px] font-black text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
           {t(item.titleKey, item.titleFallback)}
         </span>
       </div>
 
       {/* Right: Effect Badge */}
       <span
-        className={`text-[6.5px] sm:text-[7px] font-mono px-1.5 py-0.2 shrink-0 transition-all ${styles.badgeClass}`}
+        className={`text-[7px] sm:text-[7.5px] font-mono px-1.5 py-0.2 shrink-0 transition-all ${styles.badgeClass}`}
       >
         {t(item.effectKey, item.effectFallback)}
       </span>

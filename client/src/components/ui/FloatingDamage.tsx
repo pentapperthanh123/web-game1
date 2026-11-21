@@ -72,19 +72,30 @@ const getPopScale = (progress: number, pop: PopConfig): number => {
 
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
+const resolveTextCanvasDpr = (): number =>
+  typeof window === 'undefined'
+    ? 1
+    : Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.TEXT_CANVAS_DPR_MAX);
+
 export const FloatingDamage = React.memo(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<CanvasDamageParticle[]>([]);
-  const dprRef = useRef<number>(GAME_CONSTANTS.RENDER.FIXED_DPR);
+  const dprRef = useRef<number>(resolveTextCanvasDpr());
 
-  // Lock canvas buffer to fixed pixel ratio (DPR = 1)
+  // Sync backing buffer resolution to HiDPI text cap (up to 2x) with resize cleanup
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = GAME_CONSTANTS.RENDER.FIXED_DPR;
-    dprRef.current = dpr;
-    canvas.width = Math.round(CANVAS_WIDTH * dpr);
-    canvas.height = Math.round(CANVAS_HEIGHT * dpr);
+    const syncCanvasDpr = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dpr = resolveTextCanvasDpr();
+      dprRef.current = dpr;
+      canvas.width = Math.round(CANVAS_WIDTH * dpr);
+      canvas.height = Math.round(CANVAS_HEIGHT * dpr);
+    };
+
+    syncCanvasDpr();
+    window.addEventListener('resize', syncCanvasDpr);
+    return () => window.removeEventListener('resize', syncCanvasDpr);
   }, []);
 
   // Subscribe to floatingDamages in store without triggering React DOM re-renders
@@ -128,8 +139,8 @@ export const FloatingDamage = React.memo(() => {
           0,
           0,
           finalScale * dpr,
-          (p.x + shakeX) * dpr,
-          (p.y + yOffset) * dpr
+          Math.round((p.x + shakeX) * dpr),
+          Math.round((p.y + yOffset) * dpr)
         );
         ctx.drawImage(image, -width / 2, -height / 2, width, height);
       }

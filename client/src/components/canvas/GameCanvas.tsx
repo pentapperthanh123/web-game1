@@ -48,8 +48,8 @@ export const GameCanvas = React.memo(() => {
         <ArenaEnvironment />
         <Boss3DPresence />
         <BossVoidAttack />
-        <BossSkillVfx3D />
         <SummonPortals3D />
+        <BossSkillVfx3D />
         <BossDeathVFX3D />
         <ChampionBarrage />
         <ProjectilesBeam />

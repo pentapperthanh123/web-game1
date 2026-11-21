@@ -45,31 +45,9 @@ const QuestBar = ({ team, kind, barClassName }: QuestBarProps) => {
       <div className="relative h-1.5 flex-1 min-w-0 rounded-full bg-slate-900/90 border border-slate-700/70 overflow-hidden">
         <div className={clsx('h-full rounded-full transition-[width] duration-300', barClassName)} style={{ width: `${fillPercent}%` }} />
       </div>
-      <span className="text-[7px] font-mono font-bold text-slate-300 leading-none shrink-0">
+      <span className="text-[8px] sm:text-[8.5px] font-mono font-extrabold text-slate-100 [text-shadow:0_1px_2px_rgba(0,0,0,0.95)] leading-none shrink-0">
         {COMPACT_NUMBER.format(progress.value)}/{COMPACT_NUMBER.format(target)}
       </span>
-    </div>
-  );
-};
-
-interface QueueBadgeProps {
-  team: TeamType;
-}
-
-/** Waiting summons of a team and who enters next (primitive selectors: re-renders only when they change). */
-const QueueBadge = ({ team }: QueueBadgeProps) => {
-  const { t } = useTranslation();
-  const queueLength = useGameStore((state) => state.summonQueue?.[team]?.length ?? 0);
-  const nextSummoner = useGameStore((state) => state.summonQueue?.[team]?.[0]?.summonerName ?? '');
-  if (queueLength === 0) return null;
-
-  return (
-    <div
-      className="flex items-center gap-0.5 px-1 py-px rounded bg-slate-950/85 border border-amber-500/40 text-[7.5px] font-bold text-amber-200 leading-none shrink-0 max-w-[45%]"
-      title={t('LiveHud.queueTooltip', { defaultValue: 'Đang chờ ra sân: {{count}} • Tiếp theo: {{name}}', count: queueLength, name: nextSummoner })}
-    >
-      <span>⏳{queueLength}</span>
-      <span className="truncate text-amber-100/80">{nextSummoner}</span>
     </div>
   );
 };
@@ -84,20 +62,17 @@ const TeamStatusBlock = ({ team, isRightSide }: TeamStatusBlockProps) => {
   const barClassName = getTeamTheme(colorTheme).winPipActiveClass;
 
   return (
-    <div className={clsx('flex flex-col gap-0.5 min-w-0 flex-1', isRightSide && 'items-end')}>
-      <div className={clsx('flex items-center gap-1 w-full', isRightSide && 'flex-row-reverse')}>
-        {QUEST_ORDER.map((kind) => (
-          <QuestBar key={kind} team={team} kind={kind} barClassName={barClassName} />
-        ))}
-      </div>
-      <QueueBadge team={team} />
+    <div className={clsx('flex items-center gap-1 min-w-0 flex-1', isRightSide && 'flex-row-reverse')}>
+      {QUEST_ORDER.map((kind) => (
+        <QuestBar key={kind} team={team} kind={kind} barClassName={barClassName} />
+      ))}
     </div>
   );
 };
 
-/** Under the tug-of-war bar: community quest progress and entrance queue for both teams. */
+/** Under the tug-of-war bar: community quest progress for both teams. */
 export const TeamLiveStatusRow = React.memo(() => (
-  <div className="flex items-start justify-between gap-2 mt-1 px-0.5 pointer-events-auto select-none">
+  <div className="flex items-center justify-between gap-2 mt-1 px-0.5 pointer-events-auto select-none min-h-[14px]">
     <TeamStatusBlock team={TEAM_KEY.BLG} isRightSide={false} />
     <TeamStatusBlock team={TEAM_KEY.GENG} isRightSide />
   </div>

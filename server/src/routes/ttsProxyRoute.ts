@@ -49,8 +49,11 @@ export function registerTtsProxyRoute(app: Express, casterTts?: CasterTtsService
       return;
     }
 
-    // Attempt primary synthesis via CasterTts (ElevenLabs, disk cache, etc.)
-    if (casterTts) {
+    // Check if client explicitly requests Google Translate TTS (e.g. for round intro & announcements)
+    const forceGoogle = req.query.provider === 'google' || req.query.google === 'true';
+
+    // Attempt primary synthesis via CasterTts (ElevenLabs, disk cache, etc.) when not forced to Google
+    if (casterTts && !forceGoogle) {
       try {
         const role = req.query.role === 'female' ? CASTER_VOICE_ROLE.FEMALE : CASTER_VOICE_ROLE.MALE;
         const result = await casterTts.synthesize(text, 'vi', { role });

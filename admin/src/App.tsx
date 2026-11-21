@@ -1,6 +1,7 @@
 import { ServerConnectionBanner } from './components/ServerConnectionBanner';
 import { AdminGiftConfigSection } from './components/giftConfig/AdminGiftConfigSection';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
+import { adminSocket } from './services/socket';
 import { getTeamTheme } from './constants/teams';
 import {
   getMainGridClassName,
@@ -66,6 +67,22 @@ export function App() {
     onLog: addLog,
   });
 
+  const [roundDurationMs, setRoundDurationMs] = useState<number>(300000);
+
+  useEffect(() => {
+    const unsubRules = adminSocket.onParticipationRules((rules) => {
+      if (typeof rules.roundDurationMs === 'number') {
+        setRoundDurationMs(rules.roundDurationMs);
+      }
+    });
+    return () => unsubRules();
+  }, []);
+
+  const handleChangeRoundDuration = (ms: number) => {
+    setRoundDurationMs(ms);
+    adminSocket.emitParticipationRules({ roundDurationMs: ms });
+  };
+
   const [activeTab, setActiveTab] = useState<AdminPortalTabId>(loadStoredAdminTab);
   const [activeOverlayCount, setActiveOverlayCount] = useState<number>(() =>
     countVisibleOverlays(loadStoredOverlayVisibility())
@@ -108,6 +125,12 @@ export function App() {
         <AdminHeader
           onResetBoss={actions.handleResetBoss}
           onStartMatch={() => socketSync.handleBo5Control('startRound')}
+          isAutoSummonActive={autoRunner.isAutoSummonActive}
+          onToggleAutoSummon={() =>
+            autoRunner.setIsAutoSummonActive(!autoRunner.isAutoSummonActive)
+          }
+          roundDurationMs={roundDurationMs}
+          onChangeRoundDuration={handleChangeRoundDuration}
         />
 
         {/* Section Navigation Tabs (Top-most & Sticky) */}

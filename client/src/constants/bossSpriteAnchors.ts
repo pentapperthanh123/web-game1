@@ -98,18 +98,19 @@ export const BOSS_SPRITE_ANCHORS: Readonly<Record<GameThemeType, BossSpriteAncho
       isNativeFacingRight: false,
     },
   },
+  // Measured on boss_void_titan_2d.png (1024x1024): crown eye, face fangs, chest core
   [GAME_THEME.VOID_TITAN]: {
     normal: {
-      mouth: { leftPercent: 50, topPercent: 40 },
-      eye: { leftPercent: 50, topPercent: 30 },
-      core: { leftPercent: 50, topPercent: 45 },
-      isNativeFacingRight: false,
+      mouth: { leftPercent: 58.0, topPercent: 35.0 },
+      eye: { leftPercent: 57.8, topPercent: 23.1 },
+      core: { leftPercent: 55.3, topPercent: 44.2 },
+      isNativeFacingRight: true,
     },
     enraged: {
-      mouth: { leftPercent: 50, topPercent: 40 },
-      eye: { leftPercent: 50, topPercent: 30 },
-      core: { leftPercent: 50, topPercent: 45 },
-      isNativeFacingRight: false,
+      mouth: { leftPercent: 58.0, topPercent: 35.0 },
+      eye: { leftPercent: 57.8, topPercent: 23.1 },
+      core: { leftPercent: 55.3, topPercent: 44.2 },
+      isNativeFacingRight: true,
     },
   },
   [GAME_THEME.XU_GIA]: {

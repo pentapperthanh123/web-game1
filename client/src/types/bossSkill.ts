@@ -57,6 +57,9 @@ export interface BossSkillVfxLayer {
 /** Floor position (world x, z) of a champion the skill hits; effects land there. */
 export type BossSkillImpactPoint = readonly [x: number, z: number];
 
+/** Full 3D position (world x, y, z) of a champion the skill hits. */
+export type BossSkillImpactPosition = readonly [x: number, y: number, z: number];
+
 export interface BossSkillVfxParams {
   secondaryColor?: string;
   /** Additional archetypes layered over the main one (3D). */
@@ -133,4 +136,8 @@ export interface ActiveBossSkillBanner {
   statusEffectType?: BossStatusEffectType;
   /** Where the damaged champions stand, so the VFX lands on the champions it hurts. */
   impactPoints?: readonly BossSkillImpactPoint[];
+  /** 3D position (world x, y, z) of each targeted champion at cast time. */
+  impactPositions?: readonly BossSkillImpactPosition[];
+  /** IDs of the targeted minions so 3D tracking VFX can track their live positions. */
+  targetedMinionIds?: readonly string[];
 }

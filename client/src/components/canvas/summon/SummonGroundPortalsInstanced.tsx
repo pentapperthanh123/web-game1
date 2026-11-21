@@ -3,8 +3,12 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../../store/gameStore';
 import { COMBAT_VFX_CONSTANTS, SQUAD_ENTRANCE_CONSTANTS } from '../../../constants/game';
+import { getLiveMinionPosition } from '../../../services/minionPositionRegistry';
 
 const PORTAL_POOL_CAPACITY = COMBAT_VFX_CONSTANTS.SUMMON.MAX_ACTIVE_PORTALS;
+const PORTAL_OUTER_OFFSET_Y = -0.28;
+const PORTAL_INNER_OFFSET_Y = -0.26;
+const PORTAL_PILLAR_OFFSET_Y = 0.42;
 
 const SHARED_PORTAL_RING_1 = new THREE.RingGeometry(0.22, 0.32, 24);
 const SHARED_PORTAL_RING_2 = new THREE.RingGeometry(0.1, 0.19, 6);
@@ -59,15 +63,16 @@ export const SummonGroundPortalsInstanced = () => {
         progress < 0.2 ? (progress / 0.2) * 1.05 : 1.05 - (progress - 0.2) * 0.15
       );
       const fade = Math.max(0, 1 - Math.pow(progress, 1.8));
-      const [px, py, pz] = portal.position;
+      const livePos = portal.minionId ? getLiveMinionPosition(portal.minionId) : undefined;
+      const [px, py, pz] = livePos ?? portal.position;
 
-      dummyObj.position.set(px, py - 0.35, pz);
+      dummyObj.position.set(px, py + PORTAL_OUTER_OFFSET_Y, pz);
       dummyObj.rotation.set(-Math.PI / 2, 0, elapsedTime * 3.2);
       dummyObj.scale.setScalar(popScale);
       dummyObj.updateMatrix();
       outerMesh.setMatrixAt(activeCount, dummyObj.matrix);
 
-      dummyObj.position.set(px, py - 0.33, pz);
+      dummyObj.position.set(px, py + PORTAL_INNER_OFFSET_Y, pz);
       dummyObj.rotation.set(-Math.PI / 2, 0, -elapsedTime * 5.0);
       dummyObj.scale.setScalar(popScale);
       dummyObj.updateMatrix();
@@ -75,7 +80,7 @@ export const SummonGroundPortalsInstanced = () => {
 
       const isSquadPortal = (portalsPerTurn.get(`${portal.team}:${portal.createdAt}`) ?? 0) >= SQUAD_ENTRANCE_CONSTANTS.MIN_SIZE;
       const pillarScale = isSquadPortal ? 0 : popScale;
-      dummyObj.position.set(px, py + 0.45, pz);
+      dummyObj.position.set(px, py + PORTAL_PILLAR_OFFSET_Y, pz);
       dummyObj.rotation.set(0, 0, 0);
       dummyObj.scale.set(
         pillarScale * (1 - progress * 0.45),

@@ -4,19 +4,15 @@ import {
   SHARED_IMPACT_SHARDS_RING_GEO,
   SHARED_LANDING_FLASH_GEO,
   SHARED_LANDING_RING_GEO,
-  SHARED_LIGHT_BEAM_CORE_GEO,
-  SHARED_LIGHT_BEAM_GEO,
   SHARED_RUNE_SEAL_GEO,
 } from './summonShared';
 
 const AURA_CORE_COLOR = '#ffffff';
-const SKY_BEAM_POSITION: [number, number, number] = [0, 0.75, 0];
 const HALO_POSITION: [number, number, number] = [0, 0, -0.015];
 const RUNE_SEAL_POSITION: [number, number, number] = [0, 0, 0.025];
 const LANDING_FLASH_POSITION: [number, number, number] = [0, 0, -0.01];
 const IMPACT_SHARDS_POSITION: [number, number, number] = [0, 0, 0.03];
-const LANDING_RING_POSITION: [number, number, number] = [0, -0.25, 0];
-const LANDING_RING_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
+const LANDING_RING_POSITION: [number, number, number] = [0, 0, -0.018];
 
 interface AuraMaterialProps {
   color: string;
@@ -49,12 +45,6 @@ export const ChampionEntranceAuraMeshes = ({ auraColor, accentColor }: ChampionE
     <mesh name="celestial-halo" visible={false} position={HALO_POSITION} geometry={SHARED_CELESTIAL_AURA_GEO}>
       <AuraMaterial color={accentColor} />
     </mesh>
-    <mesh name="sky-beam" visible={false} position={SKY_BEAM_POSITION} geometry={SHARED_LIGHT_BEAM_GEO}>
-      <AuraMaterial color={auraColor} />
-    </mesh>
-    <mesh name="sky-beam-core" visible={false} position={SKY_BEAM_POSITION} geometry={SHARED_LIGHT_BEAM_CORE_GEO}>
-      <AuraMaterial color={AURA_CORE_COLOR} />
-    </mesh>
     <mesh name="rune-seal" visible={false} position={RUNE_SEAL_POSITION} geometry={SHARED_RUNE_SEAL_GEO}>
       <AuraMaterial color={accentColor} />
     </mesh>
@@ -68,7 +58,6 @@ export const ChampionEntranceAuraMeshes = ({ auraColor, accentColor }: ChampionE
       name="landing-ring"
       visible={false}
       position={LANDING_RING_POSITION}
-      rotation={LANDING_RING_ROTATION}
       geometry={SHARED_LANDING_RING_GEO}
     >
       <AuraMaterial color={auraColor} />

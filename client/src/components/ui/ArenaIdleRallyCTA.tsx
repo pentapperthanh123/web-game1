@@ -8,6 +8,11 @@ import { getActiveComebackTeam } from '../../store/comebackRules';
 import { getPhaseRemainingMs, useRoundClockStore } from '../../store/roundClockStore';
 import { getTeamCommandNumber } from '../../constants/teams';
 
+const CTA_MAX_WIDTH_CLASS = {
+  WITH_ROSTERS: 'max-w-[min(300px,calc(100vw-220px))] sm:max-w-[min(320px,calc(100vw-256px))]',
+  FULL_CORRIDOR: 'max-w-[320px]',
+} as const;
+
 export const ArenaIdleRallyCTA: React.FC = React.memo(() => {
   const { t } = useTranslation();
   const isIntroActive = useRoundIntroStore((state) => state.isActive);
@@ -19,6 +24,7 @@ export const ArenaIdleRallyCTA: React.FC = React.memo(() => {
   const roundWinner = useGameStore((state) => state.roundWinner);
   const minionCount = useGameStore((state) => state.minions.length);
   const activeTeams = useGameStore((state) => state.activeTeams);
+  const isTeamRostersVisible = useGameStore((state) => state.overlayVisibility.teamRosters);
 
   const clockPhase = useRoundClockStore((state) => state.phase);
   const clockDurationMs = useRoundClockStore((state) => state.durationMs);
@@ -119,10 +125,14 @@ export const ArenaIdleRallyCTA: React.FC = React.memo(() => {
     shadowColor = 'rgba(56, 189, 248, 0.45)';
   }
 
+  const widthConstraintClass = isTeamRostersVisible
+    ? CTA_MAX_WIDTH_CLASS.WITH_ROSTERS
+    : CTA_MAX_WIDTH_CLASS.FULL_CORRIDOR;
+
   return (
     <div className="w-full flex flex-col items-center pointer-events-none select-none animate-in fade-in zoom-in-95 duration-300">
       <div
-        className="relative flex items-center gap-2 max-w-[320px] px-2.5 py-1 rounded-xl border bg-slate-950/95 overflow-hidden shadow-lg"
+        className={`relative flex items-center gap-2 ${widthConstraintClass} px-2.5 py-1 rounded-xl border bg-slate-950/95 overflow-hidden shadow-lg`}
         style={{
           borderColor,
           boxShadow: `0 0 14px ${shadowColor}`,
@@ -140,9 +150,9 @@ export const ArenaIdleRallyCTA: React.FC = React.memo(() => {
         </div>
 
         {/* CTA Text Details */}
-        <div className="flex flex-col items-start leading-tight min-w-0">
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-[10.5px] font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 drop-shadow">
-            <span>{title}</span>
+        <div className="flex flex-col items-start leading-tight min-w-0 max-w-full">
+          <div className="flex items-center gap-1.5 min-w-0 max-w-full text-[10px] sm:text-[10.5px] font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 drop-shadow">
+            <span className="truncate">{title}</span>
           </div>
 
           <div className="flex items-center gap-1 mt-0.5 max-w-full text-[8.5px] sm:text-[9px] font-bold text-slate-300">

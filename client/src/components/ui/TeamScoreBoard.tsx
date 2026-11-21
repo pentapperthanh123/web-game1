@@ -7,7 +7,6 @@ import { getTeamTheme } from '../../constants/teams';
 import { TeamColorPalette } from '../../types/team';
 import { TeamLogo } from '../icons/TeamLogos';
 import { TeamComboBadge, MIN_COMBO_DISPLAY_COUNT } from './TeamComboBadge';
-import { SummonSpotlight } from './SummonShowcase';
 import { MatchupTitleTally } from './MatchupTitleTally';
 import { TeamLiveStatusRow } from './TeamLiveStatusRow';
 import { TeamMatchMvpStrip } from './TeamMatchMvpStrip';
@@ -380,16 +379,6 @@ export const TeamScoreBoard = React.memo(() => {
       <TeamMatchMvpStrip />
 
       <TeamLiveStatusRow />
-
-      {/* Dynamic Summon Spotlight on Left & Right wings right below the scoreboard */}
-      <div className="absolute top-full mt-1.5 inset-x-1 sm:inset-x-2 flex items-start justify-between pointer-events-none z-40">
-        <div className="flex-1 flex justify-start items-start">
-          <SummonSpotlight side="left" />
-        </div>
-        <div className="flex-1 flex justify-end items-start">
-          <SummonSpotlight side="right" />
-        </div>
-      </div>
     </div>
   );
 });

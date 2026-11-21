@@ -1,11 +1,11 @@
 {
   "chat": false,
-  "leaderboard": false,
+  "leaderboard": true,
   "teamRosters": true,
   "bossHealth": true,
   "teamScores": true,
   "likeCounter": false,
-  "howToPlay": false,
+  "howToPlay": true,
   "heartMilestone": false,
   "matchTitleBar": false,
   "casterSubtitle": false,

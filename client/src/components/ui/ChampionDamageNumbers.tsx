@@ -34,7 +34,10 @@ const getPopScale = (progress: number): number => {
 
 const easeOutCubic = (value: number): number => 1 - Math.pow(1 - value, 3);
 
-const resolvePixelRatio = (): number => GAME_CONSTANTS.RENDER.FIXED_DPR;
+const resolvePixelRatio = (): number =>
+  typeof window === 'undefined'
+    ? 1
+    : Math.min(window.devicePixelRatio || 1, GAME_CONSTANTS.RENDER.TEXT_CANVAS_DPR_MAX);
 
 const buildDamageNumber = (event: ChampionHitEvent): DamageNumber | null => {
   if (event.amount <= 0) return null;
@@ -65,7 +68,14 @@ const drawDamageNumbers = (ctx: CanvasRenderingContext2D, numbers: DamageNumber[
     const offsetY = -easeOutCubic(progress) * RISE_DISTANCE_PX;
     const { image, width, height } = item.sprite;
     ctx.globalAlpha = Math.max(0, 1 - Math.pow(progress, FADE_EXPONENT));
-    ctx.setTransform(scale, 0, 0, scale, item.x * pixelRatio, (item.y + offsetY) * pixelRatio);
+    ctx.setTransform(
+      scale,
+      0,
+      0,
+      scale,
+      Math.round(item.x * pixelRatio),
+      Math.round((item.y + offsetY) * pixelRatio)
+    );
     ctx.drawImage(image, -width / 2, -height / 2, width, height);
   }
   numbers.length = activeCount;

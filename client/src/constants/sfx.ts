@@ -306,7 +306,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   // ── Boss voice: BOSS_ROAR / BOSS_ENRAGE are Baron's; the other bosses use BOSS_VOICE_SFX below ──
   [SFX_EVENT.BOSS_ROAR]: {
     src: [fromLocal('BOSS_ROAR.mp3'), fromMyinstants('mb-roar-1.mp3'), fromMyinstants('largepredatorsnarl.mp3')], // 3.1 s, deep clean roar
-    volume: 0.85,
+    volume: 0.65,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
     throttleMs: 900,
@@ -314,7 +314,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ENRAGE]: {
     src: [fromLocal('BOSS_ENRAGE.mp3'), fromMyinstants('big-monster-roar.mp3'), fromMyinstants('beastly-battler-enraged.mp3')], // 4.3 s, heavy sustained
-    volume: 0.95,
+    volume: 0.75,
     category: SFX_CATEGORY.STINGER,
     duckCombatMs: 2500,
     maxVoices: 1,
@@ -548,7 +548,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   // ── Per-boss voices: ROAR = ambient / entrance / shield absorb, ENRAGE = enrage + enraged ambient ──
   [SFX_EVENT.BOSS_ROAR_HERALD]: {
     src: [fromLocal('BOSS_ROAR_HERALD.mp3'), fromMyinstants('winter-monster-scream.mp3'), fromMyinstants('hybrid-monster-roar.mp3')], // 2.4 s shrill shriek
-    volume: 1, // source tops out ~4 dB under the -16 LUFS target (24 kHz file, peak-limited)
+    volume: 0.65,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
     throttleMs: 900,
@@ -556,7 +556,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ENRAGE_HERALD]: {
     src: [fromLocal('BOSS_ENRAGE_HERALD.mp3'), fromMyinstants('universal-monster-roar-1.mp3'), fromMyinstants('hybrid-monster-roar.mp3')], // 3.4 s
-    volume: 0.9,
+    volume: 0.75,
     category: SFX_CATEGORY.STINGER,
     duckCombatMs: 2500,
     maxVoices: 1,
@@ -565,7 +565,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ROAR_MOUNTAIN]: {
     src: [fromLocal('BOSS_ROAR_MOUNTAIN.mp3'), fromMyinstants('rar-dragon.mp3'), fromMyinstants('dragon-roar-1_rgUQSld.mp3')], // 2.9 s dark, rocky
-    volume: 0.8,
+    volume: 0.65,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
     throttleMs: 900,
@@ -573,7 +573,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ENRAGE_MOUNTAIN]: {
     src: [fromLocal('BOSS_ENRAGE_MOUNTAIN.mp3'), fromMyinstants('giant-troll-roar.mp3'), fromMyinstants('dragon-roar-1_rgUQSld.mp3')], // 3.1 s giant roar
-    volume: 0.95,
+    volume: 0.75,
     category: SFX_CATEGORY.STINGER,
     duckCombatMs: 2500,
     maxVoices: 1,
@@ -582,7 +582,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ROAR_STORM]: {
     src: [fromLocal('BOSS_ROAR_STORM.mp3'), fromMyinstants('dragon4.mp3'), fromMyinstants('dragon-roar-sfx.mp3')], // 2.9 s screeching dragon
-    volume: 0.8,
+    volume: 0.65,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
     throttleMs: 900,
@@ -590,7 +590,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ENRAGE_STORM]: {
     src: [fromLocal('BOSS_ENRAGE_STORM.mp3'), fromMyinstants('dragon-roar-long.mp3'), fromMyinstants('dragon-roar-sfx.mp3')], // long dragon roar, capped 4 s
-    volume: 0.95,
+    volume: 0.75,
     category: SFX_CATEGORY.STINGER,
     duckCombatMs: 2500,
     maxVoices: 1,
@@ -599,7 +599,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ROAR_ELDER]: {
     src: [fromLocal('BOSS_ROAR_ELDER.mp3'), fromMyinstants('dragon-roar-short.mp3'), fromMyinstants('dragon-roar-sfx.mp3')], // 2.6 s full-bodied roar
-    volume: 0.8,
+    volume: 0.65,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
     throttleMs: 900,
@@ -607,7 +607,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ENRAGE_ELDER]: {
     src: [fromLocal('BOSS_ENRAGE_ELDER.mp3'), fromMyinstants('dragon-roar-sound-effect-2.mp3'), fromMyinstants('dragon-roar-long.mp3')], // huge front-loaded roar
-    volume: 0.95,
+    volume: 0.75,
     category: SFX_CATEGORY.STINGER,
     duckCombatMs: 2500,
     maxVoices: 1,
@@ -616,7 +616,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ROAR_VOID]: {
     src: [fromLocal('BOSS_ROAR_VOID.mp3'), fromMyinstants('demon-roar.mp3'), fromMyinstants('deep-sea-monster-roar.mp3')], // demonic roar + dark tail
-    volume: 0.85,
+    volume: 0.65,
     category: SFX_CATEGORY.BOSS,
     maxVoices: 1,
     throttleMs: 900,
@@ -624,7 +624,7 @@ const REMOTE_SFX_DEFINITIONS: Record<SfxEventName, SfxDefinition> = {
   },
   [SFX_EVENT.BOSS_ENRAGE_VOID]: {
     src: [fromLocal('BOSS_ENRAGE_VOID.mp3'), fromMyinstants('very-scary-scream-metallic-echo-monster.mp3'), fromMyinstants('demon-roar.mp3')], // metallic echo
-    volume: 0.95,
+    volume: 0.75,
     category: SFX_CATEGORY.STINGER,
     duckCombatMs: 2500,
     maxVoices: 1,
