@@ -81,3 +81,9 @@ scripts/viet-tts/pretrained-models/*.pt
 scripts/viet-tts/pretrained-models/*.onnx
 scripts/viet-tts/pretrained-models/*.bin
 server/data/viet-tts-audio/*.mp3
+
+# Temporary video generation build cache
+scripts/video/frames/
+scripts/video/clips/
+scripts/video/merged_video.mp4
+/lol_live_game_promo.mp4
