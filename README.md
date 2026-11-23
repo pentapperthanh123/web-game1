@@ -8,10 +8,14 @@
 > ```
 
 ## 📁 Cấu trúc Monorepo
-- `server/`: Backend chính phục vụ game state, socket hub, TTS caster.
-- `apps/web-game1/client/`: OBS Overlay Game (Three.js WebGL 9:16).
-- `apps/web-game1/admin/`: Admin Control Portal.
-- `live-connect-gateway/` (dịch vụ ngoài): Gateway kết nối TikTok Live, chuẩn hóa sự kiện độc lập.
+- `server/`: Backend chính phục vụ game state, socket hub, TTS caster (cổng 4000).
+- `apps/web-game1/client/`: OBS Overlay Game LoL CKTG (Three.js WebGL 9:16, cổng 8000).
+- `apps/web-game1/admin/`: Admin Control Portal LoL CKTG (cổng 8001).
+- `apps/classroom-live/client/`: OBS Overlay Game Lớp Học Trực Tuyến 2.5D (cổng 8010).
+- `apps/classroom-live/admin/`: Admin Lớp Học Trực Tuyến (cổng 8011).
+- `apps/portrait-artist-3d/client/`: OBS Overlay 3D Nữ Họa Sĩ Vẽ Chân Dung (Three.js 9:16, cổng 8020).
+- `apps/portrait-artist-3d/admin/`: Admin Host Panel Họa Sĩ 3D + Auto-Bot Simulator (cổng 8021).
+- `live-connect-gateway/` (dịch vụ ngoài): Gateway kết nối TikTok Live, chuẩn hóa sự kiện độc lập (cổng 5000).
 
 Game tương tác trên **TikTok Live** cho sự kiện Chung Kết Thế Giới (CKTG) Liên Minh Huyền Thoại. Người xem chat, thả tim, follow, share và tặng quà để **triệu hồi tướng** và **cùng hạ boss** cho đội mình ủng hộ. Hai đội đối đầu trong một loạt trận BO1 / BO3 / BO5, đội gây nhiều sát thương hơn thắng ván.
 

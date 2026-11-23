@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@keyframes rainbow-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.rainbow-progress-bar {
+  background: linear-gradient(90deg, #fb7185, #fbbf24, #34d399, #38bdf8, #f472b6, #fb7185);
+  background-size: 200% 100%;
+  animation: rainbow-flow 2.8s linear infinite;
+}
+
+@keyframes float-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-bubble-pop {
+  animation: float-pop 0.24s ease-out forwards;
+}
+
+@keyframes studio-breathe {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scaleY(1);
+  }
+  50% {
+    transform: translate3d(0, -3px, 0) scaleY(1.012);
+  }
+}
+
+@keyframes studio-artist-paint {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(-0.8deg);
+  }
+  100% {
+    transform: translate3d(-3px, -4px, 0) rotate(1.1deg);
+  }
+}
+
+@keyframes studio-artist-troll-bounce {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(-2.2deg) scale(1);
+  }
+  50% {
+    transform: translate3d(-4px, -9px, 0) rotate(2.4deg) scale(1.025);
+  }
+  100% {
+    transform: translate3d(2px, -3px, 0) rotate(-1.2deg) scale(1.01);
+  }
+}
+
+@keyframes studio-dust-float {
+  0% {
+    opacity: 0.25;
+    transform: translate3d(0px, 0px, 0px);
+  }
+  100% {
+    opacity: 0.9;
+    transform: translate3d(18px, -22px, 0px);
+  }
+}
+
+@keyframes studio-cat-breathe {
+  0%,
+  100% {
+    transform: scale3d(1, 1, 1);
+  }
+  45% {
+    transform: scale3d(1.018, 1.062, 1);
+  }
+  55% {
+    transform: scale3d(1.018, 1.062, 1);
+  }
+}
+
+@keyframes studio-cat-nose-bubble {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.38) translate3d(0px, 0px, 0px);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scale(1.08) translate3d(-3px, -2px, 0px);
+  }
+}
+
+@keyframes studio-cat-zzz-float {
+  0% {
+    opacity: 0;
+    transform: translate3d(0px, 4px, 0px) scale(0.55) rotate(-8deg);
+  }
+  22% {
+    opacity: 0.95;
+    transform: translate3d(-6px, -10px, 0px) scale(0.88) rotate(6deg);
+  }
+  68% {
+    opacity: 0.85;
+    transform: translate3d(7px, -28px, 0px) scale(1.08) rotate(-6deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-4px, -46px, 0px) scale(1.22) rotate(10deg);
+  }
+}
+
+@keyframes studio-cat-dream-bob {
+  0%,
+  100% {
+    transform: translate3d(0px, 0px, 0px) scale(0.96) rotate(-4deg);
+  }
+  50% {
+    transform: translate3d(2px, -5px, 0px) scale(1.05) rotate(5deg);
+  }
+}
