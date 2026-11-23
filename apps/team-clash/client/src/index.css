@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+html {
+  font-size: 16px;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #030712;
+}
+
+/* Strobe warning when clash is near critical boundary (<20% or >80%) */
+@keyframes strobeRed {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.animate-strobe-warning {
+  animation: strobeRed 0.4s infinite ease-in-out;
+}
+
+/* Pulse animation for clash energy orb */
+@keyframes orbPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 16px #ffffff) drop-shadow(0 0 32px #ff2e93);
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 24px #ffffff) drop-shadow(0 0 48px #00d2ff);
+  }
+}
+
+.animate-orb-pulse {
+  animation: orbPulse 0.8s infinite ease-in-out;
+}
+
+/* Float badge animation for recent contributors */
+@keyframes badgeFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-badge-float {
+  animation: badgeFloat 2s infinite ease-in-out;
+}
