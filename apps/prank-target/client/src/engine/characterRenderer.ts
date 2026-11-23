@@ -9,21 +9,27 @@ export class CharacterRenderer {
 
   constructor() {
     if (typeof Image !== 'undefined') {
-      const img = new Image();
-      img.src = '/assets/target_clean.jpg';
-      img.onload = () => {
-        this.baseImage = img;
-        this.isImageLoaded = true;
-      };
-      img.onerror = () => {
-        // Fallback to reference if clean not found
-        const fallback = new Image();
-        fallback.src = '/assets/reference_target.jpg';
-        fallback.onload = () => {
-          this.baseImage = fallback;
+      const candidates = [
+        '/assets/charater.png',
+        '/assets/character-clean.png',
+        '/assets/target_clean.jpg',
+        '/assets/reference_target.jpg',
+      ];
+
+      const tryLoad = (idx: number) => {
+        if (idx >= candidates.length) return;
+        const img = new Image();
+        img.src = candidates[idx];
+        img.onload = () => {
+          this.baseImage = img;
           this.isImageLoaded = true;
         };
+        img.onerror = () => {
+          tryLoad(idx + 1);
+        };
       };
+
+      tryLoad(0);
     }
   }
 

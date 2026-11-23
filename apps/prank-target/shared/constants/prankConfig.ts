@@ -22,6 +22,8 @@ export const PERFORMANCE_3D_LIMITS = {
   DEFAULT_DECAL_LIFETIME_MS: 10000,
   CHAT_COOLDOWN_PER_USER_MS: 2500, // 2.5s per userId anti-spam
   LIKE_BATCH_INTERVAL_MS: 200,
+  LIKE_RAGE_GAIN_PER_10: 0.5,
+  LIKE_THRESHOLD_RANDOM_PRANK: 50,
 } as const;
 
 export const PERFORMANCE_LIMITS = PERFORMANCE_3D_LIMITS;
@@ -47,7 +49,7 @@ export const DEFAULT_KEYWORD_MAP: Record<PrankActionType, string[]> = {
   SURPRISE: ['surprise', 'box', 'gift', 'qua', 'quà'],
 };
 
-// 3 Left Badges: EGG, CAKE, MILK
+// 3 Left Badges: EGG, CAKE, MILK (y: 190 -> 520)
 export const BADGE_ITEMS_LEFT: ActionBadgeConfig[] = [
   {
     id: 'badge-egg',
@@ -58,55 +60,55 @@ export const BADGE_ITEMS_LEFT: ActionBadgeConfig[] = [
     subTextEn: '"egg" / 1',
     subTextVi: '"trung" / 1',
     requiredCoins: 1,
-    keywords: DEFAULT_KEYWORD_MAP.EGG,
+    keywords: ['egg', 'trung', 'trứng', '1'],
   },
   {
     id: 'badge-cake',
     action: 'CAKE',
     icon: '🎂',
     labelEn: 'CAKE',
-    labelVi: 'ÚP BÁNH',
+    labelVi: 'BÁNH',
     subTextEn: '"cake" / 3',
     subTextVi: '"banh" / 3',
     requiredCoins: 3,
-    keywords: DEFAULT_KEYWORD_MAP.CAKE,
+    keywords: ['cake', 'banh', 'bánh', '3'],
   },
   {
     id: 'badge-milk',
     action: 'MILK',
     icon: '🥛',
     labelEn: 'MILK',
-    labelVi: 'TẠT SỮA',
+    labelVi: 'SỮA',
     subTextEn: '"milk" / 2',
     subTextVi: '"sua" / 2',
     requiredCoins: 2,
-    keywords: DEFAULT_KEYWORD_MAP.MILK,
+    keywords: ['milk', 'sua', 'sữa', '2'],
   },
 ];
 
-// 3 Right Badges: WIND, BALL, SURPRISE
+// 3 Right Badges: WIND, BALL, SURPRISE (y: 190 -> 520)
 export const BADGE_ITEMS_RIGHT: ActionBadgeConfig[] = [
   {
     id: 'badge-wind',
     action: 'WIND',
     icon: '💨',
     labelEn: 'WIND',
-    labelVi: 'THỔI GIÓ',
+    labelVi: 'GIÓ',
     subTextEn: '"wind" / 1',
     subTextVi: '"gio" / 1',
     requiredCoins: 1,
-    keywords: DEFAULT_KEYWORD_MAP.WIND,
+    keywords: ['wind', 'gio', 'gió', '1'],
   },
   {
     id: 'badge-ball',
     action: 'BALL',
     icon: '🏀',
     labelEn: 'BALL',
-    labelVi: 'NÉM BÓNG',
+    labelVi: 'BÓNG',
     subTextEn: '"ball" / 2',
     subTextVi: '"bong" / 2',
     requiredCoins: 2,
-    keywords: DEFAULT_KEYWORD_MAP.BALL,
+    keywords: ['ball', 'bong', 'bóng', '2'],
   },
   {
     id: 'badge-surprise',
@@ -117,6 +119,6 @@ export const BADGE_ITEMS_RIGHT: ActionBadgeConfig[] = [
     subTextEn: '5+ Coins',
     subTextVi: '5+ Xu',
     requiredCoins: 5,
-    keywords: DEFAULT_KEYWORD_MAP.SURPRISE,
+    keywords: ['surprise', 'batngo', '5'],
   },
 ];

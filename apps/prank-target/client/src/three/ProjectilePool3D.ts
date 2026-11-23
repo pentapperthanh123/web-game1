@@ -123,20 +123,15 @@ export class ProjectilePool3D {
     item.initiatorName = initiatorName;
     item.avatarUrl = avatarUrl;
     item.progress = 0;
-    item.speed = action === 'BALL' ? 0.06 : action === 'WIND' ? 0.07 : 0.045;
+    item.speed = this.getSpeedForAction(action);
     item.arcHeight = 0.6 + Math.random() * 0.4;
 
     // Spawn from left or right outside frustum
     const fromLeft = Math.random() > 0.5;
     item.startPos.set(fromLeft ? -2.6 : 2.6, 2.0 + Math.random() * 0.6, 1.8);
+    
     // Target matches character head/chest area (y: 1.7 -> 2.45)
-    const targetY =
-      action === 'BALL' || action === 'WIND' || action === 'CAKE'
-        ? 2.45
-        : action === 'EGG'
-        ? 2.32
-        : 1.75 + (Math.random() - 0.5) * 0.2;
-
+    const targetY = this.getTargetYForAction(action);
     item.targetPos.set((Math.random() - 0.5) * 0.15, targetY, 0.08);
 
     // Show only the relevant mesh
@@ -147,6 +142,22 @@ export class ProjectilePool3D {
     item.mesh.visible = true;
 
     return item;
+  }
+
+  private getSpeedForAction(action: PrankActionType): number {
+    if (action === 'BALL') return 0.06;
+    if (action === 'WIND') return 0.07;
+    return 0.045;
+  }
+
+  private getTargetYForAction(action: PrankActionType): number {
+    if (action === 'BALL' || action === 'WIND' || action === 'CAKE') {
+      return 2.45;
+    }
+    if (action === 'EGG') {
+      return 2.32;
+    }
+    return 1.75 + (Math.random() - 0.5) * 0.2;
   }
 
   public update(onImpact: (proj: ActiveProjectile3D) => void): void {

@@ -57,10 +57,12 @@ export class SceneManager {
     this.attachmentPool = new AttachmentPool3D();
     this.particlePool = new ParticlePool3D();
 
+    // Attach decal pool directly to body spring group so they recoil with character
+    this.modelLoader.getSpringGroup().add(this.attachmentPool.sceneGroup);
+
     this.scene.add(
       this.modelLoader.rootGroup,
       this.projectilePool.sceneGroup,
-      this.attachmentPool.sceneGroup,
       this.particlePool.sceneGroup
     );
   }

@@ -11,10 +11,20 @@ import type { PrankActionType } from '@shared/types/prank';
 export const App: React.FC = () => {
   const receiverRef = useRef<CoreReceiver | null>(null);
   const triggerRef = useRef<OnPrankTriggerCallback | null>(null);
+  const cleanRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const receiver = new CoreReceiver();
     receiverRef.current = receiver;
+
+    // Attach callbacks if child components registered them earlier
+    if (triggerRef.current) {
+      receiver.setTriggerCallback(triggerRef.current);
+    }
+    if (cleanRef.current) {
+      receiver.setCleanCallback(cleanRef.current);
+    }
+
     receiver.start();
 
     return () => {
@@ -30,6 +40,7 @@ export const App: React.FC = () => {
   };
 
   const handleRegisterClean = (fn: () => void) => {
+    cleanRef.current = fn;
     if (receiverRef.current) {
       receiverRef.current.setCleanCallback(fn);
     }

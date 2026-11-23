@@ -55,6 +55,19 @@ export const TopHUD: React.FC = () => {
     }
   };
 
+  const getProgressBarColor = (): string => {
+    if (isMeltdownActive) {
+      return 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 animate-pulse';
+    }
+    if (rageMeter > 70) {
+      return 'bg-gradient-to-r from-orange-500 to-red-600';
+    }
+    if (rageMeter > 30) {
+      return 'bg-gradient-to-r from-amber-400 to-orange-500';
+    }
+    return 'bg-gradient-to-r from-emerald-500 to-teal-400';
+  };
+
   const topPranker = topPrankers[0];
 
   return (
@@ -129,15 +142,7 @@ export const TopHUD: React.FC = () => {
         {/* Progress Bar Container */}
         <div className="w-full h-4 bg-neutral-950/80 rounded-full border border-neutral-700/60 p-0.5 overflow-hidden shadow-inner relative">
           <div
-            className={`h-full rounded-full transition-all duration-200 shadow-lg ${
-              isMeltdownActive
-                ? 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 animate-pulse'
-                : rageMeter > 70
-                ? 'bg-gradient-to-r from-orange-500 to-red-600'
-                : rageMeter > 30
-                ? 'bg-gradient-to-r from-amber-400 to-orange-500'
-                : 'bg-gradient-to-r from-emerald-500 to-teal-400'
-            }`}
+            className={`h-full rounded-full transition-all duration-200 shadow-lg ${getProgressBarColor()}`}
             style={{ width: `${Math.min(100, Math.max(0, rageMeter))}%` }}
           />
 

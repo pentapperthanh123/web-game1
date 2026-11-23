@@ -95,4 +95,8 @@ export class ModelLoader3D {
   public getAnchorWorldPosition(bone: AttachmentTargetBone): THREE.Vector3 {
     return this.proceduralCharacter.getAnchorWorldPosition(bone);
   }
+
+  public getSpringGroup(): THREE.Group {
+    return this.proceduralCharacter.getSpringGroup();
+  }
 }

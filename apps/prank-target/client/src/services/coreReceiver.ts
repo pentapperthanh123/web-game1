@@ -5,6 +5,7 @@ import {
   PRANK_PORTS,
   PRANK_SYNC_CHANNEL,
 } from '@shared/constants/prankConfig';
+import { ACTION_GIFT_RULES } from '@shared/actions';
 import type { NormalizedLiveEvent, PrankSyncMessage } from '@shared/types/events';
 import type { PrankActionType } from '@shared/types/prank';
 import { usePrankStore } from '../store/prankStore';
@@ -69,17 +70,22 @@ export class CoreReceiver {
     }
 
     // 3. Like batching timer (every 200ms)
+    let communityLikeAccumulator = 0;
+
     this.likeBatchTimer = setInterval(() => {
       if (this.pendingLikeCount > 0) {
         const count = this.pendingLikeCount;
         this.pendingLikeCount = 0;
+        communityLikeAccumulator += count;
 
-        // Add slight rage
-        usePrankStore.getState().addRage(Math.min(3, count * 0.4));
+        // +0.5% per 10 likes into rageMeter
+        const rageToAdd = (count / 10) * PERFORMANCE_3D_LIMITS.LIKE_RAGE_GAIN_PER_10;
+        usePrankStore.getState().addRage(rageToAdd);
 
-        // Random prank chance if big like surge
-        if (count >= 15 && this.triggerCallback) {
-          const actions: PrankActionType[] = ['EGG', 'BALL', 'WIND'];
+        // Every 50 community likes triggers a random prank
+        if (communityLikeAccumulator >= PERFORMANCE_3D_LIMITS.LIKE_THRESHOLD_RANDOM_PRANK && this.triggerCallback) {
+          communityLikeAccumulator %= PERFORMANCE_3D_LIMITS.LIKE_THRESHOLD_RANDOM_PRANK;
+          const actions: PrankActionType[] = ['EGG', 'BALL', 'WIND', 'MILK', 'CAKE'];
           const randomAction = actions[Math.floor(Math.random() * actions.length)];
           this.triggerCallback(randomAction, 'TikTok Viewers ❤️');
         }
@@ -190,17 +196,19 @@ export class CoreReceiver {
 
     if (matchedAction && this.triggerCallback) {
       this.userCooldowns.set(userId, now);
+      const rule = ACTION_GIFT_RULES[matchedAction];
+      const rageDelta = rule ? rule.rageGain : 8;
 
       if (matchedAction === 'TAUNT') {
         // Taunt immediately boosts rage and plays taunt sound without projectile
-        usePrankStore.getState().addRage(6);
+        usePrankStore.getState().addRage(rageDelta);
         usePrankStore.getState().setExpression('FURIOUS');
         setTimeout(() => {
           usePrankStore.getState().setExpression('IDLE');
         }, 1000);
       } else {
         this.triggerCallback(matchedAction, username, event.user?.avatarUrl, 1);
-        usePrankStore.getState().addRage(4);
+        usePrankStore.getState().addRage(rageDelta);
       }
     }
   }
@@ -213,14 +221,14 @@ export class CoreReceiver {
     if (!this.triggerCallback) return;
 
     if (coins >= 30) {
-      // Large gift (30+ coins): Meltdown / Chaos Shower (6 seconds of multiple items!)
+      // Large gift (30+ coins): Chaos Shower (rain 6 random items across 4 seconds per spec)
       usePrankStore.getState().triggerMeltdown();
       const actions: PrankActionType[] = ['EGG', 'CAKE', 'BALL', 'MILK', 'WIND'];
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 6; i++) {
         setTimeout(() => {
           const act = actions[Math.floor(Math.random() * actions.length)];
-          this.triggerCallback?.(act, username, avatarUrl, Math.floor(coins / 8));
-        }, i * 450);
+          this.triggerCallback?.(act, username, avatarUrl, Math.floor(coins / 6));
+        }, i * 650);
       }
     } else if (coins >= 5) {
       // Medium gift (5-29 coins): Combo Bựa (3-4 items rapid sequence)
@@ -234,8 +242,10 @@ export class CoreReceiver {
       }
     } else {
       // Small gift (1-4 coins): Single fast prank + avatar announcement
-      usePrankStore.getState().addRage(10);
-      this.triggerCallback('EGG', username, avatarUrl, coins);
+      const smallAction: PrankActionType = coins === 3 ? 'CAKE' : coins === 2 ? 'MILK' : 'EGG';
+      const rageDelta = ACTION_GIFT_RULES[smallAction]?.rageGain || 8;
+      usePrankStore.getState().addRage(rageDelta);
+      this.triggerCallback(smallAction, username, avatarUrl, coins);
     }
   }
 

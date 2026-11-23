@@ -17,8 +17,8 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col selection:bg-amber-500 selection:text-black">
       {/* Studio Header (Full width, sleek glassmorphism) */}
-      <header className="w-full bg-neutral-900/80 backdrop-blur-md border-b border-neutral-800 px-4 md:px-8 py-3.5 sticky top-0 z-40">
-        <div className="max-w-[1780px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <header className="w-full bg-neutral-900/80 backdrop-blur-md border-b border-neutral-800 px-4 md:px-6 py-3 sticky top-0 z-40">
+        <div className="max-w-[1920px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-black shadow-lg shadow-amber-500/20 shrink-0">
@@ -70,7 +70,7 @@ export const App: React.FC = () => {
       </header>
 
       {/* Main Studio Workspace (Split-screen: Left Controls, Right Preview) */}
-      <div className="flex-1 max-w-[1780px] w-full mx-auto px-4 md:px-8 py-6 flex flex-col lg:flex-row gap-6 items-start">
+      <div className="flex-1 max-w-[1920px] w-full mx-auto px-4 md:px-6 py-5 flex flex-col lg:flex-row gap-6 items-start">
         {/* Left Side: Host Control Dashboard */}
         <div className="flex-1 w-full min-w-0 space-y-6">
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">

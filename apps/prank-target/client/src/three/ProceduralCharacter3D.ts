@@ -28,7 +28,7 @@ export class ProceduralCharacter3D {
   }
 
   /**
-   * Builds the central 3D character using the High-Res CGI Pixar-style asset
+   * Builds the central 3D character using the High-Res CGI clean asset
    * mapped onto a dynamic 3D plane with depth & spring physics.
    */
   private buildCharacterMesh(): void {
@@ -36,33 +36,38 @@ export class ProceduralCharacter3D {
 
     // Texture loader with sRGB encoding for vibrant colors
     const loader = new THREE.TextureLoader();
-    loader.load(
+    const assetCandidates = [
+      '/assets/charater.png',
+      '/assets/character-clean.png',
       '/assets/target_clean.jpg',
-      (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        this.textureLoaded = true;
+      '/assets/reference_target.jpg',
+    ];
 
-        if (this.characterPlane) {
-          const mat = this.characterPlane.material as THREE.MeshBasicMaterial;
-          mat.map = texture;
-          mat.needsUpdate = true;
-        }
-      },
-      undefined,
-      () => {
-        // Fallback to reference if target_clean is not found
-        loader.load('/assets/reference_target.jpg', (fallbackTex) => {
-          fallbackTex.colorSpace = THREE.SRGBColorSpace;
+    const tryLoad = (index: number) => {
+      if (index >= assetCandidates.length) return;
+      loader.load(
+        assetCandidates[index],
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          this.textureLoaded = true;
+
           if (this.characterPlane) {
             const mat = this.characterPlane.material as THREE.MeshBasicMaterial;
-            mat.map = fallbackTex;
+            mat.map = texture;
+            mat.color.setHex(0xffffff);
             mat.needsUpdate = true;
           }
-        });
-      }
-    );
+        },
+        undefined,
+        () => {
+          tryLoad(index + 1);
+        }
+      );
+    };
+
+    tryLoad(0);
 
     // Plane geometry matching 9:16 vertical ratio (width: 3.6, height: 6.4)
     const geo = new THREE.PlaneGeometry(3.6, 6.4, 16, 16);
@@ -214,5 +219,9 @@ export class ProceduralCharacter3D {
     }
 
     return target;
+  }
+
+  public getSpringGroup(): THREE.Group {
+    return this.bodySpringGroup;
   }
 }
