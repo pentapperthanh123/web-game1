@@ -206,22 +206,33 @@ export const LiveSimulatorPanel: React.FC = () => {
           <h2 className="text-base font-black text-stone-100">Bộ Giả Lập Live (Simulator)</h2>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            const next = !isAutoBotRunning;
-            setAutoBotRunning(next);
-            pushLog(next ? '🤖 Bật Auto-Bot Demo liên hoàn' : '⏹ Dừng Auto-Bot Demo');
-          }}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
-            isAutoBotRunning
-              ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40'
-              : 'bg-emerald-500 hover:bg-emerald-400 text-stone-950'
-          }`}
-        >
-          {isAutoBotRunning ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-          {isAutoBotRunning ? 'Dừng Auto-Bot' : 'Auto-Bot Demo'}
-        </button>
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
+              isAutoBotRunning
+                ? 'bg-rose-950/80 border-rose-500/60 text-rose-300 animate-pulse'
+                : 'bg-stone-950 border-stone-800 text-stone-400'
+            }`}
+          >
+            {isAutoBotRunning ? '● Đang chạy' : '○ Đang tắt'}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !isAutoBotRunning;
+              setAutoBotRunning(next);
+              pushLog(next ? '🤖 Bật Auto-Bot Demo liên hoàn' : '⏹ Dừng Auto-Bot Demo');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+              isAutoBotRunning
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40'
+                : 'bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700'
+            }`}
+          >
+            {isAutoBotRunning ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-emerald-400" />}
+            {isAutoBotRunning ? 'Dừng Auto-Bot' : 'Bật Auto-Bot'}
+          </button>
+        </div>
       </div>
 
       {/* Quick Simulation Buttons */}

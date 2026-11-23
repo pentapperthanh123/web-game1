@@ -327,6 +327,10 @@ export const StudioStage25D: React.FC = () => {
       ctx.drawImage(engine.displayCanvas, 0, 0, target.width, target.height);
     };
 
+    // Initialize easel canvas to clean blank paper on mount
+    engine.clearToBlankPaper();
+    copyEngineToDisplay();
+
     const preparePortraitAsync = async (sessionId: string) => {
       const state = useStudioStore.getState();
       const sess = state.activeSession;

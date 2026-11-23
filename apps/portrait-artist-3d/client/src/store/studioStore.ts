@@ -74,81 +74,6 @@ function createQueueId(userId: string): string {
   return `${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
-// Pre-seeded initial showcase state with real user portrait photos (/assets/avatars/user-1.png .. user-8.png)
-const INITIAL_ACTIVE_ENTRY: QueueEntry = {
-  id: 'seed_active_phuong_nhi_8',
-  user: {
-    id: 'phuong_nhi_8',
-    username: 'phuongnhi8',
-    nickname: 'Phương Nhi 8',
-    avatarUrl: '/assets/avatars/user-1.png',
-  },
-  isVip: false,
-  isRoyalVip: false,
-  enqueuedAt: Date.now() - 12000,
-  giftCoins: 0,
-};
-
-const INITIAL_VIP_QUEUE: QueueEntry[] = [
-  {
-    id: 'seed_vip_minh_anh_1',
-    user: {
-      id: 'minh_anh_1',
-      username: 'minhanh1',
-      nickname: 'Minh Anh 1',
-      avatarUrl: '/assets/avatars/user-2.png',
-    },
-    isVip: true,
-    isRoyalVip: true,
-    requestedStyle: 'oil_gold',
-    enqueuedAt: Date.now() - 9000,
-    giftCoins: 50,
-    giftName: 'Vương Miện',
-  },
-];
-
-const INITIAL_NORMAL_QUEUE: QueueEntry[] = [
-  {
-    id: 'seed_norm_gia_bao_2',
-    user: {
-      id: 'gia_bao_2',
-      username: 'giabao2',
-      nickname: 'Gia Bảo 2',
-      avatarUrl: '/assets/avatars/user-3.png',
-    },
-    isVip: false,
-    isRoyalVip: false,
-    enqueuedAt: Date.now() - 7500,
-    giftCoins: 0,
-  },
-  {
-    id: 'seed_norm_khanh_linh_3',
-    user: {
-      id: 'khanh_linh_3',
-      username: 'khanhlinh3',
-      nickname: 'Khánh Linh 3',
-      avatarUrl: '/assets/avatars/user-4.png',
-    },
-    isVip: false,
-    isRoyalVip: false,
-    enqueuedAt: Date.now() - 5000,
-    giftCoins: 0,
-  },
-  {
-    id: 'seed_norm_tuan_kiet_4',
-    user: {
-      id: 'tuan_kiet_4',
-      username: 'tuankiet4',
-      nickname: 'Tuấn Kiệt 4',
-      avatarUrl: '/assets/avatars/user-5.png',
-    },
-    isVip: false,
-    isRoyalVip: false,
-    enqueuedAt: Date.now() - 3000,
-    giftCoins: 0,
-  },
-];
-
 export const INITIAL_SEEDED_GALLERY: GalleryFrameRecord[] = [
   {
     id: 'seed_gal_1',
@@ -275,32 +200,23 @@ function startNextQueuedPortrait(state: StudioStoreState, nowMs: number): Partia
 }
 
 export const useStudioStore = create<StudioStoreState>((set, get) => ({
-  phase: 'WALK_IN',
+  phase: 'IDLE_WAIT',
   phaseElapsedSec: 0,
   cameraPreset: 'WIDE_STUDIO',
   artistMood: 'IDLE',
-  activeSession: {
-    entry: INITIAL_ACTIVE_ENTRY,
-    style: 'sketch',
-    progress: 0,
-    startedAt: Date.now(),
-    isRoyalFrame: false,
-    trollApplied: false,
-    modelSpeech: null,
-    modelSpeechUntil: 0,
-  },
-  vipQueue: [...INITIAL_VIP_QUEUE],
-  normalQueue: [...INITIAL_NORMAL_QUEUE],
+  activeSession: null,
+  vipQueue: [],
+  normalQueue: [],
   gallery: [...INITIAL_SEEDED_GALLERY],
   totalPaintedCount: INITIAL_SEEDED_GALLERY.length,
-  communityLikes: 120,
+  communityLikes: 0,
   paintSpeedMultiplier: STUDIO_LIMITS.MIN_SPEED_MULTIPLIER,
   lastLikeAtMs: 0,
   vipSpotlightUntilMs: 0,
   vipSpotlightLabel: null,
   vipHatActiveUntil: 0,
-  artistSpeech: STUDIO_STRINGS.en.speechWalkIn(INITIAL_ACTIVE_ENTRY.user.nickname),
-  artistSpeechUntilMs: Date.now() + TURN_TIMING_SEC.ARTIST_SPEECH_DURATION * 1000,
+  artistSpeech: null,
+  artistSpeechUntilMs: 0,
   lastPasserbyAtMs: 0,
   isConnectedToCore: false,
   artistMode: 'PROCEDURAL_CHIBI',
