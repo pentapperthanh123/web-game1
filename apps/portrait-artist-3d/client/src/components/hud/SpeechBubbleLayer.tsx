@@ -19,10 +19,10 @@ export const SpeechBubbleLayer: React.FC = () => {
   const modelSpeech = useStudioStore((s) => s.activeSession?.modelSpeech ?? null);
   const modelName = useStudioStore((s) => s.activeSession?.entry.user.nickname ?? '');
 
-  const artistBubbleWidth = 256;
-  const artistLeft = clampBubbleLeft(444, artistBubbleWidth);
+  const artistBubbleWidth = 172;
+  const artistLeft = clampBubbleLeft(488, artistBubbleWidth);
 
-  const modelBubbleWidth = 204;
+  const modelBubbleWidth = 186;
   const modelLeft = clampBubbleLeft(128, modelBubbleWidth);
 
   return (
@@ -39,16 +39,16 @@ export const SpeechBubbleLayer: React.FC = () => {
         </div>
       )}
 
-      {/* Female Artist Speech Bubble (clamped above artist beret at top: 472px, well below gallery frames) */}
+      {/* Female Artist Speech Bubble (clamped above artist beret at top: 482px, well below gallery frames) */}
       {artistSpeech && (
         <div
-          style={{ top: 472, left: artistLeft, width: artistBubbleWidth }}
-          className="absolute animate-bubble-pop rounded-2xl bg-amber-50/96 border-2 border-rose-400 px-3 py-2 shadow-xl"
+          style={{ top: 482, left: artistLeft, width: artistBubbleWidth }}
+          className="absolute animate-bubble-pop rounded-2xl bg-amber-50/96 border-2 border-rose-400 px-3 py-1.5 shadow-xl"
         >
-          <p className="text-[12px] font-bold text-stone-800 leading-snug text-center">
+          <p className="text-[13px] font-black text-stone-800 leading-snug text-center tracking-tight">
             {artistSpeech}
           </p>
-          <div className="absolute -bottom-2 right-14 w-3.5 h-3.5 bg-amber-50 border-r-2 border-b-2 border-rose-400 rotate-45" />
+          <div className="absolute -bottom-2 right-12 w-3.5 h-3.5 bg-amber-50 border-r-2 border-b-2 border-rose-400 rotate-45" />
         </div>
       )}
 

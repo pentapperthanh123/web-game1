@@ -40,6 +40,42 @@
   }
 }
 
+@keyframes queue-char-bounce {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1, 1);
+  }
+  35% {
+    transform: translate3d(0, -6px, 0) scale(0.98, 1.02);
+  }
+  70% {
+    transform: translate3d(0, 1px, 0) scale(1.02, 0.98);
+  }
+}
+
+@keyframes flash-pulse-cyan {
+  0% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.75);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(56, 189, 248, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+  }
+}
+
+@keyframes flash-pulse-gold {
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.9);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(251, 191, 36, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
 @keyframes studio-artist-paint {
   0% {
     transform: translate3d(0, 0, 0) rotate(-0.8deg);

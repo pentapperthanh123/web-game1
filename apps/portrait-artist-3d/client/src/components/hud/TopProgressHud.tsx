@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Flame, Heart, Image as ImageIcon, Users } from 'lucide-react';
 import { STUDIO_STRINGS } from '../../../../shared/constants/i18nStrings';
-import { STYLE_LABELS } from '../../../../shared/constants/studioConfig';
 import { STAGE_LAYOUT } from '../../constants/stageLayout';
 import { getDemoUserAvatarUrl } from '../../engine/painting/avatarLoader';
 import { useStudioStore } from '../../store/studioStore';
@@ -28,7 +27,6 @@ export const TopProgressHud: React.FC = () => {
     Math.round(((communityLikes % config.communityLikeGoal) / config.communityLikeGoal) * 100)
   );
 
-  const styleInfo = activeSession ? STYLE_LABELS[activeSession.style] : null;
   const activeUserId = activeSession?.entry.user.id ?? '';
   const activeAvatarUrl = activeSession?.entry.user.avatarUrl ?? '';
 
@@ -100,14 +98,6 @@ export const TopProgressHud: React.FC = () => {
               <span className="text-sm font-black text-stone-900 truncate">
                 {activeSession ? activeSession.entry.user.nickname : strings.waitingForModel}
               </span>
-              {styleInfo && (
-                <span
-                  style={{ backgroundColor: styleInfo.badgeColor }}
-                  className="text-[10px] font-black text-white px-2 py-0.5 rounded-full shrink-0"
-                >
-                  {styleInfo[config.locale]}
-                </span>
-              )}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">

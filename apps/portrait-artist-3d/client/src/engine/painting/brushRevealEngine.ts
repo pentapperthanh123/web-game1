@@ -331,6 +331,7 @@ export class BrushRevealEngine {
   /**
    * Renders the accumulated brushstroke canvas onto `displayCanvas` plus a smooth progressive
    * phase under-wash and a subtle wet-paint sheen right under the active brush tip (zero ugly icon!).
+   * Guarantees at 0% to ~8% that NO full facial features pre-render globally onto blank paper.
    */
   private composeDisplayFrame(
     activeU: number,
@@ -343,12 +344,15 @@ export class BrushRevealEngine {
     this.ctx.clearRect(0, 0, SIZE, SIZE);
     this.ctx.drawImage(this.accumCanvas, 0, 0);
 
-    // Smooth progressive under-wash blend so the portrait materializes harmoniously across the whole canvas
-    // alongside the localized brush strokes (eliminating any harsh half-painted horizontal cut!)
+    // Smooth progressive under-wash blend so the portrait materializes harmoniously across the canvas.
+    // Strictly zero full-face pre-render at low progress: only pencil dabs touched by brush appear below 8%.
     this.ctx.save();
     if (phase === 'SKETCH') {
-      this.ctx.globalAlpha = clampValue(phaseProgress * 0.55, 0, 0.55);
-      this.ctx.drawImage(this.assets.sketchLineCanvas, 0, 0);
+      const sketchAlpha = overallProgress < 0.08 ? 0 : clampValue((overallProgress - 0.08) * 0.45, 0, 0.22);
+      if (sketchAlpha > 0) {
+        this.ctx.globalAlpha = sketchAlpha;
+        this.ctx.drawImage(this.assets.sketchLineCanvas, 0, 0);
+      }
     } else if (phase === 'BASE_COLOR') {
       this.ctx.globalAlpha = clampValue(phaseProgress * 0.48, 0, 0.48);
       this.ctx.drawImage(this.assets.baseColorCanvas, 0, 0);
@@ -419,6 +423,10 @@ export class BrushRevealEngine {
   ): BrushPointUV {
     if (!this.assets) return this.lastBrushUV;
     const clamped = clampValue(progress, 0, 1);
+    if (clamped <= 0.001) {
+      this.clearToBlankPaper();
+      return this.lastBrushUV;
+    }
     const sketchEnd = PAINT_PROGRESS_THRESHOLDS.SKETCH_PHASE_END; // 0.25
     const colorEnd = PAINT_PROGRESS_THRESHOLDS.COLOR_PHASE_END; // 0.75
 

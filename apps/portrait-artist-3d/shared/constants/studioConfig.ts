@@ -61,8 +61,8 @@ export const DEFAULT_CHAT_KEYWORDS: readonly string[] = [
 ];
 
 export const DEFAULT_LIVE_CONFIG: LiveStudioConfig = {
-  locale: 'vi',
-  studioName: 'Xưởng Vẽ Nắng Chiều',
+  locale: 'en',
+  studioName: 'Sunset Studio',
   basePaintDurationSec: 20,
   likeSpeedBoostStep: 0.25,
   maxPaintSpeedMultiplier: 3.5,

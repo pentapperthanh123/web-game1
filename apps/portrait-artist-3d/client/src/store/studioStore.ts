@@ -28,7 +28,10 @@ export type StudioVfxSignal =
   | { kind: 'HEARTS'; count: number }
   | { kind: 'CONFETTI'; count: number }
   | { kind: 'PASSERBY' }
-  | { kind: 'CLEAR_GALLERY' };
+  | { kind: 'CLEAR_GALLERY' }
+  | { kind: 'CHAT_JOIN_FLASH' }
+  | { kind: 'BRUSH_SPARK' }
+  | { kind: 'GIFT_EASEL_FLASH'; isRoyal: boolean };
 
 type VfxListener = (signal: StudioVfxSignal) => void;
 const vfxListeners = new Set<VfxListener>();
@@ -296,7 +299,7 @@ export const useStudioStore = create<StudioStoreState>((set, get) => ({
   vipSpotlightUntilMs: 0,
   vipSpotlightLabel: null,
   vipHatActiveUntil: 0,
-  artistSpeech: STUDIO_STRINGS.vi.speechWalkIn(INITIAL_ACTIVE_ENTRY.user.nickname),
+  artistSpeech: STUDIO_STRINGS.en.speechWalkIn(INITIAL_ACTIVE_ENTRY.user.nickname),
   artistSpeechUntilMs: Date.now() + TURN_TIMING_SEC.ARTIST_SPEECH_DURATION * 1000,
   lastPasserbyAtMs: 0,
   isConnectedToCore: false,
@@ -335,6 +338,7 @@ export const useStudioStore = create<StudioStoreState>((set, get) => ({
       giftCoins: 0,
     };
 
+    emitVfx({ kind: 'CHAT_JOIN_FLASH' });
     set({ normalQueue: [...state.normalQueue, entry] });
   },
 
@@ -357,6 +361,7 @@ export const useStudioStore = create<StudioStoreState>((set, get) => ({
     const hitCommunityGoal = nextBucket > prevBucket;
 
     emitVfx({ kind: 'HEARTS', count: Math.min(12, 3 + Math.ceil(safeCount / 3)) });
+    emitVfx({ kind: 'BRUSH_SPARK' });
     if (hitCommunityGoal) {
       emitVfx({ kind: 'CONFETTI', count: 32 });
       studioSfx.playCompleteTing();
@@ -406,6 +411,7 @@ export const useStudioStore = create<StudioStoreState>((set, get) => ({
       const line = strings.speechRoyalVip(user.nickname);
       studioSfx.playVipChime();
       studioSfx.speakLine(line, state.config.locale, state.config.micMode);
+      emitVfx({ kind: 'GIFT_EASEL_FLASH', isRoyal: true });
       emitVfx({ kind: 'CONFETTI', count: 30 });
       emitVfx({ kind: 'HEARTS', count: 14 });
 
@@ -439,6 +445,7 @@ export const useStudioStore = create<StudioStoreState>((set, get) => ({
         studioSfx.playVipChime();
       }
       studioSfx.speakLine(line, state.config.locale, state.config.micMode);
+      emitVfx({ kind: 'GIFT_EASEL_FLASH', isRoyal: false });
       emitVfx({ kind: 'HEARTS', count: 10 });
 
       if (state.activeSession && (state.phase === 'PAINTING' || state.phase === 'WALK_IN')) {
@@ -500,6 +507,7 @@ export const useStudioStore = create<StudioStoreState>((set, get) => ({
     const line = strings.speechVipWelcome(user.nickname);
     studioSfx.playVipChime();
     studioSfx.speakLine(line, state.config.locale, state.config.micMode);
+    emitVfx({ kind: 'GIFT_EASEL_FLASH', isRoyal: false });
     emitVfx({ kind: 'HEARTS', count: 14 });
 
     set({

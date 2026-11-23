@@ -31,30 +31,37 @@ export const LiveConfigPanel: React.FC = () => {
           <h2 className="text-base font-black text-stone-100">Cấu Hình Live Studio</h2>
         </div>
 
-        {/* Quick VN / EN Locale Toggle */}
-        <div className="flex items-center rounded-lg bg-stone-950 border border-stone-800 p-0.5">
+        {/* Quick EN / VI Locale Toggle */}
+        <div className="flex items-center rounded-xl bg-stone-950 border border-stone-800 p-1 gap-1">
           <button
             type="button"
-            onClick={() => updateConfig({ locale: 'vi' })}
-            className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 cursor-pointer ${
-              config.locale === 'vi'
-                ? 'bg-amber-500 text-stone-950'
+            onClick={() => {
+              updateConfig({ locale: 'en', studioName: 'Sunset Studio' });
+              pushLog('Chuyển ngôn ngữ sang EN (Sunset Studio)');
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all ${
+              config.locale === 'en'
+                ? 'bg-amber-500 text-stone-950 shadow'
                 : 'text-stone-400 hover:text-white'
             }`}
           >
-            <Globe className="w-3 h-3" />
-            VN
+            <Globe className="w-3.5 h-3.5" />
+            EN (English)
           </button>
           <button
             type="button"
-            onClick={() => updateConfig({ locale: 'en' })}
-            className={`px-2.5 py-1 rounded-md text-xs font-bold cursor-pointer ${
-              config.locale === 'en'
-                ? 'bg-amber-500 text-stone-950'
+            onClick={() => {
+              updateConfig({ locale: 'vi', studioName: 'Xưởng Vẽ' });
+              pushLog('Chuyển ngôn ngữ sang VI (Xưởng Vẽ)');
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all ${
+              config.locale === 'vi'
+                ? 'bg-amber-500 text-stone-950 shadow'
                 : 'text-stone-400 hover:text-white'
             }`}
           >
-            EN
+            <Globe className="w-3.5 h-3.5" />
+            VI (Tiếng Việt)
           </button>
         </div>
       </div>
@@ -239,6 +246,37 @@ export const LiveConfigPanel: React.FC = () => {
           className="w-full rounded-xl bg-stone-950 border border-stone-800 px-3 py-1.5 text-xs font-mono text-stone-200 focus:outline-none focus:border-amber-500"
         />
       </label>
+      {/* Gift Perks Reference Card */}
+      <div className="rounded-xl bg-stone-950/80 border border-stone-800 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-amber-400 uppercase tracking-wide">
+            {config.locale === 'en' ? 'TikTok LIVE Gift Perks' : 'Mốc Quà Tặng TikTok LIVE'}
+          </span>
+          <span className="text-[10px] text-stone-500 font-mono">
+            {config.locale === 'en' ? 'Bottom safe zone clean' : 'Vùng an toàn trống cho chat'}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <div className="bg-stone-900/90 border border-stone-800 rounded-lg p-2">
+            <span className="font-black text-rose-400 block">🌹 1–4 {config.locale === 'en' ? 'coins' : 'xu'}</span>
+            <span className="text-stone-300 text-[11px] font-bold">
+              {config.locale === 'en' ? 'VIP Line Jump' : 'Nhảy hàng VIP'}
+            </span>
+          </div>
+          <div className="bg-stone-900/90 border border-stone-800 rounded-lg p-2">
+            <span className="font-black text-amber-400 block">🎨 5–29 {config.locale === 'en' ? 'coins' : 'xu'}</span>
+            <span className="text-stone-300 text-[11px] font-bold">
+              {config.locale === 'en' ? 'Style / Troll Mode' : 'Đổi style / Vẽ Troll'}
+            </span>
+          </div>
+          <div className="bg-stone-900/90 border border-stone-800 rounded-lg p-2">
+            <span className="font-black text-yellow-400 block">👑 30+ {config.locale === 'en' ? 'coins' : 'xu'}</span>
+            <span className="text-stone-300 text-[11px] font-bold">
+              {config.locale === 'en' ? 'Royal Frame + Special Hat' : 'Khung Hoàng Gia + Đổi Mũ'}
+            </span>
+          </div>
+        </div>
+      </div>
     </section>
   );
 };

@@ -111,7 +111,7 @@ function buildInitialSeededGalleryCards(): GalleryCardView[] {
   const out: GalleryCardView[] = [];
   for (const item of INITIAL_SEEDED_GALLERY) {
     const src = drawProceduralChibiPortrait(item.userId);
-    engine.preparePortrait(src, item.style, item.userId, item.isRoyalFrame, 'vi');
+    engine.preparePortrait(src, item.style, item.userId, item.isRoyalFrame, 'en');
     engine.updateProgress(1);
     const snap = engine.createGallerySnapshotCanvas(item.nickname, item.isRoyalFrame);
     out.push({
@@ -236,6 +236,8 @@ export const StudioStage25D: React.FC = () => {
   const [activeAvatarSrc, setActiveAvatarSrc] = useState<string>('');
   const [catDreamIdx, setCatDreamIdx] = useState<number>(0);
   const [isCatPurring, setIsCatPurring] = useState<boolean>(false);
+  const [isQueueFlashing, setIsQueueFlashing] = useState<boolean>(false);
+  const [easelFlash, setEaselFlash] = useState<'NONE' | 'GIFT' | 'ROYAL'>('NONE');
 
   // Rotate the sleeping cat's dream icon every 9 seconds & trigger cute purr hearts on VIP/fast speed
   useEffect(() => {
@@ -284,7 +286,7 @@ export const StudioStage25D: React.FC = () => {
           avatarProxyUrl: '',
         });
         if (cancelled) return;
-        engine.preparePortrait(loaded.canvas, item.style, item.userId, item.isRoyalFrame, 'vi');
+        engine.preparePortrait(loaded.canvas, item.style, item.userId, item.isRoyalFrame, config.locale);
         engine.updateProgress(1);
         const snap = engine.createGallerySnapshotCanvas(item.nickname, item.isRoyalFrame);
         cards.push({
@@ -381,6 +383,14 @@ export const StudioStage25D: React.FC = () => {
         setGalleryCards([]);
         engine.clearToBlankPaper();
         copyEngineToDisplay();
+      } else if (signal.kind === 'CHAT_JOIN_FLASH') {
+        setIsQueueFlashing(true);
+        window.setTimeout(() => setIsQueueFlashing(false), 900);
+      } else if (signal.kind === 'BRUSH_SPARK') {
+        spawnParticles(6, false);
+      } else if (signal.kind === 'GIFT_EASEL_FLASH') {
+        setEaselFlash(signal.isRoyal ? 'ROYAL' : 'GIFT');
+        window.setTimeout(() => setEaselFlash('NONE'), 1400);
       }
     });
 
@@ -466,7 +476,7 @@ export const StudioStage25D: React.FC = () => {
       }
 
       // Smoothly lerp the right arm shoulder rotation & reach scaleX toward the current brush stroke
-      const isActivelyPainting = st.phase === 'PAINTING' && Boolean(sess) && (sess.progress ?? 0) > 0;
+      const isActivelyPainting = st.phase === 'PAINTING' && sess !== null && sess.progress > 0;
       const targetArm = computeTargetArmPose(
         brushUVRef.current.u,
         brushUVRef.current.v,
@@ -756,8 +766,10 @@ export const StudioStage25D: React.FC = () => {
           })}
         </div>
 
-        {/* LAYER 2: Left Waiting Queue (3 distinct Chibi variants, ZERO hue-rotate so skin stays 100% natural!) */}
-        <div className="absolute inset-0 pointer-events-none">
+        {/* LAYER 2: Left Waiting Queue (3 distinct Chibi variants with gentle bounce & breathing) */}
+        <div className={`absolute inset-0 pointer-events-none transition-all duration-300 ${
+          isQueueFlashing ? 'ring-2 ring-sky-400/70 rounded-3xl' : ''
+        }`}>
           {queueSlots.map((slot, slotIdx) => {
             const entry = visibleQueue[slotIdx];
             if (!entry) return null;
@@ -769,8 +781,8 @@ export const StudioStage25D: React.FC = () => {
             const variantSrc = pickStandingChibiVariant(entry.user.id, slotIdx);
             const themeClass = QUEUE_TAG_THEMES[slotIdx % QUEUE_TAG_THEMES.length];
             const shortName =
-              entry.user.nickname.length > 10
-                ? `${entry.user.nickname.slice(0, 9)}…`
+              entry.user.nickname.length > 7
+                ? `${entry.user.nickname.slice(0, 6)}…`
                 : entry.user.nickname;
 
             return (
@@ -783,7 +795,9 @@ export const StudioStage25D: React.FC = () => {
                   height: spriteH,
                   zIndex: Math.round(slot.feetY),
                 }}
-                className="absolute transition-all duration-300"
+                className={`absolute transition-all duration-300 ${
+                  isQueueFlashing && slotIdx === visibleQueue.length - 1 ? 'animate-pulse' : ''
+                }`}
               >
                 <div
                   style={{
@@ -802,7 +816,7 @@ export const StudioStage25D: React.FC = () => {
                   alt={entry.user.nickname}
                   draggable={false}
                   style={{
-                    animation: `studio-breathe ${2.4 + slotIdx * 0.3}s ease-in-out infinite`,
+                    animation: `queue-char-bounce ${2.6 + slotIdx * 0.35}s ease-in-out infinite ${slotIdx * 0.25}s`,
                   }}
                   className="w-full h-full object-contain drop-shadow-sm"
                 />
@@ -894,7 +908,7 @@ export const StudioStage25D: React.FC = () => {
           </div>
         )}
 
-        {/* LAYER 4: Easel Canvas (`BrushRevealEngine`) with Stretched-Canvas Edge & Royal Glow */}
+        {/* LAYER 4: Easel Canvas (`BrushRevealEngine`) with Stretched-Canvas Edge & Royal/Gift Glow */}
         <div
           style={{
             left: easelCanvas.x,
@@ -906,7 +920,11 @@ export const StudioStage25D: React.FC = () => {
             zIndex: 920,
           }}
           className={`absolute overflow-hidden rounded-[4px] pointer-events-none transition-all duration-500 ${
-            activeSession?.isRoyalFrame
+            easelFlash === 'ROYAL'
+              ? 'ring-4 ring-amber-400 shadow-[0_0_36px_rgba(251,191,36,0.95),0_0_16px_rgba(245,158,11,0.85)] border-2 border-amber-500'
+              : easelFlash === 'GIFT'
+              ? 'ring-4 ring-rose-400 shadow-[0_0_28px_rgba(244,63,94,0.85),0_0_14px_rgba(251,191,36,0.7)] border-2 border-rose-500'
+              : activeSession?.isRoyalFrame
               ? 'ring-4 ring-amber-400 shadow-[0_0_24px_rgba(245,158,11,0.55),0_8px_20px_rgba(0,0,0,0.4)] border-2 border-amber-600'
               : 'border-[2.5px] border-amber-950/30 shadow-[0_4px_16px_rgba(45,23,10,0.38),inset_0_0_8px_rgba(60,30,10,0.1)]'
           }`}
