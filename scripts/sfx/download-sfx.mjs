@@ -8,8 +8,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SFX_SOURCE_FILE = path.join(REPO_ROOT, 'client/src/constants/sfx.ts');
-const OUTPUT_DIR = path.join(REPO_ROOT, 'client/public/sfx');
+const CLIENT_DIR = existsSync(path.join(REPO_ROOT, 'apps/web-game1/client'))
+  ? path.join(REPO_ROOT, 'apps/web-game1/client')
+  : path.join(REPO_ROOT, 'client');
+const SFX_SOURCE_FILE = path.join(CLIENT_DIR, 'src/constants/sfx.ts');
+const OUTPUT_DIR = path.join(CLIENT_DIR, 'public/sfx');
 const MANIFEST_FILE = path.join(OUTPUT_DIR, 'manifest.json');
 const MYINSTANTS_BASE = 'https://www.myinstants.com/media/sounds/';
 const REQUEST_TIMEOUT_MS = 20000;

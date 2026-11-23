@@ -136,7 +136,7 @@ const createGoogleTranslateProvider = (): TtsProvider => ({
 export const createElevenLabsProvider = (
   apiKey: string,
   customVoices?: Partial<Record<CasterVoiceRole, string>>,
-  modelId = ELEVENLABS_TTS.DEFAULT_MODEL,
+  modelId: string = ELEVENLABS_TTS.DEFAULT_MODEL,
   isForceMale = false
 ): TtsProvider => {
   const maleVoice = customVoices?.[CASTER_VOICE_ROLE.MALE] || ELEVENLABS_TTS.DEFAULT_VOICE[CASTER_VOICE_ROLE.MALE];
@@ -154,7 +154,7 @@ export const createElevenLabsProvider = (
       const voiceId = effectiveRole === CASTER_VOICE_ROLE.MALE ? maleVoice : femaleVoice;
       const endpoint = `${ELEVENLABS_TTS.ENDPOINT_TEMPLATE.replace('{voice_id}', voiceId)}?output_format=${ELEVENLABS_TTS.OUTPUT_FORMAT}`;
 
-      let stability = ELEVENLABS_TTS.DEFAULT_SETTINGS.stability;
+      let stability: number = ELEVENLABS_TTS.DEFAULT_SETTINGS.stability;
       let speed = 1.0;
       if (options.intensity === CASTER_EMOTION_INTENSITY.HYPE) {
         stability = 0.4;

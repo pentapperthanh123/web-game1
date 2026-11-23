@@ -1,0 +1,436 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { getIsAmbienceEnabled, setIsAmbienceEnabled } from '../../services/arenaAmbience';
+import { useTranslation } from 'react-i18next';
+import { Volume2, VolumeX, UserCheck, ShieldAlert, Music, Sparkles } from 'lucide-react';
+import { useGameStore } from '../../store/gameStore';
+import { audioService } from '../../services/audioService';
+import { TeamScoreBoard } from './TeamScoreBoard';
+import { DPSLeaderboard } from './DPSLeaderboard';
+import { ChampionDamageNumbers } from './ChampionDamageNumbers';
+import { GiftBanner } from './GiftBanner';
+import { MiniRoseToast } from './gift/MiniRoseToast';
+import { FloatingDamage } from './FloatingDamage';
+import { CasterSubtitle } from './CasterSubtitle';
+import { BossSkillStatusPanel } from './bossSkills/BossSkillStatusPanel';
+import { BossSkillCastLayer } from './bossSkills/BossSkillCastLayer';
+import { CasterVoiceUnlockHint } from './CasterVoiceUnlockHint';
+import { LiveChatStream } from './LiveChatStream';
+import { KillFeed, WipeStamp } from './KillFeed';
+import { RoundIntroOverlay } from './roundIntro/RoundIntroOverlay';
+import { CombatDeployBanner } from './roundIntro/CombatDeployBanner';
+import { ComebackBanner } from './ComebackBanner';
+import { CombatHypeBanner } from './CombatHypeBanner';
+import { LikeCounter } from './LikeCounter';
+import { ParticipationGuidePanel } from './ParticipationGuidePanel';
+import { FinisherAnnouncementBanner } from './FinisherAnnouncementBanner';
+import { BossDeathVFX2D } from '../arena/BossDeathVFX2D';
+import { ArenaIdleRallyCTA } from './ArenaIdleRallyCTA';
+import { VictoryOverlay } from './VictoryOverlay';
+import { SilverScrapesDuelOverlay } from './SilverScrapesDuelOverlay';
+import { GuestSimulationDock } from './GuestSimulationDock';
+import { AdminControlModal } from './AdminControlModal';
+import { ScreenFlash } from './ScreenFlash';
+import { SwarmLegionCanvas } from './SwarmLegionCanvas';
+import { ChampionNameplatesOverlay } from './ChampionNameplatesOverlay';
+import { TeamRosterBar } from './TeamRosterBar';
+import { ChampionArrowVFX } from './ChampionArrowVFX';
+import { SummonSpotlight } from './SummonShowcase';
+import { HeartMilestoneBanner } from './HeartMilestoneBanner';
+import { BossEnragedEntranceBanner } from '../arena/BossEnragedEntranceBanner';
+import { BossEnrageVignette } from '../arena/BossEnrageVignette';
+import { BossPhaseShiftBanner } from '../arena/BossPhaseShiftBanner';
+import { BossSkillBanner } from './BossSkillBanner';
+import { RoundClockBadge } from './RoundClockBadge';
+import { SessionTakeoverBanner } from './session/SessionTakeoverBanner';
+import { SessionTierUpBanner } from './session/SessionTierUpBanner';
+import {
+  AUTO_PRO_BATTLE_CONSTANTS,
+  DEBUG_CONTROLS_QUERY_PARAM,
+  DEV_CONTROLS_QUERY_PARAM,
+  getThemeConfig,
+  HUD_DEADZONE_ELEMENT_IDS,
+  TEAM_KEY,
+} from '../../constants/game';
+import { getTeamTheme } from '../../constants/teams';
+
+const ClutchStatusBadge = React.memo(() => {
+  const { t } = useTranslation();
+  const isAutoProEnabled = useGameStore((state) => state.autoProBattleConfig.enabled);
+  const hasMinions = useGameStore((state) => state.minions.length > 0);
+  const isBossAlive = useGameStore((state) => state.bossHp > 0);
+  const isBossClutchZone = useGameStore(
+    (state) =>
+      state.bossHp > 0 &&
+      state.bossHp <= Math.ceil(state.bossMaxHp * AUTO_PRO_BATTLE_CONSTANTS.BOSS_HP_FLOOR_PERCENT)
+  );
+
+  const isSoloAutoHolding = isAutoProEnabled && !hasMinions && isBossAlive;
+
+  if (!isSoloAutoHolding && !isBossClutchZone) return null;
+
+  return (
+    <div className="pointer-events-none flex justify-center mt-1">
+      <div
+        className={`px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black tracking-wide uppercase border shadow-md ${
+          isBossClutchZone
+            ? 'bg-rose-950/85 border-rose-400/70 text-rose-200 animate-pulse'
+            : 'bg-cyan-950/80 border-cyan-400/60 text-cyan-200'
+        }`}
+      >
+        {isBossClutchZone
+          ? t(
+              'HUD.clutchKillCta',
+              '⚡ Boss ở ngưỡng kết liễu (15% HP) — Chat hoặc Tặng quà để dứt điểm & giành MVP!'
+            )
+          : t(
+              'HUD.soloHoldingCta',
+              '🛡️ Tuyển thủ đang giữ nhịp — Chat tên tướng hoặc Tặng quà để gánh team!'
+            )}
+      </div>
+    </div>
+  );
+});
+
+ClutchStatusBadge.displayName = 'ClutchStatusBadge';
+
+export const HUDOverlay = React.memo(() => {
+  const { t } = useTranslation();
+  const overlayVisibility = useGameStore((state) => state.overlayVisibility);
+  const gameTheme = useGameStore((state) => state.gameTheme);
+  const leftTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.BLG]);
+  const rightTeam = useGameStore((state) => state.activeTeams[TEAM_KEY.GENG]);
+  const leftTeamTag = leftTeam?.shortTag || 'ĐỘI 1';
+  const rightTeamTag = rightTeam?.shortTag || 'ĐỘI 2';
+  const leftTheme = getTeamTheme(leftTeam?.colorTheme);
+  const rightTheme = getTeamTheme(rightTeam?.colorTheme);
+  const isGuestModeActive = useGameStore((state) => state.isGuestModeActive);
+  const setGuestMode = useGameStore((state) => state.setGuestMode);
+  const isAdminModeActive = useGameStore((state) => state.isAdminModeActive);
+  const setAdminMode = useGameStore((state) => state.setAdminMode);
+  const isSilverScrapesActive = useGameStore((state) => state.silverScrapesState.isActive);
+  const autoSummonConfig = useGameStore((state) => state.autoSummonConfig);
+  const setAutoSummonConfig = useGameStore((state) => state.setAutoSummonConfig);
+  const [isAudioOn, setIsAudioOn] = useState<boolean>(() => audioService.isAudioEnabled);
+  const isDevControlsVisible =
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).has(DEV_CONTROLS_QUERY_PARAM) ||
+      new URLSearchParams(window.location.search).has(DEBUG_CONTROLS_QUERY_PARAM));
+  const headerRef = useRef<HTMLElement | null>(null);
+  const [headerBottomOffset, setHeaderBottomOffset] = useState<number>(128);
+
+  useEffect(() => {
+    const updateHeaderOffset = () => {
+      if (!headerRef.current) return;
+      const top = headerRef.current.offsetTop;
+      const height = headerRef.current.offsetHeight;
+      const nextOffset = Math.round(top + height + 8);
+      setHeaderBottomOffset((prev) => (Math.abs(prev - nextOffset) >= 2 ? nextOffset : prev));
+    };
+
+    updateHeaderOffset();
+    window.addEventListener('resize', updateHeaderOffset);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && headerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        updateHeaderOffset();
+      });
+      resizeObserver.observe(headerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateHeaderOffset);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, []);
+
+  const [isAmbienceOn, setIsAmbienceOn] = useState<boolean>(getIsAmbienceEnabled);
+  const toggleAmbience = () => {
+    const next = !isAmbienceOn;
+    setIsAmbienceOn(next);
+    setIsAmbienceEnabled(next);
+  };
+
+  const toggleAudio = () => {
+    const next = !isAudioOn;
+    setIsAudioOn(next);
+    audioService.isAudioEnabled = next;
+    if (next) {
+      audioService.playUiToggleSound(true);
+    }
+  };
+
+  const toggleGuestMode = () => {
+    const nextActive = !isGuestModeActive;
+    setGuestMode(nextActive);
+    audioService.playUiToggleSound(nextActive);
+  };
+
+  const toggleAdminMode = () => {
+    const nextActive = !isAdminModeActive;
+    setAdminMode(nextActive);
+    audioService.playUiToggleSound(nextActive);
+  };
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === 'a' || e.key === 'A') {
+        const nextActive = !useGameStore.getState().isAdminModeActive;
+        setAdminMode(nextActive);
+        audioService.playUiToggleSound(nextActive);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [setAdminMode]);
+
+  return (
+    <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-[max(0.75rem,env(safe-area-inset-left))] pointer-events-none overflow-hidden select-none">
+      {/* Incandescent Flash on Ultimates */}
+      {!isSilverScrapesActive && (
+        <>
+          <BossEnrageVignette />
+          <ScreenFlash />
+          <BossSkillCastLayer />
+          <SwarmLegionCanvas />
+          <ChampionArrowVFX />
+        </>
+      )}
+
+      {/* Unified Non-Overlapping Center Toast Stack */}
+      {!isSilverScrapesActive && (
+        <div
+          style={{ top: `${headerBottomOffset + 10}px` }}
+          className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm z-[46] pointer-events-none flex flex-col items-center gap-1.5"
+        >
+          {/* First in the stack: the round clock stays on top, toasts flow below it */}
+          <RoundClockBadge />
+          <BossPhaseShiftBanner themeConfig={getThemeConfig(gameTheme)} />
+          <BossEnragedEntranceBanner themeConfig={getThemeConfig(gameTheme)} />
+          <BossSkillBanner />
+          <GiftBanner />
+          <MiniRoseToast />
+          <HeartMilestoneBanner />
+          <SessionTakeoverBanner />
+          <SessionTierUpBanner />
+          <WipeStamp />
+          <ArenaIdleRallyCTA />
+        </div>
+      )}
+
+      {/* Top Section: Esports Broadcast Header & Scores */}
+      {!isSilverScrapesActive && (
+        <header ref={headerRef} className="relative z-[35] space-y-0.5 sm:space-y-1 shrink-0 pt-1 sm:pt-1.5">
+        {overlayVisibility.matchTitleBar && (
+          <div className="flex items-center justify-center space-x-1.5 pt-0.5">
+            <div className="inline-block px-3 py-0.5 rounded-full bg-slate-900/45 border border-white/15 mb-1 shadow-md">
+              <span
+                style={{
+                  backgroundImage: `linear-gradient(to right, ${leftTheme.primaryHex}, #ffffff, ${rightTheme.primaryHex})`,
+                }}
+                className="text-[10px] font-black tracking-widest text-transparent bg-clip-text"
+              >
+                {t('Game.dynamicTitle', 'CKTG 2026: ĐẠI CHIẾN {{left}} VS {{right}}', {
+                  left: leftTeamTag,
+                  right: rightTeamTag,
+                })}
+              </span>
+            </div>
+
+            {isDevControlsVisible && (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleAudio}
+                  className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
+                  title={isAudioOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
+                >
+                  {isAudioOn ? (
+                    <Volume2 className="w-3 h-3 text-emerald-400" />
+                  ) : (
+                    <VolumeX className="w-3 h-3 text-slate-500" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleAmbience}
+                  className="pointer-events-auto p-1 rounded-full bg-slate-900/80 border border-slate-700/80 text-slate-300 hover:text-white transition active:scale-95 shadow-md mb-1"
+                  title={isAmbienceOn ? t('Audio.ambienceOff', 'Tắt nhạc nền') : t('Audio.ambienceOn', 'Bật nhạc nền')}
+                >
+                  <Music className={isAmbienceOn ? 'w-3 h-3 text-cyan-300' : 'w-3 h-3 text-slate-500'} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleGuestMode}
+                  title={t(
+                    'HUD.guestModeTooltip',
+                    'Bật/tắt thanh thao tác giả lập cho người xem trên Client'
+                  )}
+                  className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+                    isGuestModeActive
+                      ? 'bg-cyan-950/90 border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.55)] ring-1 ring-cyan-400/50'
+                      : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <UserCheck className={`w-2.5 h-2.5 ${isGuestModeActive ? 'animate-pulse text-cyan-400' : ''}`} />
+                  <span>{t('HUD.guestMode', 'Khách')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleAdminMode}
+                  title={t(
+                    'HUD.adminModeTooltip',
+                    'Bật/tắt bảng điều khiển trận đấu dành cho Quản trị viên'
+                  )}
+                  className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+                    isAdminModeActive
+                      ? 'bg-amber-950/90 border-amber-400/80 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.55)] ring-1 ring-amber-400/50'
+                      : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ShieldAlert className={`w-2.5 h-2.5 ${isAdminModeActive ? 'animate-pulse text-amber-400' : ''}`} />
+                  <span>{t('HUD.adminMode', 'Admin')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAutoSummonConfig({ enabled: !autoSummonConfig.enabled })}
+                  title={
+                    autoSummonConfig.enabled
+                      ? 'Đang Tự Động Triệu Hồi (Kích thích người xem). Nhấn để DỪNG.'
+                      : 'BẬT Tự Động Triệu Hồi bot để mồi và kích thích người xem comment theo.'
+                  }
+                  className={`pointer-events-auto flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wide transition active:scale-95 shadow-md mb-1 ${
+                    autoSummonConfig.enabled
+                      ? 'bg-emerald-950/90 border-emerald-400/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.55)] ring-1 ring-emerald-400/50'
+                      : 'bg-slate-900/80 border-slate-700/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles
+                    className={`w-2.5 h-2.5 ${autoSummonConfig.enabled ? 'animate-spin text-emerald-300' : 'text-slate-500'}`}
+                  />
+                  <span>
+                    {autoSummonConfig.enabled ? 'Auto Triệu Hồi: BẬT' : 'Auto Triệu Hồi: TẮT'}
+                  </span>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {isDevControlsVisible && !overlayVisibility.matchTitleBar && (
+          <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 flex items-center space-x-1 z-50 pointer-events-auto">
+            <button
+              type="button"
+              onClick={toggleAudio}
+              className="p-1 rounded-full bg-slate-950/70 border border-slate-700/60 text-slate-400 hover:text-white transition active:scale-95 shadow"
+              title={isAudioOn ? 'Tắt âm thanh' : 'Bật âm thanh'}
+            >
+              {isAudioOn ? (
+                <Volume2 className="w-2.5 h-2.5 text-emerald-400" />
+              ) : (
+                <VolumeX className="w-2.5 h-2.5 text-slate-500" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={toggleAdminMode}
+              className="p-1 rounded-full bg-slate-950/70 border border-slate-700/60 text-slate-400 hover:text-amber-300 transition active:scale-95 shadow"
+              title={t('HUD.adminModeTooltip', 'Bật/tắt bảng điều khiển Quản trị viên (Phím tắt: A)')}
+            >
+              <ShieldAlert className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        )}
+
+        {overlayVisibility.bossSkills && <BossSkillStatusPanel />}
+        {overlayVisibility.teamScores && <TeamScoreBoard />}
+        </header>
+      )}
+
+      {/* Dynamic Non-Overlapping Left & Right Team Side Wings */}
+      {!isSilverScrapesActive && (
+        <>
+          <div
+            style={{ top: `${headerBottomOffset}px` }}
+            className="absolute left-1 sm:left-1.5 z-[36] pointer-events-none flex flex-col items-start gap-1.5"
+          >
+            {overlayVisibility.teamRosters && <TeamRosterBar side="left" isInFlow />}
+            <SummonSpotlight side="left" />
+          </div>
+
+          <div
+            style={{ top: `${headerBottomOffset}px` }}
+            className="absolute right-1 sm:right-1.5 z-[36] pointer-events-none flex flex-col items-end gap-1.5"
+          >
+            {overlayVisibility.teamRosters && <TeamRosterBar side="right" isInFlow />}
+            <SummonSpotlight side="right" />
+          </div>
+        </>
+      )}
+
+      {/* Floating 3D & Combat Elements */}
+      {!isSilverScrapesActive && (
+        <>
+          <ChampionNameplatesOverlay />
+          <FloatingDamage />
+          <ChampionDamageNumbers />
+          {overlayVisibility.casterSubtitle && <CasterSubtitle />}
+          <CasterVoiceUnlockHint />
+          <FinisherAnnouncementBanner />
+          <BossDeathVFX2D />
+          <VictoryOverlay />
+        </>
+      )}
+      <SilverScrapesDuelOverlay />
+      <RoundIntroOverlay />
+      <CombatDeployBanner />
+      <ComebackBanner />
+      <CombatHypeBanner />
+      <GuestSimulationDock />
+      <AdminControlModal />
+
+      {/* Bottom Section: Left (DPS + Live Chat), Right (Participation Guide + Like Counter) */}
+      {!isSilverScrapesActive && (
+        <footer className="space-y-1.5 pb-1 sm:pb-2 shrink-0 w-full min-w-0">
+        <div className="flex items-end justify-between w-full min-w-0 px-0.5 sm:px-1 gap-1.5 sm:gap-2">
+          <div
+            id={HUD_DEADZONE_ELEMENT_IDS.BOTTOM_LEFT}
+            className="flex flex-col items-start space-y-1.5 pointer-events-auto min-w-0 w-[50%] max-w-[196px] sm:w-auto sm:max-w-[54%]"
+          >
+            {overlayVisibility.leaderboard && <DPSLeaderboard />}
+            {overlayVisibility.chat && <LiveChatStream />}
+          </div>
+
+          <div
+            id={HUD_DEADZONE_ELEMENT_IDS.BOTTOM_RIGHT}
+            className="flex flex-col items-end space-y-1.5 pointer-events-auto min-w-0 w-[48%] max-w-[180px] sm:w-auto sm:max-w-[44%]"
+          >
+            <KillFeed />
+            {overlayVisibility.howToPlay && <ParticipationGuidePanel />}
+            {overlayVisibility.likeCounter && <LikeCounter />}
+          </div>
+        </div>
+
+        {/* Viewer Call-to-Action when Auto-Pro is holding without viewers */}
+        <ClutchStatusBadge />
+        </footer>
+      )}
+    </div>
+  );
+});
+
+HUDOverlay.displayName = 'HUDOverlay';

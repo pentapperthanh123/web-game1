@@ -226,6 +226,7 @@ function resolveTikTokSessionId(): string | undefined {
 export interface TikTokConnectionService {
   getStats: () => PipelineStatsSummary;
   resetStats: () => PipelineStatsSummary;
+  getPipeline: () => TikTokLivePipeline;
   updateScoreHint: (leftScore: number, rightScore: number) => void;
   runSimulation: (rawPayload: unknown) => SimulationResult | null;
   connectToRoom: (rawUsername: string) => { cleanUsername: string };
@@ -903,6 +904,7 @@ export function createTikTokConnectionService(
   return {
     getStats,
     resetStats,
+    getPipeline: () => tiktokPipeline,
     updateScoreHint,
     runSimulation,
     connectToRoom,

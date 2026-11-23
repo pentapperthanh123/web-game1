@@ -32,6 +32,7 @@ import { createLiveOpsService } from './services/liveOpsService.js';
 import { createOpsAlertService } from './services/opsAlertService.js';
 import { createPlayerProfileService } from './services/playerProfileService.js';
 import { createTikTokConnectionService } from './services/tiktokConnectionService.js';
+import { GatewayAdapter } from './services/gatewayAdapter.js';
 import { registerSocketHub } from './socket/registerSocketHub.js';
 import {
   loadGiftConfigFromDisk,
@@ -128,7 +129,21 @@ registerTtsProxyRoute(app, casterTts);
 registerPlayerLeaderboardRoutes(app, playerProfileService);
 registerSocketHub(ctx, duelService, tiktokService, playerProfileService, liveOpsService);
 
+// Optional connection to live-connect-gateway service
+const gatewayUrl = process.env.LIVE_GATEWAY_URL?.trim();
+let gatewayAdapter: GatewayAdapter | null = null;
+if (gatewayUrl) {
+  gatewayAdapter = new GatewayAdapter(ctx, tiktokService.getPipeline(), {
+    gatewayUrl,
+    apiKey: process.env.GATEWAY_API_KEY,
+  });
+  gatewayAdapter.start();
+}
+
 attachServerLifecycle(httpServer, io, PORT, () => {
+  if (gatewayAdapter) {
+    gatewayAdapter.stop();
+  }
   tiktokService.disconnectOnShutdown();
   playerProfileService.flush();
 });

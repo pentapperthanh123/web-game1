@@ -19,10 +19,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const VI_MESSAGES_PATH = path.join(REPO_ROOT, 'client/src/i18n/messages/vi.json');
-const BOSS_SKILLS_PATH = path.join(REPO_ROOT, 'client/src/constants/bossSkills.ts');
-const GAME_CONSTANTS_PATH = path.join(REPO_ROOT, 'client/src/constants/game.ts');
-const TEAMS_CONSTANTS_PATH = path.join(REPO_ROOT, 'client/src/constants/teams.ts');
+const CLIENT_DIR = existsSync(path.join(REPO_ROOT, 'apps/web-game1/client'))
+  ? path.join(REPO_ROOT, 'apps/web-game1/client')
+  : path.join(REPO_ROOT, 'client');
+const VI_MESSAGES_PATH = path.join(CLIENT_DIR, 'src/i18n/messages/vi.json');
+const BOSS_SKILLS_PATH = path.join(CLIENT_DIR, 'src/constants/bossSkills.ts');
+const GAME_CONSTANTS_PATH = path.join(CLIENT_DIR, 'src/constants/game.ts');
+const TEAMS_CONSTANTS_PATH = path.join(CLIENT_DIR, 'src/constants/teams.ts');
 
 const CACHE_DIR = path.join(REPO_ROOT, 'server/data/tts-cache');
 const DEDICATED_VIET_TTS_DIR = path.join(REPO_ROOT, 'server/data/viet-tts-audio');

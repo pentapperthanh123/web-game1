@@ -1,7 +1,7 @@
 packages:
-  - 'client'
-  - 'admin'
   - 'server'
+  - 'apps/*/client'
+  - 'apps/*/admin'
 
 allowBuilds:
   bufferutil: true

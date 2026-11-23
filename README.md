@@ -1,4 +1,17 @@
-# 🎮 LoL CKTG TikTok Live Game
+# 🎮 Core Live Game - Interactive Stream Platform
+
+> **Lưu ý khi Clone Repo**: Dự án là repo cha `core-live-game` chứa backend và các game client dạng submodule (`apps/web-game1`, ...). Vui lòng clone bằng lệnh:
+> ```bash
+> git clone --recurse-submodules <REPO_URL>
+> # Hoặc nếu đã clone trước đó:
+> git submodule update --init --recursive
+> ```
+
+## 📁 Cấu trúc Monorepo
+- `server/`: Backend chính phục vụ game state, socket hub, TTS caster.
+- `apps/web-game1/client/`: OBS Overlay Game (Three.js WebGL 9:16).
+- `apps/web-game1/admin/`: Admin Control Portal.
+- `live-connect-gateway/` (dịch vụ ngoài): Gateway kết nối TikTok Live, chuẩn hóa sự kiện độc lập.
 
 Game tương tác trên **TikTok Live** cho sự kiện Chung Kết Thế Giới (CKTG) Liên Minh Huyền Thoại. Người xem chat, thả tim, follow, share và tặng quà để **triệu hồi tướng** và **cùng hạ boss** cho đội mình ủng hộ. Hai đội đối đầu trong một loạt trận BO1 / BO3 / BO5, đội gây nhiều sát thương hơn thắng ván.
 

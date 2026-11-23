@@ -65,6 +65,10 @@ client/public/models/*_extracted/
 client/public/models/*_skn_out/
 client/public/models/skn_out/
 client/public/models/aatrox_textures/
+apps/*/client/public/models/*_extracted/
+apps/*/client/public/models/*_skn_out/
+apps/*/client/public/models/skn_out/
+apps/*/client/public/models/aatrox_textures/
 
 # Session cache
 .agents/.session/
@@ -75,6 +79,7 @@ server/data/tts-cache/
 
 # Heavy Background Music (> 100MB exceeds GitHub file limit)
 client/public/sfx/ARENA_AMBIENCE.mp3
+apps/*/client/public/sfx/ARENA_AMBIENCE.mp3
 
 # Viet-TTS local models and generated audio (> 2GB exceeds GitHub limits)
 scripts/viet-tts/pretrained-models/*.pt

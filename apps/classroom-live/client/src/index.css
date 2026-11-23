@@ -1,0 +1,348 @@
+@import "tailwindcss";
+
+/* Khóa cỡ chữ gốc để các lớp rem của Tailwind không làm lệch sân khấu 720x1280 */
+html {
+  font-size: 16px;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* 0. Hiện dần (bong bóng / thẻ thông báo) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* 1. Nhịp thở tĩnh (Idle Breathe) cho Cô Giáo */
+@keyframes idleBreathe {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -2.5px, 0) scale(1.008);
+  }
+}
+
+/* 2. Nhún bước đi (Walk Bob) với nhún dọc 4px + nghiêng lắc ±3deg nhịp 0.35s */
+@keyframes walkBob {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(0, -4px, 0) rotate(3deg);
+  }
+  50% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  75% {
+    transform: translate3d(0, -4px, 0) rotate(-3deg);
+  }
+}
+
+/* 3. Ăn mừng bật nhảy 2 nhịp (Celebrate Jump) */
+@keyframes celebrateJump {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  20% {
+    transform: translate3d(0, -14px, 0) scale(1.05, 0.95);
+  }
+  40% {
+    transform: translate3d(0, 0, 0) scale(0.96, 1.04);
+  }
+  60% {
+    transform: translate3d(0, -10px, 0) scale(1.03, 0.97);
+  }
+  80% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* 4. Ngồi xuống bật nảy (Sit Bounce): scaleY(0.86) -> 1.05 -> 1 */
+@keyframes sitBounce {
+  0% {
+    transform: scale3d(1, 0.86, 1);
+  }
+  55% {
+    transform: scale3d(1, 1.05, 1);
+  }
+  100% {
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+/* 5. Giơ tay & Vẫy tay học sinh (Wave Arm) */
+@keyframes waveArm {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-65deg);
+  }
+  50% {
+    transform: rotate(-50deg);
+  }
+  70% {
+    transform: rotate(-65deg);
+  }
+}
+
+/* 6. Badge điểm số +10đ bay lên (Float Badge) */
+@keyframes floatBadge {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translate3d(0, -6px, 0) scale(1.15);
+  }
+  75% {
+    opacity: 1;
+    transform: translate3d(0, -12px, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -16px, 0) scale(0.85);
+  }
+}
+
+/* 7. Icon Tim bay lên (Float Heart) */
+@keyframes floatHeart {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translate3d(4px, -10px, 0) scale(1.1);
+  }
+  70% {
+    opacity: 0.9;
+    transform: translate3d(-4px, -28px, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(2px, -45px, 0) scale(0.7);
+  }
+}
+
+/* 8. Hào quang vàng cho học sinh VIP (Golden Glow) */
+@keyframes goldenAura {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5), 0 0 20px rgba(251, 191, 36, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.8), 0 0 30px rgba(251, 191, 36, 0.5);
+    transform: scale(1.08);
+  }
+}
+
+/* 9. Cô giáo vung thước gỗ đánh đòn / gõ bàn (Ruler Strike - neo tại cán tay cầm) */
+@keyframes rulerStrike {
+  0% {
+    transform: rotate(20deg);
+  }
+  20% {
+    transform: rotate(-35deg);
+  }
+  45% {
+    transform: rotate(68deg);
+  }
+  60% {
+    transform: rotate(20deg);
+  }
+  75% {
+    transform: rotate(68deg);
+  }
+  100% {
+    transform: rotate(20deg);
+  }
+}
+
+/* 9b. Động tác vung người gõ thước toàn thân của cô giáo */
+@keyframes teacherSpankMotion {
+  0% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(-14deg) translateY(-6px);
+  }
+  45% {
+    transform: rotate(18deg) translateY(6px);
+  }
+  65% {
+    transform: rotate(-6deg);
+  }
+  80% {
+    transform: rotate(18deg) translateY(6px);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* 10. Học sinh giật mình nảy người khi bị đánh đòn (Spank Flinch) */
+@keyframes spankFlinch {
+  /* Biên độ dọc tối đa 4px để chip nhắc nhở không lấn lên thẻ tên của hàng bàn phía trên */
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  15% {
+    transform: translate3d(0, -4px, 0) rotate(-6deg) scale(1.08);
+  }
+  30% {
+    transform: translate3d(0, 2px, 0) rotate(6deg) scale(0.96);
+  }
+  50% {
+    transform: translate3d(0, -3px, 0) rotate(-4deg);
+  }
+  75% {
+    transform: translate3d(0, 1px, 0) rotate(2deg);
+  }
+}
+
+/* 11. Chữ Zzz bay lên khi ngủ gật (Sleep Zzz) */
+@keyframes sleepZzz {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: translate3d(3px, -4px, 0) scale(1);
+  }
+  70% {
+    opacity: 0.9;
+    transform: translate3d(-2px, -8px, 0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(3px, -12px, 0) scale(1.15);
+  }
+}
+
+/* 12. Bong bóng ngủ phập phồng ở mũi (Bubble Sleep) */
+@keyframes bubbleSleep {
+  0%, 100% {
+    transform: scale(0.7);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.95;
+  }
+}
+
+/* 13. Ăn vụng quà vặt lén lút (Snack Nibble) */
+@keyframes snackNibble {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(-2px, -3px, 0) rotate(-4deg);
+  }
+  50% {
+    transform: translate3d(2px, 0, 0) rotate(3deg);
+  }
+  75% {
+    transform: translate3d(0, -2px, 0) rotate(-2deg);
+  }
+}
+
+/* 14. Nhịp đập trái tim 3D (Heart Beat) */
+@keyframes heartBeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(1.18);
+  }
+  40% {
+    transform: scale(1);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+}
+
+/* Utility Animation Classes (Khóa phần cứng GPU) */
+.animate-idle-breathe {
+  animation: idleBreathe 3.2s infinite ease-in-out;
+}
+
+.animate-walk-bob {
+  animation: walkBob 0.35s infinite ease-in-out;
+}
+
+.animate-celebrate-jump {
+  animation: celebrateJump 1.2s ease-out;
+}
+
+.animate-sit-bounce {
+  animation: sitBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-wave-arm {
+  animation: waveArm 1.2s ease-in-out;
+  transform-origin: bottom left;
+}
+
+.animate-float-badge {
+  animation: floatBadge 1.8s ease-out forwards;
+}
+
+.animate-float-heart {
+  animation: floatHeart 1.4s ease-out forwards;
+}
+
+.animate-golden-aura {
+  animation: goldenAura 1.5s infinite ease-in-out;
+}
+
+.animate-ruler-strike {
+  animation: rulerStrike 1.2s ease-in-out;
+  transform-origin: 50% 12%;
+}
+
+.animate-teacher-strike {
+  animation: teacherSpankMotion 1.2s ease-in-out;
+  transform-origin: bottom center;
+}
+
+.animate-spank-flinch {
+  animation: spankFlinch 1.6s ease-out;
+}
+
+.animate-sleep-zzz {
+  animation: sleepZzz 2.4s infinite ease-out;
+}
+
+.animate-bubble-sleep {
+  animation: bubbleSleep 2s infinite ease-in-out;
+  transform-origin: center center;
+}
+
+.animate-snack-nibble {
+  animation: snackNibble 1.2s infinite ease-in-out;
+}
+
+.animate-heart-beat {
+  animation: heartBeat 1.8s infinite ease-in-out;
+}

@@ -12,8 +12,8 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Copy monorepo manifests for optimal Docker layer caching
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY server/package.json ./server/
-COPY client/package.json ./client/
-COPY admin/package.json ./admin/
+COPY apps/web-game1/client/package.json ./apps/web-game1/client/
+COPY apps/web-game1/admin/package.json ./apps/web-game1/admin/
 
 # --- Stage 2: Server Builder ---
 FROM base AS server-build
@@ -46,12 +46,12 @@ CMD ["node", "dist/index.js"]
 # --- Stage 4: Client (Game Overlay) Builder ---
 FROM base AS client-build
 RUN pnpm --filter client install --frozen-lockfile
-COPY client ./client
+COPY apps/web-game1/client ./apps/web-game1/client
 RUN pnpm --filter client build
 
 # --- Stage 5: Client Production Runner (Lightweight Nginx) ---
 FROM nginx:alpine AS client-runner
-COPY --from=client-build /app/client/dist /usr/share/nginx/html
+COPY --from=client-build /app/apps/web-game1/client/dist /usr/share/nginx/html
 COPY docker/nginx-client.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
@@ -60,12 +60,12 @@ CMD ["nginx", "-g", "daemon off;"]
 # --- Stage 6: Admin Portal Builder ---
 FROM base AS admin-build
 RUN pnpm --filter admin install --frozen-lockfile
-COPY admin ./admin
+COPY apps/web-game1/admin ./apps/web-game1/admin
 RUN pnpm --filter admin build
 
 # --- Stage 7: Admin Portal Production Runner (Lightweight Nginx) ---
 FROM nginx:alpine AS admin-runner
-COPY --from=admin-build /app/admin/dist /usr/share/nginx/html
+COPY --from=admin-build /app/apps/web-game1/admin/dist /usr/share/nginx/html
 COPY docker/nginx-admin.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
