@@ -1,5 +1,7 @@
-import { Bot, Smartphone } from 'lucide-react';
+import { Bot, Play, Pause, Smartphone } from 'lucide-react';
 import React from 'react';
+import { adminEmitter } from '../services/adminEmitter';
+import { DEFAULT_PRESET_ID, TEAM_PRESETS } from '../../../shared/constants/presets';
 import { useAdminStore } from '../store/adminStore';
 
 interface HeaderStatusProps {
@@ -15,7 +17,19 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
   isAutoBotActive = false,
   onToggleAutoBot,
 }) => {
-  const { clientConnected, liveState } = useAdminStore();
+  const { clientConnected, liveState, customPreset } = useAdminStore();
+
+  // Team names/colors follow the preset the client is actually showing.
+  const livePresetId = liveState.activePresetId ?? DEFAULT_PRESET_ID;
+  const livePreset =
+    livePresetId === 'custom' ? customPreset : TEAM_PRESETS[livePresetId] ?? TEAM_PRESETS[DEFAULT_PRESET_ID];
+  const leftWins = liveState.seriesScore?.left ?? 0;
+  const rightWins = liveState.seriesScore?.right ?? 0;
+  const isPlaying = liveState.roundStatus === 'PLAYING';
+
+  const handleTogglePlay = () => {
+    adminEmitter.emitAction(isPlaying ? 'PAUSE_ROUND' : 'START_ROUND');
+  };
 
   const clashPos = Math.round(liveState.clashPosition ?? 50);
   const timeRemaining = Math.round(liveState.roundTimeRemaining ?? 0);
@@ -58,7 +72,15 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
 
             {/* Round & Timer */}
             <div className="text-xs font-bold text-slate-300">
-              Hiệp: <span className="text-yellow-400">{liveState.roundNumber ?? 1}</span> ({liveState.seriesScore?.left ?? 0} - {liveState.seriesScore?.right ?? 0})
+              Hiệp <span className="text-yellow-400">{liveState.roundNumber ?? 1}</span>
+              <span className="ml-2 text-slate-400">Thắng:</span>{' '}
+              <span style={{ color: livePreset.leftTeam.primaryColor }}>
+                {livePreset.leftTeam.name} {leftWins}
+              </span>
+              <span className="text-slate-500"> - </span>
+              <span style={{ color: livePreset.rightTeam.primaryColor }}>
+                {rightWins} {livePreset.rightTeam.name}
+              </span>
             </div>
 
             <div className="h-4 w-px bg-slate-800" />
@@ -85,6 +107,29 @@ export const HeaderStatus: React.FC<HeaderStatusProps> = ({
               <span className="text-[11px] font-bold text-cyan-400">{100 - clashPos}%</span>
             </div>
           </div>
+
+          {/* Start / Pause Match Button */}
+          <button
+            type="button"
+            onClick={handleTogglePlay}
+            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-lg transition-all active:scale-95 cursor-pointer border ${
+              isPlaying
+                ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-400'
+                : 'bg-gradient-to-r from-pink-600 to-cyan-600 hover:from-pink-500 hover:to-cyan-500 text-white border-white/40 animate-pulse shadow-pink-500/20'
+            }`}
+          >
+            {isPlaying ? (
+              <>
+                <Pause className="w-3.5 h-3.5 fill-white" />
+                <span>TẠM DỪNG</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>BẮT ĐẦU TRẬN</span>
+              </>
+            )}
+          </button>
 
           {/* Auto-Bot Toggle Button in Top Navbar */}
           {onToggleAutoBot && (

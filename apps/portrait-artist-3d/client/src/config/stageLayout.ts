@@ -55,6 +55,14 @@ export interface SleepingCatAnchor {
   dreamOriginY: number;
 }
 
+export interface PaletteAnchor {
+  stageDabX: number;
+  stageDabY: number;
+  bodyLocalX: number;
+  bodyLocalY: number;
+  tiltAngleDeg: number;
+}
+
 export interface QueueSlotAnchor {
   centerX: number;
   feetY: number;
@@ -115,6 +123,14 @@ export const STAGE_25D_CONFIG = {
     armReachLengthPx: 122.1,
     restAngleDeg: 10,
   } satisfies ArtistAnchor,
+
+  paletteAnchor: {
+    stageDabX: 620,
+    stageDabY: 790,
+    bodyLocalX: 178,
+    bodyLocalY: 294,
+    tiltAngleDeg: -4.5,
+  } satisfies PaletteAnchor,
 
   galleryWire: {
     y: 206,

@@ -11,12 +11,50 @@ export interface RenderFighterParams {
   secondaryColor: string;
   isWinning: boolean;
   isLosing: boolean;
+  /** Lean toward the opponent in degrees (negative = pushed back), pivoting on the feet. */
+  leanDeg: number;
   screenShake: number;
 }
 
+/**
+ * The girl's joggers use the team color one shade deeper (so they stand out on the same-colored
+ * background); the back leg is a touch darker again to read as further away.
+ */
+const GIRL_FRONT_LEG_SHADE = 'rgba(30, 27, 75, 0.25)';
+const GIRL_BACK_LEG_SHADE = 'rgba(30, 27, 75, 0.42)';
+const JOGGER_TRIM_COLOR = '#ffffff';
+
 export class CharacterRenderer {
+  /** White side stripe (x1,y1 → x2,y2) and ankle cuff (cx1,cy1 → cx2,cy2) on a jogger leg. */
+  private drawJoggerDetails(
+    ctx: CanvasRenderingContext2D,
+    stripeX1: number,
+    stripeY1: number,
+    stripeX2: number,
+    stripeY2: number,
+    cuffX1: number,
+    cuffY1: number,
+    cuffX2: number,
+    cuffY2: number
+  ): void {
+    ctx.save();
+    ctx.strokeStyle = JOGGER_TRIM_COLOR;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(stripeX1, stripeY1);
+    ctx.lineTo(stripeX2, stripeY2);
+    ctx.stroke();
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cuffX1, cuffY1);
+    ctx.lineTo(cuffX2, cuffY2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   public renderFighter(params: RenderFighterParams): void {
-    const { ctx, x, y, side, isWinning, isLosing } = params;
+    const { ctx, x, y, side, isLosing } = params;
     ctx.save();
     ctx.translate(x, y);
 
@@ -25,9 +63,8 @@ export class CharacterRenderer {
       ctx.scale(-1, 1);
     }
 
-    // Dynamic battle lean based on winning/losing
-    const battleLean = isWinning ? 7 : isLosing ? -6 : 0;
-    ctx.rotate((battleLean * Math.PI) / 180);
+    // Continuous battle lean (computed by clashLayout so beams start exactly at the hands)
+    ctx.rotate((params.leanDeg * Math.PI) / 180);
 
     // Render shadow
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
@@ -86,15 +123,27 @@ export class CharacterRenderer {
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#1e1b4b';
 
+    // Matching team-color joggers on both legs (back leg only shaded for depth),
+    // white side stripe + white cuffs to tie in with the white sneakers.
+
     // Back leg (rooted right)
-    ctx.fillStyle = '#312e81';
     ctx.beginPath();
     ctx.moveTo(-10, -40);
     ctx.lineTo(-38, -5);
     ctx.lineTo(-24, 0);
     ctx.lineTo(-2, -35);
     ctx.closePath();
+    ctx.fillStyle = primaryColor;
     ctx.fill();
+    ctx.fillStyle = GIRL_BACK_LEG_SHADE;
+    ctx.fill();
+    this.drawJoggerDetails(ctx, -9, -38, -34, -7, -37, -7, -25, -2);
+    ctx.beginPath();
+    ctx.moveTo(-10, -40);
+    ctx.lineTo(-38, -5);
+    ctx.lineTo(-24, 0);
+    ctx.lineTo(-2, -35);
+    ctx.closePath();
     ctx.stroke();
 
     // Back sneaker
@@ -105,7 +154,6 @@ export class CharacterRenderer {
     ctx.stroke();
 
     // Front leg (bent forward left)
-    ctx.fillStyle = primaryColor;
     ctx.beginPath();
     ctx.moveTo(2, -40);
     ctx.lineTo(24, -18);
@@ -114,7 +162,19 @@ export class CharacterRenderer {
     ctx.lineTo(8, -20);
     ctx.lineTo(-4, -36);
     ctx.closePath();
+    ctx.fillStyle = primaryColor;
     ctx.fill();
+    ctx.fillStyle = GIRL_FRONT_LEG_SHADE;
+    ctx.fill();
+    this.drawJoggerDetails(ctx, 3, -36, 20, -19, 10, -4, 24, -4);
+    ctx.beginPath();
+    ctx.moveTo(2, -40);
+    ctx.lineTo(24, -18);
+    ctx.lineTo(24, 0);
+    ctx.lineTo(10, 0);
+    ctx.lineTo(8, -20);
+    ctx.lineTo(-4, -36);
+    ctx.closePath();
     ctx.stroke();
 
     // Front sneaker

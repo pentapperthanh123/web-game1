@@ -23,6 +23,7 @@ export interface BrushPointUV {
   v: number;
   isSketchPhase: boolean;
   depthPhase: PaintDepthPhase;
+  angleRad?: number;
 }
 
 interface StrokeSample {
@@ -252,6 +253,53 @@ export class BrushRevealEngine {
   }
 
   /**
+   * Retrieves the current target stroke UV point and phase along the planned portrait path
+   * corresponding to normalized progress (0..1) without stamping pixels onto the canvas.
+   */
+  public getStrokePointUV(progress: number): BrushPointUV & { angleRad: number } {
+    const clamped = clampValue(progress, 0, 1);
+    const sketchEnd = PAINT_PROGRESS_THRESHOLDS.SKETCH_PHASE_END;
+    const colorEnd = PAINT_PROGRESS_THRESHOLDS.COLOR_PHASE_END;
+
+    if (clamped <= sketchEnd) {
+      const p1Norm = clamped / Math.max(0.001, sketchEnd);
+      const interp = interpolateCurveUV(PHASE1_SAMPLES, p1Norm);
+      const sample = PHASE1_SAMPLES[interp.index];
+      return {
+        u: interp.u,
+        v: interp.v,
+        isSketchPhase: true,
+        depthPhase: 'SKETCH',
+        angleRad: sample.angleRad,
+      };
+    }
+
+    if (clamped <= colorEnd) {
+      const p2Norm = (clamped - sketchEnd) / Math.max(0.001, colorEnd - sketchEnd);
+      const interp = interpolateCurveUV(PHASE2_SAMPLES, p2Norm);
+      const sample = PHASE2_SAMPLES[interp.index];
+      return {
+        u: interp.u,
+        v: interp.v,
+        isSketchPhase: false,
+        depthPhase: 'BASE_COLOR',
+        angleRad: sample.angleRad,
+      };
+    }
+
+    const p3Norm = (clamped - colorEnd) / Math.max(0.001, 1 - colorEnd);
+    const interp = interpolateCurveUV(PHASE3_SAMPLES, p3Norm);
+    const sample = PHASE3_SAMPLES[interp.index];
+    return {
+      u: interp.u,
+      v: interp.v,
+      isSketchPhase: false,
+      depthPhase: 'DETAIL_HIGHLIGHT',
+      angleRad: sample.angleRad,
+    };
+  }
+
+  /**
    * Stamps a richly feathered, multi-bristle painterly dab onto `accumCtx`
    * so consecutive strokes melt together like real watercolor/oil bristles.
    */
@@ -459,6 +507,7 @@ export class BrushRevealEngine {
         v: interp.v,
         isSketchPhase: true,
         depthPhase: 'SKETCH',
+        angleRad: PHASE1_SAMPLES[interp.index].angleRad,
       };
       return this.lastBrushUV;
     }
@@ -497,6 +546,7 @@ export class BrushRevealEngine {
         v: interp.v,
         isSketchPhase: false,
         depthPhase: 'BASE_COLOR',
+        angleRad: PHASE2_SAMPLES[interp.index].angleRad,
       };
       return this.lastBrushUV;
     }
@@ -540,6 +590,7 @@ export class BrushRevealEngine {
       v: interp.v,
       isSketchPhase: false,
       depthPhase: 'DETAIL_HIGHLIGHT',
+      angleRad: PHASE3_SAMPLES[interp.index].angleRad,
     };
     return this.lastBrushUV;
   }

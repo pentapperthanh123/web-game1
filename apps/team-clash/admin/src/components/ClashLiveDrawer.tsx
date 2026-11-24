@@ -11,6 +11,7 @@ import {
 import React, { useState } from 'react';
 import { CLASH_PORTS } from '../../../shared/constants/clashConfig';
 import { registerClashPopup } from '../services/adminEmitter';
+import { useClashClientUrl } from '../services/clashUrls';
 
 interface ClashLiveDrawerProps {
   isOpen: boolean;
@@ -22,12 +23,10 @@ interface ClashLiveDrawerProps {
   onToggleAutoBot?: () => void;
 }
 
-const DEFAULT_CLIENT_URL = `http://localhost:${CLASH_PORTS.CLIENT}`;
-
 export const ClashLiveDrawer: React.FC<ClashLiveDrawerProps> = ({
   isOpen,
   onClose,
-  clientUrl = DEFAULT_CLIENT_URL,
+  clientUrl: clientUrlOverride,
   isWide = false,
   onToggleWide,
   isAutoBotActive = false,
@@ -35,6 +34,9 @@ export const ClashLiveDrawer: React.FC<ClashLiveDrawerProps> = ({
 }) => {
   const [iframeKey, setIframeKey] = useState<number>(0);
   const [internalWide, setInternalWide] = useState<boolean>(isWide);
+  // localhost / LAN → port 8030 on the same host; via ngrok → the clash-client tunnel URL.
+  const resolvedClientUrl = useClashClientUrl();
+  const clientUrl = clientUrlOverride ?? resolvedClientUrl;
 
   if (!isOpen) {
     return null;
@@ -60,15 +62,8 @@ export const ClashLiveDrawer: React.FC<ClashLiveDrawerProps> = ({
     registerClashPopup(popup);
   };
 
-  // Full-width vertical 9:16 proportions
-  const drawerWidthClass = effectiveWide
-    ? 'w-full md:w-[680px] lg:w-[740px]'
-    : 'w-full md:w-[480px] lg:w-[520px]';
-
   return (
-    <div
-      className={`fixed top-0 right-0 bottom-0 z-50 flex flex-col bg-slate-950 border-l border-pink-500/30 shadow-[-14px_0_45px_rgba(0,0,0,0.9)] transition-all duration-300 ease-in-out ${drawerWidthClass}`}
-    >
+    <div className="w-full h-full flex flex-col bg-slate-950 select-none overflow-hidden">
       {/* Drawer Header */}
       <div className="flex items-center justify-between px-3.5 py-2.5 bg-gradient-to-r from-slate-900 via-pink-950/30 to-cyan-950/30 border-b border-pink-500/20 select-none shrink-0">
         <div className="flex items-center space-x-2.5 min-w-0">
@@ -157,7 +152,7 @@ export const ClashLiveDrawer: React.FC<ClashLiveDrawerProps> = ({
           src={`${clientUrl}?t=${iframeKey}`}
           title="Team Clash Live Stage (9:16)"
           className="w-full h-full border-0 bg-black select-none block"
-          allow="autoplay; microphone"
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         />
       </div>
     </div>

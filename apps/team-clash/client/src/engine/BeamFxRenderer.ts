@@ -10,13 +10,11 @@ export interface RenderBeamsParams {
   clashY: number;
   time: number;
   preset: TeamPresetConfig;
-  isStrobeWarning: boolean;
-  screenShake: number;
 }
 
 export class BeamFxRenderer {
-  public renderBeamsAndClash(params: RenderBeamsParams): void {
-    const { ctx, leftX, leftY, rightX, rightY, clashX, clashY, time, preset, isStrobeWarning } = params;
+  public renderBeams(params: RenderBeamsParams): void {
+    const { ctx, leftX, leftY, rightX, rightY, clashX, clashY, time, preset } = params;
 
     const leftCharType = preset.leftTeam.characterType || 'girl';
     const rightCharType = preset.rightTeam.characterType || 'boy';
@@ -48,9 +46,6 @@ export class BeamFxRenderer {
       secondaryColor: preset.rightTeam.secondaryColor,
       direction: -1
     });
-
-    // 3. Draw Core Energy Clash Orb at center point
-    this.drawClashOrb(ctx, clashX, clashY, time, isStrobeWarning, preset, params.screenShake);
   }
 
   private drawCharacterBeam(opts: {
@@ -92,7 +87,26 @@ export class BeamFxRenderer {
     ctx.lineTo(endX, endY);
     ctx.stroke();
 
-    // Specialized visual signature per character type
+    // Specialized visual signature per character type, drawn in beam-aligned space
+    // (origin at the hand, +/-X along the beam) so it follows the beam when fighters lean.
+    ctx.translate(startX, startY);
+    ctx.rotate(Math.atan2(dy, dx) - (direction === 1 ? 0 : Math.PI));
+    this.drawSignatureFx(ctx, charType, length, time, direction, primaryColor, secondaryColor);
+
+    ctx.restore();
+  }
+
+  private drawSignatureFx(
+    ctx: CanvasRenderingContext2D,
+    charType: CharacterType,
+    length: number,
+    time: number,
+    direction: number,
+    primaryColor: string,
+    secondaryColor: string
+  ): void {
+    const startX = 0;
+    const startY = 0;
     switch (charType) {
       case 'girl':
         this.drawGirlBeamFx(ctx, startX, startY, length, time, direction, secondaryColor);
@@ -115,8 +129,6 @@ export class BeamFxRenderer {
       default:
         break;
     }
-
-    ctx.restore();
   }
 
   // 1. GIRL BEAM FX: Drifting hearts and sparkle stars
@@ -355,16 +367,20 @@ export class BeamFxRenderer {
     ctx.stroke();
   }
 
-  // Core Energy Clash Orb
-  private drawClashOrb(
+  /** Core energy clash orb; its inner ring takes the color of the team currently winning. */
+  public renderClashOrb(
     ctx: CanvasRenderingContext2D,
     x: number,
     y: number,
     time: number,
     isStrobeWarning: boolean,
     preset: TeamPresetConfig,
-    shake: number
+    shake: number,
+    clashPosition: number
   ): void {
+    const isLeftAhead = clashPosition >= 50;
+    const innerColor = isLeftAhead ? preset.leftTeam.primaryColor : preset.rightTeam.primaryColor;
+    const outerColor = isLeftAhead ? preset.rightTeam.primaryColor : preset.leftTeam.primaryColor;
     const basePulse = Math.sin(time * 16) * 6;
     const orbRadius = 34 + basePulse + (shake * 12);
 
@@ -375,8 +391,8 @@ export class BeamFxRenderer {
       grad.addColorStop(0.3, '#ff0033');
       grad.addColorStop(0.7, '#ff0055');
     } else {
-      grad.addColorStop(0.25, preset.leftTeam.primaryColor);
-      grad.addColorStop(0.65, preset.rightTeam.primaryColor);
+      grad.addColorStop(0.25, innerColor);
+      grad.addColorStop(0.65, outerColor);
     }
     grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 

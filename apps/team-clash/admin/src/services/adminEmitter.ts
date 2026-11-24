@@ -1,4 +1,5 @@
-import { SYNC_CHANNEL_NAME } from '../../../shared/constants/clashConfig';
+import { io, type Socket } from 'socket.io-client';
+import { CLASH_PORTS, SYNC_CHANNEL_NAME } from '../../../shared/constants/clashConfig';
 import type {
   AdminActionPayload,
   AdminActionType,
@@ -21,10 +22,69 @@ export function registerClashPopup(popup: Window | null): void {
   }
 }
 
+/** Real TikTok Live connection state, pushed by the game server on every change (and on connect). */
+export interface TikTokServerStatus {
+  status: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'ERROR';
+  username?: string;
+  error?: string;
+  attempt?: number;
+  nextRetryAt?: number;
+}
+
 class AdminEmitter {
   private channel: BroadcastChannel | null = null;
+  private socket: Socket | null = null;
+  private readonly serverUrl: string;
+  private readonly tiktokStatusListeners = new Set<(status: TikTokServerStatus) => void>();
+
+  /** Subscribe before or after init(); listeners survive socket re-creation. */
+  public onTikTokStatus(listener: (status: TikTokServerStatus) => void): () => void {
+    this.tiktokStatusListeners.add(listener);
+    return () => {
+      this.tiktokStatusListeners.delete(listener);
+    };
+  }
+
+  constructor() {
+    this.serverUrl =
+      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SERVER_URL) ||
+      (typeof window !== 'undefined' && window.location.hostname
+        ? `${window.location.protocol}//${window.location.hostname}:${CLASH_PORTS.GAME_SERVER}`
+        : `http://localhost:${CLASH_PORTS.GAME_SERVER}`);
+  }
 
   public init(): () => void {
+    // 1. Socket.IO connection to Game Server (communicates with Client 8030 & OBS)
+    try {
+      this.socket = io(this.serverUrl, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+      });
+
+      this.socket.on('connect', () => {
+        console.log(`[AdminEmitter] Connected to Game Server on ${this.serverUrl}`);
+      });
+
+      this.socket.on('clash:state', (data: unknown) => {
+        this.handleMessage(data);
+      });
+
+      this.socket.on('clash:action', (data: unknown) => {
+        this.handleMessage(data);
+      });
+
+      this.socket.on('tiktok:status', (data: TikTokServerStatus) => {
+        if (!data || typeof data.status !== 'string') return;
+        this.tiktokStatusListeners.forEach((listener) => listener(data));
+      });
+    } catch {
+      // Socket init tolerance
+    }
+
+    // 2. BroadcastChannel for same-origin tabs
     if (typeof BroadcastChannel !== 'undefined') {
       this.channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
       this.channel.onmessage = (event) => {
@@ -32,6 +92,7 @@ class AdminEmitter {
       };
     }
 
+    // 3. Window PostMessage listener
     const windowListener = (event: MessageEvent) => {
       this.handleMessage(event.data);
     };
@@ -41,6 +102,8 @@ class AdminEmitter {
       window.removeEventListener('message', windowListener);
       this.channel?.close();
       this.channel = null;
+      this.socket?.disconnect();
+      this.socket = null;
     };
   }
 
@@ -71,6 +134,13 @@ class AdminEmitter {
   }
 
   private post(msg: ClashSyncMessage): void {
+    // 0. Socket.io to Game Server (reaches standalone clients on port 8030, OBS, LAN)
+    try {
+      this.socket?.emit('clash:action', msg);
+    } catch {
+      // Socket tolerance
+    }
+
     // 1. BroadcastChannel across tabs
     try {
       this.channel?.postMessage(msg);

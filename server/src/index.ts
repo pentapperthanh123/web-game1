@@ -1,6 +1,10 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { installPreferIpv4Lookup } from './utils/preferIpv4Lookup.js';
+
+// Flaky IPv6 here made each TikTok (re)connect hang ~20s on the sign server; see the helper.
+installPreferIpv4Lookup();
 
 const SERVER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 dotenv.config({ path: path.resolve(SERVER_ROOT, '../.env') });

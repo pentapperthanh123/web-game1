@@ -75,6 +75,7 @@ export interface TikTokGiftInput {
 export interface TikTokLikeInput {
   uniqueId?: string;
   nickname?: string;
+  userAvatarUrl?: string;
   likeCount?: number;
   explicitTeam?: TeamSlotKey;
 }

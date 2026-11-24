@@ -5,11 +5,11 @@ export class WaveRenderer {
     ctx: CanvasRenderingContext2D,
     width: number,
     height: number,
-    clashPosition: number,
+    /** Territory border X (same as the clash orb center). */
+    clashX: number,
     time: number,
     preset: TeamPresetConfig
   ): void {
-    const clashX = (clashPosition / 100) * width;
 
     ctx.save();
 

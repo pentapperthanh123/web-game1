@@ -291,4 +291,13 @@ export function registerAdminHandlers(
   socket.on('game:auto-live-status', (payload: unknown) => {
     ctx.io.emit('game:auto-live-status', payload);
   });
+
+  // Team Clash Cross-Window & OBS Synchronization Relay
+  socket.on('clash:action', (payload: unknown) => {
+    ctx.io.emit('clash:action', payload);
+  });
+
+  socket.on('clash:state', (payload: unknown) => {
+    ctx.io.emit('clash:state', payload);
+  });
 }

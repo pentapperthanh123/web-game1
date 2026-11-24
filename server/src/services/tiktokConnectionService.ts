@@ -240,6 +240,19 @@ export interface TikTokConnectionDeps {
   opsAlerts: OpsAlertService;
 }
 
+/**
+ * Viewer avatar from a simplified TikTok event. tiktok-live-connector@2.5.0's legacy adapter passes
+ * `avatarLarge` (an object `{ urlList }`) to a helper expecting an array, so `profilePictureUrl` is
+ * always null; the same URL survives in `userDetails.profilePictureUrls`.
+ */
+const extractAvatarUrlFromTikTokEvent = (data: unknown): string | undefined => {
+  if (!data || typeof data !== 'object') return undefined;
+  const raw = data as { profilePictureUrl?: unknown; userDetails?: { profilePictureUrls?: unknown } };
+  const candidates = [raw.profilePictureUrl, raw.userDetails?.profilePictureUrls];
+  const url = candidates.find((value): value is string => typeof value === 'string' && value.startsWith('http'));
+  return url;
+};
+
 const extractFansLevelFromTikTokEvent = (data: unknown): number => {
   if (!data || typeof data !== 'object') return 0;
   const raw = data as Record<string, unknown>;
@@ -433,11 +446,14 @@ export function createTikTokConnectionService(
         const uniqueId = String(data.uniqueId || data.userId || 'anonymous');
         const nickname = String(data.nickname || uniqueId);
         const comment = String(data.comment || data.content || '').trim();
-        console.log(`[TikTok Live] 💬 Chat from @${uniqueId}: "${comment}"`);
+        // TikTok's own delivery delay (comment sent → reached this server); our pipeline adds ~ms.
+        const sentAtMs = Number(data.createTime);
+        const lagLabel = sentAtMs > 0 ? ` (TikTok→server ${Date.now() - sentAtMs}ms)` : '';
+        console.log(`[TikTok Live] 💬 Chat from @${uniqueId}: "${comment}"${lagLabel}`);
         tiktokPipeline.handleChat({
           uniqueId,
           nickname,
-          userAvatarUrl: data.profilePictureUrl,
+          userAvatarUrl: extractAvatarUrlFromTikTokEvent(data),
           comment,
           fansLevel: extractFansLevelFromTikTokEvent(data),
         });
@@ -458,7 +474,7 @@ export function createTikTokConnectionService(
         tiktokPipeline.handleGift({
           uniqueId,
           nickname,
-          userAvatarUrl: data.profilePictureUrl,
+          userAvatarUrl: extractAvatarUrlFromTikTokEvent(data),
           giftId,
           giftName,
           diamondCount: data.diamondCount,
@@ -482,6 +498,7 @@ export function createTikTokConnectionService(
         tiktokPipeline.handleLike({
           uniqueId,
           nickname,
+          userAvatarUrl: extractAvatarUrlFromTikTokEvent(data),
           likeCount: rawCount,
         });
       } catch (err: unknown) {

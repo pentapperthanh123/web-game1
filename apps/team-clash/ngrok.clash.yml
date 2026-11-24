@@ -1,0 +1,16 @@
+# ngrok tunnels for Team Clash (no secrets here: the authtoken comes from your own ngrok config,
+# which start_ngrok_clash.bat merges in automatically).
+#
+#   clash-admin  -> Host Admin  (Vite, port 8031) — also proxies /api to the game server (4000)
+#   clash-client -> Live stage  (Vite, port 8030) — also proxies /socket.io to the core gateway (5000)
+#
+# The admin discovers the client's public URL from the local ngrok agent API (127.0.0.1:4040),
+# so "Open Live Client" / the preview drawer point at the right tunnel automatically.
+version: "2"
+tunnels:
+  clash-client:
+    proto: http
+    addr: 8030
+  clash-admin:
+    proto: http
+    addr: 8031

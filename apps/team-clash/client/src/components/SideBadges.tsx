@@ -1,68 +1,77 @@
 import React from 'react';
-import type { ViewerSummary } from '../../../shared/types/clash';
-import { useClashStore } from '../store/clashStore';
+import type { TeamId, ViewerSummary } from '../../../shared/types/clash';
+import { getEffectivePreset, useClashStore } from '../store/clashStore';
+import { ViewerAvatar } from './ViewerAvatar';
+import { useClashText } from '../i18n/clashText';
 
-export const SideBadges: React.FC = () => {
-  const { recentLeftContributors, recentRightContributors, getActivePreset } = useClashStore();
-  const preset = getActivePreset();
+const RANK_MEDALS = ['🥇', '🥈', '🥉'] as const;
+
+const TeamTopList: React.FC<{
+  side: TeamId;
+  teamName: string;
+  color: string;
+  contributors: ViewerSummary[];
+}> = ({ side, teamName, color, contributors }) => {
+  const text = useClashText();
+  const isLeft = side === 'LEFT';
+  if (contributors.length === 0) return <div />;
 
   return (
-    <div className="absolute inset-x-0 top-[280px] pointer-events-none z-20 flex justify-between px-3">
-      {/* Left Badges (TEAM G / SUPER G) */}
-      <div className="flex flex-col space-y-4">
-        {recentLeftContributors.slice(0, 2).map((user: ViewerSummary, idx: number) => (
-          <div
-            key={user.id}
-            className="flex items-center space-x-1.5 bg-pink-900/80 border border-pink-400/60 rounded-full pl-1 pr-3 py-1 shadow-lg backdrop-blur-sm animate-badge-float"
-            style={{ animationDelay: `${idx * 0.3}s` }}
-          >
-            <img
-              src={
-                user.avatarUrl ||
-                `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`
-              }
-              alt={user.nickname}
-              className="w-7 h-7 rounded-full border border-pink-300 object-cover"
-            />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-pink-200 tracking-wider">
-                {idx === 0 ? `SUPER ${preset.leftTeam.name[0]}` : `TEAM ${preset.leftTeam.name[0]}`}
-              </span>
-              <span className="text-[11px] font-bold text-white max-w-[65px] truncate leading-none">
-                {user.nickname}
-              </span>
-            </div>
+    <div className={`flex flex-col gap-2 ${isLeft ? 'items-start' : 'items-end'}`}>
+      <span
+        className="px-3 py-0.5 rounded-full text-[12px] font-black tracking-widest text-white shadow-md"
+        style={{ backgroundColor: color }}
+      >
+        {text.topTeam(teamName)}
+      </span>
+      {contributors.map((user, index) => (
+        <div
+          key={user.id}
+          className={`flex items-center gap-2 rounded-full border-2 shadow-lg py-1 ${
+            isLeft ? 'flex-row pl-1 pr-3' : 'flex-row-reverse pr-1 pl-3'
+          }`}
+          style={{ borderColor: color, backgroundColor: 'rgba(6, 8, 20, 0.82)' }}
+        >
+          <ViewerAvatar
+            src={user.avatarUrl}
+            name={user.nickname}
+            seed={user.username}
+            sizePx={index === 0 ? 44 : 38}
+            ringColor={color}
+            ringWidthPx={2}
+          />
+          <div className={`flex flex-col min-w-0 leading-tight ${isLeft ? 'items-start' : 'items-end'}`}>
+            <span className="max-w-[128px] truncate text-[15px] leading-[1.3] font-black text-white">
+              {RANK_MEDALS[index]} {user.nickname}
+            </span>
+            <span className="text-[12px] font-extrabold text-yellow-300">{text.points(user.totalPoints)}</span>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
-      {/* Right Badges (TEAM B / SUPER B) */}
-      <div className="flex flex-col space-y-4 items-end">
-        {recentRightContributors.slice(0, 2).map((user: ViewerSummary, idx: number) => (
-          <div
-            key={user.id}
-            className="flex items-center space-x-1.5 bg-blue-900/80 border border-cyan-400/60 rounded-full pr-1 pl-3 py-1 shadow-lg backdrop-blur-sm animate-badge-float"
-            style={{ animationDelay: `${idx * 0.3}s` }}
-          >
-            <div className="flex flex-col text-right">
-              <span className="text-[10px] font-black text-cyan-200 tracking-wider">
-                {idx === 0 ? `SUPER ${preset.rightTeam.name[0]}` : `TEAM ${preset.rightTeam.name[0]}`}
-              </span>
-              <span className="text-[11px] font-bold text-white max-w-[65px] truncate leading-none">
-                {user.nickname}
-              </span>
-            </div>
-            <img
-              src={
-                user.avatarUrl ||
-                `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`
-              }
-              alt={user.nickname}
-              className="w-7 h-7 rounded-full border border-cyan-300 object-cover"
-            />
-          </div>
-        ))}
-      </div>
+/** Round leaderboard per team (top 3 by points), pinned under the HUD on each side. */
+export const SideBadges: React.FC = () => {
+  const topLeft = useClashStore((s) => s.topLeftContributors);
+  const topRight = useClashStore((s) => s.topRightContributors);
+  const preset = useClashStore((s) => getEffectivePreset(s.activePresetId, s.customPreset));
+
+  return (
+    <div className="absolute inset-x-0 top-[168px] pointer-events-none z-20 flex justify-between items-start px-3">
+      <TeamTopList
+        side="LEFT"
+        teamName={preset.leftTeam.name}
+        color={preset.leftTeam.primaryColor}
+        contributors={topLeft}
+      />
+      <TeamTopList
+        side="RIGHT"
+        teamName={preset.rightTeam.name}
+        color={preset.rightTeam.primaryColor}
+        contributors={topRight}
+      />
     </div>
   );
 };

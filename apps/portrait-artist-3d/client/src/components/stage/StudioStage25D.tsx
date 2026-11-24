@@ -17,6 +17,13 @@ import {
   useStudioStore,
 } from '../../store/studioStore';
 import { clampValue, hashString } from '../../utils/hashString';
+import {
+  ARM_KINEMATICS,
+  canvasUVToStage,
+  solveArmIK,
+  stageToCanvasUV,
+  type StagePoint,
+} from '../../utils/stageTransform';
 
 const FRAME_INTERVAL_MS = 1000 / STUDIO_LIMITS.TARGET_FPS;
 
@@ -56,7 +63,8 @@ interface GalleryCardView {
   dataUrl: string;
 }
 
-interface VfxParticle2D {
+interface PoolParticle {
+  active: boolean;
   x: number;
   y: number;
   vx: number;
@@ -66,6 +74,13 @@ interface VfxParticle2D {
   isHeart: boolean;
   age: number;
   maxAge: number;
+}
+
+interface TrailSample {
+  x: number;
+  y: number;
+  alpha: number;
+  color: string;
 }
 
 interface ArmPoseState {
@@ -125,67 +140,6 @@ function buildInitialSeededGalleryCards(): GalleryCardView[] {
 }
 
 /**
- * Computes the target shoulder rotation angle (via `Math.atan2(targetY - shoulderY, targetX - shoulderX)`)
- * and reach `scaleX` (clamped in `0.92 .. 1.12`) so `artist-arm.png` sweeps its paintbrush tip
- * directly over the active stroke `(u, v)` on `easelCanvas`.
- */
-function computeTargetArmPose(
-  u: number,
-  v: number,
-  isPainting: boolean,
-  elapsedSec: number,
-  speedMultiplier: number
-): { angleDeg: number; scaleX: number } {
-  const { easelCanvas, artistAnchor } = STAGE_25D_CONFIG;
-  const shoulderX = artistAnchor.x + artistAnchor.bodyShoulderOffsetX;
-  const shoulderY = artistAnchor.y + artistAnchor.bodyShoulderOffsetY;
-
-  if (!isPainting) {
-    const idleSway = Math.sin(elapsedSec * 2.2) * 5.0;
-    return {
-      angleDeg: artistAnchor.restAngleDeg + idleSway,
-      scaleX: 0.98,
-    };
-  }
-
-  // Map normalized brush (u, v) to the upper/center portrait zone on easelCanvas
-  // so the arm & brush stay visibly raised onto the portrait canvas surface
-  const targetX = easelCanvas.x + (0.24 + u * 0.56) * easelCanvas.width;
-  const targetY = easelCanvas.y + (0.14 + v * 0.62) * easelCanvas.height;
-
-  const dx = targetX - shoulderX;
-  const dy = targetY - shoulderY;
-
-  // Standard atan2(targetY - shoulderY, targetX - shoulderX) converted to left-pointing arm basis (180 deg)
-  const rawAngleRad = Math.atan2(dy, dx);
-  let deltaFromLeftRad = rawAngleRad - Math.PI;
-  while (deltaFromLeftRad < -Math.PI) deltaFromLeftRad += Math.PI * 2;
-  while (deltaFromLeftRad > Math.PI) deltaFromLeftRad -= Math.PI * 2;
-
-  // Add lively rhythmic brush-stroke oscillation so the hand visibly sweeps across the canvas
-  // while keeping the elbow rotation in a natural range (0..42 deg) so the joint never hyper-bends
-  const strokeSweepDeg =
-    Math.sin(elapsedSec * (7.5 * speedMultiplier)) * 6.0 +
-    Math.cos(elapsedSec * (11.0 * speedMultiplier)) * 2.8;
-
-  const angleDeg = clampValue(
-    (deltaFromLeftRad * 180) / Math.PI + strokeSweepDeg,
-    0,
-    42
-  );
-
-  const dist = Math.hypot(dx, dy);
-  const scaleOsc = Math.sin(elapsedSec * (6.5 * speedMultiplier)) * 0.035;
-  const scaleX = clampValue(
-    dist / artistAnchor.armReachLengthPx + scaleOsc,
-    0.94,
-    1.1
-  );
-
-  return { angleDeg, scaleX };
-}
-
-/**
  * 2.5D Cozy Golden-Hour Anime Layered Stage (Locked 30 FPS simulation loop, 720x1280).
  * - Separated `artist-body.png` & `artist-arm.png` with shoulder-pivot atan2 + lerp synchronization
  * - Natural skin tones on all Chibi queue characters (0 hue-rotate distortion, 3 distinct outfit/hair variants)
@@ -207,16 +161,60 @@ export const StudioStage25D: React.FC = () => {
   const preparedSessionIdRef = useRef<string | null>(null);
   const preparedStyleRef = useRef<PortraitStyle | null>(null);
   const hungSessionIdRef = useRef<string | null>(null);
-  const particlesRef = useRef<VfxParticle2D[]>([]);
   const brushUVRef = useRef<{ u: number; v: number; depthPhase: PaintDepthPhase }>({
     u: 0.5,
     v: 0.48,
     depthPhase: 'BASE_COLOR',
   });
   const currentArmRef = useRef<{ angleDeg: number; scaleX: number }>({
-    angleDeg: 12,
-    scaleX: 1.0,
+    angleDeg: ARM_KINEMATICS.REST_ANGLE_DEG,
+    scaleX: ARM_KINEMATICS.REST_SCALE_X,
   });
+
+  // Reusable 50-particle object pool (zero allocation in render loop)
+  const particlePoolRef = useRef<PoolParticle[]>(
+    Array.from({ length: ARM_KINEMATICS.MAX_BRUSH_PARTICLES }, () => ({
+      active: false,
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      size: 0,
+      color: '#fff',
+      isHeart: false,
+      age: 0,
+      maxAge: 1,
+    }))
+  );
+
+  // Reusable 8-sample ring buffer for brush trail (zero allocation)
+  const trailRingRef = useRef<TrailSample[]>(
+    Array.from({ length: ARM_KINEMATICS.MAX_TRAIL_POINTS }, () => ({
+      x: 0,
+      y: 0,
+      alpha: 0,
+      color: 'rgba(72,56,46,0.5)',
+    }))
+  );
+  const trailHeadIdxRef = useRef<number>(0);
+
+  // Palette Dipping state machine
+  const paletteDipRef = useRef<{
+    isDipping: boolean;
+    elapsedSec: number;
+    durationSec: number;
+    lastDabIndex: number;
+    canvasResumeStagePt: StagePoint;
+  }>({
+    isDipping: false,
+    elapsedSec: 0,
+    durationSec: 1.15,
+    lastDabIndex: -1,
+    canvasResumeStagePt: { x: 488, y: 604 },
+  });
+  const timeSinceLastDipRef = useRef<number>(0);
+  const lastPhaseRef = useRef<PaintDepthPhase>('SKETCH');
+  const giftFlourishTimerRef = useRef<number>(0);
 
   const [galleryCards, setGalleryCards] = useState<GalleryCardView[]>(() =>
     buildInitialSeededGalleryCards()
@@ -226,13 +224,15 @@ export const StudioStage25D: React.FC = () => {
     const sx = artistAnchor.x + artistAnchor.bodyShoulderOffsetX;
     const sy = artistAnchor.y + artistAnchor.bodyShoulderOffsetY;
     return {
-      angleDeg: 14,
-      scaleX: 1.02,
-      tipStageX: sx - artistAnchor.armReachLengthPx,
-      tipStageY: sy - 35,
-      depthPhase: 'BASE_COLOR',
+      angleDeg: ARM_KINEMATICS.REST_ANGLE_DEG,
+      scaleX: ARM_KINEMATICS.REST_SCALE_X,
+      tipStageX: sx - artistAnchor.armReachLengthPx * ARM_KINEMATICS.REST_SCALE_X,
+      tipStageY: sy + 8,
+      depthPhase: 'SKETCH',
     };
   });
+  const [paletteTiltDeg, setPaletteTiltDeg] = useState<number>(0);
+  const [isDabbingPalette, setIsDabbingPalette] = useState<boolean>(false);
   const [activeAvatarSrc, setActiveAvatarSrc] = useState<string>('');
   const [catDreamIdx, setCatDreamIdx] = useState<number>(0);
   const [isCatPurring, setIsCatPurring] = useState<boolean>(false);
@@ -362,27 +362,83 @@ export const StudioStage25D: React.FC = () => {
       preparedStyleRef.current = latest.activeSession.style;
     };
 
-    const spawnParticles = (count: number, isHeart: boolean) => {
-      for (let i = 0; i < count; i++) {
-        particlesRef.current.push({
-          x: 470 + (Math.random() - 0.5) * 180,
-          y: 590 + (Math.random() - 0.5) * 140,
-          vx: (Math.random() - 0.5) * 140,
-          vy: -130 - Math.random() * 140,
-          size: isHeart ? 18 + Math.random() * 10 : 8 + Math.random() * 7,
-          color: PARTICLE_COLORS[i % PARTICLE_COLORS.length],
-          isHeart,
-          age: 0,
-          maxAge: 1.2 + Math.random() * 0.7,
-        });
+    // Allocator for fixed 50-particle pool (zero allocation in loop)
+    const spawnParticleFromPool = (
+      x: number,
+      y: number,
+      vx: number,
+      vy: number,
+      size: number,
+      color: string,
+      isHeart: boolean,
+      maxAge: number
+    ) => {
+      const pool = particlePoolRef.current;
+      let targetIdx = -1;
+      let maxAgeFound = -1;
+      for (let i = 0; i < pool.length; i++) {
+        if (!pool[i].active) {
+          targetIdx = i;
+          break;
+        }
+        if (pool[i].age > maxAgeFound) {
+          maxAgeFound = pool[i].age;
+          targetIdx = i;
+        }
       }
+      if (targetIdx >= 0) {
+        const p = pool[targetIdx];
+        p.active = true;
+        p.x = x;
+        p.y = y;
+        p.vx = vx;
+        p.vy = vy;
+        p.size = size;
+        p.color = color;
+        p.isHeart = isHeart;
+        p.age = 0;
+        p.maxAge = maxAge;
+      }
+    };
+
+    const spawnParticleBurst = (
+      count: number,
+      isHeart: boolean,
+      originX?: number,
+      originY?: number
+    ) => {
+      const ox = originX ?? 470 + (Math.random() - 0.5) * 160;
+      const oy = originY ?? 590 + (Math.random() - 0.5) * 120;
+      for (let i = 0; i < count; i++) {
+        spawnParticleFromPool(
+          ox + (Math.random() - 0.5) * 40,
+          oy + (Math.random() - 0.5) * 30,
+          (Math.random() - 0.5) * 120,
+          -90 - Math.random() * 110,
+          isHeart ? 16 + Math.random() * 8 : 6 + Math.random() * 6,
+          PARTICLE_COLORS[i % PARTICLE_COLORS.length],
+          isHeart,
+          1.0 + Math.random() * 0.6
+        );
+      }
+    };
+
+    const recordTrailPoint = (x: number, y: number, color: string) => {
+      const ring = trailRingRef.current;
+      const idx = (trailHeadIdxRef.current + 1) % ARM_KINEMATICS.MAX_TRAIL_POINTS;
+      trailHeadIdxRef.current = idx;
+      const pt = ring[idx];
+      pt.x = x;
+      pt.y = y;
+      pt.alpha = 0.55;
+      pt.color = color;
     };
 
     const unsubVfx = subscribeStudioVfx((signal) => {
       if (signal.kind === 'HEARTS') {
-        spawnParticles(signal.count, true);
+        spawnParticleBurst(signal.count, true);
       } else if (signal.kind === 'CONFETTI') {
-        spawnParticles(signal.count, false);
+        spawnParticleBurst(signal.count, false);
       } else if (signal.kind === 'CLEAR_GALLERY') {
         setGalleryCards([]);
         engine.clearToBlankPaper();
@@ -391,10 +447,38 @@ export const StudioStage25D: React.FC = () => {
         setIsQueueFlashing(true);
         window.setTimeout(() => setIsQueueFlashing(false), 900);
       } else if (signal.kind === 'BRUSH_SPARK') {
-        spawnParticles(6, false);
+        const cur = currentArmRef.current;
+        const { artistAnchor } = STAGE_25D_CONFIG;
+        const sx = artistAnchor.x + artistAnchor.bodyShoulderOffsetX;
+        const sy = artistAnchor.y + artistAnchor.bodyShoulderOffsetY;
+        const r = (cur.angleDeg * Math.PI) / 180;
+        const reach = artistAnchor.armReachLengthPx * cur.scaleX;
+        const tipX = sx - reach * Math.cos(r);
+        const tipY = sy - reach * Math.sin(r);
+        for (let i = 0; i < 6; i++) {
+          spawnParticleFromPool(
+            tipX + (Math.random() - 0.5) * 20,
+            tipY + (Math.random() - 0.5) * 20,
+            (Math.random() - 0.5) * 60,
+            -45 - Math.random() * 45,
+            5 + Math.random() * 4,
+            PARTICLE_COLORS[i % PARTICLE_COLORS.length],
+            false,
+            0.6 + Math.random() * 0.3
+          );
+        }
       } else if (signal.kind === 'GIFT_EASEL_FLASH') {
+        giftFlourishTimerRef.current = 0.65;
         setEaselFlash(signal.isRoyal ? 'ROYAL' : 'GIFT');
         window.setTimeout(() => setEaselFlash('NONE'), 1400);
+
+        // If actively painting, trigger palette reload dip immediately
+        if (useStudioStore.getState().phase === 'PAINTING') {
+          paletteDipRef.current.isDipping = true;
+          paletteDipRef.current.elapsedSec = 0;
+          paletteDipRef.current.lastDabIndex = -1;
+          timeSinceLastDipRef.current = 0;
+        }
       }
     });
 
@@ -405,17 +489,43 @@ export const StudioStage25D: React.FC = () => {
       if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const list = particlesRef.current;
-      for (let i = list.length - 1; i >= 0; i--) {
-        const p = list[i];
+      // 1. Draw Brush Trail
+      const ring = trailRingRef.current;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (let i = 0; i < ring.length; i++) {
+        const pt = ring[i];
+        if (pt.alpha <= 0.01) continue;
+        pt.alpha = Math.max(0, pt.alpha - dt * 2.4);
+        const nextPt = ring[(i + 1) % ring.length];
+        if (nextPt.alpha <= 0.01) continue;
+        const dist = Math.hypot(pt.x - nextPt.x, pt.y - nextPt.y);
+        if (dist > 65) continue; // Skip teleport/wrap seams
+
+        ctx.strokeStyle = pt.color;
+        ctx.globalAlpha = (pt.alpha + nextPt.alpha) * 0.5;
+        ctx.lineWidth = Math.max(1.5, 4.5 * pt.alpha);
+        ctx.beginPath();
+        ctx.moveTo(pt.x, pt.y);
+        ctx.lineTo(nextPt.x, nextPt.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 2. Draw Active Particles
+      const pool = particlePoolRef.current;
+      for (let i = 0; i < pool.length; i++) {
+        const p = pool[i];
+        if (!p.active) continue;
         p.age += dt;
         if (p.age >= p.maxAge) {
-          list.splice(i, 1);
+          p.active = false;
           continue;
         }
         p.x += p.vx * dt;
         p.y += p.vy * dt;
-        p.vy += 95 * dt;
+        p.vy += 85 * dt;
         const alpha = Math.max(0, 1 - p.age / p.maxAge);
 
         ctx.save();
@@ -477,38 +587,209 @@ export const StudioStage25D: React.FC = () => {
         preparedStyleRef.current = sess.style;
         engine.switchStyleLive(sess.style, st.config.locale, sess.progress);
         copyEngineToDisplay();
+
+        // Trigger palette reload dip on live style switch
+        paletteDipRef.current.isDipping = true;
+        paletteDipRef.current.elapsedSec = 0;
+        paletteDipRef.current.lastDabIndex = -1;
+        timeSinceLastDipRef.current = 0;
       }
 
-      // Smoothly lerp the right arm shoulder rotation & reach scaleX toward the current brush stroke
-      const isActivelyPainting = st.phase === 'PAINTING' && sess !== null && sess.progress > 0;
-      const targetArm = computeTargetArmPose(
-        brushUVRef.current.u,
-        brushUVRef.current.v,
-        isActivelyPainting,
-        elapsedSec,
-        st.paintSpeedMultiplier
-      );
-      const lerpAlpha = 1 - Math.exp(-11.5 * stepSec);
-      const cur = currentArmRef.current;
-      cur.angleDeg += (targetArm.angleDeg - cur.angleDeg) * lerpAlpha;
-      cur.scaleX += (targetArm.scaleX - cur.scaleX) * lerpAlpha;
+      // Check phase transitions or style switch to trigger palette dip
+      const isActivelyPainting =
+        st.phase === 'PAINTING' && sess !== null && sess.progress > 0 && sess.progress < 1;
+      const strokeUV = engine.getStrokePointUV(sess ? sess.progress : 0);
 
-      const { artistAnchor, easelCanvas } = STAGE_25D_CONFIG;
+      const { artistAnchor, easelCanvas, paletteAnchor } = STAGE_25D_CONFIG;
       const shoulderX = artistAnchor.x + artistAnchor.bodyShoulderOffsetX;
       const shoulderY = artistAnchor.y + artistAnchor.bodyShoulderOffsetY;
+
+      if (isActivelyPainting && sess) {
+        if (strokeUV.depthPhase !== lastPhaseRef.current) {
+          lastPhaseRef.current = strokeUV.depthPhase;
+          paletteDipRef.current.isDipping = true;
+          paletteDipRef.current.elapsedSec = 0;
+          paletteDipRef.current.lastDabIndex = -1;
+          paletteDipRef.current.canvasResumeStagePt = canvasUVToStage(
+            strokeUV.u,
+            strokeUV.v,
+            easelCanvas
+          );
+          timeSinceLastDipRef.current = 0;
+        } else {
+          timeSinceLastDipRef.current += stepSec;
+          const periodicThreshold =
+            10.5 / Math.min(1.8, Math.pow(st.paintSpeedMultiplier, 0.6));
+          if (timeSinceLastDipRef.current >= periodicThreshold) {
+            paletteDipRef.current.isDipping = true;
+            paletteDipRef.current.elapsedSec = 0;
+            paletteDipRef.current.lastDabIndex = -1;
+            paletteDipRef.current.canvasResumeStagePt = canvasUVToStage(
+              strokeUV.u,
+              strokeUV.v,
+              easelCanvas
+            );
+            timeSinceLastDipRef.current = 0;
+          }
+        }
+      }
+
+      // Decrement gift flourish timer
+      if (giftFlourishTimerRef.current > 0) {
+        giftFlourishTimerRef.current = Math.max(0, giftFlourishTimerRef.current - stepSec);
+      }
+
+      let targetStageX = shoulderX - artistAnchor.armReachLengthPx * ARM_KINEMATICS.REST_SCALE_X;
+      let targetStageY = shoulderY + 8;
+      let leanOffset: StagePoint = { x: 0, y: 0 };
+      let currentPaletteTilt = 0;
+
+      const dip = paletteDipRef.current;
+      if (dip.isDipping) {
+        dip.elapsedSec += stepSec;
+        const total = dip.durationSec;
+        const t = Math.min(1, dip.elapsedSec / total);
+
+        if (t < 0.35) {
+          // Arc down from canvas to palette
+          const blend = t / 0.35;
+          const smoothBlend = 0.5 - 0.5 * Math.cos(blend * Math.PI);
+          targetStageX =
+            dip.canvasResumeStagePt.x +
+            (paletteAnchor.stageDabX - dip.canvasResumeStagePt.x) * smoothBlend;
+          targetStageY =
+            dip.canvasResumeStagePt.y +
+            (paletteAnchor.stageDabY - dip.canvasResumeStagePt.y) * smoothBlend;
+        } else if (t < 0.7) {
+          // Dab twice on palette
+          const dabNorm = (t - 0.35) / 0.35;
+          const dabWave = Math.sin(dabNorm * Math.PI * 4) * 6.5;
+          targetStageX = paletteAnchor.stageDabX;
+          targetStageY = paletteAnchor.stageDabY + dabWave;
+          currentPaletteTilt = paletteAnchor.tiltAngleDeg * Math.sin(dabNorm * Math.PI);
+
+          const currentDabIdx = Math.floor(dabNorm * 2);
+          if (currentDabIdx !== dip.lastDabIndex) {
+            dip.lastDabIndex = currentDabIdx;
+            studioSfx.playBrushSwish(0.85);
+            const sparkColor =
+              strokeUV.depthPhase === 'SKETCH'
+                ? '#78716c'
+                : PARTICLE_COLORS[(currentDabIdx * 2) % PARTICLE_COLORS.length];
+            spawnParticleFromPool(
+              paletteAnchor.stageDabX,
+              paletteAnchor.stageDabY,
+              (Math.random() - 0.5) * 30,
+              -25 - Math.random() * 20,
+              5,
+              sparkColor,
+              false,
+              0.45
+            );
+          }
+        } else if (t < 1.0) {
+          // Arc back up from palette to canvas
+          const blend = (t - 0.7) / 0.3;
+          const smoothBlend = 0.5 - 0.5 * Math.cos(blend * Math.PI);
+          targetStageX =
+            paletteAnchor.stageDabX +
+            (dip.canvasResumeStagePt.x - paletteAnchor.stageDabX) * smoothBlend;
+          targetStageY =
+            paletteAnchor.stageDabY +
+            (dip.canvasResumeStagePt.y - paletteAnchor.stageDabY) * smoothBlend;
+          currentPaletteTilt = paletteAnchor.tiltAngleDeg * (1 - blend);
+        } else {
+          dip.isDipping = false;
+        }
+      } else if (isActivelyPainting && sess) {
+        // Active Painting Mode: track the true stroke path on easelCanvas
+        const baseCanvasPt = canvasUVToStage(strokeUV.u, strokeUV.v, easelCanvas);
+        dip.canvasResumeStagePt = baseCanvasPt;
+
+        // Smooth speed multiplier scaling: 1.0x -> 1.8x
+        const sweepFreq = 7.2 * Math.min(1.8, Math.pow(st.paintSpeedMultiplier, 0.72));
+        const arcAmp = giftFlourishTimerRef.current > 0 ? 8.5 : 4.8;
+
+        // Tangent & normal oscillation for organic curved brushstrokes
+        const tangentCos = Math.cos(strokeUV.angleRad);
+        const tangentSin = Math.sin(strokeUV.angleRad);
+        const strokeTangWiggle = Math.sin(elapsedSec * sweepFreq) * arcAmp;
+        const strokeNormWiggle = Math.cos(elapsedSec * (sweepFreq * 0.75)) * (arcAmp * 0.6);
+
+        targetStageX = baseCanvasPt.x + tangentCos * strokeTangWiggle - tangentSin * strokeNormWiggle;
+        targetStageY = baseCanvasPt.y + tangentSin * strokeTangWiggle + tangentCos * strokeNormWiggle;
+
+        // Torso lean towards easel when reaching far left
+        if (targetStageX < 490) {
+          const reachFrac = clampValue((490 - targetStageX) / 120, 0, 1);
+          leanOffset = {
+            x: -reachFrac * ARM_KINEMATICS.LEAN_MAX_X_PX,
+            y: -reachFrac * ARM_KINEMATICS.LEAN_MAX_Y_PX,
+          };
+        }
+      } else {
+        // Idle Wait / Model Walk In / 0% Progress: Resting Pose near hip
+        const idleSway = Math.sin(elapsedSec * 1.8) * 2.2;
+        targetStageX = shoulderX - artistAnchor.armReachLengthPx * ARM_KINEMATICS.REST_SCALE_X;
+        targetStageY = shoulderY + 8 + idleSway;
+      }
+
+      const solution = solveArmIK(
+        targetStageX,
+        targetStageY,
+        shoulderX,
+        shoulderY,
+        artistAnchor.armReachLengthPx,
+        leanOffset
+      );
+
+      const lerpAlpha = 1 - Math.exp(-ARM_KINEMATICS.SMOOTH_LERP_SPEED * stepSec);
+      const cur = currentArmRef.current;
+      cur.angleDeg += (solution.angleDeg - cur.angleDeg) * lerpAlpha;
+      cur.scaleX += (solution.scaleX - cur.scaleX) * lerpAlpha;
+
       const rad = (cur.angleDeg * Math.PI) / 180;
       const reach = artistAnchor.armReachLengthPx * cur.scaleX;
-      const tipStageX = shoulderX - reach * Math.cos(rad);
-      const tipStageY = shoulderY - reach * Math.sin(rad);
+      const tipStageX = shoulderX + leanOffset.x - reach * Math.cos(rad);
+      const tipStageY = shoulderY + leanOffset.y - reach * Math.sin(rad);
 
-      if (st.phase === 'PAINTING' && sess && sess.progress > 0) {
-        const tipCanvasU = clampValue((tipStageX - easelCanvas.x) / easelCanvas.width, 0.08, 0.92);
-        const tipCanvasV = clampValue((tipStageY - easelCanvas.y) / easelCanvas.height, 0.08, 0.92);
+      if (isActivelyPainting && sess && !dip.isDipping) {
+        const tipCanvas = stageToCanvasUV(tipStageX, tipStageY, easelCanvas);
         const uv = engine.updateProgress(sess.progress, st.paintSpeedMultiplier, {
-          u: tipCanvasU,
-          v: tipCanvasV,
+          u: tipCanvas.u,
+          v: tipCanvas.v,
         });
         brushUVRef.current = { u: uv.u, v: uv.v, depthPhase: uv.depthPhase };
+        copyEngineToDisplay();
+
+        // Record fading brush trail
+        const trailColor =
+          uv.depthPhase === 'SKETCH'
+            ? 'rgba(72, 56, 46, 0.45)'
+            : uv.depthPhase === 'BASE_COLOR'
+            ? 'rgba(234, 88, 12, 0.45)'
+            : 'rgba(254, 240, 138, 0.55)';
+        recordTrailPoint(tipStageX, tipStageY, trailColor);
+
+        // Spawn occasional pigment dust / sparkles at tip
+        if (Math.random() < 0.38 * Math.min(2.0, st.paintSpeedMultiplier)) {
+          const dustColor =
+            uv.depthPhase === 'SKETCH'
+              ? '#78716c'
+              : PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)];
+          spawnParticleFromPool(
+            tipStageX,
+            tipStageY,
+            (Math.random() - 0.5) * 35,
+            -20 - Math.random() * 25,
+            3 + Math.random() * 3,
+            dustColor,
+            false,
+            0.45 + Math.random() * 0.35
+          );
+        }
+      } else if (!sess || sess.progress <= 0) {
+        engine.clearToBlankPaper();
         copyEngineToDisplay();
       }
 
@@ -519,6 +800,8 @@ export const StudioStage25D: React.FC = () => {
         tipStageY,
         depthPhase: brushUVRef.current.depthPhase,
       });
+      setPaletteTiltDeg(currentPaletteTilt);
+      setIsDabbingPalette(dip.isDipping && dip.elapsedSec >= 0.35 && dip.elapsedSec < 0.7);
 
       if (st.phase === 'HANG_UP' && sess && hungSessionIdRef.current !== sess.entry.id) {
         hungSessionIdRef.current = sess.entry.id;
@@ -969,6 +1252,8 @@ export const StudioStage25D: React.FC = () => {
             style={{
               animation: artistBodyAnimation,
               transformOrigin: '55% 92%',
+              transform: `rotate(${paletteTiltDeg.toFixed(2)}deg)`,
+              transition: 'transform 100ms ease-out',
             }}
             className="relative w-full h-full"
           >
@@ -996,6 +1281,17 @@ export const StudioStage25D: React.FC = () => {
               draggable={false}
               className="relative w-full h-full object-contain drop-shadow-lg"
             />
+
+            {/* Palette Dab Gleam when loading paint */}
+            {isDabbingPalette && (
+              <span
+                style={{
+                  left: STAGE_25D_CONFIG.paletteAnchor.bodyLocalX - 9,
+                  top: STAGE_25D_CONFIG.paletteAnchor.bodyLocalY - 9,
+                }}
+                className="absolute w-5 h-5 rounded-full bg-amber-300/85 shadow-[0_0_12px_rgba(251,191,36,0.95)] animate-ping pointer-events-none"
+              />
+            )}
           </div>
 
           {hasRoyalHat && (

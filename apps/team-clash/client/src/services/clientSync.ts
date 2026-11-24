@@ -11,6 +11,9 @@ export function startClientSync(): () => void {
     typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(SYNC_CHANNEL_NAME) : null;
 
   const postToAdmin = (message: ClashSyncMessage) => {
+    // 0. Realtime Socket.IO to Host Admin (port 8031, OBS, LAN, ngrok)
+    coreReceiver.emitClashMessage(message);
+
     try {
       channel?.postMessage(message);
     } catch {
@@ -31,66 +34,7 @@ export function startClientSync(): () => void {
   const handleMessage = (data: unknown) => {
     if (!data || typeof data !== 'object') return;
     const msg = data as ClashSyncMessage;
-
-    if (msg.type === 'LIVE_EVENT' && msg.event) {
-      coreReceiver.dispatchEvent(msg.event);
-    } else if (msg.type === 'ADMIN_ACTION') {
-      const store = useClashStore.getState();
-      switch (msg.action) {
-        case 'RESET_ROUND':
-          store.resetRound();
-          break;
-        case 'REBALANCE_50_50':
-          store.rebalance5050();
-          break;
-        case 'DRAMA_BOOST':
-          store.dramaBoost();
-          break;
-        case 'SET_PRESET':
-          if (msg.payload?.presetId) {
-            store.setPreset(msg.payload.presetId);
-          }
-          break;
-        case 'SET_CUSTOM_PRESET':
-          if (msg.payload?.customPreset) {
-            store.setCustomPreset(msg.payload.customPreset);
-          }
-          break;
-        case 'SET_LANGUAGE':
-          if (msg.payload?.language) {
-            store.setLanguage(msg.payload.language);
-          }
-          break;
-        case 'SET_ROUND_DURATION':
-          if (msg.payload?.durationSeconds) {
-            store.setRoundDuration(msg.payload.durationSeconds);
-          }
-          break;
-        case 'SET_PUSH_MULTIPLIERS':
-          if (msg.payload?.multipliers) {
-            store.setPushMultipliers(msg.payload.multipliers);
-          }
-          break;
-        case 'SET_SOUND_CONFIG':
-          if (msg.payload?.soundConfig) {
-            audioService.setConfig(msg.payload.soundConfig);
-          }
-          break;
-        case 'TEST_SOUND':
-          if (msg.payload?.soundType) {
-            audioService.unlockAudio();
-            audioService.playPushSound(msg.payload.soundType, msg.payload.soundTeam);
-          }
-          break;
-        case 'SIMULATE_EVENT':
-          if (msg.payload?.simulatedEvent) {
-            coreReceiver.dispatchEvent(msg.payload.simulatedEvent);
-          }
-          break;
-        default:
-          break;
-      }
-    }
+    coreReceiver.handleClashAction(msg);
   };
 
   if (channel) {

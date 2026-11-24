@@ -42,7 +42,40 @@ export interface ViewerSummary {
   totalPoints: number;
 }
 
-export type RoundStatus = 'WAITING' | 'PLAYING' | 'ROUND_END';
+export type PushTier = 'SMALL' | 'MEDIUM' | 'LARGE';
+
+export type PushSource = 'CHAT' | 'LIKE' | 'GIFT';
+
+/** What a single viewer action actually did to the clash (null when it was ignored). */
+export interface PushResult {
+  team: TeamId;
+  /** Push applied, in percentage points of the clash bar. */
+  amount: number;
+  tier: PushTier;
+  source: PushSource;
+  viewer: ViewerSummary;
+  giftName?: string;
+  giftCount?: number;
+}
+
+export type RoundStatus ='WAITING' | 'PLAYING' | 'ROUND_END';
+
+export interface GiftAlertItem {
+  id: string;
+  userId: string;
+  username: string;
+  nickname: string;
+  avatarUrl?: string;
+  team: TeamId;
+  teamName: string;
+  teamColor: string;
+  giftName: string;
+  coinValue: number;
+  repeatCount: number;
+  tier: 'SMALL' | 'MEDIUM' | 'LARGE';
+  pushPercent: number;
+  timestamp: number;
+}
 
 export interface ClashMatchState {
   roundNumber: number;
@@ -63,8 +96,9 @@ export interface ClashMatchState {
   recentLeftContributors: ViewerSummary[];
   recentRightContributors: ViewerSummary[];
   topRoundContributors: ViewerSummary[];
+  recentGiftAlerts: GiftAlertItem[];
   lastRoundWinner: TeamId | null;
-  roundEndCountdown: number; // 5 seconds
+  roundEndCountdown: number; // seconds
   neutralEnergySurge: number;
   isStrobeWarning: boolean;
 }
@@ -74,12 +108,14 @@ export interface SoundConfig {
   sfxVolume: number;
   micModeEnabled: boolean;
   isMuted: boolean;
+  youtubeUrl?: string;
 }
 
 export interface PushMultipliers {
   chatPush: number;
   likePush: number;
-  smallGiftPush: number;
-  mediumGiftPush: number;
-  largeGiftPush: number;
+  /** Max push % one viewer's likes can add per round (likes are free, so they are capped). */
+  likePushMaxPerUserPerRound: number;
+  /** Push % per coin: a gift pushes totalCoins × this, so a x10 Rose combo = one 10-coin gift. */
+  giftPushPerCoin: number;
 }

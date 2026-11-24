@@ -12,5 +12,33 @@
     "durationMs": 26533,
     "reason": "TikTok connection dropped",
     "username": "bap.daily.lifestyle99"
+  },
+  {
+    "from": 1795537781065,
+    "to": 1795537787179,
+    "durationMs": 6114,
+    "reason": "[Connect Error] Failed to connect to sign server. connect ETIMEDOUT 2606:4700:20::681a:ab:443",
+    "username": "bap.daily.lifestyle99"
+  },
+  {
+    "from": 1795538051057,
+    "to": 1795538057456,
+    "durationMs": 6399,
+    "reason": "[Connect Error] Failed to connect to sign server. connect ETIMEDOUT 2606:4700:20::ac43:4637:443",
+    "username": "bap.daily.lifestyle99"
+  },
+  {
+    "from": 1795538389563,
+    "to": 1795538398679,
+    "durationMs": 9116,
+    "reason": "[Connect Error] Failed to connect to sign server. connect ETIMEDOUT 2606:4700:20::ac43:4637:443",
+    "username": "bap.daily.lifestyle99"
+  },
+  {
+    "from": 1795539378901,
+    "to": 1795539389945,
+    "durationMs": 11044,
+    "reason": "Error connecting to WebSocket with message: DEVICE_BLOCKED",
+    "username": "bap.daily.lifestyle99"
   }
 ]

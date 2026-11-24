@@ -31,6 +31,7 @@ export const LiveSimulator: React.FC = () => {
         avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
       },
       text,
+      team,
     });
   };
 
@@ -38,20 +39,7 @@ export const LiveSimulator: React.FC = () => {
     const isLeft = team === 'LEFT';
     const username = isLeft ? 'TyPhu_GirlTeam' : 'DaiGia_BoyTeam';
 
-    // First ensure user is assigned to team
-    adminEmitter.emitLiveEvent({
-      type: 'CHAT',
-      timestamp: Date.now(),
-      user: {
-        id: `sim_${username}`,
-        username,
-        nickname: username,
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
-      },
-      text: isLeft ? 'g' : 'b',
-    });
-
-    // Then trigger gift
+    // Direct gift with explicit team assignment
     adminEmitter.emitLiveEvent({
       type: 'GIFT',
       timestamp: Date.now(),
@@ -64,6 +52,7 @@ export const LiveSimulator: React.FC = () => {
       giftName,
       coinValue: coins,
       repeatCount: 1,
+      team,
     });
   };
 

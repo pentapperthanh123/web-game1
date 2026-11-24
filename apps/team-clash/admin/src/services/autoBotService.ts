@@ -22,19 +22,53 @@ const GIFTS = [
   { name: 'Galaxy Clash', coins: 50 },
 ];
 
+declare global {
+  interface Window {
+    __TEAM_CLASH_BOT_TIMER__?: NodeJS.Timeout | number | null;
+    __TEAM_CLASH_BOT_RUNNING__?: boolean;
+  }
+}
+
 class AutoBotService {
   private timerId: NodeJS.Timeout | null = null;
+  private isRunning = false;
   private botTeamMap = new Map<string, 'LEFT' | 'RIGHT'>();
 
-  public start(): void {
-    if (this.timerId) return;
+  constructor() {
+    // If any orphan interval exists on window from HMR, kill it immediately
+    this.stop();
+  }
 
-    this.timerId = setInterval(() => {
+  public getIsRunning(): boolean {
+    return this.isRunning;
+  }
+
+  public start(): void {
+    this.stop(); // Always clear previous timer before starting new one
+    this.isRunning = true;
+    if (typeof window !== 'undefined') {
+      window.__TEAM_CLASH_BOT_RUNNING__ = true;
+    }
+
+    const timer = setInterval(() => {
       this.tickBot();
-    }, 400);
+    }, 650);
+
+    this.timerId = timer;
+    if (typeof window !== 'undefined') {
+      window.__TEAM_CLASH_BOT_TIMER__ = timer;
+    }
   }
 
   public stop(): void {
+    this.isRunning = false;
+    if (typeof window !== 'undefined') {
+      window.__TEAM_CLASH_BOT_RUNNING__ = false;
+      if (window.__TEAM_CLASH_BOT_TIMER__) {
+        clearInterval(window.__TEAM_CLASH_BOT_TIMER__ as number);
+        window.__TEAM_CLASH_BOT_TIMER__ = null;
+      }
+    }
     if (this.timerId) {
       clearInterval(this.timerId);
       this.timerId = null;
@@ -42,6 +76,12 @@ class AutoBotService {
   }
 
   private tickBot(): void {
+    // Strict Guard: If AutoBot is off, NEVER emit any event
+    if (!this.isRunning || (typeof window !== 'undefined' && !window.__TEAM_CLASH_BOT_RUNNING__)) {
+      this.stop();
+      return;
+    }
+
     const randomViewer = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
     const roll = Math.random();
 
@@ -52,8 +92,8 @@ class AutoBotService {
       this.botTeamMap.set(randomViewer, team);
     }
 
-    // 1. Roll for Chat Push (65% probability)
-    if (roll < 0.65) {
+    // 1. Roll for Chat Push (72% probability)
+    if (roll < 0.72) {
       const isLeft = team === 'LEFT';
       const text = isLeft ? (Math.random() > 0.5 ? 'g' : 'girl') : Math.random() > 0.5 ? 'b' : 'boy';
 
@@ -71,15 +111,10 @@ class AutoBotService {
       return;
     }
 
-    // 2. Roll for Gift Attack (20% probability)
-    if (roll < 0.85) {
-      const gift = GIFTS[Math.floor(Math.random() * GIFTS.length)];
-      // First ensure team is registered via quick chat
-      const isLeft = team === 'LEFT';
-      const teamKeyword = isLeft ? 'g' : 'b';
-
+    // 2. Roll for Like Batch (21% probability)
+    if (roll < 0.93) {
       adminEmitter.emitLiveEvent({
-        type: 'CHAT',
+        type: 'LIKE',
         timestamp: Date.now(),
         user: {
           id: `bot_${randomViewer}`,
@@ -87,36 +122,44 @@ class AutoBotService {
           nickname: randomViewer,
           avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${randomViewer}`,
         },
-        text: teamKeyword,
-      });
-
-      // Trigger gift
-      adminEmitter.emitLiveEvent({
-        type: 'GIFT',
-        timestamp: Date.now(),
-        user: {
-          id: `bot_${randomViewer}`,
-          username: randomViewer,
-          nickname: randomViewer,
-          avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${randomViewer}`,
-        },
-        giftName: gift.name,
-        coinValue: gift.coins,
-        repeatCount: 1,
+        count: Math.floor(Math.random() * 5) + 1,
+        team,
       });
       return;
     }
 
-    // 3. Roll for Likes (15% probability)
+    // 3. Roll for Gift Attack (7% probability - creates exciting Donation alerts without instant wipeout)
+    const gift = GIFTS[Math.floor(Math.random() * GIFTS.length)];
+    const isLeft = team === 'LEFT';
+    const teamKeyword = isLeft ? 'g' : 'b';
+
     adminEmitter.emitLiveEvent({
-      type: 'LIKE',
+      type: 'CHAT',
       timestamp: Date.now(),
       user: {
         id: `bot_${randomViewer}`,
         username: randomViewer,
         nickname: randomViewer,
+        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${randomViewer}`,
       },
-      count: Math.floor(Math.random() * 4) + 1,
+      text: teamKeyword,
+      team,
+    });
+
+    // Trigger gift
+    adminEmitter.emitLiveEvent({
+      type: 'GIFT',
+      timestamp: Date.now(),
+      user: {
+        id: `bot_${randomViewer}`,
+        username: randomViewer,
+        nickname: randomViewer,
+        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${randomViewer}`,
+      },
+      giftName: gift.name,
+      coinValue: gift.coins,
+      repeatCount: 1,
+      team,
     });
   }
 }

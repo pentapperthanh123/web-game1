@@ -1,4 +1,4 @@
-import type { ClashMatchState, PushMultipliers, SoundConfig, TeamPresetConfig } from './clash';
+import type { ClashMatchState, PushMultipliers, SoundConfig, TeamId, TeamPresetConfig } from './clash';
 
 export type CoreEventType =
   | 'CHAT'
@@ -29,10 +29,14 @@ export interface NormalizedLiveEvent {
   repeatCount?: number;
   isStreakEnd?: boolean;
   count?: number;
+  team?: TeamId | string;
 }
 
 export type AdminActionType =
+  | 'START_ROUND'
+  | 'PAUSE_ROUND'
   | 'RESET_ROUND'
+  | 'RESET_MATCH'
   | 'REBALANCE_50_50'
   | 'DRAMA_BOOST'
   | 'SET_PRESET'

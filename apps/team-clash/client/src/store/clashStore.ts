@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import {
+  CHAT_PUSH_SHAKE,
+  CHAT_PUSH_TIER,
   CHAT_RATE_LIMIT_PER_USER_MS,
+  CLASH_CENTER_POSITION,
+  CLASH_POSITION_LERP_FACTOR,
+  CLASH_POSITION_SNAP_EPSILON,
   DEFAULT_PUSH_MULTIPLIERS,
   DEFAULT_ROUND_DURATION_SECONDS,
   ROUND_END_DISPLAY_SECONDS,
@@ -9,32 +14,46 @@ import {
 import { DEFAULT_PRESET_ID, TEAM_PRESETS } from '../../../shared/constants/presets';
 import type {
   ClashMatchState,
+  GiftAlertItem,
   PushMultipliers,
+  PushResult,
   TeamId,
   TeamPresetConfig,
   ViewerSummary,
 } from '../../../shared/types/clash';
 import type { NormalizedViewer } from '../../../shared/types/events';
+import { resolveGiftPushPercent, resolveGiftTier } from '../utils/giftCatalog';
+import { audioService } from '../services/audioService';
+import { useGiftTallyStore } from './giftTallyStore';
 
 interface ClashStoreState extends ClashMatchState {
   pushMultipliers: PushMultipliers;
   userTeamMap: Map<string, TeamId>;
   userScoreMap: Map<string, ViewerSummary>;
   lastChatTimes: Map<string, number>;
+  /** Push % each viewer's likes have added this round (capped by likePushMaxPerUserPerRound). */
+  roundLikePush: Map<string, number>;
   screenShake: number; // 0 to 1 intensity
+  /** Highest-scoring viewers of the current round, per team (fresh copies for React). */
+  topLeftContributors: ViewerSummary[];
+  topRightContributors: ViewerSummary[];
   // Actions
   getActivePreset: () => TeamPresetConfig;
-  handleChat: (user: NormalizedViewer, text: string) => void;
-  handleLike: (user: NormalizedViewer, count: number) => void;
+  handleChat: (user: NormalizedViewer, text: string, explicitTeam?: TeamId) => PushResult | null;
+  handleLike: (user: NormalizedViewer, count: number, explicitTeam?: TeamId) => PushResult | null;
   handleGift: (
     user: NormalizedViewer,
     giftName: string,
     coinValue: number,
-    repeatCount: number
-  ) => void;
+    repeatCount: number,
+    explicitTeam?: TeamId
+  ) => PushResult | null;
   handleJoin: (user: NormalizedViewer) => void;
   tickGameLoop: (deltaSeconds: number) => void;
+  startRound: () => void;
+  pauseRound: () => void;
   resetRound: () => void;
+  resetMatch: () => void;
   rebalance5050: () => void;
   dramaBoost: () => void;
   setPreset: (presetId: string) => void;
@@ -48,7 +67,7 @@ interface ClashStoreState extends ClashMatchState {
 const DEFAULT_INITIAL_STATE: ClashMatchState = {
   roundNumber: 1,
   seriesScore: { left: 0, right: 0 },
-  roundStatus: 'PLAYING',
+  roundStatus: 'WAITING',
   roundTimeRemaining: DEFAULT_ROUND_DURATION_SECONDS,
   roundDurationSeconds: DEFAULT_ROUND_DURATION_SECONDS,
   clashPosition: 50.0,
@@ -56,10 +75,11 @@ const DEFAULT_INITIAL_STATE: ClashMatchState = {
   leftScore: 0,
   rightScore: 0,
   activePresetId: DEFAULT_PRESET_ID,
-  language: 'EN',
+  language: 'VI',
   recentLeftContributors: [],
   recentRightContributors: [],
   topRoundContributors: [],
+  recentGiftAlerts: [],
   lastRoundWinner: null,
   roundEndCountdown: ROUND_END_DISPLAY_SECONDS,
   neutralEnergySurge: 0,
@@ -76,12 +96,57 @@ export function getEffectivePreset(
   return TEAM_PRESETS[activePresetId] ?? TEAM_PRESETS[DEFAULT_PRESET_ID];
 }
 
+const TEAM_TOP_LIMIT = 3;
+const RECENT_CONTRIBUTOR_LIMIT = 3;
+
+function getOrCreateSummary(
+  scoreMap: Map<string, ViewerSummary>,
+  user: NormalizedViewer,
+  team: TeamId
+): ViewerSummary {
+  const existing = scoreMap.get(user.id);
+  if (existing) {
+    // Keep the freshest profile data (late avatar / renamed viewer).
+    existing.nickname = user.nickname || existing.nickname;
+    existing.avatarUrl = user.avatarUrl || existing.avatarUrl;
+    existing.team = team;
+    return existing;
+  }
+
+  const created: ViewerSummary = {
+    id: user.id,
+    username: user.username,
+    nickname: user.nickname || user.username,
+    avatarUrl: user.avatarUrl,
+    team,
+    totalPoints: 0,
+  };
+  scoreMap.set(user.id, created);
+  return created;
+}
+
+/** Single pass top-N for one team; returns copies so list rows re-render when points change. */
+function computeTeamTop(scoreMap: Map<string, ViewerSummary>, team: TeamId): ViewerSummary[] {
+  const top: ViewerSummary[] = [];
+  for (const summary of scoreMap.values()) {
+    if (summary.team !== team) continue;
+    let insertAt = top.length;
+    while (insertAt > 0 && top[insertAt - 1].totalPoints < summary.totalPoints) {
+      insertAt--;
+    }
+    if (insertAt >= TEAM_TOP_LIMIT) continue;
+    top.splice(insertAt, 0, summary);
+    if (top.length > TEAM_TOP_LIMIT) top.pop();
+  }
+  return top.map((summary) => ({ ...summary }));
+}
+
 function updateContributorList(
   currentList: ViewerSummary[],
   contributor: ViewerSummary
 ): ViewerSummary[] {
   const filtered = currentList.filter((item) => item.id !== contributor.id);
-  return [contributor, ...filtered].slice(0, 3);
+  return [{ ...contributor }, ...filtered].slice(0, RECENT_CONTRIBUTOR_LIMIT);
 }
 
 export const useClashStore = create<ClashStoreState>()((set, get) => ({
@@ -90,65 +155,62 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
   userTeamMap: new Map<string, TeamId>(),
   userScoreMap: new Map<string, ViewerSummary>(),
   lastChatTimes: new Map<string, number>(),
+  roundLikePush: new Map<string, number>(),
   screenShake: 0,
+  topLeftContributors: [],
+  topRightContributors: [],
 
   getActivePreset: () => {
     const { activePresetId, customPreset } = get();
     return getEffectivePreset(activePresetId, customPreset);
   },
 
-  handleChat: (user: NormalizedViewer, text: string) => {
+  handleChat: (user: NormalizedViewer, text: string, explicitTeam?: TeamId) => {
     const { roundStatus, userTeamMap, lastChatTimes, pushMultipliers } = get();
     if (roundStatus !== 'PLAYING') {
-      return;
+      return null;
     }
 
     const trimmed = text.trim().toLowerCase();
     const preset = get().getActivePreset();
     const now = Date.now();
 
-    // Determine target team by keyword or existing user team
-    let detectedTeam: TeamId | null = null;
-    if (preset.leftTeam.keywords.includes(trimmed)) {
-      detectedTeam = 'LEFT';
-    } else if (preset.rightTeam.keywords.includes(trimmed)) {
-      detectedTeam = 'RIGHT';
-    } else {
-      detectedTeam = userTeamMap.get(user.id) ?? null;
+    // Determine target team by explicitTeam, keyword, or existing user team
+    let detectedTeam: TeamId | null = explicitTeam ?? null;
+    if (!detectedTeam) {
+      if (preset.leftTeam.keywords.includes(trimmed)) {
+        detectedTeam = 'LEFT';
+      } else if (preset.rightTeam.keywords.includes(trimmed)) {
+        detectedTeam = 'RIGHT';
+      } else {
+        detectedTeam = userTeamMap.get(user.id) ?? null;
+      }
     }
 
     if (!detectedTeam) {
-      return;
+      return null;
     }
 
     // Persist choice to userTeamMap
     userTeamMap.set(user.id, detectedTeam);
 
-    // Anti-spam rate limit per user
+    // Anti-spam rate limit per user. Only accepted pushes start a new window, so comments
+    // sent during the cooldown don't keep extending it.
     const lastChat = lastChatTimes.get(user.id) ?? 0;
-    const isRateLimited = now - lastChat < CHAT_RATE_LIMIT_PER_USER_MS;
-    lastChatTimes.set(user.id, now);
-
-    if (isRateLimited) {
-      return;
+    if (now - lastChat < CHAT_RATE_LIMIT_PER_USER_MS) {
+      return null;
     }
+    lastChatTimes.set(user.id, now);
 
     // Apply push force
     const deltaPush = pushMultipliers.chatPush;
     const pushAmount = detectedTeam === 'LEFT' ? deltaPush : -deltaPush;
 
     // Track contributor
-    const currentSummary: ViewerSummary = get().userScoreMap.get(user.id) ?? {
-      id: user.id,
-      username: user.username,
-      nickname: user.nickname || user.username,
-      avatarUrl: user.avatarUrl,
-      team: detectedTeam,
-      totalPoints: 0,
-    };
+    const scoreMap = get().userScoreMap;
+    const currentSummary = getOrCreateSummary(scoreMap, user, detectedTeam);
     currentSummary.totalPoints += 1;
-    currentSummary.team = detectedTeam;
-    get().userScoreMap.set(user.id, currentSummary);
+    const teamTop = computeTeamTop(scoreMap, detectedTeam);
 
     set((state) => {
       const nextTarget = Math.max(0, Math.min(100, state.targetPosition + pushAmount));
@@ -165,26 +227,53 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
           detectedTeam === 'LEFT' ? nextRecent : state.recentLeftContributors,
         recentRightContributors:
           detectedTeam === 'RIGHT' ? nextRecent : state.recentRightContributors,
+        topLeftContributors: detectedTeam === 'LEFT' ? teamTop : state.topLeftContributors,
+        topRightContributors: detectedTeam === 'RIGHT' ? teamTop : state.topRightContributors,
+        screenShake: Math.max(state.screenShake, CHAT_PUSH_SHAKE),
       };
     });
+
+    return {
+      team: detectedTeam,
+      amount: deltaPush,
+      tier: CHAT_PUSH_TIER,
+      source: 'CHAT',
+      viewer: { ...currentSummary },
+    };
   },
 
-  handleLike: (user: NormalizedViewer, count: number) => {
+  handleLike: (user: NormalizedViewer, count: number, explicitTeam?: TeamId) => {
     const { roundStatus, userTeamMap, pushMultipliers } = get();
     if (roundStatus !== 'PLAYING') {
-      return;
+      return null;
     }
 
-    const assignedTeam = userTeamMap.get(user.id);
+    let assignedTeam = explicitTeam || userTeamMap.get(user.id);
+    if (explicitTeam && !userTeamMap.has(user.id)) {
+      userTeamMap.set(user.id, explicitTeam);
+    }
     const likeBatchCount = Math.max(1, count);
-    const likeDelta = likeBatchCount * pushMultipliers.likePush;
 
     if (!assignedTeam) {
       set((state) => ({
         neutralEnergySurge: Math.min(100, state.neutralEnergySurge + likeBatchCount * 0.5),
       }));
-      return;
+      return null;
     }
+
+    // Likes are free: cap how much one viewer's likes can push per round.
+    const roundLikePush = get().roundLikePush;
+    const usedLikePush = roundLikePush.get(user.id) ?? 0;
+    const likeDelta = Math.min(
+      likeBatchCount * pushMultipliers.likePush,
+      Math.max(0, pushMultipliers.likePushMaxPerUserPerRound - usedLikePush)
+    );
+    if (likeDelta <= 0) {
+      return null;
+    }
+    roundLikePush.set(user.id, usedLikePush + likeDelta);
+
+    const likeSummary = get().userScoreMap.get(user.id);
 
     const pushAmount = assignedTeam === 'LEFT' ? likeDelta : -likeDelta;
     set((state) => {
@@ -195,51 +284,78 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
         rightScore: assignedTeam === 'RIGHT' ? state.rightScore + likeBatchCount : state.rightScore,
       };
     });
+
+    return {
+      team: assignedTeam,
+      amount: likeDelta,
+      tier: 'SMALL',
+      source: 'LIKE',
+      viewer: {
+        id: user.id,
+        username: user.username,
+        nickname: user.nickname || likeSummary?.nickname || user.username,
+        avatarUrl: user.avatarUrl || likeSummary?.avatarUrl,
+        team: assignedTeam,
+        totalPoints: likeSummary?.totalPoints ?? 0,
+      },
+    };
   },
 
   handleGift: (
     user: NormalizedViewer,
-    _giftName: string,
+    giftName: string,
     coinValue: number,
-    repeatCount: number
+    repeatCount: number,
+    explicitTeam?: TeamId
   ) => {
     const { roundStatus, userTeamMap, pushMultipliers } = get();
     if (roundStatus !== 'PLAYING') {
-      return;
+      return null;
     }
 
-    let assignedTeam = userTeamMap.get(user.id);
+    let assignedTeam = explicitTeam || userTeamMap.get(user.id);
     if (!assignedTeam) {
-      // Default to team based on coin parity or left if unassigned
+      // Default to team based on explicitTeam or left if unassigned
       assignedTeam = 'LEFT';
       userTeamMap.set(user.id, assignedTeam);
+    } else if (explicitTeam && explicitTeam !== userTeamMap.get(user.id)) {
+      assignedTeam = explicitTeam;
+      userTeamMap.set(user.id, explicitTeam);
     }
 
-    const totalCoins = Math.max(1, coinValue) * Math.max(1, repeatCount);
-    let pushBonus = pushMultipliers.smallGiftPush;
-    let shakeIntensity = 0;
-
-    if (totalCoins >= 30) {
-      pushBonus = pushMultipliers.largeGiftPush;
-      shakeIntensity = 1.0;
-    } else if (totalCoins >= 5) {
-      pushBonus = pushMultipliers.mediumGiftPush;
-      shakeIntensity = 0.5;
-    }
+    const safeRepeatCount = Math.max(1, repeatCount);
+    const totalCoins = Math.max(1, coinValue) * safeRepeatCount;
+    // Push scales with coins; tier only drives the visuals (shake, SFX, colors).
+    const tier = resolveGiftTier(totalCoins);
+    const pushBonus = resolveGiftPushPercent(totalCoins, pushMultipliers);
+    const shakeIntensity = tier === 'LARGE' ? 1.0 : tier === 'MEDIUM' ? 0.5 : 0;
 
     const pushAmount = assignedTeam === 'LEFT' ? pushBonus : -pushBonus;
 
     // Track points
-    const currentSummary: ViewerSummary = get().userScoreMap.get(user.id) ?? {
-      id: user.id,
-      username: user.username,
-      nickname: user.nickname || user.username,
-      avatarUrl: user.avatarUrl,
-      team: assignedTeam,
-      totalPoints: 0,
-    };
+    const scoreMap = get().userScoreMap;
+    const currentSummary = getOrCreateSummary(scoreMap, user, assignedTeam);
     currentSummary.totalPoints += totalCoins * 10;
-    get().userScoreMap.set(user.id, currentSummary);
+    const teamTop = computeTeamTop(scoreMap, assignedTeam);
+
+    const preset = get().getActivePreset();
+    const teamObj = assignedTeam === 'LEFT' ? preset.leftTeam : preset.rightTeam;
+    const alertItem: GiftAlertItem = {
+      id: `gift_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      userId: user.id,
+      username: user.username,
+      nickname: user.nickname || currentSummary.nickname || user.username,
+      avatarUrl: user.avatarUrl || currentSummary.avatarUrl,
+      team: assignedTeam,
+      teamName: teamObj.name,
+      teamColor: teamObj.primaryColor,
+      giftName,
+      coinValue: Math.max(1, coinValue),
+      repeatCount: safeRepeatCount,
+      tier,
+      pushPercent: pushBonus,
+      timestamp: Date.now(),
+    };
 
     set((state) => {
       const nextTarget = Math.max(0, Math.min(100, state.targetPosition + pushAmount));
@@ -258,9 +374,22 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
           assignedTeam === 'LEFT' ? nextRecent : state.recentLeftContributors,
         recentRightContributors:
           assignedTeam === 'RIGHT' ? nextRecent : state.recentRightContributors,
+        topLeftContributors: assignedTeam === 'LEFT' ? teamTop : state.topLeftContributors,
+        topRightContributors: assignedTeam === 'RIGHT' ? teamTop : state.topRightContributors,
+        recentGiftAlerts: [alertItem, ...state.recentGiftAlerts].slice(0, 3),
         screenShake: Math.max(state.screenShake, shakeIntensity),
       };
     });
+
+    return {
+      team: assignedTeam,
+      amount: pushBonus,
+      tier,
+      source: 'GIFT',
+      viewer: { ...currentSummary },
+      giftName,
+      giftCount: safeRepeatCount,
+    };
   },
 
   handleJoin: (_user: NormalizedViewer) => {
@@ -274,9 +403,10 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
     const { roundStatus, clashPosition, targetPosition, roundTimeRemaining, roundEndCountdown } =
       get();
 
-    // 1. Lerp clashPosition towards targetPosition
-    const LERP_FACTOR = 0.12;
-    const nextClashPos = clashPosition + (targetPosition - clashPosition) * LERP_FACTOR;
+    // 1. Lerp clashPosition towards targetPosition (snap at the end so a 0/100 knockout lands on time)
+    const lerpedPos = clashPosition + (targetPosition - clashPosition) * CLASH_POSITION_LERP_FACTOR;
+    const nextClashPos =
+      Math.abs(targetPosition - lerpedPos) < CLASH_POSITION_SNAP_EPSILON ? targetPosition : lerpedPos;
 
     // 2. Strobe Warning check
     const isWarning =
@@ -293,8 +423,14 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
       const isTimeOut = roundTimeRemaining <= 0;
 
       if (isKnockout || isTimeOut) {
-        // Calculate winner
-        const winner: TeamId = nextClashPos >= 50 ? 'LEFT' : 'RIGHT';
+        // Winner by the real (target) position, not the lerped orb, so last-second pushes count.
+        // Dead center: tie-break on round activity score; still equal = draw, nobody scores.
+        const { leftScore, rightScore } = get();
+        const finalPos = isKnockout ? nextClashPos : targetPosition;
+        let winner: TeamId | null = null;
+        if (finalPos > CLASH_CENTER_POSITION) winner = 'LEFT';
+        else if (finalPos < CLASH_CENTER_POSITION) winner = 'RIGHT';
+        else if (leftScore !== rightScore) winner = leftScore > rightScore ? 'LEFT' : 'RIGHT';
         const sortedMVPs = Array.from(get().userScoreMap.values())
           .sort((a: ViewerSummary, b: ViewerSummary) => b.totalPoints - a.totalPoints)
           .slice(0, 3);
@@ -317,11 +453,18 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
 
       // Decrement match timer
       const nextTime = Math.max(0, roundTimeRemaining - deltaSeconds);
+      const nowAlerts = get().recentGiftAlerts;
+      const validAlerts =
+        nowAlerts.length > 0
+          ? nowAlerts.filter((a) => Date.now() - a.timestamp < 3800)
+          : nowAlerts;
+
       set({
         clashPosition: nextClashPos,
         roundTimeRemaining: nextTime,
         isStrobeWarning: isWarning,
         screenShake: nextShake,
+        recentGiftAlerts: validAlerts,
       });
       return;
     }
@@ -344,6 +487,9 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
   },
 
   resetRound: () => {
+    // Points are per round: MVPs and TOP lists must not carry over.
+    get().userScoreMap.clear();
+    get().roundLikePush.clear();
     set((state) => ({
       roundNumber: state.roundNumber + 1,
       roundStatus: 'PLAYING',
@@ -354,12 +500,54 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
       rightScore: 0,
       recentLeftContributors: [],
       recentRightContributors: [],
+      topLeftContributors: [],
+      topRightContributors: [],
       topRoundContributors: [],
       lastRoundWinner: null,
       roundEndCountdown: ROUND_END_DISPLAY_SECONDS,
       isStrobeWarning: false,
       screenShake: 0,
     }));
+  },
+
+  resetMatch: () => {
+    get().userScoreMap.clear();
+    get().userTeamMap.clear();
+    get().lastChatTimes.clear();
+    get().roundLikePush.clear();
+    useGiftTallyStore.getState().reset();
+    audioService.stopBattleGroove();
+    set((state) => ({
+      roundNumber: 1,
+      seriesScore: { left: 0, right: 0 },
+      roundStatus: 'WAITING',
+      roundTimeRemaining: state.roundDurationSeconds,
+      clashPosition: 50.0,
+      targetPosition: 50.0,
+      leftScore: 0,
+      rightScore: 0,
+      recentLeftContributors: [],
+      recentRightContributors: [],
+      topLeftContributors: [],
+      topRightContributors: [],
+      topRoundContributors: [],
+      lastRoundWinner: null,
+      roundEndCountdown: 0,
+      isStrobeWarning: false,
+      neutralEnergySurge: 0,
+      screenShake: 0,
+      recentGiftAlerts: [],
+    }));
+  },
+
+  startRound: () => {
+    set({ roundStatus: 'PLAYING' });
+    audioService.onRoundStart();
+  },
+
+  pauseRound: () => {
+    set({ roundStatus: 'WAITING' });
+    audioService.stopBattleGroove();
   },
 
   rebalance5050: () => {

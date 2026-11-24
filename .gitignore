@@ -90,3 +90,6 @@ server/data/viet-tts-audio/*.mp3
 # Temporary video generation build cache
 scripts/video/frames/
 scripts/video/clips/
+
+# Local background music (downloaded, too large for git)
+apps/*/client/public/audio/*.mp3

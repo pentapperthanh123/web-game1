@@ -309,6 +309,7 @@ export class TikTokLivePipeline {
 
     this.deps.emit('game:chat', {
       userName: displayName,
+      avatarUrl: input.userAvatarUrl,
       text: displayText,
       team: effectiveTeam,
       championName: summonChampion,
@@ -442,6 +443,7 @@ export class TikTokLivePipeline {
       count: clampedCount,
       team,
       userName: displayName,
+      avatarUrl: input.userAvatarUrl,
       affinitySource: source,
     });
 

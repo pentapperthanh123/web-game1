@@ -58,3 +58,97 @@ body,
 .animate-badge-float {
   animation: badgeFloat 2s infinite ease-in-out;
 }
+
+/* Name plate pop when a new viewer takes over the push */
+@keyframes platePop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-plate-pop {
+  animation: platePop 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* Push feed chip entering next to the clash orb */
+@keyframes chipEnter {
+  0% {
+    transform: translate3d(0, 22px, 0) scale(0.55);
+    opacity: 0;
+  }
+  65% {
+    transform: translate3d(0, -3px, 0) scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-chip-enter {
+  animation: chipEnter 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* Push amount bump when the same viewer pushes again */
+@keyframes amountBump {
+  0% {
+    transform: scale(1.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-amount-bump {
+  animation: amountBump 0.28s ease-out both;
+}
+
+/* Gift tile: icon gets "hit" when another gift of that kind lands */
+@keyframes giftHit {
+  0% {
+    transform: scale(1.7) rotate(-14deg);
+  }
+  45% {
+    transform: scale(0.9) rotate(8deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-gift-hit {
+  animation: giftHit 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* Floating "+N" over a gift tile, RPG damage-number style */
+@keyframes damageFloat {
+  0% {
+    transform: translate3d(0, 6px, 0) scale(1.5);
+    opacity: 0;
+  }
+  15% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, -30px, 0) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-damage-float {
+  animation: damageFloat 1s ease-out forwards;
+}
