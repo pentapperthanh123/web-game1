@@ -10,9 +10,14 @@ export function startClientSync(): () => void {
   const channel =
     typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(SYNC_CHANNEL_NAME) : null;
 
+  const isIframe = typeof window !== 'undefined' && window.parent && window.parent !== window;
+
   const postToAdmin = (message: ClashSyncMessage) => {
-    // 0. Realtime Socket.IO to Host Admin (port 8031, OBS, LAN, ngrok)
-    coreReceiver.emitClashMessage(message);
+    // 0. Only master standalone clients (OBS, TikTok LIVE Studio, external tab) emit to socket server.
+    // In-admin iframe previews do NOT emit to socket to avoid race conditions with the real live stage.
+    if (!isIframe) {
+      coreReceiver.emitClashMessage(message);
+    }
 
     try {
       channel?.postMessage(message);

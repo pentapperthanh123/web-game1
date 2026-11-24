@@ -72,9 +72,9 @@ export const App: React.FC = () => {
       {/* 2. Top HUD: Scores, Live Badge, Round Countdown */}
       <TopHUD />
 
-      {/* 2.5 Quick Start Trigger Button (shown when waiting for round to start) */}
+      {/* 2.5 Quick Resume Trigger Pill (only shown when Host pauses the round) */}
       {roundStatus === 'WAITING' && (
-        <div className="absolute top-[280px] inset-x-0 z-30 flex flex-col items-center pointer-events-auto px-4">
+        <div className="absolute top-[180px] inset-x-0 z-30 flex flex-col items-center pointer-events-auto px-4">
           <button
             type="button"
             onClick={() => {
@@ -86,13 +86,10 @@ export const App: React.FC = () => {
                 timestamp: Date.now(),
               });
             }}
-            className="flex items-center space-x-2 bg-gradient-to-r from-pink-600 via-rose-600 to-cyan-600 text-white font-black text-sm px-6 py-3 rounded-2xl shadow-[0_0_25px_rgba(236,72,153,0.6)] border border-white/50 animate-pulse hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+            className="flex items-center space-x-2 bg-gradient-to-r from-amber-600 via-rose-600 to-cyan-600 text-white font-black text-xs px-5 py-2 rounded-full shadow-lg border border-white/40 animate-pulse hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
           >
-            <span>▶️ BẮT ĐẦU HIỆP ĐẤU (START)</span>
+            <span>▶️ TIẾP TỤC TRẬN ĐẤU (Bấm hoặc gõ G / B)</span>
           </button>
-          <span className="text-[11px] text-white/80 font-medium mt-2 bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20">
-            Chạm để mở trận đấu hoặc bấm Start từ Host Admin
-          </span>
         </div>
       )}
 

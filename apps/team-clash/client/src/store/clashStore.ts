@@ -67,7 +67,7 @@ interface ClashStoreState extends ClashMatchState {
 const DEFAULT_INITIAL_STATE: ClashMatchState = {
   roundNumber: 1,
   seriesScore: { left: 0, right: 0 },
-  roundStatus: 'WAITING',
+  roundStatus: 'PLAYING',
   roundTimeRemaining: DEFAULT_ROUND_DURATION_SECONDS,
   roundDurationSeconds: DEFAULT_ROUND_DURATION_SECONDS,
   clashPosition: 50.0,
@@ -75,7 +75,7 @@ const DEFAULT_INITIAL_STATE: ClashMatchState = {
   leftScore: 0,
   rightScore: 0,
   activePresetId: DEFAULT_PRESET_ID,
-  language: 'VI',
+  language: 'EN',
   recentLeftContributors: [],
   recentRightContributors: [],
   topRoundContributors: [],
@@ -166,10 +166,16 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
   },
 
   handleChat: (user: NormalizedViewer, text: string, explicitTeam?: TeamId) => {
-    const { roundStatus, userTeamMap, lastChatTimes, pushMultipliers } = get();
-    if (roundStatus !== 'PLAYING') {
+    let { roundStatus } = get();
+    // Auto-resume round if in WAITING state when interaction arrives
+    if (roundStatus === 'WAITING') {
+      get().startRound();
+      roundStatus = 'PLAYING';
+    } else if (roundStatus !== 'PLAYING') {
       return null;
     }
+
+    const { userTeamMap, lastChatTimes, pushMultipliers } = get();
 
     const trimmed = text.trim().toLowerCase();
     const preset = get().getActivePreset();
@@ -243,10 +249,15 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
   },
 
   handleLike: (user: NormalizedViewer, count: number, explicitTeam?: TeamId) => {
-    const { roundStatus, userTeamMap, pushMultipliers } = get();
-    if (roundStatus !== 'PLAYING') {
+    let { roundStatus } = get();
+    if (roundStatus === 'WAITING') {
+      get().startRound();
+      roundStatus = 'PLAYING';
+    } else if (roundStatus !== 'PLAYING') {
       return null;
     }
+
+    const { userTeamMap, pushMultipliers } = get();
 
     let assignedTeam = explicitTeam || userTeamMap.get(user.id);
     if (explicitTeam && !userTeamMap.has(user.id)) {
@@ -308,10 +319,15 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
     repeatCount: number,
     explicitTeam?: TeamId
   ) => {
-    const { roundStatus, userTeamMap, pushMultipliers } = get();
-    if (roundStatus !== 'PLAYING') {
+    let { roundStatus } = get();
+    if (roundStatus === 'WAITING') {
+      get().startRound();
+      roundStatus = 'PLAYING';
+    } else if (roundStatus !== 'PLAYING') {
       return null;
     }
+
+    const { userTeamMap, pushMultipliers } = get();
 
     let assignedTeam = explicitTeam || userTeamMap.get(user.id);
     if (!assignedTeam) {
@@ -520,7 +536,7 @@ export const useClashStore = create<ClashStoreState>()((set, get) => ({
     set((state) => ({
       roundNumber: 1,
       seriesScore: { left: 0, right: 0 },
-      roundStatus: 'WAITING',
+      roundStatus: 'PLAYING',
       roundTimeRemaining: state.roundDurationSeconds,
       clashPosition: 50.0,
       targetPosition: 50.0,

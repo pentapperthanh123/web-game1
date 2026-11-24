@@ -158,8 +158,8 @@ export const ROUND_DURATION_OPTIONS = [45, 60, 90, 120, 300] as const;
 
 export const ROUND_END_DISPLAY_SECONDS = 12;
 
-/** Each viewer's chat pushes at most once per window; extra comments inside it are ignored. */
-export const CHAT_RATE_LIMIT_PER_USER_MS = 30_000;
+/** Each viewer's chat pushes at most once per cooldown window (2 seconds). */
+export const CHAT_RATE_LIMIT_PER_USER_MS = 2_000;
 
 export const LIKE_BATCH_INTERVAL_MS = 200;
 
