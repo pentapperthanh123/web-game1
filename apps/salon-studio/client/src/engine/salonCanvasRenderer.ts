@@ -90,58 +90,93 @@ export class SalonCanvasLoop {
     language: 'VI' | 'EN'
   ): void {
     const strings = SALON_I18N[language];
-    const cardX = 285;
-    const cardY = 852;
-    const cardW = 398;
-    const cardH = 82;
+    // Positioned seamlessly on the salon wooden floor right beneath the barber chair/table
+    const cardX = 296;
+    const cardY = 820;
+    const cardW = 404;
+    const cardH = 88;
 
     ctx.save();
+    // Soft card shadow
+    drawRoundedRect(ctx, cardX, cardY + 3, cardW, cardH, 24);
+    ctx.fillStyle = 'rgba(58, 40, 37, 0.1)';
+    ctx.fill();
+
+    // Card body
     drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 24);
-    ctx.fillStyle = customer.isRoyal ? '#FFF7D6' : '#FFFDF9';
+    ctx.fillStyle = customer.isRoyal ? '#FFF8D9' : '#FFFDF9';
     ctx.fill();
     ctx.strokeStyle = SALON_PALETTE.OUTLINE;
     ctx.lineWidth = 4;
     ctx.stroke();
 
+    // Top small label pill: "ĐANG PHỤC VỤ" / "ACTIVE GUEST"
+    const isVipOrRoyal = customer.isRoyal || customer.priority === 'VIP' || customer.priority === 'ROYAL';
+    const tagBg = customer.isRoyal ? '#FFD56B' : isVipOrRoyal ? '#FF8FA8' : '#C9F2E3';
+    const tagText = customer.isRoyal
+      ? '👑 ROYAL IDOL'
+      : isVipOrRoyal
+        ? '✨ VIP SEAT'
+        : strings.activeCustomerTitle;
+
+    ctx.save();
+    drawRoundedRect(ctx, cardX + 16, cardY - 11, 126, 22, 11);
+    ctx.fillStyle = tagBg;
+    ctx.fill();
+    ctx.strokeStyle = SALON_PALETTE.OUTLINE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.fillStyle = customer.isRoyal || isVipOrRoyal ? '#3A2825' : '#175B43';
+    ctx.font = '800 11px "Fredoka", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tagText, cardX + 79, cardY + 1);
+    ctx.restore();
+
     // Customer avatar badge circle
-    const badgeX = cardX + 36;
-    const badgeY = cardY + 41;
+    const badgeX = cardX + 42;
+    const badgeY = cardY + 47;
     ctx.beginPath();
-    ctx.arc(badgeX, badgeY, 24, 0, Math.PI * 2);
-    ctx.fillStyle = customer.isRoyal ? SALON_PALETTE.HONEY_GOLD : SALON_PALETTE.BLUSH_PINK;
+    ctx.arc(badgeX, badgeY, 26, 0, Math.PI * 2);
+    ctx.fillStyle = customer.isRoyal
+      ? SALON_PALETTE.HONEY_GOLD
+      : isVipOrRoyal
+        ? '#FFACC2'
+        : SALON_PALETTE.BLUSH_PINK;
     ctx.fill();
     ctx.stroke();
 
     ctx.fillStyle = SALON_PALETTE.TEXT_DARK;
-    ctx.font = '800 20px "Fredoka", sans-serif';
+    ctx.font = '800 22px "Fredoka", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const initial = (customer.user.nickname.trim()[0] || 'S').toUpperCase();
     ctx.fillText(initial, badgeX, badgeY + 1);
 
-    // Name + tier pill
-    const nameX = cardX + 74;
+    // Name + Style pill
+    const nameX = cardX + 82;
     ctx.textAlign = 'left';
     ctx.font = '800 18px "Nunito", sans-serif';
     ctx.fillStyle = SALON_PALETTE.TEXT_DARK;
     const displayName =
-      customer.user.nickname.length > 18
-        ? `${customer.user.nickname.slice(0, 17)}…`
+      customer.user.nickname.length > 17
+        ? `${customer.user.nickname.slice(0, 16)}…`
         : customer.user.nickname;
-    ctx.fillText(displayName, nameX, cardY + 28);
+    ctx.fillText(displayName, nameX, cardY + 34);
 
     // Percent label on right
     const pct = Math.round(customer.progress);
     ctx.textAlign = 'right';
-    ctx.font = '800 17px "Fredoka", sans-serif';
+    ctx.font = '800 18px "Fredoka", sans-serif';
     ctx.fillStyle = customer.trollEffect ? '#D94B4B' : SALON_PALETTE.MINT_DEEP;
     const rightLabel = pct >= 100 ? strings.progressDone : `${pct}%`;
-    ctx.fillText(rightLabel, cardX + cardW - 18, cardY + 28);
+    ctx.fillText(rightLabel, cardX + cardW - 20, cardY + 34);
 
     // Progress bar track
     const barX = nameX;
-    const barY = cardY + 46;
-    const barW = cardW - 92;
+    const barY = cardY + 52;
+    const barW = cardW - 104;
     const barH = 20;
     drawRoundedRect(ctx, barX, barY, barW, barH, 10);
     ctx.fillStyle = '#F5E6DD';

@@ -192,14 +192,14 @@ export const TopSignAndWall: React.FC = () => {
                   <div className="w-4 h-3.5 rounded-sm bg-[#E7BC91] border-2 border-[#3A2825] mx-auto -mt-3 mb-0.5" />
 
                   {isPinnedRoyal && (
-                    <div className="absolute -top-2.5 -right-2 bg-[#FFD56B] border-2 border-[#3A2825] rounded-full px-1.5 py-0.5 flex items-center gap-0.5 text-[9px] font-black text-[#3A2825]">
+                    <div className="absolute top-1 right-1 z-10 bg-[#FFD56B] border-[1.5px] border-[#3A2825] rounded-full px-1.5 py-0.5 flex items-center gap-0.5 text-[8.5px] font-black text-[#3A2825] shadow-sm">
                       <Crown className="w-2.5 h-2.5" />
                       {t.vipTopPinLabel}
                     </div>
                   )}
 
                   {isTroll && !isPinnedRoyal && (
-                    <div className="absolute -top-2 -right-1.5 bg-[#FF8C7A] border-2 border-[#3A2825] rounded-full px-1.5 py-0.5 text-[9px] font-black text-white">
+                    <div className="absolute top-1 right-1 z-10 bg-[#FF8C7A] border-[1.5px] border-[#3A2825] rounded-full px-1.5 py-0.5 text-[8.5px] font-black text-white shadow-sm">
                       OOPS!
                     </div>
                   )}

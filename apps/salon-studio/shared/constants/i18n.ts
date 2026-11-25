@@ -32,6 +32,7 @@ export interface SalonLocaleStrings {
   trollBannerSuffix: string;
   royalBannerSuffix: string;
   progressDone: string;
+  activeCustomerTitle: string;
 }
 
 export const SALON_I18N: Record<SalonLanguage, SalonLocaleStrings> = {
@@ -67,6 +68,7 @@ export const SALON_I18N: Record<SalonLanguage, SalonLocaleStrings> = {
     trollBannerSuffix: 'kích hoạt Trượt Tay! 😂',
     royalBannerSuffix: 'tặng Gói Hoàng Gia! 👑',
     progressDone: 'HOÀN THÀNH!',
+    activeCustomerTitle: 'ĐANG TRÊN GHẾ',
   },
   EN: {
     signTitle: 'SALON STUDIO',
@@ -100,5 +102,6 @@ export const SALON_I18N: Record<SalonLanguage, SalonLocaleStrings> = {
     trollBannerSuffix: 'triggered Oops! Troll! 😂',
     royalBannerSuffix: 'unlocked Royal Package! 👑',
     progressDone: 'ALL DONE!',
+    activeCustomerTitle: 'IN SALON CHAIR',
   },
 };

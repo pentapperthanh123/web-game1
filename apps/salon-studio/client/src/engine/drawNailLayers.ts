@@ -28,6 +28,10 @@ export function drawNailStation(
   isFast: boolean,
   timeSec: number
 ): void {
+  // 1. Draw Nail Stylist seated across the table (standardized head radius = 50!)
+  drawNailStylistCharacter(ctx, 580, 420, stylistMood, timeSec);
+
+  // 2. Velvet pillow for client's hand
   drawVelvetPillow(ctx, 468, 700);
 
   if (customer) {
@@ -45,10 +49,95 @@ export function drawNailStation(
     ctx.restore();
   }
 
-  // Stylist bubble at top of nail table
+  // 3. Stylist bubble at top right (clear of hands and nail work)
   if (stylistSpeech) {
-    drawStylistBubble(ctx, 515, 365, stylistSpeech, stylistMood);
+    drawStylistBubble(ctx, 580, 245, stylistSpeech, stylistMood);
   }
+}
+
+function drawNailStylistCharacter(
+  ctx: CanvasRenderingContext2D,
+  sx: number,
+  sy: number,
+  mood: StylistMood,
+  timeSec: number
+): void {
+  const headY = sy - 88 + Math.sin(timeSec * 3) * 2;
+
+  ctx.save();
+  ctx.strokeStyle = SALON_PALETTE.OUTLINE;
+  ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  // Stylist torso + mint salon apron behind desk
+  drawRoundedRect(ctx, sx - 42, sy - 38, 84, 98, 22);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  drawRoundedRect(ctx, sx - 34, sy - 14, 68, 74, 16);
+  ctx.fillStyle = SALON_PALETTE.MINT_PASTEL;
+  ctx.fill();
+  ctx.stroke();
+
+  // Stylist head: standard radius 50 (same scale system!)
+  ctx.beginPath();
+  ctx.arc(sx, headY, 50, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFE4CE';
+  ctx.fill();
+  ctx.stroke();
+
+  // Top bun hair & cute salon hair cap
+  ctx.fillStyle = '#6B443A';
+  ctx.beginPath();
+  ctx.arc(sx + 8, headY - 48, 22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(sx, headY - 6, 51, Math.PI, Math.PI * 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Stylist facial expression
+  ctx.fillStyle = SALON_PALETTE.OUTLINE;
+  if (mood === 'OOPS') {
+    ctx.beginPath();
+    ctx.arc(sx - 18, headY + 3, 5.5, 0, Math.PI * 2);
+    ctx.arc(sx + 10, headY + 3, 5.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(sx - 4, headY + 20, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#FF8FA8';
+    ctx.fill();
+    ctx.stroke();
+
+    // Anime sweat drop
+    ctx.fillStyle = '#8CD5F7';
+    ctx.beginPath();
+    ctx.moveTo(sx + 36, headY - 22);
+    ctx.quadraticCurveTo(sx + 50, headY - 4, sx + 36, headY + 6);
+    ctx.quadraticCurveTo(sx + 22, headY - 4, sx + 36, headY - 22);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    // Focused & smiling nail artist
+    ctx.beginPath();
+    ctx.arc(sx - 16, headY + 3, 5, 0, Math.PI * 2);
+    ctx.arc(sx + 10, headY + 3, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255, 140, 160, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(sx - 24, headY + 14, 8, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(sx + 18, headY + 14, 8, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx - 3, headY + 15, 10, 0.1 * Math.PI, 0.9 * Math.PI);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawVelvetPillow(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
@@ -109,6 +198,28 @@ function drawCustomerHandAndNails(
   ctx.fillStyle = customer.isRoyal ? '#FFE599' : customer.shirtColor;
   ctx.fill();
   ctx.stroke();
+
+  // Customer Name Pill on sleeve (unmistakable source of truth)
+  ctx.save();
+  ctx.font = '800 12px "Fredoka", sans-serif';
+  const rawW = ctx.measureText(customer.user.nickname).width;
+  const namePillW = Math.max(76, Math.min(124, rawW + 24));
+  drawRoundedRect(ctx, 466 - namePillW / 2, 755, namePillW, 22, 11);
+  ctx.fillStyle = customer.isRoyal ? '#FFF4CC' : '#FFFDF9';
+  ctx.fill();
+  ctx.strokeStyle = SALON_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  ctx.fillStyle = SALON_PALETTE.TEXT_DARK;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tagNick =
+    customer.user.nickname.length > 13
+      ? `${customer.user.nickname.slice(0, 12)}…`
+      : customer.user.nickname;
+  ctx.fillText(tagNick, 466, 766);
+  ctx.restore();
 
   // Palm resting on pillow
   ctx.beginPath();
@@ -338,6 +449,35 @@ function drawNailStylistBrushHand(
   const brushTipX = target.x + Math.sin(timeSec * 3) * 4;
   const brushTipY = target.y - 4 + strokeOsc;
   const swatch = COLOR_SWATCHES[customer.colorKey];
+
+  // Natural arm with shoulder & elbow connecting stylist to brush hand
+  ctx.save();
+  ctx.strokeStyle = SALON_PALETTE.OUTLINE;
+  ctx.lineWidth = 16;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  const shX = 548;
+  const shY = 412;
+  const handBaseX = brushTipX + 55;
+  const handBaseY = brushTipY - 30;
+  const elX = 580;
+  const elY = 495;
+
+  ctx.beginPath();
+  ctx.moveTo(shX, shY);
+  ctx.lineTo(elX, elY);
+  ctx.lineTo(handBaseX, handBaseY);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#FFE4CE';
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(shX, shY);
+  ctx.lineTo(elX, elY);
+  ctx.lineTo(handBaseX, handBaseY);
+  ctx.stroke();
+  ctx.restore();
 
   ctx.save();
   ctx.translate(brushTipX, brushTipY);

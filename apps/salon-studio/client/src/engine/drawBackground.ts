@@ -44,33 +44,36 @@ export function drawSalonBackground(
   ctx.save();
   ctx.fillStyle = service === 'HAIR' ? 'rgba(255, 255, 255, 0.34)' : 'rgba(204, 242, 229, 0.28)';
   for (let x = 0; x < WIDTH; x += 64) {
-    ctx.fillRect(x, 0, 30, 860);
+    ctx.fillRect(x, 0, 30, 770);
   }
   ctx.restore();
 
-  // 3. Wainscoting wall trim & warm wooden floor (bottom section)
-  ctx.fillStyle = '#F7DFC7';
-  ctx.fillRect(0, 835, WIDTH, 445);
+  // 3. Seamless room transition & warm salon parquet floor (no harsh cutting dividers)
+  // Subtle baseboard molding connecting wall to floor smoothly
+  ctx.fillStyle = '#FFF8F0';
+  ctx.fillRect(0, 764, WIDTH, 12);
+  ctx.fillStyle = 'rgba(58, 40, 37, 0.08)';
+  ctx.fillRect(0, 775, WIDTH, 3);
 
-  ctx.fillStyle = '#EAC7A4';
-  ctx.fillRect(0, 885, WIDTH, 395);
+  // Warm salon wooden floor (continuous, cozy pastel wood tone)
+  const floorGrad = ctx.createLinearGradient(0, 778, 0, HEIGHT);
+  floorGrad.addColorStop(0, '#F5DFCB');
+  floorGrad.addColorStop(0.4, '#F0D4BE');
+  floorGrad.addColorStop(1, '#E8C5AC');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, 778, WIDTH, HEIGHT - 778);
 
-  // Horizontal wainscoting divider with dark cartoon outline
-  ctx.fillStyle = '#FFFDF9';
-  ctx.strokeStyle = SALON_PALETTE.OUTLINE;
-  ctx.lineWidth = 4;
-  ctx.fillRect(-4, 825, WIDTH + 8, 22);
-  ctx.strokeRect(-4, 825, WIDTH + 8, 22);
-
-  // Floor planks lines
-  ctx.strokeStyle = 'rgba(130, 85, 58, 0.22)';
-  ctx.lineWidth = 2.5;
-  for (let y = 930; y < HEIGHT; y += 56) {
+  // Soft cartoon plank lines (gentle & subtle, keeping bottom 980-1280 clean for TikTok live chat)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(125, 82, 55, 0.12)';
+  ctx.lineWidth = 2;
+  for (let y = 840; y < HEIGHT; y += 68) {
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(WIDTH, y);
     ctx.stroke();
   }
+  ctx.restore();
 
   // 4. Service-specific backdrop prop on the right/center stage
   if (service === 'HAIR') {
@@ -81,22 +84,23 @@ export function drawSalonBackground(
 }
 
 function drawHairMirrorBackdrop(ctx: CanvasRenderingContext2D, timeSec: number): void {
-  const mx = 318;
-  const my = 258;
-  const mw = 285;
-  const mh = 370;
+  // Center mirror perfectly with customer chair at cx = 450
+  const mw = 350;
+  const mh = 390;
+  const mx = 275;
+  const my = 248;
 
   ctx.save();
   // Mirror outer wooden frame
-  drawRoundedRect(ctx, mx - 14, my - 14, mw + 28, mh + 28, 36);
+  drawRoundedRect(ctx, mx - 14, my - 14, mw + 28, mh + 28, 38);
   ctx.fillStyle = SALON_PALETTE.PEACH_SOFT;
   ctx.fill();
   ctx.strokeStyle = SALON_PALETTE.OUTLINE;
   ctx.lineWidth = 4;
   ctx.stroke();
 
-  // Mirror glass
-  drawRoundedRect(ctx, mx, my, mw, mh, 26);
+  // Mirror glass (ample width so hair never spills over mirror frame)
+  drawRoundedRect(ctx, mx, my, mw, mh, 28);
   const mirrorGrad = ctx.createLinearGradient(mx, my, mx + mw, my + mh);
   mirrorGrad.addColorStop(0, '#E8F9FF');
   mirrorGrad.addColorStop(0.5, '#FFFFFF');
@@ -110,10 +114,10 @@ function drawHairMirrorBackdrop(ctx: CanvasRenderingContext2D, timeSec: number):
   ctx.clip();
   ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
   ctx.beginPath();
-  ctx.moveTo(mx + 28, my);
-  ctx.lineTo(mx + 92, my);
-  ctx.lineTo(mx + 14, my + 160);
-  ctx.lineTo(mx - 20, my + 160);
+  ctx.moveTo(mx + 36, my);
+  ctx.lineTo(mx + 118, my);
+  ctx.lineTo(mx + 18, my + 190);
+  ctx.lineTo(mx - 24, my + 190);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -121,16 +125,17 @@ function drawHairMirrorBackdrop(ctx: CanvasRenderingContext2D, timeSec: number):
   // Warm vanity light bulbs along top & sides of mirror
   const pulse = 0.85 + Math.sin(timeSec * 3.5) * 0.15;
   const bulbPositions: Array<[number, number]> = [
-    [mx + 35, my - 7],
-    [mx + 100, my - 7],
-    [mx + 165, my - 7],
-    [mx + 230, my - 7],
-    [mx - 7, my + 85],
-    [mx - 7, my + 185],
-    [mx - 7, my + 285],
-    [mx + mw + 7, my + 85],
-    [mx + mw + 7, my + 185],
-    [mx + mw + 7, my + 285],
+    [mx + 45, my - 7],
+    [mx + 118, my - 7],
+    [mx + 175, my - 7],
+    [mx + 232, my - 7],
+    [mx + 305, my - 7],
+    [mx - 7, my + 80],
+    [mx - 7, my + 180],
+    [mx - 7, my + 280],
+    [mx + mw + 7, my + 80],
+    [mx + mw + 7, my + 180],
+    [mx + mw + 7, my + 280],
   ];
 
   for (const [bx, by] of bulbPositions) {
@@ -143,8 +148,8 @@ function drawHairMirrorBackdrop(ctx: CanvasRenderingContext2D, timeSec: number):
     ctx.stroke();
   }
 
-  // Small salon shelf with cute pastel bottles
-  drawRoundedRect(ctx, mx - 24, my + mh + 18, mw + 48, 22, 10);
+  // Small salon shelf with cute pastel bottles below mirror
+  drawRoundedRect(ctx, mx - 18, my + mh + 14, mw + 36, 22, 10);
   ctx.fillStyle = '#FFFDF9';
   ctx.fill();
   ctx.strokeStyle = SALON_PALETTE.OUTLINE;
@@ -152,12 +157,12 @@ function drawHairMirrorBackdrop(ctx: CanvasRenderingContext2D, timeSec: number):
   ctx.stroke();
 
   const bottles = [
-    { x: mx + 12, color: '#FFACC2', h: 34 },
-    { x: mx + 44, color: '#A5E8D5', h: 28 },
-    { x: mx + 236, color: '#FFD97D', h: 32 },
+    { x: mx + 16, color: '#FFACC2', h: 32 },
+    { x: mx + 46, color: '#A5E8D5', h: 26 },
+    { x: mx + mw - 46, color: '#FFD97D', h: 30 },
   ];
   for (const b of bottles) {
-    drawRoundedRect(ctx, b.x, my + mh + 18 - b.h, 22, b.h, 7);
+    drawRoundedRect(ctx, b.x, my + mh + 14 - b.h, 20, b.h, 6);
     ctx.fillStyle = b.color;
     ctx.fill();
     ctx.stroke();

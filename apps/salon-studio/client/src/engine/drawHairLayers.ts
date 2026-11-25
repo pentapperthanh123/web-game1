@@ -11,21 +11,21 @@ export function drawHairStation(
   isFast: boolean,
   timeSec: number
 ): void {
-  const cx = 458;
-  const cy = 590;
+  const cx = 450;
+  const cy = 600;
 
   drawBarberChairBack(ctx, cx, cy);
 
   if (customer) {
     if (customer.isRoyal) {
-      drawRoyalHalo(ctx, cx, cy - 95, timeSec);
+      drawRoyalHalo(ctx, cx, cy - 90, timeSec);
     }
     drawCustomerHairBody(ctx, cx, cy, customer, timeSec);
   } else {
     drawEmptyChairHint(ctx, cx, cy - 25);
   }
 
-  drawStylistCharacter(ctx, 622, 575, customer, stylistMood, stylistSpeech, isFast, timeSec);
+  drawStylistCharacter(ctx, 620, 560, customer, stylistMood, stylistSpeech, isFast, timeSec);
 }
 
 function drawBarberChairBack(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
@@ -36,39 +36,39 @@ function drawBarberChairBack(ctx: CanvasRenderingContext2D, cx: number, cy: numb
 
   // Metal swivel pedestal
   ctx.fillStyle = '#D9D3D0';
-  ctx.fillRect(cx - 16, cy + 128, 32, 72);
-  ctx.strokeRect(cx - 16, cy + 128, 32, 72);
+  ctx.fillRect(cx - 18, cy + 120, 36, 68);
+  ctx.strokeRect(cx - 18, cy + 120, 36, 68);
 
-  // Round metallic base
+  // Round metallic base (firm and wide on the floor)
   ctx.beginPath();
-  ctx.ellipse(cx, cy + 206, 74, 20, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy + 192, 82, 22, 0, 0, Math.PI * 2);
   ctx.fillStyle = '#E6E1DE';
   ctx.fill();
   ctx.stroke();
 
-  // Chair backrest cushion
-  drawRoundedRect(ctx, cx - 86, cy - 68, 172, 185, 36);
+  // Chair backrest cushion (proportional to body and head)
+  drawRoundedRect(ctx, cx - 94, cy - 76, 188, 192, 38);
   ctx.fillStyle = SALON_PALETTE.CHAIR_LEATHER;
   ctx.fill();
   ctx.stroke();
 
   // Cushion inner stitch highlight
-  drawRoundedRect(ctx, cx - 70, cy - 52, 140, 148, 26);
+  drawRoundedRect(ctx, cx - 76, cy - 58, 152, 154, 28);
   ctx.fillStyle = '#FFC2D3';
   ctx.fill();
 
   // Armrests
-  drawRoundedRect(ctx, cx - 106, cy + 52, 30, 82, 14);
+  drawRoundedRect(ctx, cx - 114, cy + 46, 32, 84, 15);
   ctx.fillStyle = SALON_PALETTE.CHAIR_SHADOW;
   ctx.fill();
   ctx.stroke();
 
-  drawRoundedRect(ctx, cx + 76, cy + 52, 30, 82, 14);
+  drawRoundedRect(ctx, cx + 82, cy + 46, 32, 84, 15);
   ctx.fill();
   ctx.stroke();
 
   // Seat bottom
-  drawRoundedRect(ctx, cx - 92, cy + 104, 184, 38, 18);
+  drawRoundedRect(ctx, cx - 98, cy + 100, 196, 40, 18);
   ctx.fillStyle = SALON_PALETTE.CHAIR_LEATHER;
   ctx.fill();
   ctx.stroke();
@@ -108,8 +108,8 @@ function drawCustomerHairBody(
   customer: ActiveCustomerSession,
   timeSec: number
 ): void {
-  const bob = Math.sin(timeSec * 3.2) * 3;
-  const headY = cy - 72 + bob;
+  const bob = Math.sin(timeSec * 3.2) * 2.5;
+  const headY = cy - 82 + bob;
   const swatch = COLOR_SWATCHES[customer.colorKey];
 
   ctx.save();
@@ -125,38 +125,38 @@ function drawCustomerHairBody(
 
   // Salon cape draped over customer's shoulders
   ctx.beginPath();
-  ctx.moveTo(cx - 32, headY + 62);
-  ctx.quadraticCurveTo(cx - 88, headY + 110, cx - 76, cy + 124);
-  ctx.lineTo(cx + 76, cy + 124);
-  ctx.quadraticCurveTo(cx + 88, headY + 110, cx + 32, headY + 62);
+  ctx.moveTo(cx - 26, headY + 52);
+  ctx.quadraticCurveTo(cx - 86, headY + 98, cx - 78, cy + 118);
+  ctx.lineTo(cx + 78, cy + 118);
+  ctx.quadraticCurveTo(cx + 86, headY + 98, cx + 26, headY + 52);
   ctx.closePath();
   ctx.fillStyle = customer.isRoyal ? '#FFE599' : customer.shirtColor;
   ctx.fill();
   ctx.stroke();
 
   // Cape collar bow
-  drawRoundedRect(ctx, cx - 28, headY + 56, 56, 18, 9);
+  drawRoundedRect(ctx, cx - 25, headY + 46, 50, 16, 8);
   ctx.fillStyle = '#FFFDF9';
   ctx.fill();
   ctx.stroke();
 
   // Neck
-  drawRoundedRect(ctx, cx - 15, headY + 42, 30, 26, 10);
+  drawRoundedRect(ctx, cx - 14, headY + 34, 28, 22, 8);
   ctx.fillStyle = customer.skinTone;
   ctx.fill();
   ctx.stroke();
 
-  // Ears
+  // Ears (radius 11, snug to r = 50 head)
   ctx.beginPath();
-  ctx.arc(cx - 58, headY + 6, 13, 0, Math.PI * 2);
-  ctx.arc(cx + 58, headY + 6, 13, 0, Math.PI * 2);
+  ctx.arc(cx - 50, headY + 5, 11, 0, Math.PI * 2);
+  ctx.arc(cx + 50, headY + 5, 11, 0, Math.PI * 2);
   ctx.fillStyle = customer.skinTone;
   ctx.fill();
   ctx.stroke();
 
-  // Head circle
+  // Head circle: standardized headRadius = 50 (same scale system as stylist!)
   ctx.beginPath();
-  ctx.arc(cx, headY, 58, 0, Math.PI * 2);
+  ctx.arc(cx, headY, 50, 0, Math.PI * 2);
   ctx.fillStyle = customer.skinTone;
   ctx.fill();
   ctx.stroke();
@@ -164,8 +164,8 @@ function drawCustomerHairBody(
   // Rosy cheeks
   ctx.fillStyle = 'rgba(255, 135, 165, 0.45)';
   ctx.beginPath();
-  ctx.ellipse(cx - 34, headY + 14, 11, 7, 0, 0, Math.PI * 2);
-  ctx.ellipse(cx + 34, headY + 14, 11, 7, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx - 28, headY + 12, 10, 6, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 28, headY + 12, 10, 6, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // Facial expression
@@ -184,6 +184,29 @@ function drawCustomerHairBody(
 
   // Accessories
   drawHairAccessory(ctx, cx, headY, customer.accessory, timeSec);
+
+  // Customer Name Tag on cape (One single source of truth clearly labeled)
+  ctx.save();
+  ctx.font = '800 12px "Fredoka", sans-serif';
+  const rawW = ctx.measureText(customer.user.nickname).width;
+  const namePillW = Math.max(76, Math.min(128, rawW + 24));
+  drawRoundedRect(ctx, cx - namePillW / 2, cy + 86, namePillW, 24, 12);
+  ctx.fillStyle = customer.isRoyal ? '#FFF4CC' : '#FFFDF9';
+  ctx.fill();
+  ctx.strokeStyle = SALON_PALETTE.OUTLINE;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = SALON_PALETTE.TEXT_DARK;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tagNick =
+    customer.user.nickname.length > 13
+      ? `${customer.user.nickname.slice(0, 12)}…`
+      : customer.user.nickname;
+  ctx.fillText(tagNick, cx, cy + 98);
+  ctx.restore();
+
   ctx.restore();
 }
 
@@ -591,8 +614,16 @@ function drawStylistCharacter(
 ): void {
   const freq = isFast ? 11 : 5.5;
   const snipPhase = Math.sin(timeSec * freq);
-  const armReachX = customer ? sx - 118 + snipPhase * 16 : sx - 55;
-  const armReachY = customer ? sy - 92 + Math.cos(timeSec * freq * 0.8) * 14 : sy - 20;
+
+  // Stylist stands upright: head center at sy - 130 = 430
+  // (Customer head center is at ~518, so standing stylist head is ~85px taller, perfect 1.2x ratio!)
+  const headY = sy - 130 + Math.sin(timeSec * 3) * 2;
+  const cx = 450;
+  const custHeadY = 518;
+
+  // Arm reach target right at customer's hair / top of head
+  const armReachX = customer ? cx + 32 + snipPhase * 12 : sx - 85;
+  const armReachY = customer ? custHeadY - 42 + Math.cos(timeSec * freq * 0.8) * 10 : sy - 60;
 
   ctx.save();
   ctx.strokeStyle = SALON_PALETTE.OUTLINE;
@@ -600,48 +631,71 @@ function drawStylistCharacter(
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  // Stylist body + pastel mint salon apron
-  drawRoundedRect(ctx, sx - 42, sy - 10, 84, 138, 28);
+  // 1. Stylist legs & shoes resting firmly on salon floor
+  ctx.fillStyle = '#4A3E3D';
+  drawRoundedRect(ctx, sx - 24, sy + 75, 20, 65, 8);
+  ctx.fill();
+  ctx.stroke();
+  drawRoundedRect(ctx, sx + 4, sy + 75, 20, 65, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  // Shoes
+  ctx.fillStyle = '#FFE5B4';
+  drawRoundedRect(ctx, sx - 28, sy + 134, 24, 16, 7);
+  ctx.fill();
+  ctx.stroke();
+  drawRoundedRect(ctx, sx + 4, sy + 134, 24, 16, 7);
+  ctx.fill();
+  ctx.stroke();
+
+  // 2. Stylist body torso + mint apron (proportional to head radius 50)
+  drawRoundedRect(ctx, sx - 44, sy - 75, 88, 155, 26);
   ctx.fillStyle = '#FFFDF9';
   ctx.fill();
   ctx.stroke();
 
-  drawRoundedRect(ctx, sx - 32, sy + 20, 64, 102, 18);
+  drawRoundedRect(ctx, sx - 36, sy - 45, 72, 125, 18);
   ctx.fillStyle = SALON_PALETTE.MINT_PASTEL;
   ctx.fill();
   ctx.stroke();
 
-  // Stylist head
-  const headY = sy - 58 + Math.sin(timeSec * 4) * 2.5;
+  // Small apron pocket
+  drawRoundedRect(ctx, sx - 20, sy + 25, 40, 32, 8);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  // 3. Stylist head: standard radius 50 (same scale system as customer!)
   ctx.beginPath();
-  ctx.arc(sx, headY, 44, 0, Math.PI * 2);
+  ctx.arc(sx, headY, 50, 0, Math.PI * 2);
   ctx.fillStyle = '#FFE4CE';
   ctx.fill();
   ctx.stroke();
 
-  // Cute top bun hair for stylist
+  // Top bun hair & cute side bangs
   ctx.fillStyle = '#6B443A';
   ctx.beginPath();
-  ctx.arc(sx + 6, headY - 46, 20, 0, Math.PI * 2);
+  ctx.arc(sx + 8, headY - 48, 22, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.arc(sx, headY - 8, 45, Math.PI, Math.PI * 2);
+  ctx.arc(sx, headY - 6, 51, Math.PI, Math.PI * 2);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  // Stylist expression
+  // Stylist face expression
   ctx.fillStyle = SALON_PALETTE.OUTLINE;
   if (mood === 'OOPS') {
-    // Shocked O eyes + sweat drop
+    // Shocked O-eyes + sweat drop
     ctx.beginPath();
-    ctx.arc(sx - 16, headY + 2, 5, 0, Math.PI * 2);
-    ctx.arc(sx + 8, headY + 2, 5, 0, Math.PI * 2);
+    ctx.arc(sx - 18, headY + 3, 5.5, 0, Math.PI * 2);
+    ctx.arc(sx + 10, headY + 3, 5.5, 0, Math.PI * 2);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(sx - 4, headY + 18, 7, 0, Math.PI * 2);
+    ctx.arc(sx - 4, headY + 20, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#FF8FA8';
     ctx.fill();
     ctx.stroke();
@@ -649,25 +703,39 @@ function drawStylistCharacter(
     // Giant anime sweat drop
     ctx.fillStyle = '#8CD5F7';
     ctx.beginPath();
-    ctx.moveTo(sx + 32, headY - 20);
-    ctx.quadraticCurveTo(sx + 44, headY - 4, sx + 32, headY + 4);
-    ctx.quadraticCurveTo(sx + 20, headY - 4, sx + 32, headY - 20);
+    ctx.moveTo(sx + 36, headY - 22);
+    ctx.quadraticCurveTo(sx + 50, headY - 4, sx + 36, headY + 6);
+    ctx.quadraticCurveTo(sx + 22, headY - 4, sx + 36, headY - 22);
     ctx.fill();
     ctx.stroke();
   } else {
+    // Confident happy stylist
     ctx.beginPath();
-    ctx.arc(sx - 15, headY + 2, 4.5, 0, Math.PI * 2);
-    ctx.arc(sx + 9, headY + 2, 4.5, 0, Math.PI * 2);
+    ctx.arc(sx - 16, headY + 3, 5, 0, Math.PI * 2);
+    ctx.arc(sx + 10, headY + 3, 5, 0, Math.PI * 2);
     ctx.fill();
+    // Rosy cheeks
+    ctx.fillStyle = 'rgba(255, 140, 160, 0.45)';
     ctx.beginPath();
-    ctx.arc(sx - 3, headY + 13, 9, 0.1 * Math.PI, 0.9 * Math.PI);
+    ctx.ellipse(sx - 24, headY + 14, 8, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(sx + 18, headY + 14, 8, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Smile
+    ctx.beginPath();
+    ctx.arc(sx - 3, headY + 15, 10, 0.1 * Math.PI, 0.9 * Math.PI);
     ctx.stroke();
   }
 
-  // Articulated working arm reaching toward customer hair
+  // 4. Natural articulated arm with shoulder & elbow joints!
+  const shX = sx - 36;
+  const shY = sy - 55;
+  const elX = sx - 76;
+  const elY = sy - 40 + Math.sin(timeSec * freq) * 4;
+
+  // Upper arm (shoulder to elbow)
   ctx.beginPath();
-  ctx.moveTo(sx - 28, sy + 16);
-  ctx.quadraticCurveTo(sx - 78, sy - 10, armReachX, armReachY);
+  ctx.moveTo(shX, shY);
+  ctx.lineTo(elX, elY);
   ctx.strokeStyle = SALON_PALETTE.OUTLINE;
   ctx.lineWidth = 18;
   ctx.stroke();
@@ -675,16 +743,37 @@ function drawStylistCharacter(
   ctx.lineWidth = 11;
   ctx.stroke();
 
-  // Tool in hand: Clipper when Troll, Scissors normally
+  // Forearm (elbow to hand holding tool)
+  ctx.beginPath();
+  ctx.moveTo(elX, elY);
+  ctx.lineTo(armReachX, armReachY);
+  ctx.strokeStyle = SALON_PALETTE.OUTLINE;
+  ctx.lineWidth = 16;
+  ctx.stroke();
+  ctx.strokeStyle = '#FFE4CE';
+  ctx.lineWidth = 10;
+  ctx.stroke();
+
+  // Hand / Wrist
+  ctx.beginPath();
+  ctx.arc(armReachX, armReachY, 8, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFE4CE';
+  ctx.fill();
+  ctx.strokeStyle = SALON_PALETTE.OUTLINE;
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+
+  // 5. Tool in hand: Clipper when Troll, Scissors normally
   if (mood === 'OOPS') {
     drawClipperTool(ctx, armReachX, armReachY, snipPhase);
   } else {
     drawScissorsTool(ctx, armReachX, armReachY, Math.abs(snipPhase));
   }
 
-  // Stylist speech bubble above head (kept inside canvas bounds)
+  // 6. Stylist speech bubble placed in spacious top-right zone
+  // (Completely clear of tool, hands, and changing hairstyles)
   if (speech) {
-    drawStylistBubble(ctx, Math.min(545, sx - 55), headY - 94, speech, mood);
+    drawStylistBubble(ctx, 580, 245, speech, mood);
   }
   ctx.restore();
 }
@@ -764,18 +853,28 @@ export function drawStylistBubble(
 ): void {
   ctx.save();
   ctx.font = '700 15px "Nunito", sans-serif';
-  const maxWidth = 235;
+  const maxWidth = 245;
   const trimmed = text.length > 34 ? `${text.slice(0, 33)}…` : text;
-  const textWidth = Math.min(maxWidth, ctx.measureText(trimmed).width + 26);
-  const bx = Math.max(255, Math.min(706 - textWidth, centerX - textWidth / 2));
-  const by = Math.max(244, topY);
-  const bh = 38;
+  const textWidth = Math.min(maxWidth, ctx.measureText(trimmed).width + 28);
+  const bx = Math.max(460, Math.min(708 - textWidth, centerX - textWidth / 2));
+  const by = topY;
+  const bh = 40;
 
-  drawRoundedRect(ctx, bx, by, textWidth, bh, 18);
+  drawRoundedRect(ctx, bx, by, textWidth, bh, 20);
   ctx.fillStyle = mood === 'OOPS' ? '#FFE1DE' : mood === 'ROYAL' ? '#FFF4CC' : '#FFFFFF';
   ctx.fill();
   ctx.strokeStyle = SALON_PALETTE.OUTLINE;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+
+  // Little speech tail pointing down toward stylist head
+  ctx.beginPath();
+  ctx.moveTo(bx + textWidth / 2 - 6, by + bh);
+  ctx.lineTo(bx + textWidth / 2 + 14, by + bh);
+  ctx.lineTo(bx + textWidth / 2 + 4, by + bh + 9);
+  ctx.closePath();
+  ctx.fillStyle = mood === 'OOPS' ? '#FFE1DE' : mood === 'ROYAL' ? '#FFF4CC' : '#FFFFFF';
+  ctx.fill();
   ctx.stroke();
 
   ctx.fillStyle = SALON_PALETTE.TEXT_DARK;
