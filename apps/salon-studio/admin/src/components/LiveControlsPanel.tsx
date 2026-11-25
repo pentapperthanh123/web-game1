@@ -43,23 +43,24 @@ export const LiveControlsPanel: React.FC = () => {
   };
 
   return (
-    <section className="admin-card p-4 space-y-4">
-      <div className="flex items-center justify-between gap-2">
+    <section className="admin-card p-3.5 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2 pb-2 border-b-2 border-[#3A2825]/10">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-[#C9F2E3] border-2 border-[#3A2825] flex items-center justify-center">
-            <Sliders className="w-5 h-5 text-[#3A2825]" />
+          <div className="w-8 h-8 rounded-xl bg-[#C9F2E3] border-2 border-[#3A2825] flex items-center justify-center shrink-0">
+            <Sliders className="w-4 h-4 text-[#3A2825]" />
           </div>
           <div>
-            <h2 className="font-display font-bold text-[17px] leading-tight">
-              Điều Khiển Trực Tiếp (Host)
+            <h2 className="font-display font-bold text-base leading-tight">
+              Quy Trình Tiệm & Can Thiệp Host
             </h2>
-            <p className="text-xs font-bold text-[#7D6059]">
-              Chuyển chế độ dịch vụ, ngôn ngữ và can thiệp nhanh
+            <p className="text-[11px] font-bold text-[#7D6059]">
+              Chuyển mode tiệm tóc/nail, thời lượng và thao tác nhanh
             </p>
           </div>
         </div>
 
-        {/* Language EN / VI Switch */}
+        {/* Language switch */}
         <div className="flex items-center gap-1 bg-[#F5E6DD] p-1 rounded-xl border-2 border-[#3A2825]">
           <Globe className="w-3.5 h-3.5 ml-1 text-[#7D6059]" />
           {(['VI', 'EN'] as const).map((lang) => (
@@ -67,7 +68,7 @@ export const LiveControlsPanel: React.FC = () => {
               key={lang}
               type="button"
               onClick={() => handleLanguageChange(lang)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black cursor-pointer ${
+              className={`px-2 py-0.5 rounded-lg text-xs font-black cursor-pointer ${
                 language === lang
                   ? 'bg-[#FFD56B] border-2 border-[#3A2825] text-[#3A2825]'
                   : 'text-[#7D6059]'
@@ -83,9 +84,9 @@ export const LiveControlsPanel: React.FC = () => {
       <div className="grid grid-cols-3 gap-2">
         {(
           [
-            { key: 'HAIR', label: 'HAIR (Cắt Tóc)', icon: Scissors, color: 'bg-[#FFD4E2]' },
-            { key: 'NAIL', label: 'NAIL (Làm Móng)', icon: Sparkles, color: 'bg-[#C9F2E3]' },
-            { key: 'AUTO', label: 'AUTO (Xen Kẽ)', icon: Zap, color: 'bg-[#FFE5B4]' },
+            { key: 'HAIR', label: 'Cắt Tóc (HAIR)', icon: Scissors, color: 'bg-[#FFD4E2]' },
+            { key: 'NAIL', label: 'Làm Móng (NAIL)', icon: Sparkles, color: 'bg-[#C9F2E3]' },
+            { key: 'AUTO', label: 'Xen Kẽ (AUTO)', icon: Zap, color: 'bg-[#FFE5B4]' },
           ] as const
         ).map((item) => {
           const Icon = item.icon;
@@ -95,7 +96,7 @@ export const LiveControlsPanel: React.FC = () => {
               key={item.key}
               type="button"
               onClick={() => handleModeChange(item.key)}
-              className={`admin-btn py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`admin-btn py-2 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer ${
                 active ? item.color : 'bg-white text-[#7D6059]'
               }`}
             >
@@ -106,13 +107,13 @@ export const LiveControlsPanel: React.FC = () => {
         })}
       </div>
 
-      {/* Turn Duration & Troll Toggle */}
-      <div className="grid sm:grid-cols-2 gap-3">
-        <div className="bg-[#FFF7EE] border-2 border-[#3A2825]/30 rounded-xl p-3">
-          <div className="flex items-center justify-between text-xs font-black mb-1.5">
-            <span>Thời lượng mỗi lượt</span>
-            <span className="bg-[#FFE5B4] border-2 border-[#3A2825] px-2 py-0.5 rounded-full">
-              {turnDurationSec}s
+      {/* Duration Slider + Troll Toggle */}
+      <div className="grid sm:grid-cols-2 gap-2.5">
+        <div className="bg-[#FFF7EE] border-2 border-[#3A2825]/25 rounded-xl p-2.5">
+          <div className="flex items-center justify-between text-xs font-black mb-1">
+            <span>Thời lượng mỗi lượt:</span>
+            <span className="bg-[#FFE5B4] border-2 border-[#3A2825] px-2 py-0.5 rounded-full text-xs">
+              {turnDurationSec} giây
             </span>
           </div>
           <input
@@ -125,22 +126,23 @@ export const LiveControlsPanel: React.FC = () => {
             className="w-full accent-[#E85D82] cursor-pointer"
           />
           <div className="flex justify-between text-[10px] font-bold text-[#7D6059]">
-            <span>{GAMEPLAY_LIMITS.MIN_TURN_DURATION_SEC}s</span>
-            <span>{GAMEPLAY_LIMITS.MAX_TURN_DURATION_SEC}s</span>
+            <span>Nhanh: {GAMEPLAY_LIMITS.MIN_TURN_DURATION_SEC}s</span>
+            <span>Chuẩn: 20s</span>
+            <span>Chậm: {GAMEPLAY_LIMITS.MAX_TURN_DURATION_SEC}s</span>
           </div>
         </div>
 
-        <div className="bg-[#FFF7EE] border-2 border-[#3A2825]/30 rounded-xl p-3 flex items-center justify-between gap-2">
+        <div className="bg-[#FFF7EE] border-2 border-[#3A2825]/25 rounded-xl p-2.5 flex items-center justify-between gap-2">
           <div>
             <div className="text-xs font-black">Hiệu ứng “Trượt Tay” (Troll)</div>
             <div className="text-[11px] font-bold text-[#7D6059]">
-              Cho phép quà 5–29 xu trêu khách
+              Quà 5–29 xu cạo trọc / cháy xù / móng cong
             </div>
           </div>
           <button
             type="button"
             onClick={handleToggleTroll}
-            className={`admin-btn px-3.5 py-1.5 rounded-xl text-xs font-black cursor-pointer ${
+            className={`admin-btn px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer shrink-0 ${
               trollEnabled ? 'bg-[#86E3C3]' : 'bg-[#E9DDD6]'
             }`}
           >
@@ -150,38 +152,38 @@ export const LiveControlsPanel: React.FC = () => {
       </div>
 
       {/* Direct Host Buttons */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5">
         <button
           type="button"
           onClick={() => salonAdminEmitter.emitAdminAction('FORCE_COMPLETE_NOW')}
-          className="admin-btn bg-[#86E3C3] hover:bg-[#6FD9B5] text-xs font-black py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+          className="admin-btn bg-[#86E3C3] hover:bg-[#6FD9B5] text-xs font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
         >
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          Hoàn Thành Nhanh
+          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+          Xong Nhanh
         </button>
         <button
           type="button"
           onClick={() => salonAdminEmitter.emitAdminAction('TRIGGER_TROLL_NOW')}
-          className="admin-btn bg-[#FFD1CE] hover:bg-[#FFB8B3] text-xs font-black py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+          className="admin-btn bg-[#FFD1CE] hover:bg-[#FFB8B3] text-xs font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <span>😂</span>
-          Kích Hoạt Trượt Tay
+          Lỡ Tay Troll
         </button>
         <button
           type="button"
           onClick={() => salonAdminEmitter.emitAdminAction('CALL_NEXT_CUSTOMER')}
-          className="admin-btn bg-[#FFE5B4] hover:bg-[#FFD68A] text-xs font-black py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+          className="admin-btn bg-[#FFE5B4] hover:bg-[#FFD68A] text-xs font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
         >
-          <FastForward className="w-4 h-4 shrink-0" />
-          Gọi Khách Kế Tiếp
+          <FastForward className="w-3.5 h-3.5 shrink-0" />
+          Khách Tiếp
         </button>
         <button
           type="button"
           onClick={() => salonAdminEmitter.emitAdminAction('CLEAR_FINISHED_WALL')}
-          className="admin-btn bg-white hover:bg-[#FFEFE3] text-xs font-black py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+          className="admin-btn bg-white hover:bg-[#FFEFE3] text-xs font-black py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
         >
-          <Trash2 className="w-4 h-4 shrink-0" />
-          Xóa Thành Quả
+          <Trash2 className="w-3.5 h-3.5 shrink-0" />
+          Xóa Dây Ảnh
         </button>
       </div>
     </section>

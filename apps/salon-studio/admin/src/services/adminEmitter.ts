@@ -191,3 +191,20 @@ export function simulateLikeBurst(
     count,
   });
 }
+
+export function simulateStyleChat(
+  customText?: string,
+  source: 'SIMULATOR' | 'AUTOBOT' = 'SIMULATOR'
+): void {
+  const user = randomGuest();
+  const styles = ['tóc hồng', 'tóc vàng', 'tóc xoăn', 'tóc ngầu', 'nail xanh', 'nail tím'];
+  const text = customText || styles[Math.floor(Math.random() * styles.length)];
+  salonAdminEmitter.emitLiveEvent({
+    type: 'CHAT',
+    source,
+    timestamp: Date.now(),
+    user,
+    text,
+    cleanText: text,
+  });
+}

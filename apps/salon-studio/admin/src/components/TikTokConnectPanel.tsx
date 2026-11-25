@@ -12,27 +12,27 @@ const STATUS_BADGE_MAP: Record<
   CONNECTED: {
     bg: 'bg-[#C9F2E3] text-[#175B43]',
     dot: 'bg-[#2BB673]',
-    label: 'Connected',
+    label: 'Đã kết nối',
   },
   CONNECTING: {
     bg: 'bg-[#FFF0B8] text-[#7D5500]',
     dot: 'bg-[#E5A000] animate-ping',
-    label: 'Connecting...',
+    label: 'Đang kết nối...',
   },
   RECONNECTING: {
     bg: 'bg-[#FFE1C6] text-[#8A4400]',
     dot: 'bg-[#E67E22] animate-pulse',
-    label: 'Reconnecting...',
+    label: 'Đang thử lại...',
   },
   ERROR: {
     bg: 'bg-[#FFD6D6] text-[#8F2121]',
     dot: 'bg-[#E74C3C]',
-    label: 'Error',
+    label: 'Lỗi kết nối',
   },
   DISCONNECTED: {
     bg: 'bg-[#F3E6DF] text-[#6B544E]',
     dot: 'bg-[#9E8781]',
-    label: 'Disconnected',
+    label: 'Chưa kết nối',
   },
 };
 
@@ -69,7 +69,7 @@ export const TikTokConnectPanel: React.FC = () => {
   const connectWithId = async (raw: string) => {
     const clean = raw.trim().replace(/^@+/, '');
     if (!clean) {
-      setLocalError('Nhập TikTok Unique ID hoặc Room ID trước khi kết nối.');
+      setLocalError('Vui lòng nhập TikTok Unique ID hoặc Room ID.');
       return;
     }
     localStorage.setItem(SALON_STORAGE_KEYS.LAST_TIKTOK_ID, clean);
@@ -114,99 +114,109 @@ export const TikTokConnectPanel: React.FC = () => {
   const activeError = localError || statusPayload.error || '';
 
   return (
-    <section className="admin-card p-4 space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <section className="admin-card p-3.5 space-y-2.5">
+      {/* Header bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[#3A2825]/10">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-[#FFD4E2] border-2 border-[#3A2825] flex items-center justify-center">
-            <Radio className="w-5 h-5 text-[#3A2825]" />
+          <div className="w-8 h-8 rounded-xl bg-[#FFD4E2] border-2 border-[#3A2825] flex items-center justify-center shrink-0">
+            <Radio className="w-4 h-4 text-[#3A2825]" />
           </div>
           <div>
-            <h2 className="font-display font-bold text-[17px] leading-tight">
+            <h2 className="font-display font-bold text-base leading-tight">
               TikTok LIVE Connect (`server/`)
             </h2>
-            <p className="text-xs font-bold text-[#7D6059]">
-              Kết nối phòng live thật & lấy URL cho TikTok LIVE Studio
+            <p className="text-[11px] font-bold text-[#7D6059]">
+              Nhận chat, like, gift tự động từ Core Connect Service
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-[#3A2825] text-xs font-black ${badge.bg}`}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border-2 border-[#3A2825] text-[11px] font-black ${badge.bg}`}
           >
-            <span className={`w-2.5 h-2.5 rounded-full ${badge.dot}`} />
+            <span className={`w-2 h-2 rounded-full ${badge.dot}`} />
             {badge.label}
           </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FFF0D9] border-2 border-[#3A2825] text-xs font-black">
-            <Wifi className="w-3.5 h-3.5 text-[#D98200]" />
-            {eventsPerMin} ev/phút
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFF0D9] border-2 border-[#3A2825] text-[11px] font-black">
+            <Wifi className="w-3 h-3 text-[#D98200]" />
+            {eventsPerMin} ev/m
           </span>
         </div>
       </div>
 
+      {/* Connect Form */}
       <form onSubmit={handleConnectSubmit} className="flex flex-wrap gap-2">
         <input
           type="text"
           value={tiktokId}
           onChange={(e) => setTiktokId(e.target.value)}
-          placeholder="Nhập TikTok Unique ID (@username) hoặc Room ID..."
-          className="flex-1 min-w-[200px] bg-[#FFF7EE] border-2 border-[#3A2825] rounded-xl px-3 py-2 text-sm font-bold text-[#3A2825] placeholder:text-[#9E8781] focus:outline-none focus:ring-2 focus:ring-[#FF8FA8]"
+          placeholder="Nhập TikTok @username hoặc Room ID..."
+          className="flex-1 min-w-[210px] bg-[#FFF7EE] border-2 border-[#3A2825] rounded-xl px-3 py-1.5 text-xs font-bold text-[#3A2825] placeholder:text-[#9E8781] focus:outline-none focus:ring-2 focus:ring-[#FF8FA8]"
         />
         <button
           type="submit"
-          className="admin-btn bg-[#86E3C3] hover:bg-[#6FD9B5] text-[#3A2825] font-black text-xs px-4 py-2 rounded-xl cursor-pointer"
+          className="admin-btn bg-[#86E3C3] hover:bg-[#6FD9B5] text-[#3A2825] font-black text-xs px-3.5 py-1.5 rounded-xl cursor-pointer"
         >
           Connect
         </button>
         <button
           type="button"
           onClick={() => void handleReconnect()}
-          className="admin-btn bg-[#FFE599] hover:bg-[#FFD966] text-[#3A2825] font-black text-xs px-3 py-2 rounded-xl inline-flex items-center gap-1 cursor-pointer"
+          className="admin-btn bg-[#FFE599] hover:bg-[#FFD966] text-[#3A2825] font-black text-xs px-2.5 py-1.5 rounded-xl inline-flex items-center gap-1 cursor-pointer"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Reconnect
+          <RefreshCw className="w-3 h-3" />
+          Re-check
         </button>
-        <button
-          type="button"
-          onClick={() => void handleDisconnect()}
-          className="admin-btn bg-[#FFD1CE] hover:bg-[#FFB8B3] text-[#3A2825] font-black text-xs px-3 py-2 rounded-xl inline-flex items-center gap-1 cursor-pointer"
-        >
-          <Unlink className="w-3.5 h-3.5" />
-          Disconnect
-        </button>
+        {statusPayload.status !== 'DISCONNECTED' && (
+          <button
+            type="button"
+            onClick={() => void handleDisconnect()}
+            className="admin-btn bg-[#FFD1CE] hover:bg-[#FFB8B3] text-[#3A2825] font-black text-xs px-2.5 py-1.5 rounded-xl inline-flex items-center gap-1 cursor-pointer"
+          >
+            <Unlink className="w-3 h-3" />
+            Ngắt
+          </button>
+        )}
       </form>
 
       {activeError && (
-        <div className="bg-[#FFE4E1] border-2 border-[#D94B4B] rounded-xl px-3 py-2 text-xs font-bold text-[#8F2121]">
+        <div className="bg-[#FFE4E1] border-2 border-[#D94B4B] rounded-xl px-3 py-1.5 text-xs font-bold text-[#8F2121]">
           {activeError}
         </div>
       )}
 
-      {/* TikTok LIVE Studio Browser Source URL */}
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#FFF4E8] border-2 border-[#3A2825]/30 rounded-xl px-3 py-2">
-        <div className="min-w-0">
-          <div className="text-[11px] font-black uppercase text-[#7D6059]">
-            TikTok LIVE Studio — Browser Source (720×1280)
-          </div>
-          <div className="text-xs font-extrabold text-[#3A2825] truncate">{stageUrl}</div>
+      {/* Browser Source URL Bar for TikTok LIVE Studio */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#FFF4E8] border-2 border-[#3A2825]/25 rounded-xl px-3 py-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[10px] font-black uppercase text-[#7D6059] shrink-0">
+            TikTok Studio (720×1280):
+          </span>
+          <span className="text-xs font-extrabold text-[#3A2825] truncate font-mono">
+            {stageUrl}
+          </span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={handleCopyStageUrl}
-            className="admin-btn bg-white hover:bg-[#FFF7EE] text-xs font-black px-3 py-1.5 rounded-lg inline-flex items-center gap-1 cursor-pointer"
+            className="admin-btn bg-white hover:bg-[#FFF7EE] text-[11px] font-black px-2.5 py-1 rounded-lg inline-flex items-center gap-1 cursor-pointer"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-[#2BB673]" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? 'Đã copy' : 'Copy URL'}
+            {copied ? (
+              <Check className="w-3.5 h-3.5 text-[#2BB673]" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+            {copied ? 'Đã copy' : 'Copy'}
           </button>
           <a
             href={stageUrl}
             target="_blank"
             rel="noreferrer"
-            className="admin-btn bg-[#FFD4E2] hover:bg-[#FFBFD4] text-xs font-black px-3 py-1.5 rounded-lg inline-flex items-center gap-1 text-[#3A2825] no-underline"
+            className="admin-btn bg-[#FFD4E2] hover:bg-[#FFBFD4] text-[11px] font-black px-2.5 py-1 rounded-lg inline-flex items-center gap-1 text-[#3A2825] no-underline"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Mở Stage
+            <ExternalLink className="w-3 h-3" />
+            Mở
           </a>
         </div>
       </div>
