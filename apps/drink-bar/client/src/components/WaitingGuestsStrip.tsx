@@ -323,7 +323,16 @@ const StandingChibiSvg: React.FC<{
   bottomColor: string;
   styleIdx: number;
   isSignature: boolean;
-}> = ({ shirtColor, bottomColor, styleIdx, isSignature }) => {
+  isHappy?: boolean;
+  holdingCupColor?: string;
+}> = ({
+  shirtColor,
+  bottomColor,
+  styleIdx,
+  isSignature,
+  isHappy = false,
+  holdingCupColor,
+}) => {
   return (
     <svg
       viewBox="0 0 96 104"
@@ -389,7 +398,7 @@ const StandingChibiSvg: React.FC<{
         strokeWidth={CHIBI_STROKE_WIDTH}
       />
 
-      {/* Rounded pastel arms resting beside body */}
+      {/* Left arm */}
       <rect
         x="17"
         y="65"
@@ -397,17 +406,6 @@ const StandingChibiSvg: React.FC<{
         height="18"
         rx="5"
         transform="rotate(14 22 67)"
-        fill={shirtColor}
-        stroke={OUTLINE_COLOR}
-        strokeWidth={CHIBI_STROKE_WIDTH}
-      />
-      <rect
-        x="69"
-        y="65"
-        width="10"
-        height="18"
-        rx="5"
-        transform="rotate(-14 74 67)"
         fill={shirtColor}
         stroke={OUTLINE_COLOR}
         strokeWidth={CHIBI_STROKE_WIDTH}
@@ -420,14 +418,78 @@ const StandingChibiSvg: React.FC<{
         stroke={OUTLINE_COLOR}
         strokeWidth="2.2"
       />
-      <circle
-        cx="76"
-        cy="82"
-        r="4.2"
-        fill={SKIN_COLOR}
-        stroke={OUTLINE_COLOR}
-        strokeWidth="2.2"
-      />
+
+      {/* Right arm: raised holding received takeaway cup when celebrating/leaving */}
+      {holdingCupColor ? (
+        <g>
+          <rect
+            x="69"
+            y="57"
+            width="10"
+            height="17"
+            rx="5"
+            transform="rotate(-48 74 68)"
+            fill={shirtColor}
+            stroke={OUTLINE_COLOR}
+            strokeWidth={CHIBI_STROKE_WIDTH}
+          />
+          <circle
+            cx="81"
+            cy="62"
+            r="4.2"
+            fill={SKIN_COLOR}
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.2"
+          />
+          {/* Mini received takeaway cup in hand */}
+          <g transform="translate(80, 44)">
+            <path
+              d="M1 8 L13 8 L11.5 21 L2.5 21 Z"
+              fill={holdingCupColor}
+              stroke={OUTLINE_COLOR}
+              strokeWidth="2.1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M2 8 A 5 5 0 0 1 12 8 Z"
+              fill="#FFFDF9"
+              stroke={OUTLINE_COLOR}
+              strokeWidth="2"
+            />
+            <line
+              x1="0.5"
+              y1="8"
+              x2="13.5"
+              y2="8"
+              stroke={OUTLINE_COLOR}
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            />
+          </g>
+        </g>
+      ) : (
+        <g>
+          <rect
+            x="69"
+            y="65"
+            width="10"
+            height="18"
+            rx="5"
+            transform="rotate(-14 74 67)"
+            fill={shirtColor}
+            stroke={OUTLINE_COLOR}
+            strokeWidth={CHIBI_STROKE_WIDTH}
+          />
+          <circle
+            cx="76"
+            cy="82"
+            r="4.2"
+            fill={SKIN_COLOR}
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.2"
+          />
+        </g>
+      )}
 
       {/* Pastel skirt / shorts */}
       <path
@@ -498,26 +560,74 @@ const StandingChibiSvg: React.FC<{
         strokeLinecap="round"
       />
 
-      {/* Expressive anime eyes with dual sparkle glints */}
-      <ellipse cx="38" cy="35" rx="3.8" ry="4.3" fill={OUTLINE_COLOR} />
-      <ellipse cx="58" cy="35" rx="3.8" ry="4.3" fill={OUTLINE_COLOR} />
-      <circle cx="36.6" cy="33.5" r="1.5" fill="#FFFFFF" />
-      <circle cx="56.6" cy="33.5" r="1.5" fill="#FFFFFF" />
-      <circle cx="39.3" cy="36.8" r="0.85" fill="rgba(255,255,255,0.8)" />
-      <circle cx="59.3" cy="36.8" r="0.85" fill="rgba(255,255,255,0.8)" />
+      {/* Eyes: joyful ^ ^ curved happy eyes when celebrating, else expressive sparkle eyes */}
+      {isHappy ? (
+        <g>
+          <path
+            d="M33 36 Q38 30 43 36"
+            fill="none"
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M53 36 Q58 30 63 36"
+            fill="none"
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.6"
+            strokeLinecap="round"
+          />
+        </g>
+      ) : (
+        <g>
+          <ellipse cx="38" cy="35" rx="3.8" ry="4.3" fill={OUTLINE_COLOR} />
+          <ellipse cx="58" cy="35" rx="3.8" ry="4.3" fill={OUTLINE_COLOR} />
+          <circle cx="36.6" cy="33.5" r="1.5" fill="#FFFFFF" />
+          <circle cx="56.6" cy="33.5" r="1.5" fill="#FFFFFF" />
+          <circle cx="39.3" cy="36.8" r="0.85" fill="rgba(255,255,255,0.8)" />
+          <circle cx="59.3" cy="36.8" r="0.85" fill="rgba(255,255,255,0.8)" />
+        </g>
+      )}
 
       {/* Rosy pastel cheeks */}
-      <ellipse cx="31" cy="41.5" rx="5.5" ry="3.2" fill={BLUSH_COLOR} opacity="0.52" />
-      <ellipse cx="65" cy="41.5" rx="5.5" ry="3.2" fill={BLUSH_COLOR} opacity="0.52" />
-
-      {/* Sweet smile */}
-      <path
-        d="M42.5 43.5 Q48 48.5 53.5 43.5"
-        fill="none"
-        stroke={OUTLINE_COLOR}
-        strokeWidth="2.3"
-        strokeLinecap="round"
+      <ellipse
+        cx="31"
+        cy="41.5"
+        rx="5.5"
+        ry="3.2"
+        fill={BLUSH_COLOR}
+        opacity={isHappy ? 0.78 : 0.52}
       />
+      <ellipse
+        cx="65"
+        cy="41.5"
+        rx="5.5"
+        ry="3.2"
+        fill={BLUSH_COLOR}
+        opacity={isHappy ? 0.78 : 0.52}
+      />
+
+      {/* Smile: open joyful smile when celebrating, sweet smile when waiting */}
+      {isHappy ? (
+        <g>
+          <path
+            d="M41.5 42.5 A 6.5 6.5 0 0 0 54.5 42.5 Z"
+            fill="#E06B74"
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.2"
+            strokeLinejoin="round"
+          />
+          <ellipse cx="48" cy="46.5" rx="3.5" ry="2" fill="#F7A8B8" />
+        </g>
+      ) : (
+        <path
+          d="M42.5 43.5 Q48 48.5 53.5 43.5"
+          fill="none"
+          stroke={OUTLINE_COLOR}
+          strokeWidth="2.3"
+          strokeLinecap="round"
+        />
+      )}
 
       {/* Front hair & accessories */}
       <ChibiSvgFrontHair styleIdx={styleIdx} />
@@ -530,51 +640,67 @@ export const WaitingGuestsStrip: React.FC = () => {
   const normalQueue = useDrinkBarStore((s) => s.normalQueue);
   const guestBubbles = useDrinkBarStore((s) => s.guestBubbles);
   const guestLaneByOrderId = useDrinkBarStore((s) => s.guestLaneByOrderId);
+  const celebratingByOrderId = useDrinkBarStore((s) => s.celebratingByOrderId);
+  const departingGuests = useDrinkBarStore((s) => s.departingGuests);
 
   const queued = [...vipQueue, ...normalQueue].slice(0, GAMEPLAY_LIMITS.MAX_GUEST_SLOTS);
-  if (queued.length === 0) {
+  if (queued.length === 0 && departingGuests.length === 0) {
     return null;
   }
 
+  const celebratingLaneBlock: Record<GuestLaneIndex, boolean> = {
+    0: departingGuests.some((g) => g.lane === 0 && g.phase === 'CELEBRATING'),
+    1: departingGuests.some((g) => g.lane === 1 && g.phase === 'CELEBRATING'),
+  };
+
   const laneRowCounts: [number, number] = [0, 0];
-  const guests: DisplayGuestSlot[] = queued.map((order, idx) => {
-    const fallbackLane: GuestLaneIndex = laneRowCounts[0] <= laneRowCounts[1] ? 0 : 1;
-    const assigned = guestLaneByOrderId[order.orderId];
-    const lane: GuestLaneIndex =
-      assigned !== undefined && laneRowCounts[assigned] < MAX_PER_LANE
-        ? assigned
-        : fallbackLane;
-    const row = laneRowCounts[lane];
-    laneRowCounts[lane] += 1;
+  const guests: (DisplayGuestSlot & { isHappy: boolean; holdingCupColor?: string })[] = queued.map(
+    (order, idx) => {
+      const fallbackLane: GuestLaneIndex = laneRowCounts[0] <= laneRowCounts[1] ? 0 : 1;
+      const assigned = guestLaneByOrderId[order.orderId];
+      const lane: GuestLaneIndex =
+        assigned !== undefined && laneRowCounts[assigned] < MAX_PER_LANE
+          ? assigned
+          : fallbackLane;
+      const baseRow = laneRowCounts[lane];
+      laneRowCounts[lane] += 1;
 
-    const styleIdx = hashOrderStyle(order.orderId);
-    const bubble = findBubbleForGuest(guestBubbles, order, idx);
+      // Hold waiting guest at Row 1 briefly while departing guest in Row 0 finishes happy pickup
+      const visualRow = celebratingLaneBlock[lane] ? Math.min(1, baseRow + 1) : baseRow;
+      const styleIdx = hashOrderStyle(order.orderId);
+      const bubble = findBubbleForGuest(guestBubbles, order, idx);
+      const celeb = celebratingByOrderId[order.orderId];
 
-    return {
-      id: order.orderId,
-      nickname: order.user.nickname,
-      shirtColor: GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length],
-      bottomColor: GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length],
-      isVip: order.isVip,
-      isSignature: order.isSignature,
-      bubbleText: bubble?.text,
-      bubbleKey: bubble ? `${bubble.id}` : undefined,
-      styleIdx,
-      lane,
-      row,
-      isHeadOfQueue: idx === 0,
-    };
-  });
+      return {
+        id: order.orderId,
+        nickname: order.user.nickname,
+        shirtColor: GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length],
+        bottomColor: GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length],
+        isVip: order.isVip,
+        isSignature: order.isSignature,
+        bubbleText: celeb?.text ?? bubble?.text,
+        bubbleKey: celeb ? `celeb_${order.orderId}` : bubble ? `${bubble.id}` : undefined,
+        styleIdx,
+        lane,
+        row: visualRow,
+        isHeadOfQueue: idx === 0,
+        isHappy: Boolean(celeb),
+        holdingCupColor: celeb?.recipeColor,
+      };
+    }
+  );
 
   return (
     <section
       className="absolute inset-0 pointer-events-none z-20"
       aria-label="Waiting guests standing in 2 vertical queues"
     >
+      {/* Active queued customers */}
       {guests.map((guest, idx) => {
         const lanePositions = LANE_FLOOR_POSITIONS[guest.lane];
         const coord = lanePositions[guest.row] ?? lanePositions[lanePositions.length - 1];
-        const bobClass = guest.isHeadOfQueue ? 'animate-guest-eager' : 'animate-guest-bob';
+        const bobClass =
+          guest.isHeadOfQueue || guest.isHappy ? 'animate-guest-eager' : 'animate-guest-bob';
 
         return (
           <div
@@ -594,7 +720,7 @@ export const WaitingGuestsStrip: React.FC = () => {
                   transformOrigin: 'top center',
                 }}
               >
-                {/* Auto-fading compact drink / VIP speech bubble above head */}
+                {/* Auto-fading compact drink / VIP / celebration speech bubble above head */}
                 {guest.bubbleText && (
                   <div
                     key={guest.bubbleKey}
@@ -626,6 +752,8 @@ export const WaitingGuestsStrip: React.FC = () => {
                     bottomColor={guest.bottomColor}
                     styleIdx={guest.styleIdx}
                     isSignature={guest.isSignature}
+                    isHappy={guest.isHappy}
+                    holdingCupColor={guest.holdingCupColor}
                   />
                 </div>
 
@@ -639,6 +767,73 @@ export const WaitingGuestsStrip: React.FC = () => {
                     {guest.nickname}
                   </span>
                 </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Departing guests: happy pickup (~0.68s) then smooth step/fade away (~0.5s) */}
+      {departingGuests.map((dep) => {
+        const lanePositions = LANE_FLOOR_POSITIONS[dep.lane];
+        const coord = lanePositions[dep.row] ?? lanePositions[0];
+        const styleIdx = hashOrderStyle(dep.order.orderId);
+        const shirtColor = GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length];
+        const bottomColor = GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length];
+        const isExiting = dep.phase === 'EXITING';
+        const exitShiftX = dep.lane === 0 ? -70 : 70;
+
+        return (
+          <div
+            key={`depart_${dep.order.orderId}`}
+            className="absolute w-[108px] transition-all duration-500 ease-out"
+            style={{
+              left: `${coord.left - 54}px`,
+              top: `${coord.top}px`,
+              zIndex: coord.zIndex + 6,
+              opacity: isExiting ? 0 : 1,
+              transform: isExiting
+                ? `translateX(${exitShiftX}px) translateY(6px) scale(${coord.scale * 0.92})`
+                : `translateX(0px) translateY(0px) scale(${coord.scale})`,
+              transformOrigin: 'top center',
+            }}
+          >
+            <div className="w-full flex flex-col items-center">
+              <div className="absolute -top-[22px] left-1/2 -translate-x-1/2 max-w-[118px] bg-[#FFF9FA] border-[2.2px] border-[#3B2820] rounded-[11px] px-2 py-[2px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40">
+                <p className="text-[9.5px] font-extrabold text-[#3B2820] leading-tight text-center truncate">
+                  {dep.bubbleText}
+                </p>
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-[4.5px] left-1/2 -translate-x-1/2 w-2 h-2 bg-[#FFF9FA] border-r-[2.2px] border-b-[2.2px] border-[#3B2820] rotate-45"
+                />
+              </div>
+
+              <div className="relative flex flex-col items-center animate-guest-eager">
+                {dep.order.isVip && (
+                  <span className="absolute -top-[4px] right-[8px] w-5 h-5 rounded-full bg-[#F7C95B] border-[2px] border-[#3B2820] flex items-center justify-center z-30 shadow-[0_1.5px_0_#3B2820]">
+                    <Crown className="w-3 h-3 text-[#3B2820]" strokeWidth={2.8} />
+                  </span>
+                )}
+
+                <StandingChibiSvg
+                  shirtColor={shirtColor}
+                  bottomColor={bottomColor}
+                  styleIdx={styleIdx}
+                  isSignature={dep.order.isSignature}
+                  isHappy
+                  holdingCupColor={dep.recipeColor}
+                />
+              </div>
+
+              <div
+                className={`-mt-[2px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[100px] ${
+                  dep.order.isSignature ? 'bg-[#FFF1C2]' : 'bg-[#FFF9FA]'
+                }`}
+              >
+                <span className="block text-[9.5px] font-black text-[#3B2820] truncate leading-none">
+                  {dep.order.user.nickname}
+                </span>
               </div>
             </div>
           </div>

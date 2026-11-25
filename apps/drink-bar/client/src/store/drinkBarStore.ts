@@ -18,6 +18,7 @@ import {
 } from '@shared/queue';
 import { RECIPE_MAP } from '@shared/recipes';
 import type {
+  ActiveDrink,
   DanceStyle,
   DrinkBarLiveState,
   DrinkOrder,
@@ -89,7 +90,31 @@ function runSideEffects(
 
 export type GuestLaneIndex = 0 | 1;
 
+export interface CelebratingGuestState {
+  expiresAt: number;
+  text: string;
+  recipeColor: string;
+}
+
+export interface DepartingGuest {
+  order: DrinkOrder;
+  lane: GuestLaneIndex;
+  row: number;
+  celebrateUntil: number;
+  removeAt: number;
+  phase: 'CELEBRATING' | 'EXITING';
+  bubbleText: string;
+  recipeColor: string;
+}
+
 const MAX_GUESTS_PER_LANE = 2;
+const GUEST_CELEBRATE_MS = 680;
+const GUEST_EXIT_MS = 500;
+
+const GUEST_THANK_TEXT_MAP: Record<Language, string> = {
+  EN: 'Thanks! ♡',
+  VI: 'Cảm ơn! ♡',
+};
 
 function reconcileGuestLanes(
   prevLanes: Readonly<Record<string, GuestLaneIndex>>,
@@ -131,9 +156,61 @@ function areLanesEqual(
   return true;
 }
 
+function areCelebratingEqual(
+  a: Readonly<Record<string, CelebratingGuestState>>,
+  b: Readonly<Record<string, CelebratingGuestState>>
+): boolean {
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  for (const key of keysA) {
+    const itemA = a[key];
+    const itemB = b[key];
+    if (!itemB || itemA.expiresAt !== itemB.expiresAt || itemA.text !== itemB.text) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function areDepartingEqual(
+  a: readonly DepartingGuest[],
+  b: readonly DepartingGuest[]
+): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (
+      a[i].order.orderId !== b[i].order.orderId ||
+      a[i].phase !== b[i].phase ||
+      a[i].lane !== b[i].lane
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function computeRowInLane(
+  visible: readonly DrinkOrder[],
+  lanes: Readonly<Record<string, GuestLaneIndex>>,
+  targetOrderId: string,
+  targetLane: GuestLaneIndex
+): number {
+  let row = 0;
+  for (const item of visible) {
+    if (item.orderId === targetOrderId) return row;
+    if (lanes[item.orderId] === targetLane) {
+      row += 1;
+    }
+  }
+  return 0;
+}
+
 export interface DrinkBarStore extends DrinkBarLiveState {
   isMirrorPreview: boolean;
   guestLaneByOrderId: Record<string, GuestLaneIndex>;
+  celebratingByOrderId: Record<string, CelebratingGuestState>;
+  departingGuests: DepartingGuest[];
   tick: (dtSec: number) => void;
   processChat: (user: ViewerProfile, text: string) => void;
   processLikes: (count: number) => void;
@@ -168,17 +245,116 @@ const initialLanes = reconcileGuestLanes(
 
 export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
   const commitLiveState = (nextState: DrinkBarLiveState): void => {
-    const prevLanes = get().guestLaneByOrderId;
+    const now = Date.now();
+    const prevStore = get();
+    const prevLanes = prevStore.guestLaneByOrderId;
     const nextLanes = reconcileGuestLanes(
       prevLanes,
       nextState.vipQueue,
       nextState.normalQueue
     );
-    if (areLanesEqual(prevLanes, nextLanes)) {
+
+    const prevVisible = [...prevStore.vipQueue, ...prevStore.normalQueue].slice(
+      0,
+      GAMEPLAY_LIMITS.MAX_GUEST_SLOTS
+    );
+    const nextVisible = [...nextState.vipQueue, ...nextState.normalQueue].slice(
+      0,
+      GAMEPLAY_LIMITS.MAX_GUEST_SLOTS
+    );
+    const nextVisibleIds = new Set(nextVisible.map((o) => o.orderId));
+
+    // 1. Reconcile in-queue celebration states for just-completed drinks matching queued customers
+    const nextCelebrating: Record<string, CelebratingGuestState> = {};
+    for (const [orderId, celeb] of Object.entries(prevStore.celebratingByOrderId)) {
+      if (celeb.expiresAt > now && nextVisibleIds.has(orderId)) {
+        nextCelebrating[orderId] = celeb;
+      }
+    }
+
+    const newlyCompleted: ActiveDrink[] = [];
+    if (
+      prevStore.activeDrink?.phase === 'BREWING' &&
+      nextState.activeDrink?.phase === 'SHOWCASE'
+    ) {
+      newlyCompleted.push(nextState.activeDrink);
+    }
+    if (
+      prevStore.secondaryDrink?.phase === 'BREWING' &&
+      nextState.secondaryDrink?.phase === 'SHOWCASE'
+    ) {
+      newlyCompleted.push(nextState.secondaryDrink);
+    }
+
+    const thankText = GUEST_THANK_TEXT_MAP[nextState.config.language];
+    for (const completed of newlyCompleted) {
+      const matched = nextVisible.find(
+        (order) => order.orderId === completed.orderId || order.user.id === completed.user.id
+      );
+      if (matched) {
+        nextCelebrating[matched.orderId] = {
+          expiresAt: now + GUEST_CELEBRATE_MS,
+          text: thankText,
+          recipeColor: RECIPE_MAP[completed.recipeId].baseColor,
+        };
+      }
+    }
+
+    // 2. Advance & prune departing guests; spawn departing animation when queued guest leaves
+    const nextDeparting: DepartingGuest[] = prevStore.departingGuests
+      .filter((guest) => guest.removeAt > now)
+      .map((guest) => {
+        const nextPhase: 'CELEBRATING' | 'EXITING' =
+          now >= guest.celebrateUntil ? 'EXITING' : 'CELEBRATING';
+        return nextPhase === guest.phase ? guest : { ...guest, phase: nextPhase };
+      });
+
+    const existingDepartingIds = new Set(nextDeparting.map((g) => g.order.orderId));
+
+    for (const prevOrder of prevVisible) {
+      if (nextVisibleIds.has(prevOrder.orderId) || existingDepartingIds.has(prevOrder.orderId)) {
+        continue;
+      }
+      const lane = prevLanes[prevOrder.orderId] ?? 0;
+      const row = computeRowInLane(prevVisible, prevLanes, prevOrder.orderId, lane);
+      const remainingInLane = nextVisible.filter((o) => nextLanes[o.orderId] === lane).length;
+      const prevCeleb = prevStore.celebratingByOrderId[prevOrder.orderId];
+      // If lane already has 2 waiting customers behind, skip in-place pause so they never collide
+      const celebrateDuration = remainingInLane >= MAX_GUESTS_PER_LANE ? 0 : GUEST_CELEBRATE_MS;
+      const celebrateUntil =
+        prevCeleb && prevCeleb.expiresAt > now
+          ? Math.min(prevCeleb.expiresAt, now + celebrateDuration)
+          : now + celebrateDuration;
+      const initialPhase: 'CELEBRATING' | 'EXITING' =
+        now >= celebrateUntil ? 'EXITING' : 'CELEBRATING';
+
+      nextDeparting.push({
+        order: prevOrder,
+        lane,
+        row,
+        celebrateUntil,
+        removeAt: celebrateUntil + GUEST_EXIT_MS,
+        phase: initialPhase,
+        bubbleText: thankText,
+        recipeColor: RECIPE_MAP[prevOrder.recipeId].baseColor,
+      });
+    }
+
+    const lanesChanged = !areLanesEqual(prevLanes, nextLanes);
+    const celebChanged = !areCelebratingEqual(prevStore.celebratingByOrderId, nextCelebrating);
+    const departChanged = !areDepartingEqual(prevStore.departingGuests, nextDeparting);
+
+    if (!lanesChanged && !celebChanged && !departChanged) {
       set(nextState);
       return;
     }
-    set({ ...nextState, guestLaneByOrderId: nextLanes });
+
+    set({
+      ...nextState,
+      ...(lanesChanged ? { guestLaneByOrderId: nextLanes } : {}),
+      ...(celebChanged ? { celebratingByOrderId: nextCelebrating } : {}),
+      ...(departChanged ? { departingGuests: nextDeparting } : {}),
+    });
   };
 
   return {
@@ -190,6 +366,8 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     },
     isMirrorPreview: initialIsMirror,
     guestLaneByOrderId: initialLanes,
+    celebratingByOrderId: {},
+    departingGuests: [],
 
     tick: (dtSec: number) => {
       const now = Date.now();
