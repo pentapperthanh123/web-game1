@@ -8,19 +8,22 @@ interface PreviewStoreState {
   previewMode: PreviewMode;
   showSafeZone: boolean;
   reloadKey: number;
+  pendingPreset: PreviewPresetKey | null;
   setPreviewMode: (mode: PreviewMode) => void;
   toggleSafeZone: () => void;
   reloadIframe: () => void;
   applyPreset: (preset: PreviewPresetKey) => void;
+  clearPendingPreset: () => void;
 }
 
 export const usePreviewStore = create<PreviewStoreState>((set, get) => ({
   previewMode: 'MIRROR',
   showSafeZone: false,
   reloadKey: 0,
+  pendingPreset: null,
 
   setPreviewMode: (mode) => {
-    set({ previewMode: mode });
+    set({ previewMode: mode, pendingPreset: mode === 'MIRROR' ? null : get().pendingPreset });
   },
 
   toggleSafeZone: () => {
@@ -35,7 +38,14 @@ export const usePreviewStore = create<PreviewStoreState>((set, get) => ({
   },
 
   applyPreset: (preset) => {
-    set({ previewMode: 'SANDBOX' });
-    salonAdminEmitter.emitPreviewPreset(preset);
+    const wasSandbox = get().previewMode === 'SANDBOX';
+    set({ previewMode: 'SANDBOX', pendingPreset: preset });
+    if (wasSandbox) {
+      salonAdminEmitter.emitPreviewPreset(preset);
+    }
+  },
+
+  clearPendingPreset: () => {
+    set({ pendingPreset: null });
   },
 }));

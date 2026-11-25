@@ -8,7 +8,7 @@ const PREVIEW_PRESETS: Array<{ key: PreviewPresetKey; label: string; bg: string 
   { key: 'HAIR', label: 'Cắt Tóc (HAIR)', bg: 'bg-[#FFD4E2]' },
   { key: 'NAIL', label: 'Làm Móng (NAIL)', bg: 'bg-[#C9F2E3]' },
   { key: 'VIP_QUEUE', label: 'Hàng Chờ VIP', bg: 'bg-[#FFE5B4]' },
-  { key: 'TROLL', label: 'Oops! Trượt Tay', bg: 'bg-[#FFD1CE]' },
+  { key: 'TROLL', label: 'Oops! Tóc / Art Nail', bg: 'bg-[#FFD1CE]' },
   { key: 'ROYAL', label: 'Royal Idol Top 1', bg: 'bg-[#FFF0A6]' },
 ];
 

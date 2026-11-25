@@ -7,6 +7,7 @@ export type QueuePriority = 'NORMAL' | 'VIP' | 'ROYAL';
 export type SalonColorKey = 'pink' | 'gold' | 'blue' | 'purple' | 'black' | 'pastel_peach' | 'pastel_mint' | 'shimmer_rose';
 export type HairStyleKey = 'short' | 'long' | 'curly' | 'cool' | 'bob';
 export type NailShapeKey = 'oval' | 'square' | 'almond' | 'long';
+export type NailArtStyleKey = 'NONE' | 'FRENCH_TIP' | 'FLORAL' | 'STARS';
 
 export type HairTrollType = 'BALD_STRIPE' | 'BURNT_AFRO' | 'BOWL_CUT';
 export type NailTrollType = 'SUPER_LONG_CURLED' | 'FUNNY_CHARMS';
@@ -45,6 +46,7 @@ export interface ActiveCustomerSession {
   hasPastelShimmer: boolean;
   hairStyle: HairStyleKey;
   nailShape: NailShapeKey;
+  nailArtStyle?: NailArtStyleKey;
   accessory: AccessoryKey;
   expression: FacialExpression;
   trollEffect: TrollEffectType | null;
@@ -69,6 +71,7 @@ export interface FinishedWorkItem {
   hasPastelShimmer: boolean;
   hairStyle: HairStyleKey;
   nailShape: NailShapeKey;
+  nailArtStyle?: NailArtStyleKey;
   accessory: AccessoryKey;
   trollEffect: TrollEffectType | null;
   isRoyal: boolean;

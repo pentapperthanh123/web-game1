@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
+import { ActiveCustomerCard } from './components/ActiveCustomerCard';
 import { GiftCardAndQueue } from './components/GiftCardAndQueue';
 import { SafeZoneOverlay } from './components/SafeZoneOverlay';
 import { ScaledStage } from './components/ScaledStage';
 import { ThankYouBanner } from './components/ThankYouBanner';
 import { TopSignAndWall } from './components/TopSignAndWall';
-import { WaitingAudience } from './components/WaitingAudience';
 import { SalonCanvasLoop } from './engine/salonCanvasRenderer';
 import { SalonCoreReceiver } from './services/coreReceiver';
 import { useSalonStore } from './store/salonStore';
@@ -38,9 +38,9 @@ export const App: React.FC = () => {
       {/* Zone 1: Top Signboard & Clothesline Gallery (y: 0 -> 230) */}
       <TopSignAndWall />
 
-      {/* Zone 2: Left Gift Price Card + Queue & Waiting Audience (y: 235 -> 960) */}
+      {/* Zone 2: Left Gift Price Card + Queue + Waiting Sofa & Active Customer Progress Card (y: 235 -> 935) */}
       <GiftCardAndQueue />
-      <WaitingAudience />
+      <ActiveCustomerCard />
 
       {/* Floating Thank-You / Gift Reaction Pill */}
       <ThankYouBanner />

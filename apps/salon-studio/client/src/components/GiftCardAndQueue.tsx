@@ -3,6 +3,7 @@ import { Crown, Gift, Heart, Sparkles, Users } from 'lucide-react';
 import { SALON_I18N } from '@shared/constants/i18n';
 import { getDeterministicAvatarColor } from '@shared/constants/presets';
 import { useSalonStore } from '../store/salonStore';
+import { WaitingAudience } from './WaitingAudience';
 
 export const GiftCardAndQueue: React.FC = () => {
   const language = useSalonStore((s) => s.config.language);
@@ -11,10 +12,10 @@ export const GiftCardAndQueue: React.FC = () => {
 
   const t = SALON_I18N[language];
   const totalQueued = vipQueue.length + normalQueue.length;
-  const visibleQueue = [...vipQueue, ...normalQueue].slice(0, 5);
+  const visibleQueue = [...vipQueue, ...normalQueue].slice(0, 3);
 
   return (
-    <aside className="absolute top-[242px] left-4 w-[228px] flex flex-col gap-3 pointer-events-none z-20">
+    <aside className="absolute top-[236px] left-4 w-[230px] flex flex-col gap-3 pointer-events-none z-20">
       {/* Compact 4-line Gift Price Card */}
       <div className="cartoon-card bg-[#FFFDF9]/95 rounded-[22px] p-3">
         <div className="flex items-center gap-1.5 pb-1.5 mb-2 border-b-2 border-[#3A2825]/15">
@@ -24,27 +25,27 @@ export const GiftCardAndQueue: React.FC = () => {
           </span>
         </div>
 
-        <ul className="space-y-1.5 text-[12px] font-extrabold text-[#3A2825]">
+        <ul className="space-y-1.5 text-[11.5px] font-extrabold text-[#3A2825] leading-snug">
           <li className="flex items-center gap-1.5">
             <Heart className="w-3.5 h-3.5 text-[#FF6B8B] fill-[#FF6B8B] shrink-0" />
-            <span className="truncate">{t.giftLineLike}</span>
+            <span>{t.giftLineLike}</span>
           </li>
           <li className="flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-[#E09A1F] shrink-0" />
-            <span className="truncate">{t.giftLineSmall}</span>
+            <span>{t.giftLineSmall}</span>
           </li>
           <li className="flex items-center gap-1.5">
-            <span className="text-[13px] leading-none shrink-0">😂</span>
-            <span className="truncate">{t.giftLineMedium}</span>
+            <span className="text-[13px] leading-none shrink-0">🌸</span>
+            <span>{t.giftLineMedium}</span>
           </li>
           <li className="flex items-center gap-1.5">
             <Crown className="w-3.5 h-3.5 text-[#E09A1F] fill-[#FFD56B] shrink-0" />
-            <span className="truncate">{t.giftLineLarge}</span>
+            <span>{t.giftLineLarge}</span>
           </li>
         </ul>
       </div>
 
-      {/* Compact Queue Card */}
+      {/* Balanced Queue Card positioned in the eye-level middle-left zone */}
       <div className="cartoon-card bg-[#FFF8F0]/95 rounded-[22px] p-3">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
@@ -90,7 +91,7 @@ export const GiftCardAndQueue: React.FC = () => {
                     >
                       {(item.user.nickname.trim()[0] || 'U').toUpperCase()}
                     </div>
-                    <span className="text-[12px] font-extrabold text-[#3A2825] truncate">
+                    <span className="text-[12px] font-extrabold text-[#3A2825] whitespace-nowrap">
                       {item.user.nickname}
                     </span>
                   </div>
@@ -109,12 +110,15 @@ export const GiftCardAndQueue: React.FC = () => {
             })}
             {totalQueued > visibleQueue.length && (
               <div className="text-center text-[11px] font-extrabold text-[#7D6059]">
-                +{totalQueued - visibleQueue.length} ...
+                +{totalQueued - visibleQueue.length} khách đang chờ
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* Salon Waiting Sofa seated directly (24px) below the Queue Card */}
+      <WaitingAudience />
     </aside>
   );
 };

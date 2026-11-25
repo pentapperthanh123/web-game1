@@ -300,4 +300,13 @@ export function registerAdminHandlers(
   socket.on('clash:state', (payload: unknown) => {
     ctx.io.emit('clash:state', payload);
   });
+
+  // Drink Bar Cross-Window & OBS Synchronization Relay
+  socket.on('drinkbar:sync', (payload: unknown) => {
+    ctx.io.emit('drinkbar:sync', payload);
+  });
+
+  socket.on('drinkbar:state', (payload: unknown) => {
+    ctx.io.emit('drinkbar:state', payload);
+  });
 }

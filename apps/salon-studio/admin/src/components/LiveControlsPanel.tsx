@@ -134,9 +134,9 @@ export const LiveControlsPanel: React.FC = () => {
 
         <div className="bg-[#FFF7EE] border-2 border-[#3A2825]/25 rounded-xl p-2.5 flex items-center justify-between gap-2">
           <div>
-            <div className="text-xs font-black">Hiệu ứng “Trượt Tay” (Troll)</div>
+            <div className="text-xs font-black">Hiệu ứng “Trượt Tay” (Tiệm Tóc)</div>
             <div className="text-[11px] font-bold text-[#7D6059]">
-              Quà 5–29 xu cạo trọc / cháy xù / móng cong
+              Quà 5–29 xu cạo trọc/cháy xù (Tóc) hoặc VIP Art Style (Nail)
             </div>
           </div>
           <button

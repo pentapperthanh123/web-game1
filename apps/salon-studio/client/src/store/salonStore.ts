@@ -137,6 +137,7 @@ function buildActiveSession(
     hasPastelShimmer: isVip,
     hairStyle,
     nailShape,
+    nailArtStyle: 'FRENCH_TIP',
     accessory: isRoyal ? 'ROYAL_CROWN' : isVip ? pickRandom(SMALL_GIFT_ACCESSORIES) : 'NONE',
     expression: isRoyal ? 'ROYAL_PROUD' : 'HAPPY',
     trollEffect: null,
@@ -163,6 +164,7 @@ function createFinishedRecord(session: ActiveCustomerSession): FinishedWorkItem 
     hasPastelShimmer: session.hasPastelShimmer,
     hairStyle: session.hairStyle,
     nailShape: session.nailShape,
+    nailArtStyle: session.nailArtStyle ?? 'FRENCH_TIP',
     accessory: session.accessory,
     trollEffect: session.trollEffect,
     isRoyal: session.isRoyal,
@@ -192,41 +194,74 @@ function createStarterState(isSandboxPreview: boolean): SalonLiveState {
   const initialWall: FinishedWorkItem[] = [
     {
       id: 'seed_work_1',
-      nickname: 'Mèo Béo',
+      nickname: 'Pink Bubble Curls',
       service: 'HAIR',
-      colorKey: 'gold',
+      colorKey: 'pink',
       hasPastelShimmer: true,
-      hairStyle: 'bob',
+      hairStyle: 'curly',
       nailShape: 'oval',
+      nailArtStyle: 'FRENCH_TIP',
       accessory: 'BOW',
       trollEffect: null,
       isRoyal: false,
       skinTone: SKIN_TONES[0],
-      completedAt: Date.now() - 180000,
+      completedAt: Date.now() - 240000,
     },
     {
       id: 'seed_work_2',
-      nickname: 'Anh Huy',
+      nickname: 'Long Straight',
       service: 'HAIR',
-      colorKey: 'black',
+      colorKey: 'pastel_peach',
       hasPastelShimmer: false,
-      hairStyle: 'cool',
+      hairStyle: 'long',
       nailShape: 'square',
+      nailArtStyle: 'FRENCH_TIP',
       accessory: 'NONE',
-      trollEffect: 'BALD_STRIPE',
+      trollEffect: null,
       isRoyal: false,
-      skinTone: SKIN_TONES[2],
-      completedAt: Date.now() - 120000,
+      skinTone: SKIN_TONES[1],
+      completedAt: Date.now() - 180000,
     },
     {
       id: 'seed_work_3',
-      nickname: 'Bé Na',
-      service: 'NAIL',
-      colorKey: 'shimmer_rose',
+      nickname: 'Blonde Ombre',
+      service: 'HAIR',
+      colorKey: 'gold',
       hasPastelShimmer: true,
-      hairStyle: 'long',
+      hairStyle: 'bob',
       nailShape: 'almond',
+      nailArtStyle: 'FRENCH_TIP',
       accessory: 'SPARKLE_CLIP',
+      trollEffect: null,
+      isRoyal: false,
+      skinTone: SKIN_TONES[0],
+      completedAt: Date.now() - 120000,
+    },
+    {
+      id: 'seed_work_4',
+      nickname: 'Purple Pixie',
+      service: 'HAIR',
+      colorKey: 'purple',
+      hasPastelShimmer: false,
+      hairStyle: 'short',
+      nailShape: 'oval',
+      nailArtStyle: 'FRENCH_TIP',
+      accessory: 'NONE',
+      trollEffect: null,
+      isRoyal: false,
+      skinTone: SKIN_TONES[2],
+      completedAt: Date.now() - 90000,
+    },
+    {
+      id: 'seed_work_5',
+      nickname: 'Layered Balayage',
+      service: 'HAIR',
+      colorKey: 'blue',
+      hasPastelShimmer: true,
+      hairStyle: 'cool',
+      nailShape: 'long',
+      nailArtStyle: 'FRENCH_TIP',
+      accessory: 'NONE',
       trollEffect: null,
       isRoyal: false,
       skinTone: SKIN_TONES[1],
@@ -234,9 +269,29 @@ function createStarterState(isSandboxPreview: boolean): SalonLiveState {
     },
   ];
 
+  const initialService: SalonServiceMode = (() => {
+    if (typeof window === 'undefined') return 'HAIR';
+    const params = new URLSearchParams(window.location.search);
+    const requested = (params.get('mode') ?? params.get('preset') ?? '').toUpperCase();
+    return requested === 'NAIL' ? 'NAIL' : 'HAIR';
+  })();
+
+  const initialSession = buildActiveSession(
+    starterOrder,
+    initialService,
+    GAMEPLAY_LIMITS.DEFAULT_TURN_DURATION_SEC
+  );
+  if (initialService === 'NAIL') {
+    initialSession.progress = 48;
+    initialSession.elapsedSec = 9;
+    initialSession.hasPastelShimmer = true;
+    initialSession.colorKey = 'shimmer_rose';
+    initialSession.nailShape = 'almond';
+  }
+
   return {
     config: {
-      scheduleMode: 'AUTO',
+      scheduleMode: initialService === 'NAIL' ? 'NAIL' : 'AUTO',
       language: lang,
       turnDurationSec: GAMEPLAY_LIMITS.DEFAULT_TURN_DURATION_SEC,
       trollEnabled: true,
@@ -244,8 +299,8 @@ function createStarterState(isSandboxPreview: boolean): SalonLiveState {
       masterVolume: 0.7,
       showSafeZone: false,
     },
-    activeService: 'HAIR',
-    activeCustomer: buildActiveSession(starterOrder, 'HAIR', GAMEPLAY_LIMITS.DEFAULT_TURN_DURATION_SEC),
+    activeService: initialService,
+    activeCustomer: initialSession,
     vipQueue: [],
     normalQueue: [
       {
@@ -266,16 +321,22 @@ function createStarterState(isSandboxPreview: boolean): SalonLiveState {
     todayCount: 3,
     watchingCount: GAMEPLAY_LIMITS.INITIAL_WATCHING_COUNT,
     stylistMood: 'WORKING',
-    stylistSpeech: SALON_I18N[lang].stylistWorkingHair,
+    stylistSpeech:
+      initialService === 'NAIL'
+        ? SALON_I18N[lang].stylistWorkingNail
+        : SALON_I18N[lang].stylistWorkingHair,
     stylistSpeedBoostUntil: 0,
     audienceBubbles: [
       {
         id: 'seed_b_1',
         nickname: 'Trà Sữa',
-        text: 'Cắt cho em với chủ tiệm ơi!',
+        text:
+          initialService === 'NAIL'
+            ? 'Làm bộ nail hồng xinh đi chị!'
+            : 'Cắt cho em với chủ tiệm ơi!',
         slotIndex: 0,
         createdAt: Date.now(),
-        expiresAt: Date.now() + 9000,
+        expiresAt: Date.now() + GAMEPLAY_LIMITS.AUDIENCE_BUBBLE_TTL_MS,
       },
     ],
     thankYouToast: null,
@@ -523,24 +584,36 @@ export const useSalonStore = create<SalonStore>((set, get) => ({
         salonParticles.spawn('SPARKLE', 460, 520, 10);
       } else if (isMedium && state.config.trollEnabled) {
         toastTier = 'MEDIUM';
-        const trollEffect: TrollEffectType =
-          nextActive.service === 'HAIR'
-            ? pickRandom(HAIR_TROLL_TYPES)
-            : pickRandom(NAIL_TROLL_TYPES);
-        nextActive = {
-          ...nextActive,
-          trollEffect,
-          trollTriggeredBy: user.nickname,
-          expression: 'CRYING_TROLL',
-        };
-        nextMood = 'OOPS';
-        nextSpeech = strings.stylistOops;
-        salonAudio.play('OOPS');
-        if (nextActive.service === 'HAIR') {
+        if (nextActive.service === 'NAIL') {
+          // In NAIL mode, troll mechanism is completely removed: unlock VIP Art Style + Speed Up
+          nextActive = {
+            ...nextActive,
+            nailArtStyle: pickRandom(['FLORAL', 'STARS'] as const),
+            hasPastelShimmer: true,
+            colorKey: pickRandom(PASTEL_SHIMMER_COLOR_KEYS),
+            expression: 'EXCITED',
+            trollEffect: null,
+            trollTriggeredBy: null,
+          };
+          nextMood = 'PROUD';
+          nextSpeech = strings.stylistNailArt;
+          salonAudio.play('GIFT');
+          salonParticles.spawn('SPARKLE', 465, 560, 16);
+        } else {
+          const trollEffect: TrollEffectType = pickRandom(HAIR_TROLL_TYPES);
+          nextActive = {
+            ...nextActive,
+            trollEffect,
+            trollTriggeredBy: user.nickname,
+            expression: 'CRYING_TROLL',
+          };
+          nextMood = 'OOPS';
+          nextSpeech = strings.stylistOops;
+          salonAudio.play('OOPS');
           salonAudio.play('CLIPPER');
           salonParticles.spawn('SMOKE', 450, 440, 10);
+          salonParticles.spawn('SWEAT', 580, 470, 5);
         }
-        salonParticles.spawn('SWEAT', 580, 470, 5);
       } else {
         toastTier = 'SMALL';
         nextActive = {
@@ -804,16 +877,30 @@ export const useSalonStore = create<SalonStore>((set, get) => ({
     const state = get();
     if (!state.activeCustomer || state.activeCustomer.completedAt !== null) return;
     const strings = SALON_I18N[state.config.language];
-    const trollEffect: TrollEffectType =
-      state.activeCustomer.service === 'HAIR'
-        ? pickRandom(HAIR_TROLL_TYPES)
-        : pickRandom(NAIL_TROLL_TYPES);
 
-    salonAudio.play('OOPS');
-    if (state.activeCustomer.service === 'HAIR') {
-      salonAudio.play('CLIPPER');
-      salonParticles.spawn('SMOKE', 455, 440, 10);
+    if (state.activeCustomer.service === 'NAIL') {
+      // In NAIL mode, troll is completely removed: trigger VIP Nail Art & Speed Up instead
+      salonAudio.play('GIFT');
+      salonParticles.spawn('SPARKLE', 465, 560, 14);
+      set({
+        activeCustomer: {
+          ...state.activeCustomer,
+          nailArtStyle: 'FLORAL',
+          hasPastelShimmer: true,
+          expression: 'EXCITED',
+          trollEffect: null,
+          trollTriggeredBy: null,
+        },
+        stylistMood: 'PROUD',
+        stylistSpeech: strings.stylistNailArt,
+      });
+      return;
     }
+
+    const trollEffect: TrollEffectType = pickRandom(HAIR_TROLL_TYPES);
+    salonAudio.play('OOPS');
+    salonAudio.play('CLIPPER');
+    salonParticles.spawn('SMOKE', 455, 440, 10);
     salonParticles.spawn('SWEAT', 580, 470, 5);
 
     set({
@@ -884,6 +971,7 @@ export const useSalonStore = create<SalonStore>((set, get) => ({
       hasPastelShimmer: false,
       hairStyle: 'curly',
       nailShape: 'almond',
+      nailArtStyle: 'FRENCH_TIP',
       accessory: 'NONE',
       expression: 'HAPPY',
       trollEffect: null,
@@ -922,8 +1010,20 @@ export const useSalonStore = create<SalonStore>((set, get) => ({
             colorKey: 'shimmer_rose',
             hasPastelShimmer: true,
             nailShape: 'long',
+            nailArtStyle: 'FLORAL',
             accessory: 'SPARKLE_CLIP',
+            progress: 72,
           }),
+          audienceBubbles: [
+            {
+              id: makeId('bub'),
+              nickname: 'Trà Sữa',
+              text: 'Làm bộ nail hồng xinh đi chị!',
+              slotIndex: 0,
+              createdAt: now,
+              expiresAt: now + GAMEPLAY_LIMITS.AUDIENCE_BUBBLE_TTL_MS,
+            },
+          ],
           stylistMood: 'WORKING',
           stylistSpeech: strings.stylistWorkingNail,
           thankYouToast: null,
@@ -969,27 +1069,51 @@ export const useSalonStore = create<SalonStore>((set, get) => ({
         break;
       case 'TROLL': {
         const svc = state.activeService;
-        const trollEffect: TrollEffectType = svc === 'HAIR' ? 'BALD_STRIPE' : 'SUPER_LONG_CURLED';
-        set({
-          activeCustomer: buildMockSession(svc, {
-            colorKey: 'gold',
-            trollEffect,
-            trollTriggeredBy: 'Thánh Troll',
-            expression: 'CRYING_TROLL',
-          }),
-          stylistMood: 'OOPS',
-          stylistSpeech: strings.stylistOops,
-          thankYouToast: {
-            id: makeId('toast'),
-            donorName: 'Thánh Troll',
-            tier: 'MEDIUM',
-            giftName: 'Ice Cream',
-            createdAt: now,
-            expiresAt: now + 6000,
-          },
-        });
-        salonParticles.spawn('SMOKE', 455, 440, 10);
-        salonParticles.spawn('SWEAT', 580, 470, 5);
+        if (svc === 'NAIL') {
+          // In NAIL mode, troll is completely removed: preview VIP Floral/Stars Nail Art
+          set({
+            activeCustomer: buildMockSession('NAIL', {
+              colorKey: 'shimmer_rose',
+              hasPastelShimmer: true,
+              nailArtStyle: 'FLORAL',
+              expression: 'EXCITED',
+              trollEffect: null,
+            }),
+            stylistMood: 'PROUD',
+            stylistSpeech: strings.stylistNailArt,
+            thankYouToast: {
+              id: makeId('toast'),
+              donorName: 'Fan Cứng Nail VIP',
+              tier: 'MEDIUM',
+              giftName: 'Hoa & Nhũ VIP',
+              createdAt: now,
+              expiresAt: now + 6000,
+            },
+          });
+          salonParticles.spawn('SPARKLE', 465, 560, 14);
+        } else {
+          const trollEffect: TrollEffectType = 'BALD_STRIPE';
+          set({
+            activeCustomer: buildMockSession('HAIR', {
+              colorKey: 'gold',
+              trollEffect,
+              trollTriggeredBy: 'Thánh Troll',
+              expression: 'CRYING_TROLL',
+            }),
+            stylistMood: 'OOPS',
+            stylistSpeech: strings.stylistOops,
+            thankYouToast: {
+              id: makeId('toast'),
+              donorName: 'Thánh Troll',
+              tier: 'MEDIUM',
+              giftName: 'Ice Cream',
+              createdAt: now,
+              expiresAt: now + 6000,
+            },
+          });
+          salonParticles.spawn('SMOKE', 455, 440, 10);
+          salonParticles.spawn('SWEAT', 580, 470, 5);
+        }
         break;
       }
       case 'ROYAL': {

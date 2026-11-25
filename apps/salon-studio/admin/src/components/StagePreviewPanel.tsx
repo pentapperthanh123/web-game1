@@ -25,6 +25,14 @@ export const StagePreviewPanel: React.FC = () => {
     salonAdminEmitter.setPreviewIframe(iframeRef.current);
     const target = previewMode === 'SANDBOX' ? 'PREVIEW' : 'LIVE';
     salonAdminEmitter.emitAdminAction('SET_SAFE_ZONE', { showSafeZone }, target);
+
+    const { pendingPreset, clearPendingPreset } = usePreviewStore.getState();
+    if (previewMode === 'SANDBOX' && pendingPreset) {
+      window.setTimeout(() => {
+        salonAdminEmitter.emitPreviewPreset(pendingPreset);
+        clearPendingPreset();
+      }, 120);
+    }
   };
 
   return (

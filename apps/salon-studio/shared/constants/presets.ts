@@ -97,6 +97,21 @@ export const PASTEL_SHIMMER_COLOR_KEYS: readonly SalonColorKey[] = [
 export const HAIR_STYLES: readonly HairStyleKey[] = ['short', 'long', 'curly', 'cool', 'bob'];
 export const NAIL_SHAPES: readonly NailShapeKey[] = ['oval', 'square', 'almond', 'long'];
 
+export const HAIR_STYLE_LABELS: Record<HairStyleKey, string> = {
+  curly: 'Pink Curls',
+  long: 'Long Straight',
+  bob: 'Blonde Ombre',
+  short: 'Purple Pixie',
+  cool: 'Cool Balayage',
+};
+
+export const NAIL_SHAPE_LABELS: Record<NailShapeKey, string> = {
+  almond: 'Rose French',
+  oval: 'Mint Daisy',
+  long: 'Crystal Glow',
+  square: 'Peach Glitter',
+};
+
 export const HAIR_TROLL_TYPES: readonly HairTrollType[] = ['BALD_STRIPE', 'BURNT_AFRO', 'BOWL_CUT'];
 export const NAIL_TROLL_TYPES: readonly NailTrollType[] = ['SUPER_LONG_CURLED', 'FUNNY_CHARMS'];
 
