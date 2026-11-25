@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #FFF7EE;
+    color: #3A2825;
+    font-family: 'Nunito', 'Fredoka', system-ui, -apple-system, sans-serif;
+  }
+}
+
+.font-display {
+  font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+}
+
+.admin-card {
+  background-color: #FFFDF9;
+  border: 3px solid #3A2825;
+  box-shadow: 0 4px 0 #3A2825;
+  border-radius: 22px;
+}
+
+.admin-btn {
+  border: 2.5px solid #3A2825;
+  box-shadow: 0 3px 0 #3A2825;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.admin-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3A2825;
+}

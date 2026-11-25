@@ -531,6 +531,26 @@ export function createTikTokConnectionService(
         console.error('[TikTok Live] Error processing share event:', getErrorMessage(err, 'unknown'));
       }
     });
+
+    connection.on('member', (data) => {
+      try {
+        const userName = String(data?.nickname || data?.uniqueId || 'Khách');
+        ctx.io.emit('game:join', { userName });
+      } catch {
+        // Non-critical viewer join event
+      }
+    });
+
+    connection.on('roomUser', (data) => {
+      try {
+        const viewerCount = Number(data?.viewerCount);
+        if (Number.isFinite(viewerCount) && viewerCount > 0) {
+          ctx.io.emit('game:join', { viewerCount });
+        }
+      } catch {
+        // Non-critical room user count event
+      }
+    });
   };
 
   const reconnectState: { timer: NodeJS.Timeout | null; isConnectionWanted: boolean } = {
