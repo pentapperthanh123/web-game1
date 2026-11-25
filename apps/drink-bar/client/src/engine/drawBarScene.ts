@@ -1,0 +1,1542 @@
+import { DRINK_BAR_PALETTE, STAGE_METRICS } from '@shared/config';
+import type { BrewPhaseAction } from '@shared/recipes';
+import type { RecipeId } from '@shared/types';
+
+const { WIDTH, HEIGHT, COUNTER_TOP_Y, COUNTER_END_Y } = STAGE_METRICS;
+const COUNTER_SURFACE_HEIGHT = 48;
+const OUTLINE_THICK = 3.0;
+const OUTLINE_MEDIUM = 2.5;
+
+// Exported exact station coordinates shared with drawBartender.ts so hands align 1:1 with props
+export const BAR_STATION_COORDS = {
+  SHAKER_X: 62,
+  SHAKER_RIGHT_CLAMP_X: 82,
+  SUGAR_JAR_X: 136,
+  SUGAR_BTN_X: 157,
+  SUGAR_BTN_Y: COUNTER_TOP_Y - 12,
+  BOBA_JAR_X: 195,
+  ICE_BIN_X: 248,
+  MENU_STAND_X: 295,
+  CENTER_CUP_X: 360,
+  CUP_STACK_X: 454,
+  LID_STACK_X: 484,
+  ESPRESSO_X: 552,
+  FROTHER_STAND_X: 628,
+  SHELF_Y: 398,
+  TEA_URN_1_SPIGOT_X: 209,
+  TEA_URN_2_SPIGOT_X: 291,
+  SYRUP_1_X: 357,
+  MATCHA_TIN_X: 480,
+  MATCHA_TIN_Y: 372,
+} as const;
+
+export interface BarEquipmentState {
+  activeRecipeId: RecipeId | null;
+  activeAction: BrewPhaseAction | null;
+  stepProgress: number; // 0..1 within current step
+  isFastBoost: boolean;
+  isPickingCup: boolean;
+  isPickingLid: boolean;
+  isTakingMatchaFromShelf: boolean;
+  isHoldingOatside: boolean;
+  isShakerDetached: boolean;
+  shakerFillRatio: number; // 0..1 visible milk tea level inside machine shaker (stays 0 after pouring!)
+  isPressingSugarButton: boolean;
+  isUsingFrother: boolean;
+  isScoopingBoba: boolean;
+  isScoopingIce: boolean;
+}
+
+const IDLE_EQUIPMENT_STATE: BarEquipmentState = {
+  activeRecipeId: null,
+  activeAction: null,
+  stepProgress: 0,
+  isFastBoost: false,
+  isPickingCup: false,
+  isPickingLid: false,
+  isTakingMatchaFromShelf: false,
+  isHoldingOatside: false,
+  isShakerDetached: false,
+  shakerFillRatio: 0,
+  isPressingSugarButton: false,
+  isUsingFrother: false,
+  isScoopingBoba: false,
+  isScoopingIce: false,
+};
+
+export function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  radius: number
+): void {
+  const r = Math.min(radius, w * 0.5, h * 0.5);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+export function drawBarBackdrop(
+  ctx: CanvasRenderingContext2D,
+  elapsedSec: number,
+  equip: BarEquipmentState = IDLE_EQUIPMENT_STATE
+): void {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 1. Soft pastel pinkish-cream wall gradient
+  const wallGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  wallGrad.addColorStop(0, DRINK_BAR_PALETTE.WALL_TOP);
+  wallGrad.addColorStop(0.74, DRINK_BAR_PALETTE.WALL_BOTTOM);
+  wallGrad.addColorStop(1, '#F7D5E0');
+  ctx.fillStyle = wallGrad;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  // 2. Tall, airy panoramic warm pastel café arch alcove (y: 196 -> COUNTER_TOP_Y, centered at x = 360)
+  ctx.save();
+  const archGrad = ctx.createLinearGradient(360, 196, 360, COUNTER_TOP_Y);
+  archGrad.addColorStop(0, '#FFFBF8');
+  archGrad.addColorStop(0.58, '#FDEEF3');
+  archGrad.addColorStop(1, '#F8DCE6');
+  ctx.fillStyle = archGrad;
+  ctx.strokeStyle = '#E6BCCB';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(360, 344, 272, 148, 0, Math.PI, 0, false);
+  ctx.lineTo(632, COUNTER_TOP_Y);
+  ctx.lineTo(88, COUNTER_TOP_Y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Delicate inner cream molding arch
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.ellipse(360, 344, 261, 138, 0, Math.PI, 0, false);
+  ctx.lineTo(621, COUNTER_TOP_Y - 2);
+  ctx.moveTo(99, COUNTER_TOP_Y - 2);
+  ctx.lineTo(99, 344);
+  ctx.stroke();
+
+  // Soft warm ambient light halo behind back shelves
+  const archGlow = ctx.createRadialGradient(360, 326, 28, 360, 326, 210);
+  archGlow.addColorStop(0, 'rgba(255, 246, 224, 0.52)');
+  archGlow.addColorStop(0.6, 'rgba(255, 236, 240, 0.18)');
+  archGlow.addColorStop(1, 'rgba(255, 236, 240, 0)');
+  ctx.fillStyle = archGlow;
+  ctx.beginPath();
+  ctx.arc(360, 326, 210, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Gentle twinkling pastel sparkles in upper arch
+  const twinkleA = 0.52 + Math.sin(elapsedSec * 2.2) * 0.35;
+  const twinkleB = 0.52 + Math.cos(elapsedSec * 2.5 + 1.1) * 0.35;
+  drawSoftArchSparkle(ctx, 210, 238, 5.2, twinkleA, '#F7C95B');
+  drawSoftArchSparkle(ctx, 510, 238, 4.8, twinkleB, '#F4A6BE');
+  drawSoftArchSparkle(ctx, 360, 210, 4.4, twinkleA, '#FFFDF9');
+
+  // 3. Upper Decorative Cafe Shelf (y: 282, x: 222 -> 498): Cute cafe charm props
+  drawBackEquipmentShelf(ctx, 222, 282, 276);
+  drawUpperShelfDecor(ctx, 236, 282);
+
+  // 4. Lower Reachable Bar Equipment Shelf (y: 398, x: 158 -> 562):
+  //    2 Tea Urns (TRÀ SỮA, TRÀ NỀN) + 3 Syrup Pump Bottles + Shelf Matcha Tin + Oatside Carton
+  drawBackEquipmentShelf(ctx, 158, BAR_STATION_COORDS.SHELF_Y, 404);
+
+  const isDispensingMilkTea =
+    equip.activeRecipeId === 'thai_tea' &&
+    equip.activeAction === 'dispense' &&
+    !equip.isPickingCup &&
+    !equip.isPressingSugarButton;
+  const isPumpingBerrySyrup =
+    equip.activeRecipeId === 'berry_soda' &&
+    equip.activeAction === 'dispense' &&
+    !equip.isPickingCup &&
+    !equip.isPressingSugarButton;
+
+  drawStainlessTeaUrn(ctx, 174, 320, 'TRÀ SỮA', isDispensingMilkTea, '#D89E68');
+  drawStainlessTeaUrn(ctx, 256, 320, 'TRÀ NỀN', false, '#C98A4B');
+
+  // 3 Pastel Syrup Pump Bottles beside the tea urns
+  const pumpPress = isPumpingBerrySyrup ? Math.abs(Math.sin(elapsedSec * 8)) * 4 : 0;
+  drawSyrupPumpBottle(ctx, 344, 348, '#F9CCD9', '#E04F6D', pumpPress);
+  drawSyrupPumpBottle(ctx, 380, 352, '#FDE4BA', '#F7B955', 0);
+  drawSyrupPumpBottle(ctx, 416, 350, '#D9F0C7', '#7FB86B', 0);
+
+  // Prominent Shelf Matcha Tin ("MATCHA" ceramic canister with bamboo lid — hides while barista lifts it!)
+  if (!equip.isTakingMatchaFromShelf) {
+    drawShelfMatchaTin(ctx, 462, 348);
+  } else {
+    // Subtle resting shadow pad where Matcha tin was lifted from
+    roundedRectPath(ctx, 466, 394, 28, 4, 2);
+    ctx.fillStyle = 'rgba(133, 94, 104, 0.22)';
+    ctx.fill();
+  }
+
+  // Cute resting OATSIDE milk carton on far right of lower shelf (hides when barista is pouring/holding it!)
+  if (!equip.isHoldingOatside) {
+    drawShelfOatsideCarton(ctx, 514, 354);
+  } else {
+    roundedRectPath(ctx, 517, 394, 22, 4, 2);
+    ctx.fillStyle = 'rgba(133, 94, 104, 0.22)';
+    ctx.fill();
+  }
+
+  // 5. Two balanced warm pastel pendant lamps hanging cleanly below compact HUD (y: 164 -> 228)
+  const glowPulse = 0.92 + Math.sin(elapsedSec * 1.8) * 0.08;
+  drawPendantLamp(ctx, 134, 164, 42, glowPulse);
+  drawPendantLamp(ctx, 586, 164, 42, glowPulse);
+
+  // Subtle warm pastel wainscot accent near counter top
+  const wainscotGrad = ctx.createLinearGradient(0, 558, 0, COUNTER_TOP_Y);
+  wainscotGrad.addColorStop(0, 'rgba(217, 155, 156, 0.04)');
+  wainscotGrad.addColorStop(1, 'rgba(217, 155, 156, 0.16)');
+  ctx.fillStyle = wainscotGrad;
+  ctx.fillRect(0, 558, WIDTH, COUNTER_TOP_Y - 558);
+  ctx.restore();
+}
+
+function drawUpperShelfDecor(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  shelfY: number
+): void {
+  ctx.save();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // 1. Mini potted trailing plant on left end
+  roundedRectPath(ctx, x, shelfY - 22, 22, 22, 5);
+  ctx.fillStyle = '#F4A6BE';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#8BC478';
+  ctx.beginPath();
+  ctx.ellipse(x + 5, shelfY - 27, 6.5, 4.2, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(x + 17, shelfY - 27, 6.5, 4.2, 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(x + 11, shelfY - 32, 5, 6.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#A7D397';
+  ctx.fill();
+  ctx.stroke();
+
+  // 2. Cute pastel wooden café plaque in center ("♡ SWEET BAR ♡")
+  const signX = 304;
+  roundedRectPath(ctx, signX, shelfY - 30, 112, 28, 8);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, signX + 4, shelfY - 26, 104, 20, 5);
+  ctx.fillStyle = '#FDEBF1';
+  ctx.fill();
+
+  ctx.font = '900 10px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = '#9E3A5A';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('♡ SWEET BAR ♡', signX + 56, shelfY - 15.5);
+
+  // 3. Coffee beans glass canister on right
+  const beanX = 434;
+  roundedRectPath(ctx, beanX, shelfY - 32, 28, 32, 6);
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.9)';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, beanX + 3, shelfY - 18, 22, 16, 3.5);
+  ctx.fillStyle = '#6F4732';
+  ctx.fill();
+  roundedRectPath(ctx, beanX + 4, shelfY - 37, 20, 6, 3);
+  ctx.fillStyle = '#D99B66';
+  ctx.fill();
+  ctx.stroke();
+
+  // 4. Pastel stacked ceramic cups on far right
+  const cupX = 472;
+  roundedRectPath(ctx, cupX, shelfY - 14, 18, 14, 4);
+  ctx.fillStyle = '#FCE397';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, cupX + 1, shelfY - 26, 16, 13, 4);
+  ctx.fillStyle = '#CBEAD2';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawShelfMatchaTin(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number
+): void {
+  const w = 36;
+  const h = 50;
+  const cx = x + w * 0.5;
+
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Sage-green ceramic matcha canister body
+  roundedRectPath(ctx, x, y + 9, w, h - 9, 7);
+  ctx.fillStyle = '#9FD28B';
+  ctx.fill();
+  ctx.stroke();
+
+  // Warm bamboo wooden airtight lid
+  roundedRectPath(ctx, x - 2, y + 3, w + 4, 9, 4);
+  ctx.fillStyle = '#E5B887';
+  ctx.fill();
+  ctx.stroke();
+
+  // Little round bamboo knob
+  roundedRectPath(ctx, cx - 5, y, 10, 4.5, 2);
+  ctx.fillStyle = '#D49E6A';
+  ctx.fill();
+  ctx.stroke();
+
+  // Cream front label with green leaf dot & "MATCHA" text
+  roundedRectPath(ctx, x + 3.5, y + 19, w - 7, 20, 4);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#5F9A49';
+  ctx.beginPath();
+  ctx.ellipse(cx, y + 24.5, 4.5, 2.6, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.font = '900 6.5px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('MATCHA', cx, y + 33.5);
+
+  ctx.restore();
+}
+
+function drawSoftArchSparkle(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  alpha: number,
+  fill: string
+): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.quadraticCurveTo(cx + r * 0.18, cy - r * 0.18, cx + r, cy);
+  ctx.quadraticCurveTo(cx + r * 0.18, cy + r * 0.18, cx, cy + r);
+  ctx.quadraticCurveTo(cx - r * 0.18, cy + r * 0.18, cx - r, cy);
+  ctx.quadraticCurveTo(cx - r * 0.18, cy - r * 0.18, cx, cy - r);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBackEquipmentShelf(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number
+): void {
+  roundedRectPath(ctx, x + 6, y + 8, w - 12, 9, 4.5);
+  ctx.fillStyle = 'rgba(181, 115, 120, 0.16)';
+  ctx.fill();
+
+  ctx.fillStyle = '#D99BA7';
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2;
+  roundedRectPath(ctx, x + 22, y + 10, 11, 11, 4);
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, x + w - 33, y + 10, 11, 11, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, x, y, w, 13, 6.5);
+  ctx.fillStyle = '#E8B8C2';
+  ctx.fill();
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.stroke();
+
+  roundedRectPath(ctx, x + 7, y + 2.4, w - 14, 3, 1.5);
+  ctx.fillStyle = 'rgba(255, 250, 252, 0.72)';
+  ctx.fill();
+}
+
+function drawStainlessTeaUrn(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  label: string,
+  isDispensing: boolean,
+  streamColor: string
+): void {
+  const w = 70;
+  const h = 78;
+  const cx = x + w * 0.5;
+
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Black insulated base stand
+  roundedRectPath(ctx, x + 6, y + h - 8, w - 12, 10, 3);
+  ctx.fillStyle = '#4B3630';
+  ctx.fill();
+  ctx.stroke();
+
+  // Brushed stainless cylinder body
+  const bodyGrad = ctx.createLinearGradient(x, y, x + w, y);
+  bodyGrad.addColorStop(0, '#CBD3DC');
+  bodyGrad.addColorStop(0.28, '#F6F8FA');
+  bodyGrad.addColorStop(0.65, '#DCE3EA');
+  bodyGrad.addColorStop(1, '#B8C2CC');
+  roundedRectPath(ctx, x, y + 11, w, h - 18, 9);
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+  ctx.stroke();
+
+  // Black domed top insulated lid
+  roundedRectPath(ctx, x + 3, y + 3, w - 6, 12, 6);
+  ctx.fillStyle = '#4B3630';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, cx - 10, y, 20, 5, 2.5);
+  ctx.fillStyle = '#6A5149';
+  ctx.fill();
+  ctx.stroke();
+
+  // Crisp white tape label strip ("TRÀ SỮA" / "TRÀ NỀN")
+  roundedRectPath(ctx, x + 6, y + 21, w - 12, 14, 3);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  ctx.font = '900 8px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, y + 28.5);
+
+  // Prominent black spigot housing & lever
+  ctx.lineWidth = 2.2;
+  roundedRectPath(ctx, cx - 6, y + 46, 12, 13, 3);
+  ctx.fillStyle = '#3B2820';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, cx - 3.5, y + 57, 7, 9, 2);
+  ctx.fillStyle = '#2B1B14';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(cx, y + 48);
+  ctx.rotate(isDispensing ? -0.35 : 0);
+  roundedRectPath(ctx, -12, -3.5, 16, 5.5, 2.5);
+  ctx.fillStyle = '#3B2820';
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  if (isDispensing) {
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.lineWidth = 6.2;
+    ctx.beginPath();
+    ctx.moveTo(cx, y + 66);
+    ctx.lineTo(cx, y + 90);
+    ctx.stroke();
+
+    ctx.strokeStyle = streamColor;
+    ctx.lineWidth = 3.8;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawSyrupPumpBottle(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  bodyFill: string,
+  syrupFill: string,
+  pressOffset: number
+): void {
+  const w = 26;
+  const h = 50;
+  const cx = x + w * 0.5;
+
+  ctx.save();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  const headY = y + pressOffset;
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fillRect(cx - 2, headY + 4, 4, 10 - pressOffset * 0.5);
+  ctx.strokeRect(cx - 2, headY + 4, 4, 10 - pressOffset * 0.5);
+
+  roundedRectPath(ctx, cx - 5, headY, 14, 5.5, 2.5);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, x, y + 14, w, h - 14, 6);
+  ctx.fillStyle = bodyFill;
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, x + 2.5, y + 27, w - 5, h - 29.5, 3.5);
+  ctx.fillStyle = syrupFill;
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+  ctx.fillRect(x + 4, y + 17, 2.6, 16);
+  ctx.restore();
+}
+
+function drawShelfOatsideCarton(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number
+): void {
+  const w = 28;
+  const h = 44;
+  ctx.save();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  ctx.beginPath();
+  ctx.moveTo(x, y + 8);
+  ctx.lineTo(x + 5, y + 1);
+  ctx.lineTo(x + w - 5, y + 1);
+  ctx.lineTo(x + w, y + 8);
+  ctx.closePath();
+  ctx.fillStyle = '#6E472B';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, x, y + 8, w, h - 8, 3.5);
+  ctx.fillStyle = '#F6EAD7';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#D49A6A';
+  ctx.fillRect(x + 1.5, y + 22, w - 3, 11);
+
+  ctx.font = '900 7px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('OAT', x + w * 0.5, y + 28);
+  ctx.restore();
+}
+
+function drawPendantLamp(
+  ctx: CanvasRenderingContext2D,
+  anchorX: number,
+  anchorY: number,
+  cordLen: number,
+  glowPulse: number
+): void {
+  const lampX = anchorX;
+  const domeTopY = anchorY + cordLen;
+  const domeRadiusX = 22;
+  const domeHeight = 19;
+  const rimY = domeTopY + domeHeight;
+  const bulbCenterY = rimY + 6;
+
+  const haloRadius = 74 * glowPulse;
+  const glow = ctx.createRadialGradient(lampX, bulbCenterY, 5, lampX, bulbCenterY, haloRadius);
+  glow.addColorStop(0, 'rgba(255, 245, 206, 0.36)');
+  glow.addColorStop(0.45, 'rgba(255, 232, 188, 0.14)');
+  glow.addColorStop(1, 'rgba(255, 232, 188, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(lampX, bulbCenterY, haloRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  const coneGrad = ctx.createLinearGradient(lampX, rimY + 2, lampX, rimY + 190);
+  coneGrad.addColorStop(0, 'rgba(255, 245, 212, 0.12)');
+  coneGrad.addColorStop(1, 'rgba(255, 245, 212, 0)');
+  ctx.fillStyle = coneGrad;
+  ctx.beginPath();
+  ctx.moveTo(lampX - 16, rimY + 2);
+  ctx.lineTo(lampX + 16, rimY + 2);
+  ctx.lineTo(lampX + 74, rimY + 190);
+  ctx.lineTo(lampX - 74, rimY + 190);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.beginPath();
+  ctx.moveTo(lampX, anchorY);
+  ctx.lineTo(lampX, domeTopY - 4);
+  ctx.stroke();
+
+  const bulbGrad = ctx.createRadialGradient(
+    lampX - 2,
+    bulbCenterY - 1,
+    1.5,
+    lampX,
+    bulbCenterY,
+    8.2
+  );
+  bulbGrad.addColorStop(0, '#FFFDF5');
+  bulbGrad.addColorStop(0.65, '#FFF2B2');
+  bulbGrad.addColorStop(1, '#FCD97D');
+  ctx.beginPath();
+  ctx.ellipse(lampX, bulbCenterY, 7.2, 7.8, 0, 0, Math.PI * 2);
+  ctx.fillStyle = bulbGrad;
+  ctx.fill();
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(lampX, rimY - 2, domeRadiusX, domeHeight, 0, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#F4A6BE';
+  ctx.fill();
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(
+    lampX,
+    rimY - 2,
+    domeRadiusX - 5.5,
+    domeHeight - 5,
+    0,
+    Math.PI * 1.12,
+    Math.PI * 1.48,
+    false
+  );
+  ctx.strokeStyle = 'rgba(255, 251, 253, 0.72)';
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+
+  roundedRectPath(ctx, lampX - domeRadiusX - 0.5, rimY - 4.5, domeRadiusX * 2 + 1, 5.5, 2.75);
+  ctx.fillStyle = '#FFF9FA';
+  ctx.fill();
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+
+  roundedRectPath(ctx, lampX - 5.5, domeTopY - 5, 11, 6, 2.5);
+  ctx.fillStyle = '#FFF9FA';
+  ctx.fill();
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+}
+
+export function drawBarCounter(
+  ctx: CanvasRenderingContext2D,
+  elapsedSec = 0,
+  equip: BarEquipmentState = IDLE_EQUIPMENT_STATE
+): void {
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const bodyY = COUNTER_TOP_Y + COUNTER_SURFACE_HEIGHT;
+  const bodyHeight = COUNTER_END_Y - bodyY;
+
+  // 1. Main counter body
+  ctx.fillStyle = DRINK_BAR_PALETTE.COUNTER_BODY;
+  ctx.fillRect(0, bodyY, WIDTH, bodyHeight);
+
+  const downlight = ctx.createLinearGradient(0, bodyY, 0, bodyY + 76);
+  downlight.addColorStop(0, 'rgba(255, 240, 245, 0.45)');
+  downlight.addColorStop(1, 'rgba(255, 240, 245, 0)');
+  ctx.fillStyle = downlight;
+  ctx.fillRect(0, bodyY, WIDTH, 76);
+
+  // Vertical fluted wood paneling
+  const slatSpacing = 16;
+  ctx.lineWidth = 1.4;
+  for (let sx = 24; sx <= WIDTH - 24; sx += slatSpacing) {
+    ctx.strokeStyle = 'rgba(59, 40, 32, 0.22)';
+    ctx.beginPath();
+    ctx.moveTo(sx, bodyY + 8);
+    ctx.lineTo(sx, COUNTER_END_Y - 24);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 242, 246, 0.38)';
+    ctx.beginPath();
+    ctx.moveTo(sx + 2.5, bodyY + 9);
+    ctx.lineTo(sx + 2.5, COUNTER_END_Y - 25);
+    ctx.stroke();
+  }
+
+  // Mid-level horizontal trim rail + centered heart medallion
+  const trimY = bodyY + 42;
+  roundedRectPath(ctx, 18, trimY, WIDTH - 36, 10, 4.5);
+  ctx.fillStyle = DRINK_BAR_PALETTE.COUNTER_PANEL;
+  ctx.fill();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(24, trimY + 2.5);
+  ctx.lineTo(WIDTH - 24, trimY + 2.5);
+  ctx.strokeStyle = 'rgba(255, 244, 248, 0.65)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(360, trimY + 5, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFF7F9';
+  ctx.fill();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  ctx.fillStyle = '#F4A6BE';
+  ctx.beginPath();
+  ctx.moveTo(360, trimY + 8.5);
+  ctx.bezierCurveTo(355, trimY + 5.2, 355.5, trimY + 1.5, 360, trimY + 3.6);
+  ctx.bezierCurveTo(364.5, trimY + 1.5, 365, trimY + 5.2, 360, trimY + 8.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Bottom kickplate baseboard
+  const kickY = COUNTER_END_Y - 18;
+  ctx.fillStyle = '#8C5156';
+  ctx.fillRect(0, kickY, WIDTH, 18);
+  ctx.beginPath();
+  ctx.moveTo(0, kickY);
+  ctx.lineTo(WIDTH, kickY);
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(59, 40, 32, 0.16)';
+  ctx.fillRect(0, bodyY, WIDTH, 12);
+
+  // 2. Wooden counter top surface
+  ctx.fillStyle = DRINK_BAR_PALETTE.COUNTER_TOP;
+  ctx.fillRect(0, COUNTER_TOP_Y, WIDTH, COUNTER_SURFACE_HEIGHT);
+
+  ctx.fillStyle = DRINK_BAR_PALETTE.COUNTER_HIGHLIGHT;
+  ctx.fillRect(0, COUNTER_TOP_Y + 2, WIDTH, 11);
+
+  // Centered barista rubber mat beneath compact ~70% primary cup (x = 318..402)
+  roundedRectPath(ctx, 318, COUNTER_TOP_Y + 7, 84, 20, 7.5);
+  ctx.fillStyle = 'rgba(181, 115, 120, 0.34)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(59, 40, 32, 0.25)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Crisp #3B2820 counter edge lines
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = OUTLINE_THICK;
+  ctx.beginPath();
+  ctx.moveTo(0, COUNTER_TOP_Y);
+  ctx.lineTo(WIDTH, COUNTER_TOP_Y);
+  ctx.moveTo(0, bodyY);
+  ctx.lineTo(WIDTH, bodyY);
+  ctx.moveTo(0, COUNTER_END_Y);
+  ctx.lineTo(WIDTH, COUNTER_END_Y);
+  ctx.stroke();
+
+  // 3. Full-width Balanced Countertop Equipment (zero overlap with center cup/badge x=318..402)
+  const isShakingMilkTea =
+    equip.activeRecipeId === 'thai_tea' && equip.activeAction === 'tool_prep';
+  const isExtractingCoffee =
+    equip.activeRecipeId === 'coffee_milk' &&
+    equip.activeAction === 'dispense' &&
+    !equip.isPickingCup &&
+    !equip.isPressingSugarButton;
+
+  // Left Wing: Shaker (18..106) + Sugar (114..164) + Boba Jar (172..218) + Ice Bin (226..270) + Menu (278..312)
+  drawDoubleShakerMachine(
+    ctx,
+    18,
+    COUNTER_TOP_Y + 14,
+    isShakingMilkTea,
+    equip.isShakerDetached,
+    equip.shakerFillRatio,
+    equip.isFastBoost,
+    elapsedSec
+  );
+  drawSugarJarAndButton(ctx, 114, COUNTER_TOP_Y + 16, equip.isPressingSugarButton, elapsedSec);
+  drawCounterBobaJar(ctx, 172, COUNTER_TOP_Y + 16, equip.isScoopingBoba);
+  drawCounterIceBin(ctx, 226, COUNTER_TOP_Y + 16, equip.isScoopingIce);
+  drawMiniTableMenuStand(ctx, 278, COUNTER_TOP_Y + 16);
+
+  // Right Wing: Cup & Dome Lid Stacks (436..498) + Espresso Machine (512..594) + Frother Stand & Mini Plant (606..694)
+  drawCupAndLidStacks(ctx, 438, COUNTER_TOP_Y + 16, equip.isPickingCup, equip.isPickingLid);
+  drawCounterEspressoMachine(
+    ctx,
+    512,
+    COUNTER_TOP_Y + 16,
+    isExtractingCoffee,
+    equip.stepProgress,
+    elapsedSec
+  );
+  drawFrotherStandAndPlant(ctx, 606, COUNTER_TOP_Y + 16, equip.isUsingFrother);
+
+  // 4. Cozy pastel floor welcome mat beneath waiting customer lanes
+  drawCustomerFloorMat(ctx);
+
+  ctx.restore();
+}
+
+function drawSugarJarAndButton(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  isPressing: boolean,
+  elapsedSec: number
+): void {
+  const pressDepth = isPressing ? Math.abs(Math.sin(elapsedSec * 12)) * 4.5 : 0;
+
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Compact cream base tray uniting sugar jar + dispenser button
+  roundedRectPath(ctx, x, baseY - 8, 52, 10, 4);
+  ctx.fillStyle = '#E8B8C2';
+  ctx.fill();
+  ctx.stroke();
+
+  // 1. Clear glass Sugar Jar (Hũ đường — x..x+32)
+  const jarW = 30;
+  const jarH = 38;
+  const jarX = x + 3;
+  const jarTopY = baseY - 8 - jarH;
+
+  roundedRectPath(ctx, jarX, jarTopY + 5, jarW, jarH - 5, 7);
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.88)';
+  ctx.fill();
+  ctx.stroke();
+
+  // Sparkling white/warm sugar crystals inside lower 65% of jar
+  roundedRectPath(ctx, jarX + 2.5, jarTopY + 17, jarW - 5, jarH - 19, 4.5);
+  ctx.fillStyle = '#FFF7EA';
+  ctx.fill();
+
+  // Tiny sugar crystal grain dots inside jar
+  ctx.fillStyle = '#E4C9A8';
+  ctx.fillRect(jarX + 6, jarTopY + 21, 2.2, 2.2);
+  ctx.fillRect(jarX + 13, jarTopY + 24, 2.2, 2.2);
+  ctx.fillRect(jarX + 21, jarTopY + 20, 2.2, 2.2);
+  ctx.fillRect(jarX + 9, jarTopY + 29, 2.2, 2.2);
+  ctx.fillRect(jarX + 18, jarTopY + 30, 2.2, 2.2);
+
+  // Pastel gold-honey lid & cute knob
+  roundedRectPath(ctx, jarX - 1.5, jarTopY + 1, jarW + 3, 7, 3.5);
+  ctx.fillStyle = '#F7C95B';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(jarX + jarW * 0.5, jarTopY - 0.5, 3.2, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  // Crisp mini "ĐƯỜNG" label band across jar
+  roundedRectPath(ctx, jarX + 2, jarTopY + 12, jarW - 4, 9.5, 2.5);
+  ctx.fillStyle = '#FDEBF1';
+  ctx.fill();
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+
+  ctx.font = '900 5.5px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ĐƯỜNG', jarX + jarW * 0.5, jarTopY + 17);
+
+  // 2. Push-button Sugar Dispenser Pedestal beside jar (Nút bấm lấy đường)
+  ctx.lineWidth = 2.2;
+  const btnColX = x + 35;
+  const btnBaseY = baseY - 8;
+
+  // Pedestal housing
+  roundedRectPath(ctx, btnColX, btnBaseY - 19, 15, 19, 4);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  // Depressible coral-gold button cap on top
+  const capY = btnBaseY - 25 + pressDepth;
+  roundedRectPath(ctx, btnColX + 1.5, capY, 12, 7.5 - pressDepth * 0.35, 3.5);
+  ctx.fillStyle = isPressing ? '#F7C95B' : '#F0788C';
+  ctx.fill();
+  ctx.stroke();
+
+  // Bright pulse glow & sparkling sugar granules when pressed!
+  if (isPressing) {
+    const pulseR = 7 + ((elapsedSec * 22) % 9);
+    const pulseAlpha = Math.max(0, 1 - (pulseR - 7) / 9) * 0.78;
+    ctx.beginPath();
+    ctx.arc(btnColX + 7.5, capY + 2, pulseR, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(247, 201, 91, ${pulseAlpha.toFixed(2)})`;
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+
+    // Sparkling sugar granules dropping into cup/jug beside dispenser
+    ctx.fillStyle = '#FFFDF9';
+    for (let i = 0; i < 4; i += 1) {
+      const p = (elapsedSec * 5 + i * 0.25) % 1;
+      const gx = btnColX + 18 + (i % 2 === 0 ? -2 : 3);
+      const gy = btnBaseY - 18 + p * 18;
+      ctx.beginPath();
+      ctx.arc(gx, gy, 1.9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawCounterBobaJar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  isScooping: boolean
+): void {
+  const w = 44;
+  const h = 30;
+  const topY = baseY - h;
+
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Resting stainless boba ladle peeking out when barista isn't scooping boba
+  if (!isScooping) {
+    ctx.save();
+    ctx.translate(x + 33, topY - 4);
+    ctx.rotate(0.42);
+    roundedRectPath(ctx, -2.5, -10, 5, 13, 2);
+    ctx.fillStyle = '#D99B66';
+    ctx.fill();
+    ctx.lineWidth = 2.0;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Warm translucent syrup/boba jar body
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  roundedRectPath(ctx, x, topY, w, h, 6);
+  ctx.fillStyle = '#F6E7D8';
+  ctx.fill();
+  ctx.stroke();
+
+  // Glossy black boba pearls visible inside jar
+  ctx.fillStyle = '#4A2E23';
+  const pearlOffsets: readonly (readonly [number, number])[] = [
+    [9, 22], [17, 23], [26, 22], [35, 23],
+    [13, 15], [22, 16], [31, 15],
+  ];
+  for (let i = 0; i < pearlOffsets.length; i += 1) {
+    const [ox, oy] = pearlOffsets[i];
+    ctx.beginPath();
+    ctx.arc(x + ox, topY + oy, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Rim lid + mini "BOBA" label
+  roundedRectPath(ctx, x - 1.5, topY - 1, w + 3, 6.5, 3);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.font = '900 6px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = '#4A2E23';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('TRÂN CHÂU', x + w * 0.5, topY + 9.5);
+
+  ctx.restore();
+}
+
+function drawCounterIceBin(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  isScooping: boolean
+): void {
+  const w = 44;
+  const h = 28;
+  const topY = baseY - h;
+
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Gleaming ice cubes peeking above insulated bin rim
+  ctx.fillStyle = '#FFFFFF';
+  roundedRectPath(ctx, x + 5, topY - 7, 9, 9, 2.2);
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, x + 16, topY - 9, 9, 9, 2.2);
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, x + 27, topY - 6, 9, 9, 2.2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Resting stainless ice scoop handle peeking out when barista isn't holding it
+  if (!isScooping) {
+    ctx.save();
+    ctx.translate(x + 34, topY - 6);
+    ctx.rotate(0.45);
+    roundedRectPath(ctx, -2.5, -10, 5.5, 13, 2.2);
+    ctx.fillStyle = '#CBD3DC';
+    ctx.fill();
+    ctx.lineWidth = 2.0;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Insulated pastel-ice-blue bin body
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  roundedRectPath(ctx, x, topY, w, h, 6);
+  ctx.fillStyle = '#D9F1F7';
+  ctx.fill();
+  ctx.stroke();
+
+  // Subtle rim lip & "ĐÁ VIÊN" mini tag
+  roundedRectPath(ctx, x - 1.5, topY - 1, w + 3, 6.5, 3);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.font = '900 6.5px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = '#3B6575';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ĐÁ VIÊN', x + w * 0.5, topY + 17);
+
+  ctx.restore();
+}
+
+function drawDoubleShakerMachine(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  isShaking: boolean,
+  isShakerDetached: boolean,
+  shakerFillRatio: number,
+  isFastBoost: boolean,
+  elapsedSec: number
+): void {
+  const w = 88;
+  const h = 104;
+  const topY = baseY - h;
+
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  const metalGrad = ctx.createLinearGradient(x, topY, x + w, topY);
+  metalGrad.addColorStop(0, '#D4DCE3');
+  metalGrad.addColorStop(0.45, '#F3F6F9');
+  metalGrad.addColorStop(1, '#C5CFD8');
+  roundedRectPath(ctx, x, topY + 6, w, h - 6, 8);
+  ctx.fillStyle = metalGrad;
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, x + 6, topY + 12, 24, 12, 3);
+  ctx.fillStyle = '#3B2820';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + 13, topY + 18, 3, 0, Math.PI * 2);
+  ctx.fillStyle = isShaking ? '#7FD972' : '#F7C95B';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + 23, topY + 18, 2.2, 0, Math.PI * 2);
+  ctx.fillStyle = '#F4A6BE';
+  ctx.fill();
+
+  const leftColX = x + 24;
+  const rightColX = x + 64;
+  ctx.fillStyle = '#B4C0CB';
+  ctx.fillRect(leftColX - 3, topY + 12, 6, h - 22);
+  ctx.strokeRect(leftColX - 3, topY + 12, 6, h - 22);
+  ctx.fillRect(rightColX - 3, topY + 12, 6, h - 22);
+  ctx.strokeRect(rightColX - 3, topY + 12, 6, h - 22);
+
+  roundedRectPath(ctx, leftColX - 12, baseY - 18, 24, 14, 4);
+  ctx.fillStyle = '#E4E9EE';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, leftColX - 9, topY + 34, 18, 7, 3);
+  ctx.fillStyle = '#CBD3DC';
+  ctx.fill();
+  ctx.stroke();
+
+  // Right active shaker arm: empty clamp when barista detaches shaker to pour in P4!
+  if (isShakerDetached) {
+    roundedRectPath(ctx, rightColX - 12, baseY - 18, 24, 14, 4);
+    ctx.fillStyle = '#E4E9EE';
+    ctx.fill();
+    ctx.stroke();
+    roundedRectPath(ctx, rightColX - 9, topY + 34, 18, 7, 3);
+    ctx.fillStyle = '#CBD3DC';
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  const shakeFreq = isFastBoost ? 28 : 20;
+  const shakeDy = isShaking ? Math.sin(elapsedSec * shakeFreq) * 10 : 0;
+  const shakeRot = isShaking ? Math.cos(elapsedSec * shakeFreq) * 0.08 : 0;
+
+  ctx.save();
+  ctx.translate(rightColX, baseY - 38 + shakeDy);
+  ctx.rotate(shakeRot);
+
+  if (isShaking) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(-20, -14);
+    ctx.lineTo(-20, 14);
+    ctx.moveTo(20, -14);
+    ctx.lineTo(20, 14);
+    ctx.stroke();
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.lineWidth = OUTLINE_MEDIUM;
+  }
+
+  // Translucent/stainless shaker body
+  roundedRectPath(ctx, -11.5, -24, 23, 44, 6);
+  ctx.fillStyle = '#F6F0E9';
+  ctx.fill();
+  ctx.stroke();
+
+  // Inner clear viewing cavity (stays empty frosted glass when shakerFillRatio === 0 after pouring!)
+  roundedRectPath(ctx, -9, -15, 18, 30, 3.5);
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.84)';
+  ctx.fill();
+
+  const clampedShakerFill = Math.max(0, Math.min(1, shakerFillRatio));
+  if (clampedShakerFill > 0.03) {
+    const fillH = Math.max(4, 28 * clampedShakerFill);
+    roundedRectPath(ctx, -9, 15 - fillH, 18, fillH, 3);
+    ctx.fillStyle = '#D89E68';
+    ctx.fill();
+  }
+
+  roundedRectPath(ctx, -9, -30, 18, 7, 3);
+  ctx.fillStyle = '#C8D0D8';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, -12.5, -34, 25, 6, 2.5);
+  ctx.fillStyle = '#B4C0CB';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, -13, 14, 26, 13, 4);
+  ctx.fillStyle = '#E4E9EE';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.restore();
+  ctx.restore();
+}
+
+const MINI_MENU_SWATCHES: readonly string[] = [
+  '#A7D397',
+  '#D89E68',
+  '#5A321C',
+  '#7FC8D9',
+  '#FF9526',
+];
+
+function drawMiniTableMenuStand(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number
+): void {
+  ctx.save();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Stand foot
+  roundedRectPath(ctx, x, baseY - 6, 34, 7, 3);
+  ctx.fillStyle = '#C48285';
+  ctx.fill();
+  ctx.stroke();
+
+  // Cream acrylic tabletop menu board showing all 5 drinks
+  roundedRectPath(ctx, x + 2, baseY - 44, 30, 40, 4.5);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  // Pink header banner with "MENU"
+  roundedRectPath(ctx, x + 4.5, baseY - 41, 25, 7.5, 2.2);
+  ctx.fillStyle = '#F4A6BE';
+  ctx.fill();
+
+  ctx.font = '900 5.2px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = '#3B2820';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('MENU', x + 17, baseY - 37);
+
+  // 5 Drink color icon dots + mini menu lines
+  for (let i = 0; i < MINI_MENU_SWATCHES.length; i += 1) {
+    const rowY = baseY - 29.5 + i * 5.3;
+    ctx.fillStyle = MINI_MENU_SWATCHES[i];
+    ctx.beginPath();
+    ctx.arc(x + 8.5, rowY, 2.0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(59, 40, 32, 0.36)';
+    ctx.fillRect(x + 12.5, rowY - 1, i % 2 === 0 ? 14 : 11, 1.8);
+  }
+
+  ctx.restore();
+}
+
+function drawCupAndLidStacks(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  isPickingCup: boolean,
+  isPickingLid: boolean
+): void {
+  ctx.save();
+  ctx.lineWidth = 2.3;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Tray beneath cup & dome lid stacks
+  roundedRectPath(ctx, x - 2, baseY - 6, 62, 12, 4.5);
+  ctx.fillStyle = '#C48285';
+  ctx.fill();
+  ctx.stroke();
+
+  // 1. Stack of clear takeaway plastic cups (drops from 4 -> 3 while barista lifts top cup!)
+  const cupCount = isPickingCup ? 3 : 4;
+  for (let c = 0; c < cupCount; c += 1) {
+    const cy = baseY - 19 - c * 7.5;
+    ctx.beginPath();
+    ctx.moveTo(x + 2, cy);
+    ctx.lineTo(x + 24, cy);
+    ctx.lineTo(x + 21, cy + 16);
+    ctx.lineTo(x + 5, cy + 16);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 253, 249, 0.88)';
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // 2. Stack of dome lids beside cups (drops from 4 -> 3 while barista lifts top lid for P5!)
+  const lidCount = isPickingLid ? 3 : 4;
+  for (let l = 0; l < lidCount; l += 1) {
+    const ly = baseY - 10 - l * 6;
+    ctx.beginPath();
+    ctx.arc(x + 44, ly, 10, Math.PI, 0, false);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 250, 252, 0.88)';
+    ctx.fill();
+    ctx.lineWidth = 2.1;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawCounterEspressoMachine(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  isExtracting: boolean,
+  stepProgress: number,
+  elapsedSec: number
+): void {
+  const w = 82;
+  const h = 98;
+  const topY = baseY - h;
+  const cx = x + w * 0.5;
+
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  roundedRectPath(ctx, x, topY, w, h, 9);
+  ctx.fillStyle = '#D48F59';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, x + 6, topY + 6, w - 12, 24, 5);
+  ctx.fillStyle = '#FFF9FA';
+  ctx.fill();
+  ctx.stroke();
+
+  // Pressure gauge + status LED
+  ctx.beginPath();
+  ctx.arc(x + 22, topY + 18, 7.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#FCEBF1';
+  ctx.fill();
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + 22, topY + 18);
+  ctx.lineTo(x + 25.5, topY + 14);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x + w - 16, topY + 18, 3.8, 0, Math.PI * 2);
+  ctx.fillStyle = isExtracting ? '#7FD972' : '#F4A6BE';
+  ctx.fill();
+  ctx.stroke();
+
+  // Extraction recess bay
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  roundedRectPath(ctx, x + 10, topY + 36, w - 20, 48, 5);
+  ctx.fillStyle = '#4B3227';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, x + 8, baseY - 12, w - 16, 10, 3);
+  ctx.fillStyle = '#E4E7EB';
+  ctx.fill();
+  ctx.stroke();
+
+  // Grouphead & portafilter
+  const spoutX = cx;
+  const spoutY = topY + 48;
+  roundedRectPath(ctx, cx - 10, topY + 38, 20, 9, 3);
+  ctx.fillStyle = '#E4E7EB';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, cx - 24, topY + 40, 15, 5, 2.5);
+  ctx.fillStyle = '#2B1B14';
+  ctx.fill();
+  ctx.stroke();
+
+  // Graduated measuring cup on drip tray
+  const jugW = 24;
+  const jugH = 24;
+  const jugX = cx - jugW * 0.5;
+  const jugY = baseY - 12 - jugH;
+  roundedRectPath(ctx, jugX, jugY, jugW, jugH, 4);
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.88)';
+  ctx.fill();
+  ctx.lineWidth = 2.0;
+  ctx.stroke();
+
+  const fillFrac = isExtracting ? 0.25 + stepProgress * 0.65 : 0.22;
+  const fillH = Math.max(4, (jugH - 4) * fillFrac);
+  const liquidTopY = baseY - 14 - fillH;
+  roundedRectPath(ctx, jugX + 2, liquidTopY, jugW - 4, fillH, 2);
+  ctx.fillStyle = '#5A321C';
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(59, 40, 32, 0.55)';
+  ctx.lineWidth = 1.2;
+  for (let tick = 1; tick <= 3; tick += 1) {
+    const ty = jugY + tick * 5.5;
+    ctx.beginPath();
+    ctx.moveTo(jugX + 3, ty);
+    ctx.lineTo(jugX + 8.5, ty);
+    ctx.stroke();
+  }
+
+  if (isExtracting) {
+    ctx.strokeStyle = '#5A321C';
+    ctx.lineWidth = 3.6;
+    ctx.beginPath();
+    ctx.moveTo(spoutX, spoutY);
+    ctx.lineTo(spoutX, liquidTopY + 1);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 232, 200, 0.55)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(spoutX - 0.7, spoutY + 1);
+    ctx.lineTo(spoutX - 0.7, liquidTopY);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 253, 249, 0.72)';
+    ctx.lineWidth = 2.0;
+    for (let s = 0; s < 2; s += 1) {
+      const phase = (elapsedSec * 1.4 + s * 0.5) % 1;
+      const sx = cx + (s === 0 ? -9 : 9) + Math.sin(elapsedSec * 3.5 + s) * 3;
+      const sy = topY - 4 - phase * 18;
+      ctx.globalAlpha = Math.sin(phase * Math.PI) * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy + 6);
+      ctx.quadraticCurveTo(sx + 3, sy, sx - 2, sy - 6);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+function drawFrotherStandAndPlant(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  isUsingFrother: boolean
+): void {
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Compact tray on far-right counter
+  roundedRectPath(ctx, x, baseY - 6, 86, 12, 4.5);
+  ctx.fillStyle = '#C48285';
+  ctx.fill();
+  ctx.stroke();
+
+  // 1. Resting brushed stainless frothing pitcher + handheld electric frother on stand (hides when in use!)
+  if (!isUsingFrother) {
+    const pX = x + 10;
+    const pY = baseY - 34;
+
+    // Pitcher handle
+    ctx.beginPath();
+    ctx.arc(pX + 22, pY + 15, 5.5, -Math.PI * 0.5, Math.PI * 0.5, false);
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+
+    // Brushed stainless pitcher
+    roundedRectPath(ctx, pX, pY, 22, 28, 4.5);
+    ctx.fillStyle = '#E4E9EE';
+    ctx.fill();
+    ctx.lineWidth = 2.3;
+    ctx.stroke();
+
+    // Handheld electric frother resting on chrome stand beside pitcher
+    const fX = x + 42;
+    ctx.strokeStyle = '#9BA7B4';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(fX + 4.5, baseY - 22);
+    ctx.lineTo(fX + 4.5, baseY - 8);
+    ctx.stroke();
+
+    roundedRectPath(ctx, fX, baseY - 42, 9, 21, 4);
+    ctx.fillStyle = '#3B2820';
+    ctx.fill();
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.lineWidth = 2.0;
+    ctx.stroke();
+
+    ctx.fillStyle = '#F4A6BE';
+    ctx.beginPath();
+    ctx.arc(fX + 4.5, baseY - 34, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 2. Cute mini terracotta potted plant with 3 plump green leaves
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  const potX = x + 62;
+  roundedRectPath(ctx, potX, baseY - 24, 18, 19, 4.5);
+  ctx.fillStyle = '#E5956B';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, potX - 1.5, baseY - 27, 21, 5.5, 2.5);
+  ctx.fillStyle = '#EEAA82';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#7FB66E';
+  ctx.beginPath();
+  ctx.ellipse(potX + 3, baseY - 31, 6, 3.8, -0.55, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(potX + 15, baseY - 31, 6, 3.8, 0.55, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#9FD28B';
+  ctx.beginPath();
+  ctx.ellipse(potX + 9, baseY - 36, 4.8, 6.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawCustomerFloorMat(ctx: CanvasRenderingContext2D): void {
+  const floorShadow = ctx.createLinearGradient(0, COUNTER_END_Y, 0, COUNTER_END_Y + 32);
+  floorShadow.addColorStop(0, 'rgba(59, 40, 32, 0.14)');
+  floorShadow.addColorStop(1, 'rgba(59, 40, 32, 0)');
+  ctx.fillStyle = floorShadow;
+  ctx.fillRect(0, COUNTER_END_Y + 1, WIDTH, 32);
+
+  const matX = 160;
+  const matY = COUNTER_END_Y + 12;
+  const matW = 400;
+  const matH = 104;
+
+  roundedRectPath(ctx, matX + 2, matY + 4, matW, matH, 22);
+  ctx.fillStyle = 'rgba(181, 115, 120, 0.14)';
+  ctx.fill();
+
+  const matGrad = ctx.createLinearGradient(matX, matY, matX, matY + matH);
+  matGrad.addColorStop(0, '#FFF8FA');
+  matGrad.addColorStop(1, '#FCEBF1');
+  roundedRectPath(ctx, matX, matY, matW, matH, 22);
+  ctx.fillStyle = matGrad;
+  ctx.fill();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = 'rgba(212, 146, 157, 0.55)';
+  ctx.stroke();
+
+  ctx.save();
+  ctx.setLineDash([6, 5]);
+  roundedRectPath(ctx, matX + 8, matY + 8, matW - 16, matH - 16, 16);
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = 'rgba(212, 146, 157, 0.42)';
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(217, 155, 156, 0.18)';
+  ctx.beginPath();
+  ctx.ellipse(256, matY + matH - 22, 44, 10, 0, 0, Math.PI * 2);
+  ctx.ellipse(464, matY + matH - 22, 44, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
