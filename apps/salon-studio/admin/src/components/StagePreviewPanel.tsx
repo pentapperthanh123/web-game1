@@ -28,26 +28,21 @@ export const StagePreviewPanel: React.FC = () => {
   };
 
   return (
-    <aside className="admin-card p-2.5 flex flex-col h-full w-full min-h-0 bg-[#FFFDF9] select-none gap-2 overflow-hidden">
-      {/* Top Status Bar - Minimal & Clean (No bulky buttons) */}
-      <div className="shrink-0 flex items-center justify-between gap-2 px-1 pb-1.5 border-b-2 border-[#3A2825]/15">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-[#FFD4E2] border-2 border-[#3A2825] flex items-center justify-center shrink-0">
-            <Eye className="w-4 h-4 text-[#3A2825]" />
+    <aside className="admin-card p-2 flex flex-col h-full w-full min-h-0 bg-[#FFFDF9] select-none gap-1.5 overflow-hidden">
+      {/* Top Status Bar - Minimal & Clean */}
+      <div className="shrink-0 flex items-center justify-between gap-1.5 px-1 pb-1 border-b border-[#3A2825]/15">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="w-6 h-6 rounded-md bg-[#FFD4E2] border-2 border-[#3A2825] flex items-center justify-center shrink-0">
+            <Eye className="w-3.5 h-3.5 text-[#3A2825]" />
           </div>
-          <div className="flex items-baseline gap-2 min-w-0">
-            <h2 className="font-display font-bold text-sm text-[#3A2825] whitespace-nowrap">
-              Live Preview (720×1280)
-            </h2>
-            <span className="text-[11px] font-extrabold text-[#7D6059] truncate hidden sm:inline">
-              9:16 Dọc TikTok
-            </span>
-          </div>
+          <h2 className="font-display font-bold text-xs text-[#3A2825] whitespace-nowrap">
+            Live Preview (9:16)
+          </h2>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 border-[#3A2825] text-[10px] font-black ${
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#3A2825] text-[10px] font-black ${
               previewMode === 'MIRROR'
                 ? 'bg-[#C9F2E3] text-[#175B43]'
                 : 'bg-[#FFE5B4] text-[#8A5200]'
@@ -58,27 +53,29 @@ export const StagePreviewPanel: React.FC = () => {
                 previewMode === 'MIRROR' ? 'bg-[#2BB673]' : 'bg-[#E09A1F]'
               }`}
             />
-            {previewMode === 'MIRROR' ? 'Mirror Live' : 'Sandbox Test'}
+            {previewMode === 'MIRROR' ? 'Mirror Live' : 'Sandbox'}
           </span>
 
           {showSafeZone && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFD56B] border border-[#3A2825] text-[10px] font-black text-[#3A2825]">
-              <Layers className="w-3 h-3" />
-              Safe-Zone ON
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#FFD56B] border border-[#3A2825] text-[9px] font-black text-[#3A2825]">
+              <Layers className="w-2.5 h-2.5" />
+              Safe-Zone
             </span>
           )}
         </div>
       </div>
 
-      {/* Main Full-Height 9:16 Stage Frame - Takes 100% Remaining Height */}
-      <div className="flex-1 min-h-0 w-full flex items-center justify-center p-1.5 bg-[#261C1A] rounded-[18px] border-[3.5px] border-[#3A2825] shadow-inner relative overflow-hidden">
-        <iframe
-          ref={iframeRef}
-          src={iframeSrc}
-          onLoad={handleIframeLoad}
-          title="Salon Studio Stage 9:16"
-          className="h-full aspect-[9/16] max-w-full rounded-[14px] shadow-2xl border-2 border-[#3A2825]/50 bg-black block"
-        />
+      {/* Main Full-Height 9:16 Stage Frame - Fits Width Snugly Like a Phone Mockup */}
+      <div className="flex-1 min-h-0 w-full flex items-center justify-center p-2 bg-[#F5E6DD] rounded-[16px] border-2 border-[#3A2825]/20 shadow-inner relative overflow-hidden">
+        <div className="h-full aspect-[9/16] max-w-full flex items-center justify-center bg-[#1A1211] p-1 rounded-[16px] border-[3px] border-[#3A2825] shadow-2xl relative">
+          <iframe
+            ref={iframeRef}
+            src={iframeSrc}
+            onLoad={handleIframeLoad}
+            title="Salon Studio Stage 9:16"
+            className="w-full h-full rounded-[12px] bg-black block"
+          />
+        </div>
       </div>
     </aside>
   );
