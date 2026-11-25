@@ -105,6 +105,26 @@ export const SMALL_GIFT_ACCESSORIES: readonly AccessoryKey[] = ['BOW', 'SUNGLASS
 export const SKIN_TONES: readonly string[] = ['#FFE1C8', '#FAD2B4', '#F3BE98', '#FFE8D6'];
 export const SHIRT_COLORS: readonly string[] = ['#BFECE0', '#FFD8E4', '#FFE5B4', '#C9E4FF', '#FDE2C8'];
 
+export const AVATAR_PASTEL_COLORS: readonly string[] = [
+  '#FFD4E2',
+  '#C9F2E3',
+  '#FFE5B4',
+  '#D7E3FC',
+  '#E8D7FF',
+  '#FFF0A6',
+  '#FFCCD5',
+  '#D4F0B8',
+];
+
+export function getDeterministicAvatarColor(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  }
+  const idx = Math.abs(hash) % AVATAR_PASTEL_COLORS.length;
+  return AVATAR_PASTEL_COLORS[idx];
+}
+
 export const DEMO_VIEWER_NAMES: readonly string[] = [
   'Bánh Mì Trứng',
   'Mèo Béo',

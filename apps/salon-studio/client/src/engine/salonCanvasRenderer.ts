@@ -1,4 +1,5 @@
 import { SALON_I18N } from '@shared/constants/i18n';
+import { getDeterministicAvatarColor } from '@shared/constants/presets';
 import { SALON_PALETTE, STAGE_METRICS } from '@shared/constants/salonConfig';
 import type { ActiveCustomerSession } from '@shared/types/salon';
 import { useSalonStore } from '../store/salonStore';
@@ -141,9 +142,7 @@ export class SalonCanvasLoop {
     ctx.arc(badgeX, badgeY, 26, 0, Math.PI * 2);
     ctx.fillStyle = customer.isRoyal
       ? SALON_PALETTE.HONEY_GOLD
-      : isVipOrRoyal
-        ? '#FFACC2'
-        : SALON_PALETTE.BLUSH_PINK;
+      : getDeterministicAvatarColor(customer.user.id);
     ctx.fill();
     ctx.stroke();
 

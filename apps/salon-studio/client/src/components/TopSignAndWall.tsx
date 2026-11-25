@@ -1,7 +1,7 @@
 import React from 'react';
 import { Crown, Eye, Scissors, Sparkles } from 'lucide-react';
 import { SALON_I18N } from '@shared/constants/i18n';
-import { COLOR_SWATCHES } from '@shared/constants/presets';
+import { COLOR_SWATCHES, getDeterministicAvatarColor } from '@shared/constants/presets';
 import type { FinishedWorkItem } from '@shared/types/salon';
 import { useSalonStore } from '../store/salonStore';
 
@@ -207,8 +207,17 @@ export const TopSignAndWall: React.FC = () => {
                   <div className="bg-[#FFF7EE] rounded-lg border-2 border-[#3A2825]/25 px-1 pt-0.5">
                     <MiniWorkIllustration item={item} />
                   </div>
-                  <div className="mt-1 text-center text-[11px] font-extrabold text-[#3A2825] truncate px-0.5">
-                    {item.nickname}
+                  {/* Clean Initial Letter Badge + Nickname (Zero external image dependencies) */}
+                  <div className="mt-1 flex items-center justify-center gap-1 px-0.5 min-w-0">
+                    <div
+                      style={{ backgroundColor: getDeterministicAvatarColor(item.id || item.nickname) }}
+                      className="w-4 h-4 rounded-full border border-[#3A2825] flex items-center justify-center text-[9px] font-black text-[#3A2825] shrink-0"
+                    >
+                      {(item.nickname.trim()[0] || 'S').toUpperCase()}
+                    </div>
+                    <span className="text-[11px] font-extrabold text-[#3A2825] truncate">
+                      {item.nickname}
+                    </span>
                   </div>
                 </div>
               );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Crown, Sparkles } from 'lucide-react';
 import { SALON_I18N } from '@shared/constants/i18n';
+import { getDeterministicAvatarColor } from '@shared/constants/presets';
 import { useSalonStore } from '../store/salonStore';
 
 export const ThankYouBanner: React.FC = () => {
@@ -37,6 +38,12 @@ export const ThankYouBanner: React.FC = () => {
         ) : (
           <Sparkles className="w-4 h-4 text-[#2D9B73] shrink-0" />
         )}
+        <div
+          style={{ backgroundColor: getDeterministicAvatarColor(toast.donorName) }}
+          className="w-4 h-4 rounded-full border border-[#3A2825] flex items-center justify-center text-[9px] font-black text-[#3A2825] shrink-0"
+        >
+          {(toast.donorName.trim()[0] || 'G').toUpperCase()}
+        </div>
         <span className="text-[13px] font-black text-[#3A2825] truncate">
           [{toast.donorName}] {suffix}
         </span>

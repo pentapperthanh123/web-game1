@@ -2,7 +2,7 @@ import { COLOR_SWATCHES } from '@shared/constants/presets';
 import { SALON_PALETTE } from '@shared/constants/salonConfig';
 import type { ActiveCustomerSession, NailShapeKey, StylistMood } from '@shared/types/salon';
 import { drawRoundedRect } from './drawBackground';
-import { drawStylistBubble } from './drawHairLayers';
+import { drawCustomerSpeechBubble, drawStylistBubble } from './drawHairLayers';
 
 interface FingerTipPos {
   x: number;
@@ -40,6 +40,7 @@ export function drawNailStation(
     }
     drawCustomerHandAndNails(ctx, customer, timeSec);
     drawNailStylistBrushHand(ctx, customer, isFast, timeSec);
+    drawCustomerSpeechBubble(ctx, 390, 600, customer, isFast);
   } else {
     ctx.save();
     ctx.fillStyle = 'rgba(58, 40, 37, 0.35)';
@@ -511,5 +512,14 @@ function drawNailStylistBrushHand(
   ctx.fillStyle = '#FFE4CE';
   ctx.fill();
   ctx.stroke();
+
+  // Speed gloss sparkles when viewers like (Nóng tay tăng tốc)
+  if (isFast) {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(-8, -6, 2.5, 0, Math.PI * 2);
+    ctx.arc(6, 12, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }

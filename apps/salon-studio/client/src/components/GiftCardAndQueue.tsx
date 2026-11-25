@@ -1,6 +1,7 @@
 import React from 'react';
 import { Crown, Gift, Heart, Sparkles, Users } from 'lucide-react';
 import { SALON_I18N } from '@shared/constants/i18n';
+import { getDeterministicAvatarColor } from '@shared/constants/presets';
 import { useSalonStore } from '../store/salonStore';
 
 export const GiftCardAndQueue: React.FC = () => {
@@ -83,6 +84,12 @@ export const GiftCardAndQueue: React.FC = () => {
                     <span className="font-display font-bold text-[11px] text-[#7D6059] shrink-0">
                       #{idx + 1}
                     </span>
+                    <div
+                      style={{ backgroundColor: getDeterministicAvatarColor(item.user.id) }}
+                      className="w-4 h-4 rounded-full border border-[#3A2825] flex items-center justify-center text-[9px] font-black text-[#3A2825] shrink-0"
+                    >
+                      {(item.user.nickname.trim()[0] || 'U').toUpperCase()}
+                    </div>
                     <span className="text-[12px] font-extrabold text-[#3A2825] truncate">
                       {item.user.nickname}
                     </span>

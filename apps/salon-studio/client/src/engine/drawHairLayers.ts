@@ -20,7 +20,8 @@ export function drawHairStation(
     if (customer.isRoyal) {
       drawRoyalHalo(ctx, cx, cy - 90, timeSec);
     }
-    drawCustomerHairBody(ctx, cx, cy, customer, timeSec);
+    drawCustomerHairBody(ctx, cx, cy, customer, isFast, timeSec);
+    drawCustomerSpeechBubble(ctx, cx, cy - 82, customer, isFast);
   } else {
     drawEmptyChairHint(ctx, cx, cy - 25);
   }
@@ -106,6 +107,7 @@ function drawCustomerHairBody(
   cx: number,
   cy: number,
   customer: ActiveCustomerSession,
+  isFast: boolean,
   timeSec: number
 ): void {
   const bob = Math.sin(timeSec * 3.2) * 2.5;
@@ -168,8 +170,10 @@ function drawCustomerHairBody(
   ctx.ellipse(cx + 28, headY + 12, 10, 6, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Facial expression
-  drawCustomerFace(ctx, cx, headY, customer.expression, timeSec);
+  // Facial expression (anticipation & excitement when speed-boosted by likes)
+  const currentExpr =
+    isFast && !customer.trollEffect ? 'EXCITED' : customer.expression;
+  drawCustomerFace(ctx, cx, headY, currentExpr, timeSec);
 
   // Front hair OR Troll hair
   if (customer.trollEffect === 'BALD_STRIPE') {
@@ -474,6 +478,13 @@ function drawCustomerFace(
     drawRoundedRect(ctx, cx + 16, headY + 6, 12, 32 + tearOffset * 0.4, 6);
     ctx.fill();
 
+    // Sweat drops on forehead from shock
+    ctx.beginPath();
+    ctx.arc(cx - 32, headY - 14, 4.5, 0, Math.PI * 2);
+    ctx.arc(cx + 32, headY - 14, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
     // Squinting > < eyes
     ctx.beginPath();
     ctx.moveTo(cx - 30, headY - 4);
@@ -770,6 +781,31 @@ function drawStylistCharacter(
     drawScissorsTool(ctx, armReachX, armReachY, Math.abs(snipPhase));
   }
 
+  // High-speed energetic snip streaks & sparkles when viewers like (Nóng tay tăng tốc)
+  if (isFast) {
+    ctx.save();
+    ctx.strokeStyle = '#FFE5B4';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    const snipTime = (timeSec * 16) % 6;
+    for (let i = 0; i < 3; i += 1) {
+      const angle = (i * Math.PI) / 3 + snipTime;
+      const r1 = 16;
+      const r2 = 30;
+      ctx.beginPath();
+      ctx.moveTo(armReachX + Math.cos(angle) * r1, armReachY + Math.sin(angle) * r1);
+      ctx.lineTo(armReachX + Math.cos(angle) * r2, armReachY + Math.sin(angle) * r2);
+      ctx.stroke();
+    }
+    // Small sparkle star
+    ctx.fillStyle = '#FFFDF9';
+    ctx.beginPath();
+    ctx.arc(armReachX - 16, armReachY - 14, 2.8, 0, Math.PI * 2);
+    ctx.arc(armReachX + 18, armReachY + 12, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // 6. Stylist speech bubble placed in spacious top-right zone
   // (Completely clear of tool, hands, and changing hairstyles)
   if (speech) {
@@ -881,5 +917,65 @@ export function drawStylistBubble(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(trimmed, bx + textWidth / 2, by + bh / 2 + 1, textWidth - 16);
+  ctx.restore();
+}
+
+export function drawCustomerSpeechBubble(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  headY: number,
+  customer: ActiveCustomerSession,
+  isFast: boolean
+): void {
+  let text = '';
+  let bg = '#FFFFFF';
+  const isTroll = Boolean(customer.trollEffect);
+
+  if (isTroll) {
+    text = customer.service === 'HAIR' ? 'Ơ kìa đầu em?! 😭' : 'Ơ móng của em?! 💦';
+    bg = '#FFE4DE';
+  } else if (customer.isRoyal) {
+    text = 'Idol tiệm tóc là đây! 👑✨';
+    bg = '#FFF3BF';
+  } else if (isFast) {
+    text = 'Tim nhiều, cắt bay nóc! ⚡';
+    bg = '#E8FBF4';
+  } else if (customer.progress > 85) {
+    text = 'Sắp xong rồi, hồi hộp quá! 💖';
+    bg = '#FFF0F5';
+  } else {
+    return;
+  }
+
+  ctx.save();
+  ctx.font = '800 13px "Nunito", sans-serif';
+  const textWidth = ctx.measureText(text).width + 24;
+  const bw = Math.max(140, textWidth);
+  const bh = 34;
+  const bx = cx - bw - 18;
+  const by = headY - 55;
+
+  // Bubble body
+  drawRoundedRect(ctx, bx, by, bw, bh, 16);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.strokeStyle = SALON_PALETTE.OUTLINE;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Little tail pointing toward customer head
+  ctx.beginPath();
+  ctx.moveTo(bx + bw - 6, by + bh - 6);
+  ctx.lineTo(bx + bw + 12, by + bh + 4);
+  ctx.lineTo(bx + bw - 14, by + bh);
+  ctx.closePath();
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = SALON_PALETTE.TEXT_DARK;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, bx + bw / 2, by + bh / 2 + 1);
   ctx.restore();
 }
