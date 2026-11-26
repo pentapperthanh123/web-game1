@@ -121,13 +121,9 @@ export function isUserAlreadyInQueue(state: DrinkBarLiveState, userId: string): 
 }
 
 export function isUserActiveNow(state: DrinkBarLiveState, userId: string): boolean {
-  const inStation1 = Boolean(
+  return Boolean(
     state.activeDrink && normalizeUserId(state.activeDrink.user) === userId
   );
-  const inStation2 = Boolean(
-    state.secondaryDrink && normalizeUserId(state.secondaryDrink.user) === userId
-  );
-  return inStation1 || inStation2;
 }
 
 function upsertGuestBubble(
@@ -508,7 +504,7 @@ export function applyLikesToState(
         lastEventAt: now,
       },
       effects: {
-        burstKind: state.activeDrink || state.secondaryDrink ? 'like' : undefined,
+        burstKind: state.activeDrink ? 'like' : undefined,
         sfxToPlay: 'like_pop',
       },
     };
@@ -520,19 +516,18 @@ export function applyLikesToState(
   );
 
   const nextActiveSlot = advanceSlotProgressByDelta(state.activeDrink, deltaProgress, now);
-  const nextSecondarySlot = advanceSlotProgressByDelta(state.secondaryDrink, deltaProgress, now);
 
   let workingState: DrinkBarLiveState = {
     ...state,
     activeDrink: nextActiveSlot,
-    secondaryDrink: nextSecondarySlot,
-    activeSlots: [nextActiveSlot, nextSecondarySlot],
+    secondaryDrink: null,
+    activeSlots: [nextActiveSlot, null],
     speedBoostUntil: boostUntil,
     lastEventAt: now,
   };
 
   let burstKind: QueueStepSideEffects['burstKind'] =
-    workingState.activeDrink || workingState.secondaryDrink ? 'like' : undefined;
+    workingState.activeDrink ? 'like' : undefined;
   let sfxToPlay: SfxKind | undefined;
 
   if (
@@ -544,17 +539,6 @@ export function applyLikesToState(
     workingState = res1.state;
     burstKind = res1.effects.burstKind ?? burstKind;
     sfxToPlay = res1.effects.sfxToPlay ?? sfxToPlay;
-  }
-
-  if (
-    workingState.secondaryDrink &&
-    workingState.secondaryDrink.phase === 'BREWING' &&
-    workingState.secondaryDrink.progress >= 100
-  ) {
-    const res2 = completeDrinkInSlot(workingState, 2, now);
-    workingState = res2.state;
-    burstKind = res2.effects.burstKind ?? burstKind;
-    sfxToPlay = res2.effects.sfxToPlay ?? sfxToPlay;
   }
 
   return {
@@ -600,9 +584,8 @@ export function applyGiftToState(
   const userId = normalizeUserId(user);
   const normalizedUser: ViewerProfile = { ...user, id: userId };
 
-  // Step 1: Upgrade active drinks without resetting progress
+  // Step 1: Upgrade active drink without resetting progress
   const nextActive = upgradeActiveDrinkOnGift(state.activeDrink, userId, tier, now);
-  const nextSecondary = upgradeActiveDrinkOnGift(state.secondaryDrink, userId, tier, now);
 
   // Step 2: Resupply +500ml to lowest/sold-out recipe on gift!
   let nextInventory = resupplyLowestOnGift(
@@ -610,12 +593,10 @@ export function applyGiftToState(
     GAMEPLAY_LIMITS.GIFT_RESUPPLY_ML
   );
 
-  // Step 3: VIP Queue placement for donor if not currently being served on Station 1 or 2
+  // Step 3: VIP Queue placement for donor if not currently being served on NV1
   let nextVipQueue = [...state.vipQueue];
   let nextNormalQueue = [...state.normalQueue];
-  const isDonorServed =
-    Boolean(nextActive && normalizeUserId(nextActive.user) === userId) ||
-    Boolean(nextSecondary && normalizeUserId(nextSecondary.user) === userId);
+  const isDonorServed = Boolean(nextActive && normalizeUserId(nextActive.user) === userId);
 
   if (!isDonorServed) {
     const existingVipIdx = nextVipQueue.findIndex((o) => normalizeUserId(o.user) === userId);
@@ -696,8 +677,8 @@ export function applyGiftToState(
   let nextState: DrinkBarLiveState = {
     ...state,
     activeDrink: nextActive,
-    secondaryDrink: nextSecondary,
-    activeSlots: [nextActive, nextSecondary],
+    secondaryDrink: null,
+    activeSlots: [nextActive, null],
     vipQueue: nextVipQueue,
     normalQueue: nextNormalQueue,
     inventory: nextInventory,
@@ -807,10 +788,10 @@ function resolveOrderToppingsForTier(
 
 function completeDrinkInSlot(
   state: DrinkBarLiveState,
-  slotIndex: 1 | 2,
+  _slotIndex: 1 | 2,
   now: number
 ): QueueTransitionResult {
-  const target = slotIndex === 1 ? state.activeDrink : state.secondaryDrink;
+  const target = state.activeDrink;
   if (!target || target.phase === 'SHOWCASE') {
     return { state, effects: {} };
   }
@@ -832,14 +813,11 @@ function completeDrinkInSlot(
   const isDancing = now < state.danceUntil;
   const finishMood = completed.isSignature ? 'CHEERING' : 'HAPPY';
 
-  const nextActiveSlot = slotIndex === 1 ? completed : state.activeDrink;
-  const nextSecondarySlot = slotIndex === 2 ? completed : state.secondaryDrink;
-
   const nextState: DrinkBarLiveState = {
     ...state,
-    activeDrink: nextActiveSlot,
-    secondaryDrink: nextSecondarySlot,
-    activeSlots: [nextActiveSlot, nextSecondarySlot],
+    activeDrink: completed,
+    secondaryDrink: null,
+    activeSlots: [completed, null],
     finishedShelf: nextShelf,
     todayDoneCount: state.todayDoneCount + 1,
     bartenderMood: isDancing ? 'TIKTOK_DANCE' : finishMood,
@@ -863,9 +841,6 @@ export function completeActiveDrink(
   if (state.activeDrink && state.activeDrink.phase === 'BREWING') {
     return completeDrinkInSlot(state, 1, now);
   }
-  if (state.secondaryDrink && state.secondaryDrink.phase === 'BREWING') {
-    return completeDrinkInSlot(state, 2, now);
-  }
   return { state, effects: {} };
 }
 
@@ -875,7 +850,6 @@ export function addToppingToActiveDrink(
   now: number
 ): QueueTransitionResult {
   let nextActive = state.activeDrink;
-  let nextSecondary = state.secondaryDrink;
   let didAdd = false;
 
   if (nextActive && nextActive.phase === 'BREWING') {
@@ -883,16 +857,6 @@ export function addToppingToActiveDrink(
     nextActive = {
       ...nextActive,
       toppings: mergeUniqueToppings(nextActive.toppings, [nextTopping]),
-      lastUpdatedAt: now,
-    };
-    didAdd = true;
-  }
-
-  if (nextSecondary && nextSecondary.phase === 'BREWING') {
-    const nextTopping = preferredTopping ?? pickNextMissingTopping(nextSecondary.toppings);
-    nextSecondary = {
-      ...nextSecondary,
-      toppings: mergeUniqueToppings(nextSecondary.toppings, [nextTopping]),
       lastUpdatedAt: now,
     };
     didAdd = true;
@@ -907,8 +871,8 @@ export function addToppingToActiveDrink(
     state: {
       ...state,
       activeDrink: nextActive,
-      secondaryDrink: nextSecondary,
-      activeSlots: [nextActive, nextSecondary],
+      secondaryDrink: null,
+      activeSlots: [nextActive, null],
       bartenderMood: isDancing ? 'TIKTOK_DANCE' : 'HAPPY',
       lastEventAt: now,
     },
@@ -956,21 +920,12 @@ export function setBrewProgressOnState(
       }
     : null;
 
-  const nextSecondary: ActiveDrink | null = workingState.secondaryDrink
-    ? {
-        ...workingState.secondaryDrink,
-        progress: clamped,
-        phase: 'BREWING',
-        lastUpdatedAt: now,
-      }
-    : null;
-
   return {
     state: {
       ...workingState,
       activeDrink: nextActive,
-      secondaryDrink: nextSecondary,
-      activeSlots: [nextActive, nextSecondary],
+      secondaryDrink: null,
+      activeSlots: [nextActive, null],
       lastEventAt: now,
     },
     effects: { sfxToPlay: clamped >= 90 ? 'lid_snap' : clamped >= 75 ? 'topping' : clamped >= 45 ? 'pour' : 'ice_clink' },
@@ -1083,11 +1038,11 @@ export function advanceDrinkBarTick(
 
   workingState = promoteNextFromQueue(workingState, now);
 
-  if (!workingState.activeDrink && !workingState.secondaryDrink) {
+  if (!workingState.activeDrink) {
     return { state: workingState, effects: {} };
   }
 
-  // PAUSE brewing progress cleanly while bartenders are performing TikTok Dance
+  // PAUSE brewing progress cleanly while barista is performing TikTok Dance
   if (now < workingState.danceUntil) {
     return {
       state: {
@@ -1106,19 +1061,12 @@ export function advanceDrinkBarTick(
   );
 
   const s1 = tickSingleStation(workingState.activeDrink, dtSec, speedMultiplier, durationSec, now);
-  const s2 = tickSingleStation(
-    workingState.secondaryDrink,
-    dtSec,
-    speedMultiplier,
-    durationSec,
-    now
-  );
 
   workingState = {
     ...workingState,
     activeDrink: s1.drink,
-    secondaryDrink: s2.drink,
-    activeSlots: [s1.drink, s2.drink],
+    secondaryDrink: null,
+    activeSlots: [s1.drink, null],
   };
 
   let effects: QueueStepSideEffects = {};
@@ -1129,30 +1077,17 @@ export function advanceDrinkBarTick(
     effects = res1.effects;
   }
 
-  if (s2.justHit100) {
-    const res2 = completeDrinkInSlot(workingState, 2, now);
-    workingState = res2.state;
-    effects = {
-      sfxToPlay: res2.effects.sfxToPlay ?? effects.sfxToPlay,
-      burstKind: res2.effects.burstKind ?? effects.burstKind,
-    };
-  }
-
-  if (s1.finishedShowcase || s2.finishedShowcase) {
+  if (s1.finishedShowcase) {
     const before1 = workingState.activeDrink;
-    const before2 = workingState.secondaryDrink;
     workingState = promoteNextFromQueue(workingState, now);
-    if (
-      (!before1 && workingState.activeDrink) ||
-      (!before2 && workingState.secondaryDrink)
-    ) {
+    if (!before1 && workingState.activeDrink) {
       effects = { ...effects, sfxToPlay: effects.sfxToPlay ?? 'pour' };
     }
   }
 
   const isDancing = now < workingState.danceUntil;
   const isWaving = now < workingState.waveUntil;
-  const hasAnyActive = workingState.activeDrink !== null || workingState.secondaryDrink !== null;
+  const hasAnyActive = workingState.activeDrink !== null;
 
   let nextMood = workingState.bartenderMood;
   if (isDancing) {

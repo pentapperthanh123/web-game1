@@ -325,7 +325,6 @@ export function drawBartenderBody(
   ctx: CanvasRenderingContext2D,
   mood: BartenderMood,
   activeDrink: ActiveDrink | null,
-  _secondaryDrink: ActiveDrink | null,
   isFastBoost: boolean,
   isWaving: boolean,
   isDancing: boolean,
@@ -686,7 +685,6 @@ function drawCharacterFace(
 export function drawBartenderForegroundArmsAndSpeech(
   ctx: CanvasRenderingContext2D,
   activeDrink: ActiveDrink | null,
-  _secondaryDrink: ActiveDrink | null,
   speech: BartenderSpeech | null,
   isFastBoost: boolean,
   isWaving: boolean,

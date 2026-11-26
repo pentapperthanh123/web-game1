@@ -198,7 +198,7 @@ export interface PourVesselParams {
   handX: number;
   handY: number;
   cupCx: number;
-  side: -1 | 1; // -1 = left bartender pouring right, +1 = right bartender pouring left
+  side: -1 | 1; // -1 = barista hand pouring from left side of cup, +1 = pouring from right side
   liquidColor: string;
   accentColor: string;
   targetSurfaceY: number;

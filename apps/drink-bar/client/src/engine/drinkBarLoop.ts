@@ -233,7 +233,6 @@ export class DrinkBarCanvasLoop {
       ctx,
       state.bartenderMood,
       state.activeSlots[0],
-      null,
       isFastBoost,
       isWaving,
       isDancing,
@@ -261,7 +260,6 @@ export class DrinkBarCanvasLoop {
     drawBartenderForegroundArmsAndSpeech(
       ctx,
       state.activeSlots[0],
-      null,
       state.bartenderSpeech,
       isFastBoost,
       isWaving,
