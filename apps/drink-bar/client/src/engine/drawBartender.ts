@@ -8,28 +8,187 @@ import type {
   GiftTier,
 } from '@shared/types';
 import {
+  BOBA_SCOOP_END_PROGRESS,
+  BOBA_SCOOP_START_PROGRESS,
+  CAFE_CREAM_START_PROGRESS,
+  CAFE_POUR_END_PROGRESS,
   clamp01,
   computeLiquidFillSnapshot,
   CUP1_CX,
-  CUP2_CX,
+  CUP_BOTTOM_HALF_W,
+  CUP_BOTTOM_Y,
+  CUP_HEIGHT,
+  CUP_PICKUP_END_PROGRESS,
+  CUP_TOP_HALF_W,
   CUP_TOP_Y,
-  drawMotionArcs,
+  DISPENSE_END_PROGRESS,
+  drawGraduatedMeasuringCup,
+  drawMatchaChawanWithFrother,
   drawPourLiquidEffect,
-  drawRisingSteamWisps,
+  drawStainlessPitcherWithFrother,
+  LID_PICKUP_END_PROGRESS,
+  MATCHA_MILK_SPLIT_RATIO,
+  MATCHA_SHELF_END_PROGRESS,
+  MATCHA_SWAP_END_RATIO,
+  SHAKER_LIFT_END_PROGRESS,
+  SODA_SWAP_END_RATIO,
+  SODA_SYRUP_SPLIT_RATIO,
+  SUGAR_PRESS_START_PROGRESS,
+  THAI_TEA_CREAM_START_PROGRESS,
+  THAI_TEA_POUR_END_PROGRESS,
   transformRotatedAnchor,
+  type PourVesselKind,
 } from './brewEffects';
-import { roundedRectPath } from './drawBarScene';
+import { BAR_STATION_COORDS, roundedRectPath } from './drawBarScene';
+import { computeShowcaseSlideFactor } from './drawDrinkCup';
 
-const BARISTA_LEFT_X = 322;
-const BARISTA_LEFT_HEAD_Y = 486;
-const BARISTA_LEFT_TORSO_Y = 514;
+export const BARISTA_CENTER_X = 360;
+const BARISTA_HEAD_Y = 478;
+const BARISTA_TORSO_Y = 508;
+const STAGE_WORK_CENTER_X = 360;
+const OUTLINE_W = 2.6;
+const BARISTA_SKIN = '#FDE0C2';
 
-const BARISTA_RIGHT_X = 630;
-const BARISTA_RIGHT_HEAD_Y = 488;
-const BARISTA_RIGHT_TORSO_Y = 516;
+export function isCupPickupSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.progress < CUP_PICKUP_END_PROGRESS
+  );
+}
 
-const STAGE_WORK_CENTER_X = 476;
-const OUTLINE_W = 3;
+export function isMatchaShelfSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.recipeId === 'matcha' &&
+      drink.progress >= CUP_PICKUP_END_PROGRESS &&
+      drink.progress < MATCHA_SHELF_END_PROGRESS
+  );
+}
+
+export function isSugarButtonSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.recipeId !== 'matcha' &&
+      drink.progress >= SUGAR_PRESS_START_PROGRESS &&
+      drink.progress < DISPENSE_END_PROGRESS
+  );
+}
+
+export function isBobaScoopSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.recipeId === 'thai_tea' &&
+      drink.progress >= BOBA_SCOOP_START_PROGRESS &&
+      drink.progress < BOBA_SCOOP_END_PROGRESS
+  );
+}
+
+export function isShakerLiftSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.recipeId === 'thai_tea' &&
+      drink.progress >= 56 &&
+      drink.progress < SHAKER_LIFT_END_PROGRESS
+  );
+}
+
+export function isShakerDetachedSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.recipeId === 'thai_tea' &&
+      drink.progress >= 56 &&
+      drink.progress < THAI_TEA_POUR_END_PROGRESS
+  );
+}
+
+/**
+ * Returns the physical liquid fill level (0..1) inside the shaker resting on the shaker machine.
+ * Fills for thai_tea during P2/P3 (0.94), detaches during P4, and stays EMPTY (0) once poured & returned in P5/SHOWCASE!
+ */
+export function resolveShakerMachineFillRatio(drink: ActiveDrink | null): number {
+  if (!drink || drink.recipeId !== 'thai_tea' || drink.phase !== 'BREWING') {
+    return 0;
+  }
+  if (drink.progress >= DISPENSE_END_PROGRESS && drink.progress < 56) {
+    return 0.94;
+  }
+  return 0;
+}
+
+export function isLidPickupSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.progress >= 84 &&
+      drink.progress < LID_PICKUP_END_PROGRESS
+  );
+}
+
+export function isHoldingOatsideSubstep(drink: ActiveDrink | null): boolean {
+  if (!drink || drink.phase !== 'BREWING' || drink.recipeId !== 'matcha') return false;
+  if (
+    drink.progress >= MATCHA_SHELF_END_PROGRESS &&
+    drink.progress < DISPENSE_END_PROGRESS
+  ) {
+    return true;
+  }
+  const action = getBrewStep(drink.progress, drink.recipeId).action;
+  if (action !== 'pour_mix') return false;
+  return resolvePourRatio(drink) <= MATCHA_MILK_SPLIT_RATIO + 0.05;
+}
+
+export function resolveTargetBaristaX(
+  drink: ActiveDrink | null,
+  isDancing: boolean
+): number {
+  if (isDancing || !drink || drink.phase !== 'BREWING') {
+    return BARISTA_CENTER_X;
+  }
+
+  // Sub-step 0..7%: Walk right to Cup Stack (x=454), pick cup, then carry back to center coaster (x=360)
+  if (isCupPickupSubstep(drink)) {
+    const pickupT = clamp01(drink.progress / CUP_PICKUP_END_PROGRESS);
+    return pickupT < 0.45 ? 416 : BARISTA_CENTER_X;
+  }
+
+  const action = getBrewStep(drink.progress, drink.recipeId).action;
+  if (action === 'dispense') {
+    if (isMatchaShelfSubstep(drink)) return 462;
+    if (isSugarButtonSubstep(drink)) return 194;
+    if (drink.recipeId === 'thai_tea') return 224;
+    if (drink.recipeId === 'coffee_milk') return 486;
+    if (drink.recipeId === 'berry_soda') return 368;
+    return 296;
+  }
+
+  if (action === 'tool_prep') {
+    if (drink.recipeId === 'thai_tea') return 148;
+    return 296;
+  }
+
+  if (action === 'add_ice') {
+    if (isBobaScoopSubstep(drink)) return 268;
+    return 304;
+  }
+
+  if (action === 'pour_mix' && isShakerLiftSubstep(drink)) {
+    const liftT = clamp01((drink.progress - 56) / (SHAKER_LIFT_END_PROGRESS - 56));
+    return liftT < 0.45 ? 188 : BARISTA_CENTER_X;
+  }
+
+  if (action === 'seal' && isLidPickupSubstep(drink)) {
+    const lidT = clamp01((drink.progress - 84) / (LID_PICKUP_END_PROGRESS - 84));
+    return lidT < 0.45 ? 434 : BARISTA_CENTER_X;
+  }
+
+  return BARISTA_CENTER_X;
+}
 
 interface DanceMotion {
   isDancing: boolean;
@@ -85,9 +244,9 @@ function computeDanceMotion(
     isDancing: true,
     style: danceStyle,
     blend,
-    swayX: Math.sin(beatPhase * 0.5) * 11 * amp,
-    bounceY: -Math.abs(Math.sin(beatPhase)) * 8.5 * amp,
-    headTiltRad: Math.sin(beatPhase * 0.5) * 0.12 * amp,
+    swayX: Math.sin(beatPhase * 0.5) * 12 * amp,
+    bounceY: -Math.abs(Math.sin(beatPhase)) * 9 * amp,
+    headTiltRad: Math.sin(beatPhase * 0.5) * 0.13 * amp,
     beatPhase,
     poseIndex: Math.floor(elapsedSec * 1.4) % 2,
   };
@@ -97,37 +256,62 @@ function computeCharacterBob(
   dance: DanceMotion,
   isWorking: boolean,
   elapsedSec: number,
-  rhythmFreq: number,
-  phaseOffset: number,
-  ampWork: number,
-  ampIdle: number
+  rhythmFreq: number
 ): number {
   if (dance.isDancing) {
     return dance.bounceY;
   }
   if (isWorking) {
-    return Math.sin(elapsedSec * rhythmFreq + phaseOffset) * ampWork;
+    return Math.sin(elapsedSec * rhythmFreq) * 3.4;
   }
-  return Math.sin(elapsedSec * 2.05 + phaseOffset) * ampIdle;
+  return Math.sin(elapsedSec * 2.05) * 2.0;
+}
+
+function resolvePourRatio(drink: ActiveDrink): number {
+  const pourPhase = RECIPE_BREW_PHASES[drink.recipeId].find((p) => p.action === 'pour_mix');
+  const pourStart = pourPhase?.minProgress ?? 56;
+  const pourSpan = Math.max(10, (pourPhase?.maxProgress ?? 84) - pourStart);
+  return clamp01((drink.progress - pourStart) / pourSpan);
+}
+
+function resolveStepProgress(drink: ActiveDrink): number {
+  const step = getBrewStep(drink.progress, drink.recipeId);
+  const span = Math.max(1, step.maxProgress - step.minProgress);
+  return clamp01((drink.progress - step.minProgress) / span);
 }
 
 function resolveActivePourColor(drink: ActiveDrink): string {
   const recipe = RECIPE_MAP[drink.recipeId];
-  const pourPhase = RECIPE_BREW_PHASES[drink.recipeId].find((p) => p.action === 'pour_mix');
-  const pourStart = pourPhase?.minProgress ?? 45;
-  const pourSpan = Math.max(10, (pourPhase?.maxProgress ?? 75) - pourStart);
-  const pourRatio = clamp01((drink.progress - pourStart) / pourSpan);
+  const pourRatio = resolvePourRatio(drink);
 
   if (drink.recipeId === 'matcha') {
-    return pourRatio > 0.32 ? '#A7D397' : '#FFFDF7';
+    return pourRatio > MATCHA_MILK_SPLIT_RATIO ? '#A7D397' : '#FFFDF7';
   }
   if (drink.recipeId === 'coffee_milk') {
-    return pourRatio > 0.32 ? '#6F4732' : '#F7E8D4';
+    return '#613820';
   }
   if (drink.recipeId === 'berry_soda') {
-    return drink.progress < pourStart ? '#E04F6D' : '#7FC8D9';
+    return pourRatio > SODA_SYRUP_SPLIT_RATIO ? '#7FC8D9' : '#E04F6D';
   }
   return recipe.baseColor;
+}
+
+function resolveActivePourVessel(drink: ActiveDrink): PourVesselKind {
+  const pourRatio = resolvePourRatio(drink);
+
+  if (drink.recipeId === 'matcha') {
+    return pourRatio <= MATCHA_MILK_SPLIT_RATIO ? 'oatside_milk' : 'chasen';
+  }
+  if (drink.recipeId === 'coffee_milk') {
+    return 'steel_pitcher';
+  }
+  if (drink.recipeId === 'berry_soda') {
+    return pourRatio <= SODA_SYRUP_SPLIT_RATIO ? 'measuring_jug' : 'soda_pour';
+  }
+  if (drink.recipeId === 'blue_citrus') {
+    return 'measuring_jug';
+  }
+  return 'shaker';
 }
 
 function resolveBrewAction(drink: ActiveDrink | null): BrewPhaseAction | null {
@@ -141,61 +325,55 @@ export function drawBartenderBody(
   ctx: CanvasRenderingContext2D,
   mood: BartenderMood,
   activeDrink: ActiveDrink | null,
-  secondaryDrink: ActiveDrink | null,
+  _secondaryDrink: ActiveDrink | null,
   isFastBoost: boolean,
   isWaving: boolean,
   isDancing: boolean,
   danceTier: GiftTier,
   danceStyle: DanceStyle,
   danceStartedAt: number,
-  elapsedSec: number
+  elapsedSec: number,
+  baristaPosX = BARISTA_CENTER_X,
+  walkVelocity = 0
 ): void {
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
   const dance = computeDanceMotion(isDancing, danceStyle, danceStartedAt, elapsedSec);
-  const isStaff1Working = !isDancing && Boolean(activeDrink && activeDrink.phase === 'BREWING');
-  const isStaff2Working = !isDancing && Boolean(secondaryDrink && secondaryDrink.phase === 'BREWING');
-  const isStaff1Celebrating =
+  const isWorking = !isDancing && Boolean(activeDrink && activeDrink.phase === 'BREWING');
+  const isCelebrating =
     isWaving ||
     Boolean(activeDrink && (activeDrink.phase === 'SHOWCASE' || activeDrink.progress >= 94));
-  const isStaff2Celebrating =
-    isWaving ||
-    Boolean(secondaryDrink && (secondaryDrink.phase === 'SHOWCASE' || secondaryDrink.progress >= 94));
   const rhythmFreq = isFastBoost ? 9.5 : 5.2;
 
-  const staff1Bob = computeCharacterBob(dance, isStaff1Working, elapsedSec, rhythmFreq, 0.9, 3.8, 2.2);
-  const staff2Bob = computeCharacterBob(dance, isStaff2Working, elapsedSec, rhythmFreq, 0, 3.8, 2.2);
+  const walkSpeedNorm = clamp01(Math.abs(walkVelocity) / 42);
+  const walkHop = -Math.abs(Math.sin(elapsedSec * 14)) * 4.5 * walkSpeedNorm;
+  const bob =
+    computeCharacterBob(dance, isWorking, elapsedSec, rhythmFreq) +
+    (dance.isDancing ? 0 : walkHop);
   const effectiveMood: BartenderMood = dance.isDancing ? 'TIKTOK_DANCE' : mood;
-  const staff1Tilt = dance.isDancing ? dance.headTiltRad : Math.sin(elapsedSec * 1.45 + 0.5) * 0.025;
-  const staff2Tilt = dance.isDancing ? -dance.headTiltRad : Math.sin(elapsedSec * 1.45 + 2.1) * 0.025;
+  const walkTilt = Math.sign(walkVelocity) * 0.045 * walkSpeedNorm;
+  const headTilt = dance.isDancing
+    ? dance.headTiltRad
+    : Math.sin(elapsedSec * 1.45) * 0.024 + walkTilt;
+
+  const cx = dance.isDancing ? BARISTA_CENTER_X + dance.swayX : baristaPosX;
 
   if (dance.isDancing) {
     if (dance.style === 'party_hype') {
       drawPartyHypeSpotlights(ctx, dance.blend, elapsedSec);
     }
-    drawDanceBackAura(ctx, BARISTA_LEFT_X + dance.swayX, BARISTA_LEFT_HEAD_Y + 26, danceTier, dance.style, elapsedSec);
-    drawDanceBackAura(ctx, BARISTA_RIGHT_X + dance.swayX, BARISTA_RIGHT_HEAD_Y + 26, danceTier, dance.style, elapsedSec);
+    drawDanceBackAura(ctx, cx, BARISTA_HEAD_Y + 26, danceTier, dance.style, elapsedSec);
   }
 
-  drawLeftFemaleBartenderTorsoAndHead(
+  drawCentralBaristaTorsoAndHead(
     ctx,
     effectiveMood,
-    isStaff1Celebrating,
-    BARISTA_LEFT_X + dance.swayX,
-    staff1Bob,
-    staff1Tilt,
-    elapsedSec
-  );
-
-  drawRightFemaleBartenderTorsoAndHead(
-    ctx,
-    effectiveMood,
-    isStaff2Celebrating,
-    BARISTA_RIGHT_X + dance.swayX,
-    staff2Bob,
-    staff2Tilt,
+    isCelebrating,
+    cx,
+    bob,
+    headTilt,
     elapsedSec
   );
 
@@ -209,29 +387,29 @@ function drawPartyHypeSpotlights(
 ): void {
   ctx.save();
   ctx.globalAlpha = 0.28 * blend;
-  const sway = Math.sin(elapsedSec * 3.5) * 18;
+  const sway = Math.sin(elapsedSec * 3.5) * 24;
 
-  const leftGrad = ctx.createLinearGradient(BARISTA_LEFT_X, 240, BARISTA_LEFT_X + sway, 660);
-  leftGrad.addColorStop(0, 'rgba(255, 214, 138, 0.75)');
+  const leftGrad = ctx.createLinearGradient(240, 210, 330 + sway, 660);
+  leftGrad.addColorStop(0, 'rgba(255, 214, 138, 0.78)');
   leftGrad.addColorStop(1, 'rgba(255, 214, 138, 0)');
   ctx.fillStyle = leftGrad;
   ctx.beginPath();
-  ctx.moveTo(BARISTA_LEFT_X - 18, 240);
-  ctx.lineTo(BARISTA_LEFT_X + 18, 240);
-  ctx.lineTo(BARISTA_LEFT_X + 75 + sway, 660);
-  ctx.lineTo(BARISTA_LEFT_X - 75 + sway, 660);
+  ctx.moveTo(222, 210);
+  ctx.lineTo(262, 210);
+  ctx.lineTo(410 + sway, 660);
+  ctx.lineTo(250 + sway, 660);
   ctx.closePath();
   ctx.fill();
 
-  const rightGrad = ctx.createLinearGradient(BARISTA_RIGHT_X, 240, BARISTA_RIGHT_X - sway, 660);
-  rightGrad.addColorStop(0, 'rgba(174, 226, 244, 0.75)');
+  const rightGrad = ctx.createLinearGradient(480, 210, 390 - sway, 660);
+  rightGrad.addColorStop(0, 'rgba(174, 226, 244, 0.78)');
   rightGrad.addColorStop(1, 'rgba(174, 226, 244, 0)');
   ctx.fillStyle = rightGrad;
   ctx.beginPath();
-  ctx.moveTo(BARISTA_RIGHT_X - 18, 240);
-  ctx.lineTo(BARISTA_RIGHT_X + 18, 240);
-  ctx.lineTo(BARISTA_RIGHT_X + 75 - sway, 660);
-  ctx.lineTo(BARISTA_RIGHT_X - 75 - sway, 660);
+  ctx.moveTo(458, 210);
+  ctx.lineTo(498, 210);
+  ctx.lineTo(470 - sway, 660);
+  ctx.lineTo(310 - sway, 660);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -246,16 +424,16 @@ function drawDanceBackAura(
   elapsedSec: number
 ): void {
   const pulse = 0.92 + Math.sin(elapsedSec * 7) * 0.08;
-  const radius = (tier === 'LARGE' ? 84 : 70) * pulse;
-  const grad = ctx.createRadialGradient(cx, cy, 12, cx, cy, radius);
+  const radius = (tier === 'LARGE' ? 96 : 82) * pulse;
+  const grad = ctx.createRadialGradient(cx, cy, 14, cx, cy, radius);
   if (style === 'party_hype') {
     grad.addColorStop(0, 'rgba(247, 201, 91, 0.45)');
     grad.addColorStop(1, 'rgba(247, 201, 91, 0)');
   } else if (style === 'groove_wave') {
-    grad.addColorStop(0, 'rgba(127, 200, 217, 0.36)');
+    grad.addColorStop(0, 'rgba(127, 200, 217, 0.38)');
     grad.addColorStop(1, 'rgba(127, 200, 217, 0)');
   } else {
-    grad.addColorStop(0, 'rgba(240, 120, 140, 0.34)');
+    grad.addColorStop(0, 'rgba(240, 120, 140, 0.36)');
     grad.addColorStop(1, 'rgba(240, 120, 140, 0)');
   }
   ctx.fillStyle = grad;
@@ -264,8 +442,8 @@ function drawDanceBackAura(
   ctx.fill();
 
   if (style === 'groove_wave') {
-    const waveR = 46 + ((elapsedSec * 28) % 30);
-    const waveAlpha = Math.max(0, 1 - (waveR - 46) / 30) * 0.45;
+    const waveR = 52 + ((elapsedSec * 30) % 34);
+    const waveAlpha = Math.max(0, 1 - (waveR - 52) / 34) * 0.46;
     ctx.beginPath();
     ctx.arc(cx, cy, waveR, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(127, 200, 217, ${waveAlpha.toFixed(2)})`;
@@ -274,70 +452,7 @@ function drawDanceBackAura(
   }
 }
 
-const BARISTA_SKIN = '#FDE0C2';
-
-function drawRoundedRaglanTorsoPath(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  topY: number
-): void {
-  ctx.beginPath();
-  ctx.moveTo(cx - 24, topY);
-  ctx.quadraticCurveTo(cx - 43, topY + 6, cx - 41, topY + 34);
-  ctx.lineTo(cx - 38, topY + 132);
-  ctx.quadraticCurveTo(cx - 36, topY + 148, cx - 18, topY + 148);
-  ctx.lineTo(cx + 18, topY + 148);
-  ctx.quadraticCurveTo(cx + 36, topY + 148, cx + 38, topY + 132);
-  ctx.lineTo(cx + 41, topY + 34);
-  ctx.quadraticCurveTo(cx + 43, topY + 6, cx + 24, topY);
-  ctx.closePath();
-}
-
-function drawApronStrapWithOutline(
-  ctx: CanvasRenderingContext2D,
-  xTop: number,
-  yTop: number,
-  xBot: number,
-  yBot: number,
-  apronColor: string
-): void {
-  ctx.beginPath();
-  ctx.moveTo(xTop, yTop);
-  ctx.lineTo(xBot, yBot);
-  ctx.lineWidth = 9.5;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  ctx.lineWidth = 5.2;
-  ctx.strokeStyle = apronColor;
-  ctx.stroke();
-}
-
-function drawApronPocketWithStitch(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  y: number,
-  pocketColor: string
-): void {
-  roundedRectPath(ctx, cx - 15, y, 30, 21, 7);
-  ctx.fillStyle = pocketColor;
-  ctx.fill();
-  ctx.lineWidth = 2.2;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // Subtle cream stitch ticks along pocket opening
-  ctx.strokeStyle = 'rgba(255, 245, 230, 0.7)';
-  ctx.lineWidth = 1.6;
-  for (let i = -9; i <= 9; i += 6) {
-    ctx.beginPath();
-    ctx.moveTo(cx + i - 1.5, y + 4.5);
-    ctx.lineTo(cx + i + 1.5, y + 4.5);
-    ctx.stroke();
-  }
-}
-
-function drawLeftFemaleBartenderTorsoAndHead(
+function drawCentralBaristaTorsoAndHead(
   ctx: CanvasRenderingContext2D,
   mood: BartenderMood,
   isCelebrating: boolean,
@@ -346,501 +461,232 @@ function drawLeftFemaleBartenderTorsoAndHead(
   headTiltRad: number,
   elapsedSec: number
 ): void {
-  const headY = BARISTA_LEFT_HEAD_Y + bob;
-  const torsoY = BARISTA_LEFT_TORSO_Y + bob;
+  const headY = BARISTA_HEAD_Y + bob;
+  const torsoY = BARISTA_TORSO_Y + bob;
 
-  // 1. Soft low twin side-tails behind shoulders (Back hair)
-  ctx.save();
-  ctx.translate(cx, headY);
-  ctx.rotate(headTiltRad * 0.7);
-
-  // Left low side-tail behind shoulder
-  ctx.beginPath();
-  ctx.moveTo(-28, 5);
-  ctx.quadraticCurveTo(-48, 22, -42, 58);
-  ctx.quadraticCurveTo(-34, 62, -31, 48);
-  ctx.quadraticCurveTo(-24, 28, -20, 15);
-  ctx.closePath();
-  ctx.fillStyle = '#4A2E20';
-  ctx.fill();
-  ctx.lineWidth = OUTLINE_W;
+  // Back hair silhouette framing neck & shoulders
+  ctx.fillStyle = '#4B3227';
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // Right low side-tail behind shoulder
-  ctx.beginPath();
-  ctx.moveTo(28, 5);
-  ctx.quadraticCurveTo(48, 22, 42, 58);
-  ctx.quadraticCurveTo(34, 62, 31, 48);
-  ctx.quadraticCurveTo(24, 28, 20, 15);
-  ctx.closePath();
-  ctx.fillStyle = '#4A2E20';
-  ctx.fill();
-  ctx.stroke();
-
-  // Adorable pastel-pink hair ribbon ties at side-tail roots
-  [-1, 1].forEach((side) => {
-    const rx = side * 33;
-    const ry = 18;
-    ctx.save();
-    ctx.translate(rx, ry);
-    ctx.rotate(side * 0.3);
-    ctx.fillStyle = '#FCE7EE';
-    ctx.lineWidth = 2.1;
-    ctx.beginPath();
-    ctx.ellipse(-4.5, 0, 4.8, 3.2, -0.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(4.5, 0, 4.8, 3.2, 0.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, 2.4, 0, Math.PI * 2);
-    ctx.fillStyle = '#F4A6BE';
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-  });
-  ctx.restore();
-
-  // 2. Soft curved shirt silhouette + cute strawberry-pink #E58FA8 barista apron
-  drawRoundedRaglanTorsoPath(ctx, cx, torsoY);
-  ctx.fillStyle = '#FFF9FA';
-  ctx.fill();
   ctx.lineWidth = OUTLINE_W;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  roundedRectPath(ctx, cx - 29, torsoY + 15, 58, 133, 15);
-  ctx.fillStyle = '#E58FA8';
+  ctx.beginPath();
+  ctx.arc(cx - 28, headY + 20, 19, 0, Math.PI * 2);
+  ctx.arc(cx + 28, headY + 20, 19, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
-  drawApronStrapWithOutline(ctx, cx - 20, torsoY + 2, cx - 18, torsoY + 20, '#E58FA8');
-  drawApronStrapWithOutline(ctx, cx + 20, torsoY + 2, cx + 18, torsoY + 20, '#E58FA8');
-  drawApronPocketWithStitch(ctx, cx, torsoY + 42, '#CD758F');
-
-  // Cute matcha leaf & coffee-bean badge pin on apron chest
-  ctx.save();
-  ctx.translate(cx - 17, torsoY + 31);
-  ctx.rotate(-0.35);
+  // Clean raglan white shirt torso
   ctx.beginPath();
-  ctx.ellipse(0, 0, 6.2, 3.8, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#A7D397';
+  ctx.moveTo(cx - 26, torsoY);
+  ctx.quadraticCurveTo(cx - 46, torsoY + 6, cx - 44, torsoY + 36);
+  ctx.lineTo(cx - 41, torsoY + 148);
+  ctx.lineTo(cx + 41, torsoY + 148);
+  ctx.lineTo(cx + 44, torsoY + 36);
+  ctx.quadraticCurveTo(cx + 46, torsoY + 6, cx + 26, torsoY);
+  ctx.closePath();
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  // Cute pastel strawberry-pink barista apron
+  roundedRectPath(ctx, cx - 31, torsoY + 28, 62, 122, 14);
+  ctx.fillStyle = '#F29BB5';
+  ctx.fill();
+  ctx.stroke();
+
+  // Apron straps
+  ctx.fillStyle = '#E5809E';
+  roundedRectPath(ctx, cx - 23, torsoY + 2, 10, 32, 4);
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, cx + 13, torsoY + 2, 10, 32, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  // Coffee-leaf pin on apron chest
+  ctx.beginPath();
+  ctx.ellipse(cx - 18, torsoY + 43, 6, 3.8, -0.4, 0, Math.PI * 2);
+  ctx.fillStyle = '#89C073';
   ctx.fill();
   ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // Stitched apron front pocket
+  ctx.lineWidth = OUTLINE_W;
+  roundedRectPath(ctx, cx - 18, torsoY + 60, 36, 25, 8);
+  ctx.fillStyle = '#E5809E';
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255, 253, 249, 0.72)';
+  ctx.lineWidth = 1.6;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(cx - 12, torsoY + 66);
+  ctx.lineTo(cx + 12, torsoY + 66);
+  ctx.stroke();
+  ctx.setLineDash([]);
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-3.5, 0);
-  ctx.lineTo(3.5, 0);
-  ctx.lineWidth = 1.2;
-  ctx.stroke();
-  ctx.restore();
+  ctx.lineWidth = OUTLINE_W;
 
-  // Snug short neck (2.5px outline) tucked directly between chin and shirt collar
-  roundedRectPath(ctx, cx - 10, headY + 23, 20, 14, 6);
-  ctx.fillStyle = BARISTA_SKIN;
-  ctx.fill();
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // Crisp shirt collar flaps anchoring neck cleanly to torso
-  ctx.fillStyle = '#FFFDF9';
-  ctx.lineWidth = 2.2;
+  // Neck bow tie
+  ctx.fillStyle = '#F0788C';
   ctx.beginPath();
-  ctx.moveTo(cx - 16, torsoY + 2);
-  ctx.lineTo(cx, torsoY + 11);
-  ctx.lineTo(cx + 16, torsoY + 2);
+  ctx.moveTo(cx, torsoY + 12);
+  ctx.lineTo(cx - 11, torsoY + 6);
+  ctx.lineTo(cx - 11, torsoY + 17);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-
-  // Cute coral-pink barista bow-tie right under chin
-  ctx.fillStyle = '#E5738E';
-  ctx.lineWidth = 2.1;
   ctx.beginPath();
-  ctx.moveTo(cx, headY + 35);
-  ctx.lineTo(cx - 10.5, headY + 30);
-  ctx.lineTo(cx - 10.5, headY + 40);
+  ctx.moveTo(cx, torsoY + 12);
+  ctx.lineTo(cx + 11, torsoY + 6);
+  ctx.lineTo(cx + 11, torsoY + 17);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-
   ctx.beginPath();
-  ctx.moveTo(cx, headY + 35);
-  ctx.lineTo(cx + 10.5, headY + 30);
-  ctx.lineTo(cx + 10.5, headY + 40);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(cx, headY + 35, 3.3, 0, Math.PI * 2);
+  ctx.arc(cx, torsoY + 11.5, 4.2, 0, Math.PI * 2);
   ctx.fillStyle = '#F7C95B';
   ctx.fill();
   ctx.stroke();
 
-  // 3. Head + Soft Front Hair with Neat Blunt Bangs + Cute Hair Clip
+  // Head + Chibi Face + Energetic Barista Baseball Cap
   ctx.save();
   ctx.translate(cx, headY);
   ctx.rotate(headTiltRad);
 
-  // Main hair back mass
+  ctx.fillStyle = BARISTA_SKIN;
   ctx.beginPath();
-  ctx.ellipse(0, -6, 40, 39, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#4A2E20';
+  ctx.arc(-36, 4, 7.5, 0, Math.PI * 2);
+  ctx.arc(36, 4, 7.5, 0, Math.PI * 2);
   ctx.fill();
-  ctx.lineWidth = OUTLINE_W;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  // Chibi round face
   ctx.beginPath();
-  ctx.ellipse(0, 0, 34.5, 33, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 2, 37, 33, 0, 0, Math.PI * 2);
   ctx.fillStyle = BARISTA_SKIN;
   ctx.fill();
   ctx.stroke();
 
-  // Neat blunt bangs with soft curves & subtle hair separation slits + side tendrils
+  ctx.fillStyle = '#4B3227';
   ctx.beginPath();
-  ctx.arc(0, -5, 35, Math.PI * 1.04, Math.PI * 1.96);
-  ctx.lineTo(33, -7);
-  // Right side tendril curving down alongside cheek
-  ctx.quadraticCurveTo(34, 10, 31, 20);
-  ctx.quadraticCurveTo(27, 21, 28, 6);
-  // Blunt bangs across forehead with cute separation notches
-  ctx.quadraticCurveTo(20, -5, 14, -6);
-  ctx.quadraticCurveTo(10, 0, 6, -6);
-  ctx.quadraticCurveTo(0, -4, -6, -6);
-  ctx.quadraticCurveTo(-10, 0, -14, -6);
-  ctx.quadraticCurveTo(-20, -5, -28, 6);
-  // Left side tendril curving down alongside cheek
-  ctx.quadraticCurveTo(-27, 21, -31, 20);
-  ctx.quadraticCurveTo(-34, 10, -33, -7);
+  ctx.moveTo(-36, -6);
+  ctx.quadraticCurveTo(-22, -22, 0, -20);
+  ctx.quadraticCurveTo(22, -22, 36, -6);
+  ctx.quadraticCurveTo(26, -1, 14, -7);
+  ctx.quadraticCurveTo(0, 0, -14, -7);
+  ctx.quadraticCurveTo(-26, -1, -36, -6);
   ctx.closePath();
-  ctx.fillStyle = '#4A2E20';
   ctx.fill();
   ctx.stroke();
 
-  // Cute hair clip (pink-cream bow with pearl center) on upper left side of bangs
-  ctx.save();
-  ctx.translate(-22, -24);
-  ctx.rotate(-0.25);
-  ctx.fillStyle = '#FCE7EE';
-  ctx.lineWidth = 2.2;
+  // Barista Cap crown
   ctx.beginPath();
-  ctx.ellipse(-6, 0, 6.5, 4.2, -0.2, 0, Math.PI * 2);
+  ctx.arc(0, -10, 38, Math.PI * 1.03, Math.PI * 1.97, false);
+  ctx.closePath();
+  ctx.fillStyle = '#7D4D4A';
+  ctx.fill();
+  ctx.lineWidth = OUTLINE_W;
+  ctx.stroke();
+
+  // Cap top button
+  ctx.beginPath();
+  ctx.arc(0, -49, 4.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#F7C95B';
   ctx.fill();
   ctx.stroke();
+
+  // Pastel visor brim
   ctx.beginPath();
-  ctx.ellipse(6, 0, 6.5, 4.2, 0.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+  ctx.moveTo(-38, -11);
+  ctx.quadraticCurveTo(0, -22, 42, -11);
+  ctx.quadraticCurveTo(10, -3, -38, -11);
+  ctx.closePath();
   ctx.fillStyle = '#F4A6BE';
   ctx.fill();
   ctx.stroke();
+
+  // Emblem badge
   ctx.beginPath();
-  ctx.arc(0, 0, 1.4, 0, Math.PI * 2);
-  ctx.fillStyle = '#FFFDF9';
+  ctx.arc(0, -26, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFF9FA';
   ctx.fill();
-  ctx.restore();
-
-  drawCharacterFace(ctx, 0, 0, mood, isCelebrating, elapsedSec, false, 1);
-  ctx.restore();
-}
-
-function drawRightFemaleBartenderTorsoAndHead(
-  ctx: CanvasRenderingContext2D,
-  mood: BartenderMood,
-  isCelebrating: boolean,
-  cx: number,
-  bob: number,
-  headTiltRad: number,
-  elapsedSec: number
-): void {
-  const headY = BARISTA_RIGHT_HEAD_Y + bob;
-  const torsoY = BARISTA_RIGHT_TORSO_Y + bob;
-
-  // Soft curved cream shirt + dusty-pink #D47896 apron
-  drawRoundedRaglanTorsoPath(ctx, cx, torsoY);
-  ctx.fillStyle = '#FFFDF9';
-  ctx.fill();
-  ctx.lineWidth = OUTLINE_W;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 1.9;
   ctx.stroke();
-
-  roundedRectPath(ctx, cx - 29, torsoY + 15, 58, 133, 15);
-  ctx.fillStyle = '#D47896';
-  ctx.fill();
-  ctx.stroke();
-
-  drawApronStrapWithOutline(ctx, cx - 20, torsoY + 2, cx - 18, torsoY + 20, '#D47896');
-  drawApronStrapWithOutline(ctx, cx + 20, torsoY + 2, cx + 18, torsoY + 20, '#D47896');
-  drawApronPocketWithStitch(ctx, cx, torsoY + 42, '#BC5E7D');
-
-  // Cute golden star pin on apron chest
-  drawDanceSparkleStar(ctx, cx + 17, torsoY + 31, 5.4, '#F7C95B');
-
-  // Snug short neck (2.5px outline) cleanly hugging chin & collar
-  roundedRectPath(ctx, cx - 9.5, headY + 23, 19, 14, 6);
-  ctx.fillStyle = BARISTA_SKIN;
-  ctx.fill();
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // Delicate two-petal rounded light collar hugging neck
-  ctx.fillStyle = '#FFFDF9';
-  ctx.lineWidth = 2.2;
+  ctx.fillStyle = '#F0788C';
   ctx.beginPath();
-  ctx.ellipse(cx - 8, torsoY + 4, 8.5, 4.8, 0.25, 0, Math.PI * 2);
+  ctx.arc(0, -26, 2.8, 0, Math.PI * 2);
   ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(cx + 8, torsoY + 4, 8.5, 4.8, -0.25, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
 
-  // Head + Neat High Bun + Pastel Hair Band & Bow + Soft Wispy Bangs
-  ctx.save();
-  ctx.translate(cx, headY);
-  ctx.rotate(headTiltRad);
-
-  // Hair back mass
-  ctx.beginPath();
-  ctx.ellipse(0, -4, 41, 40, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#33221B';
-  ctx.fill();
-  ctx.lineWidth = OUTLINE_W;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // High neat bun
-  ctx.beginPath();
-  ctx.arc(6, -44, 15, 0, Math.PI * 2);
-  ctx.fillStyle = '#33221B';
-  ctx.fill();
-  ctx.stroke();
-
-  // Cute pastel-pink hair ribbon scrunchie at bun base
-  ctx.save();
-  ctx.translate(3, -31);
-  ctx.rotate(-0.15);
-  ctx.fillStyle = '#F7C6D7';
-  ctx.lineWidth = 2.1;
-  ctx.beginPath();
-  ctx.ellipse(-6.5, 0, 6.2, 3.8, -0.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(6.5, 0, 6.2, 3.8, 0.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, 0, 2.8, 0, Math.PI * 2);
-  ctx.fillStyle = '#FFF1C2';
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-
-  // Soft curved face contour
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 34.5, 33, 0, 0, Math.PI * 2);
-  ctx.fillStyle = BARISTA_SKIN;
-  ctx.fill();
-  ctx.stroke();
-
-  // Cute pastel headband (băng đô hồng kem) across head
-  ctx.beginPath();
-  ctx.arc(0, -4, 34.5, Math.PI * 1.14, Math.PI * 1.86);
-  ctx.lineWidth = 4.2;
-  ctx.strokeStyle = '#FCE7EE';
-  ctx.stroke();
-  ctx.lineWidth = OUTLINE_W;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-
-  // Hairline & wispy see-through bangs with curved side locks
-  ctx.beginPath();
-  ctx.arc(0, -5, 35, Math.PI * 1.05, Math.PI * 1.98);
-  ctx.lineTo(33, -7);
-  ctx.quadraticCurveTo(34, 8, 30, 18);
-  ctx.quadraticCurveTo(27, 19, 28, 4);
-  // Airy see-through bangs
-  ctx.quadraticCurveTo(18, -10, 10, -7);
-  ctx.quadraticCurveTo(4, -14, -2, -8);
-  ctx.quadraticCurveTo(-10, -14, -18, -7);
-  ctx.quadraticCurveTo(-26, -11, -28, 4);
-  ctx.quadraticCurveTo(-27, 19, -30, 18);
-  ctx.quadraticCurveTo(-34, 8, -33, -7);
-  ctx.closePath();
-  ctx.fillStyle = '#33221B';
-  ctx.fill();
-  ctx.stroke();
-
-  // Small cute star clip on headband (right side)
-  drawDanceSparkleStar(ctx, 22, -26, 4.2, '#FFF1C2');
-
-  drawCharacterFace(ctx, 0, 0, mood, isCelebrating, elapsedSec, false, 2);
+  drawCharacterFace(ctx, mood, isCelebrating, elapsedSec);
   ctx.restore();
 }
 
 function drawCharacterFace(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
   mood: BartenderMood,
   isCelebrating: boolean,
-  elapsedSec: number,
-  _isMaleUnused: boolean,
-  staffIndex: 1 | 2 = 1
+  elapsedSec: number
 ): void {
-  const isBeaming =
-    isCelebrating ||
-    mood === 'HAPPY' ||
-    mood === 'CHEERING' ||
-    mood === 'TIKTOK_DANCE';
+  const isBlinking = elapsedSec % 3.8 > 3.62;
+  const isExcited = mood === 'TIKTOK_DANCE' || isCelebrating;
 
-  // Soft pastel rosy cheeks with cute blush stripes
-  ctx.fillStyle = isBeaming
-    ? 'rgba(240, 120, 140, 0.55)'
-    : 'rgba(240, 120, 140, 0.38)';
+  ctx.fillStyle = 'rgba(244, 139, 163, 0.55)';
   ctx.beginPath();
-  ctx.ellipse(cx - 18.5, cy + 7.5, 6.8, 4.2, 0, 0, Math.PI * 2);
-  ctx.ellipse(cx + 18.5, cy + 7.5, 6.8, 4.2, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Delicate white blush shine dots on cheeks
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-  ctx.beginPath();
-  ctx.arc(cx - 19.5, cy + 6.5, 1.4, 0, Math.PI * 2);
-  ctx.arc(cx + 17.5, cy + 6.5, 1.4, 0, Math.PI * 2);
+  ctx.ellipse(-20, 12, 7.5, 4.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(20, 12, 7.5, 4.2, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.fillStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.lineWidth = 2.2;
+  ctx.lineWidth = 2.6;
 
-  // Soft delicate feminine curved eyebrows
-  ctx.beginPath();
-  ctx.arc(cx - 12.5, cy - 6.5, 5.8, Math.PI * 1.15, Math.PI * 1.85);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx + 12.5, cy - 6.5, 5.8, Math.PI * 1.15, Math.PI * 1.85);
-  ctx.stroke();
-
-  // Natural periodic blink (~3.4s cycle with distinct phase offset so both girls don't blink in unison)
-  const blinkOffset = staffIndex === 1 ? 0.6 : 2.2;
-  const blinkPhase = (elapsedSec + blinkOffset) % 3.4;
-  const isBlinking = !isBeaming && blinkPhase < 0.14;
-
-  if (isBeaming) {
-    // Excited sweet ^ ^ curved happy anime eyes
-    ctx.lineWidth = 2.6;
+  if (isExcited) {
     ctx.beginPath();
-    ctx.arc(cx - 12, cy + 3.2, 5.8, Math.PI * 1.12, Math.PI * 1.88);
-    ctx.stroke();
-    // Tiny cute corner lash flick
-    ctx.beginPath();
-    ctx.moveTo(cx - 17, cy + 1.8);
-    ctx.lineTo(cx - 19.5, cy + 0.2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx + 12, cy + 3.2, 5.8, Math.PI * 1.12, Math.PI * 1.88);
+    ctx.arc(-14, 5, 5.5, Math.PI * 1.15, Math.PI * 1.85, false);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(cx + 17, cy + 1.8);
-    ctx.lineTo(cx + 19.5, cy + 0.2);
+    ctx.arc(14, 5, 5.5, Math.PI * 1.15, Math.PI * 1.85, false);
     ctx.stroke();
-
-    // Joyful open smiling mouth with pink tongue
+  } else if (isBlinking) {
     ctx.beginPath();
-    ctx.arc(cx, cy + 9.8, 8.5, 0.08 * Math.PI, 0.92 * Math.PI);
-    ctx.closePath();
-    ctx.fillStyle = '#E06B74';
-    ctx.fill();
-    ctx.stroke();
-
-    // Tongue
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy + 9.8, 8.5, 0.08 * Math.PI, 0.92 * Math.PI);
-    ctx.clip();
-    ctx.beginPath();
-    ctx.arc(cx, cy + 15, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#F7A8B8';
-    ctx.fill();
-    ctx.restore();
-    return;
-  }
-
-  if (isBlinking) {
-    // Soft sweet closed eyelash line
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.arc(cx - 12, cy + 2, 5.4, 0.12 * Math.PI, 0.88 * Math.PI);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx - 16.5, cy + 4);
-    ctx.lineTo(cx - 19, cy + 3);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx + 12, cy + 2, 5.4, 0.12 * Math.PI, 0.88 * Math.PI);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx + 16.5, cy + 4);
-    ctx.lineTo(cx + 19, cy + 3);
+    ctx.moveTo(-19, 5);
+    ctx.lineTo(-9, 5);
+    ctx.moveTo(9, 5);
+    ctx.lineTo(19, 5);
     ctx.stroke();
   } else {
-    // Big sparkling cute anime eyes with dual glints & corner lash flick
-    ctx.fillStyle = '#3B2820';
     ctx.beginPath();
-    ctx.ellipse(cx - 12, cy + 1.5, 4.2, 4.8, 0, 0, Math.PI * 2);
-    ctx.ellipse(cx + 12, cy + 1.5, 4.2, 4.8, 0, 0, Math.PI * 2);
+    ctx.arc(-14, 5, 4.6, 0, Math.PI * 2);
+    ctx.arc(14, 5, 4.6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Upper corner eyelash flick
-    ctx.lineWidth = 2.2;
-    ctx.beginPath();
-    ctx.moveTo(cx - 15, cy - 1);
-    ctx.lineTo(cx - 18, cy - 2.5);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx + 15, cy - 1);
-    ctx.lineTo(cx + 18, cy - 2.5);
-    ctx.stroke();
-
-    // Main sparkle glint (upper left)
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(cx - 13.5, cy - 0.2, 1.8, 0, Math.PI * 2);
-    ctx.arc(cx + 10.5, cy - 0.2, 1.8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Secondary twinkle glint (lower right)
-    ctx.beginPath();
-    ctx.arc(cx - 10.5, cy + 3.2, 1.0, 0, Math.PI * 2);
-    ctx.arc(cx + 13.5, cy + 3.2, 1.0, 0, Math.PI * 2);
+    ctx.arc(-15.5, 3.4, 1.8, 0, Math.PI * 2);
+    ctx.arc(12.5, 3.4, 1.8, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // Sweet gentle smile
-  ctx.lineWidth = 2.3;
-  ctx.beginPath();
-  ctx.arc(cx, cy + 9.5, 6.2, 0.14 * Math.PI, 0.86 * Math.PI);
-  ctx.stroke();
+  if (isExcited) {
+    ctx.beginPath();
+    ctx.arc(0, 14, 6.5, 0, Math.PI, false);
+    ctx.closePath();
+    ctx.fillStyle = '#E47B92';
+    ctx.fill();
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(0, 13, 5.5, 0.15 * Math.PI, 0.85 * Math.PI, false);
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+  }
 }
 
 export function drawBartenderForegroundArmsAndSpeech(
   ctx: CanvasRenderingContext2D,
   activeDrink: ActiveDrink | null,
-  secondaryDrink: ActiveDrink | null,
+  _secondaryDrink: ActiveDrink | null,
   speech: BartenderSpeech | null,
   isFastBoost: boolean,
   isWaving: boolean,
@@ -848,7 +694,9 @@ export function drawBartenderForegroundArmsAndSpeech(
   danceTier: GiftTier,
   danceStyle: DanceStyle,
   danceStartedAt: number,
-  elapsedSec: number
+  elapsedSec: number,
+  baristaPosX = BARISTA_CENTER_X,
+  walkVelocity = 0
 ): void {
   ctx.save();
   ctx.lineCap = 'round';
@@ -859,19 +707,10 @@ export function drawBartenderForegroundArmsAndSpeech(
   if (dance.isDancing) {
     drawSynchronizedTikTokDanceArms(
       ctx,
-      BARISTA_LEFT_X + dance.swayX,
-      BARISTA_LEFT_HEAD_Y + dance.bounceY,
-      BARISTA_LEFT_TORSO_Y + dance.bounceY,
-      dance,
-      true
-    );
-    drawSynchronizedTikTokDanceArms(
-      ctx,
-      BARISTA_RIGHT_X + dance.swayX,
-      BARISTA_RIGHT_HEAD_Y + dance.bounceY,
-      BARISTA_RIGHT_TORSO_Y + dance.bounceY,
-      dance,
-      false
+      BARISTA_CENTER_X + dance.swayX,
+      BARISTA_HEAD_Y + dance.bounceY,
+      BARISTA_TORSO_Y + dance.bounceY,
+      dance
     );
     drawTikTokDanceMusicNotesAndSparkles(ctx, dance, danceTier, elapsedSec);
 
@@ -883,38 +722,18 @@ export function drawBartenderForegroundArmsAndSpeech(
   }
 
   const freq = isFastBoost ? 9.5 : 5.2;
-  const staff1Working = Boolean(activeDrink && activeDrink.phase === 'BREWING');
-  const staff2Working = Boolean(secondaryDrink && secondaryDrink.phase === 'BREWING');
+  const isWorking = Boolean(activeDrink && activeDrink.phase === 'BREWING');
+  const walkSpeedNorm = clamp01(Math.abs(walkVelocity) / 42);
+  const walkHop = -Math.abs(Math.sin(elapsedSec * 14)) * 4.5 * walkSpeedNorm;
+  const bob = computeCharacterBob(dance, isWorking, elapsedSec, freq) + walkHop;
 
-  const staff1Bob = computeCharacterBob(dance, staff1Working, elapsedSec, freq, 0.9, 3.8, 2.2);
-  const staff2Bob = computeCharacterBob(dance, staff2Working, elapsedSec, freq, 0, 3.8, 2.2);
-
-  // Station 1: Female Bartender 1 (Left, side = -1) works on Cup 1 (x = 408)
-  drawStationBartenderArms(
+  drawCentralBaristaArms(
     ctx,
-    BARISTA_LEFT_X,
-    BARISTA_LEFT_HEAD_Y,
-    BARISTA_LEFT_TORSO_Y,
-    CUP1_CX,
-    -1,
+    baristaPosX,
+    BARISTA_HEAD_Y,
+    BARISTA_TORSO_Y,
     activeDrink,
-    staff1Bob,
-    isFastBoost,
-    isWaving,
-    freq,
-    elapsedSec
-  );
-
-  // Station 2: Female Bartender 2 (Right, side = +1) works on Cup 2 (x = 544) when 2nd order present
-  drawStationBartenderArms(
-    ctx,
-    BARISTA_RIGHT_X,
-    BARISTA_RIGHT_HEAD_Y,
-    BARISTA_RIGHT_TORSO_Y,
-    CUP2_CX,
-    1,
-    secondaryDrink,
-    staff2Bob,
+    bob,
     isFastBoost,
     isWaving,
     freq,
@@ -928,13 +747,11 @@ export function drawBartenderForegroundArmsAndSpeech(
   ctx.restore();
 }
 
-function drawStationBartenderArms(
+function drawCentralBaristaArms(
   ctx: CanvasRenderingContext2D,
-  baristaX: number,
+  cx: number,
   headY: number,
   torsoY: number,
-  cupCx: number,
-  side: -1 | 1,
   drink: ActiveDrink | null,
   bob: number,
   isFastBoost: boolean,
@@ -942,46 +759,84 @@ function drawStationBartenderArms(
   freq: number,
   elapsedSec: number
 ): void {
-  const outerShoulderX = baristaX + side * 34;
-  const outerShoulderY = torsoY + 24 + bob;
-  const innerShoulderX = baristaX - side * 34;
-  const innerShoulderY = torsoY + 24 + bob;
-  const innerSide: -1 | 1 = side === -1 ? 1 : -1;
-  const toolStationX = cupCx + side * 66;
+  const leftShoulderX = cx - 36;
+  const leftShoulderY = torsoY + 24 + bob;
+  const rightShoulderX = cx + 36;
+  const rightShoulderY = torsoY + 24 + bob;
+
+  // Handover animation at 100% (SHOWCASE): pushes finished cup forward toward customer & waves
+  if (drink && drink.phase === 'SHOWCASE') {
+    const slideFactor = computeShowcaseSlideFactor(drink);
+    const waveSwing = Math.sin(elapsedSec * 7.5) * 9;
+    const leftHandX = cx - 50 + waveSwing;
+    const leftHandY = headY + 12;
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
+    drawHandCircle(ctx, leftHandX, leftHandY);
+
+    const pushX = CUP1_CX + CUP_TOP_HALF_W + 4;
+    const pushY = CUP_TOP_Y + 34 + 16 * slideFactor;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, pushX, pushY, 1);
+    drawHandCircle(ctx, pushX, pushY);
+    return;
+  }
+
   const action = resolveBrewAction(drink);
 
   if (!action || !drink) {
-    // Idle or supporting gently when this station has no active drink
     const waveOffset = Math.sin(elapsedSec * 5.2) * 10;
-    const outerHandX = baristaX + side * 48 + (isWaving ? waveOffset : 0);
-    const outerHandY = isWaving ? headY + 6 : STAGE_METRICS.COUNTER_TOP_Y - 8;
-    drawCartoonArm(ctx, outerShoulderX, outerShoulderY, outerHandX, outerHandY, side);
-    drawHandCircle(ctx, outerHandX, outerHandY);
+    const leftHandX = cx - 48 + (isWaving ? waveOffset : 0);
+    const leftHandY = isWaving ? headY + 8 : STAGE_METRICS.COUNTER_TOP_Y - 6;
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
+    drawHandCircle(ctx, leftHandX, leftHandY);
 
-    const idleWave = Math.sin(elapsedSec * 2.2) * 4;
-    const innerHandX = baristaX - side * 40 + idleWave;
-    const innerHandY = STAGE_METRICS.COUNTER_TOP_Y - 8;
-    drawCartoonArm(ctx, innerShoulderX, innerShoulderY, innerHandX, innerHandY, innerSide);
-    drawHandCircle(ctx, innerHandX, innerHandY);
+    const idleBob = Math.sin(elapsedSec * 2.2) * 4;
+    const rightHandX = cx + 46 + idleBob;
+    const rightHandY = STAGE_METRICS.COUNTER_TOP_Y - 6;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightHandX, rightHandY, 1);
+    drawHandCircle(ctx, rightHandX, rightHandY);
+    return;
+  }
+
+  // SUB-STEP 0..7%: Lấy cốc từ chồng ly bên phải đặt vào đế pha chính (x=360)
+  if (isCupPickupSubstep(drink)) {
+    drawCupPickupAction(
+      ctx,
+      drink,
+      leftShoulderX,
+      leftShoulderY,
+      rightShoulderX,
+      rightShoulderY
+    );
     return;
   }
 
   const recipe = RECIPE_MAP[drink.recipeId];
-  const toolType = recipe.toolType;
+  const stepProg = resolveStepProgress(drink);
 
-  if (action === 'tool_prep') {
-    drawStage1ToolAction(
+  // STEP 1 (7–20%): Lấy Matcha trên kệ / Hứng cốt trà / Chiết xuất cafe / Bấm nút lấy đường
+  if (action === 'dispense') {
+    drawStep1DispenseAction(
       ctx,
       drink,
-      baristaX,
-      cupCx,
-      toolStationX,
-      side,
-      outerShoulderX,
-      outerShoulderY,
-      innerShoulderX,
-      innerShoulderY,
-      bob,
+      leftShoulderX,
+      leftShoulderY,
+      rightShoulderX,
+      rightShoulderY,
+      stepProg,
+      elapsedSec
+    );
+    return;
+  }
+
+  // STEP 2 (20–42%): Máy đánh tơi cầm tay trong bát chawan/ca inox / Máy lắc đôi / Ép cam tươi
+  if (action === 'tool_prep') {
+    drawStep2PrepAction(
+      ctx,
+      drink,
+      leftShoulderX,
+      leftShoulderY,
+      rightShoulderX,
+      rightShoulderY,
       isFastBoost,
       freq,
       elapsedSec
@@ -989,489 +844,994 @@ function drawStationBartenderArms(
     return;
   }
 
+  // STEP 3 (42–56%): Với Trà Sữa múc trân châu (42..49%) rồi mới múc đá (49..56%); các món khác múc đá (42..56%)!
   if (action === 'add_ice') {
-    // Ice bucket on counter + bartender scooping ice cubes over cup rim
-    drawIceBucketOnCounter(ctx, toolStationX, STAGE_METRICS.COUNTER_TOP_Y + 6);
-    const outerHandX = toolStationX + side * 8;
-    const outerHandY = STAGE_METRICS.COUNTER_TOP_Y - 12;
-    drawCartoonArm(ctx, outerShoulderX, outerShoulderY, outerHandX, outerHandY, side);
-    drawHandCircle(ctx, outerHandX, outerHandY);
+    if (isBobaScoopSubstep(drink)) {
+      const jarRimX = BAR_STATION_COORDS.BOBA_JAR_X + 10;
+      const jarRimY = STAGE_METRICS.COUNTER_TOP_Y - 12;
+      drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jarRimX, jarRimY, -1);
+      drawHandCircle(ctx, jarRimX, jarRimY);
 
-    const scoopSwing = Math.sin(elapsedSec * 7.2) * 5;
-    const scoopX = cupCx + side * 16 + scoopSwing;
-    const scoopY = CUP_TOP_Y - 34 + Math.abs(Math.cos(elapsedSec * 7.2)) * 5;
-    drawCartoonArm(ctx, innerShoulderX, innerShoulderY, scoopX, scoopY, innerSide);
-    drawIceScoopAndCubes(ctx, scoopX, scoopY, side, drink.iceLevel !== 'NONE');
-    return;
-  }
+      const scoopCycle = (Math.sin(elapsedSec * 5.6) + 1) * 0.5;
+      const startX = BAR_STATION_COORDS.BOBA_JAR_X + 8;
+      const endX = CUP1_CX + 4;
+      const startY = STAGE_METRICS.COUNTER_TOP_Y - 22;
+      const endY = CUP_TOP_Y - 18;
+      const scoopX = startX + (endX - startX) * scoopCycle;
+      const scoopY = startY + (endY - startY) * scoopCycle - Math.sin(scoopCycle * Math.PI) * 18;
 
-  if (action === 'pour_mix') {
-    // Pour vibrant drink stream smoothly from rotated spout down to actual liquidSurfaceY
-    const outerHandX = baristaX + side * 42;
-    const outerHandY = STAGE_METRICS.COUNTER_TOP_Y - 8;
-    drawCartoonArm(ctx, outerShoulderX, outerShoulderY, outerHandX, outerHandY, side);
-    drawHandCircle(ctx, outerHandX, outerHandY);
-
-    const pourBob = Math.sin(elapsedSec * freq) * 3.5;
-    const handX = cupCx + side * 26 + pourBob * 0.4;
-    const handY = CUP_TOP_Y - 52 + Math.cos(elapsedSec * freq) * 3.5;
-    const surfaceY = computeLiquidFillSnapshot(drink.recipeId, drink.progress).surfaceY;
-    const pourColor = resolveActivePourColor(drink);
-
-    drawCartoonArm(ctx, innerShoulderX, innerShoulderY, handX, handY, innerSide);
-    drawPourLiquidEffect(ctx, {
-      toolType,
-      handX,
-      handY,
-      cupCx,
-      side,
-      liquidColor: pourColor,
-      accentColor: recipe.accentColor,
-      targetSurfaceY: surfaceY,
-      isFastBoost,
-      isSodaFizz: toolType === 'soda_pour',
-      elapsedSec,
-    });
-    drawHandCircle(ctx, handX, handY);
-    return;
-  }
-
-  if (action === 'topping') {
-    const outerHandX = baristaX + side * 42;
-    const outerHandY = STAGE_METRICS.COUNTER_TOP_Y - 8;
-    drawCartoonArm(ctx, outerShoulderX, outerShoulderY, outerHandX, outerHandY, side);
-    drawHandCircle(ctx, outerHandX, outerHandY);
-
-    if (drink.recipeId === 'coffee_milk') {
-      // Cafe P4: Smooth salted cream / light coffee foam ribbon swirled onto coffee surface (NO spotted dots)
-      const swirlX = cupCx + side * 20 + Math.sin(elapsedSec * 5.8) * 7;
-      const swirlY = CUP_TOP_Y - 36 + Math.cos(elapsedSec * 5.8) * 4;
-      drawCartoonArm(ctx, innerShoulderX, innerShoulderY, swirlX, swirlY, innerSide);
-      drawSaltedCreamSwirlAction(ctx, swirlX, swirlY, cupCx, side, elapsedSec);
+      drawCartoonArm(ctx, rightShoulderX, rightShoulderY, scoopX, scoopY, 1);
+      drawBobaLadleScoopAction(ctx, scoopX, scoopY, scoopCycle > 0.72, elapsedSec);
       return;
     }
 
-    const scoopSwing = Math.sin(elapsedSec * 6.5) * 6;
-    const scoopX = cupCx + side * 14 + scoopSwing;
-    const scoopY = CUP_TOP_Y - 30 + Math.abs(Math.cos(elapsedSec * 6.5)) * 4;
-    drawCartoonArm(ctx, innerShoulderX, innerShoulderY, scoopX, scoopY, innerSide);
-    drawToppingSpoonAndDrops(
+    const binRimX = BAR_STATION_COORDS.ICE_BIN_X + 10;
+    const binRimY = STAGE_METRICS.COUNTER_TOP_Y - 12;
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, binRimX, binRimY, -1);
+    drawHandCircle(ctx, binRimX, binRimY);
+
+    // Scoop lifts from ice bin cleanly OVER open cup mouth (360, CUP_TOP_Y - 18 = 572)
+    const scoopCycle = (Math.sin(elapsedSec * 5.2) + 1) * 0.5;
+    const startX = BAR_STATION_COORDS.ICE_BIN_X + 8;
+    const endX = CUP1_CX + 6;
+    const startY = STAGE_METRICS.COUNTER_TOP_Y - 22;
+    const endY = CUP_TOP_Y - 18;
+    const scoopX = startX + (endX - startX) * scoopCycle;
+    const scoopY = startY + (endY - startY) * scoopCycle - Math.sin(scoopCycle * Math.PI) * 18;
+
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, scoopX, scoopY, 1);
+    drawIceScoopAndCubes(
       ctx,
       scoopX,
       scoopY,
-      cupCx,
-      side,
-      drink.recipeId === 'matcha' ? '#7FB86B' : recipe.accentColor,
-      drink.recipeId === 'matcha',
+      1,
+      drink.iceLevel !== 'NONE',
+      scoopCycle > 0.72,
       elapsedSec
     );
     return;
   }
 
-  // action === 'seal': Seal & Ta-Da presentation
-  const waveSwing = Math.sin(elapsedSec * 8) * 10;
-  const outerX = baristaX + side * 48 + waveSwing;
-  const outerY = headY + 12;
-  drawCartoonArm(ctx, outerShoulderX, outerShoulderY, outerX, outerY, side);
-  drawHandCircle(ctx, outerX, outerY);
+  // STEP 4 (56–84%): Lấy dụng cụ vừa pha → Rót khớp mặt chất lỏng → Cất gọn trước khi đổi dụng cụ / đổ kem!
+  if (action === 'pour_mix') {
+    const pourRatio = resolvePourRatio(drink);
 
-  const innerX = cupCx + side * 38;
-  const innerY = CUP_TOP_Y + 12;
-  drawCartoonArm(ctx, innerShoulderX, innerShoulderY, innerX, innerY, innerSide);
-  drawHandCircle(ctx, innerX, innerY);
+    // 4a. Milk Tea (56..60%): Nhấc bình shaker rời khỏi máy lắc đôi đưa về ly chính
+    if (isShakerLiftSubstep(drink)) {
+      drawShakerLiftAction(
+        ctx,
+        drink,
+        leftShoulderX,
+        leftShoulderY,
+        rightShoulderX,
+        rightShoulderY
+      );
+      return;
+    }
+
+    // 4b. Milk Tea (74..77%): Cất bình shaker rỗng & cầm ca kem cheese lên
+    if (
+      drink.recipeId === 'thai_tea' &&
+      drink.progress >= THAI_TEA_POUR_END_PROGRESS &&
+      drink.progress < THAI_TEA_CREAM_START_PROGRESS
+    ) {
+      const swapT = clamp01(
+        (drink.progress - THAI_TEA_POUR_END_PROGRESS) /
+          (THAI_TEA_CREAM_START_PROGRESS - THAI_TEA_POUR_END_PROGRESS)
+      );
+      drawSwapToCreamerAction(
+        ctx,
+        swapT,
+        '#FFF6DC',
+        leftShoulderX,
+        leftShoulderY,
+        rightShoulderX,
+        rightShoulderY
+      );
+      return;
+    }
+
+    // 4c. Milk Tea (77..84%): Rót lớp Kem Cheese mịn lên trên cùng sau khi đã rót xong trà sữa!
+    if (drink.recipeId === 'thai_tea' && drink.progress >= THAI_TEA_CREAM_START_PROGRESS) {
+      drawCartoonArm(ctx, leftShoulderX, leftShoulderY, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12, -1);
+      drawHandCircle(ctx, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12);
+
+      const creamerX = CUP1_CX + 26 + Math.sin(elapsedSec * 4.5) * 4;
+      const creamerY = CUP_TOP_Y - 38 + Math.cos(elapsedSec * 4.5) * 2.5;
+      drawCartoonArm(ctx, rightShoulderX, rightShoulderY, creamerX, creamerY, 1);
+      drawBaristaCreamerJugAction(ctx, creamerX, creamerY, CUP1_CX, 1, elapsedSec, '#FFF6DC');
+      return;
+    }
+
+    // 4d. Matcha swap beat (0.36..0.48): Cất bịch sữa OATSIDE xong mới cầm bát Matcha lên rót!
+    if (
+      drink.recipeId === 'matcha' &&
+      pourRatio > MATCHA_MILK_SPLIT_RATIO &&
+      pourRatio <= MATCHA_SWAP_END_RATIO
+    ) {
+      const swapT = clamp01(
+        (pourRatio - MATCHA_MILK_SPLIT_RATIO) / (MATCHA_SWAP_END_RATIO - MATCHA_MILK_SPLIT_RATIO)
+      );
+      drawPutAwayMilkAndPickVesselAction(
+        ctx,
+        true,
+        swapT,
+        leftShoulderX,
+        leftShoulderY,
+        rightShoulderX,
+        rightShoulderY
+      );
+      return;
+    }
+
+    // 4e. Soda 2-color swap beat (0.32..0.44): Rót xong màu 1 (siro dâu), cất ca màu 1 rồi cầm chai Soda xanh màu 2!
+    if (
+      drink.recipeId === 'berry_soda' &&
+      pourRatio > SODA_SYRUP_SPLIT_RATIO &&
+      pourRatio <= SODA_SWAP_END_RATIO
+    ) {
+      const swapT = clamp01(
+        (pourRatio - SODA_SYRUP_SPLIT_RATIO) / (SODA_SWAP_END_RATIO - SODA_SYRUP_SPLIT_RATIO)
+      );
+      drawSodaTwoColorSwapAction(
+        ctx,
+        swapT,
+        leftShoulderX,
+        leftShoulderY,
+        rightShoulderX,
+        rightShoulderY
+      );
+      return;
+    }
+
+    // 4f. Cafe (75..78%): Cất ca cà phê inox & cầm ca kem muối lên
+    if (
+      drink.recipeId === 'coffee_milk' &&
+      drink.progress >= CAFE_POUR_END_PROGRESS &&
+      drink.progress < CAFE_CREAM_START_PROGRESS
+    ) {
+      const swapT = clamp01(
+        (drink.progress - CAFE_POUR_END_PROGRESS) /
+          (CAFE_CREAM_START_PROGRESS - CAFE_POUR_END_PROGRESS)
+      );
+      drawSwapToCreamerAction(
+        ctx,
+        swapT,
+        '#FFF6E8',
+        leftShoulderX,
+        leftShoulderY,
+        rightShoulderX,
+        rightShoulderY
+      );
+      return;
+    }
+
+    // 4g. Cafe (78..84%): Rót lớp Kem Muối mịn lên trên cùng sau khi rót xong cà phê!
+    if (drink.recipeId === 'coffee_milk' && drink.progress >= CAFE_CREAM_START_PROGRESS) {
+      drawCartoonArm(ctx, leftShoulderX, leftShoulderY, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12, -1);
+      drawHandCircle(ctx, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12);
+
+      const creamerX = CUP1_CX + 26 + Math.sin(elapsedSec * 4.5) * 4;
+      const creamerY = CUP_TOP_Y - 38 + Math.cos(elapsedSec * 4.5) * 2.5;
+      drawCartoonArm(ctx, rightShoulderX, rightShoulderY, creamerX, creamerY, 1);
+      drawBaristaCreamerJugAction(ctx, creamerX, creamerY, CUP1_CX, 1, elapsedSec, '#FFF6E8');
+      return;
+    }
+
+    // 4h. Fresh orange slice rim garnish (78%+ of P4)
+    if (drink.recipeId === 'blue_citrus' && drink.progress >= 78) {
+      drawCartoonArm(ctx, leftShoulderX, leftShoulderY, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12, -1);
+      drawHandCircle(ctx, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12);
+
+      const garnishX = CUP1_CX + 18 + Math.sin(elapsedSec * 3.5) * 2.5;
+      const garnishY = CUP_TOP_Y - 16 + Math.cos(elapsedSec * 3.5) * 2;
+      drawCartoonArm(ctx, rightShoulderX, rightShoulderY, garnishX, garnishY, 1);
+      drawPlaceOrangeGarnishAction(ctx, garnishX, garnishY, 1);
+      return;
+    }
+
+    // 4i. Coordinated 2-handed pouring aligned tightly to ~70% cup mouth & exact liquid surfaceY
+    const pourBob = Math.sin(elapsedSec * freq) * 2.0;
+    const handX = CUP1_CX - 32 + pourBob * 0.3;
+    const handY = CUP_TOP_Y - 40 + Math.cos(elapsedSec * freq) * 2.0;
+    const surfaceY = computeLiquidFillSnapshot(drink.recipeId, drink.progress).surfaceY;
+    const pourColor = resolveActivePourColor(drink);
+    const pourVessel = resolveActivePourVessel(drink);
+
+    // Secondary (right) hand gently steadies cup side rim
+    const steadyX = CUP1_CX + CUP_TOP_HALF_W + 2;
+    const steadyY = CUP_TOP_Y + 12;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, steadyX, steadyY, 1);
+    drawHandCircle(ctx, steadyX, steadyY);
+
+    // Primary (left) hand tilts vessel smoothly downward (shaker drains 0.94 -> 0.0 across 60..74%!)
+    const shakerDrainFrac =
+      pourVessel === 'shaker'
+        ? clamp01(
+            (drink.progress - SHAKER_LIFT_END_PROGRESS) /
+              (THAI_TEA_POUR_END_PROGRESS - SHAKER_LIFT_END_PROGRESS)
+          )
+        : 0;
+    const vesselFillRatio = pourVessel === 'shaker' ? Math.max(0, 0.94 * (1 - shakerDrainFrac)) : 0.85;
+
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, handX, handY, -1);
+    drawPourLiquidEffect(ctx, {
+      toolType: pourVessel,
+      handX,
+      handY,
+      cupCx: CUP1_CX,
+      side: -1,
+      liquidColor: pourColor,
+      accentColor: recipe.accentColor,
+      targetSurfaceY: surfaceY,
+      isFastBoost,
+      isSodaFizz: pourVessel === 'soda_pour',
+      elapsedSec,
+      vesselFillRatio,
+    });
+    drawHandCircle(ctx, handX, handY);
+    return;
+  }
+
+  // STEP 5 (84–100%): 84..90% Lấy nắp từ chồng nắp (x=484) → 90..100% Hai tay hạ nắp & ấn khít miệng ly!
+  if (isLidPickupSubstep(drink)) {
+    drawLidPickupAction(
+      ctx,
+      drink,
+      leftShoulderX,
+      leftShoulderY,
+      rightShoulderX,
+      rightShoulderY
+    );
+    return;
+  }
+
+  const snapProgress = clamp01((drink.progress - LID_PICKUP_END_PROGRESS) / 5);
+  const lidLowerY = (1 - snapProgress) * 14;
+  const pressBob = Math.sin(elapsedSec * 8) * 1.1;
+
+  const leftLidX = CUP1_CX - CUP_TOP_HALF_W + 2;
+  const rightLidX = CUP1_CX + CUP_TOP_HALF_W - 2;
+  const lidY = CUP_TOP_Y - 3 + lidLowerY + pressBob;
+
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftLidX, lidY, -1);
+  drawHandCircle(ctx, leftLidX, lidY);
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightLidX, lidY, 1);
+  drawHandCircle(ctx, rightLidX, lidY);
 }
 
-function drawIceBucketOnCounter(
+function drawLidPickupAction(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  baseY: number
+  drink: ActiveDrink,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number
 ): void {
+  const lidT = clamp01((drink.progress - 84) / (LID_PICKUP_END_PROGRESS - 84));
+  const carryT = clamp01((lidT - 0.2) / 0.8);
+  const easeT = carryT * carryT * (3 - 2 * carryT);
+
+  const startX = BAR_STATION_COORDS.LID_STACK_X;
+  const startY = STAGE_METRICS.COUNTER_TOP_Y - 18;
+  const endX = CUP1_CX;
+  const endY = CUP_TOP_Y - 14;
+
+  const lidCx = startX + (endX - startX) * easeT;
+  const lidY = startY + (endY - startY) * easeT - Math.sin(easeT * Math.PI) * 28;
+  const lidR = 11 + (CUP_TOP_HALF_W - 11) * easeT;
+
+  // Draw carried dome lid (NO straw, crisp #3B2820 2.5px outline)
   ctx.save();
-  roundedRectPath(ctx, cx - 18, baseY - 26, 36, 26, 7);
-  ctx.fillStyle = '#D9F0F6';
+  ctx.beginPath();
+  ctx.arc(lidCx, lidY, lidR, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.72)';
   ctx.fill();
-  ctx.lineWidth = 2.4;
+  ctx.lineWidth = 2.5;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  // Ice cubes peeking out of bucket
-  for (let i = -1; i <= 1; i += 1) {
-    roundedRectPath(ctx, cx + i * 8 - 5, baseY - 31, 10, 9, 2.5);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fill();
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-  }
+  roundedRectPath(ctx, lidCx - lidR - 2.5, lidY - 3.5, (lidR + 2.5) * 2, 7, 3.5);
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.92)';
+  ctx.fill();
+  ctx.stroke();
   ctx.restore();
+
+  // Right hand lifts & carries dome lid; left hand readies to guide it onto cup rim
+  const rightGripX = lidCx + lidR * 0.75;
+  const rightGripY = lidY - 2;
+  const leftGuideX = easeT > 0.5 ? lidCx - lidR * 0.75 : CUP1_CX - CUP_TOP_HALF_W - 4;
+  const leftGuideY = easeT > 0.5 ? lidY - 2 : CUP_TOP_Y + 8;
+
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftGuideX, leftGuideY, -1);
+  drawHandCircle(ctx, leftGuideX, leftGuideY);
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightGripX, rightGripY, 1);
+  drawHandCircle(ctx, rightGripX, rightGripY);
+}
+
+function drawShakerLiftAction(
+  ctx: CanvasRenderingContext2D,
+  drink: ActiveDrink,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number
+): void {
+  const liftT = clamp01((drink.progress - 56) / (SHAKER_LIFT_END_PROGRESS - 56));
+  const easeT = liftT * liftT * (3 - 2 * liftT);
+
+  const startX = BAR_STATION_COORDS.SHAKER_RIGHT_CLAMP_X; // Right clamp of Double Shaker Machine
+  const startY = STAGE_METRICS.COUNTER_TOP_Y - 24;
+  const endX = CUP1_CX - 32;
+  const endY = CUP_TOP_Y - 40;
+
+  const shakerX = startX + (endX - startX) * easeT;
+  const shakerY = startY + (endY - startY) * easeT - Math.sin(easeT * Math.PI) * 26;
+
+  // Draw carried stainless milk tea shaker
+  ctx.save();
+  ctx.translate(shakerX, shakerY);
+  ctx.rotate(easeT * 0.35);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  roundedRectPath(ctx, -11.5, -18, 23, 38, 6.5);
+  ctx.fillStyle = '#F6F0E9';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, -9, -12, 18, 24, 4);
+  ctx.fillStyle = '#D89E68';
+  ctx.fill();
+  roundedRectPath(ctx, -9.5, -23, 19, 6, 3);
+  ctx.fillStyle = '#E0D7CD';
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, shakerX - 8, shakerY + 4, -1);
+  drawHandCircle(ctx, shakerX - 8, shakerY + 4);
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, shakerX + 10, shakerY - 4, 1);
+  drawHandCircle(ctx, shakerX + 10, shakerY - 4);
+}
+
+function drawSwapToCreamerAction(
+  ctx: CanvasRenderingContext2D,
+  swapT: number,
+  creamColor: string,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number
+): void {
+  const easeT = swapT * swapT * (3 - 2 * swapT);
+
+  // Left hand sets down empty vessel & moves to steady cup rim
+  const leftX = 290 + (CUP1_CX - CUP_TOP_HALF_W - 2 - 290) * easeT;
+  const leftY = STAGE_METRICS.COUNTER_TOP_Y - 14 + (CUP_TOP_Y + 12 - (STAGE_METRICS.COUNTER_TOP_Y - 14)) * easeT;
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftX, leftY, -1);
+  drawHandCircle(ctx, leftX, leftY);
+
+  // Right hand lifts mini stainless creamer jug filled with Kem Cheese / Kem Muối up to pour position!
+  const jugX = 434 + (CUP1_CX + 26 - 434) * easeT;
+  const jugY = STAGE_METRICS.COUNTER_TOP_Y - 16 + (CUP_TOP_Y - 38 - (STAGE_METRICS.COUNTER_TOP_Y - 16)) * easeT - Math.sin(easeT * Math.PI) * 16;
+
+  ctx.save();
+  ctx.translate(jugX, jugY);
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  roundedRectPath(ctx, -10, -12, 20, 24, 5);
+  ctx.fillStyle = '#F2F4F8';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, -6, -8, 12, 6, 2);
+  ctx.fillStyle = creamColor;
+  ctx.fill();
+  ctx.restore();
+
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, jugX, jugY, 1);
+  drawHandCircle(ctx, jugX, jugY);
+}
+
+function drawSodaTwoColorSwapAction(
+  ctx: CanvasRenderingContext2D,
+  swapT: number,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number
+): void {
+  // First half (0..0.5): Left hand sets down Color 1 Pink Berry Syrup measuring cup neatly on counter
+  if (swapT < 0.5) {
+    const putT = clamp01(swapT / 0.5);
+    const jugX = CUP1_CX - 32 - putT * 46;
+    const jugY = CUP_TOP_Y - 40 + putT * (STAGE_METRICS.COUNTER_TOP_Y + 10 - (CUP_TOP_Y - 40));
+
+    drawGraduatedMeasuringCup(ctx, jugX, jugY + 18, '#E04F6D', 0.25);
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 12, jugY + 4, -1);
+    drawHandCircle(ctx, jugX - 12, jugY + 4);
+
+    // Right hand reaches toward Color 2 Cyan Soda bottle
+    const reachX = 428;
+    const reachY = STAGE_METRICS.COUNTER_TOP_Y - 22;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, reachX, reachY, 1);
+    drawHandCircle(ctx, reachX, reachY);
+    return;
+  }
+
+  // Second half (0.5..1.0): Left hand lifts chilled Color 2 Cyan Soda bottle smoothly into pouring position!
+  const liftT = clamp01((swapT - 0.5) / 0.5);
+  const bottleX = 428 + (CUP1_CX - 32 - 428) * liftT;
+  const bottleY =
+    STAGE_METRICS.COUNTER_TOP_Y -
+    22 +
+    (CUP_TOP_Y - 40 - (STAGE_METRICS.COUNTER_TOP_Y - 22)) * liftT -
+    Math.sin(liftT * Math.PI) * 20;
+
+  ctx.save();
+  ctx.translate(bottleX, bottleY);
+  ctx.rotate(-0.15 + liftT * 0.25);
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  roundedRectPath(ctx, -9.5, -16, 19, 34, 6);
+  ctx.fillStyle = '#7FC8D9';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, -6.5, -9, 13, 16, 3);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  roundedRectPath(ctx, -4.8, -28, 9.6, 13, 3);
+  ctx.fillStyle = '#E8F7FA';
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, bottleX, bottleY, -1);
+  drawHandCircle(ctx, bottleX, bottleY);
+
+  const steadyX = CUP1_CX + CUP_TOP_HALF_W + 2;
+  const steadyY = CUP_TOP_Y + 12;
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, steadyX, steadyY, 1);
+  drawHandCircle(ctx, steadyX, steadyY);
+}
+
+function drawPutAwayMilkAndPickVesselAction(
+  ctx: CanvasRenderingContext2D,
+  isMatcha: boolean,
+  swapT: number,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number
+): void {
+  const easeT = swapT * swapT * (3 - 2 * swapT);
+
+  // First half (0..0.5): Right hand returns OATSIDE carton neatly back up toward shelf
+  if (swapT < 0.5) {
+    const putT = clamp01(swapT / 0.5);
+    const cartonX = CUP1_CX + 18 + putT * 118;
+    const cartonY = CUP_TOP_Y - 26 - putT * 120;
+
+    ctx.save();
+    ctx.translate(cartonX, cartonY);
+    ctx.rotate((1 - putT) * 0.25);
+    ctx.lineWidth = 2.3;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    roundedRectPath(ctx, -10, -16, 20, 32, 3.5);
+    ctx.fillStyle = '#F6EAD7';
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#D49A6A';
+    ctx.fillRect(-8.5, -4, 17, 10);
+    ctx.restore();
+
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, cartonX - 6, cartonY + 4, 1);
+    drawHandCircle(ctx, cartonX - 6, cartonY + 4);
+
+    // Left hand reaches down to pick up prepared chawan bowl / stainless espresso pitcher
+    const reachX = 292;
+    const reachY = STAGE_METRICS.COUNTER_TOP_Y - 12;
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, reachX, reachY, -1);
+    drawHandCircle(ctx, reachX, reachY);
+    return;
+  }
+
+  // Second half (0.5..1.0): Left hand lifts prepared Chawan Matcha / Espresso Pitcher smoothly to pour position!
+  const liftT = clamp01((swapT - 0.5) / 0.5);
+  const vesselX = 290 + (CUP1_CX - 32 - 290) * liftT;
+  const vesselY = STAGE_METRICS.COUNTER_TOP_Y - 14 + (CUP_TOP_Y - 40 - (STAGE_METRICS.COUNTER_TOP_Y - 14)) * liftT - Math.sin(liftT * Math.PI) * 14;
+
+  if (isMatcha) {
+    drawHeldMatchaChawan(ctx, vesselX, vesselY);
+  } else {
+    ctx.save();
+    ctx.translate(vesselX, vesselY);
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    roundedRectPath(ctx, -10, -14, 20, 28, 5);
+    ctx.fillStyle = '#DCE3EA';
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, -12, 8.5, 2.6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#5A321C';
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, vesselX - 10, vesselY + 4, -1);
+  drawHandCircle(ctx, vesselX - 10, vesselY + 4);
+
+  const steadyX = CUP1_CX + CUP_TOP_HALF_W + 2;
+  const steadyY = CUP_TOP_Y + 12 + (1 - easeT) * 6;
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, steadyX, steadyY, 1);
+  drawHandCircle(ctx, steadyX, steadyY);
+}
+
+function drawCupPickupAction(
+  ctx: CanvasRenderingContext2D,
+  drink: ActiveDrink,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number
+): void {
+  const pickupT = clamp01(drink.progress / CUP_PICKUP_END_PROGRESS);
+  // Smooth ease-in-out carry from Cup Stack (454, 626) -> Center Coaster (360, 672) matching 1:1 cup size
+  const carryT = clamp01((pickupT - 0.25) / 0.75);
+  const easeT = carryT * carryT * (3 - 2 * carryT);
+
+  const cupCx = BAR_STATION_COORDS.CUP_STACK_X + (CUP1_CX - BAR_STATION_COORDS.CUP_STACK_X) * easeT;
+  const arcLift = Math.sin(easeT * Math.PI) * 28;
+  const cupBottomY =
+    STAGE_METRICS.COUNTER_TOP_Y -
+    10 +
+    (CUP_BOTTOM_Y - (STAGE_METRICS.COUNTER_TOP_Y - 10)) * easeT -
+    arcLift;
+  const cupScale = 0.72 + 0.28 * easeT;
+
+  const topW = CUP_TOP_HALF_W * cupScale;
+  const botW = CUP_BOTTOM_HALF_W * cupScale;
+  const cupH = CUP_HEIGHT * cupScale;
+  const topY = cupBottomY - cupH;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cupCx - topW, topY);
+  ctx.lineTo(cupCx + topW, topY);
+  ctx.lineTo(cupCx + botW, cupBottomY - 6);
+  ctx.quadraticCurveTo(cupCx + botW, cupBottomY, cupCx + botW - 8, cupBottomY);
+  ctx.lineTo(cupCx - botW + 8, cupBottomY);
+  ctx.quadraticCurveTo(cupCx - botW, cupBottomY, cupCx - botW, cupBottomY - 6);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.72)';
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(cupCx, topY, topW, 3.8 * cupScale, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  const gripY = topY + cupH * 0.48;
+  const leftGripX = cupCx - topW + 1;
+  const rightGripX = cupCx + topW - 1;
+
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftGripX, gripY, -1);
+  drawHandCircle(ctx, leftGripX, gripY);
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightGripX, gripY, 1);
+  drawHandCircle(ctx, rightGripX, gripY);
+}
+
+const PREP_LIQUID_COLOR_MAP: Readonly<Record<string, string>> = {
+  matcha: '#A7D397',
+  coffee_milk: '#5A321C',
+  berry_soda: '#E04F6D',
+};
+
+const PREP_FOAM_COLOR_MAP: Readonly<Record<string, string>> = {
+  matcha: '#DCF0CE',
+  coffee_milk: '#FFF6E8',
+  berry_soda: '#FFD6E0',
+};
+
+function drawStep1DispenseAction(
+  ctx: CanvasRenderingContext2D,
+  drink: ActiveDrink,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number,
+  stepProg: number,
+  elapsedSec: number
+): void {
+  const fillLevel = 0.25 + stepProg * 0.68;
+
+  // Sub-step 15..20% (non-matcha): Press Sugar Dispenser Button on counter (x=171)!
+  if (isSugarButtonSubstep(drink)) {
+    const jugX = BAR_STATION_COORDS.SUGAR_BTN_X + 26;
+    const jugBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
+    const jugColor = RECIPE_MAP[drink.recipeId].baseColor;
+    drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, jugColor, 0.72);
+
+    // Right hand steadies measuring cup beside sugar chute
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, jugX + 14, jugBottomY - 16, 1);
+    drawHandCircle(ctx, jugX + 14, jugBottomY - 16);
+
+    // Left hand presses coral-gold sugar button down rhythmically!
+    const pressOffset = Math.abs(Math.sin(elapsedSec * 12)) * 4.5;
+    const btnX = BAR_STATION_COORDS.SUGAR_BTN_X;
+    const btnY = BAR_STATION_COORDS.SUGAR_BTN_Y - 12 + pressOffset;
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, btnX, btnY, -1);
+    drawHandCircle(ctx, btnX, btnY);
+    return;
+  }
+
+  // Matcha Sub-step 7..14%: Take Matcha tin down from back shelf (x=480) & scoop powder into ceramic chawan!
+  if (isMatchaShelfSubstep(drink)) {
+    const bowlX = 434;
+    const bowlY = STAGE_METRICS.COUNTER_TOP_Y - 46;
+
+    // Left hand holds ceramic chawan bowl ready to catch matcha powder
+    drawHeldMatchaChawan(ctx, bowlX, bowlY);
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, bowlX - 18, bowlY + 4, -1);
+    drawHandCircle(ctx, bowlX - 18, bowlY + 4);
+
+    // Right hand holds green Matcha tin lifted from back shelf, shaking emerald powder into chawan!
+    const shake = Math.sin(elapsedSec * 12) * 3;
+    const tinX = bowlX + 26 + shake;
+    const tinY = bowlY - 48 + Math.cos(elapsedSec * 12) * 2;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, tinX + 10, tinY, 1);
+    drawHeldMatchaTinAndPowder(ctx, tinX, tinY, bowlX, bowlY - 6, elapsedSec);
+    drawHandCircle(ctx, tinX + 10, tinY);
+    return;
+  }
+
+  if (drink.recipeId === 'thai_tea') {
+    const jugX = BAR_STATION_COORDS.TEA_URN_1_SPIGOT_X;
+    const jugBottomY = 444;
+    drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#D89E68', fillLevel);
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 18, jugBottomY - 16, -1);
+    drawHandCircle(ctx, jugX - 18, jugBottomY - 16);
+
+    const leverX = BAR_STATION_COORDS.TEA_URN_1_SPIGOT_X + 6;
+    const leverY = 368;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, leverX, leverY, 1);
+    drawHandCircle(ctx, leverX, leverY);
+    return;
+  }
+
+  if (drink.recipeId === 'coffee_milk') {
+    const jugX = 446;
+    const jugBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
+    drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#F5E4CC', fillLevel * 0.65);
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 16, jugBottomY - 14, -1);
+    drawHandCircle(ctx, jugX - 16, jugBottomY - 14);
+
+    const machineHandX = 528;
+    const machineHandY = STAGE_METRICS.COUNTER_TOP_Y - 38 + Math.sin(elapsedSec * 4) * 2;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, machineHandX, machineHandY, 1);
+    drawHandCircle(ctx, machineHandX, machineHandY);
+    return;
+  }
+
+  if (drink.recipeId === 'berry_soda') {
+    const jugX = BAR_STATION_COORDS.SYRUP_1_X;
+    const jugBottomY = 446;
+    drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#E04F6D', fillLevel);
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 18, jugBottomY - 16, -1);
+    drawHandCircle(ctx, jugX - 18, jugBottomY - 16);
+
+    const pumpHandY = 350 + Math.abs(Math.sin(elapsedSec * 8)) * 4;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, BAR_STATION_COORDS.SYRUP_1_X + 4, pumpHandY, 1);
+    drawHandCircle(ctx, BAR_STATION_COORDS.SYRUP_1_X + 4, pumpHandY);
+    return;
+  }
+
+  if (drink.recipeId === 'blue_citrus') {
+    const jugX = 276;
+    const jugBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
+    drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#FF9526', fillLevel * 0.6);
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 16, jugBottomY - 14, -1);
+    drawHandCircle(ctx, jugX - 16, jugBottomY - 14);
+
+    const orangeX = 302;
+    const orangeY = STAGE_METRICS.COUNTER_TOP_Y - 26 + Math.sin(elapsedSec * 5) * 3;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, orangeX, orangeY, 1);
+    drawPlaceOrangeGarnishAction(ctx, orangeX, orangeY, 1);
+    return;
+  }
+
+  // Matcha Sub-step 14..20%: Pour OATSIDE milk into graduated measuring cup
+  const jugX = 274;
+  const jugBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
+  drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#FFFDF7', fillLevel);
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 16, jugBottomY - 14, -1);
+  drawHandCircle(ctx, jugX - 16, jugBottomY - 14);
+
+  const cartonX = jugX + 34;
+  const cartonY = jugBottomY - 64 + Math.sin(elapsedSec * 4) * 2;
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, cartonX, cartonY, 1);
+  drawPourLiquidEffect(ctx, {
+    toolType: 'oatside_milk',
+    handX: cartonX,
+    handY: cartonY,
+    cupCx: jugX,
+    side: 1,
+    liquidColor: '#FFFDF7',
+    accentColor: '#FFFDF7',
+    targetSurfaceY: jugBottomY - 8 - fillLevel * 22,
+    isFastBoost: false,
+    isSodaFizz: false,
+    elapsedSec,
+  });
+  drawHandCircle(ctx, cartonX, cartonY);
+}
+
+function drawHeldMatchaChawan(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number
+): void {
+  ctx.save();
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.beginPath();
+  ctx.moveTo(cx - 18, cy - 6);
+  ctx.bezierCurveTo(cx - 18, cy + 12, cx - 9, cy + 15, cx, cy + 15);
+  ctx.bezierCurveTo(cx + 9, cy + 15, cx + 18, cy + 12, cx + 18, cy - 6);
+  ctx.closePath();
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 6, 18, 4.8, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#8BC478';
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawHeldMatchaTinAndPowder(
+  ctx: CanvasRenderingContext2D,
+  tinX: number,
+  tinY: number,
+  bowlX: number,
+  bowlTopY: number,
+  elapsedSec: number
+): void {
+  // Falling vibrant green matcha powder specks from tin into chawan bowl
+  ctx.save();
+  ctx.fillStyle = '#5F9A49';
+  for (let i = 0; i < 6; i += 1) {
+    const p = (elapsedSec * 3.8 + i * 0.17) % 1;
+    const px = tinX - 10 + (bowlX - (tinX - 10)) * p + Math.sin(elapsedSec * 8 + i) * 3;
+    const py = tinY + 10 + (bowlTopY - (tinY + 10)) * p;
+    ctx.beginPath();
+    ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Tilted sage-green MATCHA canister
+  ctx.translate(tinX, tinY);
+  ctx.rotate(-0.95);
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  roundedRectPath(ctx, -13, -18, 26, 36, 6);
+  ctx.fillStyle = '#9FD28B';
+  ctx.fill();
+  ctx.stroke();
+
+  roundedRectPath(ctx, -10, -8, 20, 15, 3);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  ctx.fillStyle = '#5F9A49';
+  ctx.beginPath();
+  ctx.ellipse(0, -1, 4.2, 2.4, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawStep2PrepAction(
+  ctx: CanvasRenderingContext2D,
+  drink: ActiveDrink,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number,
+  isFastBoost: boolean,
+  freq: number,
+  elapsedSec: number
+): void {
+  if (drink.recipeId === 'thai_tea') {
+    const leftHandX = 112;
+    const leftHandY = STAGE_METRICS.COUNTER_TOP_Y - 46;
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
+    drawHandCircle(ctx, leftHandX, leftHandY);
+
+    const btnX = 136;
+    const btnY = STAGE_METRICS.COUNTER_TOP_Y - 26 + Math.sin(elapsedSec * 6) * 2;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, btnX, btnY, 1);
+    drawHandCircle(ctx, btnX, btnY);
+    return;
+  }
+
+  if (drink.recipeId === 'blue_citrus') {
+    const juicerX = 276;
+    const juicerBaseY = STAGE_METRICS.COUNTER_TOP_Y + 12;
+    const pressBob = Math.abs(Math.sin(elapsedSec * freq)) * 4;
+    const pressX = juicerX + 3;
+    const pressY = juicerBaseY - 45 + pressBob;
+
+    // Pressing hand behind orange rind so vivid orange slice segments stay 100% visible
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, pressX, pressY, 1);
+    drawHandCircle(ctx, pressX, pressY);
+
+    drawCitrusJuicerOnCounter(ctx, juicerX, juicerBaseY, elapsedSec);
+
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, juicerX - 20, juicerBaseY - 12, -1);
+    drawHandCircle(ctx, juicerX - 20, juicerBaseY - 12);
+    return;
+  }
+
+  // Matcha P2: Froth smoothly inside ceramic chawan bowl using handheld electric frother!
+  if (drink.recipeId === 'matcha') {
+    const bowlX = 282;
+    const bowlBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
+
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, bowlX - 22, bowlBottomY - 12, -1);
+    drawHandCircle(ctx, bowlX - 22, bowlBottomY - 12);
+
+    const grip = drawMatchaChawanWithFrother(ctx, bowlX, bowlBottomY, elapsedSec, isFastBoost);
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, grip.x, grip.y, 1);
+    drawHandCircle(ctx, grip.x, grip.y);
+    return;
+  }
+
+  // Cafe & Soda P2: Whip silky foam in brushed stainless pitcher using handheld electric frother!
+  const pitcherX = 282;
+  const pitcherBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
+  const liquidColor = PREP_LIQUID_COLOR_MAP[drink.recipeId] ?? '#5A321C';
+  const foamColor = PREP_FOAM_COLOR_MAP[drink.recipeId] ?? '#FFF6E8';
+
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, pitcherX - 18, pitcherBottomY - 14, -1);
+  drawHandCircle(ctx, pitcherX - 18, pitcherBottomY - 14);
+
+  const grip = drawStainlessPitcherWithFrother(
+    ctx,
+    pitcherX,
+    pitcherBottomY,
+    liquidColor,
+    foamColor,
+    elapsedSec,
+    isFastBoost
+  );
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, grip.x, grip.y, 1);
+  drawHandCircle(ctx, grip.x, grip.y);
+}
+
+function drawBobaLadleScoopAction(
+  ctx: CanvasRenderingContext2D,
+  hx: number,
+  hy: number,
+  isTippingOverCup: boolean,
+  elapsedSec: number
+): void {
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(isTippingOverCup ? -0.78 : -0.32);
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Ladle handle & round boba spoon bowl
+  roundedRectPath(ctx, -18, -3, 18, 5, 2.2);
+  ctx.fillStyle = '#D99B66';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(-18, 0, 7, 0, Math.PI, false);
+  ctx.closePath();
+  ctx.fillStyle = '#E4E9EE';
+  ctx.fill();
+  ctx.stroke();
+
+  // Dark glossy boba pearls perched on ladle
+  ctx.fillStyle = '#4A2E23';
+  ctx.beginPath();
+  ctx.arc(-20, -2, 2.8, 0, Math.PI * 2);
+  ctx.arc(-15, -2.5, 2.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Falling glossy black boba pearls visibly dropping from ladle straight into open cup mouth!
+  if (isTippingOverCup) {
+    ctx.save();
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.fillStyle = '#4A2E23';
+    for (let i = 0; i < 3; i += 1) {
+      const dropT = (elapsedSec * 4.6 + i * 0.33) % 1;
+      const dropX = CUP1_CX + (i - 1) * 5;
+      const dropY = hy + 6 + dropT * (CUP_TOP_Y + 8 - (hy + 6));
+      ctx.beginPath();
+      ctx.arc(dropX, dropY, 3.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  drawHandCircle(ctx, hx, hy);
 }
 
 function drawIceScoopAndCubes(
   ctx: CanvasRenderingContext2D,
-  handX: number,
-  handY: number,
+  hx: number,
+  hy: number,
   side: -1 | 1,
-  hasIce: boolean
+  hasIce: boolean,
+  isTippingOverCup = false,
+  elapsedSec = 0
 ): void {
-  drawHandCircle(ctx, handX, handY);
   ctx.save();
-  ctx.translate(handX - side * 12, handY + 4);
-  ctx.rotate(side * -0.45);
-  roundedRectPath(ctx, -12, -5, 22, 10, 4);
-  ctx.fillStyle = '#D7E4E8';
+  ctx.translate(hx, hy);
+  ctx.rotate(side * (isTippingOverCup ? -0.78 : -0.35));
+  roundedRectPath(ctx, -side * 16, -6, 18, 12, 4);
+  ctx.fillStyle = '#D9F1F7';
   ctx.fill();
   ctx.lineWidth = 2.2;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
   if (hasIce) {
-    roundedRectPath(ctx, -8, -11, 9, 9, 2.5);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    roundedRectPath(ctx, -side * 11, -10, 8, 8, 2);
+    ctx.fillStyle = '#FFFFFF';
     ctx.fill();
-    ctx.lineWidth = 1.6;
     ctx.stroke();
   }
   ctx.restore();
-}
 
-function drawStage1ToolAction(
-  ctx: CanvasRenderingContext2D,
-  drink: ActiveDrink,
-  baristaX: number,
-  cupCx: number,
-  toolStationX: number,
-  side: -1 | 1,
-  outerShoulderX: number,
-  outerShoulderY: number,
-  innerShoulderX: number,
-  innerShoulderY: number,
-  bob: number,
-  isFastBoost: boolean,
-  freq: number,
-  elapsedSec: number
-): void {
-  const innerSide: -1 | 1 = side === -1 ? 1 : -1;
-  const recipe = RECIPE_MAP[drink.recipeId];
-  const toolType = recipe.toolType;
-  const baseColor = recipe.baseColor;
-  const secondaryColor = recipe.secondaryColor;
-  const accentColor = recipe.accentColor;
-
-  if (toolType === 'chasen') {
-    // Matcha: Ceramic Chawan bowl on counter + Bamboo Chasen whisk swirling figure-8 inside bowl
-    const bowlCx = toolStationX;
-    const bowlCy = STAGE_METRICS.COUNTER_TOP_Y + 6;
-    drawMatchaBowlOnCounter(ctx, bowlCx, bowlCy, baseColor, secondaryColor, elapsedSec);
-
-    const steadyingX = bowlCx + side * 24;
-    const steadyingY = STAGE_METRICS.COUNTER_TOP_Y - 2;
-    drawCartoonArm(ctx, outerShoulderX, outerShoulderY, steadyingX, steadyingY, side);
-    drawHandCircle(ctx, steadyingX, steadyingY);
-
-    const swirlRate = isFastBoost ? 14 : 9.5;
-    const whiskPhase = elapsedSec * swirlRate;
-    const whiskX = bowlCx + Math.sin(whiskPhase) * 9;
-    const whiskY = bowlCy - 24 + Math.sin(whiskPhase * 2) * 3;
-    drawCartoonArm(ctx, innerShoulderX, innerShoulderY, whiskX, whiskY, innerSide);
-    drawBambooChasenInHand(ctx, whiskX, whiskY, Math.sin(whiskPhase) * 0.12);
-    return;
+  // Falling ice cubes visibly dropping right from scoop lip into the open cup mouth (CUP_TOP_Y = 590)!
+  if (hasIce && isTippingOverCup) {
+    ctx.save();
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    for (let i = 0; i < 2; i += 1) {
+      const dropT = (elapsedSec * 4.2 + i * 0.5) % 1;
+      const dropX = CUP1_CX + (i === 0 ? -4 : 5);
+      const dropY = hy + 6 + dropT * (CUP_TOP_Y + 6 - (hy + 6));
+      roundedRectPath(ctx, dropX - 3.8, dropY - 3.8, 7.6, 7.6, 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
   }
-
-  if (toolType === 'shaker') {
-    // Milk Tea P2 (25%-50%): 2-handed clear/stainless cocktail shaker held forward at chest/shoulder height, smooth diagonal oscillation + tilt
-    const shakeRate = isFastBoost ? 14.5 : 9.8;
-    const phase = elapsedSec * shakeRate;
-    const shakerX = baristaX - side * 26 + Math.sin(phase) * 9;
-    const shakerY = 536 + bob - Math.cos(phase) * 10;
-    const rotRad = Math.sin(phase) * 0.36;
-
-    const handOuterX = shakerX + side * 13;
-    const handInnerX = shakerX - side * 13;
-    drawCartoonArm(ctx, outerShoulderX, outerShoulderY, handOuterX, shakerY + 5, side);
-    drawHandCircle(ctx, handOuterX, shakerY + 5);
-    drawCartoonArm(ctx, innerShoulderX, innerShoulderY, handInnerX, shakerY - 5, innerSide);
-    drawHandCircle(ctx, handInnerX, shakerY - 5);
-    drawShakerShakingInHands(ctx, shakerX, shakerY, rotRad, baseColor, elapsedSec);
-    return;
-  }
-
-  if (toolType === 'coffee_machine') {
-    // Cafe: Espresso/Phin brewer extracting espresso stream straight onto rising surface + steam wisps
-    drawEspressoMachineOnCounter(ctx, toolStationX, STAGE_METRICS.COUNTER_TOP_Y + 6, baseColor, elapsedSec);
-    const leverX = toolStationX + side * 14;
-    const leverY = STAGE_METRICS.COUNTER_TOP_Y - 28;
-    drawCartoonArm(ctx, outerShoulderX, outerShoulderY, leverX, leverY, side);
-    drawHandCircle(ctx, leverX, leverY);
-
-    const holdX = toolStationX - side * 14;
-    const holdY = STAGE_METRICS.COUNTER_TOP_Y - 4;
-    drawCartoonArm(ctx, innerShoulderX, innerShoulderY, holdX, holdY, innerSide);
-    drawHandCircle(ctx, holdX, holdY);
-    return;
-  }
-
-  if (toolType === 'juicer') {
-    // Fruit Juice: Citrus juicer machine squeezing citrus dome + connected juice stream from spout to pitcher
-    drawCitrusJuicerOnCounter(ctx, toolStationX, STAGE_METRICS.COUNTER_TOP_Y + 6, side, baseColor, elapsedSec);
-    const pressBob = Math.abs(Math.sin(elapsedSec * freq)) * 5;
-    const pressX = toolStationX;
-    const pressY = STAGE_METRICS.COUNTER_TOP_Y - 34 + pressBob;
-    drawCartoonArm(ctx, outerShoulderX, outerShoulderY, pressX, pressY, side);
-    drawHandCircle(ctx, pressX, pressY);
-
-    const holdX = toolStationX - side * 20;
-    const holdY = STAGE_METRICS.COUNTER_TOP_Y - 4;
-    drawCartoonArm(ctx, innerShoulderX, innerShoulderY, holdX, holdY, innerSide);
-    drawHandCircle(ctx, holdX, holdY);
-    return;
-  }
-
-  // Soda ('soda_pour'): Pouring berry syrup cleanly from tilted bottle mouth down to surfaceY
-  const outerX = baristaX + side * 42;
-  const outerY = STAGE_METRICS.COUNTER_TOP_Y - 8;
-  drawCartoonArm(ctx, outerShoulderX, outerShoulderY, outerX, outerY, side);
-  drawHandCircle(ctx, outerX, outerY);
-
-  const handX = cupCx + side * 26;
-  const handY = CUP_TOP_Y - 52 + Math.sin(elapsedSec * 4) * 3;
-  const surfaceY = computeLiquidFillSnapshot(drink.recipeId, drink.progress).surfaceY;
-  const pourColor = resolveActivePourColor(drink);
-
-  drawCartoonArm(ctx, innerShoulderX, innerShoulderY, handX, handY, innerSide);
-  drawPourLiquidEffect(ctx, {
-    toolType: 'soda_pour',
-    handX,
-    handY,
-    cupCx,
-    side,
-    liquidColor: pourColor,
-    accentColor,
-    targetSurfaceY: surfaceY,
-    isFastBoost,
-    isSodaFizz: false,
-    elapsedSec,
-  });
-  drawHandCircle(ctx, handX, handY);
-}
-
-function drawMatchaBowlOnCounter(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  baseColor: string,
-  foamColor: string,
-  elapsedSec: number
-): void {
-  ctx.save();
-  // Ceramic Chawan bowl
-  ctx.beginPath();
-  ctx.arc(cx, cy - 12, 23, 0, Math.PI, false);
-  ctx.closePath();
-  ctx.fillStyle = '#FFFDF9';
-  ctx.fill();
-  ctx.lineWidth = 2.6;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // Rim ellipse filled with whisked matcha & creamy foam swirl clipped inside bowl
-  ctx.beginPath();
-  ctx.ellipse(cx, cy - 12, 23, 7, 0, 0, Math.PI * 2);
-  ctx.fillStyle = baseColor;
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.ellipse(cx, cy - 12, 20, 5.5, 0, 0, Math.PI * 2);
-  ctx.clip();
-
-  const a = elapsedSec * 9;
-  ctx.fillStyle = foamColor;
-  ctx.beginPath();
-  ctx.arc(cx + Math.cos(a) * 10, cy - 12 + Math.sin(a) * 2.2, 4.5, 0, Math.PI * 2);
-  ctx.arc(cx + Math.cos(a + 2.2) * 8, cy - 12 + Math.sin(a + 2.2) * 2.0, 3.6, 0, Math.PI * 2);
-  ctx.arc(cx + Math.sin(a * 0.7) * 5, cy - 12, 3.0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-  ctx.restore();
-}
-
-function drawBambooChasenInHand(
-  ctx: CanvasRenderingContext2D,
-  hx: number,
-  hy: number,
-  tiltRad: number
-): void {
-  ctx.save();
-  ctx.translate(hx, hy);
-  ctx.rotate(tiltRad);
-
-  // Bamboo whisk prongs fanning down into bowl
-  ctx.beginPath();
-  ctx.moveTo(-5, 4);
-  ctx.quadraticCurveTo(-11, 18, -7, 25);
-  ctx.lineTo(7, 25);
-  ctx.quadraticCurveTo(11, 18, 5, 4);
-  ctx.closePath();
-  ctx.fillStyle = '#E6BD74';
-  ctx.fill();
-  ctx.lineWidth = 2.2;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // Whisk tine lines
-  ctx.lineWidth = 1.3;
-  ctx.beginPath();
-  ctx.moveTo(-3, 8);
-  ctx.lineTo(-4, 23);
-  ctx.moveTo(0, 8);
-  ctx.lineTo(0, 24);
-  ctx.moveTo(3, 8);
-  ctx.lineTo(4, 23);
-  ctx.stroke();
-
-  // Bamboo handle
-  roundedRectPath(ctx, -4.5, -14, 9, 20, 4);
-  ctx.fillStyle = '#D89B54';
-  ctx.fill();
-  ctx.lineWidth = 2.2;
-  ctx.stroke();
-  ctx.restore();
 
   drawHandCircle(ctx, hx, hy);
-}
-
-function drawShakerShakingInHands(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  rotRad: number,
-  drinkColor: string,
-  elapsedSec: number
-): void {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(rotRad);
-
-  // Dual motion arcs hugging both sides of shaker
-  drawMotionArcs(ctx, 22, 15);
-
-  // Translucent/stainless shaker cup showing milk tea + ice shaking inside
-  roundedRectPath(ctx, -14, -24, 28, 48, 8);
-  ctx.fillStyle = '#F6F0E9';
-  ctx.fill();
-  ctx.lineWidth = 2.6;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // Sloshing milk tea & ice inside clear window
-  roundedRectPath(ctx, -11.5, -10, 23, 30, 5.5);
-  ctx.fillStyle = drinkColor;
-  ctx.fill();
-
-  const iceSlosh = Math.sin(elapsedSec * 14) * 2.5;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
-  ctx.fillRect(-7 + iceSlosh, -4, 6, 6);
-  ctx.fillRect(2 - iceSlosh, 4, 6, 6);
-
-  // Sealed stainless/copper cap firmly closed during P2 shake
-  roundedRectPath(ctx, -11, -30, 22, 8, 3.5);
-  ctx.fillStyle = '#E0D7CD';
-  ctx.fill();
-  ctx.lineWidth = 2.3;
-  ctx.stroke();
-
-  roundedRectPath(ctx, -7, -37, 14, 8, 3.5);
-  ctx.fillStyle = '#C5834B';
-  ctx.fill();
-  ctx.stroke();
-
-  const pulse = Math.sin(elapsedSec * 16);
-  ctx.fillStyle = '#FFFDF9';
-  ctx.beginPath();
-  ctx.arc(-11 + pulse * 2, -39, 2.3, 0, Math.PI * 2);
-  ctx.arc(11 - pulse * 2, -41, 2.0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawEspressoMachineOnCounter(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  coffeeColor: string,
-  elapsedSec: number
-): void {
-  ctx.save();
-  // Machine body
-  roundedRectPath(ctx, cx - 20, cy - 52, 40, 52, 8);
-  ctx.fillStyle = '#C5834B';
-  ctx.fill();
-  ctx.lineWidth = 2.6;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // Inner dark recess for espresso carafe
-  roundedRectPath(ctx, cx - 14, cy - 30, 28, 28, 4);
-  ctx.fillStyle = '#4B3227';
-  ctx.fill();
-
-  // Portafilter spout aligned directly over carafe center
-  const spoutX = cx;
-  const spoutY = cy - 28;
-  roundedRectPath(ctx, cx - 7, cy - 34, 14, 6, 2);
-  ctx.fillStyle = '#E8E1D9';
-  ctx.fill();
-  ctx.stroke();
-
-  // Glass coffee carafe catching espresso stream
-  roundedRectPath(ctx, cx - 10, cy - 18, 20, 17, 4);
-  ctx.fillStyle = '#FFFDF9';
-  ctx.fill();
-  ctx.stroke();
-
-  const fillH = 6 + Math.abs(Math.sin(elapsedSec * 1.4)) * 7;
-  const liquidSurfaceY = cy - 2 - fillH;
-  roundedRectPath(ctx, cx - 8, liquidSurfaceY, 16, fillH, 2);
-  ctx.fillStyle = coffeeColor;
-  ctx.fill();
-
-  // Rich espresso stream connected seamlessly from portafilter spout straight to carafe surface
-  ctx.strokeStyle = coffeeColor;
-  ctx.lineWidth = 3.2;
-  ctx.beginPath();
-  ctx.moveTo(spoutX, spoutY);
-  ctx.lineTo(spoutX, liquidSurfaceY + 1);
-  ctx.stroke();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(spoutX - 0.6, spoutY + 1);
-  ctx.lineTo(spoutX - 0.6, liquidSurfaceY);
-  ctx.stroke();
-
-  // Thin rising warm steam wisps above machine
-  drawRisingSteamWisps(ctx, cx, cy - 56, elapsedSec);
-  ctx.restore();
 }
 
 function drawCitrusJuicerOnCounter(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
-  side: -1 | 1,
-  juiceColor: string,
   elapsedSec: number
 ): void {
-  const dirToCup = -side; // Pitcher faces inward toward open counter between tool & cup
-  const pitcherCx = cx + dirToCup * 24;
-  const spoutStartX = cx + dirToCup * 18;
+  const pitcherCx = cx + 30;
+  const spoutStartX = cx + 18;
   const spoutStartY = cy - 16;
-  const fillH = 6 + Math.abs(Math.sin(elapsedSec * 1.6)) * 6;
+  const fillH = 8 + Math.abs(Math.sin(elapsedSec * 1.6)) * 8;
   const pitcherSurfaceY = cy - 2 - fillH;
 
   ctx.save();
-  // Juicer base
   roundedRectPath(ctx, cx - 18, cy - 28, 36, 28, 8);
   ctx.fillStyle = '#FFFDF9';
   ctx.fill();
@@ -1479,159 +1839,194 @@ function drawCitrusJuicerOnCounter(
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  // Fresh citrus half squeezing smoothly down onto reamer
-  const squeeze = Math.abs(Math.sin(elapsedSec * 5.2)) * 4;
   ctx.beginPath();
-  ctx.arc(cx, cy - 28 + squeeze, 13, Math.PI, 0, false);
+  ctx.moveTo(cx - 10, cy - 28);
+  ctx.lineTo(cx, cy - 40);
+  ctx.lineTo(cx + 10, cy - 28);
   ctx.closePath();
-  ctx.fillStyle = juiceColor;
+  ctx.fillStyle = '#E4E7EB';
   ctx.fill();
+  ctx.lineWidth = 1.8;
   ctx.stroke();
 
-  // Small metal spout tip extending from base toward pitcher
+  // Prominent fresh halved orange slice with crisp segments & #3B2820 2.5px outline
+  const squeeze = Math.abs(Math.sin(elapsedSec * 5.2)) * 4;
+  const orangeY = cy - 29 + squeeze;
+
+  ctx.beginPath();
+  ctx.arc(cx, orangeY, 16, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FF7A1A';
+  ctx.fill();
+  ctx.lineWidth = 2.5;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.lineWidth = 4.2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, orangeY, 13, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FFF8EE';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(cx, orangeY, 11.4, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FFA633';
+  ctx.fill();
+
+  ctx.strokeStyle = '#FFF8EE';
+  ctx.lineWidth = 1.4;
+  for (let a = Math.PI * 0.18; a < Math.PI * 0.9; a += Math.PI * 0.21) {
+    ctx.beginPath();
+    ctx.moveTo(cx, orangeY);
+    ctx.lineTo(cx + Math.cos(Math.PI - a) * 11, orangeY - Math.sin(Math.PI - a) * 11);
+    ctx.stroke();
+  }
+
+  for (let d = 0; d < 3; d += 1) {
+    const dPhase = (elapsedSec * 4.5 + d * 0.33) % 1;
+    const dx = (d === 0 ? -1 : d === 1 ? 1 : 0) * (6 + dPhase * 8);
+    const dy = cy - 30 + dPhase * 10 - Math.sin(dPhase * Math.PI) * 5;
+    ctx.beginPath();
+    ctx.arc(cx + dx, dy, 1.9, 0, Math.PI * 2);
+    ctx.fillStyle = '#FF9526';
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(spoutStartX, spoutStartY);
-  ctx.lineTo(spoutStartX + dirToCup * 4, spoutStartY + 1);
+  ctx.lineTo(spoutStartX + 5, spoutStartY + 1);
   ctx.stroke();
 
-  // Glass pitcher catching juice
-  roundedRectPath(ctx, pitcherCx - 8, cy - 15, 16, 15, 4);
-  ctx.fillStyle = '#FFFDF9';
-  ctx.fill();
-  ctx.lineWidth = 2.2;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
+  drawGraduatedMeasuringCup(ctx, pitcherCx, cy, '#FF9526', fillH / 22);
 
-  roundedRectPath(ctx, pitcherCx - 6.5, pitcherSurfaceY, 13, fillH, 2.5);
-  ctx.fillStyle = juiceColor;
-  ctx.fill();
-
-  // Continuous juice stream from exact spout tip straight down to pitcher liquidSurfaceY
-  const tipX = spoutStartX + dirToCup * 4;
-  const tipY = spoutStartY + 1;
-  ctx.strokeStyle = juiceColor;
+  ctx.strokeStyle = '#FF9526';
   ctx.lineWidth = 3.4;
   ctx.beginPath();
-  ctx.moveTo(tipX, tipY);
-  ctx.quadraticCurveTo(pitcherCx, tipY + 1, pitcherCx, pitcherSurfaceY + 1);
-  ctx.stroke();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-  ctx.lineWidth = 1.1;
+  ctx.moveTo(spoutStartX + 5, spoutStartY + 1);
+  ctx.quadraticCurveTo(pitcherCx, spoutStartY + 2, pitcherCx, pitcherSurfaceY + 1);
   ctx.stroke();
   ctx.restore();
 }
 
-function drawSaltedCreamSwirlAction(
+function drawBaristaCreamerJugAction(
   ctx: CanvasRenderingContext2D,
   hx: number,
   hy: number,
   cupCx: number,
   side: -1 | 1,
-  elapsedSec: number
+  elapsedSec: number,
+  creamColor = '#FFF6E8'
 ): void {
   const pourDir = -side;
-  const tilt = pourDir * 1.25;
-  const spout = transformRotatedAnchor(hx, hy, tilt, pourDir * 13, -3);
-  const surfaceY = CUP_TOP_Y + 14;
-  const ribbonEndX = cupCx + Math.sin(elapsedSec * 7) * 8;
+  const tilt = pourDir * 0.72;
+  const spout = transformRotatedAnchor(hx, hy, tilt, pourDir * 14, -8);
+  const surfaceY = CUP_TOP_Y + 9;
+  const ribbonEndX = cupCx + Math.sin(elapsedSec * 5.2) * 10;
 
-  // Smooth velvety salted cream ribbon onto coffee surface
   ctx.save();
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(spout.x, spout.y);
-  ctx.quadraticCurveTo((spout.x + ribbonEndX) * 0.5, spout.y + 10, ribbonEndX, surfaceY);
-  ctx.lineWidth = 6.2;
+  ctx.quadraticCurveTo(
+    spout.x + (ribbonEndX - spout.x) * 0.55,
+    spout.y + 10,
+    ribbonEndX,
+    surfaceY
+  );
+  ctx.lineWidth = 6.8;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  ctx.lineWidth = 4.2;
-  ctx.strokeStyle = '#FFF6E8';
+  ctx.lineWidth = 4.6;
+  ctx.strokeStyle = creamColor;
   ctx.stroke();
+
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(ribbonEndX, surfaceY, 7.5, 3.0, 0, 0, Math.PI * 2);
+  ctx.fillStyle = creamColor;
+  ctx.fill();
   ctx.restore();
 
-  // Cute small cream pitcher in hand
   ctx.save();
   ctx.translate(hx, hy);
   ctx.rotate(tilt);
-  roundedRectPath(ctx, -9, -11, 18, 20, 5);
-  ctx.fillStyle = '#FFFDF9';
-  ctx.fill();
-  ctx.lineWidth = 2.2;
+
+  ctx.beginPath();
+  ctx.arc(-pourDir * 10, -2, 6, -Math.PI * 0.45, Math.PI * 0.45, false);
+  ctx.lineWidth = 2.6;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  roundedRectPath(ctx, -7, -8, 14, 7, 3);
-  ctx.fillStyle = '#FFF6E8';
+  roundedRectPath(ctx, -10, -12, 20, 24, 5);
+  ctx.fillStyle = '#F2F4F8';
+  ctx.fill();
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+  ctx.fillRect(-2, -9, 3, 18);
+
+  roundedRectPath(ctx, -6, -8, 12, 6, 2);
+  ctx.fillStyle = creamColor;
   ctx.fill();
   ctx.restore();
 
   drawHandCircle(ctx, hx, hy);
 }
 
-function drawToppingSpoonAndDrops(
+function drawPlaceOrangeGarnishAction(
   ctx: CanvasRenderingContext2D,
   hx: number,
   hy: number,
-  cupCx: number,
-  side: -1 | 1,
-  accentColor: string,
-  isPowderDust: boolean,
-  elapsedSec: number
+  side: -1 | 1
 ): void {
-  const spoonAngle = side * -0.35;
-  const spoonBowl = transformRotatedAnchor(hx, hy, spoonAngle, -side * 16, 10);
-  const minX = cupCx - 30;
-  const maxX = cupCx + 30;
-  const clampX = (x: number) => Math.max(minX, Math.min(maxX, x));
-
-  // Falling topping drops/powder spawned strictly from true rotated spoonBowl anchor!
-  const drop = (elapsedSec * 4.2) % 1;
-  ctx.save();
-  ctx.fillStyle = accentColor;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.lineWidth = isPowderDust ? 0.8 : 1.6;
-
-  if (isPowderDust) {
-    for (let i = 0; i < 5; i += 1) {
-      const cycle = (drop + i * 0.2) % 1;
-      const dx = (i - 2) * 5 + Math.sin(elapsedSec * 5 + i) * 2;
-      const py = spoonBowl.y + 4 + cycle * 24;
-      ctx.beginPath();
-      ctx.arc(clampX(spoonBowl.x + dx), py, 2.0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  } else {
-    ctx.beginPath();
-    ctx.arc(clampX(spoonBowl.x - side * 3), spoonBowl.y + 4 + drop * 20, 3.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(clampX(spoonBowl.x + side * 4), spoonBowl.y + 3 + ((drop + 0.5) % 1) * 20, 2.8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
-  ctx.restore();
-
   ctx.save();
   ctx.translate(hx, hy);
-  ctx.rotate(spoonAngle);
+  ctx.rotate(-side * 0.22);
+
   ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(-side * 14, 9);
-  ctx.lineWidth = 4;
+  ctx.arc(0, 0, 14, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FF7A1A';
+  ctx.fill();
+  ctx.lineWidth = 2.5;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.arc(-side * 16, 10, 5, 0, Math.PI * 2);
-  ctx.fillStyle = isPowderDust ? '#A7D397' : '#F7C95B';
+  ctx.arc(0, 0, 11.2, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FFF8EE';
   ctx.fill();
-  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 9.6, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FFA633';
+  ctx.fill();
+
+  ctx.strokeStyle = '#FFF8EE';
+  ctx.lineWidth = 1.4;
+  for (let a = Math.PI * 0.2; a < Math.PI * 0.9; a += Math.PI * 0.22) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(Math.PI - a) * 9.5, -Math.sin(Math.PI - a) * 9.5);
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.ellipse(8.5, -13, 4.6, 2.5, 0.6, 0, Math.PI * 2);
+  ctx.fillStyle = '#7FB86B';
+  ctx.fill();
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
   ctx.restore();
 
@@ -1643,65 +2038,57 @@ function drawSynchronizedTikTokDanceArms(
   cx: number,
   headY: number,
   torsoY: number,
-  dance: DanceMotion,
-  isLeftBarista: boolean
+  dance: DanceMotion
 ): void {
-  const leftShoulderX = cx - 34;
+  const leftShoulderX = cx - 36;
   const leftShoulderY = torsoY + 22;
-  const rightShoulderX = cx + 34;
+  const rightShoulderX = cx + 36;
   const rightShoulderY = torsoY + 22;
 
   const beatSin = Math.sin(dance.beatPhase);
   const beatCos = Math.cos(dance.beatPhase);
 
-  let leftHandX = cx - 44;
+  let leftHandX = cx - 46;
   let leftHandY = headY - 8;
-  let rightHandX = cx + 44;
+  let rightHandX = cx + 46;
   let rightHandY = headY - 8;
 
   if (dance.style === 'heart_sway') {
-    // Style 1 (heart_sway): Gentle wave alternating with cute chest/overhead finger-heart pose
     if (dance.poseIndex === 0) {
       leftHandX = cx - 18 + beatSin * 4;
       leftHandY = torsoY + 4 + Math.abs(beatCos) * 4;
       rightHandX = cx + 18 - beatSin * 4;
       rightHandY = torsoY + 4 + Math.abs(beatCos) * 4;
-      drawFloatingHeart(ctx, cx, torsoY - 12 + beatSin * 4, 9);
+      drawFloatingHeart(ctx, cx, torsoY - 12 + beatSin * 4, 10);
     } else {
-      const waveAlt = isLeftBarista ? beatSin : -beatSin;
-      leftHandX = cx - 46 + waveAlt * 6;
-      leftHandY = headY - 12 + beatCos * 6;
-      rightHandX = cx + 46 + waveAlt * 6;
-      rightHandY = headY - 12 - beatCos * 6;
+      leftHandX = cx - 48 + beatSin * 7;
+      leftHandY = headY - 14 + beatCos * 6;
+      rightHandX = cx + 48 + beatSin * 7;
+      rightHandY = headY - 14 - beatCos * 6;
     }
   } else if (dance.style === 'groove_wave') {
-    // Style 2 (groove_wave): Symmetric mirrored TikTok hand-wave (Left sweeps left while Right sweeps right, alternating!)
-    const dir = isLeftBarista ? 1 : -1;
-    const sweepX = Math.sin(dance.beatPhase * 0.5) * 24 * dir;
-    const sweepY = Math.abs(beatSin) * 11;
-    leftHandX = cx - 32 + sweepX;
+    const sweepX = Math.sin(dance.beatPhase * 0.5) * 26;
+    const sweepY = Math.abs(beatSin) * 12;
+    leftHandX = cx - 34 + sweepX;
     leftHandY = headY - 14 + sweepY;
-    rightHandX = cx + 32 + sweepX;
+    rightHandX = cx + 34 + sweepX;
     rightHandY = headY - 22 + sweepY;
   } else {
-    // Style 3 (party_hype): Energetic overhead beat pump alternating with shoulder twist
     if (dance.poseIndex === 0) {
-      leftHandX = cx - 28 + beatSin * 10;
-      leftHandY = headY - 46 + Math.abs(beatCos) * 8;
-      rightHandX = cx + 28 - beatSin * 10;
-      rightHandY = headY - 46 + Math.abs(beatCos) * 8;
+      leftHandX = cx - 30 + beatSin * 12;
+      leftHandY = headY - 48 + Math.abs(beatCos) * 9;
+      rightHandX = cx + 30 - beatSin * 12;
+      rightHandY = headY - 48 + Math.abs(beatCos) * 9;
     } else {
-      const twist = isLeftBarista ? beatSin : -beatSin;
-      leftHandX = cx - 48 + twist * 10;
-      leftHandY = headY - 10 + twist * 22;
-      rightHandX = cx + 48 + twist * 10;
-      rightHandY = headY - 10 - twist * 22;
+      leftHandX = cx - 50 + beatSin * 10;
+      leftHandY = headY - 10 + beatSin * 24;
+      rightHandX = cx + 50 + beatSin * 10;
+      rightHandY = headY - 10 - beatSin * 24;
     }
   }
 
   drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
   drawHandCircle(ctx, leftHandX, leftHandY);
-
   drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightHandX, rightHandY, 1);
   drawHandCircle(ctx, rightHandX, rightHandY);
 }
@@ -1719,64 +2106,41 @@ function drawTikTokDanceMusicNotesAndSparkles(
   ctx.globalAlpha = dance.blend;
 
   if (dance.style === 'heart_sway') {
-    // Rising pastel hearts & subtle sparkles around both bartenders
-    const hearts: readonly [number, number, number][] = [
-      [BARISTA_LEFT_X - 46, 408 + floatA, 8],
-      [BARISTA_LEFT_X + 42, 396 - floatB, 7],
-      [BARISTA_RIGHT_X - 42, 398 + floatB, 7],
-      [BARISTA_RIGHT_X + 46, 408 - floatA, 8],
-    ];
-    for (const [hx, hy, size] of hearts) {
-      drawFloatingHeart(ctx, hx + dance.swayX * 0.4, hy + dance.bounceY * 0.4, size);
-    }
-    drawDanceSparkleStar(ctx, BARISTA_LEFT_X, 386, 5.5 + Math.sin(elapsedSec * 7) * 1.6, '#F7C95B');
-    drawDanceSparkleStar(ctx, BARISTA_RIGHT_X, 386, 5.5 + Math.cos(elapsedSec * 7) * 1.6, '#F7C95B');
+    const cx = BARISTA_CENTER_X + dance.swayX * 0.4;
+    const cy = dance.bounceY * 0.4;
+    drawFloatingHeart(ctx, cx - 64, 412 + floatA + cy, 9);
+    drawFloatingHeart(ctx, cx + 64, 404 - floatB + cy, 9);
+    drawFloatingHeart(ctx, cx - 44, 386 - floatB + cy, 7);
+    drawFloatingHeart(ctx, cx + 44, 388 + floatA + cy, 7);
+    drawDanceSparkleStar(ctx, cx, 382, 6 + Math.sin(elapsedSec * 7) * 1.6, '#F7C95B');
     ctx.restore();
     return;
   }
 
-  const notes: readonly { x: number; y: number; symbol: string; color: string }[] = [
-    { x: BARISTA_LEFT_X - 54, y: 404 + floatA, symbol: '♪', color: '#F0788C' },
-    { x: BARISTA_LEFT_X + 50, y: 392 - floatB, symbol: '♫', color: '#F7C95B' },
-    { x: BARISTA_RIGHT_X - 50, y: 394 + floatB, symbol: '♫', color: '#7FC8D9' },
-    { x: BARISTA_RIGHT_X + 54, y: 404 - floatA, symbol: '♪', color: '#A7D397' },
-  ];
-
   ctx.font = '900 22px "Fredoka", "Nunito", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
 
-  for (let i = 0; i < notes.length; i += 1) {
-    const n = notes[i];
-    const nx = n.x + dance.swayX * 0.45;
-    const ny = n.y + dance.bounceY * 0.45;
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-    ctx.strokeText(n.symbol, nx, ny);
-    ctx.fillStyle = n.color;
-    ctx.fillText(n.symbol, nx, ny);
+  const cx = BARISTA_CENTER_X;
+  const xOffsets = [-68, -42, 42, 68];
+  const yPositions = [414 + floatA, 392 - floatB, 394 + floatB, 412 - floatA];
+  const symbols = ['♪', '♫', '♫', '♪'];
+  const colors = ['#F0788C', '#F7C95B', '#7FC8D9', '#A7D397'];
+
+  for (let i = 0; i < 4; i += 1) {
+    const nx = cx + xOffsets[i] + dance.swayX * 0.35;
+    const ny = yPositions[i] + dance.bounceY * 0.35;
+    ctx.strokeText(symbols[i], nx, ny);
+    ctx.fillStyle = colors[i];
+    ctx.fillText(symbols[i], nx, ny);
   }
 
-  const starCoords: readonly [number, number][] =
-    dance.style === 'party_hype' || tier === 'LARGE'
-      ? [
-          [BARISTA_LEFT_X - 44, 382],
-          [BARISTA_LEFT_X + 42, 378],
-          [STAGE_WORK_CENTER_X, 394],
-          [BARISTA_RIGHT_X - 42, 380],
-          [BARISTA_RIGHT_X + 44, 382],
-        ]
-      : [
-          [BARISTA_LEFT_X - 40, 386],
-          [BARISTA_RIGHT_X + 40, 386],
-        ];
-
-  for (let i = 0; i < starCoords.length; i += 1) {
-    const [sx, sy] = starCoords[i];
-    const pulse = 5.4 + Math.sin(elapsedSec * 8 + i) * 2.2;
-    drawDanceSparkleStar(ctx, sx + dance.swayX * 0.3, sy, pulse, '#F7C95B');
+  if (tier === 'LARGE' || dance.style === 'party_hype') {
+    drawDanceSparkleStar(ctx, cx - 78, 382 + floatB, 6.5, '#F7C95B');
+    drawDanceSparkleStar(ctx, cx + 78, 384 - floatA, 6.5, '#F0788C');
   }
-
   ctx.restore();
 }
 
@@ -1790,12 +2154,12 @@ function drawFloatingHeart(
   ctx.translate(cx, cy);
   ctx.beginPath();
   ctx.moveTo(0, size * 0.35);
-  ctx.bezierCurveTo(-size, -size * 0.4, -size * 0.55, -size * 1.1, 0, -size * 0.45);
-  ctx.bezierCurveTo(size * 0.55, -size * 1.1, size, -size * 0.4, 0, size * 0.35);
+  ctx.bezierCurveTo(-size, -size * 0.3, -size * 0.9, -size * 1.1, 0, -size * 0.45);
+  ctx.bezierCurveTo(size * 0.9, -size * 1.1, size, -size * 0.3, 0, size * 0.35);
   ctx.closePath();
   ctx.fillStyle = '#F0788C';
   ctx.fill();
-  ctx.lineWidth = 2.1;
+  ctx.lineWidth = 2.0;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
   ctx.restore();
@@ -1806,116 +2170,110 @@ function drawDanceSparkleStar(
   cx: number,
   cy: number,
   r: number,
-  fill: string
+  color: string
 ): void {
+  ctx.save();
+  ctx.translate(cx, cy);
   ctx.beginPath();
-  for (let i = 0; i < 8; i += 1) {
-    const rad = i % 2 === 0 ? r : r * 0.36;
-    const a = (Math.PI / 4) * i;
-    const px = cx + Math.cos(a) * rad;
-    const py = cy + Math.sin(a) * rad;
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
+  ctx.moveTo(0, -r);
+  ctx.quadraticCurveTo(r * 0.2, -r * 0.2, r, 0);
+  ctx.quadraticCurveTo(r * 0.2, r * 0.2, 0, r);
+  ctx.quadraticCurveTo(-r * 0.2, r * 0.2, -r, 0);
+  ctx.quadraticCurveTo(-r * 0.2, -r * 0.2, 0, -r);
   ctx.closePath();
-  ctx.fillStyle = fill;
+  ctx.fillStyle = color;
   ctx.fill();
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 1.8;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
+  ctx.restore();
 }
 
+/**
+ * Clean anatomically-aligned quadratic Bezier arm with exact De Casteljau sleeve subdivision
+ * so the white shirt sleeve lies 100.00% on the arm curve with ZERO stray strokes or floating lines.
+ */
 function drawCartoonArm(
   ctx: CanvasRenderingContext2D,
   sx: number,
   sy: number,
   hx: number,
   hy: number,
-  outwardSide: -1 | 1
+  side: -1 | 1
 ): void {
-  const isHandHigh = hy < sy;
-  const elbowX = (sx + hx) * 0.5 + outwardSide * (isHandHigh ? 12 : 7);
-  const elbowY = isHandHigh
-    ? (sy + hy) * 0.5 + 14
-    : Math.max(sy, hy) + 11;
+  const elbowX = (sx + hx) * 0.5 + side * 12;
+  const elbowY = (sy + hy) * 0.5 + 14;
 
-  // 1. Forearm curve (warm peach skin running smoothly from shoulder cuff to wrist)
+  // 1. Full arm outline + skin forearm fill
   ctx.beginPath();
   ctx.moveTo(sx, sy);
   ctx.quadraticCurveTo(elbowX, elbowY, hx, hy);
-  ctx.lineWidth = 15.5;
+  ctx.lineWidth = 15.6;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(sx, sy);
-  ctx.quadraticCurveTo(elbowX, elbowY, hx, hy);
-  ctx.lineWidth = 10.5;
+  ctx.lineWidth = 10.8;
   ctx.strokeStyle = BARISTA_SKIN;
   ctx.stroke();
 
-  // 2. Soft short rolled sleeve segment via De Casteljau split at t = 0.42
-  const sleeveT = 0.42;
-  const ctrlSleeveX = sx + (elbowX - sx) * sleeveT;
-  const ctrlSleeveY = sy + (elbowY - sy) * sleeveT;
-  const midSleeveX = elbowX + (hx - elbowX) * sleeveT;
-  const midSleeveY = elbowY + (hy - elbowY) * sleeveT;
-  const cuffX = ctrlSleeveX + (midSleeveX - ctrlSleeveX) * sleeveT;
-  const cuffY = ctrlSleeveY + (midSleeveY - ctrlSleeveY) * sleeveT;
+  // 2. Exact De Casteljau sub-curve [0 .. sleeveT] for white raglan shirt sleeve (0.00px deviation!)
+  const sleeveT = 0.48;
+  const q0x = sx + (elbowX - sx) * sleeveT;
+  const q0y = sy + (elbowY - sy) * sleeveT;
+  const q1x = elbowX + (hx - elbowX) * sleeveT;
+  const q1y = elbowY + (hy - elbowY) * sleeveT;
+  const sleeveEndX = q0x + (q1x - q0x) * sleeveT;
+  const sleeveEndY = q0y + (q1y - q0y) * sleeveT;
 
   ctx.beginPath();
   ctx.moveTo(sx, sy);
-  ctx.quadraticCurveTo(ctrlSleeveX, ctrlSleeveY, cuffX, cuffY);
-  ctx.lineWidth = 19.2;
+  ctx.quadraticCurveTo(q0x, q0y, sleeveEndX, sleeveEndY);
+  ctx.lineWidth = 16.2;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(sx, sy);
-  ctx.quadraticCurveTo(ctrlSleeveX, ctrlSleeveY, cuffX, cuffY);
-  ctx.lineWidth = 14;
-  ctx.strokeStyle = '#FFF5E6';
+  ctx.lineWidth = 11.4;
+  ctx.strokeStyle = '#FFFDF9';
   ctx.stroke();
 }
 
 function drawHandCircle(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   ctx.beginPath();
-  ctx.arc(x, y, 8.4, 0, Math.PI * 2);
+  ctx.arc(x, y, 7.6, 0, Math.PI * 2);
   ctx.fillStyle = BARISTA_SKIN;
   ctx.fill();
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 2.4;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
-
-  // Subtle soft finger highlight
-  ctx.beginPath();
-  ctx.arc(x - 2, y - 2, 2.2, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-  ctx.fill();
 }
 
 function drawCelebrationSpeechBanner(
   ctx: CanvasRenderingContext2D,
-  rawText: string,
+  text: string,
   tier: GiftTier
 ): void {
-  const text = rawText.slice(0, GAMEPLAY_LIMITS.SPEECH_MAX_CHARS);
-  ctx.font = '900 13.5px "Nunito", sans-serif';
-  const measured = ctx.measureText(text).width;
-  const bubbleW = Math.min(238, Math.max(128, measured + 28));
-  const bubbleH = 34;
-  const bx = STAGE_WORK_CENTER_X - bubbleW * 0.5;
-  const by = 376;
+  ctx.save();
+  ctx.font = '800 13px "Fredoka", "Nunito", sans-serif';
+  const textW = ctx.measureText(text).width;
+  const w = Math.min(260, Math.max(132, textW + 30));
+  const h = 30;
+  const x = STAGE_WORK_CENTER_X - w * 0.5;
+  const y = 172;
 
-  roundedRectPath(ctx, bx, by, bubbleW, bubbleH, 17);
+  roundedRectPath(ctx, x, y + 3, w, h, 14);
+  ctx.fillStyle = 'rgba(59, 40, 32, 0.16)';
+  ctx.fill();
+
+  roundedRectPath(ctx, x, y, w, h, 14);
   ctx.fillStyle = tier === 'LARGE' ? '#FFF1C2' : '#FFFDF9';
   ctx.fill();
-  ctx.lineWidth = 2.6;
+  ctx.lineWidth = 2.5;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
   ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, STAGE_WORK_CENTER_X, by + bubbleH * 0.5 + 1);
+  ctx.fillText(text, STAGE_WORK_CENTER_X, y + h * 0.5 + 0.5);
+  ctx.restore();
 }

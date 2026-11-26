@@ -50,7 +50,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) =>
   };
 
   return (
-    <aside className="bar-panel p-2 flex flex-col h-full w-full min-h-0 bg-[#FFFDF9] select-none gap-1.5 overflow-hidden">
+    <aside className="bar-panel rounded-t-none border-t-0 p-1.5 pt-1 flex flex-col h-full w-full min-h-0 bg-[#FFFDF9] select-none gap-1 overflow-hidden">
       {/* Preview Panel Header: Left "Live Preview (9:16)" | Right "● Mirror Live" */}
       <div className="shrink-0 flex items-center justify-between gap-1.5 px-1 pb-1 border-b border-[#3B2820]/15">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -68,28 +68,26 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) =>
         </span>
       </div>
 
-      {/* Main Full-Height 9:16 Stage Frame - Compact Snug Phone Mockup */}
-      <div className="flex-1 min-h-0 w-full flex items-center justify-center p-1.5 bg-[#F5E6DD] rounded-[14px] border-2 border-[#3B2820]/20 shadow-inner relative overflow-hidden">
+      {/* Main Full-Height 9:16 Stage Frame - Edge-to-Edge Clean Preview */}
+      <div
+        className="flex-1 min-h-0 w-full flex items-center justify-center relative overflow-hidden"
+        style={{ containerType: 'size' }}
+      >
         <div
-          className="w-full h-full flex items-center justify-center"
-          style={{ containerType: 'size' }}
+          className="relative overflow-hidden rounded-xl border-2 border-[#3B2820] shadow-md bg-black flex items-center justify-center"
+          style={{
+            width: 'min(100cqw, calc(100cqh * 9 / 16))',
+            height: 'min(100cqh, calc(100cqw * 16 / 9))',
+          }}
         >
-          <div
-            className="flex items-center justify-center bg-[#1A1211] p-1 rounded-[16px] border-[3px] border-[#3B2820] shadow-xl relative"
-            style={{
-              width: 'min(100cqw, calc(100cqh * 9 / 16))',
-              height: 'min(100cqh, calc(100cqw * 16 / 9))',
-            }}
-          >
-            <iframe
-              ref={iframeRef}
-              src={mirrorUrl}
-              allow="autoplay"
-              onLoad={handleIframeLoad}
-              title="Drink Bar Live Preview 9:16"
-              className="w-full h-full rounded-[12px] bg-black block"
-            />
-          </div>
+          <iframe
+            ref={iframeRef}
+            src={mirrorUrl}
+            allow="autoplay"
+            onLoad={handleIframeLoad}
+            title="Drink Bar Live Preview 9:16"
+            className="w-full h-full block border-0"
+          />
         </div>
       </div>
     </aside>

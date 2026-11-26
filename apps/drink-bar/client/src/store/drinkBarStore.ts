@@ -272,27 +272,29 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       }
     }
 
-    const newlyCompleted: ActiveDrink[] = [];
+    const newlyCompleted: { drink: ActiveDrink; targetLane: GuestLaneIndex }[] = [];
     if (
       prevStore.activeDrink?.phase === 'BREWING' &&
       nextState.activeDrink?.phase === 'SHOWCASE'
     ) {
-      newlyCompleted.push(nextState.activeDrink);
+      newlyCompleted.push({ drink: nextState.activeDrink, targetLane: 0 });
     }
     if (
       prevStore.secondaryDrink?.phase === 'BREWING' &&
       nextState.secondaryDrink?.phase === 'SHOWCASE'
     ) {
-      newlyCompleted.push(nextState.secondaryDrink);
+      newlyCompleted.push({ drink: nextState.secondaryDrink, targetLane: 1 });
     }
 
     const thankText = GUEST_THANK_TEXT_MAP[nextState.config.language];
-    for (const completed of newlyCompleted) {
-      const matched = nextVisible.find(
+    for (const { drink: completed, targetLane } of newlyCompleted) {
+      const exactMatch = nextVisible.find(
         (order) => order.orderId === completed.orderId || order.user.id === completed.user.id
       );
-      if (matched) {
-        nextCelebrating[matched.orderId] = {
+      const laneHead = nextVisible.find((order) => nextLanes[order.orderId] === targetLane);
+      const recipient = exactMatch ?? laneHead ?? nextVisible[0];
+      if (recipient) {
+        nextCelebrating[recipient.orderId] = {
           expiresAt: now + GUEST_CELEBRATE_MS,
           text: thankText,
           recipeColor: RECIPE_MAP[completed.recipeId].baseColor,

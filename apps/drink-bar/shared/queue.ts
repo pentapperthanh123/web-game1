@@ -204,10 +204,10 @@ export function promoteNextFromQueue(
   now: number
 ): DrinkBarLiveState {
   let nextActive = state.activeDrink;
-  let nextSecondary = state.secondaryDrink;
   let nextVip = [...state.vipQueue];
   let nextNormal = [...state.normalQueue];
 
+  // Single primary barista station (NV1): promote only into activeDrink; keep secondaryDrink null
   if (nextActive === null) {
     const popped = popNextOrderFromQueues(nextVip, nextNormal);
     if (popped.order) {
@@ -217,17 +217,8 @@ export function promoteNextFromQueue(
     }
   }
 
-  if (nextSecondary === null) {
-    const popped = popNextOrderFromQueues(nextVip, nextNormal);
-    if (popped.order) {
-      nextSecondary = toActiveDrink(popped.order, now);
-      nextVip = popped.vipQueue;
-      nextNormal = popped.normalQueue;
-    }
-  }
-
   const isDancing = now < state.danceUntil;
-  const hasAnyActive = nextActive !== null || nextSecondary !== null;
+  const hasAnyActive = nextActive !== null;
   let nextMood = state.bartenderMood;
   if (isDancing) {
     nextMood = 'TIKTOK_DANCE';
@@ -240,8 +231,8 @@ export function promoteNextFromQueue(
   return {
     ...state,
     activeDrink: nextActive,
-    secondaryDrink: nextSecondary,
-    activeSlots: [nextActive, nextSecondary],
+    secondaryDrink: null,
+    activeSlots: [nextActive, null],
     vipQueue: nextVip,
     normalQueue: nextNormal,
     bartenderMood: nextMood,
@@ -253,6 +244,7 @@ export function createInitialDrinkBarState(now = Date.now()): DrinkBarLiveState 
   inventory = deductDrinkStock(inventory, 'matcha', true, now);
   inventory = deductDrinkStock(inventory, 'thai_tea', true, now);
   inventory = deductDrinkStock(inventory, 'berry_soda', true, now);
+  inventory = deductDrinkStock(inventory, 'coffee_milk', true, now);
 
   const starterActive: ActiveDrink = {
     orderId: 'demo_active_1',
@@ -265,41 +257,51 @@ export function createInitialDrinkBarState(now = Date.now()): DrinkBarLiveState 
     isSignature: false,
     isGlowUpgraded: false,
     createdAt: now - 4000,
-    progress: 22,
+    progress: 14,
     phase: 'BREWING',
     showcaseRemainingMs: 0,
     lastUpdatedAt: now,
   };
 
-  const starterSecondary: ActiveDrink = {
-    orderId: 'demo_active_2',
-    user: { id: 'demo_huy', nickname: 'Gia Huy' },
-    recipeId: 'thai_tea',
-    toppings: ['cream_swirl', 'fruit_slice'],
-    sugarLevel: 'NORMAL',
-    iceLevel: 'EXTRA',
-    isVip: true,
-    isSignature: false,
-    isGlowUpgraded: true,
-    createdAt: now - 2500,
-    progress: 34,
-    phase: 'BREWING',
-    showcaseRemainingMs: 0,
-    lastUpdatedAt: now,
-  };
+  const starterVipQueue: DrinkOrder[] = [
+    {
+      orderId: 'demo_vip_1',
+      user: { id: 'demo_huy', nickname: 'Gia Huy' },
+      recipeId: 'thai_tea',
+      toppings: ['cream_swirl'],
+      sugarLevel: 'NORMAL',
+      iceLevel: 'EXTRA',
+      isVip: true,
+      isSignature: false,
+      isGlowUpgraded: true,
+      createdAt: now - 2500,
+    },
+  ];
 
   const starterNormalQueue: DrinkOrder[] = [
     {
       orderId: 'demo_normal_1',
       user: { id: 'demo_ngoc', nickname: 'Bảo Ngọc' },
-      recipeId: 'berry_soda',
+      recipeId: 'coffee_milk',
+      toppings: [],
+      sugarLevel: 'NORMAL',
+      iceLevel: 'NORMAL',
+      isVip: false,
+      isSignature: false,
+      isGlowUpgraded: false,
+      createdAt: now - 1800,
+    },
+    {
+      orderId: 'demo_normal_2',
+      user: { id: 'demo_minh', nickname: 'Minh Anh' },
+      recipeId: 'blue_citrus',
       toppings: [],
       sugarLevel: 'LESS',
       iceLevel: 'NORMAL',
       isVip: false,
       isSignature: false,
       isGlowUpgraded: false,
-      createdAt: now - 1500,
+      createdAt: now - 1200,
     },
   ];
 
@@ -327,9 +329,9 @@ export function createInitialDrinkBarState(now = Date.now()): DrinkBarLiveState 
   return {
     config: { ...DEFAULT_DRINK_BAR_CONFIG },
     activeDrink: starterActive,
-    secondaryDrink: starterSecondary,
-    activeSlots: [starterActive, starterSecondary],
-    vipQueue: [],
+    secondaryDrink: null,
+    activeSlots: [starterActive, null],
+    vipQueue: starterVipQueue,
     normalQueue: starterNormalQueue,
     finishedShelf: starterShelf,
     inventory,
@@ -570,10 +572,10 @@ function upgradeActiveDrinkOnGift(
   if (!drink || drink.phase !== 'BREWING') {
     return drink;
   }
-  const addedTopping = pickNextMissingTopping(drink.toppings);
+  const addedTopping = pickNextMissingTopping(drink.toppings, undefined, drink.recipeId);
   const nextToppings = mergeUniqueToppings(drink.toppings, [addedTopping]);
   const isDonorActive = normalizeUserId(drink.user) === donorUserId;
-  const upgradedToppings = resolveActiveDrinkToppings(nextToppings, isDonorActive, tier);
+  const upgradedToppings = resolveActiveDrinkToppings(nextToppings, isDonorActive, tier, drink.recipeId);
 
   return {
     ...drink,
@@ -656,7 +658,7 @@ export function applyGiftToState(
       isVip: true,
       isGlowUpgraded: baseOrder.isGlowUpgraded || tier === 'MEDIUM' || tier === 'LARGE',
       isSignature: baseOrder.isSignature || tier === 'LARGE',
-      toppings: resolveOrderToppingsForTier(baseOrder.toppings, tier),
+      toppings: resolveOrderToppingsForTier(baseOrder.toppings, tier, baseOrder.recipeId),
     };
 
     if (tier === 'LARGE') {
@@ -768,32 +770,39 @@ export function triggerManualTikTokDance(
 function resolveActiveDrinkToppings(
   current: readonly ToppingId[],
   isDonorActive: boolean,
-  tier: GiftTier
+  tier: GiftTier,
+  recipeId?: RecipeId
 ): ToppingId[] {
+  let resolved: ToppingId[];
   if (!isDonorActive) {
-    return [...current];
+    resolved = [...current];
+  } else if (tier === 'LARGE') {
+    resolved = mergeUniqueToppings(current, SIGNATURE_TOPPINGS);
+  } else if (tier === 'MEDIUM') {
+    resolved = mergeUniqueToppings(current, GLOW_LAYER_TOPPINGS);
+  } else {
+    resolved = [...current];
   }
-  if (tier === 'LARGE') {
-    return mergeUniqueToppings(current, SIGNATURE_TOPPINGS);
-  }
-  if (tier === 'MEDIUM') {
-    return mergeUniqueToppings(current, GLOW_LAYER_TOPPINGS);
-  }
-  return [...current];
+  const isBobaExcluded = recipeId === 'matcha' || recipeId === 'blue_citrus';
+  return isBobaExcluded ? resolved.filter((t) => t !== 'boba_pearls') : resolved;
 }
 
 function resolveOrderToppingsForTier(
   existing: readonly ToppingId[],
-  tier: GiftTier
+  tier: GiftTier,
+  recipeId?: RecipeId
 ): ToppingId[] {
+  let resolved: ToppingId[];
   if (tier === 'LARGE') {
-    return mergeUniqueToppings(existing, SIGNATURE_TOPPINGS);
+    resolved = mergeUniqueToppings(existing, SIGNATURE_TOPPINGS);
+  } else if (tier === 'MEDIUM') {
+    resolved = mergeUniqueToppings(existing, GLOW_LAYER_TOPPINGS);
+  } else {
+    const extra = pickNextMissingTopping(existing, undefined, recipeId);
+    resolved = mergeUniqueToppings(existing, [extra]);
   }
-  if (tier === 'MEDIUM') {
-    return mergeUniqueToppings(existing, GLOW_LAYER_TOPPINGS);
-  }
-  const extra = pickNextMissingTopping(existing);
-  return mergeUniqueToppings(existing, [extra]);
+  const isBobaExcluded = recipeId === 'matcha' || recipeId === 'blue_citrus';
+  return isBobaExcluded ? resolved.filter((t) => t !== 'boba_pearls') : resolved;
 }
 
 function completeDrinkInSlot(

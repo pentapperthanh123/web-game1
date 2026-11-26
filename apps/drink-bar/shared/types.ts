@@ -42,8 +42,11 @@ export type GiftTier = 'SMALL' | 'MEDIUM' | 'LARGE';
 export type DanceStyle = 'heart_sway' | 'groove_wave' | 'party_hype';
 
 export type SfxKind =
+  | 'cup_place'
+  | 'sugar_click'
   | 'ice_clink'
   | 'chasen'
+  | 'whip_froth'
   | 'shaker'
   | 'cafe_drip'
   | 'soda_fizz'

@@ -1,5 +1,5 @@
 import { GIFT_TIER_THRESHOLDS } from './config';
-import type { GiftTier, Language, ToppingId } from './types';
+import type { GiftTier, Language, RecipeId, ToppingId } from './types';
 
 export interface ToppingSpec {
   id: ToppingId;
@@ -48,6 +48,12 @@ export const BASIC_TOPPING_ROTATION: readonly ToppingId[] = [
   'cream_swirl',
 ];
 
+export const MATCHA_TOPPING_ROTATION: readonly ToppingId[] = [
+  'cream_swirl',
+  'fruit_slice',
+  'sparkle_aura',
+];
+
 export const GLOW_LAYER_TOPPINGS: readonly ToppingId[] = [
   'cream_swirl',
   'fruit_slice',
@@ -56,6 +62,24 @@ export const GLOW_LAYER_TOPPINGS: readonly ToppingId[] = [
 
 export const SIGNATURE_TOPPINGS: readonly ToppingId[] = [
   'boba_pearls',
+  'fruit_slice',
+  'cream_swirl',
+  'sparkle_aura',
+];
+
+export const MATCHA_SIGNATURE_TOPPINGS: readonly ToppingId[] = [
+  'cream_swirl',
+  'fruit_slice',
+  'sparkle_aura',
+];
+
+export const CITRUS_TOPPING_ROTATION: readonly ToppingId[] = [
+  'fruit_slice',
+  'cream_swirl',
+  'sparkle_aura',
+];
+
+export const CITRUS_SIGNATURE_TOPPINGS: readonly ToppingId[] = [
   'fruit_slice',
   'cream_swirl',
   'sparkle_aura',
@@ -87,11 +111,20 @@ export function mergeUniqueToppings(
   return Array.from(seen);
 }
 
+const RECIPE_TOPPING_POOL_MAP: Partial<Record<RecipeId, readonly ToppingId[]>> = {
+  matcha: MATCHA_TOPPING_ROTATION,
+  coffee_milk: MATCHA_TOPPING_ROTATION,
+  berry_soda: CITRUS_TOPPING_ROTATION,
+  blue_citrus: CITRUS_TOPPING_ROTATION,
+};
+
 export function pickNextMissingTopping(
   current: readonly ToppingId[],
-  pool: readonly ToppingId[] = BASIC_TOPPING_ROTATION
+  pool: readonly ToppingId[] = BASIC_TOPPING_ROTATION,
+  recipeId?: RecipeId
 ): ToppingId {
-  for (const candidate of pool) {
+  const activePool = (recipeId && RECIPE_TOPPING_POOL_MAP[recipeId]) || pool;
+  for (const candidate of activePool) {
     if (!current.includes(candidate)) {
       return candidate;
     }
@@ -99,5 +132,5 @@ export function pickNextMissingTopping(
   if (!current.includes('sparkle_aura')) {
     return 'sparkle_aura';
   }
-  return pool[current.length % pool.length];
+  return activePool[current.length % activePool.length];
 }

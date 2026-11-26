@@ -51,16 +51,17 @@ const GUEST_BOTTOM_COLORS: readonly string[] = [
   '#5D7679',
 ];
 
-// Two vertical standing columns (~1.0x barista scale) in front/below bar counter (y: 722 -> 944)
-// Keeps y: 960 -> 1280 completely open for TikTok LIVE chat.
+// Two symmetric vertical standing columns (~1.3x scale) centered around x=360 (y: 712 -> 954)
+// Keeps center cup badge [P1..P5] XX% at x=360, y: 679..700 completely unobstructed,
+// keeps row 0 name tag above row 1 head, and keeps y: 960 -> 1280 open for TikTok LIVE chat.
 const LANE_FLOOR_POSITIONS: Readonly<Record<GuestLaneIndex, readonly FloorSlotCoord[]>> = {
   0: [
-    { left: 376, top: 722, scale: 1.0, zIndex: 21 },
-    { left: 364, top: 838, scale: 0.93, zIndex: 23 },
+    { left: 256, top: 712, scale: 1.0, zIndex: 21 },
+    { left: 248, top: 846, scale: 0.94, zIndex: 23 },
   ],
   1: [
-    { left: 564, top: 722, scale: 1.0, zIndex: 21 },
-    { left: 576, top: 838, scale: 0.93, zIndex: 23 },
+    { left: 464, top: 712, scale: 1.0, zIndex: 21 },
+    { left: 472, top: 846, scale: 0.94, zIndex: 23 },
   ],
 };
 
@@ -82,232 +83,256 @@ function findBubbleForGuest(
   return bubbles.find((b) => b.slotIndex === queueIndex);
 }
 
-const ChibiSvgBackHair: React.FC<{ styleIdx: number }> = ({ styleIdx }) => {
+const ChibiBackViewHair: React.FC<{ styleIdx: number }> = ({ styleIdx }) => {
   switch (styleIdx) {
     case 0:
-      // Soft rounded bob back mass framing neck & shoulders
-      return (
-        <path
-          d="M16 34 C14 10, 82 10, 80 34 L82 60 C77 64, 71 61, 69 54 L27 54 C25 61, 19 64, 14 60 Z"
-          fill="#4B3227"
-          stroke={OUTLINE_COLOR}
-          strokeWidth={CHIBI_STROKE_WIDTH}
-          strokeLinejoin="round"
-        />
-      );
-    case 2:
-      // Twin cute buns on top left & right
-      return (
-        <g>
-          <circle
-            cx="21"
-            cy="15"
-            r="9.5"
-            fill="#5C3D2E"
-            stroke={OUTLINE_COLOR}
-            strokeWidth={CHIBI_STROKE_WIDTH}
-          />
-          <circle
-            cx="75"
-            cy="15"
-            r="9.5"
-            fill="#5C3D2E"
-            stroke={OUTLINE_COLOR}
-            strokeWidth={CHIBI_STROKE_WIDTH}
-          />
-          <ellipse
-            cx="48"
-            cy="32"
-            rx="32"
-            ry="29"
-            fill="#5C3D2E"
-            stroke={OUTLINE_COLOR}
-            strokeWidth={CHIBI_STROKE_WIDTH}
-          />
-        </g>
-      );
-    case 4:
-      // High flowing ponytail + pastel scrunchie
+      // Style 0: Soft rounded bob embracing nape + pastel pink hairclip bow
       return (
         <g>
           <path
-            d="M68 18 C88 15, 91 45, 76 56 C71 48, 70 34, 64 26 Z"
-            fill="#3D261C"
-            stroke={OUTLINE_COLOR}
-            strokeWidth={CHIBI_STROKE_WIDTH}
-            strokeLinejoin="round"
-          />
-          <ellipse
-            cx="48"
-            cy="32"
-            rx="32"
-            ry="29"
-            fill="#3D261C"
-            stroke={OUTLINE_COLOR}
-            strokeWidth={CHIBI_STROKE_WIDTH}
-          />
-          <circle
-            cx="69"
-            cy="21"
-            r="5.2"
-            fill="#F7C6D7"
-            stroke={OUTLINE_COLOR}
-            strokeWidth="2.2"
-          />
-        </g>
-      );
-    case 5:
-      // Soft wavy shoulder-length hair back mass
-      return (
-        <path
-          d="M15 34 C14 8, 82 8, 81 34 C84 52, 81 66, 73 66 L23 66 C15 66, 12 52, 15 34 Z"
-          fill="#52372A"
-          stroke={OUTLINE_COLOR}
-          strokeWidth={CHIBI_STROKE_WIDTH}
-          strokeLinejoin="round"
-        />
-      );
-    case 1:
-    case 3:
-    default:
-      return (
-        <ellipse
-          cx="48"
-          cy="32"
-          rx="32"
-          ry="29"
-          fill={styleIdx === 1 ? '#3B2820' : '#4A3528'}
-          stroke={OUTLINE_COLOR}
-          strokeWidth={CHIBI_STROKE_WIDTH}
-        />
-      );
-  }
-};
-
-const ChibiSvgFrontHair: React.FC<{ styleIdx: number }> = ({ styleIdx }) => {
-  switch (styleIdx) {
-    case 0:
-      // Neat blunt bangs + side tendrils + pastel pink hairclip
-      return (
-        <g>
-          <path
-            d="M19 31 C19 6, 77 6, 77 31 L76 46 C73 46, 72 34, 71 27 C62 22, 54 22, 48 25 C42 22, 34 22, 25 27 C24 34, 23 46, 20 46 Z"
+            d="M16 34 C14 8, 82 8, 80 34 C82 52, 73 60, 62 60 L34 60 C23 60, 14 52, 16 34 Z"
             fill="#4B3227"
             stroke={OUTLINE_COLOR}
             strokeWidth={CHIBI_STROKE_WIDTH}
             strokeLinejoin="round"
           />
-          <rect
-            x="58"
-            y="14"
-            width="12"
-            height="6.5"
-            rx="3.2"
-            transform="rotate(14 64 17)"
-            fill="#F4A6BE"
-            stroke={OUTLINE_COLOR}
-            strokeWidth="2.1"
+          <path
+            d="M28 20 Q48 14 68 20"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.22)"
+            strokeWidth="3.2"
+            strokeLinecap="round"
           />
+          <g transform="translate(48, 48)">
+            <circle cx="0" cy="0" r="3" fill="#FCE7EE" stroke={OUTLINE_COLOR} strokeWidth="1.8" />
+            <path
+              d="M0 0 L-8 -5 C-10 -1, -8 4, 0 0 Z"
+              fill="#F4A6BE"
+              stroke={OUTLINE_COLOR}
+              strokeWidth="1.8"
+            />
+            <path
+              d="M0 0 L8 -5 C10 -1, 8 4, 0 0 Z"
+              fill="#F4A6BE"
+              stroke={OUTLINE_COLOR}
+              strokeWidth="1.8"
+            />
+          </g>
         </g>
       );
+
     case 1:
-      // Neat side-parted short hair
-      return (
-        <path
-          d="M19 31 C19 6, 77 6, 77 31 C68 20, 56 18, 46 25 C36 18, 26 21, 19 31 Z"
-          fill="#3B2820"
-          stroke={OUTLINE_COLOR}
-          strokeWidth={CHIBI_STROKE_WIDTH}
-          strokeLinejoin="round"
-        />
-      );
-    case 2:
-      // Soft wispy bangs + golden star clip
+      // Style 1: Neat short pixie/undercut with clean tapered nape & textured tips
       return (
         <g>
           <path
-            d="M19 31 C20 6, 76 6, 77 31 C67 21, 56 20, 48 26 C40 20, 29 21, 19 31 Z"
+            d="M18 32 C16 9, 80 9, 78 32 C79 45, 71 50, 61 50 L35 50 C25 50, 17 45, 18 32 Z"
+            fill="#3B2820"
+            stroke={OUTLINE_COLOR}
+            strokeWidth={CHIBI_STROKE_WIDTH}
+            strokeLinejoin="round"
+          />
+          <path
+            d="M36 50 L40 55 L44 50 L48 56 L52 50 L56 55 L60 50"
+            fill="#3B2820"
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.2"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M28 20 Q48 15 68 20"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.22)"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+        </g>
+      );
+
+    case 2:
+      // Style 2: Cute twin buns with pastel yellow scrunchies & vertical part
+      return (
+        <g>
+          <circle
+            cx="18"
+            cy="13"
+            r="11.5"
+            fill="#5C3D2E"
+            stroke={OUTLINE_COLOR}
+            strokeWidth={CHIBI_STROKE_WIDTH}
+          />
+          <circle
+            cx="78"
+            cy="13"
+            r="11.5"
+            fill="#5C3D2E"
+            stroke={OUTLINE_COLOR}
+            strokeWidth={CHIBI_STROKE_WIDTH}
+          />
+          <ellipse
+            cx="20"
+            cy="20"
+            rx="7.5"
+            ry="4"
+            fill="#F7C95B"
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2"
+          />
+          <ellipse
+            cx="76"
+            cy="20"
+            rx="7.5"
+            ry="4"
+            fill="#F7C95B"
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2"
+          />
+          <path
+            d="M17 32 C17 9, 79 9, 79 32 C79 49, 70 54, 48 54 C26 54, 17 49, 17 32 Z"
             fill="#5C3D2E"
             stroke={OUTLINE_COLOR}
             strokeWidth={CHIBI_STROKE_WIDTH}
             strokeLinejoin="round"
           />
-          <circle
-            cx="29"
-            cy="18"
-            r="4.5"
-            fill="#F7C95B"
-            stroke={OUTLINE_COLOR}
-            strokeWidth="2.1"
+          <line
+            x1="48"
+            y1="20"
+            x2="48"
+            y2="50"
+            stroke="rgba(59, 40, 32, 0.4)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M24 24 Q32 18 42 22"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.25)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M54 22 Q64 18 72 24"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.25)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
           />
         </g>
       );
+
     case 3:
-      // Layered fluffy fringe + pastel strawberry-cream beret
+      // Style 3: Strawberry-cream beret + wavy hair fringe peeking beneath
       return (
         <g>
           <path
-            d="M19 31 C20 7, 76 7, 77 31 C67 22, 56 20, 48 27 C40 20, 29 22, 19 31 Z"
+            d="M18 28 C15 40, 18 54, 28 54 C38 54, 40 48, 48 48 C56 48, 58 54, 68 54 C78 54, 81 40, 78 28"
             fill="#4A3528"
             stroke={OUTLINE_COLOR}
             strokeWidth={CHIBI_STROKE_WIDTH}
             strokeLinejoin="round"
           />
           <ellipse
-            cx="47"
-            cy="9"
-            rx="21"
-            ry="8"
-            transform="rotate(-7 47 9)"
+            cx="48"
+            cy="16"
+            rx="30"
+            ry="13"
             fill="#FCE7EE"
             stroke={OUTLINE_COLOR}
             strokeWidth={CHIBI_STROKE_WIDTH}
           />
+          <rect x="47" y="2" width="3" height="4.5" rx="1.5" fill="#3B2820" />
           <rect
-            x="29"
-            y="11"
-            width="36"
-            height="5.5"
-            rx="2.75"
-            transform="rotate(-7 47 13)"
+            x="25"
+            y="21"
+            width="46"
+            height="6.5"
+            rx="3.25"
             fill="#F4A6BE"
             stroke={OUTLINE_COLOR}
             strokeWidth="2"
           />
         </g>
       );
+
     case 4:
-      // Clean parted bangs for ponytail style
+      // Style 4: High flowing ponytail + pastel scrunchie
       return (
-        <path
-          d="M19 31 C20 6, 76 6, 77 31 C64 21, 32 21, 19 31 Z"
-          fill="#3D261C"
-          stroke={OUTLINE_COLOR}
-          strokeWidth={CHIBI_STROKE_WIDTH}
-          strokeLinejoin="round"
-        />
+        <g>
+          <ellipse
+            cx="48"
+            cy="30"
+            rx="32"
+            ry="27"
+            fill="#3D261C"
+            stroke={OUTLINE_COLOR}
+            strokeWidth={CHIBI_STROKE_WIDTH}
+          />
+          <path
+            d="M60 16 C82 10, 94 34, 79 51 C71 43, 69 31, 60 24 Z"
+            fill="#3D261C"
+            stroke={OUTLINE_COLOR}
+            strokeWidth={CHIBI_STROKE_WIDTH}
+            strokeLinejoin="round"
+          />
+          <path
+            d="M69 20 C79 24, 82 34, 78 43"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.25)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <circle
+            cx="60"
+            cy="18"
+            r="6"
+            fill="#F7C6D7"
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.2"
+          />
+          <path
+            d="M54 16 L50 12 C48 14, 50 18, 54 18 Z"
+            fill="#F4A6BE"
+            stroke={OUTLINE_COLOR}
+            strokeWidth="1.8"
+          />
+        </g>
       );
+
     case 5:
     default:
-      // Wavy hair + pastel mint-blue headband
+      // Style 5: Soft wavy shoulder-length hair flowing over back + mint headband
       return (
         <g>
           <path
-            d="M19 31 C19 6, 77 6, 77 31 C67 22, 56 20, 48 25 C40 20, 29 22, 19 31 Z"
+            d="M16 28 C13 8, 83 8, 80 28 C84 46, 82 66, 73 66 C65 66, 62 58, 48 58 C34 58, 31 66, 23 66 C14 66, 12 46, 16 28 Z"
             fill="#52372A"
             stroke={OUTLINE_COLOR}
             strokeWidth={CHIBI_STROKE_WIDTH}
             strokeLinejoin="round"
           />
           <path
-            d="M22 21 C31 9, 65 9, 74 21"
+            d="M30 36 Q34 50 28 62"
             fill="none"
-            stroke="#7FC8D9"
-            strokeWidth="5.5"
+            stroke="rgba(59, 40, 32, 0.4)"
+            strokeWidth="2"
             strokeLinecap="round"
           />
           <path
-            d="M22 21 C31 9, 65 9, 74 21"
+            d="M66 36 Q62 50 68 62"
+            fill="none"
+            stroke="rgba(59, 40, 32, 0.4)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M21 17 C31 7, 65 7, 75 17"
+            fill="none"
+            stroke="#7FC8D9"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M21 17 C31 7, 65 7, 75 17"
             fill="none"
             stroke={OUTLINE_COLOR}
             strokeWidth="2"
@@ -336,131 +361,194 @@ const StandingChibiSvg: React.FC<{
   return (
     <svg
       viewBox="0 0 96 104"
-      className="w-[96px] h-[102px] overflow-visible shrink-0"
+      className="w-[124px] h-[134px] overflow-visible shrink-0"
       aria-hidden="true"
     >
-      {/* Soft elliptical floor shadow beneath standing feet */}
-      <ellipse cx="48" cy="99" rx="25" ry="5" fill="rgba(59, 40, 32, 0.2)" />
+      {/* Floor shadow beneath feet */}
+      <ellipse cx="48" cy="98" rx="27" ry="5.5" fill="rgba(59, 40, 32, 0.22)" />
 
-      {/* Subtle golden floor glow for Signature guest */}
+      {/* Signature golden floor ring */}
       {isSignature && (
         <ellipse
           cx="48"
-          cy="99"
-          rx="29"
-          ry="6.5"
-          fill="rgba(247, 201, 91, 0.38)"
+          cy="98"
+          rx="33"
+          ry="7.5"
+          fill="rgba(247, 201, 91, 0.4)"
           stroke="#F4B83E"
           strokeWidth="1.8"
         />
       )}
 
-      {/* Back hair behind head & shoulders */}
-      <ChibiSvgBackHair styleIdx={styleIdx} />
-
-      {/* Cute legs + rounded cream sneakers */}
+      {/* Sneaker heels from behind (soft rounded counter + heel pull tabs) */}
       <rect
         x="35"
-        y="86"
-        width="9"
-        height="11"
+        y="82"
+        width="10"
+        height="12"
         rx="4"
         fill={SKIN_COLOR}
         stroke={OUTLINE_COLOR}
         strokeWidth={CHIBI_STROKE_WIDTH}
       />
       <rect
-        x="52"
-        y="86"
-        width="9"
-        height="11"
+        x="51"
+        y="82"
+        width="10"
+        height="12"
         rx="4"
         fill={SKIN_COLOR}
         stroke={OUTLINE_COLOR}
         strokeWidth={CHIBI_STROKE_WIDTH}
       />
       <ellipse
-        cx="39"
-        cy="97"
-        rx="7.5"
-        ry="4.2"
+        cx="40"
+        cy="94"
+        rx="8"
+        ry="4.5"
         fill="#FFF9FA"
         stroke={OUTLINE_COLOR}
         strokeWidth={CHIBI_STROKE_WIDTH}
       />
+      <rect x="38.5" y="89" width="3" height="4" rx="1.5" fill={OUTLINE_COLOR} />
       <ellipse
-        cx="57"
-        cy="97"
-        rx="7.5"
-        ry="4.2"
+        cx="56"
+        cy="94"
+        rx="8"
+        ry="4.5"
         fill="#FFF9FA"
+        stroke={OUTLINE_COLOR}
+        strokeWidth={CHIBI_STROKE_WIDTH}
+      />
+      <rect x="54.5" y="89" width="3" height="4" rx="1.5" fill={OUTLINE_COLOR} />
+
+      {/* Skirt / shorts viewed from behind */}
+      <path
+        d="M26 76 L70 76 L72 87 L24 87 Z"
+        fill={bottomColor}
+        stroke={OUTLINE_COLOR}
+        strokeWidth={CHIBI_STROKE_WIDTH}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M32 79 Q36 83 40 79"
+        fill="none"
+        stroke="rgba(59, 40, 32, 0.3)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M56 79 Q60 83 64 79"
+        fill="none"
+        stroke="rgba(59, 40, 32, 0.3)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+
+      {/* Pastel shirt torso viewed from back (width ~50px, rounded shoulders) */}
+      <rect
+        x="23"
+        y="58"
+        width="50"
+        height="20"
+        rx="9"
+        fill={shirtColor}
         stroke={OUTLINE_COLOR}
         strokeWidth={CHIBI_STROKE_WIDTH}
       />
 
-      {/* Left arm */}
+      {/* Back neckline collar seam & subtle spine crease */}
+      <path
+        d="M36 58 Q48 62 60 58"
+        fill="none"
+        stroke={OUTLINE_COLOR}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="48"
+        y1="62"
+        x2="48"
+        y2="76"
+        stroke="rgba(59, 40, 32, 0.18)"
+        strokeWidth="1.5"
+      />
+
+      {/* Snug short nape / neck connecting head and shirt */}
       <rect
-        x="17"
-        y="65"
+        x="41"
+        y="51"
+        width="14"
+        height="9"
+        rx="3"
+        fill={SKIN_COLOR}
+        stroke={OUTLINE_COLOR}
+        strokeWidth={CHIBI_STROKE_WIDTH}
+      />
+
+      {/* Left arm: angled forward towards bar counter */}
+      <rect
+        x="15"
+        y="60"
         width="10"
-        height="18"
+        height="19"
         rx="5"
-        transform="rotate(14 22 67)"
+        transform="rotate(12 20 62)"
         fill={shirtColor}
         stroke={OUTLINE_COLOR}
         strokeWidth={CHIBI_STROKE_WIDTH}
       />
       <circle
-        cx="20"
-        cy="82"
+        cx="18"
+        cy="78"
         r="4.2"
         fill={SKIN_COLOR}
         stroke={OUTLINE_COLOR}
         strokeWidth="2.2"
       />
 
-      {/* Right arm: raised holding received takeaway cup when celebrating/leaving */}
+      {/* Right arm: raised high forward holding takeaway cup towards bar when celebrating/pickup */}
       {holdingCupColor ? (
         <g>
           <rect
-            x="69"
-            y="57"
+            x="68"
+            y="47"
             width="10"
-            height="17"
+            height="20"
             rx="5"
-            transform="rotate(-48 74 68)"
+            transform="rotate(-48 73 57)"
             fill={shirtColor}
             stroke={OUTLINE_COLOR}
             strokeWidth={CHIBI_STROKE_WIDTH}
           />
           <circle
-            cx="81"
-            cy="62"
-            r="4.2"
+            cx="83"
+            cy="45"
+            r="4.5"
             fill={SKIN_COLOR}
             stroke={OUTLINE_COLOR}
             strokeWidth="2.2"
           />
-          {/* Mini received takeaway cup in hand */}
-          <g transform="translate(80, 44)">
+          {/* Mini received takeaway cup raised high in appreciation */}
+          <g transform="translate(80, 24)">
             <path
-              d="M1 8 L13 8 L11.5 21 L2.5 21 Z"
+              d="M2 9 L15 9 L13 24 L4 24 Z"
               fill={holdingCupColor}
               stroke={OUTLINE_COLOR}
               strokeWidth="2.1"
               strokeLinejoin="round"
             />
             <path
-              d="M2 8 A 5 5 0 0 1 12 8 Z"
+              d="M3 9 A 5.5 5.5 0 0 1 14 9 Z"
               fill="#FFFDF9"
               stroke={OUTLINE_COLOR}
               strokeWidth="2"
             />
             <line
-              x1="0.5"
-              y1="8"
-              x2="13.5"
-              y2="8"
+              x1="1"
+              y1="9"
+              x2="16"
+              y2="9"
               stroke={OUTLINE_COLOR}
               strokeWidth="2.2"
               strokeLinecap="round"
@@ -470,19 +558,19 @@ const StandingChibiSvg: React.FC<{
       ) : (
         <g>
           <rect
-            x="69"
-            y="65"
+            x="71"
+            y="60"
             width="10"
-            height="18"
+            height="19"
             rx="5"
-            transform="rotate(-14 74 67)"
+            transform="rotate(-12 76 62)"
             fill={shirtColor}
             stroke={OUTLINE_COLOR}
             strokeWidth={CHIBI_STROKE_WIDTH}
           />
           <circle
-            cx="76"
-            cy="82"
+            cx="78"
+            cy="78"
             r="4.2"
             fill={SKIN_COLOR}
             stroke={OUTLINE_COLOR}
@@ -491,146 +579,28 @@ const StandingChibiSvg: React.FC<{
         </g>
       )}
 
-      {/* Pastel skirt / shorts */}
-      <path
-        d="M28 79 L68 79 L70 90 L26 90 Z"
-        fill={bottomColor}
-        stroke={OUTLINE_COLOR}
-        strokeWidth={CHIBI_STROKE_WIDTH}
-        strokeLinejoin="round"
-      />
+      {/* Head & Back-View Hairstyle (Facing towards bar counter) */}
+      <ChibiBackViewHair styleIdx={styleIdx} />
 
-      {/* Pastel top shirt (matching barista torso width ~50-66px) */}
-      <rect
-        x="24"
-        y="62"
-        width="48"
-        height="21"
-        rx="9"
-        fill={shirtColor}
-        stroke={OUTLINE_COLOR}
-        strokeWidth={CHIBI_STROKE_WIDTH}
-      />
-
-      {/* Snug short neck (2.5px outline) cleanly joining chin & collar */}
-      <rect
-        x="40"
-        y="56"
-        width="16"
-        height="9"
-        rx="4"
-        fill={SKIN_COLOR}
-        stroke={OUTLINE_COLOR}
-        strokeWidth={CHIBI_STROKE_WIDTH}
-      />
-
-      {/* Crisp cream collar accent */}
-      <path
-        d="M36 62 L48 68 L60 62 Z"
-        fill="#FFFDF9"
-        stroke={OUTLINE_COLOR}
-        strokeWidth="2.1"
-        strokeLinejoin="round"
-      />
-
-      {/* Round Chibi Head (~60px face / ~70px with hair, matching 1.0x barista scale) */}
-      <ellipse
-        cx="48"
-        cy="34"
-        rx="29"
-        ry="27"
-        fill={SKIN_COLOR}
-        stroke={OUTLINE_COLOR}
-        strokeWidth={CHIBI_STROKE_WIDTH}
-      />
-
-      {/* Soft curved eyebrows */}
-      <path
-        d="M33 27 Q38 24.5 42 27"
-        fill="none"
-        stroke={OUTLINE_COLOR}
-        strokeWidth="2.1"
-        strokeLinecap="round"
-      />
-      <path
-        d="M54 27 Q58 24.5 63 27"
-        fill="none"
-        stroke={OUTLINE_COLOR}
-        strokeWidth="2.1"
-        strokeLinecap="round"
-      />
-
-      {/* Eyes: joyful ^ ^ curved happy eyes when celebrating, else expressive sparkle eyes */}
-      {isHappy ? (
-        <g>
+      {/* Celebration floating sparkles & hearts when happy / pickup */}
+      {isHappy && (
+        <g className="animate-pulse">
+          {/* Heart on left */}
           <path
-            d="M33 36 Q38 30 43 36"
-            fill="none"
+            d="M20 22 C17 18, 12 21, 15 25 L20 29 L25 25 C28 21, 23 18, 20 22 Z"
+            fill="#F48BA3"
             stroke={OUTLINE_COLOR}
-            strokeWidth="2.6"
-            strokeLinecap="round"
+            strokeWidth="1.6"
           />
+          {/* Star sparkle on right */}
           <path
-            d="M53 36 Q58 30 63 36"
-            fill="none"
+            d="M78 17 L80 13 L82 17 L86 19 L82 21 L80 25 L78 21 L74 19 Z"
+            fill="#F7C95B"
             stroke={OUTLINE_COLOR}
-            strokeWidth="2.6"
-            strokeLinecap="round"
+            strokeWidth="1.6"
           />
-        </g>
-      ) : (
-        <g>
-          <ellipse cx="38" cy="35" rx="3.8" ry="4.3" fill={OUTLINE_COLOR} />
-          <ellipse cx="58" cy="35" rx="3.8" ry="4.3" fill={OUTLINE_COLOR} />
-          <circle cx="36.6" cy="33.5" r="1.5" fill="#FFFFFF" />
-          <circle cx="56.6" cy="33.5" r="1.5" fill="#FFFFFF" />
-          <circle cx="39.3" cy="36.8" r="0.85" fill="rgba(255,255,255,0.8)" />
-          <circle cx="59.3" cy="36.8" r="0.85" fill="rgba(255,255,255,0.8)" />
         </g>
       )}
-
-      {/* Rosy pastel cheeks */}
-      <ellipse
-        cx="31"
-        cy="41.5"
-        rx="5.5"
-        ry="3.2"
-        fill={BLUSH_COLOR}
-        opacity={isHappy ? 0.78 : 0.52}
-      />
-      <ellipse
-        cx="65"
-        cy="41.5"
-        rx="5.5"
-        ry="3.2"
-        fill={BLUSH_COLOR}
-        opacity={isHappy ? 0.78 : 0.52}
-      />
-
-      {/* Smile: open joyful smile when celebrating, sweet smile when waiting */}
-      {isHappy ? (
-        <g>
-          <path
-            d="M41.5 42.5 A 6.5 6.5 0 0 0 54.5 42.5 Z"
-            fill="#E06B74"
-            stroke={OUTLINE_COLOR}
-            strokeWidth="2.2"
-            strokeLinejoin="round"
-          />
-          <ellipse cx="48" cy="46.5" rx="3.5" ry="2" fill="#F7A8B8" />
-        </g>
-      ) : (
-        <path
-          d="M42.5 43.5 Q48 48.5 53.5 43.5"
-          fill="none"
-          stroke={OUTLINE_COLOR}
-          strokeWidth="2.3"
-          strokeLinecap="round"
-        />
-      )}
-
-      {/* Front hair & accessories */}
-      <ChibiSvgFrontHair styleIdx={styleIdx} />
     </svg>
   );
 };
@@ -705,9 +675,9 @@ export const WaitingGuestsStrip: React.FC = () => {
         return (
           <div
             key={guest.id}
-            className="absolute w-[108px] transition-all duration-300 ease-out"
+            className="absolute w-[136px] transition-all duration-300 ease-out"
             style={{
-              left: `${coord.left - 54}px`,
+              left: `${coord.left - 68}px`,
               top: `${coord.top}px`,
               zIndex: coord.zIndex,
             }}
@@ -724,9 +694,9 @@ export const WaitingGuestsStrip: React.FC = () => {
                 {guest.bubbleText && (
                   <div
                     key={guest.bubbleKey}
-                    className="absolute -top-[22px] left-1/2 -translate-x-1/2 max-w-[118px] bg-[#FFF9FA] border-[2.2px] border-[#3B2820] rounded-[11px] px-2 py-[2px] shadow-[0_2px_0_#3B2820] animate-guest-bubble z-40"
+                    className="absolute -top-[26px] left-1/2 -translate-x-1/2 max-w-[130px] bg-[#FFF9FA] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2px] shadow-[0_2px_0_#3B2820] animate-guest-bubble z-40"
                   >
-                    <p className="text-[9.5px] font-extrabold text-[#3B2820] leading-tight text-center truncate">
+                    <p className="text-[10px] font-extrabold text-[#3B2820] leading-tight text-center truncate">
                       {guest.bubbleText}
                     </p>
                     <span
@@ -736,13 +706,13 @@ export const WaitingGuestsStrip: React.FC = () => {
                   </div>
                 )}
 
-                {/* Full-body standing chibi guest (~1.0x barista scale) */}
+                {/* Full-body standing chibi guest facing bar counter (~1.3x scale) */}
                 <div
                   className={`relative flex flex-col items-center ${bobClass}`}
                   style={{ animationDelay: `${idx * 0.28}s` }}
                 >
                   {guest.isVip && (
-                    <span className="absolute -top-[4px] right-[8px] w-5 h-5 rounded-full bg-[#F7C95B] border-[2px] border-[#3B2820] flex items-center justify-center z-30 shadow-[0_1.5px_0_#3B2820]">
+                    <span className="absolute -top-[6px] right-[12px] w-5 h-5 rounded-full bg-[#F7C95B] border-[2px] border-[#3B2820] flex items-center justify-center z-30 shadow-[0_1.5px_0_#3B2820]">
                       <Crown className="w-3 h-3 text-[#3B2820]" strokeWidth={2.8} />
                     </span>
                   )}
@@ -759,11 +729,11 @@ export const WaitingGuestsStrip: React.FC = () => {
 
                 {/* Compact Guest Name Tag beneath feet */}
                 <div
-                  className={`-mt-[2px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[100px] ${
+                  className={`-mt-[2px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[112px] ${
                     guest.isSignature ? 'bg-[#FFF1C2]' : 'bg-[#FFF9FA]'
                   }`}
                 >
-                  <span className="block text-[9.5px] font-black text-[#3B2820] truncate leading-none">
+                  <span className="block text-[10px] font-black text-[#3B2820] truncate leading-none">
                     {guest.nickname}
                   </span>
                 </div>
@@ -781,14 +751,14 @@ export const WaitingGuestsStrip: React.FC = () => {
         const shirtColor = GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length];
         const bottomColor = GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length];
         const isExiting = dep.phase === 'EXITING';
-        const exitShiftX = dep.lane === 0 ? -70 : 70;
+        const exitShiftX = dep.lane === 0 ? -75 : 75;
 
         return (
           <div
             key={`depart_${dep.order.orderId}`}
-            className="absolute w-[108px] transition-all duration-500 ease-out"
+            className="absolute w-[136px] transition-all duration-500 ease-out"
             style={{
-              left: `${coord.left - 54}px`,
+              left: `${coord.left - 68}px`,
               top: `${coord.top}px`,
               zIndex: coord.zIndex + 6,
               opacity: isExiting ? 0 : 1,
@@ -799,8 +769,8 @@ export const WaitingGuestsStrip: React.FC = () => {
             }}
           >
             <div className="w-full flex flex-col items-center">
-              <div className="absolute -top-[22px] left-1/2 -translate-x-1/2 max-w-[118px] bg-[#FFF9FA] border-[2.2px] border-[#3B2820] rounded-[11px] px-2 py-[2px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40">
-                <p className="text-[9.5px] font-extrabold text-[#3B2820] leading-tight text-center truncate">
+              <div className="absolute -top-[26px] left-1/2 -translate-x-1/2 max-w-[130px] bg-[#FFF9FA] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40">
+                <p className="text-[10px] font-extrabold text-[#3B2820] leading-tight text-center truncate">
                   {dep.bubbleText}
                 </p>
                 <span
@@ -811,7 +781,7 @@ export const WaitingGuestsStrip: React.FC = () => {
 
               <div className="relative flex flex-col items-center animate-guest-eager">
                 {dep.order.isVip && (
-                  <span className="absolute -top-[4px] right-[8px] w-5 h-5 rounded-full bg-[#F7C95B] border-[2px] border-[#3B2820] flex items-center justify-center z-30 shadow-[0_1.5px_0_#3B2820]">
+                  <span className="absolute -top-[6px] right-[12px] w-5 h-5 rounded-full bg-[#F7C95B] border-[2px] border-[#3B2820] flex items-center justify-center z-30 shadow-[0_1.5px_0_#3B2820]">
                     <Crown className="w-3 h-3 text-[#3B2820]" strokeWidth={2.8} />
                   </span>
                 )}
@@ -827,11 +797,11 @@ export const WaitingGuestsStrip: React.FC = () => {
               </div>
 
               <div
-                className={`-mt-[2px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[100px] ${
+                className={`-mt-[2px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[112px] ${
                   dep.order.isSignature ? 'bg-[#FFF1C2]' : 'bg-[#FFF9FA]'
                 }`}
               >
-                <span className="block text-[9.5px] font-black text-[#3B2820] truncate leading-none">
+                <span className="block text-[10px] font-black text-[#3B2820] truncate leading-none">
                   {dep.order.user.nickname}
                 </span>
               </div>

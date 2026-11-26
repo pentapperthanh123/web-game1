@@ -1,29 +1,59 @@
 import { STAGE_METRICS } from '@shared/config';
 import { getBrewStep, RECIPE_MAP, type BrewPhaseAction } from '@shared/recipes';
-import type { ActiveDrink, BrewToolType, SfxKind } from '@shared/types';
+import type { ActiveDrink, RecipeId, SfxKind } from '@shared/types';
 import { drinkBarAudio } from '../services/audioManager';
 import { useDrinkBarStore } from '../store/drinkBarStore';
-import { computeLiquidFillSnapshot } from './brewEffects';
-import { drawBarBackdrop, drawBarCounter } from './drawBarScene';
 import {
+  CAFE_POUR_END_PROGRESS,
+  clamp01,
+  computeLiquidFillSnapshot,
+} from './brewEffects';
+import {
+  drawBarBackdrop,
+  drawBarCounter,
+  type BarEquipmentState,
+} from './drawBarScene';
+import {
+  BARISTA_CENTER_X,
   drawBartenderBody,
   drawBartenderForegroundArmsAndSpeech,
+  isBobaScoopSubstep,
+  isCupPickupSubstep,
+  isHoldingOatsideSubstep,
+  isLidPickupSubstep,
+  isMatchaShelfSubstep,
+  isShakerDetachedSubstep,
+  isShakerLiftSubstep,
+  isSugarButtonSubstep,
+  resolveShakerMachineFillRatio,
+  resolveTargetBaristaX,
 } from './drawBartender';
 import { drawBarDrinkCups } from './drawDrinkCup';
 import { drinkParticles, type CupStationId } from './particlePool';
 
-const TOOL_SFX_MAP: Record<BrewToolType, SfxKind> = {
-  chasen: 'chasen',
-  shaker: 'shaker',
-  coffee_machine: 'cafe_drip',
-  soda_pour: 'soda_fizz',
-  juicer: 'juicer',
+const STEP2_PREP_SFX_MAP: Record<RecipeId, SfxKind> = {
+  matcha: 'whip_froth',
+  thai_tea: 'shaker',
+  coffee_milk: 'whip_froth',
+  berry_soda: 'whip_froth',
+  blue_citrus: 'juicer',
 };
 
 function resolvePhaseSfx(drink: ActiveDrink, action: BrewPhaseAction): SfxKind | null {
+  if (isCupPickupSubstep(drink) || isLidPickupSubstep(drink) || isShakerLiftSubstep(drink)) {
+    return 'cup_place';
+  }
+  if (isSugarButtonSubstep(drink)) {
+    return 'sugar_click';
+  }
+  if (isMatchaShelfSubstep(drink) || isBobaScoopSubstep(drink)) {
+    return 'topping';
+  }
   switch (action) {
+    case 'dispense':
+      return drink.recipeId === 'coffee_milk' ? 'cafe_drip' : 'pour';
     case 'tool_prep':
-      return TOOL_SFX_MAP[RECIPE_MAP[drink.recipeId].toolType];
+      return STEP2_PREP_SFX_MAP[drink.recipeId];
     case 'add_ice':
       return drink.iceLevel === 'NONE' ? null : 'ice_clink';
     case 'pour_mix':
@@ -35,15 +65,44 @@ function resolvePhaseSfx(drink: ActiveDrink, action: BrewPhaseAction): SfxKind |
   }
 }
 
+function resolveSubstepKey(drink: ActiveDrink, stepNumber: number): string {
+  if (isCupPickupSubstep(drink)) return `${drink.orderId}:cup_pickup`;
+  if (isMatchaShelfSubstep(drink)) return `${drink.orderId}:matcha_shelf`;
+  if (isSugarButtonSubstep(drink)) return `${drink.orderId}:sugar_press`;
+  if (isBobaScoopSubstep(drink)) return `${drink.orderId}:boba_scoop`;
+  if (isShakerLiftSubstep(drink)) return `${drink.orderId}:shaker_lift`;
+  if (isLidPickupSubstep(drink)) return `${drink.orderId}:lid_pickup`;
+  return `${drink.orderId}:${stepNumber}`;
+}
+
 export class DrinkBarCanvasLoop {
   private readonly canvas: HTMLCanvasElement;
   private rafId: number | null = null;
   private lastTickMs = 0;
   private elapsedSec = 0;
   private prevStationKey1 = '';
-  private prevStationKey2 = '';
   private lastAmbientSfxSec = 0;
   private wasDancing = false;
+  // Smooth horizontal barista walk position & velocity (zero per-frame allocations)
+  private baristaPosX = BARISTA_CENTER_X;
+  private baristaWalkVelocity = 0;
+  // Reusable mutable equipment state object (zero per-frame object allocations)
+  private readonly equipmentState: BarEquipmentState = {
+    activeRecipeId: null,
+    activeAction: null,
+    stepProgress: 0,
+    isFastBoost: false,
+    isPickingCup: false,
+    isPickingLid: false,
+    isTakingMatchaFromShelf: false,
+    isHoldingOatside: false,
+    isShakerDetached: false,
+    shakerFillRatio: 0,
+    isPressingSugarButton: false,
+    isUsingFrother: false,
+    isScoopingBoba: false,
+    isScoopingIce: false,
+  };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -91,17 +150,66 @@ export class DrinkBarCanvasLoop {
       drinkBarAudio.stopBrewingSfx();
     } else if (this.wasDancing && !isDancing) {
       drinkBarAudio.stopDanceMusic();
-      // Force resume step SFX on active brewing stations immediately after dance ends
       this.prevStationKey1 = '';
-      this.prevStationKey2 = '';
     }
     this.wasDancing = isDancing;
 
-    this.syncBrewingPhaseSfx(state.activeSlots[0], state.activeSlots[1], isDancing);
-
-    this.emitStationAmbientParticles(state.activeSlots[0], 1, isFastBoost, isDancing);
-    this.emitStationAmbientParticles(state.activeSlots[1], 2, isFastBoost, isDancing);
+    const primary = state.activeSlots[0];
+    this.syncBrewingPhaseSfx(primary, isDancing);
+    this.emitStationAmbientParticles(primary, 1, isFastBoost, isDancing);
     drinkParticles.update(dtSec);
+
+    // Smoothly lerp barista X position toward active station equipment
+    const targetBaristaX = resolveTargetBaristaX(primary, isDancing);
+    const prevBaristaX = this.baristaPosX;
+    const lerpAlpha = 1 - Math.exp(-7.5 * dtSec);
+    this.baristaPosX += (targetBaristaX - this.baristaPosX) * lerpAlpha;
+    if (Math.abs(targetBaristaX - this.baristaPosX) < 0.4) {
+      this.baristaPosX = targetBaristaX;
+    }
+    this.baristaWalkVelocity = dtSec > 0 ? (this.baristaPosX - prevBaristaX) / dtSec : 0;
+
+    // Update reusable equipment state snapshot in-place (zero per-frame allocations)
+    if (primary && primary.phase === 'BREWING' && !isDancing) {
+      const step = getBrewStep(primary.progress, primary.recipeId);
+      const span = Math.max(1, step.maxProgress - step.minProgress);
+      this.equipmentState.activeRecipeId = primary.recipeId;
+      this.equipmentState.activeAction = step.action;
+      this.equipmentState.stepProgress = clamp01((primary.progress - step.minProgress) / span);
+      this.equipmentState.isFastBoost = isFastBoost;
+      this.equipmentState.isPickingCup = isCupPickupSubstep(primary);
+      this.equipmentState.isPickingLid = isLidPickupSubstep(primary);
+      this.equipmentState.isTakingMatchaFromShelf = isMatchaShelfSubstep(primary);
+      this.equipmentState.isHoldingOatside = isHoldingOatsideSubstep(primary);
+      this.equipmentState.isShakerDetached = isShakerDetachedSubstep(primary);
+      this.equipmentState.shakerFillRatio = resolveShakerMachineFillRatio(primary);
+      this.equipmentState.isPressingSugarButton = isSugarButtonSubstep(primary);
+      this.equipmentState.isUsingFrother =
+        (step.action === 'tool_prep' &&
+          (primary.recipeId === 'matcha' ||
+            primary.recipeId === 'coffee_milk' ||
+            primary.recipeId === 'berry_soda')) ||
+        (step.action === 'pour_mix' &&
+          primary.recipeId === 'coffee_milk' &&
+          primary.progress < CAFE_POUR_END_PROGRESS);
+      this.equipmentState.isScoopingBoba = isBobaScoopSubstep(primary);
+      this.equipmentState.isScoopingIce = step.action === 'add_ice' && !isBobaScoopSubstep(primary);
+    } else {
+      this.equipmentState.activeRecipeId = null;
+      this.equipmentState.activeAction = null;
+      this.equipmentState.stepProgress = 0;
+      this.equipmentState.isFastBoost = false;
+      this.equipmentState.isPickingCup = false;
+      this.equipmentState.isPickingLid = false;
+      this.equipmentState.isTakingMatchaFromShelf = false;
+      this.equipmentState.isHoldingOatside = false;
+      this.equipmentState.isShakerDetached = false;
+      this.equipmentState.shakerFillRatio = 0;
+      this.equipmentState.isPressingSugarButton = false;
+      this.equipmentState.isUsingFrother = false;
+      this.equipmentState.isScoopingBoba = false;
+      this.equipmentState.isScoopingIce = false;
+    }
 
     const ctx = this.canvas.getContext('2d');
     if (!ctx) return;
@@ -117,28 +225,30 @@ export class DrinkBarCanvasLoop {
   ): void {
     const state = useDrinkBarStore.getState();
 
-    // Layer 1: Warm café wall, arch window, pendant lights
-    drawBarBackdrop(ctx, this.elapsedSec);
+    // Layer 1: Airy café wall, 2-tier pastel shelves (tea urns, syrup pumps, matcha tin, oatside), pendant lamps
+    drawBarBackdrop(ctx, this.elapsedSec, this.equipmentState);
 
-    // Layer 2: Both bartenders standing naturally behind counter (or 3 TikTok dance styles)
+    // Layer 2: Single central barista walking smoothly between equipment stations (or 3 TikTok dance styles)
     drawBartenderBody(
       ctx,
       state.bartenderMood,
       state.activeSlots[0],
-      state.activeSlots[1],
+      null,
       isFastBoost,
       isWaving,
       isDancing,
       state.danceTier,
       state.danceStyle,
       state.danceStartedAt,
-      this.elapsedSec
+      this.elapsedSec,
+      this.baristaPosX,
+      this.baristaWalkVelocity
     );
 
-    // Layer 3: Full-width wooden counter top & front body + ingredient/topping stations
-    drawBarCounter(ctx);
+    // Layer 3: Full-width wooden counter + shaker, sugar jar + button, ice bin, menu stand, cups/lids, espresso & plant
+    drawBarCounter(ctx, this.elapsedSec, this.equipmentState);
 
-    // Layer 4: Both station layered drink cups on counter coasters (reading unified activeSlots)
+    // Layer 4: Primary centered layered drink cup (~70% compact scale) on counter coaster
     drawBarDrinkCups(
       ctx,
       state.activeSlots,
@@ -147,11 +257,11 @@ export class DrinkBarCanvasLoop {
       isDancing
     );
 
-    // Layer 5: Bartender foreground arms (per-recipe tools OR 3 synchronized TikTok dance styles)
+    // Layer 5: Barista foreground arms (clean De Casteljau sleeves, pick->use->put-away choreography OR 3 dances)
     drawBartenderForegroundArmsAndSpeech(
       ctx,
       state.activeSlots[0],
-      state.activeSlots[1],
+      null,
       state.bartenderSpeech,
       isFastBoost,
       isWaving,
@@ -159,7 +269,9 @@ export class DrinkBarCanvasLoop {
       state.danceTier,
       state.danceStyle,
       state.danceStartedAt,
-      this.elapsedSec
+      this.elapsedSec,
+      this.baristaPosX,
+      this.baristaWalkVelocity
     );
 
     // Layer 6: Fixed-pool particles (<= 60)
@@ -172,16 +284,14 @@ export class DrinkBarCanvasLoop {
     isFastBoost: boolean,
     isDancing: boolean
   ): void {
-    // Pause particle streams cleanly while bartenders dance or for non-bubbly cafe
     if (!drink || drink.phase !== 'BREWING' || isDancing) return;
     if (drink.recipeId === 'coffee_milk') return;
+    if (isShakerLiftSubstep(drink)) return;
 
     const step = getBrewStep(drink.progress, drink.recipeId);
-    const isSodaPouring =
-      drink.recipeId === 'berry_soda' &&
-      (step.action === 'tool_prep' || step.action === 'pour_mix');
-    if (step.action !== 'pour_mix' && !isSodaPouring) return;
+    if (step.action !== 'pour_mix') return;
 
+    const isSodaPouring = drink.recipeId === 'berry_soda';
     const surfaceY = computeLiquidFillSnapshot(drink.recipeId, drink.progress).surfaceY;
     const accent = RECIPE_MAP[drink.recipeId].accentColor;
     drinkParticles.emitAmbientPour(cupId, surfaceY, accent, isFastBoost, isSodaPouring);
@@ -189,15 +299,12 @@ export class DrinkBarCanvasLoop {
 
   private syncBrewingPhaseSfx(
     primary: ActiveDrink | null,
-    secondary: ActiveDrink | null,
     isDancing: boolean
   ): void {
     if (isDancing) {
-      // Pause brewing tool ambient SFX cleanly while 2 bartenders perform TikTok Dance
       return;
     }
     this.prevStationKey1 = this.checkStationPhaseSfx(primary, this.prevStationKey1);
-    this.prevStationKey2 = this.checkStationPhaseSfx(secondary, this.prevStationKey2);
   }
 
   private checkStationPhaseSfx(drink: ActiveDrink | null, prevKey: string): string {
@@ -205,7 +312,7 @@ export class DrinkBarCanvasLoop {
       return '';
     }
     const step = getBrewStep(drink.progress, drink.recipeId);
-    const nextKey = `${drink.orderId}:${step.step}`;
+    const nextKey = resolveSubstepKey(drink, step.step);
 
     if (nextKey !== prevKey) {
       const sfx = resolvePhaseSfx(drink, step.action);
@@ -215,10 +322,21 @@ export class DrinkBarCanvasLoop {
       return nextKey;
     }
 
-    const sfxIntervalSec =
-      RECIPE_MAP[drink.recipeId].toolType === 'shaker' ? 0.46 : 0.65;
     if (
-      step.action === 'tool_prep' &&
+      isSugarButtonSubstep(drink) &&
+      this.elapsedSec - this.lastAmbientSfxSec >= 0.42
+    ) {
+      this.lastAmbientSfxSec = this.elapsedSec;
+      drinkBarAudio.play('sugar_click');
+      return nextKey;
+    }
+
+    const sfxIntervalSec = drink.recipeId === 'thai_tea' ? 0.46 : 0.62;
+    if (
+      !isCupPickupSubstep(drink) &&
+      !isLidPickupSubstep(drink) &&
+      !isShakerLiftSubstep(drink) &&
+      (step.action === 'dispense' || step.action === 'tool_prep') &&
       this.elapsedSec - this.lastAmbientSfxSec >= sfxIntervalSec
     ) {
       this.lastAmbientSfxSec = this.elapsedSec;
@@ -227,20 +345,27 @@ export class DrinkBarCanvasLoop {
         drinkBarAudio.play(sfx);
       }
     } else if (
+      isBobaScoopSubstep(drink) &&
+      this.elapsedSec - this.lastAmbientSfxSec >= 0.48
+    ) {
+      this.lastAmbientSfxSec = this.elapsedSec;
+      drinkBarAudio.play('topping');
+    } else if (
       step.action === 'add_ice' &&
+      !isBobaScoopSubstep(drink) &&
       drink.iceLevel !== 'NONE' &&
-      drink.progress < 40 &&
-      this.elapsedSec - this.lastAmbientSfxSec >= 0.52
+      this.elapsedSec - this.lastAmbientSfxSec >= 0.48
     ) {
       this.lastAmbientSfxSec = this.elapsedSec;
       drinkBarAudio.play('ice_clink');
     } else if (
       step.action === 'pour_mix' &&
+      !isShakerLiftSubstep(drink) &&
       this.elapsedSec - this.lastAmbientSfxSec >= 0.56
     ) {
       this.lastAmbientSfxSec = this.elapsedSec;
       const pitchScale =
-        0.95 + Math.min(1, Math.max(0, (drink.progress - 45) / 30)) * 0.45;
+        0.95 + Math.min(1, Math.max(0, (drink.progress - 56) / 28)) * 0.45;
       drinkBarAudio.play('pour', undefined, undefined, pitchScale);
       if (drink.recipeId === 'berry_soda') {
         drinkBarAudio.play('soda_fizz');

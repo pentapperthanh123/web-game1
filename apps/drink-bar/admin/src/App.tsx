@@ -127,11 +127,11 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden p-2.5 flex flex-col lg:flex-row gap-2.5 box-border">
+    <div className="h-screen w-full overflow-hidden px-2 pb-2 pt-0 flex flex-col lg:flex-row gap-2 box-border">
       {/* CỘT TRÁI (Rộng linh hoạt ~68-74%): Điều khiển Host & Auto-Bot Bar */}
       <div className="flex-1 min-w-0 h-auto lg:h-full flex flex-col gap-2 min-h-0 overflow-hidden">
         {/* Compact Brand Header & Live Telemetry */}
-        <header className="bar-panel shrink-0 px-3.5 py-2 bg-[#FFF7EC] space-y-2">
+        <header className="bar-panel rounded-t-none border-t-0 shrink-0 px-3.5 py-2 bg-[#FFF7EC] space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-[12px] bg-[#D89B63] border-[2.5px] border-[#3B2820] flex items-center justify-center shrink-0">
@@ -202,8 +202,8 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* CỘT PHẢI (Thu gọn vừa khít khung 9:16): Live Preview + Mirror Live */}
-      <div className="w-full lg:w-[340px] xl:w-[380px] 2xl:w-[420px] shrink-0 h-[560px] lg:h-full flex flex-col min-h-0 overflow-hidden">
+      {/* CỘT PHẢI (Mở rộng tối ưu khung 9:16): Live Preview + Mirror Live */}
+      <div className="w-full lg:w-[420px] xl:w-[480px] 2xl:w-[540px] shrink-0 h-[640px] lg:h-full flex flex-col min-h-0 overflow-hidden">
         <LivePreviewPanel config={config} />
       </div>
     </div>

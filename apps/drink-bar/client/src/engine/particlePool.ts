@@ -188,12 +188,12 @@ export class DrinkBarParticlePool {
           'bubble',
           cupId,
           true,
-          cupCx + (Math.random() - 0.5) * 44,
-          CUP_BOTTOM_Y - 24 - Math.random() * 35,
-          (Math.random() - 0.5) * 14,
-          -(42 + Math.random() * 32),
-          3.2 + Math.random() * 2.8,
-          0.8,
+          cupCx + (Math.random() - 0.5) * 28,
+          CUP_BOTTOM_Y - 18 - Math.random() * 26,
+          (Math.random() - 0.5) * 10,
+          -(34 + Math.random() * 24),
+          2.6 + Math.random() * 2.0,
+          0.75,
           '#FFFDF9'
         );
       }
@@ -203,17 +203,17 @@ export class DrinkBarParticlePool {
     if (burstKind === 'topping') {
       for (let i = 0; i < 7; i += 1) {
         const angle = (Math.PI * 2 * i) / 7 + Math.random() * 0.25;
-        const speed = 28 + Math.random() * 32;
+        const speed = 24 + Math.random() * 26;
         this.spawn(
           'sparkle',
           cupId,
           false,
-          cupCx + (Math.random() - 0.5) * 32,
-          CUP_TOP_Y + 6,
+          cupCx + (Math.random() - 0.5) * 24,
+          CUP_TOP_Y + 4,
           Math.cos(angle) * speed,
-          Math.sin(angle) * speed - 14,
-          4.5 + Math.random() * 3.5,
-          0.85,
+          Math.sin(angle) * speed - 12,
+          4.0 + Math.random() * 2.8,
+          0.8,
           i % 2 === 0 ? DRINK_BAR_PALETTE.VIP_GOLD : accentColor
         );
       }
@@ -223,17 +223,17 @@ export class DrinkBarParticlePool {
     const sparkleCount = burstKind === 'signature' ? 12 : 8;
     for (let i = 0; i < sparkleCount; i += 1) {
       const angle = (Math.PI * 2 * i) / sparkleCount;
-      const speed = 36 + Math.random() * 50;
+      const speed = 32 + Math.random() * 42;
       this.spawn(
         'sparkle',
         cupId,
         false,
         cupCx,
-        CUP_TOP_Y + 46,
+        CUP_TOP_Y + 34,
         Math.cos(angle) * speed,
-        Math.sin(angle) * speed - 22,
-        5.5 + Math.random() * 3.5,
-        1.15,
+        Math.sin(angle) * speed - 18,
+        4.8 + Math.random() * 2.8,
+        1.1,
         DRINK_BAR_PALETTE.SIGNATURE_GOLD
       );
     }

@@ -185,11 +185,20 @@ export class WebAudioSoundEngine {
     if (!ctx) return false;
 
     switch (kind) {
+      case 'cup_place':
+        this.playCupPlace(ctx);
+        break;
+      case 'sugar_click':
+        this.playSugarClick(ctx);
+        break;
       case 'ice_clink':
         this.playIceClink(ctx);
         break;
       case 'chasen':
         if (!this.shouldThrottle(kind, AMBIENT_THROTTLE_MS)) this.playChasen(ctx);
+        break;
+      case 'whip_froth':
+        if (!this.shouldThrottle(kind, AMBIENT_THROTTLE_MS)) this.playWhipFroth(ctx);
         break;
       case 'shaker':
         if (!this.shouldThrottle(kind, SHAKER_THROTTLE_MS)) this.playShaker(ctx);
@@ -228,69 +237,148 @@ export class WebAudioSoundEngine {
     return true;
   }
 
+  private playCupPlace(ctx: AudioContext): void {
+    if (!this.masterGain) return;
+    const now = ctx.currentTime;
+    // Soft hollow takeaway cup tap on wooden coaster
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(240, now);
+    osc.frequency.exponentialRampToValueAtTime(115, now + 0.055);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.22, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.08);
+    this.activeSfxNodes.push(osc);
+  }
+
+  private playSugarClick(ctx: AudioContext): void {
+    if (!this.masterGain) return;
+    const now = ctx.currentTime;
+    // Tactile dispenser button click + delicate sugar granule scoop shimmer
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(980, now);
+    osc.frequency.exponentialRampToValueAtTime(420, now + 0.032);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.05);
+    this.activeSfxNodes.push(osc);
+
+    // Subtle sugar granules rustle
+    this.playFilteredNoiseBurst(ctx, now + 0.025, 0.08, 3800, 2.2, 0.14);
+  }
+
   private playIceClink(ctx: AudioContext): void {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
-    const freqs = [2480, 3150, 2790];
+    // Pure, crystalline ice cubes falling and clinking inside glass
+    const freqs = [2820, 3450, 3080];
 
     freqs.forEach((baseFreq, idx) => {
-      const t = now + idx * 0.065;
-      const jitter = 0.94 + Math.random() * 0.12;
+      const t = now + idx * 0.055;
+      const jitter = 0.96 + Math.random() * 0.08;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(baseFreq * jitter, t);
 
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.linearRampToValueAtTime(0.24, t + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      gain.gain.linearRampToValueAtTime(0.26, t + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
 
       osc.connect(gain);
       gain.connect(this.masterGain!);
       osc.start(t);
-      osc.stop(t + 0.13);
+      osc.stop(t + 0.12);
+      this.activeSfxNodes.push(osc);
     });
   }
 
   private playChasen(ctx: AudioContext): void {
     const now = ctx.currentTime;
-    this.playFilteredNoiseBurst(ctx, now, 0.22, 1750, 1.4, 0.26);
-    this.playFilteredNoiseBurst(ctx, now + 0.12, 0.18, 2100, 1.6, 0.22);
+    // Rhythmic bamboo chasen whisking against ceramic chawan (W/M strokes)
+    this.playFilteredNoiseBurst(ctx, now, 0.18, 2100, 1.8, 0.28);
+    this.playFilteredNoiseBurst(ctx, now + 0.11, 0.16, 2450, 2.0, 0.24);
+  }
+
+  private playWhipFroth(ctx: AudioContext): void {
+    if (!this.masterGain) return;
+    const now = ctx.currentTime;
+    // Smooth warm handheld milk-frother hum + airy creamy foam whip
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(165, now);
+    osc.frequency.linearRampToValueAtTime(215, now + 0.14);
+    osc.frequency.linearRampToValueAtTime(185, now + 0.28);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.09, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.30);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.31);
+    this.activeSfxNodes.push(osc);
+
+    // Gentle creamy foam aeration hiss
+    this.playFilteredNoiseBurst(ctx, now + 0.02, 0.24, 2600, 1.6, 0.16);
   }
 
   private playShaker(ctx: AudioContext): void {
     const now = ctx.currentTime;
-    this.playFilteredNoiseBurst(ctx, now, 0.12, 2600, 2.0, 0.30);
-    this.playFilteredNoiseBurst(ctx, now + 0.13, 0.12, 2900, 2.2, 0.26);
+    // Crisp metallic shaker rattle with ice & milk tea sloshing inside
+    this.playFilteredNoiseBurst(ctx, now, 0.11, 3100, 2.6, 0.32);
+    this.playFilteredNoiseBurst(ctx, now + 0.12, 0.11, 3450, 2.8, 0.28);
   }
 
   private playCafeDrip(ctx: AudioContext): void {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
 
-    [0, 0.14].forEach((offset, idx) => {
+    // Rich espresso machine extraction pressure + warm rhythmic drops
+    this.playFilteredNoiseBurst(ctx, now, 0.24, 980, 1.2, 0.18);
+
+    [0.08, 0.20].forEach((offset, idx) => {
       const t = now + offset;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      const startF = idx === 0 ? 480 : 560;
+      const startF = idx === 0 ? 520 : 610;
       osc.frequency.setValueAtTime(startF, t);
-      osc.frequency.exponentialRampToValueAtTime(startF * 1.45, t + 0.07);
+      osc.frequency.exponentialRampToValueAtTime(startF * 1.35, t + 0.06);
 
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.linearRampToValueAtTime(0.20, t + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+      gain.gain.linearRampToValueAtTime(0.22, t + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
 
       osc.connect(gain);
       gain.connect(this.masterGain!);
       osc.start(t);
-      osc.stop(t + 0.1);
+      osc.stop(t + 0.09);
+      this.activeSfxNodes.push(osc);
     });
   }
 
   private playSodaFizz(ctx: AudioContext): void {
     const now = ctx.currentTime;
-    this.playFilteredNoiseBurst(ctx, now, 0.34, 4200, 0.9, 0.26);
+    // Crisp carbonated effervescence and sparkling bubbles
+    this.playFilteredNoiseBurst(ctx, now, 0.36, 4400, 1.1, 0.28);
   }
 
   private playJuicer(ctx: AudioContext): void {
@@ -299,61 +387,66 @@ export class WebAudioSoundEngine {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(145, now);
-    osc.frequency.linearRampToValueAtTime(175, now + 0.16);
-    osc.frequency.linearRampToValueAtTime(150, now + 0.32);
+    osc.frequency.setValueAtTime(155, now);
+    osc.frequency.linearRampToValueAtTime(185, now + 0.14);
+    osc.frequency.linearRampToValueAtTime(160, now + 0.28);
 
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.20, now + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+    gain.gain.linearRampToValueAtTime(0.22, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.30);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(now);
-    osc.stop(now + 0.36);
+    osc.stop(now + 0.32);
+    this.activeSfxNodes.push(osc);
   }
 
   private playPour(ctx: AudioContext, pitchScale = 1): void {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
 
-    this.playFilteredNoiseBurst(ctx, now, 0.26, 1300 * pitchScale, 1.2, 0.24);
+    // Smooth fluid stream resonance with subtle pitch rise as liquid fills cup
+    const safePitch = Math.max(0.7, Math.min(1.5, pitchScale));
+    this.playFilteredNoiseBurst(ctx, now, 0.28, 1400 * safePitch, 1.4, 0.26);
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(320 * pitchScale, now);
-    osc.frequency.exponentialRampToValueAtTime(590 * pitchScale, now + 0.22);
+    osc.frequency.setValueAtTime(340 * safePitch, now);
+    osc.frequency.exponentialRampToValueAtTime(620 * safePitch, now + 0.24);
 
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.18, now + 0.03);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+    gain.gain.linearRampToValueAtTime(0.20, now + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(now);
-    osc.stop(now + 0.25);
+    osc.stop(now + 0.28);
+    this.activeSfxNodes.push(osc);
   }
 
   private playToppingPlop(ctx: AudioContext): void {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
 
-    [523.25, 698.46].forEach((freq, idx) => {
-      const start = now + idx * 0.065;
+    [587.33, 783.99].forEach((freq, idx) => {
+      const start = now + idx * 0.055;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, start);
 
       gain.gain.setValueAtTime(0.001, start);
-      gain.gain.linearRampToValueAtTime(0.24, start + 0.014);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.14);
+      gain.gain.linearRampToValueAtTime(0.24, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12);
 
       osc.connect(gain);
       gain.connect(this.masterGain!);
       osc.start(start);
-      osc.stop(start + 0.15);
+      osc.stop(start + 0.13);
+      this.activeSfxNodes.push(osc);
     });
   }
 
@@ -361,31 +454,35 @@ export class WebAudioSoundEngine {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
 
+    // Crisp satisfying mechanical lid snap closure
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(95, now + 0.06);
+    osc.frequency.setValueAtTime(340, now);
+    osc.frequency.exponentialRampToValueAtTime(85, now + 0.055);
 
-    gain.gain.setValueAtTime(0.30, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+    gain.gain.setValueAtTime(0.34, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(now);
-    osc.stop(now + 0.085);
+    osc.stop(now + 0.075);
+    this.activeSfxNodes.push(osc);
   }
 
   private playCompletionChime(ctx: AudioContext): void {
     const now = ctx.currentTime;
-    const notes = [587.33, 739.99, 880.0];
-    this.playArpeggioNotes(ctx, now, notes, 0.075, 0.24, 0.42);
+    // Rewarding sparkling completion chime
+    const notes = [659.25, 830.61, 987.77, 1318.5];
+    this.playArpeggioNotes(ctx, now, notes, 0.065, 0.26, 0.45);
   }
 
   private playSignatureFanfare(ctx: AudioContext): void {
     const now = ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5];
-    this.playArpeggioNotes(ctx, now, notes, 0.075, 0.30, 0.48);
+    // Grand VIP Signature fanfare
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+    this.playArpeggioNotes(ctx, now, notes, 0.065, 0.32, 0.52);
   }
 
   private playChatPop(ctx: AudioContext): void {
@@ -395,17 +492,17 @@ export class WebAudioSoundEngine {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(540, now);
-    osc.frequency.exponentialRampToValueAtTime(720, now + 0.07);
+    osc.frequency.setValueAtTime(640, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.065);
 
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    gain.gain.linearRampToValueAtTime(0.16, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(now);
-    osc.stop(now + 0.1);
+    osc.stop(now + 0.085);
   }
 
   private playLikePop(ctx: AudioContext): void {
@@ -415,17 +512,17 @@ export class WebAudioSoundEngine {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(780, now);
-    osc.frequency.exponentialRampToValueAtTime(980, now + 0.05);
+    osc.frequency.setValueAtTime(840, now);
+    osc.frequency.exponentialRampToValueAtTime(1120, now + 0.05);
 
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.14, now + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+    gain.gain.linearRampToValueAtTime(0.14, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(now);
-    osc.stop(now + 0.075);
+    osc.stop(now + 0.07);
   }
 
   public stopBrewingSfx(): void {
@@ -452,7 +549,7 @@ export class WebAudioSoundEngine {
     const now = ctx.currentTime;
 
     if (style === 'heart_sway') {
-      // Gentle cute pop melody + soft bass (~3.5s)
+      // Gentle cute idol pop melody + soft bass + upbeat sparkle chimes (~3.5s)
       const stepSec = 0.24;
       const totalSteps = Math.max(8, Math.floor(totalSec / stepSec));
       const melody = [523.25, 659.25, 783.99, 880.0, 783.99, 659.25, 587.33, 523.25];
@@ -462,6 +559,9 @@ export class WebAudioSoundEngine {
         this.scheduleMusicTone(ctx, t, melody[i % melody.length], 'sine', 0.19, stepSec * 0.85);
         if (i % 2 === 0) {
           this.scheduleMusicTone(ctx, t, bass[(i / 2) % bass.length], 'sine', 0.20, stepSec * 1.6);
+        } else {
+          // Cute sparkle / pop accent on upbeat
+          this.scheduleMusicTone(ctx, t + stepSec * 0.45, 1760.0, 'triangle', 0.08, 0.06);
         }
       }
       return true;
