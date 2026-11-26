@@ -107,6 +107,12 @@ export const App: React.FC = () => {
     drinkBarAdminBridge.emitAdminAction('SET_AUTO_RESTOCK', { autoRestockEnabled: next });
   };
 
+  const handleToggleUnlimitedInventory = () => {
+    const next = !config.unlimitedInventory;
+    setConfig((prev) => ({ ...prev, unlimitedInventory: next }));
+    drinkBarAdminBridge.emitAdminAction('SET_UNLIMITED_INVENTORY', { unlimitedInventory: next });
+  };
+
   const msg = getMessages(config.language);
   const vipCount = liveSnapshot?.vipQueue.length ?? 0;
   const totalQueue = vipCount + (liveSnapshot?.normalQueue.length ?? 0);
@@ -119,11 +125,11 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden px-2 pb-2 pt-0 flex flex-col lg:flex-row gap-2 box-border">
+    <div className="h-screen w-full overflow-hidden p-0 flex flex-col lg:flex-row gap-0 box-border">
       {/* CỘT TRÁI (Rộng linh hoạt ~68-74%): Điều khiển Host & Auto-Bot Bar */}
       <div className="flex-1 min-w-0 h-auto lg:h-full flex flex-col gap-2 min-h-0 overflow-hidden">
         {/* Compact Brand Header & Live Telemetry */}
-        <header className="bar-panel rounded-t-none border-t-0 shrink-0 px-3.5 py-2 bg-[#FFF7EC] space-y-2">
+        <header className="shrink-0 px-3.5 py-2 bg-[#FFF7EC] border-b-[2.5px] border-[#3B2820] space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-[12px] bg-[#D89B63] border-[2.5px] border-[#3B2820] flex items-center justify-center shrink-0">
@@ -167,10 +173,11 @@ export const App: React.FC = () => {
         </header>
 
         {/* Scrollable Controls Stack */}
-        <div className="flex-1 min-h-0 overflow-y-auto bar-scroll pr-1 space-y-2.5 pb-2">
+        <div className="flex-1 min-h-0 overflow-y-auto bar-scroll px-2 space-y-2.5 pb-2">
           <AutoBotBarPanel
             language={config.language}
             inventory={liveSnapshot?.inventory ?? null}
+            unlimitedInventory={config.unlimitedInventory}
             isBotEnabled={isBotEnabled}
             pace={botPace}
             onToggleBot={handleToggleBot}
@@ -185,6 +192,7 @@ export const App: React.FC = () => {
             onChangeBrewDuration={handleChangeBrewDuration}
             onChangeDefaultCapacity={handleChangeDefaultCapacity}
             onToggleAutoRestock={handleToggleAutoRestock}
+            onToggleUnlimitedInventory={handleToggleUnlimitedInventory}
             onToggleSfx={handleToggleSfx}
             onToggleMusic={handleToggleMusic}
             onChangeMasterVolume={handleChangeMasterVolume}

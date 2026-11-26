@@ -47,12 +47,15 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) =>
     drinkBarAdminBridge.syncConfigToPreviewOnly('SET_AUTO_RESTOCK', {
       autoRestockEnabled: config.autoRestockEnabled,
     });
+    drinkBarAdminBridge.syncConfigToPreviewOnly('SET_UNLIMITED_INVENTORY', {
+      unlimitedInventory: config.unlimitedInventory,
+    });
   };
 
   return (
-    <aside className="bar-panel rounded-t-none border-t-0 p-1.5 pt-1 flex flex-col h-full w-full min-h-0 bg-[#FFFDF9] select-none gap-1 overflow-hidden">
+    <aside className="flex flex-col h-full w-full min-h-0 bg-[#FFF5F7] lg:border-l-[2.5px] border-t-[2.5px] lg:border-t-0 border-[#3B2820] select-none overflow-hidden">
       {/* Preview Panel Header: Left "Live Preview (9:16)" | Right "● Mirror Live" */}
-      <div className="shrink-0 flex items-center justify-between gap-1.5 px-1 pb-1 border-b border-[#3B2820]/15">
+      <div className="shrink-0 flex items-center justify-between gap-1.5 px-2.5 py-1.5 bg-[#FFFDF9] border-b border-[#3B2820]/20">
         <div className="flex items-center gap-1.5 min-w-0">
           <div className="w-6 h-6 rounded-md bg-[#E8B584] border-2 border-[#3B2820] flex items-center justify-center shrink-0">
             <MonitorPlay className="w-3.5 h-3.5 text-[#3B2820]" strokeWidth={2.6} />
@@ -70,11 +73,11 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) =>
 
       {/* Main Full-Height 9:16 Stage Frame - Edge-to-Edge Clean Preview */}
       <div
-        className="flex-1 min-h-0 w-full flex items-center justify-center relative overflow-hidden"
+        className="flex-1 min-h-0 w-full flex items-center justify-center relative overflow-hidden bg-[#FFF5F7]"
         style={{ containerType: 'size' }}
       >
         <div
-          className="relative overflow-hidden rounded-xl border-2 border-[#3B2820] shadow-md bg-black flex items-center justify-center"
+          className="relative overflow-hidden bg-[#FFF5F7] flex items-center justify-center"
           style={{
             width: 'min(100cqw, calc(100cqh * 9 / 16))',
             height: 'min(100cqh, calc(100cqw * 16 / 9))',

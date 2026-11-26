@@ -299,8 +299,12 @@ function drawDrinkCupAtStation(
     );
   }
 
-  // 7. Fresh fruit garnish perched on rim (always on blue_citrus orange juice, or gifted fruit_slice, >= 78%)
-  const showFruitGarnish = hasFruit || drink.recipeId === 'blue_citrus';
+  // 7. Fresh fruit garnish perched on rim (orange, peach, lime or gifted fruit_slice >= 78%)
+  const showFruitGarnish =
+    hasFruit ||
+    drink.recipeId === 'blue_citrus' ||
+    drink.recipeId === 'peach_tea' ||
+    drink.recipeId === 'lime_tea';
   if (showFruitGarnish && progress >= 78) {
     drawFruitGarnish(ctx, cupCx, recipe.fruitType, recipe.accentColor);
   }
@@ -360,11 +364,6 @@ function drawDrinkCupAtStation(
   // 10. Subtle Signature gold emblem on cup front if Signature
   if (drink.isSignature) {
     drawSignatureCupBadge(ctx, cupCx);
-  }
-
-  // 10b. Kraft Paper Bag packaging during SHOWCASE: wraps cup cleanly with lid/straw peeking out
-  if (drink.phase === 'SHOWCASE' && !hideProgressPill) {
-    drawTakeawayPaperBag(ctx, cupCx, CUP_BOTTOM_Y, drink);
   }
 
   // Restore cup handover transform so progress pill remains cleanly anchored above waiting guests
@@ -544,136 +543,6 @@ function drawTakeawayStraw(
   ctx.restore();
 }
 
-function drawTakeawayPaperBag(
-  ctx: CanvasRenderingContext2D,
-  cupCx: number,
-  cupBottomY: number,
-  drink: ActiveDrink
-): void {
-  const elapsedMs = Math.max(0, GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS - drink.showcaseRemainingMs);
-  const bagT = clamp01(elapsedMs / 480);
-  const easeBag = bagT * bagT * (3 - 2 * bagT);
-
-  // Bag slides up from counter to hug the cup (leaving dome lid + straw peeking out)
-  const bagW = 56;
-  const bagH = 50;
-  const bagHalfW = bagW * 0.5;
-  const bagBaseY = cupBottomY + 2;
-  const bagTopY = bagBaseY - bagH * easeBag;
-  const activeBagH = bagH * easeBag;
-
-  if (activeBagH < 6) return;
-
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  // 1. Two curved twisted-paper rope handles looped above the bag rim
-  if (easeBag > 0.55) {
-    const handleAlpha = clamp01((easeBag - 0.55) / 0.45);
-    ctx.save();
-    ctx.globalAlpha = handleAlpha;
-
-    // Handle cord fill & outline
-    ctx.strokeStyle = '#B38E5A';
-    ctx.lineWidth = 3.2;
-    ctx.beginPath();
-    ctx.ellipse(cupCx - 11, bagTopY - 2, 7.5, 12, 0, Math.PI, 0, false);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(cupCx + 11, bagTopY - 2, 7.5, 12, 0, Math.PI, 0, false);
-    ctx.stroke();
-
-    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.ellipse(cupCx - 11, bagTopY - 2, 7.5, 12, 0, Math.PI, 0, false);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(cupCx + 11, bagTopY - 2, 7.5, 12, 0, Math.PI, 0, false);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // 2. Kraft paper bag main trapezoid pouch
-  const topHalfW = bagHalfW;
-  const bottomHalfW = bagHalfW - 3;
-  ctx.beginPath();
-  ctx.moveTo(cupCx - topHalfW, bagTopY);
-  ctx.lineTo(cupCx + topHalfW, bagTopY);
-  ctx.lineTo(cupCx + bottomHalfW, bagBaseY - 4);
-  ctx.quadraticCurveTo(cupCx + bottomHalfW, bagBaseY, cupCx + bottomHalfW - 5, bagBaseY);
-  ctx.lineTo(cupCx - bottomHalfW + 5, bagBaseY);
-  ctx.quadraticCurveTo(cupCx - bottomHalfW, bagBaseY, cupCx - bottomHalfW, bagBaseY - 4);
-  ctx.closePath();
-
-  // Natural warm kraft paper gradient
-  const bagGrad = ctx.createLinearGradient(cupCx - topHalfW, bagTopY, cupCx + topHalfW, bagBaseY);
-  bagGrad.addColorStop(0, '#E8C99B');
-  bagGrad.addColorStop(1, '#D8B382');
-  ctx.fillStyle = bagGrad;
-  ctx.fill();
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // 3. Side gusset crease lines for authentic folded paper feel
-  ctx.save();
-  ctx.strokeStyle = 'rgba(179, 137, 88, 0.45)';
-  ctx.lineWidth = 1.8;
-  ctx.beginPath();
-  ctx.moveTo(cupCx - topHalfW + 7, bagTopY + 4);
-  ctx.lineTo(cupCx - bottomHalfW + 5, bagBaseY - 3);
-  ctx.moveTo(cupCx + topHalfW - 7, bagTopY + 4);
-  ctx.lineTo(cupCx + bottomHalfW - 5, bagBaseY - 3);
-  ctx.stroke();
-  ctx.restore();
-
-  // 4. Folded top collar band
-  roundedRectPath(ctx, cupCx - topHalfW - 1, bagTopY - 2, (topHalfW + 1) * 2, 5.5, 2.5);
-  ctx.fillStyle = '#DFC090';
-  ctx.fill();
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  // 5. Cute cafe brand stamp on bag front (tiny heart or cup + "♥")
-  if (easeBag > 0.75) {
-    const stampAlpha = clamp01((easeBag - 0.75) / 0.25);
-    const stampY = bagTopY + activeBagH * 0.48;
-    ctx.save();
-    ctx.globalAlpha = stampAlpha;
-
-    // Cream stamp pill
-    roundedRectPath(ctx, cupCx - 17, stampY - 8, 34, 16, 8);
-    ctx.fillStyle = '#FFFDF9';
-    ctx.fill();
-    ctx.lineWidth = 1.8;
-    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-    ctx.stroke();
-
-    // Cute drink recipe accent dot in center
-    ctx.beginPath();
-    ctx.arc(cupCx - 6, stampY, 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = RECIPE_MAP[drink.recipeId].baseColor;
-    ctx.fill();
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-    ctx.stroke();
-
-    // Tiny heart
-    ctx.fillStyle = '#F48BA3';
-    ctx.font = '800 8.5px "Fredoka", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('♥', cupCx + 7, stampY + 0.5);
-
-    ctx.restore();
-  }
-
-  ctx.restore();
-}
-
 function resolveIceCubeCount(iceLevel: IceLevel): number {
   switch (iceLevel) {
     case 'NONE':
@@ -737,7 +606,7 @@ function drawLiquidLayersByRecipe(
     return fill.surfaceY;
   }
 
-  // Uniform single-layer drinks: thai_tea (#D89E68) and blue_citrus (#FF9526)
+  // Uniform single-layer drinks: thai_tea, peach_tea, lime_tea, blue_citrus
   if (fill.layer1TopY < CUP_BOTTOM_Y - 1) {
     const recipe = RECIPE_MAP[recipeId];
     drawWavyLiquidBand(ctx, cupCx, fill.layer1TopY, fill.layer1BottomY, recipe.baseColor, elapsedSec, 1.8, 0.6);
@@ -747,7 +616,7 @@ function drawLiquidLayersByRecipe(
       sugarGrad.addColorStop(1, 'rgba(116, 66, 36, 0.34)');
       ctx.fillStyle = sugarGrad;
       ctx.fillRect(cupCx - CUP_TOP_HALF_W, CUP_BOTTOM_Y - 24, CUP_TOP_HALF_W * 2, 26);
-    } else if (recipeId === 'blue_citrus') {
+    } else if (recipeId === 'blue_citrus' || recipeId === 'peach_tea' || recipeId === 'lime_tea') {
       drawFreshCitrusPulp(ctx, cupCx, fill.layer1TopY, fill.layer1BottomY, elapsedSec);
     }
   }
@@ -1268,6 +1137,30 @@ function drawFruitGarnish(
 
     ctx.beginPath();
     ctx.ellipse(6.5, -9.5, 3.8, 2.1, 0.6, 0, Math.PI * 2);
+    ctx.fillStyle = '#7FB86B';
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.stroke();
+  } else if (fruitType === 'peach') {
+    // Blushing coral-gold peach wedge garnish + fresh mint leaf
+    ctx.beginPath();
+    ctx.arc(0, 0, 10.2, Math.PI, 0, false);
+    ctx.closePath();
+    ctx.fillStyle = '#F26D30';
+    ctx.fill();
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, 7.8, Math.PI, 0, false);
+    ctx.closePath();
+    ctx.fillStyle = '#FFC27A';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(6.2, -9.2, 3.8, 2.0, 0.6, 0, Math.PI * 2);
     ctx.fillStyle = '#7FB86B';
     ctx.fill();
     ctx.lineWidth = 1.5;

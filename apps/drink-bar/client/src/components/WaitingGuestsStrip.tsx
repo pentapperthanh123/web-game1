@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Crown } from 'lucide-react';
 import { GAMEPLAY_LIMITS } from '@shared/config';
 import type { DrinkOrder, GuestBubble } from '@shared/types';
@@ -8,6 +8,7 @@ import { useDrinkBarStore } from '../store/drinkBarStore';
 interface DisplayGuestSlot {
   id: string;
   nickname: string;
+  avatarUrl?: string;
   shirtColor: string;
   bottomColor: string;
   isVip: boolean;
@@ -31,7 +32,7 @@ const OUTLINE_COLOR = '#3B2820';
 const SKIN_COLOR = '#FDE0C2';
 const BLUSH_COLOR = '#F48BA3';
 const CHIBI_STROKE_WIDTH = 2.5;
-const MAX_PER_LANE = 2;
+const MAX_PER_LANE = 12;
 
 const GUEST_SHIRT_COLORS: readonly string[] = [
   '#F7C6D7',
@@ -51,19 +52,90 @@ const GUEST_BOTTOM_COLORS: readonly string[] = [
   '#5D7679',
 ];
 
-// Two symmetric vertical standing columns at noticeable foreground scale (~1.22x barista scale)
-// Centered around x=360 (Lane 0: x=232, Lane 1: x=488) leaving wide 140px corridor for center cup badge,
-// keeping Row 0 nameplate cleanly above Row 1 hair, and keeping y: 960 -> 1280 open for TikTok LIVE chat.
-const LANE_FLOOR_POSITIONS: Readonly<Record<GuestLaneIndex, readonly FloorSlotCoord[]>> = {
-  0: [
-    { left: 232, top: 676, scale: 1.02, zIndex: 22 },
-    { left: 232, top: 816, scale: 0.95, zIndex: 24 },
-  ],
-  1: [
-    { left: 488, top: 676, scale: 1.02, zIndex: 22 },
-    { left: 488, top: 816, scale: 0.95, zIndex: 24 },
-  ],
-};
+interface GridRowSpec {
+  readonly top: number;
+  readonly scale: number;
+}
+
+interface AdaptiveGridPreset {
+  readonly maxGuests: number;
+  readonly cols: readonly number[];
+  readonly rows: readonly GridRowSpec[];
+}
+
+// Dynamic grid presets keeping all guests cleanly arranged front-to-back,
+// preserving the center cup/badge aisle (x=360) and staying strictly above y=960 chat safe zone.
+const ADAPTIVE_GRID_PRESETS: readonly AdaptiveGridPreset[] = [
+  {
+    maxGuests: 2,
+    cols: [232, 488],
+    rows: [{ top: 682, scale: 1.04 }],
+  },
+  {
+    maxGuests: 4,
+    cols: [232, 488],
+    rows: [
+      { top: 676, scale: 1.0 },
+      { top: 814, scale: 0.94 },
+    ],
+  },
+  {
+    maxGuests: 8,
+    cols: [98, 246, 474, 622],
+    rows: [
+      { top: 682, scale: 0.88 },
+      { top: 818, scale: 0.84 },
+    ],
+  },
+  {
+    maxGuests: 12,
+    cols: [68, 172, 276, 444, 548, 652],
+    rows: [
+      { top: 690, scale: 0.72 },
+      { top: 822, scale: 0.7 },
+    ],
+  },
+  {
+    maxGuests: 18,
+    cols: [68, 172, 276, 444, 548, 652],
+    rows: [
+      { top: 680, scale: 0.62 },
+      { top: 770, scale: 0.6 },
+      { top: 858, scale: 0.58 },
+    ],
+  },
+  {
+    maxGuests: 24,
+    cols: [52, 134, 216, 298, 422, 504, 586, 668],
+    rows: [
+      { top: 684, scale: 0.52 },
+      { top: 770, scale: 0.5 },
+      { top: 856, scale: 0.48 },
+    ],
+  },
+];
+
+function computeGuestFloorCoord(slotIndex: number, totalGuests: number): FloorSlotCoord {
+  const safeCount = Math.max(1, totalGuests);
+  let preset = ADAPTIVE_GRID_PRESETS[ADAPTIVE_GRID_PRESETS.length - 1];
+  for (const candidate of ADAPTIVE_GRID_PRESETS) {
+    if (safeCount <= candidate.maxGuests) {
+      preset = candidate;
+      break;
+    }
+  }
+  const colCount = preset.cols.length;
+  const rowIdx = Math.min(preset.rows.length - 1, Math.floor(slotIndex / colCount));
+  const colIdx = slotIndex % colCount;
+  const rowSpec = preset.rows[rowIdx];
+
+  return {
+    left: preset.cols[colIdx],
+    top: rowSpec.top,
+    scale: rowSpec.scale,
+    zIndex: 20 + rowIdx * 2,
+  };
+}
 
 const CENTER_PICKUP_COORD: FloorSlotCoord = {
   left: 360,
@@ -80,9 +152,14 @@ function hashOrderStyle(orderId: string): number {
   return hash % 6;
 }
 
-function resolveBubblePositionClass(lane: GuestLaneIndex): string {
-  // Position bubbles cleanly on outer side below counter props (y >= 700) so counter tools/MENU/Chawan stay 100% clear
-  return lane === 0 ? 'top-[22px] -left-[56px]' : 'top-[22px] -right-[56px]';
+function resolveBubblePositionClass(centerX: number): string {
+  if (centerX < 180) {
+    return 'top-[12px] -right-[42px]';
+  }
+  if (centerX > 540) {
+    return 'top-[12px] -left-[42px]';
+  }
+  return centerX < 360 ? 'top-[18px] -left-[48px]' : 'top-[18px] -right-[48px]';
 }
 
 function findBubbleForGuest(
@@ -519,7 +596,7 @@ const StandingChibiSvg: React.FC<{
         strokeWidth="2.2"
       />
 
-      {/* Right arm: raised high forward holding paper takeaway bag towards bar when celebrating/pickup */}
+      {/* Right arm: raised forward holding finished iced drink cup directly when celebrating/pickup */}
       {holdingCupColor ? (
         <g>
           <rect
@@ -533,94 +610,78 @@ const StandingChibiSvg: React.FC<{
             stroke={OUTLINE_COLOR}
             strokeWidth={CHIBI_STROKE_WIDTH}
           />
-          <circle
-            cx="83"
-            cy="45"
-            r="4.5"
-            fill={SKIN_COLOR}
-            stroke={OUTLINE_COLOR}
-            strokeWidth="2.2"
-          />
-          {/* Cute Kraft Paper Takeaway Bag held by customer hand */}
-          <g transform="translate(70, 36)">
-            {/* Twisted paper rope handle looped into customer hand */}
-            <path
-              d="M10 12 C10 4, 16 4, 16 12"
-              fill="none"
-              stroke="#B38E5A"
+          {/* Finished Iced Drink Cup held directly in customer's hand */}
+          <g transform="translate(75, 25)">
+            {/* Angled straw */}
+            <line
+              x1="11"
+              y1="11"
+              x2="9"
+              y2="1.5"
+              stroke={OUTLINE_COLOR}
               strokeWidth="2.8"
-            />
-            <path
-              d="M10 12 C10 4, 16 4, 16 12"
-              fill="none"
-              stroke={OUTLINE_COLOR}
-              strokeWidth="2.0"
-            />
-            {/* Peeking dome lid & straw from inside paper bag */}
-            <path
-              d="M7 13 A 6 6 0 0 1 19 13 Z"
-              fill="#FFFDF9"
-              stroke={OUTLINE_COLOR}
-              strokeWidth="1.8"
-            />
-            <line
-              x1="13"
-              y1="12"
-              x2="11"
-              y2="3"
-              stroke={OUTLINE_COLOR}
-              strokeWidth="2.4"
               strokeLinecap="round"
             />
             <line
-              x1="13"
-              y1="12"
-              x2="11"
-              y2="3"
+              x1="11"
+              y1="11"
+              x2="9"
+              y2="1.5"
               stroke={holdingCupColor}
-              strokeWidth="1.5"
+              strokeWidth="1.4"
               strokeLinecap="round"
             />
-            {/* Paper bag body (trapezoid kraft pouch) */}
+            {/* Tapered clear drink cup body filled with recipe color */}
             <path
-              d="M4 13 L22 13 L20 33 L6 33 Z"
-              fill="#E8C99B"
+              d="M4 13 L18 13 L16 32 L6 32 Z"
+              fill={holdingCupColor}
               stroke={OUTLINE_COLOR}
-              strokeWidth="2.2"
+              strokeWidth="2.1"
               strokeLinejoin="round"
             />
-            {/* Fold crease lines */}
+            {/* Creamy foam cap layer at top */}
+            <path
+              d="M4.6 13.5 L17.4 13.5 L17.1 16.8 L4.9 16.8 Z"
+              fill="#FFF9F2"
+            />
+            {/* Subtle glass shine */}
             <line
               x1="7"
-              y1="15"
+              y1="16"
               x2="8"
-              y2="31"
-              stroke="rgba(179, 137, 88, 0.45)"
-              strokeWidth="1.2"
+              y2="29"
+              stroke="rgba(255, 255, 255, 0.55)"
+              strokeWidth="1.4"
+              strokeLinecap="round"
             />
-            <line
-              x1="19"
-              y1="15"
-              x2="18"
-              y2="31"
-              stroke="rgba(179, 137, 88, 0.45)"
-              strokeWidth="1.2"
-            />
-            {/* Top folded rim band */}
-            <rect
-              x="3"
-              y="12"
-              width="20"
-              height="2.8"
-              rx="1.4"
-              fill="#DFC090"
+            {/* Dome lid & rim */}
+            <path
+              d="M4.5 12.5 A 6.5 6.5 0 0 1 17.5 12.5 Z"
+              fill="#FFFDF9"
+              fillOpacity="0.88"
               stroke={OUTLINE_COLOR}
               strokeWidth="1.8"
             />
-            {/* Cute drink recipe accent stamp on bag front */}
-            <circle cx="13" cy="23" r="3.4" fill="#FFFDF9" stroke={OUTLINE_COLOR} strokeWidth="1.2" />
-            <circle cx="13" cy="23" r="1.8" fill={holdingCupColor} />
+            <rect
+              x="3.5"
+              y="11.5"
+              width="15"
+              height="2.4"
+              rx="1.2"
+              fill="#FFFDF9"
+              stroke={OUTLINE_COLOR}
+              strokeWidth="1.6"
+            />
           </g>
+          {/* Customer hand gripping side of cup */}
+          <circle
+            cx="82"
+            cy="46"
+            r="4.3"
+            fill={SKIN_COLOR}
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.1"
+          />
         </g>
       ) : (
         <g>
@@ -672,6 +733,51 @@ const StandingChibiSvg: React.FC<{
   );
 };
 
+function extractAvatarInitials(nickname: string): string {
+  const clean = nickname.replace(/\d+$/g, '').trim() || nickname.trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase() || 'VIP';
+}
+
+const GuestHeadAvatarBadge: React.FC<{
+  nickname: string;
+  avatarUrl?: string;
+  bgColor: string;
+  isSignature: boolean;
+}> = ({ nickname, avatarUrl, bgColor, isSignature }) => {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showPhoto = Boolean(avatarUrl && failedUrl !== avatarUrl);
+  const ringBorderColor = isSignature ? '#D99526' : OUTLINE_COLOR;
+
+  return (
+    <div
+      className="absolute top-[16px] left-1/2 -translate-x-1/2 w-[50px] h-[50px] rounded-full overflow-hidden z-20 flex items-center justify-center shadow-[0_1.5px_0_rgba(59,40,32,0.28)]"
+      style={{
+        border: `2.4px solid ${ringBorderColor}`,
+        backgroundColor: bgColor,
+      }}
+    >
+      {showPhoto ? (
+        <img
+          src={avatarUrl}
+          alt={nickname}
+          referrerPolicy="no-referrer"
+          draggable={false}
+          onError={() => setFailedUrl(avatarUrl ?? null)}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span className="font-display font-bold text-[16px] tracking-tight text-[#3B2820] leading-none select-none">
+          {extractAvatarInitials(nickname)}
+        </span>
+      )}
+    </div>
+  );
+};
+
 export const WaitingGuestsStrip: React.FC = () => {
   const vipQueue = useDrinkBarStore((s) => s.vipQueue);
   const normalQueue = useDrinkBarStore((s) => s.normalQueue);
@@ -680,15 +786,12 @@ export const WaitingGuestsStrip: React.FC = () => {
   const celebratingByOrderId = useDrinkBarStore((s) => s.celebratingByOrderId);
   const departingGuests = useDrinkBarStore((s) => s.departingGuests);
 
+  const allQueuedCount = vipQueue.length + normalQueue.length;
   const queued = [...vipQueue, ...normalQueue].slice(0, GAMEPLAY_LIMITS.MAX_GUEST_SLOTS);
+  const overflowCount = Math.max(0, allQueuedCount - queued.length);
   if (queued.length === 0 && departingGuests.length === 0) {
     return null;
   }
-
-  const celebratingLaneBlock: Record<GuestLaneIndex, boolean> = {
-    0: departingGuests.some((g) => g.lane === 0 && g.phase === 'CELEBRATING'),
-    1: departingGuests.some((g) => g.lane === 1 && g.phase === 'CELEBRATING'),
-  };
 
   const laneRowCounts: [number, number] = [0, 0];
   const guests: (DisplayGuestSlot & { isHappy: boolean; holdingCupColor?: string })[] = queued.map(
@@ -702,8 +805,6 @@ export const WaitingGuestsStrip: React.FC = () => {
       const baseRow = laneRowCounts[lane];
       laneRowCounts[lane] += 1;
 
-      // Hold waiting guest at Row 1 briefly while departing guest in Row 0 finishes happy pickup
-      const visualRow = celebratingLaneBlock[lane] ? Math.min(1, baseRow + 1) : baseRow;
       const styleIdx = hashOrderStyle(order.orderId);
       const bubble = findBubbleForGuest(guestBubbles, order, idx);
       const celeb = celebratingByOrderId[order.orderId];
@@ -711,6 +812,7 @@ export const WaitingGuestsStrip: React.FC = () => {
       return {
         id: order.orderId,
         nickname: order.user.nickname,
+        avatarUrl: order.user.avatarUrl,
         shirtColor: GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length],
         bottomColor: GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length],
         isVip: order.isVip,
@@ -719,7 +821,7 @@ export const WaitingGuestsStrip: React.FC = () => {
         bubbleKey: celeb ? `celeb_${order.orderId}` : bubble ? `${bubble.id}` : undefined,
         styleIdx,
         lane,
-        row: visualRow,
+        row: baseRow,
         isHeadOfQueue: idx === 0,
         isHappy: Boolean(celeb),
         holdingCupColor: celeb?.recipeColor,
@@ -727,22 +829,23 @@ export const WaitingGuestsStrip: React.FC = () => {
     }
   );
 
+  const totalVisible = guests.length;
+
   return (
     <section
       className="absolute inset-0 pointer-events-none z-20"
-      aria-label="Waiting guests standing in 2 vertical queues"
+      aria-label="Waiting guests standing dynamically on floor"
     >
-      {/* Active queued customers */}
+      {/* Active queued customers: smoothly glide forward as front orders complete */}
       {guests.map((guest, idx) => {
-        const lanePositions = LANE_FLOOR_POSITIONS[guest.lane];
-        const coord = lanePositions[guest.row] ?? lanePositions[lanePositions.length - 1];
+        const coord = computeGuestFloorCoord(idx, totalVisible);
         const bobClass =
           guest.isHeadOfQueue || guest.isHappy ? 'animate-guest-eager' : 'animate-guest-bob';
 
         return (
           <div
             key={guest.id}
-            className="absolute w-[136px] transition-all duration-300 ease-out"
+            className="absolute w-[136px] transition-[left,top] duration-500 ease-in-out"
             style={{
               left: `${coord.left - 68}px`,
               top: `${coord.top}px`,
@@ -751,17 +854,17 @@ export const WaitingGuestsStrip: React.FC = () => {
           >
             <div className="w-full flex flex-col items-center animate-queue-enter-vertical">
               <div
-                className="w-full flex flex-col items-center transition-transform duration-300 ease-out"
+                className="w-full flex flex-col items-center transition-transform duration-500 ease-in-out"
                 style={{
                   transform: `scale(${coord.scale})`,
                   transformOrigin: 'top center',
                 }}
               >
-                {/* Auto-fading compact drink / VIP / celebration speech bubble on outer side (never covers counter props/MENU) */}
+                {/* Auto-fading compact drink / VIP / celebration speech bubble clamped safely inside stage */}
                 {guest.bubbleText && (
                   <div
                     key={guest.bubbleKey}
-                    className={`absolute max-w-[116px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-guest-bubble z-40 ${resolveBubblePositionClass(guest.lane)}`}
+                    className={`absolute max-w-[116px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-guest-bubble z-40 ${resolveBubblePositionClass(coord.left)}`}
                   >
                     <p className="text-[10px] font-black text-[#3B2820] leading-tight text-center truncate">
                       {guest.bubbleText}
@@ -788,6 +891,12 @@ export const WaitingGuestsStrip: React.FC = () => {
                     isHappy={guest.isHappy}
                     holdingCupColor={guest.holdingCupColor}
                   />
+                  <GuestHeadAvatarBadge
+                    nickname={guest.nickname}
+                    avatarUrl={guest.avatarUrl}
+                    bgColor={guest.shirtColor}
+                    isSignature={guest.isSignature}
+                  />
                 </div>
 
                 {/* Compact Guest Name Tag beneath feet */}
@@ -808,15 +917,14 @@ export const WaitingGuestsStrip: React.FC = () => {
 
       {/* Departing guests: happy pickup (~0.72s) then smooth step/fade away (~0.58s) */}
       {departingGuests.map((dep) => {
-        const lanePositions = LANE_FLOOR_POSITIONS[dep.lane];
         const coord = dep.isCenterPickup
           ? CENTER_PICKUP_COORD
-          : (lanePositions[dep.row] ?? lanePositions[0]);
+          : computeGuestFloorCoord(dep.slotIndex, dep.totalSlotsAtLeave);
         const styleIdx = hashOrderStyle(dep.order.orderId);
         const shirtColor = GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length];
         const bottomColor = GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length];
         const isExiting = dep.phase === 'EXITING';
-        const exitShiftX = dep.lane === 0 ? -96 : 96;
+        const exitShiftX = coord.left < 360 ? -96 : 96;
 
         return (
           <div
@@ -836,7 +944,7 @@ export const WaitingGuestsStrip: React.FC = () => {
             <div className="w-full flex flex-col items-center">
               <div
                 className={`absolute max-w-[120px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40 ${
-                  dep.isCenterPickup ? 'top-[12px] -right-[58px]' : resolveBubblePositionClass(dep.lane)
+                  dep.isCenterPickup ? 'top-[12px] -right-[58px]' : resolveBubblePositionClass(coord.left)
                 }`}
               >
                 <p className="text-[10px] font-black text-[#3B2820] leading-tight text-center truncate">
@@ -859,6 +967,12 @@ export const WaitingGuestsStrip: React.FC = () => {
                   isHappy
                   holdingCupColor={dep.recipeColor}
                 />
+                <GuestHeadAvatarBadge
+                  nickname={dep.order.user.nickname}
+                  avatarUrl={dep.order.user.avatarUrl}
+                  bgColor={shirtColor}
+                  isSignature={dep.order.isSignature}
+                />
               </div>
 
               <div
@@ -874,6 +988,13 @@ export const WaitingGuestsStrip: React.FC = () => {
           </div>
         );
       })}
+
+      {/* Overflow badge when burst exceeds 24 visible stage slots (safely above y=960) */}
+      {overflowCount > 0 && (
+        <div className="absolute top-[930px] right-[14px] px-2.5 py-0.5 rounded-full bg-[#FFF1C2] border-[2px] border-[#3B2820] shadow-[0_2px_0_#3B2820] text-[10.5px] font-black text-[#8A5200]">
+          +{overflowCount}
+        </div>
+      )}
     </section>
   );
 };

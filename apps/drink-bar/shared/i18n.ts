@@ -20,6 +20,13 @@ export interface DrinkBarMessages {
   giftRowMediumDesc: string;
   giftRowBigLabel: string;
   giftRowBigDesc: string;
+  ctaOrderTitle: string;
+  ctaOrderChatHint: string;
+  ctaOrderCustomizeHint: string;
+  ctaDonateTitle: string;
+  ctaDanceSmall: string;
+  ctaDanceMedium: string;
+  ctaDanceLarge: string;
   queueCardTitle: string;
   nowLabel: string;
   waitingIdle: string;
@@ -59,6 +66,8 @@ export interface DrinkBarMessages {
   btnRestockAll: string;
   btnPlusMl: string;
   autoRestockLabel: string;
+  unlimitedInventoryLabel: string;
+  unlimitedBadge: string;
   defaultCapacityLabel: string;
   // Admin UI strings
   adminTitle: string;
@@ -139,6 +148,13 @@ const EN_MESSAGES: DrinkBarMessages = {
   giftRowMediumDesc: 'VIP + Glow Layer',
   giftRowBigLabel: 'Big (30+)',
   giftRowBigDesc: 'Top 1 + Signature',
+  ctaOrderTitle: 'HOW TO ORDER',
+  ctaOrderChatHint: 'Comment a drink:',
+  ctaOrderCustomizeHint: 'less ice · less sugar · no ice',
+  ctaDonateTitle: 'DONATE & DANCE',
+  ctaDanceSmall: 'VIP + Heart Sway',
+  ctaDanceMedium: 'VIP + Groove Wave',
+  ctaDanceLarge: 'Top 1 + Party Hype',
   queueCardTitle: 'ORDER QUEUE',
   nowLabel: 'NOW',
   waitingIdle: 'Type a drink keyword!',
@@ -176,6 +192,8 @@ const EN_MESSAGES: DrinkBarMessages = {
   btnRestockAll: 'Refill All Menu',
   btnPlusMl: '+500ml',
   autoRestockLabel: 'Auto Restock (45s)',
+  unlimitedInventoryLabel: '∞ Unlimited',
+  unlimitedBadge: '∞ Unlimited',
   defaultCapacityLabel: 'Default Tank (ml)',
   adminTitle: 'Drink Bar — Host Console',
   adminSubtitle: 'TikTok LIVE Interactive · 720×1280 @ 30 FPS',
@@ -255,6 +273,13 @@ const VI_MESSAGES: DrinkBarMessages = {
   giftRowMediumDesc: 'VIP + Tầng đẹp',
   giftRowBigLabel: 'Big (30+)',
   giftRowBigDesc: 'Top 1 + Signature',
+  ctaOrderTitle: 'CÁCH ORDER',
+  ctaOrderChatHint: 'Gõ tên món vào chat:',
+  ctaOrderCustomizeHint: 'ít đá · ít đường · không đá',
+  ctaDonateTitle: 'DONATE & NHẢY',
+  ctaDanceSmall: 'VIP + Nhảy Bắn Tim',
+  ctaDanceMedium: 'VIP + Nhảy Sóng Tay',
+  ctaDanceLarge: 'Top 1 + Quẩy Nhiệt',
   queueCardTitle: 'HÀNG CHỜ PHA',
   nowLabel: 'NOW',
   waitingIdle: 'Gõ tên món trên Menu!',
@@ -292,6 +317,8 @@ const VI_MESSAGES: DrinkBarMessages = {
   btnRestockAll: 'Nạp đầy toàn bộ Menu',
   btnPlusMl: '+500ml',
   autoRestockLabel: 'Tự nấu mẻ mới (45s)',
+  unlimitedInventoryLabel: '∞ Không giới hạn',
+  unlimitedBadge: '∞ Không giới hạn',
   defaultCapacityLabel: 'Dung tích chuẩn',
   adminTitle: 'Drink Bar — Bảng Điều Khiển',
   adminSubtitle: 'Tương tác TikTok LIVE · 720×1280 @ 30 FPS',

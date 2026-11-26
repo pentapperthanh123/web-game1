@@ -3,6 +3,8 @@ export type Language = 'EN' | 'VI';
 export type RecipeId =
   | 'matcha'
   | 'thai_tea'
+  | 'peach_tea'
+  | 'lime_tea'
   | 'coffee_milk'
   | 'berry_soda'
   | 'blue_citrus';
@@ -173,6 +175,7 @@ export interface DrinkBarConfig {
   showSafeZone: boolean;
   defaultCapacityMl: number;
   autoRestockEnabled: boolean;
+  unlimitedInventory: boolean;
 }
 
 export interface DrinkBarLiveState {
@@ -214,7 +217,8 @@ export type DrinkBarAdminActionName =
   | 'RESTOCK_RECIPE'
   | 'RESTOCK_ALL'
   | 'SET_DEFAULT_CAPACITY'
-  | 'SET_AUTO_RESTOCK';
+  | 'SET_AUTO_RESTOCK'
+  | 'SET_UNLIMITED_INVENTORY';
 
 export interface DrinkBarAdminActionPayload {
   language?: Language;
@@ -232,6 +236,7 @@ export interface DrinkBarAdminActionPayload {
   addMl?: number;
   defaultCapacityMl?: number;
   autoRestockEnabled?: boolean;
+  unlimitedInventory?: boolean;
 }
 
 export type DrinkBarSyncMessage =

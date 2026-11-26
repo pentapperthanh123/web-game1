@@ -103,7 +103,7 @@ export const GAMEPLAY_LIMITS = {
   MAX_SHELF_ITEMS: 4,
   MAX_VISIBLE_QUEUE: 3,
   MAX_QUEUE_TOTAL: 40,
-  MAX_GUEST_SLOTS: 4,
+  MAX_GUEST_SLOTS: 24,
   MIC_MODE_VOLUME_GAIN: 0.3,
   NORMAL_VOLUME_GAIN: 0.85,
   DEFAULT_CAPACITY_ML: 1500,
@@ -134,6 +134,7 @@ export const DEFAULT_DRINK_BAR_CONFIG: DrinkBarConfig = {
   showSafeZone: false,
   defaultCapacityMl: GAMEPLAY_LIMITS.DEFAULT_CAPACITY_ML,
   autoRestockEnabled: true,
+  unlimitedInventory: false,
 };
 
 export interface AutoBotPaceConfig {

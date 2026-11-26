@@ -59,6 +59,38 @@ export const RECIPE_LIST: readonly DrinkRecipe[] = [
     keywords: ['tra', 'trà', 'trasua', 'trà sữa', 'tra sua', 'milk tea', 'tea'],
   },
   {
+    id: 'peach_tea',
+    icon: '🍑',
+    nameEn: 'Peach Tea',
+    nameVi: 'Trà Đào',
+    shortNameEn: 'Peach Tea',
+    shortNameVi: 'Trà Đào',
+    menuCommand: 'tradao',
+    botKeyword: 'tradao',
+    baseColor: '#FF9D5C',
+    secondaryColor: '#FFE5C7',
+    accentColor: '#F26D30',
+    toolType: 'shaker',
+    fruitType: 'peach',
+    keywords: ['tradao', 'tra dao', 'trà đào', 'tra dao cam', 'trà đào cam', 'dao', 'đào', 'peach', 'peach tea'],
+  },
+  {
+    id: 'lime_tea',
+    icon: '🍋',
+    nameEn: 'Lime Tea',
+    nameVi: 'Trà Chanh',
+    shortNameEn: 'Lime Tea',
+    shortNameVi: 'Trà Chanh',
+    menuCommand: 'trachanh',
+    botKeyword: 'trachanh',
+    baseColor: '#A4D466',
+    secondaryColor: '#EFF9DC',
+    accentColor: '#6CA832',
+    toolType: 'shaker',
+    fruitType: 'lime',
+    keywords: ['trachanh', 'tra chanh', 'trà chanh', 'chanh', 'lime', 'lemon tea', 'tra tao', 'trà táo'],
+  },
+  {
     id: 'coffee_milk',
     icon: '☕',
     nameEn: 'Coffee',
@@ -111,9 +143,11 @@ export const RECIPE_LIST: readonly DrinkRecipe[] = [
 export const RECIPE_MAP: Record<RecipeId, DrinkRecipe> = {
   matcha: RECIPE_LIST[0],
   thai_tea: RECIPE_LIST[1],
-  coffee_milk: RECIPE_LIST[2],
-  berry_soda: RECIPE_LIST[3],
-  blue_citrus: RECIPE_LIST[4],
+  peach_tea: RECIPE_LIST[2],
+  lime_tea: RECIPE_LIST[3],
+  coffee_milk: RECIPE_LIST[4],
+  berry_soda: RECIPE_LIST[5],
+  blue_citrus: RECIPE_LIST[6],
 };
 
 export type BrewPhaseAction =
@@ -227,6 +261,110 @@ export const RECIPE_BREW_PHASES: Record<RecipeId, readonly BrewStepInfo[]> = {
       labelVi: 'Rót trà sữa & trân châu vào ly',
       labelEn: 'Pouring milk tea & boba',
       shortVi: 'Rót vào ly',
+      shortEn: 'Pouring',
+    },
+    {
+      step: 5,
+      action: 'seal',
+      minProgress: 84,
+      maxProgress: 101,
+      labelVi: 'Đóng nắp & trả ly',
+      labelEn: 'Sealing & serving',
+      shortVi: 'Đóng nắp',
+      shortEn: 'Sealing',
+    },
+  ],
+  peach_tea: [
+    {
+      step: 1,
+      action: 'dispense',
+      minProgress: 0,
+      maxProgress: 20,
+      labelVi: 'Lấy cốc, hứng Trà Nền, bơm siro đào & đường',
+      labelEn: 'Cup, tea urn, peach syrup & sugar',
+      shortVi: 'Hứng trà nền',
+      shortEn: 'Tea & Syrup',
+    },
+    {
+      step: 2,
+      action: 'tool_prep',
+      minProgress: 20,
+      maxProgress: 42,
+      labelVi: 'Lắc trà đào bằng máy lắc đôi',
+      labelEn: 'Shaking peach tea in shaker',
+      shortVi: 'Máy lắc',
+      shortEn: 'Shaking',
+    },
+    {
+      step: 3,
+      action: 'add_ice',
+      minProgress: 42,
+      maxProgress: 56,
+      labelVi: 'Bỏ đá viên vào ly',
+      labelEn: 'Dropping ice cubes',
+      shortVi: 'Bỏ đá',
+      shortEn: 'Add Ice',
+    },
+    {
+      step: 4,
+      action: 'pour_mix',
+      minProgress: 56,
+      maxProgress: 84,
+      labelVi: 'Rót trà đào & gài lát đào tươi',
+      labelEn: 'Pouring peach tea & peach slice',
+      shortVi: 'Rót & đào',
+      shortEn: 'Pouring',
+    },
+    {
+      step: 5,
+      action: 'seal',
+      minProgress: 84,
+      maxProgress: 101,
+      labelVi: 'Đóng nắp & trả ly',
+      labelEn: 'Sealing & serving',
+      shortVi: 'Đóng nắp',
+      shortEn: 'Sealing',
+    },
+  ],
+  lime_tea: [
+    {
+      step: 1,
+      action: 'dispense',
+      minProgress: 0,
+      maxProgress: 20,
+      labelVi: 'Lấy cốc, hứng Trà Nền, bơm siro chanh & đường',
+      labelEn: 'Cup, tea urn, lime syrup & sugar',
+      shortVi: 'Hứng trà nền',
+      shortEn: 'Tea & Syrup',
+    },
+    {
+      step: 2,
+      action: 'tool_prep',
+      minProgress: 20,
+      maxProgress: 42,
+      labelVi: 'Đánh tơi bọt trà chanh giã tay',
+      labelEn: 'Frothing fresh lime tea',
+      shortVi: 'Đánh tơi',
+      shortEn: 'Frothing',
+    },
+    {
+      step: 3,
+      action: 'add_ice',
+      minProgress: 42,
+      maxProgress: 56,
+      labelVi: 'Bỏ đá viên vào ly',
+      labelEn: 'Dropping ice cubes',
+      shortVi: 'Bỏ đá',
+      shortEn: 'Add Ice',
+    },
+    {
+      step: 4,
+      action: 'pour_mix',
+      minProgress: 56,
+      maxProgress: 84,
+      labelVi: 'Rót trà chanh & gài lát chanh tươi',
+      labelEn: 'Pouring lime tea & lime wheel',
+      shortVi: 'Rót & chanh',
       shortEn: 'Pouring',
     },
     {
@@ -511,10 +649,16 @@ export function parseDrinkChat(text: string): ParsedDrinkChat {
   const normalized = normalizeChatText(text);
 
   let matchedRecipe: RecipeId | undefined;
+  let bestKeywordLength = -1;
   for (const recipe of RECIPE_LIST) {
-    if (matchAnyKeyword(normalized, rawLower, recipe.keywords)) {
-      matchedRecipe = recipe.id;
-      break;
+    for (const kw of recipe.keywords) {
+      if (matchKeywordToken(normalized, rawLower, kw)) {
+        const kwLen = normalizeChatText(kw).length;
+        if (kwLen > bestKeywordLength) {
+          bestKeywordLength = kwLen;
+          matchedRecipe = recipe.id;
+        }
+      }
     }
   }
 

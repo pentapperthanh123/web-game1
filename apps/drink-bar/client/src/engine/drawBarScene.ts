@@ -28,6 +28,9 @@ export const BAR_STATION_COORDS = {
   TEA_URN_1_SPIGOT_X: 209,
   TEA_URN_2_SPIGOT_X: 291,
   SYRUP_1_X: 357,
+  SYRUP_2_X: 393,
+  SYRUP_3_X: 429,
+  FRUIT_JAR_X: 463,
   MATCHA_TIN_X: 480,
   MATCHA_TIN_Y: 372,
 } as const;
@@ -161,20 +164,42 @@ export function drawBarBackdrop(
     equip.activeAction === 'dispense' &&
     !equip.isPickingCup &&
     !equip.isPressingSugarButton;
+  const isTeaBaseRecipe =
+    equip.activeRecipeId === 'peach_tea' || equip.activeRecipeId === 'lime_tea';
+  const isDispensingTeaBase =
+    isTeaBaseRecipe &&
+    equip.activeAction === 'dispense' &&
+    !equip.isPickingCup &&
+    !equip.isPressingSugarButton &&
+    equip.stepProgress < 0.575;
   const isPumpingBerrySyrup =
     equip.activeRecipeId === 'berry_soda' &&
     equip.activeAction === 'dispense' &&
     !equip.isPickingCup &&
     !equip.isPressingSugarButton;
+  const isPumpingPeachSyrup =
+    equip.activeRecipeId === 'peach_tea' &&
+    equip.activeAction === 'dispense' &&
+    !equip.isPickingCup &&
+    !equip.isPressingSugarButton &&
+    equip.stepProgress >= 0.575;
+  const isPumpingLimeSyrup =
+    equip.activeRecipeId === 'lime_tea' &&
+    equip.activeAction === 'dispense' &&
+    !equip.isPickingCup &&
+    !equip.isPressingSugarButton &&
+    equip.stepProgress >= 0.575;
 
   drawStainlessTeaUrn(ctx, 174, 320, 'TRÀ SỮA', isDispensingMilkTea, '#D89E68');
-  drawStainlessTeaUrn(ctx, 256, 320, 'TRÀ NỀN', false, '#C98A4B');
+  drawStainlessTeaUrn(ctx, 256, 320, 'TRÀ NỀN', isDispensingTeaBase, '#C98A4B');
 
-  // 3 Pastel Syrup Pump Bottles beside the tea urns
-  const pumpPress = isPumpingBerrySyrup ? Math.abs(Math.sin(elapsedSec * 8)) * 4 : 0;
-  drawSyrupPumpBottle(ctx, 344, 348, '#F9CCD9', '#E04F6D', pumpPress);
-  drawSyrupPumpBottle(ctx, 380, 352, '#FDE4BA', '#F7B955', 0);
-  drawSyrupPumpBottle(ctx, 416, 350, '#D9F0C7', '#7FB86B', 0);
+  // 3 Pastel Syrup Pump Bottles beside the tea urns (Strawberry, Peach/Citrus, Green Lime)
+  const berryPump = isPumpingBerrySyrup ? Math.abs(Math.sin(elapsedSec * 8)) * 4 : 0;
+  const peachPump = isPumpingPeachSyrup ? Math.abs(Math.sin(elapsedSec * 8)) * 4 : 0;
+  const limePump = isPumpingLimeSyrup ? Math.abs(Math.sin(elapsedSec * 8)) * 4 : 0;
+  drawSyrupPumpBottle(ctx, 344, 348, '#F9CCD9', '#E04F6D', berryPump);
+  drawSyrupPumpBottle(ctx, 380, 352, '#FDE4BA', '#F7B955', peachPump);
+  drawSyrupPumpBottle(ctx, 416, 350, '#D9F0C7', '#7FB86B', limePump);
 
   // Prominent Shelf Matcha Tin ("MATCHA" ceramic canister with bamboo lid — hides while barista lifts it!)
   if (!equip.isTakingMatchaFromShelf) {
@@ -195,10 +220,10 @@ export function drawBarBackdrop(
     ctx.fill();
   }
 
-  // 5. Two balanced warm pastel pendant lamps hanging cleanly below compact HUD (y: 164 -> 228)
+  // 5. Two balanced warm pastel pendant lamps anchored cleanly to bottom edge of docked HUD (y: 86 -> 150)
   const glowPulse = 0.92 + Math.sin(elapsedSec * 1.8) * 0.08;
-  drawPendantLamp(ctx, 134, 164, 42, glowPulse);
-  drawPendantLamp(ctx, 586, 164, 42, glowPulse);
+  drawPendantLamp(ctx, 104, 86, 46, glowPulse);
+  drawPendantLamp(ctx, 616, 86, 46, glowPulse);
 
   // Subtle warm pastel wainscot accent near counter top
   const wainscotGrad = ctx.createLinearGradient(0, 558, 0, COUNTER_TOP_Y);
@@ -730,12 +755,15 @@ export function drawBarCounter(
 
   // 3. Full-width Balanced Countertop Equipment (zero overlap with center cup/badge x=318..402)
   const isShakingMilkTea =
-    equip.activeRecipeId === 'thai_tea' && equip.activeAction === 'tool_prep';
+    (equip.activeRecipeId === 'thai_tea' || equip.activeRecipeId === 'peach_tea') &&
+    equip.activeAction === 'tool_prep';
   const isExtractingCoffee =
     equip.activeRecipeId === 'coffee_milk' &&
     equip.activeAction === 'dispense' &&
     !equip.isPickingCup &&
     !equip.isPressingSugarButton;
+
+  const shakerLiquidColor = equip.activeRecipeId === 'peach_tea' ? '#FF9D5C' : '#D89E68';
 
   // Left Wing: Evenly spaced Shaker (16..104) + Sugar (112..164) + Boba (174..220) + Ice (230..274) + Menu (282..316)
   drawDoubleShakerMachine(
@@ -745,6 +773,7 @@ export function drawBarCounter(
     isShakingMilkTea,
     equip.isShakerDetached,
     equip.shakerFillRatio,
+    shakerLiquidColor,
     equip.isFastBoost,
     elapsedSec
   );
@@ -753,8 +782,8 @@ export function drawBarCounter(
   drawCounterIceBin(ctx, 230, COUNTER_TOP_Y + 16, equip.isScoopingIce);
   drawMiniTableMenuStand(ctx, 282, COUNTER_TOP_Y + 16);
 
-  // Right Wing: Cup & Dome Lid Stacks (486..544) + Espresso Machine (554..636) + Frother Stand (646..704)
-  // Leaves wide dedicated open prep zone (404..482) between center cup and cup stacks for Chawan & Pitchers!
+  // Right Wing: Prep Pad (404..440) + Fresh Fruit Jar (446..480) + Cup/Lid Stacks (486..544) + Espresso (554..636) + Frother (646..704)
+  drawCounterFruitJar(ctx, 446, COUNTER_TOP_Y + 16);
   drawCupAndLidStacks(ctx, 486, COUNTER_TOP_Y + 16, equip.isPickingCup, equip.isPickingLid);
   drawCounterEspressoMachine(
     ctx,
@@ -995,6 +1024,7 @@ function drawDoubleShakerMachine(
   isShaking: boolean,
   isShakerDetached: boolean,
   shakerFillRatio: number,
+  shakerLiquidColor: string,
   isFastBoost: boolean,
   elapsedSec: number
 ): void {
@@ -1072,7 +1102,7 @@ function drawDoubleShakerMachine(
 
   // Realistic 3-piece tapered 700ml boba shaker clamped in the shaker arm
   drawRealisticBobaShaker(ctx, {
-    liquidColor: '#D89E68',
+    liquidColor: shakerLiquidColor,
     fillRatio: shakerFillRatio,
     isCapClosed: true,
     isPouringTilted: false,
@@ -1100,10 +1130,70 @@ function drawDoubleShakerMachine(
 const MINI_MENU_SWATCHES: readonly string[] = [
   '#A7D397',
   '#D89E68',
+  '#FF9D5C',
+  '#A4D466',
   '#5A321C',
   '#7FC8D9',
   '#FF9526',
 ];
+
+function drawCounterFruitJar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number
+): void {
+  const w = 34;
+  const h = 30;
+  const topY = baseY - h;
+
+  ctx.save();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Glass fruit garnish jar body
+  roundedRectPath(ctx, x, topY, w, h, 6);
+  ctx.fillStyle = '#FFF5EC';
+  ctx.fill();
+  ctx.stroke();
+
+  // Bright peach & lime slices visible inside the jar
+  ctx.beginPath();
+  ctx.arc(x + 11, topY + 20, 5.2, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FF9D5C';
+  ctx.fill();
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x + 23, topY + 21, 5.0, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = '#8BD158';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x + 17, topY + 15, 4.6, 0, Math.PI, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FFB347';
+  ctx.fill();
+  ctx.stroke();
+
+  // Lid + "TRÁI CÂY" label
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  roundedRectPath(ctx, x - 1.5, topY - 1, w + 3, 6.5, 3);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.font = '900 5.4px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = '#8A3E1A';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('TRÁI CÂY', x + w * 0.5, topY + 9);
+
+  ctx.restore();
+}
 
 function drawMiniTableMenuStand(
   ctx: CanvasRenderingContext2D,
@@ -1120,33 +1210,33 @@ function drawMiniTableMenuStand(
   ctx.fill();
   ctx.stroke();
 
-  // Cream acrylic tabletop menu board showing all 5 drinks
-  roundedRectPath(ctx, x + 2, baseY - 44, 30, 40, 4.5);
+  // Cream acrylic tabletop menu board showing all 7 drinks
+  roundedRectPath(ctx, x + 2, baseY - 46, 30, 42, 4.5);
   ctx.fillStyle = '#FFFDF9';
   ctx.fill();
   ctx.stroke();
 
   // Pink header banner with "MENU"
-  roundedRectPath(ctx, x + 4.5, baseY - 41, 25, 7.5, 2.2);
+  roundedRectPath(ctx, x + 4.5, baseY - 43, 25, 7, 2.2);
   ctx.fillStyle = '#F4A6BE';
   ctx.fill();
 
-  ctx.font = '900 5.2px "Fredoka", "Nunito", sans-serif';
+  ctx.font = '900 5.0px "Fredoka", "Nunito", sans-serif';
   ctx.fillStyle = '#3B2820';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('MENU', x + 17, baseY - 37);
+  ctx.fillText('MENU', x + 17, baseY - 39.2);
 
-  // 5 Drink color icon dots + mini menu lines
+  // 7 Drink color icon dots + mini menu lines
   for (let i = 0; i < MINI_MENU_SWATCHES.length; i += 1) {
-    const rowY = baseY - 29.5 + i * 5.3;
+    const rowY = baseY - 32.5 + i * 3.9;
     ctx.fillStyle = MINI_MENU_SWATCHES[i];
     ctx.beginPath();
-    ctx.arc(x + 8.5, rowY, 2.0, 0, Math.PI * 2);
+    ctx.arc(x + 8.5, rowY, 1.65, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = 'rgba(59, 40, 32, 0.36)';
-    ctx.fillRect(x + 12.5, rowY - 1, i % 2 === 0 ? 14 : 11, 1.8);
+    ctx.fillRect(x + 12.2, rowY - 0.9, i % 2 === 0 ? 14 : 11, 1.5);
   }
 
   ctx.restore();
@@ -1400,10 +1490,10 @@ function drawCustomerFloorMat(ctx: CanvasRenderingContext2D): void {
   ctx.fillStyle = floorShadow;
   ctx.fillRect(0, COUNTER_END_Y + 1, WIDTH, 32);
 
-  // Unified dual-lane pastel floor runner framing both waiting columns cleanly above y=960 chat zone
-  const matX = 152;
+  // Full-width cozy pastel floor runner framing dynamic guest queue cleanly above y=960 chat zone
+  const matX = 24;
   const matY = COUNTER_END_Y + 5;
-  const matW = 416;
+  const matW = 672;
   const matH = 116;
 
   // Ground drop shadow

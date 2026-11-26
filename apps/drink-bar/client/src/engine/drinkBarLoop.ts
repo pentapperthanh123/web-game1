@@ -42,6 +42,8 @@ import { drinkParticles, type CupStationId } from './particlePool';
 const STEP2_PREP_SFX_MAP: Record<RecipeId, SfxKind> = {
   matcha: 'chasen',
   thai_tea: 'shaker',
+  peach_tea: 'shaker',
+  lime_tea: 'whip_froth',
   coffee_milk: 'whip_froth',
   berry_soda: 'whip_froth',
   blue_citrus: 'juicer',
@@ -377,7 +379,8 @@ export class DrinkBarCanvasLoop {
       return nextKey;
     }
 
-    const sfxIntervalSec = drink.recipeId === 'thai_tea' ? 0.46 : 0.62;
+    const sfxIntervalSec =
+      drink.recipeId === 'thai_tea' || drink.recipeId === 'peach_tea' ? 0.46 : 0.62;
     if (
       !isCupPickupSubstep(drink) &&
       !isLidPickupSubstep(drink) &&

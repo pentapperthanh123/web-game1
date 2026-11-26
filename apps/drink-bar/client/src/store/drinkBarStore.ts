@@ -84,6 +84,8 @@ export interface DepartingGuest {
   order: DrinkOrder;
   lane: GuestLaneIndex;
   row: number;
+  slotIndex: number;
+  totalSlotsAtLeave: number;
   isCenterPickup?: boolean;
   celebrateUntil: number;
   removeAt: number;
@@ -92,7 +94,7 @@ export interface DepartingGuest {
   recipeColor: string;
 }
 
-const MAX_GUESTS_PER_LANE = 2;
+const MAX_GUESTS_PER_LANE = 12;
 const GUEST_CELEBRATE_MS = 720;
 const GUEST_EXIT_MS = 580;
 
@@ -217,6 +219,7 @@ export interface DrinkBarStore extends DrinkBarLiveState {
   restockAll: () => void;
   setDefaultCapacity: (capacityMl: number) => void;
   setAutoRestock: (enabled: boolean) => void;
+  setUnlimitedInventory: (unlimited: boolean) => void;
   getSnapshot: () => DrinkBarLiveState;
 }
 
@@ -302,6 +305,8 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
         order: completed,
         lane: targetLane,
         row: 0,
+        slotIndex: 0,
+        totalSlotsAtLeave: Math.max(1, prevVisible.length),
         isCenterPickup: true,
         celebrateUntil,
         removeAt: celebrateUntil + GUEST_EXIT_MS,
@@ -312,16 +317,17 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       existingDepartingIds.add(completed.orderId);
     }
 
-    for (const prevOrder of prevVisible) {
+    for (let prevIdx = 0; prevIdx < prevVisible.length; prevIdx += 1) {
+      const prevOrder = prevVisible[prevIdx];
       if (nextVisibleIds.has(prevOrder.orderId) || existingDepartingIds.has(prevOrder.orderId)) {
         continue;
       }
       const lane = prevLanes[prevOrder.orderId] ?? 0;
       const row = computeRowInLane(prevVisible, prevLanes, prevOrder.orderId, lane);
-      const remainingInLane = nextVisible.filter((o) => nextLanes[o.orderId] === lane).length;
+      const remainingCount = nextVisible.length;
       const prevCeleb = prevStore.celebratingByOrderId[prevOrder.orderId];
-      // If lane already has 2 waiting customers behind, skip in-place pause so they never collide
-      const celebrateDuration = remainingInLane >= MAX_GUESTS_PER_LANE ? 0 : GUEST_CELEBRATE_MS;
+      // Skip stationary pause when several customers behind are shifting forward
+      const celebrateDuration = remainingCount >= 4 ? 0 : GUEST_CELEBRATE_MS;
       const celebrateUntil =
         prevCeleb && prevCeleb.expiresAt > now
           ? Math.min(prevCeleb.expiresAt, now + celebrateDuration)
@@ -333,6 +339,8 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
         order: prevOrder,
         lane,
         row,
+        slotIndex: prevIdx,
+        totalSlotsAtLeave: prevVisible.length,
         celebrateUntil,
         removeAt: celebrateUntil + GUEST_EXIT_MS,
         phase: initialPhase,
@@ -539,6 +547,12 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     setAutoRestock: (autoRestockEnabled) => {
       set((prev) => ({
         config: { ...prev.config, autoRestockEnabled },
+      }));
+    },
+
+    setUnlimitedInventory: (unlimitedInventory) => {
+      set((prev) => ({
+        config: { ...prev.config, unlimitedInventory },
       }));
     },
 

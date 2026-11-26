@@ -13,34 +13,29 @@ export const TopHeaderAndShelf: React.FC = () => {
   const totalQueue = vipCount + normalCount;
 
   return (
-    <header className="absolute top-[12px] left-[20px] right-[20px] h-[46px] pointer-events-none z-20 flex items-center justify-between gap-2">
-      {/* Left Title & Done Count */}
-      <div className="flex items-center gap-2">
-        <div className="bar-pill bg-[#FFF9FA] px-3 py-1 flex items-center gap-2">
-          <span className="w-6 h-6 rounded-full bg-[#F4A6BE] border-[2.2px] border-[#3B2820] flex items-center justify-center shrink-0">
-            <Coffee className="w-3.5 h-3.5 text-[#3B2820]" strokeWidth={2.6} />
-          </span>
-          <span className="font-display font-bold text-[17px] tracking-wide leading-none text-[#3B2820]">
-            {msg.brandTitle}
-          </span>
-        </div>
-
-        <div className="bar-pill bg-[#FDE4EC] px-2.5 py-1 flex items-center gap-1.5 border-[2.2px] border-[#3B2820]">
-          <Sparkles className="w-3.5 h-3.5 text-[#9E3A5A]" strokeWidth={2.8} />
-          <span className="font-display font-bold text-[13px] leading-none text-[#9E3A5A]">
-            {msg.doneBadge}: {todayDoneCount}
-          </span>
-        </div>
+    <header className="absolute top-0 left-0 right-0 h-[42px] px-3 bg-[#FFF9FA]/95 border-b-[1.5px] border-[#3B2820]/20 pointer-events-none z-20 flex items-center justify-between gap-2">
+      {/* Left Brand Title & Done Counter */}
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="w-6 h-6 rounded-full bg-[#F4A6BE] border-[2px] border-[#3B2820] flex items-center justify-center shrink-0">
+          <Coffee className="w-3.5 h-3.5 text-[#3B2820]" strokeWidth={2.6} />
+        </span>
+        <span className="font-display font-bold text-[15.5px] tracking-wide leading-none text-[#3B2820] truncate">
+          {msg.brandTitle}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#FDE4EC] border-[1.5px] border-[#3B2820]/30 px-2 py-[3px] text-[11px] font-black leading-none text-[#9E3A5A] shrink-0">
+          <Sparkles className="w-3 h-3 text-[#9E3A5A]" strokeWidth={2.6} />
+          {msg.doneBadge}: {todayDoneCount}
+        </span>
       </div>
 
-      {/* Right Queue & VIP Status Pill */}
-      <div className="bar-pill bg-[#FFF9FA] px-3 py-1 flex items-center gap-2 min-w-[192px] justify-end">
-        <Users className="w-3.5 h-3.5 text-[#3B2820] shrink-0" strokeWidth={2.6} />
-        <span className="font-display font-bold text-[14px] leading-none text-[#3B2820]">
+      {/* Right Combined Queue & VIP Status */}
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-[#FFFDF9] border-[1.5px] border-[#3B2820]/30 px-2.5 py-[3px] shrink-0">
+        <Users className="w-3.5 h-3.5 text-[#3B2820] shrink-0" strokeWidth={2.4} />
+        <span className="font-display font-bold text-[13px] leading-none text-[#3B2820]">
           {msg.queueBadge}: {totalQueue}
         </span>
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFF1C2] border-2 border-[#3B2820] text-[11.5px] font-black text-[#8A5200]">
-          <Crown className="w-3 h-3 text-[#C47C0E]" strokeWidth={2.8} />
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full bg-[#FFF1C2] border-[1.5px] border-[#3B2820]/50 text-[10.5px] font-black leading-none text-[#8A5200]">
+          <Crown className="w-2.5 h-2.5 text-[#C47C0E]" strokeWidth={2.8} />
           {msg.vipBadge} {vipCount}
         </span>
       </div>

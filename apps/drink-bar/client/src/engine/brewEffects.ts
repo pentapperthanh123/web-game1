@@ -141,6 +141,13 @@ export function computeLiquidFillSnapshot(
     effectiveStart = SHAKER_LIFT_END_PROGRESS;
     effectiveEnd = THAI_TEA_POUR_END_PROGRESS;
     maxFillFrac = 0.84;
+  } else if (recipeId === 'peach_tea') {
+    effectiveStart = SHAKER_LIFT_END_PROGRESS;
+    effectiveEnd = 78;
+    maxFillFrac = 0.88;
+  } else if (recipeId === 'lime_tea') {
+    effectiveEnd = 78;
+    maxFillFrac = 0.88;
   } else if (recipeId === 'coffee_milk') {
     effectiveEnd = CAFE_POUR_END_PROGRESS;
     maxFillFrac = 0.84;
@@ -170,6 +177,8 @@ export function computeLiquidFillSnapshot(
 }
 
 export const CUP_PICKUP_END_PROGRESS = 7;
+export const TEA_URN_DISPENSE_END_PROGRESS = 11.5;
+export const SYRUP_PUMP_END_PROGRESS = 15;
 export const MATCHA_MILK_PREP_END_PROGRESS = 10.5;
 export const MATCHA_GRAB_END_PROGRESS = 13;
 export const MATCHA_SCOOP_END_PROGRESS = 17.5;

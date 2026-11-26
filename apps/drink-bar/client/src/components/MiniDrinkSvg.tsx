@@ -11,7 +11,11 @@ export const MiniDrinkSvg: React.FC<MiniDrinkSvgProps> = ({ drink }) => {
   const recipe = RECIPE_MAP[drink.recipeId];
   const hasBoba = drink.toppings.includes('boba_pearls');
   const hasCream = drink.toppings.includes('cream_swirl');
-  const hasFruit = drink.toppings.includes('fruit_slice');
+  const hasFruit =
+    drink.toppings.includes('fruit_slice') ||
+    drink.recipeId === 'blue_citrus' ||
+    drink.recipeId === 'peach_tea' ||
+    drink.recipeId === 'lime_tea';
   const hasSparkle = drink.toppings.includes('sparkle_aura') || drink.isSignature;
   const clipId = `mini-cup-clip-${drink.orderId}`;
 

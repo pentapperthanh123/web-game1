@@ -45,6 +45,7 @@ interface LiveControlsPanelProps {
   onChangeBrewDuration: (sec: number) => void;
   onChangeDefaultCapacity: (ml: number) => void;
   onToggleAutoRestock: () => void;
+  onToggleUnlimitedInventory: () => void;
   onToggleSfx: () => void;
   onToggleMusic: () => void;
   onChangeMasterVolume: (volume: number) => void;
@@ -60,6 +61,16 @@ const STATUS_STYLE_MAP: Record<TikTokConnectionState, string> = {
   DISCONNECTED: 'bg-[#EFE0CC] text-[#7A5F52]',
 };
 
+function resolveAutoRestockBtnClass(isUnlimited: boolean, isAutoRestock: boolean): string {
+  if (isUnlimited) {
+    return 'bg-[#EFE0CC] text-[#9A7F70] opacity-55 cursor-not-allowed';
+  }
+  if (isAutoRestock) {
+    return 'bg-[#CBEAD2] text-[#245B3A] cursor-pointer';
+  }
+  return 'bg-[#FFFDF9] text-[#7A5F52] cursor-pointer';
+}
+
 export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
   config,
   inventory,
@@ -68,6 +79,7 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
   onChangeBrewDuration,
   onChangeDefaultCapacity,
   onToggleAutoRestock,
+  onToggleUnlimitedInventory,
   onToggleSfx,
   onToggleMusic,
   onChangeMasterVolume,
@@ -275,22 +287,38 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
             <span>{msg.inventoryTitle}</span>
           </span>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onToggleUnlimitedInventory}
+              className={`px-2 py-0.5 rounded-full border-2 border-[#3B2820] text-[10px] font-black cursor-pointer ${
+                config.unlimitedInventory
+                  ? 'bg-[#D9F0F6] text-[#235F70]'
+                  : 'bg-[#FFFDF9] text-[#7A5F52]'
+              }`}
+            >
+              {msg.unlimitedInventoryLabel}
+            </button>
             <button
               type="button"
               onClick={onToggleAutoRestock}
-              className={`px-2 py-0.5 rounded-full border-2 border-[#3B2820] text-[10px] font-black cursor-pointer ${
+              disabled={config.unlimitedInventory}
+              className={`px-2 py-0.5 rounded-full border-2 border-[#3B2820] text-[10px] font-black ${resolveAutoRestockBtnClass(
+                config.unlimitedInventory,
                 config.autoRestockEnabled
-                  ? 'bg-[#CBEAD2] text-[#245B3A]'
-                  : 'bg-[#FFFDF9] text-[#7A5F52]'
-              }`}
+              )}`}
             >
               {msg.autoRestockLabel}
             </button>
             <button
               type="button"
               onClick={() => drinkBarAdminBridge.emitAdminAction('RESTOCK_ALL')}
-              className="bar-btn bg-[#FFF1C2] hover:bg-[#FCE397] px-2 py-0.5 text-[10px] font-black text-[#3B2820] inline-flex items-center gap-1 cursor-pointer"
+              disabled={config.unlimitedInventory}
+              className={`bar-btn px-2 py-0.5 text-[10px] font-black inline-flex items-center gap-1 ${
+                config.unlimitedInventory
+                  ? 'bg-[#EFE0CC] text-[#9A7F70] opacity-55 cursor-not-allowed'
+                  : 'bg-[#FFF1C2] hover:bg-[#FCE397] text-[#3B2820] cursor-pointer'
+              }`}
             >
               <RefreshCw className="w-3 h-3" />
               <span>{msg.btnRestockAll}</span>
@@ -299,11 +327,11 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
         </div>
 
         {/* Default Tank Capacity Slider (1000ml - 3000ml) */}
-        <div className="space-y-1">
+        <div className={`space-y-1 ${config.unlimitedInventory ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex items-center justify-between text-[11px] font-bold text-[#7A5F52]">
             <span>{msg.defaultCapacityLabel}</span>
             <span className="px-2 py-0.5 rounded-full bg-[#FFFDF9] border border-[#3B2820] font-display text-[11px] text-[#3B2820]">
-              {config.defaultCapacityMl}ml
+              {config.unlimitedInventory ? '∞' : `${config.defaultCapacityMl}ml`}
             </span>
           </div>
           <input
@@ -312,20 +340,33 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
             max={GAMEPLAY_LIMITS.MAX_CAPACITY_ML}
             step={GAMEPLAY_LIMITS.CAPACITY_STEP_ML}
             value={config.defaultCapacityMl}
+            disabled={config.unlimitedInventory}
             onChange={(e) => onChangeDefaultCapacity(Number(e.target.value))}
             className="w-full accent-[#52A6BC] cursor-pointer"
           />
         </div>
 
-        {/* 5 Recipe Stock Rows */}
+        {/* Recipe Stock Rows */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {RECIPE_LIST.map((recipe) => {
             const slot = inventory?.[recipe.id];
             const currentMl = slot?.currentMl ?? config.defaultCapacityMl;
             const maxMl = slot?.maxMl ?? config.defaultCapacityMl;
-            const pct = Math.max(0, Math.min(100, Math.round((currentMl / Math.max(1, maxMl)) * 100)));
-            const isEmpty = currentMl < GAMEPLAY_LIMITS.COST_PER_DRINK_ML;
+            const pct = config.unlimitedInventory
+              ? 100
+              : Math.max(0, Math.min(100, Math.round((currentMl / Math.max(1, maxMl)) * 100)));
+            const isEmpty = !config.unlimitedInventory && currentMl < GAMEPLAY_LIMITS.COST_PER_DRINK_ML;
             const name = config.language === 'EN' ? recipe.shortNameEn : recipe.nameVi;
+
+            let stockText = `${currentMl}ml`;
+            let stockColorClass = 'text-[#5C4033]';
+            if (config.unlimitedInventory) {
+              stockText = msg.unlimitedBadge;
+              stockColorClass = 'text-[#235F70]';
+            } else if (isEmpty) {
+              stockText = msg.soldOutBadge;
+              stockColorClass = 'text-[#8E2536]';
+            }
 
             return (
               <div
@@ -335,9 +376,7 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between text-[10.5px] font-black text-[#3B2820]">
                     <span className="truncate">{name}</span>
-                    <span className={isEmpty ? 'text-[#8E2536]' : 'text-[#5C4033]'}>
-                      {isEmpty ? msg.soldOutBadge : `${currentMl}ml`}
-                    </span>
+                    <span className={stockColorClass}>{stockText}</span>
                   </div>
                   <div className="mt-0.5 h-[5px] w-full rounded-full bg-[#F5E7D6] overflow-hidden border border-[#3B2820]/30">
                     <div
@@ -347,19 +386,21 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    drinkBarAdminBridge.emitAdminAction('RESTOCK_RECIPE', {
-                      recipeId: recipe.id,
-                      addMl: 500,
-                    })
-                  }
-                  className="shrink-0 px-1.5 py-1 rounded-[7px] bg-[#CBEAD2] hover:bg-[#B6E0BF] border-[1.5px] border-[#3B2820] text-[9.5px] font-black text-[#245B3A] inline-flex items-center gap-0.5 cursor-pointer"
-                >
-                  <Plus className="w-2.5 h-2.5" />
-                  <span>500ml</span>
-                </button>
+                {!config.unlimitedInventory && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      drinkBarAdminBridge.emitAdminAction('RESTOCK_RECIPE', {
+                        recipeId: recipe.id,
+                        addMl: 500,
+                      })
+                    }
+                    className="shrink-0 px-1.5 py-1 rounded-[7px] bg-[#CBEAD2] hover:bg-[#B6E0BF] border-[1.5px] border-[#3B2820] text-[9.5px] font-black text-[#245B3A] inline-flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <Plus className="w-2.5 h-2.5" />
+                    <span>500ml</span>
+                  </button>
+                )}
               </div>
             );
           })}

@@ -12,7 +12,7 @@ import {
   tickInventoryAutoRestock,
   updateInventoryMaxCapacity,
 } from './inventory';
-import { parseDrinkChat } from './recipes';
+import { parseDrinkChat, pickRandomRecipeId } from './recipes';
 import {
   GLOW_LAYER_TOPPINGS,
   mergeUniqueToppings,
@@ -367,11 +367,13 @@ export function applyChatToState(
   const isAlreadyActive = isUserActiveNow(nextState, userId);
   const isAlreadyQueued = isUserAlreadyInQueue(nextState, userId);
 
-  // Rule: Strict 1 cup per user at a time (either active on Station 1/2 or queued)
+  const isUnlimited = nextState.config.unlimitedInventory;
+
+  // Rule: Strict 1 cup per user at a time (either active on Station 1 or queued)
   if (!isAlreadyActive && !isAlreadyQueued && parsed.isOrderIntent) {
     const requestedId = parsed.recipeId;
 
-    if (requestedId && !isRecipeAvailable(nextState.inventory, requestedId)) {
+    if (!isUnlimited && requestedId && !isRecipeAvailable(nextState.inventory, requestedId)) {
       const msg = getMessages(nextState.config.language);
       return {
         state: {
@@ -387,13 +389,18 @@ export function applyChatToState(
 
     const totalQueued = nextState.vipQueue.length + nextState.normalQueue.length;
     if (totalQueued < GAMEPLAY_LIMITS.MAX_QUEUE_TOTAL) {
-      const recipeId: RecipeId = requestedId ?? pickAvailableRecipeId(nextState.inventory);
-      const nextInventory = deductDrinkStock(
-        nextState.inventory,
-        recipeId,
-        nextState.config.autoRestockEnabled,
-        now
-      );
+      const fallbackRecipeId = isUnlimited
+        ? pickRandomRecipeId()
+        : pickAvailableRecipeId(nextState.inventory);
+      const recipeId: RecipeId = requestedId ?? fallbackRecipeId;
+      const nextInventory = isUnlimited
+        ? nextState.inventory
+        : deductDrinkStock(
+            nextState.inventory,
+            recipeId,
+            nextState.config.autoRestockEnabled,
+            now
+          );
 
       const newOrder: DrinkOrder = {
         orderId: createOrderId('order'),
@@ -421,7 +428,7 @@ export function applyChatToState(
   if (isAlreadyQueued && parsed.hasFlavorModifier) {
     let workingInventory = nextState.inventory;
 
-    if (parsed.recipeId && !isRecipeAvailable(workingInventory, parsed.recipeId)) {
+    if (!isUnlimited && parsed.recipeId && !isRecipeAvailable(workingInventory, parsed.recipeId)) {
       const msg = getMessages(nextState.config.language);
       return {
         state: {
@@ -438,7 +445,7 @@ export function applyChatToState(
     const updateOrder = (order: DrinkOrder): DrinkOrder => {
       if (normalizeUserId(order.user) !== userId) return order;
       const nextRecipeId = parsed.recipeId ?? order.recipeId;
-      if (nextRecipeId !== order.recipeId) {
+      if (!isUnlimited && nextRecipeId !== order.recipeId) {
         workingInventory = refundDrinkStock(workingInventory, order.recipeId);
         workingInventory = deductDrinkStock(
           workingInventory,
@@ -612,13 +619,16 @@ export function applyGiftToState(
       baseOrder = nextNormalQueue[existingNormalIdx];
       nextNormalQueue.splice(existingNormalIdx, 1);
     } else {
-      const recipeId = pickAvailableRecipeId(nextInventory);
-      nextInventory = deductDrinkStock(
-        nextInventory,
-        recipeId,
-        state.config.autoRestockEnabled,
-        now
-      );
+      const isUnlimited = state.config.unlimitedInventory;
+      const recipeId = isUnlimited ? pickRandomRecipeId() : pickAvailableRecipeId(nextInventory);
+      if (!isUnlimited) {
+        nextInventory = deductDrinkStock(
+          nextInventory,
+          recipeId,
+          state.config.autoRestockEnabled,
+          now
+        );
+      }
       baseOrder = {
         orderId: createOrderId('vip'),
         user: normalizedUser,
@@ -748,6 +758,15 @@ export function triggerManualTikTokDance(
   };
 }
 
+function isBobaExcludedRecipe(recipeId?: RecipeId): boolean {
+  return (
+    recipeId === 'matcha' ||
+    recipeId === 'blue_citrus' ||
+    recipeId === 'peach_tea' ||
+    recipeId === 'lime_tea'
+  );
+}
+
 function resolveActiveDrinkToppings(
   current: readonly ToppingId[],
   isDonorActive: boolean,
@@ -764,8 +783,7 @@ function resolveActiveDrinkToppings(
   } else {
     resolved = [...current];
   }
-  const isBobaExcluded = recipeId === 'matcha' || recipeId === 'blue_citrus';
-  return isBobaExcluded ? resolved.filter((t) => t !== 'boba_pearls') : resolved;
+  return isBobaExcludedRecipe(recipeId) ? resolved.filter((t) => t !== 'boba_pearls') : resolved;
 }
 
 function resolveOrderToppingsForTier(
@@ -782,8 +800,7 @@ function resolveOrderToppingsForTier(
     const extra = pickNextMissingTopping(existing, undefined, recipeId);
     resolved = mergeUniqueToppings(existing, [extra]);
   }
-  const isBobaExcluded = recipeId === 'matcha' || recipeId === 'blue_citrus';
-  return isBobaExcluded ? resolved.filter((t) => t !== 'boba_pearls') : resolved;
+  return isBobaExcludedRecipe(recipeId) ? resolved.filter((t) => t !== 'boba_pearls') : resolved;
 }
 
 function completeDrinkInSlot(

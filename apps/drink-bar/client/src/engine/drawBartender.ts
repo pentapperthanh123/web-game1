@@ -43,6 +43,8 @@ import {
   STRAW_INSERT_END_PROGRESS,
   STRAW_INSERT_START_PROGRESS,
   SUGAR_PRESS_START_PROGRESS,
+  SYRUP_PUMP_END_PROGRESS,
+  TEA_URN_DISPENSE_END_PROGRESS,
   THAI_TEA_CREAM_START_PROGRESS,
   THAI_TEA_POUR_END_PROGRESS,
   transformRotatedAnchor,
@@ -130,28 +132,33 @@ export function isShakerLiftSubstep(drink: ActiveDrink | null): boolean {
   return Boolean(
     drink &&
       drink.phase === 'BREWING' &&
-      drink.recipeId === 'thai_tea' &&
+      (drink.recipeId === 'thai_tea' || drink.recipeId === 'peach_tea') &&
       drink.progress >= 56 &&
       drink.progress < SHAKER_LIFT_END_PROGRESS
   );
 }
 
 export function isShakerDetachedSubstep(drink: ActiveDrink | null): boolean {
-  return Boolean(
-    drink &&
-      drink.phase === 'BREWING' &&
-      drink.recipeId === 'thai_tea' &&
-      drink.progress >= 56 &&
-      drink.progress < THAI_TEA_POUR_END_PROGRESS
-  );
+  if (!drink || drink.phase !== 'BREWING') return false;
+  if (drink.recipeId === 'thai_tea') {
+    return drink.progress >= 56 && drink.progress < THAI_TEA_POUR_END_PROGRESS;
+  }
+  if (drink.recipeId === 'peach_tea') {
+    return drink.progress >= 56 && drink.progress < 78;
+  }
+  return false;
 }
 
 /**
  * Returns the physical liquid fill level (0..1) inside the shaker resting on the shaker machine.
- * Fills for thai_tea during P2/P3 (0.94), detaches during P4, and stays EMPTY (0) once poured & returned in P5/SHOWCASE!
+ * Fills for thai_tea and peach_tea during P2/P3 (0.94), detaches during P4, and stays EMPTY (0) once poured!
  */
 export function resolveShakerMachineFillRatio(drink: ActiveDrink | null): number {
-  if (!drink || drink.recipeId !== 'thai_tea' || drink.phase !== 'BREWING') {
+  if (
+    !drink ||
+    (drink.recipeId !== 'thai_tea' && drink.recipeId !== 'peach_tea') ||
+    drink.phase !== 'BREWING'
+  ) {
     return 0;
   }
   if (drink.progress >= DISPENSE_END_PROGRESS && drink.progress < 56) {
@@ -224,6 +231,12 @@ export function resolveTargetBaristaX(
     }
     if (isSugarButtonSubstep(drink)) return 194;
     if (drink.recipeId === 'thai_tea') return 224;
+    if (drink.recipeId === 'peach_tea') {
+      return drink.progress < TEA_URN_DISPENSE_END_PROGRESS ? 296 : 388;
+    }
+    if (drink.recipeId === 'lime_tea') {
+      return drink.progress < TEA_URN_DISPENSE_END_PROGRESS ? 296 : 418;
+    }
     if (drink.recipeId === 'coffee_milk') return 508;
     if (drink.recipeId === 'berry_soda') return 368;
     if (drink.recipeId === 'matcha') return 408;
@@ -231,8 +244,13 @@ export function resolveTargetBaristaX(
   }
 
   if (action === 'tool_prep') {
-    if (drink.recipeId === 'thai_tea') return 148;
-    if (drink.recipeId === 'matcha' || drink.recipeId === 'coffee_milk' || drink.recipeId === 'berry_soda') {
+    if (drink.recipeId === 'thai_tea' || drink.recipeId === 'peach_tea') return 148;
+    if (
+      drink.recipeId === 'matcha' ||
+      drink.recipeId === 'lime_tea' ||
+      drink.recipeId === 'coffee_milk' ||
+      drink.recipeId === 'berry_soda'
+    ) {
       return 408;
     }
     return 296;
@@ -404,7 +422,7 @@ function resolveActivePourVessel(drink: ActiveDrink): PourVesselKind {
   if (drink.recipeId === 'berry_soda') {
     return pourRatio <= SODA_SYRUP_SPLIT_RATIO ? 'measuring_jug' : 'soda_pour';
   }
-  if (drink.recipeId === 'blue_citrus') {
+  if (drink.recipeId === 'blue_citrus' || drink.recipeId === 'lime_tea') {
     return 'measuring_jug';
   }
   return 'shaker';
@@ -858,35 +876,17 @@ function drawCentralBaristaArms(
   const rightShoulderX = cx + 36;
   const rightShoulderY = torsoY + 24 + bob;
 
-  // Handover animation at 100% (SHOWCASE): packages cup into paper bag (0..500ms) then slides forward & waves (500..1800ms)
+  // Direct handover animation at 100% (SHOWCASE): left hand waves cheerfully, right hand pushes/hands cup forward to customer
   if (drink && drink.phase === 'SHOWCASE') {
-    const elapsedMs = Math.max(0, GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS - drink.showcaseRemainingMs);
     const slideFactor = computeShowcaseSlideFactor(drink);
-
-    if (elapsedMs < 500) {
-      // Packaging Phase: Barista uses both hands to guide paper bag snugly over the cup
-      const bagT = clamp01(elapsedMs / 500);
-      const easeBag = bagT * bagT * (3 - 2 * bagT);
-      const leftBagX = CUP1_CX - 24;
-      const rightBagX = CUP1_CX + 24;
-      const bagHandY = CUP_TOP_Y + 18 - (1 - easeBag) * 12;
-
-      drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftBagX, bagHandY, -1);
-      drawHandCircle(ctx, leftBagX, bagHandY);
-      drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightBagX, bagHandY, 1);
-      drawHandCircle(ctx, rightBagX, bagHandY);
-      return;
-    }
-
-    // Delivery Phase: Friendly wave with left hand, right hand guides the bagged cup forward to customer
     const waveSwing = Math.sin(elapsedSec * 7.5) * 9;
     const leftHandX = cx - 50 + waveSwing;
     const leftHandY = headY + 12;
     drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
     drawHandCircle(ctx, leftHandX, leftHandY);
 
-    const pushX = CUP1_CX + CUP_TOP_HALF_W + 8;
-    const pushY = CUP_TOP_Y + 28 + 24 * slideFactor;
+    const pushX = CUP1_CX + CUP_TOP_HALF_W + 7;
+    const pushY = CUP_TOP_Y + 26 + 24 * slideFactor;
     drawCartoonArm(ctx, rightShoulderX, rightShoulderY, pushX, pushY, 1);
     drawHandCircle(ctx, pushX, pushY);
     return;
@@ -1130,15 +1130,26 @@ function drawCentralBaristaArms(
       return;
     }
 
-    // 4h. Fresh orange slice rim garnish (78%+ of P4)
-    if (drink.recipeId === 'blue_citrus' && drink.progress >= 78) {
+    // 4h. Fresh fruit slice rim garnish (78%+ of P4 for Orange, Peach Tea, and Lime Tea)
+    if (
+      (drink.recipeId === 'blue_citrus' ||
+        drink.recipeId === 'peach_tea' ||
+        drink.recipeId === 'lime_tea') &&
+      drink.progress >= 78
+    ) {
       drawCartoonArm(ctx, leftShoulderX, leftShoulderY, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12, -1);
       drawHandCircle(ctx, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12);
 
       const garnishX = CUP1_CX + 18 + Math.sin(elapsedSec * 3.5) * 2.5;
       const garnishY = CUP_TOP_Y - 16 + Math.cos(elapsedSec * 3.5) * 2;
       drawCartoonArm(ctx, rightShoulderX, rightShoulderY, garnishX, garnishY, 1);
-      drawPlaceOrangeGarnishAction(ctx, garnishX, garnishY, 1);
+      drawPlaceFruitGarnishAction(
+        ctx,
+        garnishX,
+        garnishY,
+        1,
+        RECIPE_MAP[drink.recipeId].fruitType
+      );
       return;
     }
 
@@ -1156,12 +1167,13 @@ function drawCentralBaristaArms(
     drawCartoonArm(ctx, rightShoulderX, rightShoulderY, steadyX, steadyY, 1);
     drawHandCircle(ctx, steadyX, steadyY);
 
-    // Primary (left) hand tilts vessel smoothly downward (shaker drains 0.94 -> 0.0 across 60..74%!)
+    // Primary (left) hand tilts vessel smoothly downward (shaker drains 0.94 -> 0.0 across pour span!)
+    const shakerPourEnd = drink.recipeId === 'peach_tea' ? 78 : THAI_TEA_POUR_END_PROGRESS;
     const shakerDrainFrac =
       pourVessel === 'shaker'
         ? clamp01(
             (drink.progress - SHAKER_LIFT_END_PROGRESS) /
-              (THAI_TEA_POUR_END_PROGRESS - SHAKER_LIFT_END_PROGRESS)
+              (shakerPourEnd - SHAKER_LIFT_END_PROGRESS)
           )
         : 0;
     const vesselFillRatio = pourVessel === 'shaker' ? Math.max(0, 0.94 * (1 - shakerDrainFrac)) : 0.85;
@@ -1387,7 +1399,7 @@ function drawShakerLiftAction(
   ctx.translate(shakerX, shakerY);
   ctx.rotate(easeT * 0.35);
   drawRealisticBobaShaker(ctx, {
-    liquidColor: '#D89E68',
+    liquidColor: RECIPE_MAP[drink.recipeId].baseColor,
     fillRatio: 0.92,
     isCapClosed: easeT < 0.72,
     isPouringTilted: false,
@@ -1640,12 +1652,14 @@ function drawCupPickupAction(
 
 const PREP_LIQUID_COLOR_MAP: Readonly<Record<string, string>> = {
   matcha: '#A7D397',
+  lime_tea: '#A4D466',
   coffee_milk: '#5A321C',
   berry_soda: '#E04F6D',
 };
 
 const PREP_FOAM_COLOR_MAP: Readonly<Record<string, string>> = {
   matcha: '#DCF0CE',
+  lime_tea: '#EFF9DC',
   coffee_milk: '#FFF6E8',
   berry_soda: '#FFD6E0',
 };
@@ -1738,6 +1752,35 @@ function drawStep1DispenseAction(
     return;
   }
 
+  if (drink.recipeId === 'peach_tea' || drink.recipeId === 'lime_tea') {
+    if (drink.progress < TEA_URN_DISPENSE_END_PROGRESS) {
+      const jugX = BAR_STATION_COORDS.TEA_URN_2_SPIGOT_X;
+      const jugBottomY = 444;
+      drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#C98A4B', fillLevel);
+      drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 18, jugBottomY - 16, -1);
+      drawHandCircle(ctx, jugX - 18, jugBottomY - 16);
+
+      const leverX = BAR_STATION_COORDS.TEA_URN_2_SPIGOT_X + 6;
+      const leverY = 368;
+      drawCartoonArm(ctx, rightShoulderX, rightShoulderY, leverX, leverY, 1);
+      drawHandCircle(ctx, leverX, leverY);
+      return;
+    }
+
+    const isPeach = drink.recipeId === 'peach_tea';
+    const syrupX = isPeach ? BAR_STATION_COORDS.SYRUP_2_X : BAR_STATION_COORDS.SYRUP_3_X;
+    const syrupColor = isPeach ? '#FF9D5C' : '#A4D466';
+    const jugBottomY = 446;
+    drawGraduatedMeasuringCup(ctx, syrupX, jugBottomY, syrupColor, fillLevel);
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, syrupX - 18, jugBottomY - 16, -1);
+    drawHandCircle(ctx, syrupX - 18, jugBottomY - 16);
+
+    const pumpHandY = 352 + Math.abs(Math.sin(elapsedSec * 8)) * 4;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, syrupX + 4, pumpHandY, 1);
+    drawHandCircle(ctx, syrupX + 4, pumpHandY);
+    return;
+  }
+
   if (drink.recipeId === 'coffee_milk') {
     const jugX = 500;
     const jugBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
@@ -1775,7 +1818,7 @@ function drawStep1DispenseAction(
     const orangeX = 302;
     const orangeY = STAGE_METRICS.COUNTER_TOP_Y - 26 + Math.sin(elapsedSec * 5) * 3;
     drawCartoonArm(ctx, rightShoulderX, rightShoulderY, orangeX, orangeY, 1);
-    drawPlaceOrangeGarnishAction(ctx, orangeX, orangeY, 1);
+    drawPlaceFruitGarnishAction(ctx, orangeX, orangeY, 1, 'orange');
     return;
   }
 
@@ -2140,7 +2183,7 @@ function drawStep2PrepAction(
   freq: number,
   elapsedSec: number
 ): void {
-  if (drink.recipeId === 'thai_tea') {
+  if (drink.recipeId === 'thai_tea' || drink.recipeId === 'peach_tea') {
     const leftHandX = 112;
     const leftHandY = STAGE_METRICS.COUNTER_TOP_Y - 46;
     drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
@@ -2471,12 +2514,26 @@ function drawBaristaCreamerJugAction(
   drawHandCircle(ctx, hx, hy);
 }
 
-function drawPlaceOrangeGarnishAction(
+function drawPlaceFruitGarnishAction(
   ctx: CanvasRenderingContext2D,
   hx: number,
   hy: number,
-  side: -1 | 1
+  side: -1 | 1,
+  fruitType: 'leaf' | 'peach' | 'bean' | 'berry' | 'lime' | 'orange' = 'orange'
 ): void {
+  const rindColorMap: Record<string, string> = {
+    orange: '#FF7A1A',
+    peach: '#F26D30',
+    lime: '#7FB86B',
+  };
+  const fleshColorMap: Record<string, string> = {
+    orange: '#FFA633',
+    peach: '#FFC27A',
+    lime: '#A7D397',
+  };
+  const rindColor = rindColorMap[fruitType] ?? '#FF7A1A';
+  const fleshColor = fleshColorMap[fruitType] ?? '#FFA633';
+
   ctx.save();
   ctx.translate(hx, hy);
   ctx.rotate(-side * 0.22);
@@ -2484,31 +2541,35 @@ function drawPlaceOrangeGarnishAction(
   ctx.beginPath();
   ctx.arc(0, 0, 14, Math.PI, 0, false);
   ctx.closePath();
-  ctx.fillStyle = '#FF7A1A';
+  ctx.fillStyle = rindColor;
   ctx.fill();
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  ctx.beginPath();
-  ctx.arc(0, 0, 11.2, Math.PI, 0, false);
-  ctx.closePath();
-  ctx.fillStyle = '#FFF8EE';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(0, 0, 9.6, Math.PI, 0, false);
-  ctx.closePath();
-  ctx.fillStyle = '#FFA633';
-  ctx.fill();
-
-  ctx.strokeStyle = '#FFF8EE';
-  ctx.lineWidth = 1.4;
-  for (let a = Math.PI * 0.2; a < Math.PI * 0.9; a += Math.PI * 0.22) {
+  if (fruitType !== 'peach') {
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(Math.PI - a) * 9.5, -Math.sin(Math.PI - a) * 9.5);
-    ctx.stroke();
+    ctx.arc(0, 0, 11.2, Math.PI, 0, false);
+    ctx.closePath();
+    ctx.fillStyle = '#FFF8EE';
+    ctx.fill();
+  }
+
+  ctx.beginPath();
+  ctx.arc(0, 0, fruitType === 'peach' ? 10.6 : 9.6, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fillStyle = fleshColor;
+  ctx.fill();
+
+  if (fruitType !== 'peach') {
+    ctx.strokeStyle = '#FFF8EE';
+    ctx.lineWidth = 1.4;
+    for (let a = Math.PI * 0.2; a < Math.PI * 0.9; a += Math.PI * 0.22) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(Math.PI - a) * 9.5, -Math.sin(Math.PI - a) * 9.5);
+      ctx.stroke();
+    }
   }
 
   ctx.beginPath();

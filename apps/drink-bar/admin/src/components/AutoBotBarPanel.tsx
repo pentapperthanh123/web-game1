@@ -33,6 +33,7 @@ import {
 interface AutoBotBarPanelProps {
   language: Language;
   inventory: DrinkInventoryMap | null;
+  unlimitedInventory?: boolean;
   isBotEnabled: boolean;
   pace: AutoBotPace;
   onToggleBot: () => void;
@@ -42,13 +43,25 @@ interface AutoBotBarPanelProps {
 const PACE_OPTIONS: readonly AutoBotPace[] = ['SLOW', 'NORMAL', 'FAST'];
 const ICE_OPTIONS: readonly IceLevel[] = ['NORMAL', 'LESS', 'EXTRA', 'NONE'];
 
-const DRINK_PRODUCT_IMAGE_MAP: Readonly<Record<RecipeId, string>> = {
+const DRINK_PRODUCT_IMAGE_MAP: Readonly<Partial<Record<RecipeId, string>>> = {
   matcha: '/drinks/matcha.png',
   thai_tea: '/drinks/thai_tea.png',
   coffee_milk: '/drinks/coffee_milk.png',
   berry_soda: '/drinks/berry_soda.png',
   blue_citrus: '/drinks/blue_citrus.png',
 };
+
+const FruitTeaThumbSvg: React.FC<{ baseColor: string; accentColor: string }> = ({
+  baseColor,
+  accentColor,
+}) => (
+  <svg viewBox="0 0 46 54" className="w-full h-full" aria-hidden="true">
+    <path d="M12 18 H34 L31 46 Q30 49 26 49 H20 Q16 49 15 46 Z" fill={baseColor} stroke="#3B2820" strokeWidth="2" />
+    <path d="M12 18 A11 9 0 0 1 34 18 Z" fill="#FFFDF9" fillOpacity="0.82" stroke="#3B2820" strokeWidth="1.8" />
+    <line x1="23" y1="16" x2="26" y2="5" stroke="#3B2820" strokeWidth="2.2" strokeLinecap="round" />
+    <path d="M29 17 A5.5 5.5 0 0 1 38 17 Z" fill={accentColor} stroke="#3B2820" strokeWidth="1.6" />
+  </svg>
+);
 
 const DANCE_TIER_BUTTONS: readonly {
   tier: GiftTier;
@@ -79,6 +92,7 @@ const DANCE_TIER_BUTTONS: readonly {
 export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
   language,
   inventory,
+  unlimitedInventory = false,
   isBotEnabled,
   pace,
   onToggleBot,
@@ -182,12 +196,19 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           {RECIPE_LIST.map((recipe) => {
             const slot = inventory?.[recipe.id];
             const currentMl = slot?.currentMl ?? GAMEPLAY_LIMITS.DEFAULT_CAPACITY_ML;
-            const isSoldOut = currentMl < GAMEPLAY_LIMITS.COST_PER_DRINK_ML;
+            const isSoldOut = !unlimitedInventory && currentMl < GAMEPLAY_LIMITS.COST_PER_DRINK_ML;
             const label = language === 'EN' ? recipe.shortNameEn : recipe.nameVi;
+            const thumbUrl = DRINK_PRODUCT_IMAGE_MAP[recipe.id];
+            let stockCaption = `${currentMl}ml`;
+            if (unlimitedInventory) {
+              stockCaption = '∞';
+            } else if (isSoldOut) {
+              stockCaption = msg.soldOutBadge;
+            }
 
             return (
               <button
@@ -204,16 +225,23 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
                 }`}
               >
                 <div className="w-[46px] h-[54px] rounded-[9px] bg-[#FBE7EE] border-[1.5px] border-[#3B2820]/20 overflow-hidden flex items-center justify-center shrink-0 shadow-inner">
-                  <img
-                    src={DRINK_PRODUCT_IMAGE_MAP[recipe.id]}
-                    alt={label}
-                    draggable={false}
-                    className="w-full h-full object-contain"
-                  />
+                  {thumbUrl ? (
+                    <img
+                      src={thumbUrl}
+                      alt={label}
+                      draggable={false}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <FruitTeaThumbSvg
+                      baseColor={recipe.baseColor}
+                      accentColor={recipe.accentColor}
+                    />
+                  )}
                 </div>
                 <span className="truncate max-w-full leading-tight">{label}</span>
                 <span className="text-[9.5px] font-extrabold text-[#7A5F52] leading-none">
-                  {isSoldOut ? msg.soldOutBadge : `${currentMl}ml`}
+                  {stockCaption}
                 </span>
               </button>
             );

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getMessages } from '@shared/i18n';
 import { RECIPE_MAP } from '@shared/recipes';
 import type { RecipeId } from '@shared/types';
+import { LeftCtaGuidePanel } from './components/LeftCtaGuidePanel';
 import { LeftGiftAndQueuePanel } from './components/LeftGiftAndQueuePanel';
 import { SafeZoneGuide } from './components/SafeZoneGuide';
 import { ScaledStage } from './components/ScaledStage';
@@ -94,11 +95,12 @@ const DrinkBarStage: React.FC = () => {
         className="absolute inset-0 w-[720px] h-[1280px] block"
       />
 
-      {/* Zone 1 (y: 16 -> 235): Top Title, Done/Queue/VIP Pills & 4-Drink Shelf */}
+      {/* Zone 1 (y: 0 -> 120): Edge-to-edge 2-Tier Header & Centered Slim Menu Ribbon */}
       <TopHeaderAndShelf />
-
-      {/* Zone 2 (x: 24 -> 250, y: 255 -> 760): Gift Exchange Card & Order Queue */}
       <LeftGiftAndQueuePanel />
+
+      {/* Zone 2 (x: 12 -> 154, y: 176 -> 410): Left Order & Donate-to-Dance CTA Guide */}
+      <LeftCtaGuidePanel />
 
       {/* Zone 3 Front Floor (x: 310 -> 630, y: 722 -> 952): 2-Column Standing Waiting Guests */}
       <WaitingGuestsStrip />

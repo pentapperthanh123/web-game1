@@ -238,6 +238,11 @@ export class DrinkBarCoreReceiver {
           store.setAutoRestock(payload.autoRestockEnabled);
         }
         break;
+      case 'SET_UNLIMITED_INVENTORY':
+        if (typeof payload.unlimitedInventory === 'boolean') {
+          store.setUnlimitedInventory(payload.unlimitedInventory);
+        }
+        break;
     }
   }
 
