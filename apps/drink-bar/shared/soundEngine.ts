@@ -9,6 +9,39 @@ const SHAKER_THROTTLE_MS = 460;
 
 type UnlockListener = (unlocked: boolean) => void;
 
+const DANCE_POP_MELODY: readonly number[] = [
+  523.25, 659.25, 783.99, 880.0, 783.99, 659.25, 587.33, 659.25,
+  698.46, 880.0, 783.99, 659.25, 587.33, 523.25, 587.33, 783.99,
+];
+const DANCE_POP_BASS: readonly number[] = [130.81, 164.81, 174.61, 196.0];
+const DANCE_POP_SPARKLES: readonly number[] = [1567.98, 1760.0, 2093.0, 1760.0];
+
+const DANCE_GROOVE_CHORDS: readonly (readonly number[])[] = [
+  [293.66, 349.23, 440.0, 523.25], // Dm7
+  [392.0, 493.88, 587.33, 698.46], // G7
+  [261.63, 329.63, 392.0, 493.88], // Cmaj7
+  [220.0, 261.63, 329.63, 392.0],  // Am7
+];
+const DANCE_GROOVE_BASS: readonly number[] = [
+  146.83, 146.83, 174.61, 196.0, 196.0, 164.81, 130.81, 110.0,
+];
+const DANCE_GROOVE_LEAD: readonly number[] = [
+  587.33, 0, 659.25, 698.46, 783.99, 0, 659.25, 523.25,
+];
+
+// Classic TikTok EDM / Phonk cowbell hook intervals in F# minor / E minor vibe (130 BPM)
+const DANCE_PHONK_COWBELL: readonly number[] = [
+  659.25, 659.25, 783.99, 659.25, 880.0, 783.99, 739.99, 659.25,
+  659.25, 987.77, 880.0, 783.99, 659.25, 587.33, 659.25, 0,
+];
+const DANCE_PHONK_BASS: readonly number[] = [82.41, 82.41, 98.0, 110.0, 98.0, 73.42, 82.41, 65.41];
+
+const DANCE_BPM_MAP: Readonly<Record<DanceStyle, number>> = {
+  heart_sway: 118,
+  groove_wave: 105,
+  party_hype: 130,
+};
+
 export class WebAudioSoundEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -194,6 +227,9 @@ export class WebAudioSoundEngine {
       case 'ice_clink':
         this.playIceClink(ctx);
         break;
+      case 'matcha_scoop':
+        if (!this.shouldThrottle(kind, 340)) this.playMatchaScoop(ctx);
+        break;
       case 'chasen':
         if (!this.shouldThrottle(kind, AMBIENT_THROTTLE_MS)) this.playChasen(ctx);
         break;
@@ -220,6 +256,9 @@ export class WebAudioSoundEngine {
         break;
       case 'lid_snap':
         this.playLidSnap(ctx);
+        break;
+      case 'straw_insert':
+        this.playStrawInsert(ctx);
         break;
       case 'chime':
         this.playCompletionChime(ctx);
@@ -282,37 +321,102 @@ export class WebAudioSoundEngine {
     this.playFilteredNoiseBurst(ctx, now + 0.025, 0.08, 3800, 2.2, 0.14);
   }
 
+  private trackSfxNode(node: AudioScheduledSourceNode): void {
+    this.activeSfxNodes.push(node);
+    node.onended = () => {
+      const idx = this.activeSfxNodes.indexOf(node);
+      if (idx !== -1) {
+        this.activeSfxNodes.splice(idx, 1);
+      }
+    };
+  }
+
   private playIceClink(ctx: AudioContext): void {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
-    // Pure, crystalline ice cubes falling and clinking inside glass
-    const freqs = [2820, 3450, 3080];
+    // ASMR crystalline ice cubes tumbling & ringing inside chilled takeaway cup
+    const cubePitches = [2780, 3420, 3040];
 
-    freqs.forEach((baseFreq, idx) => {
-      const t = now + idx * 0.055;
+    cubePitches.forEach((baseFreq, idx) => {
+      const t = now + idx * 0.052 + Math.random() * 0.012;
       const jitter = 0.96 + Math.random() * 0.08;
+
+      // Primary crystalline ping
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(baseFreq * jitter, t);
-
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.linearRampToValueAtTime(0.26, t + 0.005);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
-
+      gain.gain.linearRampToValueAtTime(0.24, t + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.115);
       osc.connect(gain);
       gain.connect(this.masterGain!);
       osc.start(t);
-      osc.stop(t + 0.12);
-      this.activeSfxNodes.push(osc);
+      osc.stop(t + 0.125);
+      this.trackSfxNode(osc);
+
+      // Glass harmonic shimmer overtone
+      const overtone = ctx.createOscillator();
+      const overGain = ctx.createGain();
+      overtone.type = 'sine';
+      overtone.frequency.setValueAtTime(baseFreq * jitter * 1.52, t);
+      overGain.gain.setValueAtTime(0.001, t);
+      overGain.gain.linearRampToValueAtTime(0.09, t + 0.003);
+      overGain.gain.exponentialRampToValueAtTime(0.001, t + 0.065);
+      overtone.connect(overGain);
+      overGain.connect(this.masterGain!);
+      overtone.start(t);
+      overtone.stop(t + 0.075);
+      this.trackSfxNode(overtone);
     });
   }
 
-  private playChasen(ctx: AudioContext): void {
+  private playMatchaScoop(ctx: AudioContext): void {
+    if (!this.masterGain) return;
     const now = ctx.currentTime;
-    // Rhythmic bamboo chasen whisking against ceramic chawan (W/M strokes)
-    this.playFilteredNoiseBurst(ctx, now, 0.18, 2100, 1.8, 0.28);
-    this.playFilteredNoiseBurst(ctx, now + 0.11, 0.16, 2450, 2.0, 0.24);
+    // 1. Delicate bamboo chashaku scoop rustling through fine dry matcha powder
+    this.playFilteredNoiseBurst(ctx, now, 0.085, 3100, 1.9, 0.16);
+
+    // 2. Crisp gentle tap of bamboo spoon against ceramic chawan rim
+    const tap = ctx.createOscillator();
+    const tapGain = ctx.createGain();
+    tap.type = 'sine';
+    tap.frequency.setValueAtTime(1420, now + 0.065);
+    tap.frequency.exponentialRampToValueAtTime(920, now + 0.11);
+
+    tapGain.gain.setValueAtTime(0.001, now + 0.065);
+    tapGain.gain.linearRampToValueAtTime(0.14, now + 0.07);
+    tapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.125);
+
+    tap.connect(tapGain);
+    tapGain.connect(this.masterGain);
+    tap.start(now + 0.065);
+    tap.stop(now + 0.135);
+    this.trackSfxNode(tap);
+  }
+
+  private playChasen(ctx: AudioContext): void {
+    if (!this.masterGain) return;
+    const now = ctx.currentTime;
+    // Authentic brisk bamboo Chasen W/M strokes whisking matcha inside ceramic chawan
+    this.playFilteredNoiseBurst(ctx, now, 0.12, 2050, 1.9, 0.26);
+    this.playFilteredNoiseBurst(ctx, now + 0.095, 0.12, 2480, 2.1, 0.24);
+    this.playFilteredNoiseBurst(ctx, now + 0.19, 0.11, 2220, 2.0, 0.20);
+
+    // Subtle warm ceramic chawan resonance tap from bamboo bristles
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, now + 0.04);
+    osc.frequency.exponentialRampToValueAtTime(380, now + 0.14);
+    gain.gain.setValueAtTime(0.001, now + 0.04);
+    gain.gain.linearRampToValueAtTime(0.06, now + 0.055);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now + 0.04);
+    osc.stop(now + 0.16);
+    this.trackSfxNode(osc);
   }
 
   private playWhipFroth(ctx: AudioContext): void {
@@ -341,44 +445,75 @@ export class WebAudioSoundEngine {
   }
 
   private playShaker(ctx: AudioContext): void {
+    if (!this.masterGain) return;
     const now = ctx.currentTime;
-    // Crisp metallic shaker rattle with ice & milk tea sloshing inside
-    this.playFilteredNoiseBurst(ctx, now, 0.11, 3100, 2.6, 0.32);
-    this.playFilteredNoiseBurst(ctx, now + 0.12, 0.11, 3450, 2.8, 0.28);
+    // Crisp metallic cocktail-shaker ice rattle (forward + back slosh + tin ice ping)
+    this.playFilteredNoiseBurst(ctx, now, 0.10, 3150, 2.7, 0.30);
+    this.playFilteredNoiseBurst(ctx, now + 0.115, 0.10, 3580, 2.9, 0.27);
+
+    const ping = ctx.createOscillator();
+    const pingGain = ctx.createGain();
+    ping.type = 'sine';
+    ping.frequency.setValueAtTime(3780 + Math.random() * 260, now + 0.015);
+    pingGain.gain.setValueAtTime(0.001, now + 0.015);
+    pingGain.gain.linearRampToValueAtTime(0.075, now + 0.02);
+    pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+    ping.connect(pingGain);
+    pingGain.connect(this.masterGain);
+    ping.start(now + 0.015);
+    ping.stop(now + 0.075);
+    this.trackSfxNode(ping);
   }
 
   private playCafeDrip(ctx: AudioContext): void {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
 
-    // Rich espresso machine extraction pressure + warm rhythmic drops
-    this.playFilteredNoiseBurst(ctx, now, 0.24, 980, 1.2, 0.18);
+    // Warm espresso extraction pressure hiss + rich rhythmic coffee drops
+    this.playFilteredNoiseBurst(ctx, now, 0.26, 880, 1.15, 0.17);
 
-    [0.08, 0.20].forEach((offset, idx) => {
+    [0.06, 0.18].forEach((offset, idx) => {
       const t = now + offset;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      const startF = idx === 0 ? 520 : 610;
+      const startF = idx === 0 ? 490 : 590;
       osc.frequency.setValueAtTime(startF, t);
-      osc.frequency.exponentialRampToValueAtTime(startF * 1.35, t + 0.06);
+      osc.frequency.exponentialRampToValueAtTime(startF * 1.42, t + 0.055);
 
       gain.gain.setValueAtTime(0.001, t);
-      gain.gain.linearRampToValueAtTime(0.22, t + 0.008);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      gain.gain.linearRampToValueAtTime(0.20, t + 0.007);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
 
       osc.connect(gain);
       gain.connect(this.masterGain!);
       osc.start(t);
-      osc.stop(t + 0.09);
-      this.activeSfxNodes.push(osc);
+      osc.stop(t + 0.085);
+      this.trackSfxNode(osc);
     });
   }
 
   private playSodaFizz(ctx: AudioContext): void {
+    if (!this.masterGain) return;
     const now = ctx.currentTime;
-    // Crisp carbonated effervescence and sparkling bubbles
-    this.playFilteredNoiseBurst(ctx, now, 0.36, 4400, 1.1, 0.28);
+    // Crisp carbonated effervescence + delicate sparkling micro-bubble pops
+    this.playFilteredNoiseBurst(ctx, now, 0.36, 4850, 1.05, 0.25);
+
+    for (let i = 0; i < 4; i += 1) {
+      const t = now + 0.03 + i * 0.072 + Math.random() * 0.025;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(3400 + Math.random() * 1900, t);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.065, t + 0.003);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.024);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.03);
+      this.trackSfxNode(osc);
+    }
   }
 
   private playJuicer(ctx: AudioContext): void {
@@ -406,47 +541,54 @@ export class WebAudioSoundEngine {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
 
-    // Smooth fluid stream resonance with subtle pitch rise as liquid fills cup
-    const safePitch = Math.max(0.7, Math.min(1.5, pitchScale));
-    this.playFilteredNoiseBurst(ctx, now, 0.28, 1400 * safePitch, 1.4, 0.26);
+    // ASMR fluid stream resonance with rising cavity pitch synced to actual cup liquid level
+    const safePitch = Math.max(0.75, Math.min(1.55, pitchScale));
+    this.playFilteredNoiseBurst(ctx, now, 0.28, 1280 * safePitch, 1.5, 0.24);
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(340 * safePitch, now);
-    osc.frequency.exponentialRampToValueAtTime(620 * safePitch, now + 0.24);
+    // Dual organic water-glug resonance blips
+    [0, 0.12].forEach((offset, idx) => {
+      const t = now + offset;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const baseF = (idx === 0 ? 330 : 410) * safePitch;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseF, t);
+      osc.frequency.exponentialRampToValueAtTime(baseF * 1.72, t + 0.12);
 
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.20, now + 0.025);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(idx === 0 ? 0.18 : 0.14, t + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
 
-    osc.connect(gain);
-    gain.connect(this.masterGain);
-    osc.start(now);
-    osc.stop(now + 0.28);
-    this.activeSfxNodes.push(osc);
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+      osc.start(t);
+      osc.stop(t + 0.15);
+      this.trackSfxNode(osc);
+    });
   }
 
   private playToppingPlop(ctx: AudioContext): void {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
 
-    [587.33, 783.99].forEach((freq, idx) => {
-      const start = now + idx * 0.055;
+    // Soft chewy boba / topping water-plop sweeps
+    [320, 440].forEach((baseFreq, idx) => {
+      const start = now + idx * 0.062;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, start);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq, start);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.95, start + 0.065);
 
       gain.gain.setValueAtTime(0.001, start);
-      gain.gain.linearRampToValueAtTime(0.24, start + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12);
+      gain.gain.linearRampToValueAtTime(0.22, start + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.095);
 
       osc.connect(gain);
       gain.connect(this.masterGain!);
       osc.start(start);
-      osc.stop(start + 0.13);
-      this.activeSfxNodes.push(osc);
+      osc.stop(start + 0.105);
+      this.trackSfxNode(osc);
     });
   }
 
@@ -454,21 +596,50 @@ export class WebAudioSoundEngine {
     if (!this.masterGain) return;
     const now = ctx.currentTime;
 
-    // Crisp satisfying mechanical lid snap closure
+    // Stage 1: Crisp plastic dome-lid rim click
+    this.playFilteredNoiseBurst(ctx, now, 0.028, 2900, 2.4, 0.26);
+
+    // Stage 2: Warm hollow cup seal pop
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(340, now);
-    osc.frequency.exponentialRampToValueAtTime(85, now + 0.055);
+    osc.frequency.setValueAtTime(380, now + 0.012);
+    osc.frequency.exponentialRampToValueAtTime(105, now + 0.068);
 
-    gain.gain.setValueAtTime(0.34, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+    gain.gain.setValueAtTime(0.001, now + 0.012);
+    gain.gain.linearRampToValueAtTime(0.32, now + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.082);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
-    osc.start(now);
+    osc.start(now + 0.012);
+    osc.stop(now + 0.09);
+    this.trackSfxNode(osc);
+  }
+
+  private playStrawInsert(ctx: AudioContext): void {
+    if (!this.masterGain) return;
+    const now = ctx.currentTime;
+
+    // Stage 1: Light straw puncture/click into dome aperture
+    this.playFilteredNoiseBurst(ctx, now, 0.018, 3800, 3.2, 0.18);
+
+    // Stage 2: Smooth fluid slide pop
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(920, now + 0.006);
+    osc.frequency.exponentialRampToValueAtTime(460, now + 0.055);
+
+    gain.gain.setValueAtTime(0.001, now + 0.006);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.014);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.068);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now + 0.006);
     osc.stop(now + 0.075);
-    this.activeSfxNodes.push(osc);
+    this.trackSfxNode(osc);
   }
 
   private playCompletionChime(ctx: AudioContext): void {
@@ -538,6 +709,7 @@ export class WebAudioSoundEngine {
     const ctx = this.ensureRunningContext();
     if (!ctx || !this.masterGain) return false;
 
+    // Immediately silence any running dance track so switching styles never overlaps
     this.stopActiveDanceMusic();
 
     const durationMap: Record<GiftTier, number> = {
@@ -546,61 +718,226 @@ export class WebAudioSoundEngine {
       LARGE: GAMEPLAY_LIMITS.DANCE_LARGE_DURATION_MS / 1000,
     };
     const totalSec = durationMap[tier];
-    const now = ctx.currentTime;
+    const now = ctx.currentTime + 0.015;
+    const beatSec = 60 / DANCE_BPM_MAP[style];
 
     if (style === 'heart_sway') {
-      // Gentle cute idol pop melody + soft bass + upbeat sparkle chimes (~3.5s)
-      const stepSec = 0.24;
-      const totalSteps = Math.max(8, Math.floor(totalSec / stepSec));
-      const melody = [523.25, 659.25, 783.99, 880.0, 783.99, 659.25, 587.33, 523.25];
-      const bass = [130.81, 130.81, 164.81, 174.61, 196.0, 146.83];
-      for (let i = 0; i < totalSteps; i += 1) {
-        const t = now + i * stepSec;
-        this.scheduleMusicTone(ctx, t, melody[i % melody.length], 'sine', 0.19, stepSec * 0.85);
-        if (i % 2 === 0) {
-          this.scheduleMusicTone(ctx, t, bass[(i / 2) % bass.length], 'sine', 0.20, stepSec * 1.6);
-        } else {
-          // Cute sparkle / pop accent on upbeat
-          this.scheduleMusicTone(ctx, t + stepSec * 0.45, 1760.0, 'triangle', 0.08, 0.06);
-        }
-      }
+      this.schedulePopCuteTrack(ctx, now, totalSec, beatSec);
       return true;
     }
 
     if (style === 'groove_wave') {
-      // Trendy rhythmic groove with crisp off-beat clap/hi-hat + bouncy bass (~5s)
-      const stepSec = 0.20;
-      const totalSteps = Math.max(12, Math.floor(totalSec / stepSec));
-      const melody = [587.33, 698.46, 880.0, 783.99, 698.46, 587.33, 659.25, 783.99];
-      const bass = [146.83, 146.83, 174.61, 196.0, 164.81, 146.83];
-      for (let i = 0; i < totalSteps; i += 1) {
-        const t = now + i * stepSec;
-        this.scheduleMusicTone(ctx, t, melody[i % melody.length], 'triangle', 0.21, stepSec * 0.78);
-        if (i % 2 === 0) {
-          this.scheduleMusicTone(ctx, t, bass[(i / 2) % bass.length], 'sine', 0.26, stepSec * 1.5);
-        } else {
-          this.scheduleMusicPercussion(ctx, t, 3100, 0.14);
-        }
-      }
+      this.scheduleGrooveChillTrack(ctx, now, totalSec, beatSec);
       return true;
     }
 
-    // Style 3 ('party_hype'): Opening confetti pop + fast energetic synth + punchy kick/clap (~7s)
-    this.scheduleMusicPercussion(ctx, now, 1800, 0.24);
-    const stepSec = 0.16;
-    const totalSteps = Math.max(16, Math.floor(totalSec / stepSec));
-    const melody = [659.25, 783.99, 1046.5, 987.77, 880.0, 783.99, 880.0, 1046.5];
-    const bass = [130.81, 164.81, 196.0, 220.0, 196.0, 164.81];
-    for (let i = 0; i < totalSteps; i += 1) {
-      const t = now + i * stepSec;
-      this.scheduleMusicTone(ctx, t, melody[i % melody.length], 'triangle', 0.23, stepSec * 0.78);
+    this.scheduleEdmPhonkTrack(ctx, now, totalSec, beatSec);
+    return true;
+  }
+
+  /**
+   * Style 1 ("Nhảy 1: Bắn Tim") — Bright Pop / Cute (~118 BPM)
+   * Bouncy kawaii melody, warm sine bass, light pop-clap, and upbeat sparkle chimes.
+   */
+  private schedulePopCuteTrack(
+    ctx: AudioContext,
+    now: number,
+    totalSec: number,
+    beatSec: number
+  ): void {
+    const eighthSec = beatSec * 0.5;
+    const totalEighths = Math.max(8, Math.floor(totalSec / eighthSec));
+
+    for (let i = 0; i < totalEighths; i += 1) {
+      const t = now + i * eighthSec;
+      const melFreq = DANCE_POP_MELODY[i % DANCE_POP_MELODY.length];
+      this.scheduleMusicTone(ctx, t, melFreq, 'sine', 0.17, eighthSec * 0.85);
+      // Soft glossy bell harmonic doubling the pop melody
+      this.scheduleMusicTone(ctx, t, melFreq * 2, 'triangle', 0.045, eighthSec * 0.42);
+
+      // Warm bouncy pop bass & soft kick on beats
       if (i % 2 === 0) {
-        this.scheduleMusicTone(ctx, t, bass[(i / 2) % bass.length], 'triangle', 0.27, stepSec * 1.4);
+        const beatIdx = Math.floor(i / 2);
+        const bassFreq = DANCE_POP_BASS[Math.floor(beatIdx / 2) % DANCE_POP_BASS.length];
+        this.scheduleMusicTone(ctx, t, bassFreq, 'sine', 0.21, beatSec * 0.82);
+        this.scheduleKickDrum(ctx, t, 115, 48, 0.16, 0.11);
+        if (beatIdx % 2 === 1) {
+          // Cute crisp hand-clap accent on beats 2 & 4
+          this.scheduleMusicPercussion(ctx, t, 2400, 0.13, 0.055);
+        }
       } else {
-        this.scheduleMusicPercussion(ctx, t, 3600, 0.17);
+        // Upbeat kawaii sparkle / pop twinkle
+        const sparkle = DANCE_POP_SPARKLES[Math.floor(i / 2) % DANCE_POP_SPARKLES.length];
+        this.scheduleMusicTone(ctx, t, sparkle, 'sine', 0.075, 0.075);
       }
     }
-    return true;
+  }
+
+  /**
+   * Style 2 ("Nhảy 2: Sóng Tay") — Smooth Groove / Chill (~105 BPM)
+   * Warm Rhodes-style electric piano chords, silky gliding bass, rimshot snare, and chill shuffle hats.
+   */
+  private scheduleGrooveChillTrack(
+    ctx: AudioContext,
+    now: number,
+    totalSec: number,
+    beatSec: number
+  ): void {
+    const eighthSec = beatSec * 0.5;
+    const totalEighths = Math.max(8, Math.floor(totalSec / eighthSec));
+
+    for (let i = 0; i < totalEighths; i += 1) {
+      const t = now + i * eighthSec;
+
+      // Lush warm Rhodes chord pad every 2 beats (every 4 eighth notes)
+      if (i % 4 === 0) {
+        const chord = DANCE_GROOVE_CHORDS[Math.floor(i / 4) % DANCE_GROOVE_CHORDS.length];
+        for (let n = 0; n < chord.length; n += 1) {
+          this.scheduleMusicTone(ctx, t + n * 0.012, chord[n], 'sine', 0.068, beatSec * 1.85);
+        }
+      }
+
+      // Smooth melodic chill motif
+      const leadFreq = DANCE_GROOVE_LEAD[i % DANCE_GROOVE_LEAD.length];
+      if (leadFreq > 0) {
+        this.scheduleMusicTone(ctx, t, leadFreq, 'triangle', 0.125, eighthSec * 0.92);
+      }
+
+      // Silky syncopated groove bass
+      if (i % 2 === 0 || i % 8 === 5) {
+        const bassFreq = DANCE_GROOVE_BASS[i % DANCE_GROOVE_BASS.length];
+        this.scheduleMusicTone(ctx, t, bassFreq, 'sine', 0.24, eighthSec * 1.45);
+      }
+
+      // Chill pocket drums: soft deep kick on 1 & 3-and, warm rimshot on 2 & 4, silky hats on offbeats
+      if (i % 8 === 0 || i % 8 === 5) {
+        this.scheduleKickDrum(ctx, t, 102, 42, 0.21, 0.14);
+      }
+      if (i % 4 === 2) {
+        this.scheduleMusicPercussion(ctx, t, 1950, 0.14, 0.06);
+      }
+      if (i % 2 === 1) {
+        this.scheduleMusicPercussion(ctx, t + 0.018, 5600, 0.065, 0.035);
+      }
+    }
+  }
+
+  /**
+   * Style 3 ("Nhảy 3: Quẩy Nhiệt") — High-Energy Dance / EDM / Phonk (~130 BPM)
+   * Punchy 4-on-the-floor kick, driving 808 bass, signature metallic Phonk cowbell hook, and crisp snare/hats.
+   */
+  private scheduleEdmPhonkTrack(
+    ctx: AudioContext,
+    now: number,
+    totalSec: number,
+    beatSec: number
+  ): void {
+    const eighthSec = beatSec * 0.5;
+    const totalEighths = Math.max(12, Math.floor(totalSec / eighthSec));
+
+    // Crisp opening drop crash
+    this.scheduleMusicPercussion(ctx, now, 3400, 0.18, 0.12);
+
+    for (let i = 0; i < totalEighths; i += 1) {
+      const t = now + i * eighthSec;
+
+      // Iconic energetic TikTok Phonk cowbell / EDM synth hook
+      const hookFreq = DANCE_PHONK_COWBELL[i % DANCE_PHONK_COWBELL.length];
+      if (hookFreq > 0) {
+        this.schedulePhonkCowbell(ctx, t, hookFreq, 0.135, eighthSec * 0.72);
+      }
+
+      // Punchy 4-on-the-floor EDM kick + driving 808 sub-bass
+      if (i % 2 === 0) {
+        const beatIdx = Math.floor(i / 2);
+        this.scheduleKickDrum(ctx, t, 145, 42, 0.27, 0.13);
+        const bassFreq = DANCE_PHONK_BASS[beatIdx % DANCE_PHONK_BASS.length];
+        this.scheduleMusicTone(ctx, t + 0.02, bassFreq, 'triangle', 0.22, beatSec * 0.85);
+        if (beatIdx % 2 === 1) {
+          // Snappy EDM clap/snare on beats 2 & 4
+          this.scheduleMusicPercussion(ctx, t, 2850, 0.18, 0.075);
+        }
+      } else {
+        // Fast driving offbeat EDM hi-hat
+        this.scheduleMusicPercussion(ctx, t, 6400, 0.09, 0.04);
+      }
+    }
+  }
+
+  private scheduleKickDrum(
+    ctx: AudioContext,
+    startTime: number,
+    startFreq: number,
+    endFreq: number,
+    peakGain: number,
+    durationSec: number
+  ): void {
+    if (!this.masterGain) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(startFreq, startTime);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + durationSec * 0.65);
+
+    gain.gain.setValueAtTime(0.001, startTime);
+    gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSec);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(startTime);
+    osc.stop(startTime + durationSec + 0.015);
+    this.trackMusicNode(osc);
+  }
+
+  private schedulePhonkCowbell(
+    ctx: AudioContext,
+    startTime: number,
+    freq: number,
+    peakGain: number,
+    durationSec: number
+  ): void {
+    if (!this.masterGain) return;
+    // Dual detuned metallic oscillators through a warm bandpass for classic live-friendly Phonk cowbell
+    const oscA = ctx.createOscillator();
+    const oscB = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    oscA.type = 'square';
+    oscB.type = 'triangle';
+    oscA.frequency.setValueAtTime(freq, startTime);
+    oscB.frequency.setValueAtTime(freq * 1.48, startTime);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(freq * 1.35, startTime);
+    filter.Q.setValueAtTime(2.2, startTime);
+
+    gain.gain.setValueAtTime(0.001, startTime);
+    gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSec);
+
+    oscA.connect(filter);
+    oscB.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    oscA.start(startTime);
+    oscB.start(startTime);
+    oscA.stop(startTime + durationSec + 0.015);
+    oscB.stop(startTime + durationSec + 0.015);
+    this.trackMusicNode(oscA);
+    this.trackMusicNode(oscB);
+  }
+
+  private trackMusicNode(node: AudioScheduledSourceNode): void {
+    this.activeMusicNodes.push(node);
+    node.onended = () => {
+      const idx = this.activeMusicNodes.indexOf(node);
+      if (idx !== -1) {
+        this.activeMusicNodes.splice(idx, 1);
+      }
+    };
   }
 
   private scheduleMusicTone(
@@ -618,25 +955,25 @@ export class WebAudioSoundEngine {
     osc.frequency.setValueAtTime(freq, startTime);
 
     gain.gain.setValueAtTime(0.001, startTime);
-    gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.015);
+    gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSec);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(startTime);
     osc.stop(startTime + durationSec + 0.02);
-    this.activeMusicNodes.push(osc);
+    this.trackMusicNode(osc);
   }
 
   private scheduleMusicPercussion(
     ctx: AudioContext,
     startTime: number,
     centerFreq: number,
-    peakGain: number
+    peakGain: number,
+    durationSec = 0.065
   ): void {
     if (!this.masterGain) return;
-    const dur = 0.065;
-    const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    const len = Math.max(1, Math.floor(ctx.sampleRate * durationSec));
     const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
     const ch = buffer.getChannelData(0);
     for (let i = 0; i < len; i += 1) {
@@ -652,13 +989,13 @@ export class WebAudioSoundEngine {
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(peakGain, startTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSec);
 
     src.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
     src.start(startTime);
-    this.activeMusicNodes.push(src);
+    this.trackMusicNode(src);
   }
 
   private stopActiveDanceMusic(): void {

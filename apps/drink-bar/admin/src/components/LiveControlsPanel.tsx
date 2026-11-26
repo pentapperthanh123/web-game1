@@ -259,7 +259,7 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => triggerJumpBrewStep(95)}
+            onClick={() => triggerJumpBrewStep(85)}
             className="bar-btn bg-[#FFFDF9] hover:bg-[#FFF5E6] py-1.5 px-1 text-[10px] font-black text-[#3B2820] text-center cursor-pointer truncate"
           >
             {msg.btnStep5}

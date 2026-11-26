@@ -19,6 +19,7 @@ import type {
   GiftTier,
   IceLevel,
   Language,
+  RecipeId,
 } from '@shared/types';
 import {
   triggerGiftLargeSimulation,
@@ -40,6 +41,14 @@ interface AutoBotBarPanelProps {
 
 const PACE_OPTIONS: readonly AutoBotPace[] = ['SLOW', 'NORMAL', 'FAST'];
 const ICE_OPTIONS: readonly IceLevel[] = ['NORMAL', 'LESS', 'EXTRA', 'NONE'];
+
+const DRINK_PRODUCT_IMAGE_MAP: Readonly<Record<RecipeId, string>> = {
+  matcha: '/drinks/matcha.png',
+  thai_tea: '/drinks/thai_tea.png',
+  coffee_milk: '/drinks/coffee_milk.png',
+  berry_soda: '/drinks/berry_soda.png',
+  blue_citrus: '/drinks/blue_citrus.png',
+};
 
 const DANCE_TIER_BUTTONS: readonly {
   tier: GiftTier;
@@ -188,20 +197,22 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
                 onClick={() =>
                   triggerSpecificOrderSimulation(recipe.id, selectedIce, 'SIMULATOR')
                 }
-                className={`bar-btn px-2 py-1.5 text-[11px] font-black flex flex-col items-center justify-center gap-0.5 transition-transform ${
+                className={`bar-btn px-1.5 py-1.5 text-[11px] font-black flex flex-col items-center justify-center gap-1 transition-transform ${
                   isSoldOut
                     ? 'bg-[#EFE0CC] text-[#9A7F70] opacity-60 cursor-not-allowed'
                     : 'bg-[#FFFDF9] hover:bg-[#FFF5E6] text-[#3B2820] cursor-pointer active:scale-95'
                 }`}
               >
-                <span className="inline-flex items-center gap-1 truncate max-w-full">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full border border-[#3B2820] shrink-0"
-                    style={{ backgroundColor: recipe.baseColor }}
+                <div className="w-[46px] h-[54px] rounded-[9px] bg-[#FBE7EE] border-[1.5px] border-[#3B2820]/20 overflow-hidden flex items-center justify-center shrink-0 shadow-inner">
+                  <img
+                    src={DRINK_PRODUCT_IMAGE_MAP[recipe.id]}
+                    alt={label}
+                    draggable={false}
+                    className="w-full h-full object-contain"
                   />
-                  <span className="truncate">{label}</span>
-                </span>
-                <span className="text-[9.5px] font-extrabold text-[#7A5F52]">
+                </div>
+                <span className="truncate max-w-full leading-tight">{label}</span>
+                <span className="text-[9.5px] font-extrabold text-[#7A5F52] leading-none">
                   {isSoldOut ? msg.soldOutBadge : `${currentMl}ml`}
                 </span>
               </button>
@@ -211,9 +222,9 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
           <button
             type="button"
             onClick={() => triggerOrderSimulation('SIMULATOR')}
-            className="bar-btn bg-[#CBEAD2] hover:bg-[#B7E1C0] px-2 py-1.5 text-[11px] font-black text-[#245B3A] flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+            className="bar-btn bg-[#CBEAD2] hover:bg-[#B7E1C0] px-2 py-1.5 text-[11px] font-black text-[#245B3A] flex flex-col items-center justify-center gap-1 cursor-pointer"
           >
-            <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+            <PlusCircle className="w-6 h-6 shrink-0" />
             <span className="truncate">{msg.btnAddOrder}</span>
           </button>
         </div>

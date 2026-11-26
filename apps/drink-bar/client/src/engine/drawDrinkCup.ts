@@ -21,16 +21,21 @@ import {
   CUP_PICKUP_END_PROGRESS,
   CUP_TOP_HALF_W,
   CUP_TOP_Y,
+  drawRisingSteamWisps,
   LID_PICKUP_END_PROGRESS,
+  LID_SNAP_END_PROGRESS,
+  LID_SNAP_MOMENT_PROGRESS,
+  STRAW_INSERT_END_PROGRESS,
+  STRAW_INSERT_START_PROGRESS,
   THAI_TEA_CREAM_START_PROGRESS,
 } from './brewEffects';
 import { roundedRectPath } from './drawBarScene';
 
 export { CUP1_CX, CUP2_CX, CUP_TOP_Y, CUP_BOTTOM_Y };
 
-const SHOWCASE_SLIDE_DURATION_MS = 600;
-const SHOWCASE_SLIDE_Y_PX = 18;
-const SHOWCASE_SCALE_BONUS = 0.05;
+const SHOWCASE_SLIDE_DURATION_MS = 620;
+const SHOWCASE_SLIDE_Y_PX = 24;
+const SHOWCASE_SCALE_BONUS = 0.06;
 
 export function computeShowcaseSlideFactor(drink: ActiveDrink | null): number {
   if (!drink || drink.phase !== 'SHOWCASE') {
@@ -69,31 +74,56 @@ export function drawBarDrinkCups(
   drawDrinkCupAtStation(ctx, CUP1_CX, activeSlots[0], language, elapsedSec, isDancing);
 }
 
+export function drawFinishedDrinkProduct(
+  ctx: CanvasRenderingContext2D,
+  recipeId: RecipeId,
+  canvasWidth: number,
+  canvasHeight: number
+): void {
+  const finishedSample: ActiveDrink = {
+    orderId: `catalog_${recipeId}`,
+    user: { id: 'catalog', nickname: 'Menu' },
+    recipeId,
+    toppings: [],
+    sugarLevel: 'NORMAL',
+    iceLevel: 'NORMAL',
+    isVip: false,
+    isSignature: false,
+    isGlowUpgraded: false,
+    createdAt: 0,
+    progress: 100,
+    phase: 'SHOWCASE',
+    showcaseRemainingMs: GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS,
+    lastUpdatedAt: 0,
+  };
+
+  // Frame cup cleanly centered inside thumbnail canvas with generous room for dome lid & fruit garnish
+  const scale = Math.min(canvasWidth / 90, canvasHeight / 124);
+  const cupVisualCenterY = (CUP_TOP_Y - 22 + CUP_BOTTOM_Y + 8) * 0.5;
+
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  ctx.save();
+  ctx.translate(canvasWidth * 0.5, canvasHeight * 0.5);
+  ctx.scale(scale, scale);
+  ctx.translate(-CUP1_CX, -cupVisualCenterY);
+  drawDrinkCupAtStation(ctx, CUP1_CX, finishedSample, 'VI', 1.25, false, true);
+  ctx.restore();
+}
+
 function drawDrinkCupAtStation(
   ctx: CanvasRenderingContext2D,
   cupCx: number,
   drink: ActiveDrink | null,
   language: Language,
   elapsedSec: number,
-  isDancing: boolean
+  isDancing: boolean,
+  hideProgressPill = false
 ): void {
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  // Smooth forward handover slide when cup reaches 100% (SHOWCASE): slides straight toward waiting customers
-  const slideFactor = computeShowcaseSlideFactor(drink);
-  const slideDy = SHOWCASE_SLIDE_Y_PX * slideFactor;
-  const cupScale = 1 + SHOWCASE_SCALE_BONUS * slideFactor;
-
-  ctx.save();
-  if (slideFactor > 0) {
-    ctx.translate(cupCx, CUP_BOTTOM_Y + slideDy);
-    ctx.scale(cupScale, cupScale);
-    ctx.translate(-cupCx, -CUP_BOTTOM_Y);
-  }
-
-  // 1. Compact coaster & soft drop shadow scaled to ~70% cup base
+  // 1. Stationary coaster & soft drop shadow anchored on counter (never squashes or doubles during P5 bounce!)
   ctx.beginPath();
   ctx.ellipse(cupCx, CUP_BOTTOM_Y + 3.5, 30, 6.5, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(59, 40, 32, 0.16)';
@@ -137,8 +167,35 @@ function drawDrinkCupAtStation(
 
   if (!drink) {
     ctx.restore();
-    ctx.restore();
     return;
+  }
+
+  // Smooth forward handover slide at 100% (SHOWCASE) + elastic squash & bounce right when lid snaps (93.5..96.5%)
+  const slideFactor = computeShowcaseSlideFactor(drink);
+  const slideDy = SHOWCASE_SLIDE_Y_PX * slideFactor;
+  let scaleX = 1 + SHOWCASE_SCALE_BONUS * slideFactor;
+  let scaleY = 1 + SHOWCASE_SCALE_BONUS * slideFactor;
+
+  if (
+    drink.phase === 'BREWING' &&
+    drink.progress >= LID_SNAP_MOMENT_PROGRESS &&
+    drink.progress < LID_SNAP_END_PROGRESS + 1.2
+  ) {
+    const bounceT = clamp01(
+      (drink.progress - LID_SNAP_MOMENT_PROGRESS) /
+        (LID_SNAP_END_PROGRESS + 1.2 - LID_SNAP_MOMENT_PROGRESS)
+    );
+    // Damped elastic squash -> spring rebound anchored cleanly at cup base (zero coaster stretch!)
+    const dampedWave = Math.sin(bounceT * Math.PI * 1.5) * (1 - bounceT);
+    scaleX += dampedWave * 0.068;
+    scaleY -= dampedWave * 0.078;
+  }
+
+  ctx.save();
+  if (slideFactor > 0 || scaleX !== 1 || scaleY !== 1) {
+    ctx.translate(cupCx, CUP_BOTTOM_Y + slideDy);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-cupCx, -CUP_BOTTOM_Y);
   }
 
   // Sub-step 0..CUP_PICKUP_END_PROGRESS: Cup is being carried from Cup Stack onto center coaster by barista
@@ -260,9 +317,42 @@ function drawDrinkCupAtStation(
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
+  // Warm aromatic coffee steam wisps rising from open cup during coffee pour before lid seals
+  if (
+    drink.recipeId === 'coffee_milk' &&
+    progress >= 56 &&
+    progress < LID_PICKUP_END_PROGRESS
+  ) {
+    drawRisingSteamWisps(ctx, cupCx, CUP_TOP_Y - 2, elapsedSec);
+  }
+
   if (progress >= LID_PICKUP_END_PROGRESS) {
-    const lidDrop = clamp01((progress - LID_PICKUP_END_PROGRESS) / 5);
-    drawDomeSealingLid(ctx, cupCx, lidDrop);
+    const lidDrop = clamp01(
+      (progress - LID_PICKUP_END_PROGRESS) /
+        (LID_SNAP_MOMENT_PROGRESS - LID_PICKUP_END_PROGRESS)
+    );
+    const easeDrop = lidDrop * lidDrop * (3 - 2 * lidDrop);
+    drawDomeSealingLid(ctx, cupCx, easeDrop);
+    // Crisp radial snap ring & sparkle burst right as dome lid clicks flush onto rim (93.5..97.5%)
+    if (progress >= LID_SNAP_MOMENT_PROGRESS && progress < LID_SNAP_END_PROGRESS + 2) {
+      const snapT = clamp01(
+        (progress - LID_SNAP_MOMENT_PROGRESS) /
+          (LID_SNAP_END_PROGRESS + 2 - LID_SNAP_MOMENT_PROGRESS)
+      );
+      drawLidSnapGleam(ctx, cupCx, CUP_TOP_Y, snapT);
+    }
+
+    // 9b. Clean Takeaway Straw inserted strictly after lid seal (>= 96%)
+    if (progress >= STRAW_INSERT_START_PROGRESS) {
+      const insertT =
+        drink.phase === 'SHOWCASE'
+          ? 1
+          : clamp01(
+              (progress - STRAW_INSERT_START_PROGRESS) /
+                (STRAW_INSERT_END_PROGRESS - STRAW_INSERT_START_PROGRESS)
+            );
+      drawTakeawayStraw(ctx, cupCx, CUP_TOP_Y, insertT, recipe.accentColor);
+    }
   } else {
     drawOpenCupRim(ctx, cupCx);
   }
@@ -272,11 +362,18 @@ function drawDrinkCupAtStation(
     drawSignatureCupBadge(ctx, cupCx);
   }
 
+  // 10b. Kraft Paper Bag packaging during SHOWCASE: wraps cup cleanly with lid/straw peeking out
+  if (drink.phase === 'SHOWCASE' && !hideProgressPill) {
+    drawTakeawayPaperBag(ctx, cupCx, CUP_BOTTOM_Y, drink);
+  }
+
   // Restore cup handover transform so progress pill remains cleanly anchored above waiting guests
   ctx.restore();
 
   // 11. Neat phase progress pill below coaster on counter top (same activeSlots source)
-  drawCupProgressPill(ctx, cupCx, drink, language, isDancing);
+  if (!hideProgressPill) {
+    drawCupProgressPill(ctx, cupCx, drink, language, isDancing);
+  }
 
   ctx.restore();
 }
@@ -298,11 +395,11 @@ function drawDomeSealingLid(
   cupCx: number,
   dropFactor: number
 ): void {
-  const dropOffsetY = -(1 - dropFactor) * 14;
+  const dropOffsetY = -(1 - dropFactor) * 15;
   ctx.save();
   ctx.translate(0, dropOffsetY);
   ctx.beginPath();
-  ctx.arc(cupCx, CUP_TOP_Y - 1.5, CUP_TOP_HALF_W, Math.PI, 0, false);
+  ctx.arc(cupCx, CUP_TOP_Y - 1, CUP_TOP_HALF_W, Math.PI, 0, false);
   ctx.closePath();
   ctx.fillStyle = 'rgba(255, 253, 249, 0.58)';
   ctx.fill();
@@ -310,20 +407,270 @@ function drawDomeSealingLid(
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  // Lid snap-on rim band (drawn ONLY in P5 when sealed)
+  // Subtle curved specular shine inside dome lid
+  ctx.beginPath();
+  ctx.arc(cupCx, CUP_TOP_Y - 1, CUP_TOP_HALF_W - 5, Math.PI * 1.15, Math.PI * 1.48, false);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.lineWidth = 2.0;
+  ctx.stroke();
+
+  // Flush snap-on rim band sized 100% to reduced CUP_TOP_HALF_W (23px, no overhang, no straw!)
   roundedRectPath(
     ctx,
-    cupCx - CUP_TOP_HALF_W - 3,
-    CUP_TOP_Y - 4,
-    (CUP_TOP_HALF_W + 3) * 2,
-    8,
-    4
+    cupCx - CUP_TOP_HALF_W - 2.2,
+    CUP_TOP_Y - 3.6,
+    (CUP_TOP_HALF_W + 2.2) * 2,
+    7.2,
+    3.6
   );
-  ctx.fillStyle = 'rgba(255, 253, 249, 0.9)';
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.92)';
   ctx.fill();
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
+  ctx.restore();
+}
+
+function drawLidSnapGleam(
+  ctx: CanvasRenderingContext2D,
+  cupCx: number,
+  rimY: number,
+  snapT: number
+): void {
+  const alpha = Math.sin(snapT * Math.PI) * 0.95;
+  if (alpha <= 0.04) return;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.lineCap = 'round';
+
+  // 1. Expanding golden-cream snap ring around sealed lid rim
+  const ringRx = CUP_TOP_HALF_W + 4 + snapT * 14;
+  const ringRy = 4.5 + snapT * 4.5;
+  ctx.beginPath();
+  ctx.ellipse(cupCx, rimY, ringRx, ringRy, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = '#FFF5C2';
+  ctx.lineWidth = 2.2 * (1 - snapT * 0.5);
+  ctx.stroke();
+
+  // 2. Crisp radial snap ticks + micro 4-point sparkles at left & right rim edges
+  const burstSpread = 4 + snapT * 11;
+  const leftX = cupCx - CUP_TOP_HALF_W - 5;
+  const rightX = cupCx + CUP_TOP_HALF_W + 5;
+  ctx.strokeStyle = '#FFFDF9';
+  ctx.lineWidth = 2.1;
+  ctx.beginPath();
+  ctx.moveTo(leftX - burstSpread, rimY - 4);
+  ctx.lineTo(leftX - burstSpread * 0.4, rimY - 1);
+  ctx.moveTo(leftX - burstSpread * 0.85, rimY + 4);
+  ctx.lineTo(leftX - burstSpread * 0.35, rimY + 2);
+  ctx.moveTo(rightX + burstSpread, rimY - 4);
+  ctx.lineTo(rightX + burstSpread * 0.4, rimY - 1);
+  ctx.moveTo(rightX + burstSpread * 0.85, rimY + 4);
+  ctx.lineTo(rightX + burstSpread * 0.35, rimY + 2);
+  ctx.stroke();
+
+  // Tiny 4-point golden sparkles popping upward from the snap rim
+  const starR = 3.8 * Math.sin(snapT * Math.PI);
+  const starRise = snapT * 10;
+  ctx.fillStyle = '#F7C95B';
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 1.2;
+  for (let s = -1; s <= 1; s += 2) {
+    const sx = cupCx + s * (CUP_TOP_HALF_W + 2 + snapT * 6);
+    const sy = rimY - 6 - starRise;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - starR);
+    ctx.quadraticCurveTo(sx, sy, sx + starR, sy);
+    ctx.quadraticCurveTo(sx, sy, sx, sy + starR);
+    ctx.quadraticCurveTo(sx, sy, sx - starR, sy);
+    ctx.quadraticCurveTo(sx, sy, sx, sy - starR);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawTakeawayStraw(
+  ctx: CanvasRenderingContext2D,
+  cupCx: number,
+  rimY: number,
+  insertProgress: number,
+  accentColor: string
+): void {
+  const easeInsert = insertProgress * insertProgress * (3 - 2 * insertProgress);
+  const slideOffsetY = -(1 - easeInsert) * 26;
+  const strawTiltRad = -0.16;
+  const strawW = 5.2;
+
+  ctx.save();
+  ctx.translate(cupCx + 1, rimY - 4 + slideOffsetY);
+  ctx.rotate(strawTiltRad);
+
+  // Straw body: clean pastel cream cylinder with rounded ends
+  const halfW = strawW * 0.5;
+  roundedRectPath(ctx, -halfW, -22, strawW, 38, 2.4);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  // Subtle recipe-colored spiral rings / bands on straw
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = accentColor;
+  for (let y = -18; y < 16; y += 9) {
+    ctx.beginPath();
+    ctx.moveTo(-halfW - 2, y);
+    ctx.lineTo(halfW + 2, y + 4);
+    ctx.lineTo(halfW + 2, y + 7);
+    ctx.lineTo(-halfW - 2, y + 3);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Specular shine along edge
+  ctx.beginPath();
+  ctx.moveTo(halfW - 1.2, -20);
+  ctx.lineTo(halfW - 1.2, 14);
+  ctx.lineWidth = 1.0;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawTakeawayPaperBag(
+  ctx: CanvasRenderingContext2D,
+  cupCx: number,
+  cupBottomY: number,
+  drink: ActiveDrink
+): void {
+  const elapsedMs = Math.max(0, GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS - drink.showcaseRemainingMs);
+  const bagT = clamp01(elapsedMs / 480);
+  const easeBag = bagT * bagT * (3 - 2 * bagT);
+
+  // Bag slides up from counter to hug the cup (leaving dome lid + straw peeking out)
+  const bagW = 56;
+  const bagH = 50;
+  const bagHalfW = bagW * 0.5;
+  const bagBaseY = cupBottomY + 2;
+  const bagTopY = bagBaseY - bagH * easeBag;
+  const activeBagH = bagH * easeBag;
+
+  if (activeBagH < 6) return;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 1. Two curved twisted-paper rope handles looped above the bag rim
+  if (easeBag > 0.55) {
+    const handleAlpha = clamp01((easeBag - 0.55) / 0.45);
+    ctx.save();
+    ctx.globalAlpha = handleAlpha;
+
+    // Handle cord fill & outline
+    ctx.strokeStyle = '#B38E5A';
+    ctx.lineWidth = 3.2;
+    ctx.beginPath();
+    ctx.ellipse(cupCx - 11, bagTopY - 2, 7.5, 12, 0, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cupCx + 11, bagTopY - 2, 7.5, 12, 0, Math.PI, 0, false);
+    ctx.stroke();
+
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.ellipse(cupCx - 11, bagTopY - 2, 7.5, 12, 0, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cupCx + 11, bagTopY - 2, 7.5, 12, 0, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 2. Kraft paper bag main trapezoid pouch
+  const topHalfW = bagHalfW;
+  const bottomHalfW = bagHalfW - 3;
+  ctx.beginPath();
+  ctx.moveTo(cupCx - topHalfW, bagTopY);
+  ctx.lineTo(cupCx + topHalfW, bagTopY);
+  ctx.lineTo(cupCx + bottomHalfW, bagBaseY - 4);
+  ctx.quadraticCurveTo(cupCx + bottomHalfW, bagBaseY, cupCx + bottomHalfW - 5, bagBaseY);
+  ctx.lineTo(cupCx - bottomHalfW + 5, bagBaseY);
+  ctx.quadraticCurveTo(cupCx - bottomHalfW, bagBaseY, cupCx - bottomHalfW, bagBaseY - 4);
+  ctx.closePath();
+
+  // Natural warm kraft paper gradient
+  const bagGrad = ctx.createLinearGradient(cupCx - topHalfW, bagTopY, cupCx + topHalfW, bagBaseY);
+  bagGrad.addColorStop(0, '#E8C99B');
+  bagGrad.addColorStop(1, '#D8B382');
+  ctx.fillStyle = bagGrad;
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  // 3. Side gusset crease lines for authentic folded paper feel
+  ctx.save();
+  ctx.strokeStyle = 'rgba(179, 137, 88, 0.45)';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(cupCx - topHalfW + 7, bagTopY + 4);
+  ctx.lineTo(cupCx - bottomHalfW + 5, bagBaseY - 3);
+  ctx.moveTo(cupCx + topHalfW - 7, bagTopY + 4);
+  ctx.lineTo(cupCx + bottomHalfW - 5, bagBaseY - 3);
+  ctx.stroke();
+  ctx.restore();
+
+  // 4. Folded top collar band
+  roundedRectPath(ctx, cupCx - topHalfW - 1, bagTopY - 2, (topHalfW + 1) * 2, 5.5, 2.5);
+  ctx.fillStyle = '#DFC090';
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  // 5. Cute cafe brand stamp on bag front (tiny heart or cup + "♥")
+  if (easeBag > 0.75) {
+    const stampAlpha = clamp01((easeBag - 0.75) / 0.25);
+    const stampY = bagTopY + activeBagH * 0.48;
+    ctx.save();
+    ctx.globalAlpha = stampAlpha;
+
+    // Cream stamp pill
+    roundedRectPath(ctx, cupCx - 17, stampY - 8, 34, 16, 8);
+    ctx.fillStyle = '#FFFDF9';
+    ctx.fill();
+    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.stroke();
+
+    // Cute drink recipe accent dot in center
+    ctx.beginPath();
+    ctx.arc(cupCx - 6, stampY, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = RECIPE_MAP[drink.recipeId].baseColor;
+    ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.stroke();
+
+    // Tiny heart
+    ctx.fillStyle = '#F48BA3';
+    ctx.font = '800 8.5px "Fredoka", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('♥', cupCx + 7, stampY + 0.5);
+
+    ctx.restore();
+  }
+
   ctx.restore();
 }
 
@@ -487,8 +834,8 @@ function drawIceDropAndFloatingCubes(
   const buoyancyBlend = clamp01((liquidDepth - 10) / 20);
 
   for (let i = 0; i < cubeCount; i += 1) {
-    // Proportionate cube scale for ~70% cup: 7.6px .. 8.6px with 2.2px rounded corners
-    const size = 7.6 + seededIceUnit(cupSeed, i, 4) * 1.0;
+    // Proportionate cube scale for sleek 68px cup: 6.6px .. 7.5px with rounded corners
+    const size = 6.6 + seededIceUnit(cupSeed, i, 4) * 0.9;
     const half = size * 0.5;
     const rot = (seededIceUnit(cupSeed, i, 3) - 0.5) * 0.72;
 

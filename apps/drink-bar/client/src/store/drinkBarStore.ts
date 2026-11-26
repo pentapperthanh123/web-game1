@@ -100,6 +100,7 @@ export interface DepartingGuest {
   order: DrinkOrder;
   lane: GuestLaneIndex;
   row: number;
+  isCenterPickup?: boolean;
   celebrateUntil: number;
   removeAt: number;
   phase: 'CELEBRATING' | 'EXITING';
@@ -108,8 +109,8 @@ export interface DepartingGuest {
 }
 
 const MAX_GUESTS_PER_LANE = 2;
-const GUEST_CELEBRATE_MS = 680;
-const GUEST_EXIT_MS = 500;
+const GUEST_CELEBRATE_MS = 720;
+const GUEST_EXIT_MS = 580;
 
 const GUEST_THANK_TEXT_MAP: Record<Language, string> = {
   EN: 'Thanks! ♡',
@@ -312,6 +313,26 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       });
 
     const existingDepartingIds = new Set(nextDeparting.map((g) => g.order.orderId));
+
+    // 2a. Spawn dedicated center-counter pickup & departure animation for the customer whose drink just hit 100%
+    for (const { drink: completed, targetLane } of newlyCompleted) {
+      if (existingDepartingIds.has(completed.orderId)) {
+        continue;
+      }
+      const celebrateUntil = now + GUEST_CELEBRATE_MS;
+      nextDeparting.push({
+        order: completed,
+        lane: targetLane,
+        row: 0,
+        isCenterPickup: true,
+        celebrateUntil,
+        removeAt: celebrateUntil + GUEST_EXIT_MS,
+        phase: 'CELEBRATING',
+        bubbleText: thankText,
+        recipeColor: RECIPE_MAP[completed.recipeId].baseColor,
+      });
+      existingDepartingIds.add(completed.orderId);
+    }
 
     for (const prevOrder of prevVisible) {
       if (nextVisibleIds.has(prevOrder.orderId) || existingDepartingIds.has(prevOrder.orderId)) {

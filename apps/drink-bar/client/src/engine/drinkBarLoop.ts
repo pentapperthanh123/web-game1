@@ -7,6 +7,11 @@ import {
   CAFE_POUR_END_PROGRESS,
   clamp01,
   computeLiquidFillSnapshot,
+  CUP_BOTTOM_Y,
+  CUP_HEIGHT,
+  LID_PICKUP_END_PROGRESS,
+  LID_SNAP_MOMENT_PROGRESS,
+  STRAW_INSERT_START_PROGRESS,
 } from './brewEffects';
 import {
   drawBarBackdrop,
@@ -21,6 +26,9 @@ import {
   isCupPickupSubstep,
   isHoldingOatsideSubstep,
   isLidPickupSubstep,
+  isMatchaGrabSubstep,
+  isMatchaReturnSubstep,
+  isMatchaScoopSubstep,
   isMatchaShelfSubstep,
   isShakerDetachedSubstep,
   isShakerLiftSubstep,
@@ -32,7 +40,7 @@ import { drawBarDrinkCups } from './drawDrinkCup';
 import { drinkParticles, type CupStationId } from './particlePool';
 
 const STEP2_PREP_SFX_MAP: Record<RecipeId, SfxKind> = {
-  matcha: 'whip_froth',
+  matcha: 'chasen',
   thai_tea: 'shaker',
   coffee_milk: 'whip_froth',
   berry_soda: 'whip_froth',
@@ -40,13 +48,22 @@ const STEP2_PREP_SFX_MAP: Record<RecipeId, SfxKind> = {
 };
 
 function resolvePhaseSfx(drink: ActiveDrink, action: BrewPhaseAction): SfxKind | null {
-  if (isCupPickupSubstep(drink) || isLidPickupSubstep(drink) || isShakerLiftSubstep(drink)) {
+  if (
+    isCupPickupSubstep(drink) ||
+    isLidPickupSubstep(drink) ||
+    isShakerLiftSubstep(drink) ||
+    isMatchaGrabSubstep(drink) ||
+    isMatchaReturnSubstep(drink)
+  ) {
     return 'cup_place';
   }
   if (isSugarButtonSubstep(drink)) {
     return 'sugar_click';
   }
-  if (isMatchaShelfSubstep(drink) || isBobaScoopSubstep(drink)) {
+  if (isMatchaScoopSubstep(drink)) {
+    return 'matcha_scoop';
+  }
+  if (isBobaScoopSubstep(drink)) {
     return 'topping';
   }
   switch (action) {
@@ -61,17 +78,38 @@ function resolvePhaseSfx(drink: ActiveDrink, action: BrewPhaseAction): SfxKind |
     case 'topping':
       return 'topping';
     case 'seal':
-      return 'lid_snap';
+      if (drink.progress >= STRAW_INSERT_START_PROGRESS) {
+        return 'straw_insert';
+      }
+      // Fire crisp lid_snap strictly at the exact snap-lock frame (93.5%), not during downward approach
+      return drink.progress >= LID_SNAP_MOMENT_PROGRESS ? 'lid_snap' : null;
   }
 }
 
 function resolveSubstepKey(drink: ActiveDrink, stepNumber: number): string {
   if (isCupPickupSubstep(drink)) return `${drink.orderId}:cup_pickup`;
-  if (isMatchaShelfSubstep(drink)) return `${drink.orderId}:matcha_shelf`;
+  if (isMatchaGrabSubstep(drink)) return `${drink.orderId}:matcha_grab`;
+  if (isMatchaScoopSubstep(drink)) return `${drink.orderId}:matcha_scoop`;
+  if (isMatchaReturnSubstep(drink)) return `${drink.orderId}:matcha_return`;
   if (isSugarButtonSubstep(drink)) return `${drink.orderId}:sugar_press`;
   if (isBobaScoopSubstep(drink)) return `${drink.orderId}:boba_scoop`;
   if (isShakerLiftSubstep(drink)) return `${drink.orderId}:shaker_lift`;
   if (isLidPickupSubstep(drink)) return `${drink.orderId}:lid_pickup`;
+  if (
+    drink.progress >= LID_PICKUP_END_PROGRESS &&
+    drink.progress < LID_SNAP_MOMENT_PROGRESS
+  ) {
+    return `${drink.orderId}:lid_press`;
+  }
+  if (
+    drink.progress >= LID_SNAP_MOMENT_PROGRESS &&
+    drink.progress < STRAW_INSERT_START_PROGRESS
+  ) {
+    return `${drink.orderId}:lid_snap`;
+  }
+  if (drink.progress >= STRAW_INSERT_START_PROGRESS) {
+    return `${drink.orderId}:straw_insert`;
+  }
   return `${drink.orderId}:${stepNumber}`;
 }
 
@@ -186,9 +224,7 @@ export class DrinkBarCanvasLoop {
       this.equipmentState.isPressingSugarButton = isSugarButtonSubstep(primary);
       this.equipmentState.isUsingFrother =
         (step.action === 'tool_prep' &&
-          (primary.recipeId === 'matcha' ||
-            primary.recipeId === 'coffee_milk' ||
-            primary.recipeId === 'berry_soda')) ||
+          (primary.recipeId === 'coffee_milk' || primary.recipeId === 'berry_soda')) ||
         (step.action === 'pour_mix' &&
           primary.recipeId === 'coffee_milk' &&
           primary.progress < CAFE_POUR_END_PROGRESS);
@@ -285,15 +321,27 @@ export class DrinkBarCanvasLoop {
     isDancing: boolean
   ): void {
     if (!drink || drink.phase !== 'BREWING' || isDancing) return;
-    if (drink.recipeId === 'coffee_milk') return;
     if (isShakerLiftSubstep(drink)) return;
 
     const step = getBrewStep(drink.progress, drink.recipeId);
+    const accent = RECIPE_MAP[drink.recipeId].accentColor;
+
+    // Ice-cube chill mist droplets when cubes drop into the cup
+    if (
+      step.action === 'add_ice' &&
+      !isBobaScoopSubstep(drink) &&
+      drink.iceLevel !== 'NONE' &&
+      Math.random() < 0.24
+    ) {
+      drinkParticles.emitAmbientPour(cupId, 636, '#E8F7FA', false, false);
+      return;
+    }
+
     if (step.action !== 'pour_mix') return;
+    if (drink.recipeId === 'coffee_milk' && drink.progress >= CAFE_POUR_END_PROGRESS) return;
 
     const isSodaPouring = drink.recipeId === 'berry_soda';
     const surfaceY = computeLiquidFillSnapshot(drink.recipeId, drink.progress).surfaceY;
-    const accent = RECIPE_MAP[drink.recipeId].accentColor;
     drinkParticles.emitAmbientPour(cupId, surfaceY, accent, isFastBoost, isSodaPouring);
   }
 
@@ -336,6 +384,8 @@ export class DrinkBarCanvasLoop {
       !isCupPickupSubstep(drink) &&
       !isLidPickupSubstep(drink) &&
       !isShakerLiftSubstep(drink) &&
+      !isMatchaGrabSubstep(drink) &&
+      !isMatchaReturnSubstep(drink) &&
       (step.action === 'dispense' || step.action === 'tool_prep') &&
       this.elapsedSec - this.lastAmbientSfxSec >= sfxIntervalSec
     ) {
@@ -361,11 +411,12 @@ export class DrinkBarCanvasLoop {
     } else if (
       step.action === 'pour_mix' &&
       !isShakerLiftSubstep(drink) &&
-      this.elapsedSec - this.lastAmbientSfxSec >= 0.56
+      this.elapsedSec - this.lastAmbientSfxSec >= 0.52
     ) {
       this.lastAmbientSfxSec = this.elapsedSec;
-      const pitchScale =
-        0.95 + Math.min(1, Math.max(0, (drink.progress - 56) / 28)) * 0.45;
+      const fill = computeLiquidFillSnapshot(drink.recipeId, drink.progress);
+      const fillRatio = clamp01((CUP_BOTTOM_Y - fill.surfaceY) / Math.max(1, CUP_HEIGHT - 6));
+      const pitchScale = 0.88 + fillRatio * 0.56;
       drinkBarAudio.play('pour', undefined, undefined, pitchScale);
       if (drink.recipeId === 'berry_soda') {
         drinkBarAudio.play('soda_fizz');

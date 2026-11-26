@@ -1,16 +1,60 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getMessages } from '@shared/i18n';
+import { RECIPE_MAP } from '@shared/recipes';
+import type { RecipeId } from '@shared/types';
 import { LeftGiftAndQueuePanel } from './components/LeftGiftAndQueuePanel';
 import { SafeZoneGuide } from './components/SafeZoneGuide';
 import { ScaledStage } from './components/ScaledStage';
 import { TopHeaderAndShelf } from './components/TopHeaderAndShelf';
 import { WaitingGuestsStrip } from './components/WaitingGuestsStrip';
+import { drawFinishedDrinkProduct } from './engine/drawDrinkCup';
 import { DrinkBarCanvasLoop } from './engine/drinkBarLoop';
 import { drinkBarAudio } from './services/audioManager';
 import { DrinkBarCoreReceiver } from './services/coreReceiver';
 import { useDrinkBarStore } from './store/drinkBarStore';
 
+const CAPTURE_WIDTH = 240;
+const CAPTURE_HEIGHT = 280;
+
+function readCaptureRecipeId(): RecipeId | null {
+  if (typeof window === 'undefined') return null;
+  const raw = new URLSearchParams(window.location.search).get('captureDrink');
+  if (!raw || !(raw in RECIPE_MAP)) return null;
+  return raw as RecipeId;
+}
+
+const DrinkProductCaptureCanvas: React.FC<{ recipeId: RecipeId }> = ({ recipeId }) => {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    document.documentElement.style.background = 'transparent';
+    document.body.style.background = 'transparent';
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    drawFinishedDrinkProduct(ctx, recipeId, CAPTURE_WIDTH, CAPTURE_HEIGHT);
+  }, [recipeId]);
+
+  return (
+    <canvas
+      ref={ref}
+      width={CAPTURE_WIDTH}
+      height={CAPTURE_HEIGHT}
+      className="block w-[240px] h-[280px] bg-transparent"
+    />
+  );
+};
+
 export const App: React.FC = () => {
+  const captureRecipeId = readCaptureRecipeId();
+  if (captureRecipeId) {
+    return <DrinkProductCaptureCanvas recipeId={captureRecipeId} />;
+  }
+  return <DrinkBarStage />;
+};
+
+const DrinkBarStage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isAudioUnlocked, setIsAudioUnlocked] = useState<boolean>(() =>
     drinkBarAudio.isUnlocked()

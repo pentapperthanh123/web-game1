@@ -6,11 +6,11 @@ import { roundedRectPath } from './drawBarScene';
 export const CUP1_CX = 360;
 export const CUP2_CX = 360;
 export const CUP_BOTTOM_Y = 672; // Coaster center remains anchored on counter
-export const CUP_HEIGHT = 82; // Compact ~70% scale balanced with barista & counter equipment
-export const CUP_TOP_Y = CUP_BOTTOM_Y - CUP_HEIGHT; // 590
-export const CUP_TOP_HALF_W = 25; // ~70% of 36px (50px rim width)
-export const CUP_BOTTOM_HALF_W = 18; // ~70% of 26px (36px base width)
-export const CUP_CORNER_R = 11; // ~70% of 15px
+export const CUP_HEIGHT = 68; // Sleek compact cup keeping rim comfortably below barista chest
+export const CUP_TOP_Y = CUP_BOTTOM_Y - CUP_HEIGHT; // 604
+export const CUP_TOP_HALF_W = 23; // 46px rim width balanced with shorter cup height
+export const CUP_BOTTOM_HALF_W = 16.5; // 33px sturdy base width
+export const CUP_CORNER_R = 10;
 
 export interface Point2D {
   x: number;
@@ -170,7 +170,10 @@ export function computeLiquidFillSnapshot(
 }
 
 export const CUP_PICKUP_END_PROGRESS = 7;
-export const MATCHA_SHELF_END_PROGRESS = 14;
+export const MATCHA_MILK_PREP_END_PROGRESS = 10.5;
+export const MATCHA_GRAB_END_PROGRESS = 13;
+export const MATCHA_SCOOP_END_PROGRESS = 17.5;
+export const MATCHA_SHELF_END_PROGRESS = 20;
 export const SUGAR_PRESS_START_PROGRESS = 15;
 export const DISPENSE_END_PROGRESS = 20;
 export const BOBA_SCOOP_START_PROGRESS = 42;
@@ -181,6 +184,10 @@ export const THAI_TEA_CREAM_START_PROGRESS = 77;
 export const CAFE_POUR_END_PROGRESS = 75;
 export const CAFE_CREAM_START_PROGRESS = 78;
 export const LID_PICKUP_END_PROGRESS = 90;
+export const LID_SNAP_MOMENT_PROGRESS = 93.5;
+export const LID_SNAP_END_PROGRESS = 96;
+export const STRAW_INSERT_START_PROGRESS = 96;
+export const STRAW_INSERT_END_PROGRESS = 99.5;
 
 export const MATCHA_MILK_SPLIT_RATIO = 0.36;
 export const MATCHA_SWAP_END_RATIO = 0.48;
@@ -272,14 +279,16 @@ export function drawPourLiquidEffect(
   const ctrlX = spout.x + (impactX - spout.x) * 0.55;
   const ctrlY = spout.y + (clampedTargetY - spout.y) * 0.32;
 
-  // 1. Liquid stream with #3B2820 (2.5px) outline and crisp inner highlight
+  // 1. Liquid stream with #3B2820 (2.5px) outline, organic flow wobble, and animated downward sheen
   ctx.save();
   ctx.lineCap = 'round';
+  const flowWobble = Math.sin(elapsedSec * (isFastBoost ? 28 : 19)) * 0.45;
+  const streamW = (isFastBoost ? 5.6 : 4.6) + flowWobble;
+
   ctx.beginPath();
   ctx.moveTo(spout.x, spout.y);
   ctx.quadraticCurveTo(ctrlX, ctrlY, impactX, clampedTargetY);
 
-  const streamW = isFastBoost ? 5.6 : 4.5;
   ctx.lineWidth = streamW + 2.5;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
@@ -289,11 +298,20 @@ export function drawPourLiquidEffect(
   ctx.stroke();
 
   // Crisp inner liquid highlight
-  ctx.lineWidth = 1.8;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.78)';
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
   ctx.stroke();
 
-  // 2. Splash ripples & droplets at exact impactY matching active pouring liquidColor
+  // Animated downward-moving glossy bead dashes along the stream
+  ctx.save();
+  ctx.setLineDash([5, 9]);
+  ctx.lineDashOffset = -(elapsedSec * (isFastBoost ? 110 : 72));
+  ctx.lineWidth = 1.9;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+  ctx.stroke();
+  ctx.restore();
+
+  // 2. Dual concentric splash ripples, foam crown & droplets at exact impactY matching active liquidColor
   drawSurfaceSplashAndFizz(
     ctx,
     impactX,
@@ -413,37 +431,15 @@ function drawTiltedPourVessel(
   }
 
   if (toolType === 'shaker') {
-    // Milk Tea translucent/stainless cocktail shaker whose liquid level visibly drains (0.95 -> 0.0) while pouring!
-    roundedRectPath(ctx, -11.5, -17, 23, 38, 6.5);
-    ctx.fillStyle = '#F6F0E9';
-    ctx.fill();
-    ctx.stroke();
-
-    // Inner clear viewing cavity (stays light frosted empty space as liquid drains out!)
-    roundedRectPath(ctx, -9, -13, 18, 30, 4);
-    ctx.fillStyle = 'rgba(255, 253, 249, 0.82)';
-    ctx.fill();
-
-    // Remaining milk tea liquid drains smoothly toward the tilted mouth (-Y in local space) as vesselFillRatio -> 0
-    const clampedFill = clamp01(vesselFillRatio);
-    if (clampedFill > 0.03) {
-      const fillH = Math.max(3, 28 * clampedFill);
-      roundedRectPath(ctx, -9, -13, 18, fillH, 3.5);
-      ctx.fillStyle = liquidColor;
-      ctx.fill();
-    }
-
-    // Open silver pouring collar
-    roundedRectPath(ctx, -10, -22, 20, 6.5, 3);
-    ctx.fillStyle = '#E0D7CD';
-    ctx.fill();
-    ctx.stroke();
-
-    // Strainer mouth opening centered at (0, -25)
-    roundedRectPath(ctx, -6, -26.5, 12, 5, 2.5);
-    ctx.fillStyle = clampedFill > 0.03 ? liquidColor : '#E8E0D6';
-    ctx.fill();
-    ctx.stroke();
+    // Realistic 3-piece tapered 700ml boba shaker (cap removed for pouring, liquid visibly drains 0.94 -> 0.0)
+    drawRealisticBobaShaker(ctx, {
+      liquidColor,
+      fillRatio: vesselFillRatio,
+      isCapClosed: false,
+      isPouringTilted: true,
+      isShaking: false,
+      elapsedSec: 0,
+    });
     return;
   }
 
@@ -562,26 +558,39 @@ export function drawSurfaceSplashAndFizz(
   isSodaFizz: boolean,
   elapsedSec: number
 ): void {
-  const minX = cupCx - CUP_BOTTOM_HALF_W + 4;
-  const maxX = cupCx + CUP_BOTTOM_HALF_W - 4;
+  const minX = cupCx - CUP_BOTTOM_HALF_W + 3.5;
+  const maxX = cupCx + CUP_BOTTOM_HALF_W - 3.5;
   const clampX = (x: number) => Math.max(minX, Math.min(maxX, x));
 
-  // Concentric ripple ring on surface scaled to compact cup
-  const rippleR = 4.5 + ((elapsedSec * 11) % 6.5);
-  ctx.beginPath();
-  ctx.ellipse(impactX, surfaceY, rippleR, 2.2, 0, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  // Micro splash droplets bounded inside cup width
-  const count = isSodaFizz ? 5 : 4;
-  for (let i = 0; i < count; i += 1) {
-    const phase = (elapsedSec * 4.5 + i * 0.27) % 1;
-    const spread = ((i % 2 === 0 ? -1 : 1) * (3 + i * 2.0)) * phase;
-    const arcY = surfaceY - Math.sin(phase * Math.PI) * (isSodaFizz ? 10.5 : 7);
+  // Dual phase-offset concentric expanding ripple rings on liquid meniscus
+  for (let r = 0; r < 2; r += 1) {
+    const cycle = (elapsedSec * 2.1 + r * 0.5) % 1;
+    const rippleR = 3.2 + cycle * 9.5;
+    const alpha = (1 - cycle) * 0.78;
     ctx.beginPath();
-    ctx.arc(clampX(impactX + spread), arcY, isSodaFizz ? 2.0 : 1.7, 0, Math.PI * 2);
+    ctx.ellipse(impactX, surfaceY, rippleR, 1.8 + cycle * 1.1, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Glossy foam impact crown right where stream meets surface
+  const crownPulse = 3.2 + Math.sin(elapsedSec * 16) * 0.7;
+  ctx.beginPath();
+  ctx.ellipse(impactX, surfaceY, crownPulse + 1.8, 2.0, 0, 0, Math.PI * 2);
+  ctx.fillStyle = isSodaFizz ? 'rgba(232, 247, 250, 0.9)' : 'rgba(255, 253, 249, 0.72)';
+  ctx.fill();
+
+  // Micro splash droplets arcing & landing cleanly inside cup width
+  const count = isSodaFizz ? 6 : 4;
+  for (let i = 0; i < count; i += 1) {
+    const phase = (elapsedSec * 4.8 + i * 0.24) % 1;
+    const dir = i % 2 === 0 ? -1 : 1;
+    const spread = dir * (2.6 + i * 1.8) * phase;
+    const arcY = surfaceY - Math.sin(phase * Math.PI) * (isSodaFizz ? 11.5 : 7.8);
+    const radius = (isSodaFizz ? 2.1 : 1.75) * (1 - phase * 0.35);
+    ctx.beginPath();
+    ctx.arc(clampX(impactX + spread), arcY, radius, 0, Math.PI * 2);
     ctx.fillStyle = isSodaFizz ? '#E8F7FA' : accentColor;
     ctx.fill();
   }
@@ -816,8 +825,8 @@ export function drawStainlessPitcherWithFrother(
 }
 
 /**
- * Ceramic Matcha Chawan bowl + vibrating handheld electric frother wand (máy đánh tơi cầm tay).
- * Keeps visual continuity between scooping shelf matcha into chawan (P1), frothing in chawan (P2), and pouring from chawan (P4).
+ * Ceramic Matcha Chawan bowl + traditional Japanese bamboo Chasen whisk (chổi tre Chasen).
+ * Animates authentic rapid W/M whisking strokes with flared bamboo tines & jade micro-foam.
  */
 export function drawMatchaChawanWithFrother(
   ctx: CanvasRenderingContext2D,
@@ -850,60 +859,338 @@ export function drawMatchaChawanWithFrother(
 
   // Vibrant green whisked matcha inside chawan mouth
   ctx.beginPath();
-  ctx.ellipse(cx, topY, 21, 5.5, 0, 0, Math.PI * 2);
-  ctx.fillStyle = '#A7D397';
+  ctx.ellipse(cx, topY, 21, 5.8, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#8BC478';
   ctx.fill();
   ctx.stroke();
 
-  // Swirling micro-foam highlight rings
-  const spin = elapsedSec * (isFastBoost ? 22 : 15);
+  // Lush jade micro-foam bubbles swirling with the W/M chasen strokes
+  const strokeSpeed = elapsedSec * (isFastBoost ? 24 : 16);
   ctx.fillStyle = '#DCF0CE';
   ctx.beginPath();
-  ctx.arc(cx + Math.cos(spin) * 8, topY + Math.sin(spin) * 2.1, 4.0, 0, Math.PI * 2);
-  ctx.arc(cx + Math.cos(spin + 2.1) * 7, topY + Math.sin(spin + 2.1) * 1.9, 3.4, 0, Math.PI * 2);
-  ctx.arc(cx + Math.sin(spin * 0.8) * 4.5, topY, 3.0, 0, Math.PI * 2);
+  ctx.arc(cx + Math.cos(strokeSpeed) * 8.5, topY + Math.sin(strokeSpeed) * 2.0, 4.1, 0, Math.PI * 2);
+  ctx.arc(cx + Math.cos(strokeSpeed + 2.1) * 7.2, topY + Math.sin(strokeSpeed + 2.1) * 1.8, 3.4, 0, Math.PI * 2);
+  ctx.arc(cx + Math.sin(strokeSpeed * 0.9) * 5.0, topY, 3.1, 0, Math.PI * 2);
   ctx.fill();
 
-  // Handheld electric frother wand dipping into chawan
-  const vibX = Math.sin(spin * 1.4) * 2.4;
-  const vibY = Math.cos(spin * 1.4) * 1.5;
-  const gripX = cx + 11 + vibX;
-  const gripY = topY - 27 + vibY;
+  // Authentic W/M wrist stroke motion for bamboo Chasen whisk
+  const whiskX = Math.sin(strokeSpeed) * 7.5;
+  const whiskY = Math.sin(strokeSpeed * 2) * 1.8;
+  const whiskTilt = Math.cos(strokeSpeed) * 0.14 + 0.08;
+  const gripX = cx + whiskX + 2;
+  const gripY = topY - 26 + whiskY;
 
   ctx.save();
   ctx.translate(gripX, gripY);
-  ctx.rotate(0.32);
+  ctx.rotate(whiskTilt);
 
-  ctx.strokeStyle = '#9BA7B4';
-  ctx.lineWidth = 2.4;
+  // 1. Flared bell-shaped cluster of fine curved bamboo tines dipping into matcha foam
+  ctx.fillStyle = '#EAD09C';
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.0;
   ctx.beginPath();
-  ctx.moveTo(0, 12);
-  ctx.lineTo(0, 30);
+  ctx.moveTo(-4.5, 4);
+  ctx.quadraticCurveTo(-12.5, 16, -9.5, 27);
+  ctx.quadraticCurveTo(0, 30, 9.5, 27);
+  ctx.quadraticCurveTo(12.5, 16, 4.5, 4);
+  ctx.closePath();
+  ctx.fill();
   ctx.stroke();
 
-  roundedRectPath(ctx, -5.5, -14, 11, 28, 5);
-  ctx.fillStyle = '#3B2820';
+  // Individual fine curved bamboo prongs inside the bell crown
+  ctx.strokeStyle = '#9C7338';
+  ctx.lineWidth = 1.25;
+  for (let i = -3; i <= 3; i += 1) {
+    const spread = i * 2.6;
+    const midSpread = i * 3.1;
+    ctx.beginPath();
+    ctx.moveTo(i * 1.1, 5);
+    ctx.quadraticCurveTo(midSpread, 17, spread, 27);
+    ctx.stroke();
+  }
+
+  // Green matcha foam coating on tips of tines
+  ctx.fillStyle = 'rgba(167, 211, 151, 0.85)';
+  ctx.beginPath();
+  ctx.ellipse(0, 26.5, 8.8, 2.4, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  // 2. Cylindrical carved golden bamboo handle (with authentic bamboo node joint)
   ctx.lineWidth = 2.2;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  roundedRectPath(ctx, -5, -18, 10, 22, 3.8);
+  const bambooGrad = ctx.createLinearGradient(-5, 0, 5, 0);
+  bambooGrad.addColorStop(0, '#CFA05C');
+  bambooGrad.addColorStop(0.42, '#F2DCAA');
+  bambooGrad.addColorStop(1, '#C5924C');
+  ctx.fillStyle = bambooGrad;
+  ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = '#A7D397';
+  // Bamboo node ring & black silk binding thread at waist where tines flare
+  ctx.strokeStyle = '#8F622C';
+  ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.arc(0, -4, 2.1, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(-4.8, -8);
+  ctx.lineTo(4.8, -8);
+  ctx.stroke();
 
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.moveTo(-4.8, 3.5);
+  ctx.lineTo(4.8, 3.5);
+  ctx.stroke();
+
+  // Crisp white whisking motion arcs beside bamboo tines
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
   ctx.lineWidth = 1.8;
   ctx.beginPath();
-  ctx.arc(-9, 18, 5, Math.PI * 0.7, Math.PI * 1.3);
+  ctx.arc(-13, 18, 5, Math.PI * 0.72, Math.PI * 1.28);
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(9, 18, 5, -Math.PI * 0.3, Math.PI * 0.3);
+  ctx.arc(13, 18, 5, -Math.PI * 0.28, Math.PI * 0.28);
   ctx.stroke();
 
   ctx.restore();
   ctx.restore();
 
-  return { x: gripX, y: gripY };
+  return { x: gripX, y: gripY - 8 };
+}
+
+/**
+ * Shared sage-green "MATCHA" ceramic canister with warm bamboo airtight lid.
+ * Drawn centered at (cx, cy) with height=50 and width=36 so shelf placement and counter pickup match 1:1.
+ */
+export function drawMatchaCanister(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  isLidOpen = false
+): void {
+  const w = 36;
+  const h = 50;
+  const x = cx - w * 0.5;
+  const y = cy - h * 0.5;
+
+  ctx.save();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Sage-green ceramic matcha canister body
+  roundedRectPath(ctx, x, y + 9, w, h - 9, 7);
+  ctx.fillStyle = '#9FD28B';
+  ctx.fill();
+  ctx.stroke();
+
+  if (isLidOpen) {
+    // Open canister rim revealing vibrant emerald matcha powder inside
+    ctx.beginPath();
+    ctx.ellipse(cx, y + 10, w * 0.44, 4.4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#5F9A49';
+    ctx.fill();
+    ctx.lineWidth = 2.1;
+    ctx.stroke();
+  } else {
+    // Warm bamboo wooden airtight lid + round knob
+    roundedRectPath(ctx, x - 2, y + 3, w + 4, 9, 4);
+    ctx.fillStyle = '#E5B887';
+    ctx.fill();
+    ctx.stroke();
+
+    roundedRectPath(ctx, cx - 5, y, 10, 4.5, 2);
+    ctx.fillStyle = '#D49E6A';
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // Cream front label with green leaf dot & "MATCHA" text
+  roundedRectPath(ctx, x + 3.5, y + 19, w - 7, 20, 4);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#5F9A49';
+  ctx.beginPath();
+  ctx.ellipse(cx, y + 24.5, 4.5, 2.6, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.font = '900 6.5px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('MATCHA', cx, y + 33.5);
+
+  ctx.restore();
+}
+
+export interface RealisticBobaShakerOptions {
+  liquidColor: string;
+  fillRatio: number; // 0..1
+  isCapClosed: boolean;
+  isPouringTilted: boolean;
+  isShaking: boolean;
+  elapsedSec: number;
+}
+
+/**
+ * Shared realistic 3-piece tapered 700ml boba-shop shaker (PC frosted body, ml ticks, ice/foam slosh, dome strainer lid).
+ * Used identically across Shaker Machine (P2), Shaker Lift (P4a), and Tilted Pour (P4b).
+ */
+export function drawRealisticBobaShaker(
+  ctx: CanvasRenderingContext2D,
+  opts: RealisticBobaShakerOptions
+): void {
+  const { liquidColor, fillRatio, isCapClosed, isPouringTilted, isShaking, elapsedSec } = opts;
+  const clampedFill = clamp01(fillRatio);
+
+  ctx.save();
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  // 1. Tapered polycarbonate 700ml shaker cup silhouette (wider top rim +-12.5, narrower sturdy base +-8.5)
+  const buildBodyPath = () => {
+    ctx.beginPath();
+    ctx.moveTo(-12.5, -16);
+    ctx.lineTo(12.5, -16);
+    ctx.lineTo(9.2, 18);
+    ctx.quadraticCurveTo(9.0, 21.5, 5.5, 21.5);
+    ctx.lineTo(-5.5, 21.5);
+    ctx.quadraticCurveTo(-9.0, 21.5, -9.2, 18);
+    ctx.closePath();
+  };
+
+  // Frosted clear body backdrop
+  buildBodyPath();
+  const bodyGrad = ctx.createLinearGradient(-12, 0, 12, 0);
+  bodyGrad.addColorStop(0, '#E9EEF2');
+  bodyGrad.addColorStop(0.35, '#FFFDF9');
+  bodyGrad.addColorStop(0.75, '#F2ECE7');
+  bodyGrad.addColorStop(1, '#DCE2E8');
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+
+  // 2. Clipped interior liquid, sloshing foam & tumbling ice cubes
+  ctx.save();
+  buildBodyPath();
+  ctx.clip();
+
+  if (clampedFill > 0.03) {
+    const innerHeight = 35;
+    const fillH = Math.max(4, innerHeight * clampedFill);
+    const sloshTilt = isShaking ? Math.sin(elapsedSec * 24) * 3.5 : 0;
+
+    // When tilted pouring, liquid pools toward top mouth (-16); upright pools at bottom (+21)
+    const liqTopY = isPouringTilted ? -16 : 21 - fillH;
+    const liqBotY = isPouringTilted ? -16 + fillH : 22;
+
+    ctx.beginPath();
+    ctx.moveTo(-14, liqTopY + sloshTilt);
+    ctx.lineTo(14, liqTopY - sloshTilt);
+    ctx.lineTo(14, liqBotY);
+    ctx.lineTo(-14, liqBotY);
+    ctx.closePath();
+    ctx.fillStyle = liquidColor;
+    ctx.fill();
+
+    // Creamy milk-tea froth head band
+    if (!isPouringTilted) {
+      ctx.fillStyle = 'rgba(255, 248, 232, 0.72)';
+      ctx.beginPath();
+      ctx.moveTo(-14, liqTopY + sloshTilt);
+      ctx.lineTo(14, liqTopY - sloshTilt);
+      ctx.lineTo(14, liqTopY - sloshTilt + 4.2);
+      ctx.lineTo(-14, liqTopY + sloshTilt + 4.2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Translucent ice cubes tumbling inside shaker
+    ctx.fillStyle = 'rgba(232, 248, 255, 0.72)';
+    ctx.strokeStyle = 'rgba(59, 40, 32, 0.35)';
+    ctx.lineWidth = 1.2;
+    const iceBaseY = isPouringTilted ? -10 : liqTopY + 7;
+    const iceBounce = isShaking ? Math.cos(elapsedSec * 26) * 3.5 : 0;
+    for (let i = 0; i < 2; i += 1) {
+      const ix = i === 0 ? -4.5 : 3.5;
+      const iy = iceBaseY + i * 4 + (i === 0 ? iceBounce : -iceBounce);
+      ctx.save();
+      ctx.translate(ix, iy);
+      ctx.rotate(i === 0 ? -0.25 : 0.3);
+      roundedRectPath(ctx, -3, -3, 6, 6, 1.5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // Glossy vertical polycarbonate reflection streak
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.58)';
+  ctx.fillRect(-8.8, -14, 3.2, 33);
+  ctx.restore();
+
+  // Crisp outer body outline
+  buildBodyPath();
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  // 3. Authentic printed ml graduation scale ticks on right side of shaker wall
+  ctx.strokeStyle = 'rgba(59, 40, 32, 0.58)';
+  ctx.lineWidth = 1.25;
+  for (let i = 0; i < 4; i += 1) {
+    const ty = -9 + i * 6.5;
+    const tickW = i % 2 === 0 ? 5.2 : 3.2;
+    ctx.beginPath();
+    ctx.moveTo(9.4 - i * 0.55, ty);
+    ctx.lineTo(9.4 - i * 0.55 - tickW, ty);
+    ctx.stroke();
+  }
+
+  // 4. Stepped domed strainer shoulder lid (classic Cobbler / boba shaker collar)
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.3;
+  const lidGrad = ctx.createLinearGradient(-13, -23, 13, -23);
+  lidGrad.addColorStop(0, '#CBD4DD');
+  lidGrad.addColorStop(0.4, '#F7F9FB');
+  lidGrad.addColorStop(1, '#B8C3CE');
+
+  // Rim snap ring
+  roundedRectPath(ctx, -13.5, -18.5, 27, 4.2, 2);
+  ctx.fillStyle = lidGrad;
+  ctx.fill();
+  ctx.stroke();
+
+  // Domed strainer shoulder tapering to pouring spout
+  ctx.beginPath();
+  ctx.moveTo(-11.5, -18.5);
+  ctx.quadraticCurveTo(-10.5, -24.5, -5.5, -25.5);
+  ctx.lineTo(5.5, -25.5);
+  ctx.quadraticCurveTo(10.5, -24.5, 11.5, -18.5);
+  ctx.closePath();
+  ctx.fillStyle = lidGrad;
+  ctx.fill();
+  ctx.stroke();
+
+  // 5. Top jigger cap (closed during shaking/lifting, removed when pouring to expose strainer spout)
+  if (isCapClosed) {
+    roundedRectPath(ctx, -6.2, -31.5, 12.4, 6.8, 2.8);
+    ctx.fillStyle = '#E4E9EE';
+    ctx.fill();
+    ctx.stroke();
+    // Specular highlight on cap
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+    ctx.fillRect(-3.6, -30, 2.2, 4);
+  } else {
+    // Open strainer pouring spout centered at (0, -25.5)
+    roundedRectPath(ctx, -5.2, -27.2, 10.4, 3.2, 1.5);
+    ctx.fillStyle = clampedFill > 0.03 ? liquidColor : '#D4DCE3';
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }

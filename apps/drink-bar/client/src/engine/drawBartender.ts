@@ -23,16 +23,25 @@ import {
   CUP_TOP_Y,
   DISPENSE_END_PROGRESS,
   drawGraduatedMeasuringCup,
+  drawMatchaCanister,
   drawMatchaChawanWithFrother,
   drawPourLiquidEffect,
+  drawRealisticBobaShaker,
   drawStainlessPitcherWithFrother,
   LID_PICKUP_END_PROGRESS,
+  LID_SNAP_END_PROGRESS,
+  LID_SNAP_MOMENT_PROGRESS,
+  MATCHA_GRAB_END_PROGRESS,
+  MATCHA_MILK_PREP_END_PROGRESS,
   MATCHA_MILK_SPLIT_RATIO,
+  MATCHA_SCOOP_END_PROGRESS,
   MATCHA_SHELF_END_PROGRESS,
   MATCHA_SWAP_END_RATIO,
   SHAKER_LIFT_END_PROGRESS,
   SODA_SWAP_END_RATIO,
   SODA_SYRUP_SPLIT_RATIO,
+  STRAW_INSERT_END_PROGRESS,
+  STRAW_INSERT_START_PROGRESS,
   SUGAR_PRESS_START_PROGRESS,
   THAI_TEA_CREAM_START_PROGRESS,
   THAI_TEA_POUR_END_PROGRESS,
@@ -57,12 +66,42 @@ export function isCupPickupSubstep(drink: ActiveDrink | null): boolean {
   );
 }
 
+export function isMatchaGrabSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.recipeId === 'matcha' &&
+      drink.progress >= MATCHA_MILK_PREP_END_PROGRESS &&
+      drink.progress < MATCHA_GRAB_END_PROGRESS
+  );
+}
+
+export function isMatchaScoopSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.recipeId === 'matcha' &&
+      drink.progress >= MATCHA_GRAB_END_PROGRESS &&
+      drink.progress < MATCHA_SCOOP_END_PROGRESS
+  );
+}
+
+export function isMatchaReturnSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.recipeId === 'matcha' &&
+      drink.progress >= MATCHA_SCOOP_END_PROGRESS &&
+      drink.progress < MATCHA_SHELF_END_PROGRESS
+  );
+}
+
 export function isMatchaShelfSubstep(drink: ActiveDrink | null): boolean {
   return Boolean(
     drink &&
       drink.phase === 'BREWING' &&
       drink.recipeId === 'matcha' &&
-      drink.progress >= CUP_PICKUP_END_PROGRESS &&
+      drink.progress >= MATCHA_MILK_PREP_END_PROGRESS &&
       drink.progress < MATCHA_SHELF_END_PROGRESS
   );
 }
@@ -130,11 +169,20 @@ export function isLidPickupSubstep(drink: ActiveDrink | null): boolean {
   );
 }
 
+export function isStrawInsertSubstep(drink: ActiveDrink | null): boolean {
+  return Boolean(
+    drink &&
+      drink.phase === 'BREWING' &&
+      drink.progress >= STRAW_INSERT_START_PROGRESS &&
+      drink.progress < 100
+  );
+}
+
 export function isHoldingOatsideSubstep(drink: ActiveDrink | null): boolean {
   if (!drink || drink.phase !== 'BREWING' || drink.recipeId !== 'matcha') return false;
   if (
-    drink.progress >= MATCHA_SHELF_END_PROGRESS &&
-    drink.progress < DISPENSE_END_PROGRESS
+    drink.progress >= CUP_PICKUP_END_PROGRESS &&
+    drink.progress < MATCHA_MILK_PREP_END_PROGRESS
   ) {
     return true;
   }
@@ -151,24 +199,42 @@ export function resolveTargetBaristaX(
     return BARISTA_CENTER_X;
   }
 
-  // Sub-step 0..7%: Walk right to Cup Stack (x=454), pick cup, then carry back to center coaster (x=360)
+  // Sub-step 0..7%: Walk right to Cup Stack (x=502), pick cup, then carry back to center coaster (x=360)
   if (isCupPickupSubstep(drink)) {
     const pickupT = clamp01(drink.progress / CUP_PICKUP_END_PROGRESS);
-    return pickupT < 0.45 ? 416 : BARISTA_CENTER_X;
+    return pickupT < 0.45 ? 452 : BARISTA_CENTER_X;
   }
 
   const action = getBrewStep(drink.progress, drink.recipeId).action;
   if (action === 'dispense') {
-    if (isMatchaShelfSubstep(drink)) return 462;
+    if (isMatchaGrabSubstep(drink)) {
+      const t = clamp01(
+        (drink.progress - MATCHA_MILK_PREP_END_PROGRESS) /
+          (MATCHA_GRAB_END_PROGRESS - MATCHA_MILK_PREP_END_PROGRESS)
+      );
+      return t < 0.45 ? 448 : 408;
+    }
+    if (isMatchaScoopSubstep(drink)) return 408;
+    if (isMatchaReturnSubstep(drink)) {
+      const t = clamp01(
+        (drink.progress - MATCHA_SCOOP_END_PROGRESS) /
+          (MATCHA_SHELF_END_PROGRESS - MATCHA_SCOOP_END_PROGRESS)
+      );
+      return t < 0.4 ? 408 : 448;
+    }
     if (isSugarButtonSubstep(drink)) return 194;
     if (drink.recipeId === 'thai_tea') return 224;
-    if (drink.recipeId === 'coffee_milk') return 486;
+    if (drink.recipeId === 'coffee_milk') return 508;
     if (drink.recipeId === 'berry_soda') return 368;
+    if (drink.recipeId === 'matcha') return 408;
     return 296;
   }
 
   if (action === 'tool_prep') {
     if (drink.recipeId === 'thai_tea') return 148;
+    if (drink.recipeId === 'matcha' || drink.recipeId === 'coffee_milk' || drink.recipeId === 'berry_soda') {
+      return 408;
+    }
     return 296;
   }
 
@@ -184,7 +250,7 @@ export function resolveTargetBaristaX(
 
   if (action === 'seal' && isLidPickupSubstep(drink)) {
     const lidT = clamp01((drink.progress - 84) / (LID_PICKUP_END_PROGRESS - 84));
-    return lidT < 0.45 ? 434 : BARISTA_CENTER_X;
+    return lidT < 0.45 ? 468 : BARISTA_CENTER_X;
   }
 
   return BARISTA_CENTER_X;
@@ -201,6 +267,34 @@ interface DanceMotion {
   poseIndex: number;
 }
 
+const DANCE_BPM_OMEGA: Readonly<Record<DanceStyle, number>> = {
+  heart_sway: (118 / 60) * Math.PI,  // ~6.18 rad/s -> 1 bounce per 118 BPM beat
+  groove_wave: (105 / 60) * Math.PI, // ~5.50 rad/s -> smooth 105 BPM groove pocket
+  party_hype: (130 / 60) * Math.PI,  // ~6.81 rad/s -> crisp 130 BPM EDM/Phonk beat
+};
+
+const DANCE_AMP_MAP: Readonly<Record<DanceStyle, number>> = {
+  heart_sway: 0.88,
+  groove_wave: 1.05,
+  party_hype: 1.32,
+};
+
+const DANCE_NOTE_X_OFFSETS: readonly number[] = [-68, -42, 42, 68];
+const DANCE_NOTE_SYMBOLS: readonly string[] = ['♪', '♫', '♫', '♪'];
+const DANCE_NOTE_COLORS: readonly string[] = ['#F0788C', '#F7C95B', '#7FC8D9', '#A7D397'];
+
+// Reusable mutable dance state object (zero per-frame allocations at 30 FPS)
+const reusableDanceMotion: DanceMotion = {
+  isDancing: false,
+  style: 'heart_sway',
+  blend: 0,
+  swayX: 0,
+  bounceY: 0,
+  headTiltRad: 0,
+  beatPhase: 0,
+  poseIndex: 0,
+};
+
 function computeDanceMotion(
   isDancing: boolean,
   danceStyle: DanceStyle,
@@ -208,16 +302,15 @@ function computeDanceMotion(
   elapsedSec: number
 ): DanceMotion {
   if (!isDancing) {
-    return {
-      isDancing: false,
-      style: danceStyle,
-      blend: 0,
-      swayX: 0,
-      bounceY: 0,
-      headTiltRad: 0,
-      beatPhase: 0,
-      poseIndex: 0,
-    };
+    reusableDanceMotion.isDancing = false;
+    reusableDanceMotion.style = danceStyle;
+    reusableDanceMotion.blend = 0;
+    reusableDanceMotion.swayX = 0;
+    reusableDanceMotion.bounceY = 0;
+    reusableDanceMotion.headTiltRad = 0;
+    reusableDanceMotion.beatPhase = 0;
+    reusableDanceMotion.poseIndex = 0;
+    return reusableDanceMotion;
   }
 
   const blend =
@@ -225,31 +318,34 @@ function computeDanceMotion(
       ? clamp01((Date.now() - danceStartedAt) / GAMEPLAY_LIMITS.DANCE_TRANSITION_MS)
       : 1;
 
-  const freqMap: Record<DanceStyle, number> = {
-    heart_sway: 7.4,
-    groove_wave: 9.8,
-    party_hype: 12.6,
-  };
-  const ampMap: Record<DanceStyle, number> = {
-    heart_sway: 0.9,
-    groove_wave: 1.2,
-    party_hype: 1.5,
-  };
+  const omega = DANCE_BPM_OMEGA[danceStyle];
+  const amp = DANCE_AMP_MAP[danceStyle] * blend;
+  const beatPhase = elapsedSec * omega;
+  const halfBeatSin = Math.sin(beatPhase * 0.5);
 
-  const freq = freqMap[danceStyle];
-  const amp = ampMap[danceStyle] * blend;
-  const beatPhase = elapsedSec * freq;
+  reusableDanceMotion.isDancing = true;
+  reusableDanceMotion.style = danceStyle;
+  reusableDanceMotion.blend = blend;
+  reusableDanceMotion.beatPhase = beatPhase;
 
-  return {
-    isDancing: true,
-    style: danceStyle,
-    blend,
-    swayX: Math.sin(beatPhase * 0.5) * 12 * amp,
-    bounceY: -Math.abs(Math.sin(beatPhase)) * 9 * amp,
-    headTiltRad: Math.sin(beatPhase * 0.5) * 0.13 * amp,
-    beatPhase,
-    poseIndex: Math.floor(elapsedSec * 1.4) % 2,
-  };
+  if (danceStyle === 'heart_sway') {
+    reusableDanceMotion.swayX = halfBeatSin * 9 * amp;
+    reusableDanceMotion.bounceY = -Math.abs(Math.sin(beatPhase)) * 7.5 * amp;
+    reusableDanceMotion.headTiltRad = halfBeatSin * 0.14 * amp;
+    reusableDanceMotion.poseIndex = Math.floor(beatPhase / (Math.PI * 2)) % 2;
+  } else if (danceStyle === 'groove_wave') {
+    reusableDanceMotion.swayX = halfBeatSin * 15 * amp;
+    reusableDanceMotion.bounceY = -Math.abs(Math.sin(beatPhase)) * 6.5 * amp;
+    reusableDanceMotion.headTiltRad = Math.cos(beatPhase * 0.5) * 0.11 * amp;
+    reusableDanceMotion.poseIndex = Math.floor(beatPhase / (Math.PI * 2)) % 2;
+  } else {
+    reusableDanceMotion.swayX = halfBeatSin * 11 * amp;
+    reusableDanceMotion.bounceY = -Math.pow(Math.abs(Math.sin(beatPhase)), 0.72) * 10.5 * amp;
+    reusableDanceMotion.headTiltRad = Math.sin(beatPhase) * 0.11 * amp;
+    reusableDanceMotion.poseIndex = Math.floor(beatPhase / (Math.PI * 2)) % 2;
+  }
+
+  return reusableDanceMotion;
 }
 
 function computeCharacterBob(
@@ -764,17 +860,35 @@ function drawCentralBaristaArms(
   const rightShoulderX = cx + 36;
   const rightShoulderY = torsoY + 24 + bob;
 
-  // Handover animation at 100% (SHOWCASE): pushes finished cup forward toward customer & waves
+  // Handover animation at 100% (SHOWCASE): packages cup into paper bag (0..500ms) then slides forward & waves (500..1800ms)
   if (drink && drink.phase === 'SHOWCASE') {
+    const elapsedMs = Math.max(0, GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS - drink.showcaseRemainingMs);
     const slideFactor = computeShowcaseSlideFactor(drink);
+
+    if (elapsedMs < 500) {
+      // Packaging Phase: Barista uses both hands to guide paper bag snugly over the cup
+      const bagT = clamp01(elapsedMs / 500);
+      const easeBag = bagT * bagT * (3 - 2 * bagT);
+      const leftBagX = CUP1_CX - 24;
+      const rightBagX = CUP1_CX + 24;
+      const bagHandY = CUP_TOP_Y + 18 - (1 - easeBag) * 12;
+
+      drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftBagX, bagHandY, -1);
+      drawHandCircle(ctx, leftBagX, bagHandY);
+      drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightBagX, bagHandY, 1);
+      drawHandCircle(ctx, rightBagX, bagHandY);
+      return;
+    }
+
+    // Delivery Phase: Friendly wave with left hand, right hand guides the bagged cup forward to customer
     const waveSwing = Math.sin(elapsedSec * 7.5) * 9;
     const leftHandX = cx - 50 + waveSwing;
     const leftHandY = headY + 12;
     drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
     drawHandCircle(ctx, leftHandX, leftHandY);
 
-    const pushX = CUP1_CX + CUP_TOP_HALF_W + 4;
-    const pushY = CUP_TOP_Y + 34 + 16 * slideFactor;
+    const pushX = CUP1_CX + CUP_TOP_HALF_W + 8;
+    const pushY = CUP_TOP_Y + 28 + 24 * slideFactor;
     drawCartoonArm(ctx, rightShoulderX, rightShoulderY, pushX, pushY, 1);
     drawHandCircle(ctx, pushX, pushY);
     return;
@@ -1073,7 +1187,8 @@ function drawCentralBaristaArms(
     return;
   }
 
-  // STEP 5 (84–100%): 84..90% Lấy nắp từ chồng nắp (x=484) → 90..100% Hai tay hạ nắp & ấn khít miệng ly!
+  // STEP 5 (84–100%): 3-beat realistic lid seal choreography
+  // Beat 1 (84..90%): Pick dome lid from stack & align centered above cup rim
   if (isLidPickupSubstep(drink)) {
     drawLidPickupAction(
       ctx,
@@ -1086,18 +1201,117 @@ function drawCentralBaristaArms(
     return;
   }
 
-  const snapProgress = clamp01((drink.progress - LID_PICKUP_END_PROGRESS) / 5);
-  const lidLowerY = (1 - snapProgress) * 14;
-  const pressBob = Math.sin(elapsedSec * 8) * 1.1;
+  // Beat 2 (90..96%): Both hands grip lid edges, press down onto rim (90..93.5%), snap elastic bounce (93.5..96%)
+  if (drink.progress < LID_SNAP_END_PROGRESS) {
+    const pressT = clamp01(
+      (drink.progress - LID_PICKUP_END_PROGRESS) /
+        (LID_SNAP_MOMENT_PROGRESS - LID_PICKUP_END_PROGRESS)
+    );
+    const easePress = pressT * pressT * (3 - 2 * pressT);
+    let snapDipY = 0;
+    if (drink.progress >= LID_SNAP_MOMENT_PROGRESS) {
+      const bounceT = clamp01(
+        (drink.progress - LID_SNAP_MOMENT_PROGRESS) /
+          (LID_SNAP_END_PROGRESS - LID_SNAP_MOMENT_PROGRESS)
+      );
+      snapDipY = Math.sin(bounceT * Math.PI) * 3.2;
+    }
 
-  const leftLidX = CUP1_CX - CUP_TOP_HALF_W + 2;
-  const rightLidX = CUP1_CX + CUP_TOP_HALF_W - 2;
-  const lidY = CUP_TOP_Y - 3 + lidLowerY + pressBob;
+    const lidLowerY = (1 - easePress) * 15;
+    const leftLidX = CUP1_CX - CUP_TOP_HALF_W - 1.5;
+    const rightLidX = CUP1_CX + CUP_TOP_HALF_W + 1.5;
+    const lidY = CUP_TOP_Y - 2 - lidLowerY + snapDipY;
 
-  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftLidX, lidY, -1);
-  drawHandCircle(ctx, leftLidX, lidY);
-  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightLidX, lidY, 1);
-  drawHandCircle(ctx, rightLidX, lidY);
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftLidX, lidY, -1);
+    drawHandCircle(ctx, leftLidX, lidY);
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightLidX, lidY, 1);
+    drawHandCircle(ctx, rightLidX, lidY);
+    return;
+  }
+
+  // Beat 3 (96..100%): Clean straw pickup & downward insertion into sealed dome lid hole
+  drawStrawInsertAction(
+    ctx,
+    drink,
+    leftShoulderX,
+    leftShoulderY,
+    rightShoulderX,
+    rightShoulderY
+  );
+}
+
+function drawStrawInsertAction(
+  ctx: CanvasRenderingContext2D,
+  drink: ActiveDrink,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number
+): void {
+  const strawT = clamp01(
+    (drink.progress - STRAW_INSERT_START_PROGRESS) /
+      (STRAW_INSERT_END_PROGRESS - STRAW_INSERT_START_PROGRESS)
+  );
+  const recipe = RECIPE_MAP[drink.recipeId];
+
+  // Left hand gently steadies the cup rim
+  const steadyX = CUP1_CX - CUP_TOP_HALF_W - 2;
+  const steadyY = CUP_TOP_Y + 12;
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, steadyX, steadyY, -1);
+  drawHandCircle(ctx, steadyX, steadyY);
+
+  // Right hand carries straw:
+  // Sub-beat 1 (0..0.4): Reaches toward straw dispenser on right counter and brings straw up
+  // Sub-beat 2 (0.4..1.0): Aligns centered above dome lid aperture and inserts downward into cup
+  let handX: number;
+  let handY: number;
+
+  if (strawT < 0.4) {
+    const reachT = clamp01(strawT / 0.4);
+    const easeReach = reachT * reachT * (3 - 2 * reachT);
+    const startX = BAR_STATION_COORDS.CUP_STACK_X - 6;
+    const startY = STAGE_METRICS.COUNTER_TOP_Y - 12;
+    const targetX = CUP1_CX + 14;
+    const targetY = CUP_TOP_Y - 32;
+    handX = startX + (targetX - startX) * easeReach;
+    handY = startY + (targetY - startY) * easeReach;
+  } else {
+    const downT = clamp01((strawT - 0.4) / 0.6);
+    const easeDown = downT * downT * (3 - 2 * downT);
+    handX = CUP1_CX + 3 - easeDown * 2;
+    handY = CUP_TOP_Y - 32 + easeDown * 18;
+  }
+
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, handX, handY, 1);
+
+  // Straw being held in right hand
+  ctx.save();
+  ctx.translate(handX, handY);
+  ctx.rotate(-0.16);
+  roundedRectPath(ctx, -2.6, -16, 5.2, 34, 2.4);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  // Spiral accent rings matching recipe color
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = recipe.accentColor;
+  for (let y = -14; y < 14; y += 9) {
+    ctx.beginPath();
+    ctx.moveTo(-4, y);
+    ctx.lineTo(4, y + 4);
+    ctx.lineTo(4, y + 7);
+    ctx.lineTo(-4, y + 3);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+
+  drawHandCircle(ctx, handX, handY);
 }
 
 function drawLidPickupAction(
@@ -1109,19 +1323,19 @@ function drawLidPickupAction(
   rightShoulderY: number
 ): void {
   const lidT = clamp01((drink.progress - 84) / (LID_PICKUP_END_PROGRESS - 84));
-  const carryT = clamp01((lidT - 0.2) / 0.8);
+  const carryT = clamp01((lidT - 0.16) / 0.84);
   const easeT = carryT * carryT * (3 - 2 * carryT);
 
   const startX = BAR_STATION_COORDS.LID_STACK_X;
   const startY = STAGE_METRICS.COUNTER_TOP_Y - 18;
   const endX = CUP1_CX;
-  const endY = CUP_TOP_Y - 14;
+  const endY = CUP_TOP_Y - 15;
 
   const lidCx = startX + (endX - startX) * easeT;
-  const lidY = startY + (endY - startY) * easeT - Math.sin(easeT * Math.PI) * 28;
+  const lidY = startY + (endY - startY) * easeT - Math.sin(easeT * Math.PI) * 26;
   const lidR = 11 + (CUP_TOP_HALF_W - 11) * easeT;
 
-  // Draw carried dome lid (NO straw, crisp #3B2820 2.5px outline)
+  // Draw carried dome lid matching exact reduced cup rim width (NO straw, #3B2820 2.5px outline)
   ctx.save();
   ctx.beginPath();
   ctx.arc(lidCx, lidY, lidR, Math.PI, 0, false);
@@ -1132,17 +1346,18 @@ function drawLidPickupAction(
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  roundedRectPath(ctx, lidCx - lidR - 2.5, lidY - 3.5, (lidR + 2.5) * 2, 7, 3.5);
+  roundedRectPath(ctx, lidCx - lidR - 2.2, lidY - 3.2, (lidR + 2.2) * 2, 6.8, 3.4);
   ctx.fillStyle = 'rgba(255, 253, 249, 0.92)';
   ctx.fill();
   ctx.stroke();
   ctx.restore();
 
-  // Right hand lifts & carries dome lid; left hand readies to guide it onto cup rim
-  const rightGripX = lidCx + lidR * 0.75;
+  // Right hand lifts & centers dome lid above cup; left hand meets left rim cleanly at end of carry (0px jump into Beat 2)
+  const rimGripOffset = lidR + 1.5;
+  const rightGripX = lidCx + rimGripOffset;
   const rightGripY = lidY - 2;
-  const leftGuideX = easeT > 0.5 ? lidCx - lidR * 0.75 : CUP1_CX - CUP_TOP_HALF_W - 4;
-  const leftGuideY = easeT > 0.5 ? lidY - 2 : CUP_TOP_Y + 8;
+  const leftGuideX = easeT > 0.55 ? lidCx - rimGripOffset : CUP1_CX - CUP_TOP_HALF_W - 6;
+  const leftGuideY = easeT > 0.55 ? lidY - 2 : CUP_TOP_Y + 6;
 
   drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftGuideX, leftGuideY, -1);
   drawHandCircle(ctx, leftGuideX, leftGuideY);
@@ -1169,23 +1384,18 @@ function drawShakerLiftAction(
   const shakerX = startX + (endX - startX) * easeT;
   const shakerY = startY + (endY - startY) * easeT - Math.sin(easeT * Math.PI) * 26;
 
-  // Draw carried stainless milk tea shaker
+  // Draw carried realistic 3-piece tapered boba shaker (cap pops off right before pour)
   ctx.save();
   ctx.translate(shakerX, shakerY);
   ctx.rotate(easeT * 0.35);
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  roundedRectPath(ctx, -11.5, -18, 23, 38, 6.5);
-  ctx.fillStyle = '#F6F0E9';
-  ctx.fill();
-  ctx.stroke();
-  roundedRectPath(ctx, -9, -12, 18, 24, 4);
-  ctx.fillStyle = '#D89E68';
-  ctx.fill();
-  roundedRectPath(ctx, -9.5, -23, 19, 6, 3);
-  ctx.fillStyle = '#E0D7CD';
-  ctx.fill();
-  ctx.stroke();
+  drawRealisticBobaShaker(ctx, {
+    liquidColor: '#D89E68',
+    fillRatio: 0.92,
+    isCapClosed: easeT < 0.72,
+    isPouringTilted: false,
+    isShaking: false,
+    elapsedSec: 0,
+  });
   ctx.restore();
 
   drawCartoonArm(ctx, leftShoulderX, leftShoulderY, shakerX - 8, shakerY + 4, -1);
@@ -1327,18 +1537,23 @@ function drawPutAwayMilkAndPickVesselAction(
     drawCartoonArm(ctx, rightShoulderX, rightShoulderY, cartonX - 6, cartonY + 4, 1);
     drawHandCircle(ctx, cartonX - 6, cartonY + 4);
 
-    // Left hand reaches down to pick up prepared chawan bowl / stainless espresso pitcher
-    const reachX = 292;
+    // Left hand reaches down to pick up prepared chawan bowl (x=420) / stainless espresso pitcher
+    const reachX = BAR_STATION_COORDS.PREP_PAD_X;
     const reachY = STAGE_METRICS.COUNTER_TOP_Y - 12;
     drawCartoonArm(ctx, leftShoulderX, leftShoulderY, reachX, reachY, -1);
     drawHandCircle(ctx, reachX, reachY);
     return;
   }
 
-  // Second half (0.5..1.0): Left hand lifts prepared Chawan Matcha / Espresso Pitcher smoothly to pour position!
+  // Second half (0.5..1.0): Left hand lifts prepared Chawan Matcha (x=420) / Espresso Pitcher smoothly to pour position!
   const liftT = clamp01((swapT - 0.5) / 0.5);
-  const vesselX = 290 + (CUP1_CX - 32 - 290) * liftT;
-  const vesselY = STAGE_METRICS.COUNTER_TOP_Y - 14 + (CUP_TOP_Y - 40 - (STAGE_METRICS.COUNTER_TOP_Y - 14)) * liftT - Math.sin(liftT * Math.PI) * 14;
+  const startVesselX = BAR_STATION_COORDS.PREP_PAD_X;
+  const vesselX = startVesselX + (CUP1_CX - 32 - startVesselX) * liftT;
+  const vesselY =
+    STAGE_METRICS.COUNTER_TOP_Y -
+    14 +
+    (CUP_TOP_Y - 40 - (STAGE_METRICS.COUNTER_TOP_Y - 14)) * liftT -
+    Math.sin(liftT * Math.PI) * 14;
 
   if (isMatcha) {
     drawHeldMatchaChawan(ctx, vesselX, vesselY);
@@ -1469,23 +1684,45 @@ function drawStep1DispenseAction(
     return;
   }
 
-  // Matcha Sub-step 7..14%: Take Matcha tin down from back shelf (x=480) & scoop powder into ceramic chawan!
-  if (isMatchaShelfSubstep(drink)) {
-    const bowlX = 434;
-    const bowlY = STAGE_METRICS.COUNTER_TOP_Y - 46;
+  // Matcha Sub-step 1 (10.5..13%): Reach up & bring green MATCHA canister down from shelf to prep zone
+  if (isMatchaGrabSubstep(drink)) {
+    drawMatchaShelfTransferAction(
+      ctx,
+      drink,
+      leftShoulderX,
+      leftShoulderY,
+      rightShoulderX,
+      rightShoulderY,
+      true
+    );
+    return;
+  }
 
-    // Left hand holds ceramic chawan bowl ready to catch matcha powder
-    drawHeldMatchaChawan(ctx, bowlX, bowlY);
-    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, bowlX - 18, bowlY + 4, -1);
-    drawHandCircle(ctx, bowlX - 18, bowlY + 4);
+  // Matcha Sub-step 2 (13..17.5%): Scoop green matcha powder with bamboo spoon into chawan bowl + fine green dust
+  if (isMatchaScoopSubstep(drink)) {
+    drawMatchaPowderScoopAction(
+      ctx,
+      drink,
+      leftShoulderX,
+      leftShoulderY,
+      rightShoulderX,
+      rightShoulderY,
+      elapsedSec
+    );
+    return;
+  }
 
-    // Right hand holds green Matcha tin lifted from back shelf, shaking emerald powder into chawan!
-    const shake = Math.sin(elapsedSec * 12) * 3;
-    const tinX = bowlX + 26 + shake;
-    const tinY = bowlY - 48 + Math.cos(elapsedSec * 12) * 2;
-    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, tinX + 10, tinY, 1);
-    drawHeldMatchaTinAndPowder(ctx, tinX, tinY, bowlX, bowlY - 6, elapsedSec);
-    drawHandCircle(ctx, tinX + 10, tinY);
+  // Matcha Sub-step 3 (17.5..20%): Close bamboo lid & set MATCHA canister neatly back onto lower shelf
+  if (isMatchaReturnSubstep(drink)) {
+    drawMatchaShelfTransferAction(
+      ctx,
+      drink,
+      leftShoulderX,
+      leftShoulderY,
+      rightShoulderX,
+      rightShoulderY,
+      false
+    );
     return;
   }
 
@@ -1504,13 +1741,13 @@ function drawStep1DispenseAction(
   }
 
   if (drink.recipeId === 'coffee_milk') {
-    const jugX = 446;
+    const jugX = 500;
     const jugBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
     drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#F5E4CC', fillLevel * 0.65);
     drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 16, jugBottomY - 14, -1);
     drawHandCircle(ctx, jugX - 16, jugBottomY - 14);
 
-    const machineHandX = 528;
+    const machineHandX = 568;
     const machineHandY = STAGE_METRICS.COUNTER_TOP_Y - 38 + Math.sin(elapsedSec * 4) * 2;
     drawCartoonArm(ctx, rightShoulderX, rightShoulderY, machineHandX, machineHandY, 1);
     drawHandCircle(ctx, machineHandX, machineHandY);
@@ -1544,10 +1781,14 @@ function drawStep1DispenseAction(
     return;
   }
 
-  // Matcha Sub-step 14..20%: Pour OATSIDE milk into graduated measuring cup
-  const jugX = 274;
+  // Matcha Sub-step 7..10.5%: Pour OATSIDE milk into graduated measuring cup on open right-center prep pad
+  const milkFill = clamp01(
+    (drink.progress - CUP_PICKUP_END_PROGRESS) /
+      (MATCHA_MILK_PREP_END_PROGRESS - CUP_PICKUP_END_PROGRESS)
+  );
+  const jugX = BAR_STATION_COORDS.PREP_PAD_X;
   const jugBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
-  drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#FFFDF7', fillLevel);
+  drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#FFFDF7', 0.22 + milkFill * 0.68);
   drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 16, jugBottomY - 14, -1);
   drawHandCircle(ctx, jugX - 16, jugBottomY - 14);
 
@@ -1562,13 +1803,21 @@ function drawStep1DispenseAction(
     side: 1,
     liquidColor: '#FFFDF7',
     accentColor: '#FFFDF7',
-    targetSurfaceY: jugBottomY - 8 - fillLevel * 22,
+    targetSurfaceY: jugBottomY - 8 - (0.22 + milkFill * 0.68) * 22,
     isFastBoost: false,
     isSodaFizz: false,
     elapsedSec,
   });
   drawHandCircle(ctx, cartonX, cartonY);
 }
+
+// Dedicated clear counter prep zone (404..482) strictly clear of MENU (282..316), Center Cup (337..383), and Cup Stack (486+)
+const MATCHA_CHAWAN_COUNTER_X = BAR_STATION_COORDS.PREP_PAD_X; // 420
+const MATCHA_CHAWAN_COUNTER_BOTTOM_Y = STAGE_METRICS.COUNTER_TOP_Y + 12;
+const MATCHA_TIN_COUNTER_X = 466;
+const MATCHA_TIN_COUNTER_CY = STAGE_METRICS.COUNTER_TOP_Y - 13;
+const MATCHA_TIN_SHELF_X = BAR_STATION_COORDS.MATCHA_TIN_X;
+const MATCHA_TIN_SHELF_Y = BAR_STATION_COORDS.MATCHA_TIN_Y + 1;
 
 function drawHeldMatchaChawan(
   ctx: CanvasRenderingContext2D,
@@ -1595,48 +1844,291 @@ function drawHeldMatchaChawan(
   ctx.restore();
 }
 
-function drawHeldMatchaTinAndPowder(
+function drawCounterChawanWithPowder(
   ctx: CanvasRenderingContext2D,
-  tinX: number,
-  tinY: number,
-  bowlX: number,
-  bowlTopY: number,
-  elapsedSec: number
+  cx: number,
+  bottomY: number,
+  powderFillRatio: number
 ): void {
-  // Falling vibrant green matcha powder specks from tin into chawan bowl
-  ctx.save();
-  ctx.fillStyle = '#5F9A49';
-  for (let i = 0; i < 6; i += 1) {
-    const p = (elapsedSec * 3.8 + i * 0.17) % 1;
-    const px = tinX - 10 + (bowlX - (tinX - 10)) * p + Math.sin(elapsedSec * 8 + i) * 3;
-    const py = tinY + 10 + (bowlTopY - (tinY + 10)) * p;
-    ctx.beginPath();
-    ctx.arc(px, py, 2.2, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const topY = bottomY - 26;
+  const clampedPowder = clamp01(powderFillRatio);
 
-  // Tilted sage-green MATCHA canister
-  ctx.translate(tinX, tinY);
-  ctx.rotate(-0.95);
-  ctx.lineWidth = 2.4;
+  ctx.save();
+  ctx.lineWidth = 2.5;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
 
-  roundedRectPath(ctx, -13, -18, 26, 36, 6);
-  ctx.fillStyle = '#9FD28B';
+  // Ceramic chawan foot ring
+  roundedRectPath(ctx, cx - 10, bottomY - 5, 20, 5, 2);
+  ctx.fillStyle = '#EFE6DC';
   ctx.fill();
   ctx.stroke();
 
-  roundedRectPath(ctx, -10, -8, 20, 15, 3);
+  // Cream ceramic chawan belly
+  ctx.beginPath();
+  ctx.moveTo(cx - 21, topY);
+  ctx.bezierCurveTo(cx - 21, bottomY - 5, cx - 11, bottomY - 3, cx, bottomY - 3);
+  ctx.bezierCurveTo(cx + 11, bottomY - 3, cx + 21, bottomY - 5, cx + 21, topY);
+  ctx.closePath();
   ctx.fillStyle = '#FFFDF9';
   ctx.fill();
-  ctx.lineWidth = 1.4;
   ctx.stroke();
 
-  ctx.fillStyle = '#5F9A49';
+  // Empty cream ceramic bowl rim interior before powder falls in
   ctx.beginPath();
-  ctx.ellipse(0, -1, 4.2, 2.4, -0.35, 0, Math.PI * 2);
+  ctx.ellipse(cx, topY, 21, 5.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#F7EFE6';
   ctx.fill();
+  ctx.stroke();
+
+  // Rising vibrant jade-green matcha powder mound scooped into bowl
+  if (clampedPowder > 0.05) {
+    const rx = 6 + clampedPowder * 11.5;
+    const ry = 2.2 + clampedPowder * 3.8;
+    ctx.beginPath();
+    ctx.moveTo(cx - rx, topY + 1);
+    ctx.quadraticCurveTo(cx, topY - ry * 2.1, cx + rx, topY + 1);
+    ctx.quadraticCurveTo(cx, topY + 3.4, cx - rx, topY + 1);
+    ctx.closePath();
+    ctx.fillStyle = '#75B45D';
+    ctx.fill();
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  }
+
   ctx.restore();
+}
+
+function drawMatchaShelfTransferAction(
+  ctx: CanvasRenderingContext2D,
+  drink: ActiveDrink,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number,
+  isGrabbingDown: boolean
+): void {
+  const startProg = isGrabbingDown ? MATCHA_MILK_PREP_END_PROGRESS : MATCHA_SCOOP_END_PROGRESS;
+  const endProg = isGrabbingDown ? MATCHA_GRAB_END_PROGRESS : MATCHA_SHELF_END_PROGRESS;
+  const rawT = clamp01((drink.progress - startProg) / Math.max(0.5, endProg - startProg));
+
+  // Keep chawan resting visibly on counter while tin is picked from shelf / returned to shelf
+  drawCounterChawanWithPowder(
+    ctx,
+    MATCHA_CHAWAN_COUNTER_X,
+    MATCHA_CHAWAN_COUNTER_BOTTOM_Y,
+    isGrabbingDown ? 0 : 1
+  );
+
+  let tinCx: number;
+  let tinCy: number;
+
+  if (isGrabbingDown) {
+    const reachPhase = 0.25;
+    if (rawT < reachPhase) {
+      tinCx = MATCHA_TIN_SHELF_X;
+      tinCy = MATCHA_TIN_SHELF_Y;
+    } else {
+      const carryT = clamp01((rawT - reachPhase) / (1 - reachPhase));
+      const easeT = carryT * carryT * (3 - 2 * carryT);
+      tinCx = MATCHA_TIN_SHELF_X + (MATCHA_TIN_COUNTER_X - MATCHA_TIN_SHELF_X) * easeT;
+      tinCy =
+        MATCHA_TIN_SHELF_Y +
+        (MATCHA_TIN_COUNTER_CY - MATCHA_TIN_SHELF_Y) * easeT -
+        Math.sin(easeT * Math.PI) * 18;
+    }
+  } else {
+    const liftEnd = 0.78;
+    if (rawT > liftEnd) {
+      tinCx = MATCHA_TIN_SHELF_X;
+      tinCy = MATCHA_TIN_SHELF_Y;
+    } else {
+      const carryT = clamp01(rawT / liftEnd);
+      const easeT = carryT * carryT * (3 - 2 * carryT);
+      tinCx = MATCHA_TIN_COUNTER_X + (MATCHA_TIN_SHELF_X - MATCHA_TIN_COUNTER_X) * easeT;
+      tinCy =
+        MATCHA_TIN_COUNTER_CY +
+        (MATCHA_TIN_SHELF_Y - MATCHA_TIN_COUNTER_CY) * easeT -
+        Math.sin(easeT * Math.PI) * 20;
+    }
+  }
+
+  // Left hand steadies chawan (or waits naturally near counter center)
+  const leftHandX = MATCHA_CHAWAN_COUNTER_X - 20;
+  const leftHandY = MATCHA_CHAWAN_COUNTER_BOTTOM_Y - 12;
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
+  drawHandCircle(ctx, leftHandX, leftHandY);
+
+  // Right arm reaches up & carries sage-green MATCHA canister smoothly
+  const gripX = tinCx + 15;
+  const gripY = tinCy - 2;
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, gripX, gripY, 1);
+  drawMatchaCanister(ctx, tinCx, tinCy, false);
+  drawHandCircle(ctx, gripX, gripY);
+}
+
+function drawMatchaScoopSpoon(
+  ctx: CanvasRenderingContext2D,
+  hx: number,
+  hy: number,
+  hasPowderOnSpoon: boolean,
+  tiltRad: number
+): void {
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(tiltRad);
+  ctx.lineWidth = 2.0;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Warm bamboo chashaku scoop handle & curved bowl tip
+  roundedRectPath(ctx, -20, -2.5, 23, 5, 2.2);
+  ctx.fillStyle = '#E5B887';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(-22, 0.5, 5.8, 3.2, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#D49E6A';
+  ctx.fill();
+  ctx.stroke();
+
+  if (hasPowderOnSpoon) {
+    ctx.beginPath();
+    ctx.ellipse(-22, -1.6, 4.4, 2.8, 0, Math.PI, 0, false);
+    ctx.closePath();
+    ctx.fillStyle = '#75B45D';
+    ctx.fill();
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawMatchaPowderDust(
+  ctx: CanvasRenderingContext2D,
+  originX: number,
+  originY: number,
+  targetX: number,
+  targetY: number,
+  elapsedSec: number
+): void {
+  ctx.save();
+  // Soft emerald dust cloud puff right at sprinkle point
+  const cloudPulse = 0.65 + Math.sin(elapsedSec * 14) * 0.25;
+  ctx.fillStyle = `rgba(139, 196, 120, ${(0.42 * cloudPulse).toFixed(2)})`;
+  ctx.beginPath();
+  ctx.ellipse(targetX, targetY - 6, 11, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Falling fine jade-green matcha powder particles into ceramic chawan
+  for (let i = 0; i < 6; i += 1) {
+    const p = (elapsedSec * 4.2 + i * 0.16) % 1;
+    const px = originX + (targetX - originX) * p + Math.sin(elapsedSec * 11 + i * 1.3) * 3.5;
+    const py = originY + (targetY - originY) * p;
+    ctx.fillStyle = i % 2 === 0 ? '#5F9A49' : '#8BC478';
+    ctx.beginPath();
+    ctx.arc(px, py, i % 3 === 0 ? 2.2 : 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawMatchaPowderScoopAction(
+  ctx: CanvasRenderingContext2D,
+  drink: ActiveDrink,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number,
+  elapsedSec: number
+): void {
+  const scoopProg = clamp01(
+    (drink.progress - MATCHA_GRAB_END_PROGRESS) /
+      (MATCHA_SCOOP_END_PROGRESS - MATCHA_GRAB_END_PROGRESS)
+  );
+
+  // 1. Chawan on left with rising emerald matcha powder mound
+  drawCounterChawanWithPowder(
+    ctx,
+    MATCHA_CHAWAN_COUNTER_X,
+    MATCHA_CHAWAN_COUNTER_BOTTOM_Y,
+    scoopProg
+  );
+
+  // 2. Open sage-green MATCHA canister on counter + bamboo lid resting cleanly in front-right (zero overlap with Cup Stack x=486+)
+  drawMatchaCanister(ctx, MATCHA_TIN_COUNTER_X, MATCHA_TIN_COUNTER_CY, true);
+  ctx.save();
+  ctx.lineWidth = 2.0;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  roundedRectPath(ctx, MATCHA_TIN_COUNTER_X - 11, MATCHA_CHAWAN_COUNTER_BOTTOM_Y + 5, 22, 7, 3);
+  ctx.fillStyle = '#E5B887';
+  ctx.fill();
+  ctx.stroke();
+  roundedRectPath(ctx, MATCHA_TIN_COUNTER_X - 4, MATCHA_CHAWAN_COUNTER_BOTTOM_Y + 2, 8, 3.8, 1.8);
+  ctx.fillStyle = '#D49E6A';
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  // Left hand holds ceramic chawan steady
+  const leftHandX = MATCHA_CHAWAN_COUNTER_X - 21;
+  const leftHandY = MATCHA_CHAWAN_COUNTER_BOTTOM_Y - 12;
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
+  drawHandCircle(ctx, leftHandX, leftHandY);
+
+  // 3. Smooth looping 2-scoop bamboo chashaku arc from open canister -> directly centered above chawan mouth -> sprinkle!
+  const cycle = (scoopProg * 2) % 1;
+  const tinScoopX = MATCHA_TIN_COUNTER_X + 18;
+  const tinScoopY = MATCHA_TIN_COUNTER_CY - 22;
+  const chawanMouthY = MATCHA_CHAWAN_COUNTER_BOTTOM_Y - 26;
+  const bowlPourX = MATCHA_CHAWAN_COUNTER_X + 20;
+  const bowlPourY = chawanMouthY - 22;
+
+  let handX = tinScoopX;
+  let handY = tinScoopY;
+  let spoonTilt = 0.25;
+  let hasPowderOnSpoon = false;
+  let isSprinkling = false;
+
+  if (cycle < 0.32) {
+    // Dip spoon into green matcha canister mouth
+    const dipT = cycle / 0.32;
+    handX = tinScoopX + 2;
+    handY = tinScoopY + Math.sin(dipT * Math.PI) * 10;
+    spoonTilt = 0.42;
+    hasPowderOnSpoon = dipT > 0.5;
+  } else if (cycle < 0.66) {
+    // Lift brimming matcha heap in arc directly above ceramic chawan mouth
+    const moveT = (cycle - 0.32) / 0.34;
+    const easeT = moveT * moveT * (3 - 2 * moveT);
+    handX = tinScoopX + (bowlPourX - tinScoopX) * easeT;
+    handY = tinScoopY + (bowlPourY - tinScoopY) * easeT - Math.sin(easeT * Math.PI) * 20;
+    spoonTilt = 0.2 - easeT * 0.55;
+    hasPowderOnSpoon = true;
+  } else {
+    // Gentle tap & tilt with spoon tip locked straight above chawan mouth center
+    const tapT = (cycle - 0.66) / 0.34;
+    handX = bowlPourX + Math.sin(tapT * Math.PI * 4) * 2.2;
+    handY = bowlPourY + Math.abs(Math.sin(tapT * Math.PI * 2)) * 3.5;
+    spoonTilt = -0.58;
+    hasPowderOnSpoon = tapT < 0.45;
+    isSprinkling = true;
+  }
+
+  if (isSprinkling) {
+    const spoonTip = transformRotatedAnchor(handX, handY, spoonTilt, -22, 0.5);
+    drawMatchaPowderDust(
+      ctx,
+      spoonTip.x,
+      spoonTip.y,
+      MATCHA_CHAWAN_COUNTER_X,
+      chawanMouthY,
+      elapsedSec
+    );
+  }
+
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, handX, handY, 1);
+  drawMatchaScoopSpoon(ctx, handX, handY, hasPowderOnSpoon, spoonTilt);
+  drawHandCircle(ctx, handX, handY);
 }
 
 function drawStep2PrepAction(
@@ -1681,10 +2173,10 @@ function drawStep2PrepAction(
     return;
   }
 
-  // Matcha P2: Froth smoothly inside ceramic chawan bowl using handheld electric frother!
+  // Matcha P2: Froth smoothly inside ceramic chawan bowl using bamboo Chasen whisk on dedicated open prep pad!
   if (drink.recipeId === 'matcha') {
-    const bowlX = 282;
-    const bowlBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
+    const bowlX = MATCHA_CHAWAN_COUNTER_X;
+    const bowlBottomY = MATCHA_CHAWAN_COUNTER_BOTTOM_Y;
 
     drawCartoonArm(ctx, leftShoulderX, leftShoulderY, bowlX - 22, bowlBottomY - 12, -1);
     drawHandCircle(ctx, bowlX - 22, bowlBottomY - 12);
@@ -1695,8 +2187,8 @@ function drawStep2PrepAction(
     return;
   }
 
-  // Cafe & Soda P2: Whip silky foam in brushed stainless pitcher using handheld electric frother!
-  const pitcherX = 282;
+  // Cafe & Soda P2: Whip silky foam in brushed stainless pitcher on open prep pad!
+  const pitcherX = BAR_STATION_COORDS.PREP_PAD_X;
   const pitcherBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
   const liquidColor = PREP_LIQUID_COLOR_MAP[drink.recipeId] ?? '#5A321C';
   const foamColor = PREP_FOAM_COLOR_MAP[drink.recipeId] ?? '#FFF6E8';
@@ -2054,36 +2546,43 @@ function drawSynchronizedTikTokDanceArms(
   let rightHandY = headY - 8;
 
   if (dance.style === 'heart_sway') {
+    // Style 1 (118 BPM Pop/Cute): Distinct heart-shooting gesture + cute pop cheek-wave
+    const popPulse = Math.abs(beatSin);
     if (dance.poseIndex === 0) {
-      leftHandX = cx - 18 + beatSin * 4;
-      leftHandY = torsoY + 4 + Math.abs(beatCos) * 4;
-      rightHandX = cx + 18 - beatSin * 4;
-      rightHandY = torsoY + 4 + Math.abs(beatCos) * 4;
-      drawFloatingHeart(ctx, cx, torsoY - 12 + beatSin * 4, 10);
+      leftHandX = cx - 15 + beatSin * 3.5;
+      leftHandY = torsoY + 2 + popPulse * 4;
+      rightHandX = cx + 15 - beatSin * 3.5;
+      rightHandY = torsoY + 2 + popPulse * 4;
+      drawFloatingHeart(ctx, cx, torsoY - 14 - popPulse * 10, 10 + popPulse * 2.5);
     } else {
-      leftHandX = cx - 48 + beatSin * 7;
-      leftHandY = headY - 14 + beatCos * 6;
-      rightHandX = cx + 48 + beatSin * 7;
-      rightHandY = headY - 14 - beatCos * 6;
+      leftHandX = cx - 44 + beatSin * 6;
+      leftHandY = headY - 8 + beatCos * 6;
+      rightHandX = cx + 44 + beatSin * 6;
+      rightHandY = headY - 8 - beatCos * 6;
+      drawFloatingHeart(ctx, cx + beatSin * 14, headY - 36 - popPulse * 8, 8.5);
     }
   } else if (dance.style === 'groove_wave') {
-    const sweepX = Math.sin(dance.beatPhase * 0.5) * 26;
-    const sweepY = Math.abs(beatSin) * 12;
+    // Style 2 (105 BPM Groove/Chill): Silky cascading arm-wave (left leads right by phase offset)
+    const sweepX = Math.sin(dance.beatPhase * 0.5) * 22;
+    const leftWaveY = Math.sin(dance.beatPhase) * 16;
+    const rightWaveY = Math.sin(dance.beatPhase - 1.55) * 16;
     leftHandX = cx - 34 + sweepX;
-    leftHandY = headY - 14 + sweepY;
+    leftHandY = headY - 6 + leftWaveY;
     rightHandX = cx + 34 + sweepX;
-    rightHandY = headY - 22 + sweepY;
+    rightHandY = headY - 6 + rightWaveY;
   } else {
+    // Style 3 (130 BPM EDM/Phonk): Crisp beat-locked hype pumps strictly bounded inside counter frame
+    const punch = Math.sin(dance.beatPhase);
     if (dance.poseIndex === 0) {
-      leftHandX = cx - 30 + beatSin * 12;
-      leftHandY = headY - 48 + Math.abs(beatCos) * 9;
-      rightHandX = cx + 30 - beatSin * 12;
-      rightHandY = headY - 48 + Math.abs(beatCos) * 9;
+      leftHandX = cx - 32 + punch * 8;
+      leftHandY = headY - 34 + Math.abs(beatCos) * 12;
+      rightHandX = cx + 32 - punch * 8;
+      rightHandY = headY - 34 + Math.abs(beatCos) * 12;
     } else {
-      leftHandX = cx - 50 + beatSin * 10;
-      leftHandY = headY - 10 + beatSin * 24;
-      rightHandX = cx + 50 + beatSin * 10;
-      rightHandY = headY - 10 - beatSin * 24;
+      leftHandX = cx - 46 + punch * 6;
+      leftHandY = headY - 8 + punch * 20;
+      rightHandX = cx + 46 + punch * 6;
+      rightHandY = headY - 8 - punch * 20;
     }
   }
 
@@ -2124,17 +2623,20 @@ function drawTikTokDanceMusicNotesAndSparkles(
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
 
   const cx = BARISTA_CENTER_X;
-  const xOffsets = [-68, -42, 42, 68];
-  const yPositions = [414 + floatA, 392 - floatB, 394 + floatB, 412 - floatA];
-  const symbols = ['♪', '♫', '♫', '♪'];
-  const colors = ['#F0788C', '#F7C95B', '#7FC8D9', '#A7D397'];
-
   for (let i = 0; i < 4; i += 1) {
-    const nx = cx + xOffsets[i] + dance.swayX * 0.35;
-    const ny = yPositions[i] + dance.bounceY * 0.35;
-    ctx.strokeText(symbols[i], nx, ny);
-    ctx.fillStyle = colors[i];
-    ctx.fillText(symbols[i], nx, ny);
+    const nx = cx + DANCE_NOTE_X_OFFSETS[i] + dance.swayX * 0.35;
+    let baseNoteY = 412 - floatA;
+    if (i === 0) {
+      baseNoteY = 414 + floatA;
+    } else if (i === 1) {
+      baseNoteY = 392 - floatB;
+    } else if (i === 2) {
+      baseNoteY = 394 + floatB;
+    }
+    const ny = baseNoteY + dance.bounceY * 0.35;
+    ctx.strokeText(DANCE_NOTE_SYMBOLS[i], nx, ny);
+    ctx.fillStyle = DANCE_NOTE_COLORS[i];
+    ctx.fillText(DANCE_NOTE_SYMBOLS[i], nx, ny);
   }
 
   if (tier === 'LARGE' || dance.style === 'party_hype') {

@@ -1,6 +1,7 @@
 import { DRINK_BAR_PALETTE, STAGE_METRICS } from '@shared/config';
 import type { BrewPhaseAction } from '@shared/recipes';
 import type { RecipeId } from '@shared/types';
+import { drawMatchaCanister, drawMotionArcs, drawRealisticBobaShaker } from './brewEffects';
 
 const { WIDTH, HEIGHT, COUNTER_TOP_Y, COUNTER_END_Y } = STAGE_METRICS;
 const COUNTER_SURFACE_HEIGHT = 48;
@@ -9,19 +10,20 @@ const OUTLINE_MEDIUM = 2.5;
 
 // Exported exact station coordinates shared with drawBartender.ts so hands align 1:1 with props
 export const BAR_STATION_COORDS = {
-  SHAKER_X: 62,
-  SHAKER_RIGHT_CLAMP_X: 82,
+  SHAKER_X: 60,
+  SHAKER_RIGHT_CLAMP_X: 80,
   SUGAR_JAR_X: 136,
-  SUGAR_BTN_X: 157,
-  SUGAR_BTN_Y: COUNTER_TOP_Y - 12,
-  BOBA_JAR_X: 195,
-  ICE_BIN_X: 248,
-  MENU_STAND_X: 295,
+  SUGAR_BTN_X: 136,
+  SUGAR_BTN_Y: COUNTER_TOP_Y - 34,
+  BOBA_JAR_X: 196,
+  ICE_BIN_X: 252,
+  MENU_STAND_X: 299,
   CENTER_CUP_X: 360,
-  CUP_STACK_X: 454,
-  LID_STACK_X: 484,
-  ESPRESSO_X: 552,
-  FROTHER_STAND_X: 628,
+  PREP_PAD_X: 420,
+  CUP_STACK_X: 502,
+  LID_STACK_X: 530,
+  ESPRESSO_X: 595,
+  FROTHER_STAND_X: 666,
   SHELF_Y: 398,
   TEA_URN_1_SPIGOT_X: 209,
   TEA_URN_2_SPIGOT_X: 291,
@@ -286,51 +288,7 @@ function drawShelfMatchaTin(
   x: number,
   y: number
 ): void {
-  const w = 36;
-  const h = 50;
-  const cx = x + w * 0.5;
-
-  ctx.save();
-  ctx.lineWidth = OUTLINE_MEDIUM;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-
-  // Sage-green ceramic matcha canister body
-  roundedRectPath(ctx, x, y + 9, w, h - 9, 7);
-  ctx.fillStyle = '#9FD28B';
-  ctx.fill();
-  ctx.stroke();
-
-  // Warm bamboo wooden airtight lid
-  roundedRectPath(ctx, x - 2, y + 3, w + 4, 9, 4);
-  ctx.fillStyle = '#E5B887';
-  ctx.fill();
-  ctx.stroke();
-
-  // Little round bamboo knob
-  roundedRectPath(ctx, cx - 5, y, 10, 4.5, 2);
-  ctx.fillStyle = '#D49E6A';
-  ctx.fill();
-  ctx.stroke();
-
-  // Cream front label with green leaf dot & "MATCHA" text
-  roundedRectPath(ctx, x + 3.5, y + 19, w - 7, 20, 4);
-  ctx.fillStyle = '#FFFDF9';
-  ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  ctx.fillStyle = '#5F9A49';
-  ctx.beginPath();
-  ctx.ellipse(cx, y + 24.5, 4.5, 2.6, -0.35, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.font = '900 6.5px "Fredoka", "Nunito", sans-serif';
-  ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('MATCHA', cx, y + 33.5);
-
-  ctx.restore();
+  drawMatchaCanister(ctx, x + 18, y + 25, false);
 }
 
 function drawSoftArchSparkle(
@@ -779,10 +737,10 @@ export function drawBarCounter(
     !equip.isPickingCup &&
     !equip.isPressingSugarButton;
 
-  // Left Wing: Shaker (18..106) + Sugar (114..164) + Boba Jar (172..218) + Ice Bin (226..270) + Menu (278..312)
+  // Left Wing: Evenly spaced Shaker (16..104) + Sugar (112..164) + Boba (174..220) + Ice (230..274) + Menu (282..316)
   drawDoubleShakerMachine(
     ctx,
-    18,
+    16,
     COUNTER_TOP_Y + 14,
     isShakingMilkTea,
     equip.isShakerDetached,
@@ -790,22 +748,23 @@ export function drawBarCounter(
     equip.isFastBoost,
     elapsedSec
   );
-  drawSugarJarAndButton(ctx, 114, COUNTER_TOP_Y + 16, equip.isPressingSugarButton, elapsedSec);
-  drawCounterBobaJar(ctx, 172, COUNTER_TOP_Y + 16, equip.isScoopingBoba);
-  drawCounterIceBin(ctx, 226, COUNTER_TOP_Y + 16, equip.isScoopingIce);
-  drawMiniTableMenuStand(ctx, 278, COUNTER_TOP_Y + 16);
+  drawSugarJarAndButton(ctx, 118, COUNTER_TOP_Y + 16, equip.isPressingSugarButton, elapsedSec);
+  drawCounterBobaJar(ctx, 174, COUNTER_TOP_Y + 16, equip.isScoopingBoba);
+  drawCounterIceBin(ctx, 230, COUNTER_TOP_Y + 16, equip.isScoopingIce);
+  drawMiniTableMenuStand(ctx, 282, COUNTER_TOP_Y + 16);
 
-  // Right Wing: Cup & Dome Lid Stacks (436..498) + Espresso Machine (512..594) + Frother Stand & Mini Plant (606..694)
-  drawCupAndLidStacks(ctx, 438, COUNTER_TOP_Y + 16, equip.isPickingCup, equip.isPickingLid);
+  // Right Wing: Cup & Dome Lid Stacks (486..544) + Espresso Machine (554..636) + Frother Stand (646..704)
+  // Leaves wide dedicated open prep zone (404..482) between center cup and cup stacks for Chawan & Pitchers!
+  drawCupAndLidStacks(ctx, 486, COUNTER_TOP_Y + 16, equip.isPickingCup, equip.isPickingLid);
   drawCounterEspressoMachine(
     ctx,
-    512,
+    554,
     COUNTER_TOP_Y + 16,
     isExtractingCoffee,
     equip.stepProgress,
     elapsedSec
   );
-  drawFrotherStandAndPlant(ctx, 606, COUNTER_TOP_Y + 16, equip.isUsingFrother);
+  drawFrotherStandAndPlant(ctx, 646, COUNTER_TOP_Y + 16, equip.isUsingFrother);
 
   // 4. Cozy pastel floor welcome mat beneath waiting customer lanes
   drawCustomerFloorMat(ctx);
@@ -821,108 +780,94 @@ function drawSugarJarAndButton(
   elapsedSec: number
 ): void {
   const pressDepth = isPressing ? Math.abs(Math.sin(elapsedSec * 12)) * 4.5 : 0;
+  const w = 36;
+  const h = 40;
+  const cx = x + w * 0.5;
+  const bodyTopY = baseY - h;
 
   ctx.save();
   ctx.lineWidth = OUTLINE_MEDIUM;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
 
-  // Compact cream base tray uniting sugar jar + dispenser button
-  roundedRectPath(ctx, x, baseY - 8, 52, 10, 4);
-  ctx.fillStyle = '#E8B8C2';
+  // 1. Sleek 1-piece rounded glass sugar pump dispenser body (zero messy side pedestal!)
+  roundedRectPath(ctx, x, bodyTopY, w, h, 8);
+  ctx.fillStyle = 'rgba(255, 253, 249, 0.92)';
   ctx.fill();
   ctx.stroke();
 
-  // 1. Clear glass Sugar Jar (Hũ đường — x..x+32)
-  const jarW = 30;
-  const jarH = 38;
-  const jarX = x + 3;
-  const jarTopY = baseY - 8 - jarH;
-
-  roundedRectPath(ctx, jarX, jarTopY + 5, jarW, jarH - 5, 7);
-  ctx.fillStyle = 'rgba(255, 253, 249, 0.88)';
+  // Warm golden liquid sugar / syrup inside lower 68% of bottle
+  roundedRectPath(ctx, x + 2.5, bodyTopY + 13, w - 5, h - 15.5, 5.5);
+  ctx.fillStyle = '#FCE397';
   ctx.fill();
+
+  // Subtle amber depth band at bottom
+  roundedRectPath(ctx, x + 2.5, baseY - 12, w - 5, 9.5, 4);
+  ctx.fillStyle = 'rgba(224, 168, 72, 0.35)';
+  ctx.fill();
+
+  // Vertical glass highlight streak
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+  ctx.fillRect(x + 5, bodyTopY + 4, 3, h - 9);
+
+  // Crisp centered "ĐƯỜNG" pastel label pill
+  roundedRectPath(ctx, x + 3, bodyTopY + 15, w - 6, 11, 3.5);
+  ctx.fillStyle = '#FFF9FA';
+  ctx.fill();
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Sparkling white/warm sugar crystals inside lower 65% of jar
-  roundedRectPath(ctx, jarX + 2.5, jarTopY + 17, jarW - 5, jarH - 19, 4.5);
-  ctx.fillStyle = '#FFF7EA';
-  ctx.fill();
-
-  // Tiny sugar crystal grain dots inside jar
-  ctx.fillStyle = '#E4C9A8';
-  ctx.fillRect(jarX + 6, jarTopY + 21, 2.2, 2.2);
-  ctx.fillRect(jarX + 13, jarTopY + 24, 2.2, 2.2);
-  ctx.fillRect(jarX + 21, jarTopY + 20, 2.2, 2.2);
-  ctx.fillRect(jarX + 9, jarTopY + 29, 2.2, 2.2);
-  ctx.fillRect(jarX + 18, jarTopY + 30, 2.2, 2.2);
-
-  // Pastel gold-honey lid & cute knob
-  roundedRectPath(ctx, jarX - 1.5, jarTopY + 1, jarW + 3, 7, 3.5);
-  ctx.fillStyle = '#F7C95B';
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(jarX + jarW * 0.5, jarTopY - 0.5, 3.2, 0, Math.PI * 2);
-  ctx.fillStyle = '#FFFDF9';
-  ctx.fill();
-  ctx.stroke();
-
-  // Crisp mini "ĐƯỜNG" label band across jar
-  roundedRectPath(ctx, jarX + 2, jarTopY + 12, jarW - 4, 9.5, 2.5);
-  ctx.fillStyle = '#FDEBF1';
-  ctx.fill();
-  ctx.lineWidth = 1.3;
-  ctx.stroke();
-
-  ctx.font = '900 5.5px "Fredoka", "Nunito", sans-serif';
+  ctx.font = '900 6px "Fredoka", "Nunito", sans-serif';
   ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('ĐƯỜNG', jarX + jarW * 0.5, jarTopY + 17);
+  ctx.fillText('ĐƯỜNG', cx, bodyTopY + 20.8);
 
-  // 2. Push-button Sugar Dispenser Pedestal beside jar (Nút bấm lấy đường)
-  ctx.lineWidth = 2.2;
-  const btnColX = x + 35;
-  const btnBaseY = baseY - 8;
+  // 2. Integrated metallic screw collar + centered press pump nozzle on top
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  roundedRectPath(ctx, cx - 10, bodyTopY - 5, 20, 6.5, 3);
+  ctx.fillStyle = '#E4E9EE';
+  ctx.fill();
+  ctx.stroke();
 
-  // Pedestal housing
-  roundedRectPath(ctx, btnColX, btnBaseY - 19, 15, 19, 4);
+  // Pump stem
+  const nozzleY = bodyTopY - 15 + pressDepth;
   ctx.fillStyle = '#FFFDF9';
+  ctx.fillRect(cx - 2.4, nozzleY + 4, 4.8, 11 - pressDepth * 0.6);
+  ctx.lineWidth = 2.0;
+  ctx.strokeRect(cx - 2.4, nozzleY + 4, 4.8, 11 - pressDepth * 0.6);
+
+  // Ergonomic press-pump head & side spout pointing slightly right
+  roundedRectPath(ctx, cx - 6, nozzleY, 17, 5.8, 2.8);
+  ctx.fillStyle = isPressing ? '#F7C95B' : '#F4A6BE';
   ctx.fill();
+  ctx.lineWidth = 2.2;
   ctx.stroke();
 
-  // Depressible coral-gold button cap on top
-  const capY = btnBaseY - 25 + pressDepth;
-  roundedRectPath(ctx, btnColX + 1.5, capY, 12, 7.5 - pressDepth * 0.35, 3.5);
-  ctx.fillStyle = isPressing ? '#F7C95B' : '#F0788C';
-  ctx.fill();
-  ctx.stroke();
-
-  // Bright pulse glow & sparkling sugar granules when pressed!
+  // Subtle golden syrup drop + pulse ring when pressing pump!
   if (isPressing) {
-    const pulseR = 7 + ((elapsedSec * 22) % 9);
-    const pulseAlpha = Math.max(0, 1 - (pulseR - 7) / 9) * 0.78;
+    const pulseR = 6 + ((elapsedSec * 20) % 8);
+    const pulseAlpha = Math.max(0, 1 - (pulseR - 6) / 8) * 0.72;
     ctx.beginPath();
-    ctx.arc(btnColX + 7.5, capY + 2, pulseR, 0, Math.PI * 2);
+    ctx.arc(cx, nozzleY + 2, pulseR, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(247, 201, 91, ${pulseAlpha.toFixed(2)})`;
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2.0;
     ctx.stroke();
 
-    // Sparkling sugar granules dropping into cup/jug beside dispenser
-    ctx.fillStyle = '#FFFDF9';
-    for (let i = 0; i < 4; i += 1) {
-      const p = (elapsedSec * 5 + i * 0.25) % 1;
-      const gx = btnColX + 18 + (i % 2 === 0 ? -2 : 3);
-      const gy = btnBaseY - 18 + p * 18;
-      ctx.beginPath();
-      ctx.arc(gx, gy, 1.9, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    const dropPhase = (elapsedSec * 5.2) % 1;
+    const dropY = nozzleY + 7 + dropPhase * 15;
+    ctx.fillStyle = '#F4B83E';
+    ctx.beginPath();
+    ctx.arc(cx + 10, dropY, 2.2, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   ctx.restore();
 }
+
+const BOBA_JAR_PEARL_OFFSETS: readonly (readonly [number, number])[] = [
+  [9, 22], [17, 23], [26, 22], [35, 23],
+  [13, 15], [22, 16], [31, 15],
+];
 
 function drawCounterBobaJar(
   ctx: CanvasRenderingContext2D,
@@ -960,12 +905,8 @@ function drawCounterBobaJar(
 
   // Glossy black boba pearls visible inside jar
   ctx.fillStyle = '#4A2E23';
-  const pearlOffsets: readonly (readonly [number, number])[] = [
-    [9, 22], [17, 23], [26, 22], [35, 23],
-    [13, 15], [22, 16], [31, 15],
-  ];
-  for (let i = 0; i < pearlOffsets.length; i += 1) {
-    const [ox, oy] = pearlOffsets[i];
+  for (let i = 0; i < BOBA_JAR_PEARL_OFFSETS.length; i += 1) {
+    const [ox, oy] = BOBA_JAR_PEARL_OFFSETS[i];
     ctx.beginPath();
     ctx.arc(x + ox, topY + oy, 3.2, 0, Math.PI * 2);
     ctx.fill();
@@ -1126,48 +1067,28 @@ function drawDoubleShakerMachine(
   ctx.rotate(shakeRot);
 
   if (isShaking) {
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.moveTo(-20, -14);
-    ctx.lineTo(-20, 14);
-    ctx.moveTo(20, -14);
-    ctx.lineTo(20, 14);
-    ctx.stroke();
-    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-    ctx.lineWidth = OUTLINE_MEDIUM;
+    drawMotionArcs(ctx, 18, 12);
   }
 
-  // Translucent/stainless shaker body
-  roundedRectPath(ctx, -11.5, -24, 23, 44, 6);
-  ctx.fillStyle = '#F6F0E9';
-  ctx.fill();
-  ctx.stroke();
+  // Realistic 3-piece tapered 700ml boba shaker clamped in the shaker arm
+  drawRealisticBobaShaker(ctx, {
+    liquidColor: '#D89E68',
+    fillRatio: shakerFillRatio,
+    isCapClosed: true,
+    isPouringTilted: false,
+    isShaking,
+    elapsedSec,
+  });
 
-  // Inner clear viewing cavity (stays empty frosted glass when shakerFillRatio === 0 after pouring!)
-  roundedRectPath(ctx, -9, -15, 18, 30, 3.5);
-  ctx.fillStyle = 'rgba(255, 253, 249, 0.84)';
-  ctx.fill();
-
-  const clampedShakerFill = Math.max(0, Math.min(1, shakerFillRatio));
-  if (clampedShakerFill > 0.03) {
-    const fillH = Math.max(4, 28 * clampedShakerFill);
-    roundedRectPath(ctx, -9, 15 - fillH, 18, fillH, 3);
-    ctx.fillStyle = '#D89E68';
-    ctx.fill();
-  }
-
-  roundedRectPath(ctx, -9, -30, 18, 7, 3);
-  ctx.fillStyle = '#C8D0D8';
-  ctx.fill();
-  ctx.stroke();
-
-  roundedRectPath(ctx, -12.5, -34, 25, 6, 2.5);
+  // Top & bottom mechanical stainless shaker machine clamping brackets
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  roundedRectPath(ctx, -12, -35.5, 24, 5.5, 2.5);
   ctx.fillStyle = '#B4C0CB';
   ctx.fill();
   ctx.stroke();
 
-  roundedRectPath(ctx, -13, 14, 26, 13, 4);
+  roundedRectPath(ctx, -12.5, 17, 25, 11, 4);
   ctx.fillStyle = '#E4E9EE';
   ctx.fill();
   ctx.stroke();
@@ -1420,40 +1341,40 @@ function drawFrotherStandAndPlant(
   ctx.lineWidth = OUTLINE_MEDIUM;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
 
-  // Compact tray on far-right counter
-  roundedRectPath(ctx, x, baseY - 6, 86, 12, 4.5);
-  ctx.fillStyle = '#C48285';
+  // Slim minimalist coaster strip (keeps right wing airy & showcases mini vending machine behind)
+  roundedRectPath(ctx, x, baseY - 4, 58, 9, 4);
+  ctx.fillStyle = '#D99B9C';
   ctx.fill();
   ctx.stroke();
 
-  // 1. Resting brushed stainless frothing pitcher + handheld electric frother on stand (hides when in use!)
+  // Resting brushed stainless frothing pitcher + handheld electric frother on stand (hides when in use!)
   if (!isUsingFrother) {
-    const pX = x + 10;
-    const pY = baseY - 34;
+    const pX = x + 6;
+    const pY = baseY - 31;
 
     // Pitcher handle
     ctx.beginPath();
-    ctx.arc(pX + 22, pY + 15, 5.5, -Math.PI * 0.5, Math.PI * 0.5, false);
-    ctx.lineWidth = 2.2;
+    ctx.arc(pX + 20, pY + 14, 5, -Math.PI * 0.5, Math.PI * 0.5, false);
+    ctx.lineWidth = 2.1;
     ctx.stroke();
 
     // Brushed stainless pitcher
-    roundedRectPath(ctx, pX, pY, 22, 28, 4.5);
+    roundedRectPath(ctx, pX, pY, 20, 26, 4.5);
     ctx.fillStyle = '#E4E9EE';
     ctx.fill();
     ctx.lineWidth = 2.3;
     ctx.stroke();
 
     // Handheld electric frother resting on chrome stand beside pitcher
-    const fX = x + 42;
+    const fX = x + 39;
     ctx.strokeStyle = '#9BA7B4';
     ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.moveTo(fX + 4.5, baseY - 22);
-    ctx.lineTo(fX + 4.5, baseY - 8);
+    ctx.moveTo(fX + 4.5, baseY - 20);
+    ctx.lineTo(fX + 4.5, baseY - 6);
     ctx.stroke();
 
-    roundedRectPath(ctx, fX, baseY - 42, 9, 21, 4);
+    roundedRectPath(ctx, fX, baseY - 40, 9, 20, 4);
     ctx.fillStyle = '#3B2820';
     ctx.fill();
     ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
@@ -1462,81 +1383,82 @@ function drawFrotherStandAndPlant(
 
     ctx.fillStyle = '#F4A6BE';
     ctx.beginPath();
-    ctx.arc(fX + 4.5, baseY - 34, 1.8, 0, Math.PI * 2);
+    ctx.arc(fX + 4.5, baseY - 32, 1.8, 0, Math.PI * 2);
     ctx.fill();
   }
-
-  // 2. Cute mini terracotta potted plant with 3 plump green leaves
-  ctx.lineWidth = OUTLINE_MEDIUM;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  const potX = x + 62;
-  roundedRectPath(ctx, potX, baseY - 24, 18, 19, 4.5);
-  ctx.fillStyle = '#E5956B';
-  ctx.fill();
-  ctx.stroke();
-
-  roundedRectPath(ctx, potX - 1.5, baseY - 27, 21, 5.5, 2.5);
-  ctx.fillStyle = '#EEAA82';
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = '#7FB66E';
-  ctx.beginPath();
-  ctx.ellipse(potX + 3, baseY - 31, 6, 3.8, -0.55, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.ellipse(potX + 15, baseY - 31, 6, 3.8, 0.55, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = '#9FD28B';
-  ctx.beginPath();
-  ctx.ellipse(potX + 9, baseY - 36, 4.8, 6.5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
 
   ctx.restore();
 }
 
+const CUSTOMER_LANE_CENTERS: readonly number[] = [232, 488];
+
 function drawCustomerFloorMat(ctx: CanvasRenderingContext2D): void {
+  // Soft warm ambient floor shadow cast beneath the bar kickplate
   const floorShadow = ctx.createLinearGradient(0, COUNTER_END_Y, 0, COUNTER_END_Y + 32);
-  floorShadow.addColorStop(0, 'rgba(59, 40, 32, 0.14)');
+  floorShadow.addColorStop(0, 'rgba(59, 40, 32, 0.16)');
   floorShadow.addColorStop(1, 'rgba(59, 40, 32, 0)');
   ctx.fillStyle = floorShadow;
   ctx.fillRect(0, COUNTER_END_Y + 1, WIDTH, 32);
 
-  const matX = 160;
-  const matY = COUNTER_END_Y + 12;
-  const matW = 400;
-  const matH = 104;
+  // Unified dual-lane pastel floor runner framing both waiting columns cleanly above y=960 chat zone
+  const matX = 152;
+  const matY = COUNTER_END_Y + 5;
+  const matW = 416;
+  const matH = 116;
 
-  roundedRectPath(ctx, matX + 2, matY + 4, matW, matH, 22);
-  ctx.fillStyle = 'rgba(181, 115, 120, 0.14)';
+  // Ground drop shadow
+  roundedRectPath(ctx, matX + 2, matY + 4, matW, matH, 24);
+  ctx.fillStyle = 'rgba(181, 115, 120, 0.13)';
   ctx.fill();
 
+  // Soft pastel cream-rose runner body
   const matGrad = ctx.createLinearGradient(matX, matY, matX, matY + matH);
-  matGrad.addColorStop(0, '#FFF8FA');
-  matGrad.addColorStop(1, '#FCEBF1');
-  roundedRectPath(ctx, matX, matY, matW, matH, 22);
+  matGrad.addColorStop(0, '#FFF9FB');
+  matGrad.addColorStop(0.55, '#FDF0F5');
+  matGrad.addColorStop(1, '#F9E1EA');
+  roundedRectPath(ctx, matX, matY, matW, matH, 24);
   ctx.fillStyle = matGrad;
   ctx.fill();
-  ctx.lineWidth = 2.2;
-  ctx.strokeStyle = 'rgba(212, 146, 157, 0.55)';
+  ctx.lineWidth = 2.0;
+  ctx.strokeStyle = 'rgba(196, 130, 133, 0.55)';
   ctx.stroke();
 
+  // Inner stitched border
   ctx.save();
   ctx.setLineDash([6, 5]);
-  roundedRectPath(ctx, matX + 8, matY + 8, matW - 16, matH - 16, 16);
-  ctx.lineWidth = 1.6;
-  ctx.strokeStyle = 'rgba(212, 146, 157, 0.42)';
+  roundedRectPath(ctx, matX + 9, matY + 9, matW - 18, matH - 18, 17);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(212, 146, 157, 0.48)';
   ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = 'rgba(217, 155, 156, 0.18)';
-  ctx.beginPath();
-  ctx.ellipse(256, matY + matH - 22, 44, 10, 0, 0, Math.PI * 2);
-  ctx.ellipse(464, matY + matH - 22, 44, 10, 0, 0, Math.PI * 2);
-  ctx.fill();
+  // Dual symmetric pastel lane guides (Lane 0 x=248, Lane 1 x=472) with gentle upward queue chevrons
+  for (let i = 0; i < CUSTOMER_LANE_CENTERS.length; i += 1) {
+    const lx = CUSTOMER_LANE_CENTERS[i];
+    roundedRectPath(ctx, lx - 58, matY + 15, 116, matH - 30, 16);
+    ctx.fillStyle = 'rgba(244, 166, 190, 0.12)';
+    ctx.fill();
+
+    // Subtle upward chevron hinting queue direction toward counter
+    ctx.strokeStyle = 'rgba(196, 130, 133, 0.36)';
+    ctx.lineWidth = 2.0;
+    ctx.beginPath();
+    ctx.moveTo(lx - 8, matY + 32);
+    ctx.lineTo(lx, matY + 25);
+    ctx.lineTo(lx + 8, matY + 32);
+    ctx.stroke();
+
+    // Soft standing-spot pad for back guest
+    ctx.fillStyle = 'rgba(217, 155, 156, 0.22)';
+    ctx.beginPath();
+    ctx.ellipse(lx, matY + matH - 22, 44, 9.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Gentle floor-to-chat transition tint below y=956 so bottom TikTok chat zone stays open & balanced
+  const chatFloorFade = ctx.createLinearGradient(0, 956, 0, 1020);
+  chatFloorFade.addColorStop(0, 'rgba(247, 213, 224, 0)');
+  chatFloorFade.addColorStop(1, 'rgba(244, 198, 214, 0.22)');
+  ctx.fillStyle = chatFloorFade;
+  ctx.fillRect(0, 956, WIDTH, 64);
 }

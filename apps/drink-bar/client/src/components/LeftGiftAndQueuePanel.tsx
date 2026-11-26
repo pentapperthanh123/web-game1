@@ -34,11 +34,13 @@ const CompactActiveStationBar: React.FC<{
       </div>
 
       <div className="flex items-center gap-2 mt-1">
-        <div className="flex-1 h-[6px] rounded-full bg-[#F5DCE4] border border-[#3B2820]/30 overflow-hidden">
+        <div className="flex-1 h-[7px] rounded-full bg-[#F5DCE4] border border-[#3B2820]/35 overflow-hidden relative">
           <div
-            className="h-full rounded-full transition-[width] duration-150"
+            className="h-full rounded-full transition-[width] duration-150 relative"
             style={{ width: `${badge.pct}%`, backgroundColor: barColor }}
-          />
+          >
+            <span className="absolute inset-x-0 top-0 h-[2px] bg-white/45 rounded-full" />
+          </div>
         </div>
         <span className="text-[9.5px] font-black text-[#5C4033] whitespace-nowrap leading-none">
           {drink.phase === 'SHOWCASE' ? badge.pillText : `[P${badge.step}] ${badge.stepShort}`}
@@ -63,7 +65,7 @@ export const LeftGiftAndQueuePanel: React.FC = () => {
   return (
     <section
       aria-label="Compact horizontal menu, active brew, and queue bar"
-      className="absolute top-[78px] left-[24px] right-[24px] pointer-events-none z-20 flex flex-col gap-[6px]"
+      className="absolute top-[64px] left-[20px] right-[20px] pointer-events-none z-20 flex flex-col gap-[5px]"
     >
       {/* Row 1: Compact Horizontal Menu Keywords + Gift Perks Strip */}
       <div className="bar-card px-2 py-1 flex items-center justify-between gap-1.5">

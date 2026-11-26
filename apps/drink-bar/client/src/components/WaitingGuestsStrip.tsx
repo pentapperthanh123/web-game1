@@ -51,18 +51,25 @@ const GUEST_BOTTOM_COLORS: readonly string[] = [
   '#5D7679',
 ];
 
-// Two symmetric vertical standing columns (~1.3x scale) centered around x=360 (y: 712 -> 954)
-// Keeps center cup badge [P1..P5] XX% at x=360, y: 679..700 completely unobstructed,
-// keeps row 0 name tag above row 1 head, and keeps y: 960 -> 1280 open for TikTok LIVE chat.
+// Two symmetric vertical standing columns at noticeable foreground scale (~1.22x barista scale)
+// Centered around x=360 (Lane 0: x=232, Lane 1: x=488) leaving wide 140px corridor for center cup badge,
+// keeping Row 0 nameplate cleanly above Row 1 hair, and keeping y: 960 -> 1280 open for TikTok LIVE chat.
 const LANE_FLOOR_POSITIONS: Readonly<Record<GuestLaneIndex, readonly FloorSlotCoord[]>> = {
   0: [
-    { left: 256, top: 712, scale: 1.0, zIndex: 21 },
-    { left: 248, top: 846, scale: 0.94, zIndex: 23 },
+    { left: 232, top: 676, scale: 1.02, zIndex: 22 },
+    { left: 232, top: 816, scale: 0.95, zIndex: 24 },
   ],
   1: [
-    { left: 464, top: 712, scale: 1.0, zIndex: 21 },
-    { left: 472, top: 846, scale: 0.94, zIndex: 23 },
+    { left: 488, top: 676, scale: 1.02, zIndex: 22 },
+    { left: 488, top: 816, scale: 0.95, zIndex: 24 },
   ],
+};
+
+const CENTER_PICKUP_COORD: FloorSlotCoord = {
+  left: 360,
+  top: 694,
+  scale: 1.04,
+  zIndex: 29,
 };
 
 function hashOrderStyle(orderId: string): number {
@@ -71,6 +78,11 @@ function hashOrderStyle(orderId: string): number {
     hash = (hash * 31 + orderId.charCodeAt(i)) >>> 0;
   }
   return hash % 6;
+}
+
+function resolveBubblePositionClass(lane: GuestLaneIndex): string {
+  // Position bubbles cleanly on outer side below counter props (y >= 700) so counter tools/MENU/Chawan stay 100% clear
+  return lane === 0 ? 'top-[22px] -left-[56px]' : 'top-[22px] -right-[56px]';
 }
 
 function findBubbleForGuest(
@@ -361,7 +373,7 @@ const StandingChibiSvg: React.FC<{
   return (
     <svg
       viewBox="0 0 96 104"
-      className="w-[124px] h-[134px] overflow-visible shrink-0"
+      className="w-[122px] h-[132px] overflow-visible shrink-0"
       aria-hidden="true"
     >
       {/* Floor shadow beneath feet */}
@@ -507,7 +519,7 @@ const StandingChibiSvg: React.FC<{
         strokeWidth="2.2"
       />
 
-      {/* Right arm: raised high forward holding takeaway cup towards bar when celebrating/pickup */}
+      {/* Right arm: raised high forward holding paper takeaway bag towards bar when celebrating/pickup */}
       {holdingCupColor ? (
         <g>
           <rect
@@ -529,30 +541,85 @@ const StandingChibiSvg: React.FC<{
             stroke={OUTLINE_COLOR}
             strokeWidth="2.2"
           />
-          {/* Mini received takeaway cup raised high in appreciation */}
-          <g transform="translate(80, 24)">
+          {/* Cute Kraft Paper Takeaway Bag held by customer hand */}
+          <g transform="translate(70, 36)">
+            {/* Twisted paper rope handle looped into customer hand */}
             <path
-              d="M2 9 L15 9 L13 24 L4 24 Z"
-              fill={holdingCupColor}
-              stroke={OUTLINE_COLOR}
-              strokeWidth="2.1"
-              strokeLinejoin="round"
+              d="M10 12 C10 4, 16 4, 16 12"
+              fill="none"
+              stroke="#B38E5A"
+              strokeWidth="2.8"
             />
             <path
-              d="M3 9 A 5.5 5.5 0 0 1 14 9 Z"
+              d="M10 12 C10 4, 16 4, 16 12"
+              fill="none"
+              stroke={OUTLINE_COLOR}
+              strokeWidth="2.0"
+            />
+            {/* Peeking dome lid & straw from inside paper bag */}
+            <path
+              d="M7 13 A 6 6 0 0 1 19 13 Z"
               fill="#FFFDF9"
               stroke={OUTLINE_COLOR}
-              strokeWidth="2"
+              strokeWidth="1.8"
             />
             <line
-              x1="1"
-              y1="9"
-              x2="16"
-              y2="9"
+              x1="13"
+              y1="12"
+              x2="11"
+              y2="3"
               stroke={OUTLINE_COLOR}
-              strokeWidth="2.2"
+              strokeWidth="2.4"
               strokeLinecap="round"
             />
+            <line
+              x1="13"
+              y1="12"
+              x2="11"
+              y2="3"
+              stroke={holdingCupColor}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+            {/* Paper bag body (trapezoid kraft pouch) */}
+            <path
+              d="M4 13 L22 13 L20 33 L6 33 Z"
+              fill="#E8C99B"
+              stroke={OUTLINE_COLOR}
+              strokeWidth="2.2"
+              strokeLinejoin="round"
+            />
+            {/* Fold crease lines */}
+            <line
+              x1="7"
+              y1="15"
+              x2="8"
+              y2="31"
+              stroke="rgba(179, 137, 88, 0.45)"
+              strokeWidth="1.2"
+            />
+            <line
+              x1="19"
+              y1="15"
+              x2="18"
+              y2="31"
+              stroke="rgba(179, 137, 88, 0.45)"
+              strokeWidth="1.2"
+            />
+            {/* Top folded rim band */}
+            <rect
+              x="3"
+              y="12"
+              width="20"
+              height="2.8"
+              rx="1.4"
+              fill="#DFC090"
+              stroke={OUTLINE_COLOR}
+              strokeWidth="1.8"
+            />
+            {/* Cute drink recipe accent stamp on bag front */}
+            <circle cx="13" cy="23" r="3.4" fill="#FFFDF9" stroke={OUTLINE_COLOR} strokeWidth="1.2" />
+            <circle cx="13" cy="23" r="1.8" fill={holdingCupColor} />
           </g>
         </g>
       ) : (
@@ -690,19 +757,15 @@ export const WaitingGuestsStrip: React.FC = () => {
                   transformOrigin: 'top center',
                 }}
               >
-                {/* Auto-fading compact drink / VIP / celebration speech bubble above head */}
+                {/* Auto-fading compact drink / VIP / celebration speech bubble on outer side (never covers counter props/MENU) */}
                 {guest.bubbleText && (
                   <div
                     key={guest.bubbleKey}
-                    className="absolute -top-[26px] left-1/2 -translate-x-1/2 max-w-[130px] bg-[#FFF9FA] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2px] shadow-[0_2px_0_#3B2820] animate-guest-bubble z-40"
+                    className={`absolute max-w-[116px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-guest-bubble z-40 ${resolveBubblePositionClass(guest.lane)}`}
                   >
-                    <p className="text-[10px] font-extrabold text-[#3B2820] leading-tight text-center truncate">
+                    <p className="text-[10px] font-black text-[#3B2820] leading-tight text-center truncate">
                       {guest.bubbleText}
                     </p>
-                    <span
-                      aria-hidden="true"
-                      className="absolute -bottom-[4.5px] left-1/2 -translate-x-1/2 w-2 h-2 bg-[#FFF9FA] border-r-[2.2px] border-b-[2.2px] border-[#3B2820] rotate-45"
-                    />
                   </div>
                 )}
 
@@ -729,11 +792,11 @@ export const WaitingGuestsStrip: React.FC = () => {
 
                 {/* Compact Guest Name Tag beneath feet */}
                 <div
-                  className={`-mt-[2px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[112px] ${
+                  className={`-mt-[6px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[118px] ${
                     guest.isSignature ? 'bg-[#FFF1C2]' : 'bg-[#FFF9FA]'
                   }`}
                 >
-                  <span className="block text-[10px] font-black text-[#3B2820] truncate leading-none">
+                  <span className="block text-[10.5px] font-black text-[#3B2820] truncate leading-none">
                     {guest.nickname}
                   </span>
                 </div>
@@ -743,15 +806,17 @@ export const WaitingGuestsStrip: React.FC = () => {
         );
       })}
 
-      {/* Departing guests: happy pickup (~0.68s) then smooth step/fade away (~0.5s) */}
+      {/* Departing guests: happy pickup (~0.72s) then smooth step/fade away (~0.58s) */}
       {departingGuests.map((dep) => {
         const lanePositions = LANE_FLOOR_POSITIONS[dep.lane];
-        const coord = lanePositions[dep.row] ?? lanePositions[0];
+        const coord = dep.isCenterPickup
+          ? CENTER_PICKUP_COORD
+          : (lanePositions[dep.row] ?? lanePositions[0]);
         const styleIdx = hashOrderStyle(dep.order.orderId);
         const shirtColor = GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length];
         const bottomColor = GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length];
         const isExiting = dep.phase === 'EXITING';
-        const exitShiftX = dep.lane === 0 ? -75 : 75;
+        const exitShiftX = dep.lane === 0 ? -96 : 96;
 
         return (
           <div
@@ -763,20 +828,20 @@ export const WaitingGuestsStrip: React.FC = () => {
               zIndex: coord.zIndex + 6,
               opacity: isExiting ? 0 : 1,
               transform: isExiting
-                ? `translateX(${exitShiftX}px) translateY(6px) scale(${coord.scale * 0.92})`
+                ? `translateX(${exitShiftX}px) translateY(10px) scale(${coord.scale * 0.92})`
                 : `translateX(0px) translateY(0px) scale(${coord.scale})`,
               transformOrigin: 'top center',
             }}
           >
             <div className="w-full flex flex-col items-center">
-              <div className="absolute -top-[26px] left-1/2 -translate-x-1/2 max-w-[130px] bg-[#FFF9FA] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40">
-                <p className="text-[10px] font-extrabold text-[#3B2820] leading-tight text-center truncate">
+              <div
+                className={`absolute max-w-[120px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40 ${
+                  dep.isCenterPickup ? 'top-[12px] -right-[58px]' : resolveBubblePositionClass(dep.lane)
+                }`}
+              >
+                <p className="text-[10px] font-black text-[#3B2820] leading-tight text-center truncate">
                   {dep.bubbleText}
                 </p>
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-[4.5px] left-1/2 -translate-x-1/2 w-2 h-2 bg-[#FFF9FA] border-r-[2.2px] border-b-[2.2px] border-[#3B2820] rotate-45"
-                />
               </div>
 
               <div className="relative flex flex-col items-center animate-guest-eager">
