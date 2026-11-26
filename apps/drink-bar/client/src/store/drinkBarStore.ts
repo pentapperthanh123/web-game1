@@ -50,22 +50,13 @@ function runSideEffects(
 
     if (isCompletion) {
       const hasShow1 = state.activeDrink?.phase === 'SHOWCASE';
-      const hasShow2 = state.secondaryDrink?.phase === 'SHOWCASE';
       if (hasShow1 && state.activeDrink) {
         drinkParticles.emitBurst(
           effects.burstKind,
           RECIPE_MAP[state.activeDrink.recipeId].accentColor,
           1
         );
-      }
-      if (hasShow2 && state.secondaryDrink) {
-        drinkParticles.emitBurst(
-          effects.burstKind,
-          RECIPE_MAP[state.secondaryDrink.recipeId].accentColor,
-          2
-        );
-      }
-      if (!hasShow1 && !hasShow2) {
+      } else {
         drinkParticles.emitBurst(effects.burstKind, '#F49E60', 1);
       }
       return;
@@ -76,13 +67,6 @@ function runSideEffects(
         effects.burstKind,
         RECIPE_MAP[state.activeDrink.recipeId].accentColor,
         1
-      );
-    }
-    if (state.secondaryDrink) {
-      drinkParticles.emitBurst(
-        effects.burstKind,
-        RECIPE_MAP[state.secondaryDrink.recipeId].accentColor,
-        2
       );
     }
   }
@@ -279,12 +263,6 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       nextState.activeDrink?.phase === 'SHOWCASE'
     ) {
       newlyCompleted.push({ drink: nextState.activeDrink, targetLane: 0 });
-    }
-    if (
-      prevStore.secondaryDrink?.phase === 'BREWING' &&
-      nextState.secondaryDrink?.phase === 'SHOWCASE'
-    ) {
-      newlyCompleted.push({ drink: nextState.secondaryDrink, targetLane: 1 });
     }
 
     const thankText = GUEST_THANK_TEXT_MAP[nextState.config.language];
@@ -569,8 +547,8 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       return {
         config: s.config,
         activeDrink: s.activeDrink,
-        secondaryDrink: s.secondaryDrink,
-        activeSlots: [s.activeDrink, s.secondaryDrink],
+        secondaryDrink: null,
+        activeSlots: [s.activeDrink, null],
         vipQueue: s.vipQueue,
         normalQueue: s.normalQueue,
         finishedShelf: s.finishedShelf,

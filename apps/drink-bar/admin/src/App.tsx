@@ -111,19 +111,11 @@ export const App: React.FC = () => {
   const vipCount = liveSnapshot?.vipQueue.length ?? 0;
   const totalQueue = vipCount + (liveSnapshot?.normalQueue.length ?? 0);
   const activeDrink = liveSnapshot?.activeSlots?.[0] ?? liveSnapshot?.activeDrink ?? null;
-  const secondaryDrink = liveSnapshot?.activeSlots?.[1] ?? liveSnapshot?.secondaryDrink ?? null;
 
   let activeSummary = msg.telemetryIdle;
   if (activeDrink) {
     const b1 = formatBrewStepBadge(activeDrink, config.language, msg.readyLabel);
-    const part1 = `${msg.station1Label}: ${activeDrink.user.nickname} · ${getRecipeLabel(activeDrink.recipeId, config.language, true)} (${b1.stepShort} ${b1.pct}%)`;
-    if (secondaryDrink) {
-      const b2 = formatBrewStepBadge(secondaryDrink, config.language, msg.readyLabel);
-      const part2 = `${msg.station2Label}: ${secondaryDrink.user.nickname} (${b2.pct}%)`;
-      activeSummary = `${part1} | ${part2}`;
-    } else {
-      activeSummary = part1;
-    }
+    activeSummary = `${msg.station1Label}: ${activeDrink.user.nickname} · ${getRecipeLabel(activeDrink.recipeId, config.language, true)} (${b1.stepShort} ${b1.pct}%)`;
   }
 
   return (

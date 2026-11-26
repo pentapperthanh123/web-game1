@@ -230,7 +230,7 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
         </div>
       </div>
 
-      {/* Donate Gifts + Direct 2-Bartender TikTok Dance Tiers */}
+      {/* Donate Gifts + Direct Barista TikTok Dance Tiers */}
       <div className="space-y-1.5">
         <p className="text-[11px] font-black uppercase tracking-wide text-[#7A5F52]">
           {msg.donateDanceTitle}
