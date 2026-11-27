@@ -1,7 +1,9 @@
-import { STAGE_METRICS } from '@shared/config';
+import { startBackgroundTicker, type BackgroundTickerHandle } from '@shared/backgroundTicker';
+import { GAMEPLAY_LIMITS, STAGE_METRICS } from '@shared/config';
 import { getBrewStep, RECIPE_MAP, type BrewPhaseAction } from '@shared/recipes';
-import type { ActiveDrink, DanceStyle, RecipeId, SfxKind } from '@shared/types';
+import type { ActiveDrink, DanceStyle, DrinkBarLiveState, RecipeId, SfxKind } from '@shared/types';
 import { drinkBarAudio } from '../services/audioManager';
+import { drinkBarTts } from '../services/ttsEngine';
 import { useDrinkBarStore } from '../store/drinkBarStore';
 import {
   CAFE_POUR_END_PROGRESS,
@@ -20,8 +22,10 @@ import {
 } from './drawBarScene';
 import {
   BARISTA_CENTER_X,
+  BARISTA_DOZE_NOSE_Y,
   drawBartenderBody,
   drawBartenderForegroundArmsAndSpeech,
+  IDLE_PHASE_TIMINGS,
   isBobaScoopSubstep,
   isCupPickupSubstep,
   isHoldingOatsideSubstep,
@@ -37,6 +41,7 @@ import {
   resolveShakerMachineFillRatio,
   resolveTargetBaristaX,
   stepDanceKinematics,
+  WAKE_UP_DURATION_MS,
   type DanceMotion,
 } from './drawBartender';
 import { drawBarDrinkCups } from './drawDrinkCup';
@@ -127,10 +132,19 @@ const DANCE_HEART_COLORS: readonly string[] = ['#F0788C', '#FF5E7E', '#FF8FA3'];
 const DANCE_WAVE_TRAIL_COLORS: readonly string[] = ['#7FC8D9', '#A8E6CF', '#F4A6BE'];
 const DANCE_HYPE_STAR_COLORS: readonly string[] = ['#F7C95B', '#7FC8D9', '#F0788C'];
 
+let pendingForceSleepRequest = false;
+
+export function requestBaristaForceSleep(): void {
+  pendingForceSleepRequest = true;
+}
+
 export class DrinkBarCanvasLoop {
   private readonly canvas: HTMLCanvasElement;
   private rafId: number | null = null;
+  private bgTicker: BackgroundTickerHandle | null = null;
+  private visibilityHandler: (() => void) | null = null;
   private lastTickMs = 0;
+  private lastSimWallMs = 0;
   private elapsedSec = 0;
   private prevStationKey1 = '';
   private lastAmbientSfxSec = 0;
@@ -143,6 +157,12 @@ export class DrinkBarCanvasLoop {
   private baristaPosX = BARISTA_CENTER_X;
   private baristaWalkVelocity = 0;
   private idleElapsedSec = 0;
+  private wakeUpUntil = 0;
+  private wasDozing = false;
+  private lastWipeSparkleSec = 0;
+  private prevHasOrder = false;
+  private prevSpeedBoostUntil = 0;
+  private prevWaveUntil = 0;
   // Reusable mutable equipment state object (zero per-frame object allocations)
   private readonly equipmentState: BarEquipmentState = {
     activeRecipeId: null,
@@ -161,6 +181,7 @@ export class DrinkBarCanvasLoop {
     isScoopingIce: false,
     danceStyle: null,
     danceBeatPulse: 0,
+    manekiExcitedProgress: 0,
   };
 
   constructor(canvas: HTMLCanvasElement) {
@@ -173,7 +194,21 @@ export class DrinkBarCanvasLoop {
   public start(): void {
     if (this.rafId !== null) return;
     this.lastTickMs = performance.now();
+    this.lastSimWallMs = Date.now();
     this.rafId = requestAnimationFrame(this.frame);
+    this.bgTicker = startBackgroundTicker(
+      STAGE_METRICS.FRAME_INTERVAL_MS,
+      () => this.onBackgroundTick()
+    );
+    if (typeof document !== 'undefined' && !this.visibilityHandler) {
+      this.visibilityHandler = () => {
+        if (document.visibilityState === 'visible') {
+          this.lastTickMs = performance.now();
+          this.renderCurrentFrame();
+        }
+      };
+      document.addEventListener('visibilitychange', this.visibilityHandler, { passive: true });
+    }
   }
 
   public stop(): void {
@@ -181,6 +216,33 @@ export class DrinkBarCanvasLoop {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
+    if (this.bgTicker) {
+      this.bgTicker.stop();
+      this.bgTicker = null;
+    }
+    if (this.visibilityHandler && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+  }
+
+  private onBackgroundTick(): void {
+    const nowWall = Date.now();
+    const gapMs = nowWall - this.lastSimWallMs;
+    // Step smoothly at ~30 FPS whenever rAF is paused/throttled (inactive tab or background window)
+    if (gapMs < STAGE_METRICS.FRAME_INTERVAL_MS * 1.15) {
+      return;
+    }
+    this.lastSimWallMs = nowWall;
+    this.lastTickMs = performance.now();
+
+    let remainingSec = Math.min(5.0, gapMs / 1000);
+    while (remainingSec > 0.001) {
+      const stepSec = Math.min(0.2, remainingSec);
+      this.stepSimulation(stepSec);
+      remainingSec -= stepSec;
+    }
+    this.renderCurrentFrame();
   }
 
   private frame = (nowMs: number): void => {
@@ -194,6 +256,13 @@ export class DrinkBarCanvasLoop {
 
     const dtSec = Math.min(0.1, deltaMs / 1000);
     this.lastTickMs = nowMs - (deltaMs % STAGE_METRICS.FRAME_INTERVAL_MS);
+    this.lastSimWallMs = Date.now();
+
+    this.stepSimulation(dtSec);
+    this.renderCurrentFrame();
+  };
+
+  private stepSimulation(dtSec: number): void {
     this.elapsedSec += dtSec;
 
     const store = useDrinkBarStore.getState();
@@ -205,6 +274,7 @@ export class DrinkBarCanvasLoop {
     const isWaving = nowEpoch < state.waveUntil;
     const isDancing = nowEpoch < state.danceUntil;
 
+    const prevWasDancing = this.wasDancing;
     if (isDancing) {
       const styleSwitched = this.wasDancing && this.prevDanceStyle !== state.danceStyle;
       const restarted = this.wasDancing && this.prevDanceStartedAt !== state.danceStartedAt;
@@ -237,12 +307,59 @@ export class DrinkBarCanvasLoop {
       dtSec
     );
 
+    if (pendingForceSleepRequest) {
+      pendingForceSleepRequest = false;
+      this.idleElapsedSec = IDLE_PHASE_TIMINGS.STRETCH_YAWN_END_SEC + 1.2;
+      this.wasDozing = true;
+      this.wakeUpUntil = 0;
+      this.prevHasOrder = false;
+      this.prevSpeedBoostUntil = state.speedBoostUntil;
+      this.prevWaveUntil = state.waveUntil;
+      drinkBarTts.setBaristaDozing(true);
+    }
+
     const primary = state.activeSlots[0];
+    const hasOrder = Boolean(primary);
+
+    const justGotOrder = !this.prevHasOrder && hasOrder;
+    const justGotGift = !prevWasDancing && isDancing;
+    const justGotLikes =
+      state.speedBoostUntil > this.prevSpeedBoostUntil ||
+      state.waveUntil > this.prevWaveUntil;
+
+    if (this.wasDozing && this.wakeUpUntil <= nowEpoch && (justGotOrder || justGotGift || justGotLikes)) {
+      this.wakeUpUntil = nowEpoch + WAKE_UP_DURATION_MS;
+      drinkParticles.emitBubblePop(this.baristaPosX + 4, BARISTA_DOZE_NOSE_Y);
+      drinkBarAudio.play('wake_pop');
+      drinkBarTts.enqueueWakeUp(state.config.language);
+    }
+
+    this.prevHasOrder = hasOrder;
+    this.prevSpeedBoostUntil = state.speedBoostUntil;
+    this.prevWaveUntil = state.waveUntil;
+
     if (!isDancing && !isWaving && !primary) {
       this.idleElapsedSec += dtSec;
+      // WIPE phase (~0-4.5s): emit 1-2 clean sparkles periodically
+      if (
+        this.idleElapsedSec < IDLE_PHASE_TIMINGS.WIPE_END_SEC &&
+        this.elapsedSec - this.lastWipeSparkleSec > IDLE_PHASE_TIMINGS.WIPE_SPARKLE_INTERVAL_SEC
+      ) {
+        this.lastWipeSparkleSec = this.elapsedSec;
+        const sweep = Math.sin(this.idleElapsedSec * 4.2);
+        const clothX = this.baristaPosX + 8 + sweep * 42;
+        const clothY = STAGE_METRICS.COUNTER_TOP_Y + 6;
+        drinkParticles.emitCounterCleanSparkles(clothX, clothY);
+      }
     } else {
       this.idleElapsedSec = 0;
     }
+
+    const nextIsDozing = this.idleElapsedSec >= IDLE_PHASE_TIMINGS.STRETCH_YAWN_END_SEC;
+    if (nextIsDozing !== this.wasDozing) {
+      drinkBarTts.setBaristaDozing(nextIsDozing);
+    }
+    this.wasDozing = nextIsDozing;
 
     this.syncBrewingPhaseSfx(primary, isDancing);
     this.emitStationAmbientParticles(primary, 1, isFastBoost, isDancing);
@@ -264,6 +381,10 @@ export class DrinkBarCanvasLoop {
     // Update reusable equipment state snapshot in-place (zero per-frame allocations)
     this.equipmentState.danceStyle = isDancing ? state.danceStyle : null;
     this.equipmentState.danceBeatPulse = isDancing ? danceMotion.beatPulse : 0;
+    const excitedRemainingMs = Math.max(0, state.manekiExcitedUntil - nowEpoch);
+    this.equipmentState.manekiExcitedProgress = clamp01(
+      excitedRemainingMs / GAMEPLAY_LIMITS.MANEKI_NEKO_EXCITED_MS
+    );
 
     if (primary && primary.phase === 'BREWING' && !isDancing) {
       const step = getBrewStep(primary.progress, primary.recipeId);
@@ -303,23 +424,34 @@ export class DrinkBarCanvasLoop {
       this.equipmentState.isScoopingBoba = false;
       this.equipmentState.isScoopingIce = false;
     }
+  }
 
+  private renderCurrentFrame(): void {
     const ctx = this.canvas.getContext('2d');
     if (!ctx) return;
 
-    this.render(ctx, isFastBoost, isWaving, isDancing);
-  };
+    const state = useDrinkBarStore.getState();
+    const nowEpoch = Date.now();
+    const isFastBoost = nowEpoch < state.speedBoostUntil;
+    const isWaving = nowEpoch < state.waveUntil;
+    const isDancing = nowEpoch < state.danceUntil;
+
+    this.render(ctx, state, nowEpoch, isFastBoost, isWaving, isDancing);
+  }
 
   private render(
     ctx: CanvasRenderingContext2D,
+    state: DrinkBarLiveState,
+    nowEpoch: number,
     isFastBoost: boolean,
     isWaving: boolean,
     isDancing: boolean
   ): void {
-    const state = useDrinkBarStore.getState();
-
     // Layer 1: Airy café wall, 2-tier pastel shelves (tea urns, syrup pumps, matcha tin, oatside), pendant lamps
     drawBarBackdrop(ctx, this.elapsedSec, this.equipmentState);
+
+    const wakeUpProgress =
+      this.wakeUpUntil > nowEpoch ? (this.wakeUpUntil - nowEpoch) / WAKE_UP_DURATION_MS : 0;
 
     // Layer 2: Single central barista walking smoothly between equipment stations (or 3 TikTok dance styles)
     drawBartenderBody(
@@ -335,7 +467,8 @@ export class DrinkBarCanvasLoop {
       this.elapsedSec,
       this.baristaPosX,
       this.baristaWalkVelocity,
-      this.idleElapsedSec
+      this.idleElapsedSec,
+      wakeUpProgress
     );
 
     // Layer 3: Full-width wooden counter + shaker, sugar jar + button, ice bin, menu stand, cups/lids, espresso & plant
@@ -364,7 +497,8 @@ export class DrinkBarCanvasLoop {
       this.elapsedSec,
       this.baristaPosX,
       this.baristaWalkVelocity,
-      this.idleElapsedSec
+      this.idleElapsedSec,
+      wakeUpProgress
     );
 
     // Layer 6: Fixed-pool particles (<= 60)
@@ -414,16 +548,29 @@ export class DrinkBarCanvasLoop {
     if (dance.style === 'heart_sway') {
       if (!isNewBeat) return;
       for (let i = 0; i < 3; i += 1) {
-        const sideSign = i === 0 ? -1 : i === 1 ? 1 : Math.random() > 0.5 ? 1 : -1;
-        const hx = i === 0 ? dance.leftHandX : i === 1 ? dance.rightHandX : cx;
-        const hy = i === 0 ? dance.leftHandY : i === 1 ? dance.rightHandY : 494;
+        let sideSign = 0;
+        let hx = cx;
+        let hy = 426;
+        if (i === 0) {
+          sideSign = -1;
+          hx = dance.leftHandX;
+          hy = dance.leftHandY - 6;
+        } else if (i === 1) {
+          sideSign = 1;
+          hx = dance.rightHandX;
+          hy = dance.rightHandY - 6;
+        }
+        const vx =
+          sideSign === 0
+            ? (Math.random() - 0.5) * 14
+            : sideSign * (16 + Math.random() * 18);
         drinkParticles.spawnDanceParticle(
           'heart',
           hx + (Math.random() - 0.5) * 10,
-          hy - 6,
-          sideSign * (14 + Math.random() * 18),
-          -(38 + Math.random() * 26),
-          6.2 + Math.random() * 2.2,
+          hy,
+          vx,
+          -(42 + Math.random() * 24),
+          6.4 + Math.random() * 2.2,
           0.95,
           DANCE_HEART_COLORS[i % DANCE_HEART_COLORS.length]
         );
@@ -471,7 +618,7 @@ export class DrinkBarCanvasLoop {
       return;
     }
 
-    // Style 3 ("Quẩy Nhiệt"): Beat-synced stars & small energy bursts
+    // Style 3 ("Quẩy Nhiệt"): Beat-synced stars & hip-shake energy bursts
     if (!isNewBeat) return;
     for (let i = 0; i < 4; i += 1) {
       const angle = (Math.PI * 2 * i) / 4 + Math.random() * 0.45;
@@ -487,6 +634,19 @@ export class DrinkBarCanvasLoop {
         4.6 + Math.random() * 2.0,
         0.65,
         DANCE_HYPE_STAR_COLORS[i % DANCE_HYPE_STAR_COLORS.length]
+      );
+    }
+    if (dance.isBackFacing) {
+      const hipSideSign = dance.beatIndex % 2 === 0 ? -1 : 1;
+      drinkParticles.spawnDanceParticle(
+        'sparkle',
+        cx + dance.hipShakeX + hipSideSign * 42,
+        610 + dance.bounceY,
+        hipSideSign * 36,
+        -22,
+        5.0,
+        0.55,
+        '#F7C95B'
       );
     }
   }

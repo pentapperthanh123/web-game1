@@ -17,10 +17,14 @@ export default defineConfig(({ mode }) => {
       target: backendTarget,
       ws: true,
       changeOrigin: true,
+      proxyTimeout: 5000,
+      timeout: 5000,
     },
     '/api': {
       target: backendTarget,
       changeOrigin: true,
+      proxyTimeout: 5000,
+      timeout: 5000,
     },
   };
 
@@ -36,6 +40,9 @@ export default defineConfig(({ mode }) => {
       host: true,
       allowedHosts: true,
       proxy,
+      watch: {
+        ignored: ['**/dist/**', '**/node_modules/**'],
+      },
     },
     preview: {
       port: DRINK_BAR_PORTS.CLIENT,

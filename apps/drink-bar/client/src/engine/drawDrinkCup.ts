@@ -33,8 +33,9 @@ import { roundedRectPath } from './drawBarScene';
 
 export { CUP1_CX, CUP2_CX, CUP_TOP_Y, CUP_BOTTOM_Y };
 
-const SHOWCASE_SLIDE_DURATION_MS = 620;
-const SHOWCASE_SLIDE_Y_PX = 24;
+export const SHOWCASE_HANDOFF_MS = 680;
+const SHOWCASE_TRANSFER_MS = 180;
+const SHOWCASE_SLIDE_Y_PX = 28;
 const SHOWCASE_SCALE_BONUS = 0.06;
 
 export function computeShowcaseSlideFactor(drink: ActiveDrink | null): number {
@@ -42,9 +43,18 @@ export function computeShowcaseSlideFactor(drink: ActiveDrink | null): number {
     return 0;
   }
   const elapsedMs = Math.max(0, GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS - drink.showcaseRemainingMs);
-  const linearT = clamp01(elapsedMs / SHOWCASE_SLIDE_DURATION_MS);
+  const linearT = clamp01(elapsedMs / SHOWCASE_HANDOFF_MS);
   // Smooth ease-out cubic slide toward the front edge of the counter
   return 1 - Math.pow(1 - linearT, 3);
+}
+
+function computeShowcaseTransferRatio(drink: ActiveDrink | null): number {
+  if (!drink || drink.phase !== 'SHOWCASE') {
+    return 0;
+  }
+  const elapsedMs = Math.max(0, GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS - drink.showcaseRemainingMs);
+  if (elapsedMs <= SHOWCASE_HANDOFF_MS) return 0;
+  return clamp01((elapsedMs - SHOWCASE_HANDOFF_MS) / SHOWCASE_TRANSFER_MS);
 }
 
 function buildCupInteriorPath(ctx: CanvasRenderingContext2D, cupCx: number): void {
@@ -170,11 +180,18 @@ function drawDrinkCupAtStation(
     return;
   }
 
-  // Smooth forward handover slide at 100% (SHOWCASE) + elastic squash & bounce right when lid snaps (93.5..96.5%)
+  // Smooth forward handover slide (0..680ms) then quick transfer into customer's hand (680..860ms)
+  const transferT = computeShowcaseTransferRatio(drink);
+  if (!hideProgressPill && transferT >= 1) {
+    ctx.restore();
+    return;
+  }
+
   const slideFactor = computeShowcaseSlideFactor(drink);
-  const slideDy = SHOWCASE_SLIDE_Y_PX * slideFactor;
-  let scaleX = 1 + SHOWCASE_SCALE_BONUS * slideFactor;
-  let scaleY = 1 + SHOWCASE_SCALE_BONUS * slideFactor;
+  const slideDx = 16 * transferT;
+  const slideDy = SHOWCASE_SLIDE_Y_PX * slideFactor + 14 * transferT;
+  let scaleX = 1 + SHOWCASE_SCALE_BONUS * slideFactor - 0.16 * transferT;
+  let scaleY = 1 + SHOWCASE_SCALE_BONUS * slideFactor - 0.16 * transferT;
 
   if (
     drink.phase === 'BREWING' &&
@@ -192,8 +209,11 @@ function drawDrinkCupAtStation(
   }
 
   ctx.save();
+  if (!hideProgressPill && transferT > 0) {
+    ctx.globalAlpha = 1 - transferT;
+  }
   if (slideFactor > 0 || scaleX !== 1 || scaleY !== 1) {
-    ctx.translate(cupCx, CUP_BOTTOM_Y + slideDy);
+    ctx.translate(cupCx + slideDx, CUP_BOTTOM_Y + slideDy);
     ctx.scale(scaleX, scaleY);
     ctx.translate(-cupCx, -CUP_BOTTOM_Y);
   }

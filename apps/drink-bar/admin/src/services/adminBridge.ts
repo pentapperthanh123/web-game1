@@ -70,7 +70,23 @@ class DrinkBarAdminBridge {
         } else if (msg.type === 'RELAY_SFX') {
           sharedSoundEngine.play(msg.kind, msg.tier, msg.danceStyle, msg.pitchScale);
         } else if (msg.type === 'RELAY_TTS') {
-          handleRelayedTts(msg);
+          handleRelayedTts(msg, (utteranceId) => {
+            if (this.previewIframe?.contentWindow) {
+              try {
+                this.previewIframe.contentWindow.postMessage(
+                  {
+                    type: 'RELAY_TTS',
+                    action: 'DONE',
+                    utteranceId,
+                    timestamp: Date.now(),
+                  } satisfies DrinkBarSyncMessage,
+                  '*'
+                );
+              } catch {
+                // Ignore cross-frame error
+              }
+            }
+          });
         }
       };
       window.addEventListener('message', this.messageHandler);
@@ -246,13 +262,14 @@ class DrinkBarAdminBridge {
 }
 
 function handleRelayedTts(
-  msg: Extract<DrinkBarSyncMessage, { type: 'RELAY_TTS' }>
+  msg: Extract<DrinkBarSyncMessage, { type: 'RELAY_TTS' }>,
+  onDone?: (utteranceId?: number) => void
 ): void {
   if (msg.action === 'CANCEL') {
     sharedTtsPlayer.stopAll();
     return;
   }
-  if (!msg.text) return;
+  if (msg.action === 'DONE' || !msg.text) return;
   void sharedTtsPlayer.speak({
     text: msg.text,
     language: msg.language ?? 'VI',
@@ -261,7 +278,7 @@ function handleRelayedTts(
     volume: msg.volume ?? GAMEPLAY_LIMITS.NORMAL_VOLUME_GAIN,
     allowIframeRelay: false,
     onFinish: () => {
-      // Handled internally by sharedTtsPlayer
+      onDone?.(msg.utteranceId);
     },
   });
 }

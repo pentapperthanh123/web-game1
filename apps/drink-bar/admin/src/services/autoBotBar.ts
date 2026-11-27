@@ -1,3 +1,4 @@
+import { startBackgroundTicker, type BackgroundTickerHandle } from '@shared/backgroundTicker';
 import { AUTOBOT_PACE_PRESETS } from '@shared/config';
 import type { AutoBotPace } from '@shared/types';
 import {
@@ -10,7 +11,7 @@ import {
 } from './adminBridge';
 
 class AutoBotBarEngine {
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private ticker: BackgroundTickerHandle | null = null;
   private isRunning = false;
   private pace: AutoBotPace = 'NORMAL';
 
@@ -20,14 +21,14 @@ class AutoBotBarEngine {
     this.pace = pace;
     const preset = AUTOBOT_PACE_PRESETS[pace];
     this.step();
-    this.timer = setInterval(() => this.step(), preset.intervalMs);
+    this.ticker = startBackgroundTicker(preset.intervalMs, () => this.step());
   }
 
   public stop(): void {
     this.isRunning = false;
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+    if (this.ticker) {
+      this.ticker.stop();
+      this.ticker = null;
     }
   }
 

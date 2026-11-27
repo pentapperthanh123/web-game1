@@ -62,6 +62,7 @@ export type SfxKind =
   | 'signature'
   | 'chat_pop'
   | 'like_pop'
+  | 'wake_pop'
   | 'dance_jingle';
 
 export type CoreEventType =
@@ -217,6 +218,7 @@ export type DrinkBarAdminActionName =
   | 'NEXT_CUSTOMER'
   | 'CLEAR_SHELF'
   | 'RESET_DEFAULT'
+  | 'FORCE_IDLE_SLEEP'
   | 'TRIGGER_TIKTOK_DANCE'
   | 'SET_BREW_PROGRESS'
   | 'RESTOCK_RECIPE'
@@ -279,7 +281,8 @@ export type DrinkBarSyncMessage =
     }
   | {
       type: 'RELAY_TTS';
-      action: 'SPEAK' | 'CANCEL';
+      action: 'SPEAK' | 'CANCEL' | 'DONE';
+      utteranceId?: number;
       text?: string;
       language?: Language;
       volume?: number;

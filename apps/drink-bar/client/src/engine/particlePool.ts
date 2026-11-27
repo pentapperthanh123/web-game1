@@ -187,6 +187,85 @@ export class DrinkBarParticlePool {
     }
   }
 
+  public emitNekoBellSparkles(bellX: number, bellY: number): void {
+    const count = 2;
+    for (let i = 0; i < count; i += 1) {
+      const side = i === 0 ? -1 : 1;
+      const p = this.acquireSlot();
+      p.active = true;
+      p.tag = 'brew';
+      p.cupId = 1;
+      p.boundedToCup = false;
+      p.minX = bellX - 36;
+      p.maxX = bellX + 36;
+      p.minY = bellY - 40;
+      p.maxY = bellY + 24;
+      p.kind = 'sparkle';
+      p.x = bellX + side * (7 + Math.random() * 5);
+      p.y = bellY - 2 + (Math.random() - 0.5) * 4;
+      p.vx = side * (16 + Math.random() * 14);
+      p.vy = -(22 + Math.random() * 16);
+      p.size = 3.6 + Math.random() * 1.1;
+      p.life = 0.72;
+      p.maxLife = 0.72;
+      p.color = i === 0 ? DRINK_BAR_PALETTE.VIP_GOLD : DRINK_BAR_PALETTE.SIGNATURE_GLOW;
+      p.rotation = Math.random() * Math.PI * 2;
+      p.vRot = (Math.random() - 0.5) * 3.5;
+    }
+  }
+
+  public emitCounterCleanSparkles(x: number, y: number): void {
+    const count = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i += 1) {
+      const p = this.acquireSlot();
+      p.active = true;
+      p.tag = 'brew';
+      p.cupId = 1;
+      p.boundedToCup = false;
+      p.minX = x - 40;
+      p.maxX = x + 40;
+      p.minY = y - 30;
+      p.maxY = y + 15;
+      p.kind = 'sparkle';
+      p.x = x + (Math.random() - 0.5) * 26;
+      p.y = y - 2 + (Math.random() - 0.5) * 6;
+      p.vx = (Math.random() - 0.5) * 16;
+      p.vy = -(14 + Math.random() * 16);
+      p.size = 2.8 + Math.random() * 1.4;
+      p.life = 0.55;
+      p.maxLife = 0.55;
+      p.color = i % 2 === 0 ? DRINK_BAR_PALETTE.VIP_GOLD : '#FFF9E6';
+      p.rotation = Math.random() * Math.PI * 2;
+      p.vRot = (Math.random() - 0.5) * 3.0;
+    }
+  }
+
+  public emitBubblePop(x: number, y: number): void {
+    const count = 2;
+    for (let i = 0; i < count; i += 1) {
+      const p = this.acquireSlot();
+      p.active = true;
+      p.tag = 'brew';
+      p.cupId = 1;
+      p.boundedToCup = false;
+      p.minX = x - 30;
+      p.maxX = x + 30;
+      p.minY = y - 25;
+      p.maxY = y + 25;
+      p.kind = 'bubble';
+      p.x = x + (i === 0 ? -4 : 4);
+      p.y = y + (Math.random() - 0.5) * 4;
+      p.vx = (i === 0 ? -1 : 1) * (18 + Math.random() * 12);
+      p.vy = -(10 + Math.random() * 14);
+      p.size = 2.2 + Math.random() * 1.2;
+      p.life = 0.35;
+      p.maxLife = 0.35;
+      p.color = '#E8F7FA';
+      p.rotation = 0;
+      p.vRot = 0;
+    }
+  }
+
   public emitAmbientPour(
     cupId: CupStationId,
     liquidSurfaceY: number,

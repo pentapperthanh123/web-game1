@@ -1,10 +1,13 @@
 import { io, type Socket } from 'socket.io-client';
+import { startBackgroundTicker, type BackgroundTickerHandle } from '@shared/backgroundTicker';
 import {
   DRINK_BAR_SOCKET_EVENTS,
   DRINK_BAR_SYNC_CHANNEL,
   GAMEPLAY_LIMITS,
 } from '@shared/config';
 import type { DrinkBarSyncMessage, NormalizedLiveEvent } from '@shared/types';
+import { requestBaristaForceSleep } from '../engine/drinkBarLoop';
+import { drinkBarTts } from './ttsEngine';
 import { useDrinkBarStore } from '../store/drinkBarStore';
 
 interface ServerChatPayload {
@@ -38,8 +41,8 @@ export class DrinkBarCoreReceiver {
   private socket: Socket | null = null;
   private channel: BroadcastChannel | null = null;
   private pendingLikes = 0;
-  private likeBatchTimer: ReturnType<typeof setInterval> | null = null;
-  private snapshotTimer: ReturnType<typeof setInterval> | null = null;
+  private likeBatchTicker: BackgroundTickerHandle | null = null;
+  private snapshotTicker: BackgroundTickerHandle | null = null;
   private messageHandler: ((event: MessageEvent<unknown>) => void) | null = null;
   private readonly seenEventIds = new Set<string>();
 
@@ -66,18 +69,21 @@ export class DrinkBarCoreReceiver {
       }
     }
 
-    // 3. Batch LIKE timer (200ms)
-    this.likeBatchTimer = setInterval(() => {
-      if (this.pendingLikes <= 0) return;
-      const count = this.pendingLikes;
-      this.pendingLikes = 0;
-      useDrinkBarStore.getState().processLikes(count);
-    }, GAMEPLAY_LIMITS.LIKE_BATCH_INTERVAL_MS);
+    // 3. Batch LIKE ticker (200ms, active even when tab is inactive)
+    this.likeBatchTicker = startBackgroundTicker(
+      GAMEPLAY_LIMITS.LIKE_BATCH_INTERVAL_MS,
+      () => {
+        if (this.pendingLikes <= 0) return;
+        const count = this.pendingLikes;
+        this.pendingLikes = 0;
+        useDrinkBarStore.getState().processLikes(count);
+      }
+    );
 
     // 4. Periodic snapshot push to Admin (via window.parent & BroadcastChannel)
-    this.snapshotTimer = setInterval(() => {
+    this.snapshotTicker = startBackgroundTicker(SNAPSHOT_PUSH_INTERVAL_MS, () => {
       this.broadcastSnapshot();
-    }, SNAPSHOT_PUSH_INTERVAL_MS);
+    });
 
     // 5. Connect to Core Connect Service (server:4000 via Vite proxy)
     this.connectSocket();
@@ -85,13 +91,13 @@ export class DrinkBarCoreReceiver {
   }
 
   public stop(): void {
-    if (this.likeBatchTimer) {
-      clearInterval(this.likeBatchTimer);
-      this.likeBatchTimer = null;
+    if (this.likeBatchTicker) {
+      this.likeBatchTicker.stop();
+      this.likeBatchTicker = null;
     }
-    if (this.snapshotTimer) {
-      clearInterval(this.snapshotTimer);
-      this.snapshotTimer = null;
+    if (this.snapshotTicker) {
+      this.snapshotTicker.stop();
+      this.snapshotTicker = null;
     }
     if (this.messageHandler && typeof window !== 'undefined') {
       window.removeEventListener('message', this.messageHandler);
@@ -127,6 +133,11 @@ export class DrinkBarCoreReceiver {
   ): void {
     if (msg.type === 'REQUEST_SNAPSHOT') {
       this.broadcastSnapshot();
+      return;
+    }
+
+    if (msg.type === 'RELAY_TTS' && msg.action === 'DONE') {
+      drinkBarTts.notifyRelayedSpeechDone(msg.utteranceId);
       return;
     }
 
@@ -229,6 +240,10 @@ export class DrinkBarCoreReceiver {
       case 'RESET_DEFAULT':
         store.resetToDefaultEmpty();
         break;
+      case 'FORCE_IDLE_SLEEP':
+        store.prepareIdleSleep();
+        requestBaristaForceSleep();
+        break;
       case 'TRIGGER_TIKTOK_DANCE':
         store.triggerTikTokDance(payload.danceTier, payload.danceStyle);
         break;
@@ -297,7 +312,9 @@ export class DrinkBarCoreReceiver {
       this.socket = io(socketUrl, {
         transports: ['websocket', 'polling'],
         reconnectionAttempts: Infinity,
-        reconnectionDelay: 2000,
+        reconnectionDelay: 4000,
+        reconnectionDelayMax: 20000,
+        timeout: 5000,
       });
 
       // Canonical NormalizedLiveEvent stream from Core Connect / Gateway

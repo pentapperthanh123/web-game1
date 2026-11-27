@@ -35,6 +35,17 @@ export const BAR_STATION_COORDS = {
   MATCHA_TIN_Y: 372,
 } as const;
 
+const ESPRESSO_MACHINE_X = 554;
+const ESPRESSO_MACHINE_W = 82;
+const ESPRESSO_MACHINE_H = 98;
+const ESPRESSO_MACHINE_TOP_Y = COUNTER_TOP_Y + 16 - ESPRESSO_MACHINE_H;
+
+export const MANEKI_NEKO_ANCHOR = {
+  X: ESPRESSO_MACHINE_X + ESPRESSO_MACHINE_W * 0.5,
+  BASE_Y: ESPRESSO_MACHINE_TOP_Y,
+  BELL_Y: ESPRESSO_MACHINE_TOP_Y - 21,
+} as const;
+
 export interface BarEquipmentState {
   activeRecipeId: RecipeId | null;
   activeAction: BrewPhaseAction | null;
@@ -52,6 +63,7 @@ export interface BarEquipmentState {
   isScoopingIce: boolean;
   danceStyle: DanceStyle | null;
   danceBeatPulse: number;
+  manekiExcitedProgress: number;
 }
 
 const IDLE_EQUIPMENT_STATE: BarEquipmentState = {
@@ -71,6 +83,7 @@ const IDLE_EQUIPMENT_STATE: BarEquipmentState = {
   isScoopingIce: false,
   danceStyle: null,
   danceBeatPulse: 0,
+  manekiExcitedProgress: 0,
 };
 
 export function roundedRectPath(
@@ -805,11 +818,20 @@ export function drawBarCounter(
   drawCupAndLidStacks(ctx, 486, COUNTER_TOP_Y + 16, equip.isPickingCup, equip.isPickingLid);
   drawCounterEspressoMachine(
     ctx,
-    554,
+    ESPRESSO_MACHINE_X,
     COUNTER_TOP_Y + 16,
     isExtractingCoffee,
     equip.stepProgress,
     elapsedSec
+  );
+  drawManekiNeko(
+    ctx,
+    MANEKI_NEKO_ANCHOR.X,
+    MANEKI_NEKO_ANCHOR.BASE_Y,
+    elapsedSec,
+    equip.manekiExcitedProgress,
+    equip.danceStyle,
+    equip.danceBeatPulse
   );
   drawFrotherStandAndPlant(ctx, 646, COUNTER_TOP_Y + 16, equip.isUsingFrother);
 
@@ -1259,8 +1281,8 @@ function drawCounterEspressoMachine(
   stepProgress: number,
   elapsedSec: number
 ): void {
-  const w = 82;
-  const h = 98;
+  const w = ESPRESSO_MACHINE_W;
+  const h = ESPRESSO_MACHINE_H;
   const topY = baseY - h;
   const cx = x + w * 0.5;
 
@@ -1368,7 +1390,7 @@ function drawCounterEspressoMachine(
     ctx.lineWidth = 2.0;
     for (let s = 0; s < 2; s += 1) {
       const phase = (elapsedSec * 1.4 + s * 0.5) % 1;
-      const sx = cx + (s === 0 ? -9 : 9) + Math.sin(elapsedSec * 3.5 + s) * 3;
+      const sx = cx + (s === 0 ? -28 : 28) + Math.sin(elapsedSec * 3.5 + s) * 3;
       const sy = topY - 4 - phase * 18;
       ctx.globalAlpha = Math.sin(phase * Math.PI) * 0.7;
       ctx.beginPath();
@@ -1380,6 +1402,260 @@ function drawCounterEspressoMachine(
   }
 
   ctx.restore();
+}
+
+function drawManekiNeko(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  baseY: number,
+  elapsedSec: number,
+  excitedProgress: number,
+  danceStyle: DanceStyle | null,
+  danceBeatPulse: number
+): void {
+  const isExcited = excitedProgress > 0.01;
+  const isDancing = danceStyle !== null;
+
+  // Smooth squash & bounce: excited bounce for ~1.5s on order/donate, gentle beat bounce during barista dance
+  let bounceY = 0;
+  let scaleX = 1;
+  let scaleY = 1;
+  if (isExcited) {
+    const hop = Math.abs(Math.sin(elapsedSec * 14)) * excitedProgress;
+    bounceY = -hop * 5.2;
+    scaleX = 1 + hop * 0.08;
+    scaleY = 1 - hop * 0.06;
+  } else if (isDancing) {
+    bounceY = -danceBeatPulse * 3.2;
+    scaleX = 1 + danceBeatPulse * 0.05;
+    scaleY = 1 - danceBeatPulse * 0.04;
+  }
+
+  let waveSpeed = 3.6;
+  let waveAmp = 0.34;
+  if (isExcited) {
+    waveSpeed = 12.2;
+    waveAmp = 0.52;
+  } else if (isDancing) {
+    waveSpeed = 6.8;
+    waveAmp = 0.42;
+  }
+  const waveAngle = -0.35 + Math.sin(elapsedSec * waveSpeed) * waveAmp;
+  const isBlinking = !isExcited && elapsedSec % 4.4 > 4.22;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = OUTLINE_MEDIUM;
+
+  // 1. Cozy pastel silk cushion sitting flush on top of espresso machine
+  roundedRectPath(ctx, cx - 18, baseY - 5, 36, 6, 3);
+  ctx.fillStyle = '#F0788C';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.translate(cx, baseY - 3 + bounceY);
+  ctx.scale(scaleX, scaleY);
+
+  // 2. Cute curved cream tail peeking from right side
+  const tailWag = Math.sin(elapsedSec * (isExcited ? 10 : 2.6)) * 2.2;
+  ctx.beginPath();
+  ctx.moveTo(11, -5);
+  ctx.quadraticCurveTo(21, -8 + tailWag, 19, -17 + tailWag);
+  ctx.lineWidth = 6.5;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+  ctx.lineWidth = 3.2;
+  ctx.strokeStyle = '#FFFDF9';
+  ctx.stroke();
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = OUTLINE_MEDIUM;
+
+  // 3. Plump chibi cream body
+  ctx.beginPath();
+  ctx.moveTo(-12, -21);
+  ctx.quadraticCurveTo(-16, -8, -14, -1);
+  ctx.quadraticCurveTo(0, 2, 14, -1);
+  ctx.quadraticCurveTo(16, -8, 12, -21);
+  ctx.closePath();
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  // Soft warm belly tint
+  ctx.beginPath();
+  ctx.ellipse(0, -10, 9.5, 8.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFF2EC';
+  ctx.fill();
+
+  // Cute sitting feet/paws at bottom edge
+  ctx.fillStyle = '#FFFDF9';
+  ctx.beginPath();
+  ctx.ellipse(-8.5, -1.5, 4.8, 3.0, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(8.5, -1.5, 4.8, 3.0, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 4. Beckoning raised arm (left side, smoothly pivoted at shoulder)
+  ctx.save();
+  ctx.translate(-11.5, -16.5);
+  ctx.rotate(waveAngle);
+  roundedRectPath(ctx, -4, -15, 8, 16, 4);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, -11.5, 2.1, 0, Math.PI * 2);
+  ctx.fillStyle = '#F4A6BE';
+  ctx.fill();
+  ctx.restore();
+
+  // 5. Right arm hugging a mini gold Koban lucky coin / plaque
+  roundedRectPath(ctx, 5.5, -18, 10.5, 14.5, 4.5);
+  ctx.fillStyle = DRINK_BAR_PALETTE.VIP_GOLD;
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = '#9E6610';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(10.8, -14.5);
+  ctx.lineTo(10.8, -7.2);
+  ctx.moveTo(8.5, -11);
+  ctx.lineTo(13.1, -11);
+  ctx.stroke();
+
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.beginPath();
+  ctx.ellipse(12, -10.5, 4.2, 3.4, -0.25, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  // 6. Red collar ribbon + small golden bell
+  ctx.beginPath();
+  ctx.moveTo(-11.5, -21);
+  ctx.quadraticCurveTo(0, -17.5, 11.5, -21);
+  ctx.lineWidth = 4.6;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+  ctx.lineWidth = 2.6;
+  ctx.strokeStyle = '#E85D75';
+  ctx.stroke();
+
+  ctx.lineWidth = 2.0;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.beginPath();
+  ctx.arc(0, -18, 3.8, 0, Math.PI * 2);
+  ctx.fillStyle = DRINK_BAR_PALETTE.VIP_GOLD;
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.beginPath();
+  ctx.arc(0, -17.3, 1.0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 7. Chibi round cat head + light pink inner ears
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  drawManekiNekoEar(ctx, -1);
+  drawManekiNekoEar(ctx, 1);
+
+  ctx.beginPath();
+  ctx.ellipse(0, -31.5, 15.5, 12.8, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  // Soft pastel rosy cheeks
+  ctx.fillStyle = 'rgba(244, 139, 163, 0.58)';
+  ctx.beginPath();
+  ctx.ellipse(-9.2, -28.5, 3.1, 1.9, 0, 0, Math.PI * 2);
+  ctx.ellipse(9.2, -28.5, 3.1, 1.9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eyes (happy crescents when excited, occasional blink in idle, bright glossy dots otherwise)
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.fillStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.0;
+  if (isExcited) {
+    ctx.beginPath();
+    ctx.arc(-6, -32.2, 2.7, Math.PI * 1.12, Math.PI * 1.88, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(6, -32.2, 2.7, Math.PI * 1.12, Math.PI * 1.88, false);
+    ctx.stroke();
+  } else if (isBlinking) {
+    ctx.beginPath();
+    ctx.moveTo(-8.4, -32.5);
+    ctx.lineTo(-3.6, -32.5);
+    ctx.moveTo(3.6, -32.5);
+    ctx.lineTo(8.4, -32.5);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(-6, -32.5, 2.2, 0, Math.PI * 2);
+    ctx.arc(6, -32.5, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(-6.7, -33.2, 0.85, 0, Math.PI * 2);
+    ctx.arc(5.3, -33.2, 0.85, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Cute pink kitty nose & ω smile
+  ctx.fillStyle = '#F48BA3';
+  ctx.beginPath();
+  ctx.ellipse(0, -29.5, 1.8, 1.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(-2.1, -27.2, 2.0, 0.1 * Math.PI, 0.9 * Math.PI, false);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(2.1, -27.2, 2.0, 0.1 * Math.PI, 0.9 * Math.PI, false);
+  ctx.stroke();
+
+  // Delicate whisker lines
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(-12.5, -31.5);
+  ctx.lineTo(-16.5, -32.2);
+  ctx.moveTo(-12.5, -28.8);
+  ctx.lineTo(-16.5, -28.5);
+  ctx.moveTo(12.5, -31.5);
+  ctx.lineTo(16.5, -32.2);
+  ctx.moveTo(12.5, -28.8);
+  ctx.lineTo(16.5, -28.5);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawManekiNekoEar(ctx: CanvasRenderingContext2D, side: -1 | 1): void {
+  ctx.beginPath();
+  ctx.moveTo(side * 5, -40);
+  ctx.quadraticCurveTo(side * 12, -49, side * 14.5, -36);
+  ctx.closePath();
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(side * 7.2, -39.2);
+  ctx.quadraticCurveTo(side * 11.2, -44.2, side * 12.6, -37.2);
+  ctx.closePath();
+  ctx.fillStyle = '#F4A6BE';
+  ctx.fill();
 }
 
 function drawFrotherStandAndPlant(

@@ -97,6 +97,7 @@ export interface DrinkBarMessages {
   btnNextCustomer: string;
   btnClearShelf: string;
   btnResetDefault: string;
+  btnTestSleep: string;
   audioLabel: string;
   sfxLabel: string;
   sfxMusicLabel: string;
@@ -234,6 +235,7 @@ const EN_MESSAGES: DrinkBarMessages = {
   btnNextCustomer: 'Next Customer',
   btnClearShelf: 'Clear Shelf',
   btnResetDefault: 'Reset Empty Lobby',
+  btnTestSleep: 'Test Sleep',
   audioLabel: 'Chill SFX & Voice',
   sfxLabel: 'Bar ASMR',
   sfxMusicLabel: 'Dance Music',
@@ -376,6 +378,7 @@ const VI_MESSAGES: DrinkBarMessages = {
   btnNextCustomer: 'Next Customer',
   btnClearShelf: 'Clear Shelf',
   btnResetDefault: 'Reset Trống Khách',
+  btnTestSleep: 'Test Ngủ gật',
   audioLabel: 'Âm thanh & Giọng Host',
   sfxLabel: 'Âm ASMR',
   sfxMusicLabel: 'Nhạc nhảy',
@@ -587,4 +590,17 @@ export function formatTtsSwitchFlavorMessage(
     return `Switched ${cleanName}'s cup to ${drinkLabel} right away!`;
   }
   return `Okila ${cleanName} ơi, đã đổi món sang ${drinkLabel} cho bạn yêu rồi nè!`;
+}
+
+export function formatTtsWakeUpMessage(language: Language): string {
+  if (language === 'EN') {
+    return pickRandomVariant([
+      'Ooh customers! Waking up right away!',
+      'Yay, someone is here! On it right now!',
+    ]);
+  }
+  return pickRandomVariant([
+    'Ối có khách kìa, dậy pha liền!',
+    'Ủa có đơn mới rồi, làm ngay làm ngay!',
+  ]);
 }

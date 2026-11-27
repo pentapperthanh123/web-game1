@@ -417,6 +417,7 @@ const StandingChibiSvg: React.FC<{
   styleIdx: number;
   isSignature: boolean;
   isHappy?: boolean;
+  isReaching?: boolean;
   holdingCupColor?: string;
 }> = ({
   shirtColor,
@@ -424,6 +425,7 @@ const StandingChibiSvg: React.FC<{
   styleIdx,
   isSignature,
   isHappy = false,
+  isReaching = false,
   holdingCupColor,
 }) => {
   return (
@@ -575,22 +577,30 @@ const StandingChibiSvg: React.FC<{
         strokeWidth="2.2"
       />
 
-      {/* Right arm: raised forward holding finished iced drink cup directly when celebrating/pickup */}
+      {/* Right arm: reaching eagerly before handoff, OR holding finished iced drink cup directly from shoulder to wrist */}
       {holdingCupColor ? (
         <g>
-          <rect
-            x="68"
-            y="47"
-            width="10"
-            height="20"
-            rx="5"
-            transform="rotate(-48 73 57)"
-            fill={shirtColor}
+          {/* Sleeve connected seamlessly from right shoulder (65, 62) to wrist (79, 46) */}
+          <line
+            x1="65"
+            y1="62"
+            x2="79"
+            y2="46"
             stroke={OUTLINE_COLOR}
-            strokeWidth={CHIBI_STROKE_WIDTH}
+            strokeWidth={10 + CHIBI_STROKE_WIDTH * 2}
+            strokeLinecap="round"
           />
-          {/* Finished Iced Drink Cup held directly in customer's hand */}
-          <g transform="translate(75, 25)">
+          <line
+            x1="65"
+            y1="62"
+            x2="79"
+            y2="46"
+            stroke={shirtColor}
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+          {/* Finished Iced Drink Cup centered cleanly inside customer's hand grip */}
+          <g transform="translate(71, 24)">
             {/* Angled straw */}
             <line
               x1="11"
@@ -652,14 +662,44 @@ const StandingChibiSvg: React.FC<{
               strokeWidth="1.6"
             />
           </g>
-          {/* Customer hand gripping side of cup */}
+          {/* Customer hand gripping side of cup at exact arm endpoint (79, 46) */}
           <circle
-            cx="82"
+            cx="79"
             cy="46"
-            r="4.3"
+            r="4.4"
             fill={SKIN_COLOR}
             stroke={OUTLINE_COLOR}
             strokeWidth="2.1"
+          />
+        </g>
+      ) : isReaching ? (
+        <g>
+          {/* Right arm reaching up toward counter rim while barista pushes drink forward */}
+          <line
+            x1="65"
+            y1="62"
+            x2="75"
+            y2="49"
+            stroke={OUTLINE_COLOR}
+            strokeWidth={10 + CHIBI_STROKE_WIDTH * 2}
+            strokeLinecap="round"
+          />
+          <line
+            x1="65"
+            y1="62"
+            x2="75"
+            y2="49"
+            stroke={shirtColor}
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+          <circle
+            cx="75"
+            cy="49"
+            r="4.3"
+            fill={SKIN_COLOR}
+            stroke={OUTLINE_COLOR}
+            strokeWidth="2.2"
           />
         </g>
       ) : (
@@ -916,7 +956,7 @@ export const WaitingGuestsStrip: React.FC = () => {
         );
       })}
 
-      {/* Departing guests: happy pickup (~0.72s) then smooth step/fade away (~0.58s) */}
+      {/* Departing guests: wait empty-handed while cup slides (0..680ms) -> grab cup & celebrate -> step away with cup */}
       {departingGuests.map((dep) => {
         const coord = dep.isCenterPickup
           ? CENTER_PICKUP_COORD
@@ -924,6 +964,7 @@ export const WaitingGuestsStrip: React.FC = () => {
         const styleIdx = hashOrderStyle(dep.order.orderId);
         const shirtColor = GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length];
         const bottomColor = GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length];
+        const isReaching = Boolean(dep.isCenterPickup && dep.phase === 'REACHING');
         const isExiting = dep.phase === 'EXITING';
         const exitShiftX = coord.left < 360 ? -96 : 96;
 
@@ -937,21 +978,23 @@ export const WaitingGuestsStrip: React.FC = () => {
               zIndex: coord.zIndex + 6,
               opacity: isExiting ? 0 : 1,
               transform: isExiting
-                ? `translateX(${exitShiftX}px) translateY(10px) scale(${coord.scale * 0.92})`
+                ? `translateX(${exitShiftX}px) translateY(12px) scale(${coord.scale * 0.92})`
                 : `translateX(0px) translateY(0px) scale(${coord.scale})`,
               transformOrigin: 'top center',
             }}
           >
             <div className="w-full flex flex-col items-center">
-              <div
-                className={`absolute max-w-[120px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40 ${
-                  dep.isCenterPickup ? 'top-[12px] -right-[58px]' : resolveBubblePositionClass(coord.left)
-                }`}
-              >
-                <p className="text-[10px] font-black text-[#3B2820] leading-tight text-center truncate">
-                  {dep.bubbleText}
-                </p>
-              </div>
+              {!isReaching && (
+                <div
+                  className={`absolute max-w-[120px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40 ${
+                    dep.isCenterPickup ? 'top-[12px] -right-[58px]' : resolveBubblePositionClass(coord.left)
+                  }`}
+                >
+                  <p className="text-[10px] font-black text-[#3B2820] leading-tight text-center truncate">
+                    {dep.bubbleText}
+                  </p>
+                </div>
+              )}
 
               <div className="relative flex flex-col items-center animate-guest-eager">
                 {dep.order.isVip && (
@@ -965,8 +1008,9 @@ export const WaitingGuestsStrip: React.FC = () => {
                   bottomColor={bottomColor}
                   styleIdx={styleIdx}
                   isSignature={dep.order.isSignature}
-                  isHappy
-                  holdingCupColor={dep.recipeColor}
+                  isHappy={!isReaching}
+                  isReaching={isReaching}
+                  holdingCupColor={isReaching ? undefined : dep.recipeColor}
                 />
                 <GuestHeadAvatarBadge
                   nickname={dep.order.user.nickname}

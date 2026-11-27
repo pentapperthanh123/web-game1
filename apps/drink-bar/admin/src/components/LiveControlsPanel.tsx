@@ -9,6 +9,7 @@ import {
   Layers,
   Mic,
   MicOff,
+  Moon,
   Music,
   Plus,
   Radio,
@@ -254,10 +255,19 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
           <button
             type="button"
             onClick={() => drinkBarAdminBridge.emitAdminAction('RESET_DEFAULT')}
-            className="col-span-2 bar-btn bg-[#FAD7DC] hover:bg-[#F5C0C8] px-2.5 py-2 text-[12px] font-black text-[#8E2536] inline-flex items-center justify-center gap-1.5 cursor-pointer"
+            className="bar-btn bg-[#FAD7DC] hover:bg-[#F5C0C8] px-2.5 py-2 text-[12px] font-black text-[#8E2536] inline-flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5 shrink-0 text-[#8E2536]" />
             <span>{msg.btnResetDefault}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => drinkBarAdminBridge.emitAdminAction('FORCE_IDLE_SLEEP')}
+            className="bar-btn bg-[#D9F0F6] hover:bg-[#C3E7F0] px-2.5 py-2 text-[12px] font-black text-[#235463] inline-flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Moon className="w-3.5 h-3.5 shrink-0 text-[#235463]" />
+            <span>{msg.btnTestSleep}</span>
           </button>
         </div>
       </div>

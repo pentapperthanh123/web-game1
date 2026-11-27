@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { GAMEPLAY_LIMITS } from '@shared/config';
 import {
+  activatePendingDanceOnState,
   addToppingToActiveDrink,
   advanceDrinkBarTick,
   applyChatToState,
@@ -15,6 +16,7 @@ import {
   setBrewProgressOnState,
   setDefaultCapacityInState,
   triggerManualTikTokDance,
+  type PendingDancePlan,
   type QueueStepSideEffects,
 } from '@shared/queue';
 import { RECIPE_MAP } from '@shared/recipes';
@@ -29,6 +31,7 @@ import type {
   ToppingId,
   ViewerProfile,
 } from '@shared/types';
+import { MANEKI_NEKO_ANCHOR } from '../engine/drawBarScene';
 import { drinkParticles } from '../engine/particlePool';
 import { drinkBarAudio } from '../services/audioManager';
 import { drinkBarTts } from '../services/ttsEngine';
@@ -39,9 +42,53 @@ function detectIsMirrorPreview(): boolean {
   return params.get('mirror') === '1';
 }
 
+const PENDING_DANCE_FALLBACK_MS = GAMEPLAY_LIMITS.TTS_WATCHDOG_MS + 1500;
+const TIER_PRIORITY: Record<GiftTier, number> = { SMALL: 1, MEDIUM: 2, LARGE: 3 };
+
+let activePendingDancePlan: PendingDancePlan | null = null;
+let pendingDanceSafetyTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearPendingDanceSync(): void {
+  activePendingDancePlan = null;
+  if (pendingDanceSafetyTimer) {
+    clearTimeout(pendingDanceSafetyTimer);
+    pendingDanceSafetyTimer = null;
+  }
+}
+
+function schedulePendingDance(
+  plan: PendingDancePlan,
+  onActivate: () => void
+): void {
+  if (
+    activePendingDancePlan &&
+    TIER_PRIORITY[activePendingDancePlan.tier] > TIER_PRIORITY[plan.tier]
+  ) {
+    activePendingDancePlan = {
+      ...activePendingDancePlan,
+      durationMs: Math.min(
+        GAMEPLAY_LIMITS.DANCE_MAX_DURATION_MS,
+        activePendingDancePlan.durationMs + plan.durationMs
+      ),
+      thanksText: plan.thanksText,
+    };
+  } else {
+    activePendingDancePlan = plan;
+  }
+
+  if (pendingDanceSafetyTimer) {
+    clearTimeout(pendingDanceSafetyTimer);
+  }
+  pendingDanceSafetyTimer = setTimeout(() => {
+    pendingDanceSafetyTimer = null;
+    onActivate();
+  }, PENDING_DANCE_FALLBACK_MS);
+}
+
 function runTtsSideEffect(
   state: DrinkBarLiveState,
-  effects: QueueStepSideEffects
+  effects: QueueStepSideEffects,
+  onDonateSpeechDone?: () => void
 ): void {
   const hint = effects.ttsHint;
   if (!hint) return;
@@ -51,7 +98,8 @@ function runTtsSideEffect(
       hint.nickname,
       hint.danceStyle ?? state.danceStyle,
       lang,
-      Boolean(hint.isManual)
+      Boolean(hint.isManual),
+      onDonateSpeechDone
     );
     return;
   }
@@ -74,12 +122,23 @@ function runTtsSideEffect(
 
 function runSideEffects(
   state: DrinkBarLiveState,
-  effects: QueueStepSideEffects
+  effects: QueueStepSideEffects,
+  onActivatePendingDance?: () => void
 ): void {
   if (effects.sfxToPlay) {
     drinkBarAudio.play(effects.sfxToPlay, state.danceTier, state.danceStyle);
   }
-  runTtsSideEffect(state, effects);
+  if (effects.ttsHint?.kind === 'order' || effects.ttsHint?.kind === 'donate') {
+    drinkParticles.emitNekoBellSparkles(MANEKI_NEKO_ANCHOR.X, MANEKI_NEKO_ANCHOR.BELL_Y);
+  }
+  if (effects.pendingDance && onActivatePendingDance) {
+    schedulePendingDance(effects.pendingDance, onActivatePendingDance);
+  }
+  runTtsSideEffect(
+    state,
+    effects,
+    effects.pendingDance ? onActivatePendingDance : undefined
+  );
   if (effects.burstKind) {
     const isCompletion =
       effects.burstKind === 'complete' || effects.burstKind === 'signature';
@@ -104,6 +163,8 @@ function runSideEffects(
         RECIPE_MAP[state.activeDrink.recipeId].accentColor,
         1
       );
+    } else {
+      drinkParticles.emitBurst(effects.burstKind, '#F48BA3', 1);
     }
   }
 }
@@ -123,16 +184,18 @@ export interface DepartingGuest {
   slotIndex: number;
   totalSlotsAtLeave: number;
   isCenterPickup?: boolean;
+  pickupAt: number;
   celebrateUntil: number;
   removeAt: number;
-  phase: 'CELEBRATING' | 'EXITING';
+  phase: 'REACHING' | 'CELEBRATING' | 'EXITING';
   bubbleText: string;
   recipeColor: string;
 }
 
 const MAX_GUESTS_PER_LANE = 12;
-const GUEST_CELEBRATE_MS = 720;
-const GUEST_EXIT_MS = 580;
+const GUEST_HANDOFF_MS = 680;
+const GUEST_CELEBRATE_MS = 520;
+const GUEST_EXIT_MS = 600;
 
 const GUEST_THANK_TEXT_MAP: Record<Language, string> = {
   EN: 'Thanks! ♡',
@@ -231,6 +294,7 @@ function computeRowInLane(
 
 export interface DrinkBarStore extends DrinkBarLiveState {
   isMirrorPreview: boolean;
+  manekiExcitedUntil: number;
   guestLaneByOrderId: Record<string, GuestLaneIndex>;
   celebratingByOrderId: Record<string, CelebratingGuestState>;
   departingGuests: DepartingGuest[];
@@ -253,6 +317,8 @@ export interface DrinkBarStore extends DrinkBarLiveState {
   nextCustomer: () => void;
   clearShelf: () => void;
   resetToDefaultEmpty: () => void;
+  prepareIdleSleep: () => void;
+  activatePendingDance: () => void;
   triggerTikTokDance: (tier?: GiftTier, danceStyle?: DanceStyle) => void;
   restockRecipe: (recipeId: RecipeId, addMl?: number) => void;
   restockAll: () => void;
@@ -271,9 +337,41 @@ const initialLanes = reconcileGuestLanes(
 );
 
 export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
-  const commitLiveState = (nextState: DrinkBarLiveState): void => {
-    const now = Date.now();
+  const commitLiveState = (
+    nextState: DrinkBarLiveState,
+    effects?: QueueStepSideEffects
+  ): void => {
     const prevStore = get();
+    // Fast-path: skip allocations and Zustand re-renders on pure idle frames when nothing changed
+    if (
+      !effects &&
+      prevStore.activeDrink === null &&
+      nextState.activeDrink === null &&
+      prevStore.vipQueue.length === 0 &&
+      nextState.vipQueue.length === 0 &&
+      prevStore.normalQueue.length === 0 &&
+      nextState.normalQueue.length === 0 &&
+      prevStore.bartenderSpeech === nextState.bartenderSpeech &&
+      prevStore.guestBubbles === nextState.guestBubbles &&
+      prevStore.inventory === nextState.inventory &&
+      prevStore.departingGuests.length === 0 &&
+      Object.keys(prevStore.celebratingByOrderId).length === 0 &&
+      Object.keys(prevStore.guestLaneByOrderId).length === 0 &&
+      prevStore.bartenderMood === nextState.bartenderMood &&
+      prevStore.todayDoneCount === nextState.todayDoneCount &&
+      prevStore.speedBoostUntil === nextState.speedBoostUntil &&
+      prevStore.waveUntil === nextState.waveUntil &&
+      prevStore.danceUntil === nextState.danceUntil
+    ) {
+      return;
+    }
+
+    const now = Date.now();
+    const shouldExciteManeki =
+      effects?.ttsHint?.kind === 'order' || effects?.ttsHint?.kind === 'donate';
+    const nextManekiUntil = shouldExciteManeki
+      ? now + GAMEPLAY_LIMITS.MANEKI_NEKO_EXCITED_MS
+      : undefined;
     const prevLanes = prevStore.guestLaneByOrderId;
     const nextLanes = reconcileGuestLanes(
       prevLanes,
@@ -308,15 +406,13 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     }
 
     const thankText = GUEST_THANK_TEXT_MAP[nextState.config.language];
-    for (const { drink: completed, targetLane } of newlyCompleted) {
+    for (const { drink: completed } of newlyCompleted) {
       const exactMatch = nextVisible.find(
         (order) => order.orderId === completed.orderId || order.user.id === completed.user.id
       );
-      const laneHead = nextVisible.find((order) => nextLanes[order.orderId] === targetLane);
-      const recipient = exactMatch ?? laneHead ?? nextVisible[0];
-      if (recipient) {
-        nextCelebrating[recipient.orderId] = {
-          expiresAt: now + GUEST_CELEBRATE_MS,
+      if (exactMatch) {
+        nextCelebrating[exactMatch.orderId] = {
+          expiresAt: now + GUEST_HANDOFF_MS + GUEST_CELEBRATE_MS,
           text: thankText,
           recipeColor: RECIPE_MAP[completed.recipeId].baseColor,
         };
@@ -327,19 +423,24 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     const nextDeparting: DepartingGuest[] = prevStore.departingGuests
       .filter((guest) => guest.removeAt > now)
       .map((guest) => {
-        const nextPhase: 'CELEBRATING' | 'EXITING' =
-          now >= guest.celebrateUntil ? 'EXITING' : 'CELEBRATING';
+        let nextPhase: DepartingGuest['phase'] = 'EXITING';
+        if (now < guest.pickupAt) {
+          nextPhase = 'REACHING';
+        } else if (now < guest.celebrateUntil) {
+          nextPhase = 'CELEBRATING';
+        }
         return nextPhase === guest.phase ? guest : { ...guest, phase: nextPhase };
       });
 
     const existingDepartingIds = new Set(nextDeparting.map((g) => g.order.orderId));
 
-    // 2a. Spawn dedicated center-counter pickup & departure animation for the customer whose drink just hit 100%
+    // 2a. Spawn dedicated center-counter pickup & departure animation synchronized 1:1 with SHOWCASE slide -> handoff -> takeaway
     for (const { drink: completed, targetLane } of newlyCompleted) {
       if (existingDepartingIds.has(completed.orderId)) {
         continue;
       }
-      const celebrateUntil = now + GUEST_CELEBRATE_MS;
+      const pickupAt = now + GUEST_HANDOFF_MS;
+      const celebrateUntil = pickupAt + GUEST_CELEBRATE_MS;
       nextDeparting.push({
         order: completed,
         lane: targetLane,
@@ -347,9 +448,10 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
         slotIndex: 0,
         totalSlotsAtLeave: Math.max(1, prevVisible.length),
         isCenterPickup: true,
+        pickupAt,
         celebrateUntil,
         removeAt: celebrateUntil + GUEST_EXIT_MS,
-        phase: 'CELEBRATING',
+        phase: 'REACHING',
         bubbleText: thankText,
         recipeColor: RECIPE_MAP[completed.recipeId].baseColor,
       });
@@ -371,7 +473,7 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
         prevCeleb && prevCeleb.expiresAt > now
           ? Math.min(prevCeleb.expiresAt, now + celebrateDuration)
           : now + celebrateDuration;
-      const initialPhase: 'CELEBRATING' | 'EXITING' =
+      const initialPhase: DepartingGuest['phase'] =
         now >= celebrateUntil ? 'EXITING' : 'CELEBRATING';
 
       nextDeparting.push({
@@ -380,6 +482,7 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
         row,
         slotIndex: prevIdx,
         totalSlotsAtLeave: prevVisible.length,
+        pickupAt: now,
         celebrateUntil,
         removeAt: celebrateUntil + GUEST_EXIT_MS,
         phase: initialPhase,
@@ -392,7 +495,7 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     const celebChanged = !areCelebratingEqual(prevStore.celebratingByOrderId, nextCelebrating);
     const departChanged = !areDepartingEqual(prevStore.departingGuests, nextDeparting);
 
-    if (!lanesChanged && !celebChanged && !departChanged) {
+    if (!lanesChanged && !celebChanged && !departChanged && nextManekiUntil === undefined) {
       set(nextState);
       return;
     }
@@ -402,11 +505,13 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       ...(lanesChanged ? { guestLaneByOrderId: nextLanes } : {}),
       ...(celebChanged ? { celebratingByOrderId: nextCelebrating } : {}),
       ...(departChanged ? { departingGuests: nextDeparting } : {}),
+      ...(nextManekiUntil !== undefined ? { manekiExcitedUntil: nextManekiUntil } : {}),
     });
   };
 
   return {
     ...initialBase,
+    manekiExcitedUntil: 0,
     config: {
       ...initialBase.config,
       // Keep bottom area naturally clean by default; Host can toggle Safe-Zone grid from Admin
@@ -433,7 +538,7 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     processChat: (user, text) => {
       const now = Date.now();
       const { state, effects } = applyChatToState(get().getSnapshot(), user, text, now);
-      commitLiveState(state);
+      commitLiveState(state, effects);
       runSideEffects(state, effects);
     },
 
@@ -447,8 +552,8 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     processGift: (user, coins) => {
       const now = Date.now();
       const { state, effects } = applyGiftToState(get().getSnapshot(), user, coins, now);
-      commitLiveState(state);
-      runSideEffects(state, effects);
+      commitLiveState(state, effects);
+      runSideEffects(state, effects, () => get().activatePendingDance());
     },
 
   setLanguage: (language) => {
@@ -494,6 +599,9 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     set((prev) => ({
       config: { ...prev.config, ttsEnabled },
     }));
+    if (!ttsEnabled && activePendingDancePlan) {
+      get().activatePendingDance();
+    }
   },
 
   setMasterVolume: (masterVolume) => {
@@ -578,6 +686,7 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
 
     resetToDefaultEmpty: () => {
       const now = Date.now();
+      clearPendingDanceSync();
       const emptyState = createEmptyResetDrinkBarState(get().config, now);
       drinkBarAudio.stopBrewingSfx();
       drinkBarAudio.stopDanceMusic();
@@ -585,6 +694,7 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       drinkBarTts.stopAll();
       set({
         ...emptyState,
+        manekiExcitedUntil: 0,
         guestLaneByOrderId: {},
         celebratingByOrderId: {},
         departingGuests: [],
@@ -592,6 +702,39 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       drinkBarTts.updateShopIdleState(true, emptyState.config.language);
       drinkBarTts.triggerIdlePromptSoon(900);
       drinkBarAudio.play('chime');
+    },
+
+    prepareIdleSleep: () => {
+      const now = Date.now();
+      clearPendingDanceSync();
+      const emptyState = createEmptyResetDrinkBarState(get().config, now);
+      drinkBarAudio.stopBrewingSfx();
+      drinkBarAudio.stopDanceMusic();
+      drinkParticles.clearDanceParticles();
+      drinkBarTts.stopAll();
+      set({
+        ...emptyState,
+        manekiExcitedUntil: 0,
+        guestLaneByOrderId: {},
+        celebratingByOrderId: {},
+        departingGuests: [],
+      });
+      drinkBarTts.setBaristaDozing(true);
+      drinkBarTts.updateShopIdleState(true, emptyState.config.language);
+    },
+
+    activatePendingDance: () => {
+      const plan = activePendingDancePlan;
+      if (!plan) return;
+      clearPendingDanceSync();
+      const now = Date.now();
+      const { state, effects } = activatePendingDanceOnState(
+        get().getSnapshot(),
+        plan,
+        now
+      );
+      commitLiveState(state, effects);
+      runSideEffects(state, effects);
     },
 
     triggerTikTokDance: (tier = 'MEDIUM', danceStyle) => {
@@ -602,8 +745,8 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
         now,
         danceStyle
       );
-      commitLiveState(state);
-      runSideEffects(state, effects);
+      commitLiveState(state, effects);
+      runSideEffects(state, effects, () => get().activatePendingDance());
     },
 
     restockRecipe: (recipeId, addMl) => {

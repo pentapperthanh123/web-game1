@@ -5,6 +5,7 @@ import {
   formatTtsOrderMessage,
   formatTtsReadyMessage,
   formatTtsSwitchFlavorMessage,
+  formatTtsWakeUpMessage,
   getMessages,
 } from '@shared/i18n';
 import { getRecipeLabel } from '@shared/recipes';
@@ -19,6 +20,7 @@ interface TtsQueueItem {
   priority: TtsPriority;
   text: string;
   language: Language;
+  onDone?: () => void;
 }
 
 const PRIORITY_DONATE: TtsPriority = 1;
@@ -46,6 +48,10 @@ class DrinkBarTtsEngine {
   private lastIdlePhraseIdx = -1;
   private lastLikeCheerAt = 0;
   private didRelayActiveSpeech = false;
+  private activeRelayUtteranceId: number | null = null;
+  private activeRelayFinish: (() => void) | null = null;
+  private isBaristaDozing = false;
+  private lastWakeUpTtsAt = 0;
 
   constructor() {
     drinkBarAudio.subscribeUnlocked((unlocked) => {
@@ -100,15 +106,41 @@ class DrinkBarTtsEngine {
     }
   }
 
+  public setBaristaDozing(dozing: boolean): void {
+    this.isBaristaDozing = dozing;
+  }
+
+  public notifyRelayedSpeechDone(utteranceId?: number): void {
+    if (!this.didRelayActiveSpeech || !this.activeRelayFinish) return;
+    if (
+      utteranceId !== undefined &&
+      this.activeRelayUtteranceId !== null &&
+      utteranceId !== this.activeRelayUtteranceId
+    ) {
+      return;
+    }
+    const finish = this.activeRelayFinish;
+    this.activeRelayFinish = null;
+    this.activeRelayUtteranceId = null;
+    finish();
+  }
+
   public enqueueDonate(
     nickname: string,
     danceStyle: DanceStyle,
     language: Language = this.language,
-    isManual = false
+    isManual = false,
+    onSpeechDone?: () => void
   ): void {
-    if (!this.enabled) return;
+    if (!this.enabled) {
+      onSpeechDone?.();
+      return;
+    }
+    if (this.isBaristaDozing) {
+      this.enqueueWakeUp(language);
+    }
     const text = formatTtsDonateMessage(nickname, danceStyle, language, isManual);
-    this.enqueue(PRIORITY_DONATE, text, language);
+    this.enqueue(PRIORITY_DONATE, text, language, onSpeechDone);
   }
 
   public enqueueOrder(
@@ -117,6 +149,9 @@ class DrinkBarTtsEngine {
     language: Language = this.language
   ): void {
     if (!this.enabled) return;
+    if (this.isBaristaDozing) {
+      this.enqueueWakeUp(language);
+    }
     const drinkLabel = getRecipeLabel(recipeId, language, true);
     const text = formatTtsOrderMessage(nickname, drinkLabel, language);
     this.enqueue(PRIORITY_ORDER_DELIVER, text, language);
@@ -140,6 +175,9 @@ class DrinkBarTtsEngine {
       return;
     }
     this.lastLikeCheerAt = now;
+    if (this.isBaristaDozing) {
+      this.enqueueWakeUp(language);
+    }
     const text = formatTtsLikeCheerMessage(language);
     this.enqueue(PRIORITY_ORDER_DELIVER, text, language);
   }
@@ -153,6 +191,19 @@ class DrinkBarTtsEngine {
     const drinkLabel = getRecipeLabel(recipeId, language, true);
     const text = formatTtsSwitchFlavorMessage(nickname, drinkLabel, language);
     this.enqueue(PRIORITY_ORDER_DELIVER, text, language);
+  }
+
+  public enqueueWakeUp(language: Language = this.language): void {
+    if (!this.enabled) return;
+    const now = Date.now();
+    this.isBaristaDozing = false;
+    if (now - this.lastWakeUpTtsAt < 1500) {
+      return;
+    }
+    this.lastWakeUpTtsAt = now;
+    const text = formatTtsWakeUpMessage(language);
+    this.interruptIdle();
+    this.enqueue(PRIORITY_DONATE, text, language);
   }
 
   public updateShopIdleState(isShopIdle: boolean, language: Language = this.language): void {
@@ -201,8 +252,16 @@ class DrinkBarTtsEngine {
     }
   }
 
-  private enqueue(priority: TtsPriority, text: string, language: Language): void {
-    if (!this.enabled || !text.trim()) return;
+  private enqueue(
+    priority: TtsPriority,
+    text: string,
+    language: Language,
+    onDone?: () => void
+  ): void {
+    if (!this.enabled || !text.trim()) {
+      onDone?.();
+      return;
+    }
 
     if (priority < PRIORITY_IDLE) {
       this.interruptIdle();
@@ -213,6 +272,7 @@ class DrinkBarTtsEngine {
       priority,
       text: text.trim(),
       language,
+      onDone,
     };
 
     if (priority === PRIORITY_DONATE) {
@@ -276,8 +336,11 @@ class DrinkBarTtsEngine {
     const finishOnce = () => {
       if (seq !== this.activeUtteranceSeq) return;
       this.clearRelayWatchdog();
+      this.activeRelayFinish = null;
+      this.activeRelayUtteranceId = null;
       this.isSpeaking = false;
       this.currentPriority = null;
+      item.onDone?.();
       this.pumpNext();
     };
 
@@ -287,7 +350,9 @@ class DrinkBarTtsEngine {
     // When running inside Live Preview (?mirror=1) without iframe gesture unlock, relay directly to Admin
     if (inIframe && !drinkBarAudio.isUnlocked() && this.relaySpeakToParent(item)) {
       this.didRelayActiveSpeech = true;
-      const estimatedMs = Math.min(7200, Math.max(1600, item.text.length * 64));
+      this.activeRelayUtteranceId = item.id;
+      this.activeRelayFinish = finishOnce;
+      const estimatedMs = Math.min(8500, Math.max(2400, item.text.length * 75 + 1500));
       this.armRelayWatchdog(estimatedMs, finishOnce);
       return;
     }
@@ -304,7 +369,9 @@ class DrinkBarTtsEngine {
         if (seq !== this.activeUtteranceSeq) return false;
         if (!this.relaySpeakToParent(item)) return false;
         this.didRelayActiveSpeech = true;
-        const estimatedMs = Math.min(7200, Math.max(1600, item.text.length * 64));
+        this.activeRelayUtteranceId = item.id;
+        this.activeRelayFinish = finishOnce;
+        const estimatedMs = Math.min(8500, Math.max(2400, item.text.length * 75 + 1500));
         this.armRelayWatchdog(estimatedMs, finishOnce);
         return true;
       },
@@ -314,6 +381,8 @@ class DrinkBarTtsEngine {
   private cancelCurrentUtterance(): void {
     this.activeUtteranceSeq += 1;
     this.clearRelayWatchdog();
+    this.activeRelayFinish = null;
+    this.activeRelayUtteranceId = null;
     this.isSpeaking = false;
     this.currentPriority = null;
     if (this.didRelayActiveSpeech) {
@@ -346,6 +415,7 @@ class DrinkBarTtsEngine {
     const msg: DrinkBarSyncMessage = {
       type: 'RELAY_TTS',
       action: 'SPEAK',
+      utteranceId: item.id,
       text: item.text,
       language: item.language,
       volume: Math.max(0.15, Math.min(1, this.volume)),

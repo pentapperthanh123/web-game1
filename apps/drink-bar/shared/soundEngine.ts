@@ -55,8 +55,9 @@ export class WebAudioSoundEngine {
   private voiceGain: GainNode | null = null;
   private activeTrackGain: GainNode | null = null;
   private activeVoiceSource: AudioBufferSourceNode | null = null;
-  private bgmSource: AudioBufferSourceNode | null = null;
-  private readonly bgmBufferCache = new Map<string, AudioBuffer>();
+  private bgmAudioEl: HTMLAudioElement | null = null;
+  private bgmMediaSource: MediaElementAudioSourceNode | null = null;
+  private bgmConsecutiveFailures = 0;
   private bgmTrackIndex = 0;
   private bgmSessionSeq = 0;
   private bgmDesired = false;
@@ -74,6 +75,8 @@ export class WebAudioSoundEngine {
   private activeMusicNodes: AudioNode[] = [];
   private activeSfxNodes: AudioNode[] = [];
   private unlockBound = false;
+  private hasGestureActivation = false;
+  private lastAutoResumeAttemptMs = 0;
   private readonly unlockListeners = new Set<UnlockListener>();
   private pendingPlayAfterUnlock: {
     kind: SfxKind;
@@ -90,13 +93,23 @@ export class WebAudioSoundEngine {
     if (typeof window === 'undefined' || this.unlockBound) return;
     this.unlockBound = true;
     const handleGesture = () => {
+      this.hasGestureActivation = true;
       void this.unlock(false);
+    };
+    const handleResumeCheck = () => {
+      if (this.hasGestureActivation && this.ctx && this.ctx.state !== 'running') {
+        void this.unlock(false);
+      }
     };
     window.addEventListener('pointerdown', handleGesture, { passive: true, capture: true });
     window.addEventListener('mousedown', handleGesture, { passive: true, capture: true });
     window.addEventListener('touchstart', handleGesture, { passive: true, capture: true });
     window.addEventListener('click', handleGesture, { passive: true, capture: true });
     window.addEventListener('keydown', handleGesture, { passive: true, capture: true });
+    window.addEventListener('focus', handleResumeCheck, { passive: true });
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleResumeCheck, { passive: true });
+    }
   }
 
   public subscribeUnlocked(listener: UnlockListener): () => void {
@@ -129,6 +142,7 @@ export class WebAudioSoundEngine {
     this.notifyUnlockListeners();
     const ok = ctx.state === 'running';
     if (ok) {
+      this.hasGestureActivation = true;
       this.flushPendingPlay();
       this.ensureCafeBgmStarted();
       if (playConfirmTone) {
@@ -162,6 +176,7 @@ export class WebAudioSoundEngine {
       this.stopCafeBgm();
       return;
     }
+    this.bgmConsecutiveFailures = 0;
     if (this.bgmDesired && this.isUnlocked()) {
       this.ensureCafeBgmStarted();
     }
@@ -173,6 +188,7 @@ export class WebAudioSoundEngine {
       this.stopCafeBgm();
       return;
     }
+    this.bgmConsecutiveFailures = 0;
     if (this.bgmEnabled && this.isUnlocked()) {
       this.ensureCafeBgmStarted();
     }
@@ -188,92 +204,122 @@ export class WebAudioSoundEngine {
   }
 
   private ensureCafeBgmStarted(): void {
-    if (!this.bgmDesired || !this.bgmEnabled || this.bgmSource || this.bgmLoading) {
+    if (!this.bgmDesired || !this.bgmEnabled || this.bgmAudioEl || this.bgmLoading) {
       return;
     }
     const ctx = this.ensureRunningContext();
-    if (!ctx || !this.bgmGain) return;
+    if (!ctx || !this.bgmGain || typeof Audio === 'undefined') return;
 
     const playlist = GAMEPLAY_LIMITS.CAFE_BGM_PLAYLIST;
-    if (!playlist.length) return;
+    if (!playlist.length || this.bgmConsecutiveFailures >= playlist.length) return;
+
     const trackUrl = playlist[this.bgmTrackIndex % playlist.length];
-    const cached = this.bgmBufferCache.get(trackUrl);
-    if (cached) {
-      this.startBgmBufferLoop(ctx, cached);
+    const sessionSeq = ++this.bgmSessionSeq;
+    const audio = new Audio(trackUrl);
+    audio.preload = 'auto';
+    audio.loop = false;
+
+    let mediaSource: MediaElementAudioSourceNode | null = null;
+    try {
+      mediaSource = ctx.createMediaElementSource(audio);
+      mediaSource.connect(this.bgmGain);
+    } catch {
+      audio.src = '';
       return;
     }
 
-    if (typeof fetch === 'undefined') return;
-    const loadSeq = this.bgmSessionSeq;
+    this.bgmAudioEl = audio;
+    this.bgmMediaSource = mediaSource;
     this.bgmLoading = true;
-    void fetch(trackUrl)
-      .then((res) => (res.ok ? res.arrayBuffer() : null))
-      .then((buf) => (buf && this.ctx ? this.ctx.decodeAudioData(buf) : null))
-      .then((decoded) => {
-        this.bgmLoading = false;
-        if (loadSeq !== this.bgmSessionSeq || !this.bgmDesired || !this.bgmEnabled || !this.ctx || !this.bgmGain) {
-          return;
+    this.syncBgmGain();
+
+    const cleanupAudioRef = () => {
+      if (this.bgmAudioEl === audio) {
+        this.bgmAudioEl = null;
+      }
+      if (this.bgmMediaSource === mediaSource) {
+        try {
+          mediaSource?.disconnect();
+        } catch {
+          // Ignore disconnect errors
         }
-        if (!decoded) {
-          this.advanceToNextBgmTrack(playlist.length);
-          return;
-        }
-        this.bgmBufferCache.set(trackUrl, decoded);
-        if (this.ctx.state === 'running' && !this.bgmSource) {
-          this.startBgmBufferLoop(this.ctx, decoded);
-        }
-      })
-      .catch(() => {
-        this.bgmLoading = false;
-        if (loadSeq === this.bgmSessionSeq && this.bgmDesired && this.bgmEnabled) {
-          this.advanceToNextBgmTrack(playlist.length);
-        }
-      });
+        this.bgmMediaSource = null;
+      }
+      audio.onplaying = null;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.src = '';
+    };
+
+    audio.onplaying = () => {
+      this.bgmLoading = false;
+      this.bgmConsecutiveFailures = 0;
+    };
+
+    audio.onended = () => {
+      this.bgmLoading = false;
+      cleanupAudioRef();
+      if (sessionSeq === this.bgmSessionSeq && this.bgmDesired && this.bgmEnabled) {
+        this.advanceToNextBgmTrack(playlist.length);
+      }
+    };
+
+    audio.onerror = () => {
+      this.bgmLoading = false;
+      cleanupAudioRef();
+      this.bgmConsecutiveFailures += 1;
+      if (
+        sessionSeq === this.bgmSessionSeq &&
+        this.bgmDesired &&
+        this.bgmEnabled &&
+        this.bgmConsecutiveFailures < playlist.length
+      ) {
+        this.advanceToNextBgmTrack(playlist.length);
+      }
+    };
+
+    void audio.play().catch(() => {
+      this.bgmLoading = false;
+      if (sessionSeq !== this.bgmSessionSeq) return;
+      cleanupAudioRef();
+      this.bgmConsecutiveFailures += 1;
+      if (this.bgmDesired && this.bgmEnabled && this.bgmConsecutiveFailures < playlist.length) {
+        this.advanceToNextBgmTrack(playlist.length);
+      }
+    });
   }
 
   private advanceToNextBgmTrack(playlistLength: number): void {
-    if (playlistLength <= 0) return;
+    if (playlistLength <= 0 || this.bgmConsecutiveFailures >= playlistLength) return;
     this.bgmTrackIndex = (this.bgmTrackIndex + 1) % playlistLength;
     this.ensureCafeBgmStarted();
   }
 
-  private startBgmBufferLoop(ctx: AudioContext, buffer: AudioBuffer): void {
-    if (!this.bgmGain) return;
-    this.stopCafeBgm();
-    const sessionSeq = ++this.bgmSessionSeq;
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.loop = false;
-    src.connect(this.bgmGain);
-    this.bgmSource = src;
-    src.onended = () => {
-      if (this.bgmSource === src) {
-        this.bgmSource = null;
-      }
+  private stopCafeBgm(): void {
+    this.bgmSessionSeq += 1;
+    this.bgmLoading = false;
+    const audio = this.bgmAudioEl;
+    const mediaSource = this.bgmMediaSource;
+    this.bgmAudioEl = null;
+    this.bgmMediaSource = null;
+    if (audio) {
+      audio.onplaying = null;
+      audio.onended = null;
+      audio.onerror = null;
       try {
-        src.disconnect();
+        audio.pause();
+        audio.src = '';
+      } catch {
+        // Ignore already stopped bgm audio element
+      }
+    }
+    if (mediaSource) {
+      try {
+        mediaSource.disconnect();
       } catch {
         // Ignore disconnect errors
       }
-      if (sessionSeq === this.bgmSessionSeq && this.bgmDesired && this.bgmEnabled) {
-        this.advanceToNextBgmTrack(GAMEPLAY_LIMITS.CAFE_BGM_PLAYLIST.length);
-      }
-    };
-    this.syncBgmGain();
-    src.start(0);
-  }
-
-  private stopCafeBgm(): void {
-    this.bgmSessionSeq += 1;
-    if (!this.bgmSource) return;
-    try {
-      this.bgmSource.onended = null;
-      this.bgmSource.stop();
-      this.bgmSource.disconnect();
-    } catch {
-      // Ignore already stopped bgm source
     }
-    this.bgmSource = null;
   }
 
   public setMasterVolume(volume: number): void {
@@ -376,6 +422,12 @@ export class WebAudioSoundEngine {
           if (this.ctx?.state === 'running') {
             this.flushPendingPlay();
             this.ensureCafeBgmStarted();
+          } else if (this.ctx?.state === 'suspended' && this.hasGestureActivation) {
+            const nowMs = Date.now();
+            if (nowMs - this.lastAutoResumeAttemptMs >= 1000) {
+              this.lastAutoResumeAttemptMs = nowMs;
+              void this.unlock(false);
+            }
           }
         };
       } catch {
@@ -416,12 +468,26 @@ export class WebAudioSoundEngine {
     this.activeVoiceSource = null;
   }
 
+  private async ensureRunningContextAsync(): Promise<AudioContext | null> {
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return null;
+    if (ctx.state === 'running') return ctx;
+    if (!this.hasGestureActivation) return null;
+    try {
+      await ctx.resume();
+    } catch {
+      return null;
+    }
+    this.notifyUnlockListeners();
+    return ctx.state === 'running' ? ctx : null;
+  }
+
   public async playVoiceAudioBuffer(
     arrayBuffer: ArrayBuffer,
     playbackRate = 1.18,
     onEnded?: () => void
   ): Promise<boolean> {
-    const ctx = this.ensureRunningContext();
+    const ctx = await this.ensureRunningContextAsync();
     if (!ctx || !this.voiceGain) return false;
     try {
       const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
@@ -546,6 +612,9 @@ export class WebAudioSoundEngine {
         break;
       case 'like_pop':
         if (!this.shouldThrottle(kind, LIKE_THROTTLE_MS)) this.playLikePop(ctx);
+        break;
+      case 'wake_pop':
+        this.playWakePop(ctx);
         break;
     }
     return true;
@@ -1005,6 +1074,32 @@ export class WebAudioSoundEngine {
     gain.connect(this.masterGain);
     osc.start(now);
     osc.stop(now + 0.07);
+  }
+
+  private playWakePop(ctx: AudioContext): void {
+    if (!this.masterGain) return;
+    const now = ctx.currentTime;
+
+    // Crisp bubble pop + bouncy cartoon boing
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(740, now + 0.06);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.16);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
+    osc.start(now);
+    osc.stop(now + 0.19);
   }
 
   public stopBrewingSfx(): void {

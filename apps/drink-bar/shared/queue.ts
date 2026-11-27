@@ -70,9 +70,17 @@ export interface QueueTtsHint {
   isManual?: boolean;
 }
 
+export interface PendingDancePlan {
+  tier: GiftTier;
+  style: DanceStyle;
+  durationMs: number;
+  thanksText: string;
+}
+
 export interface QueueStepSideEffects {
   sfxToPlay?: SfxKind;
   burstKind?: 'topping' | 'complete' | 'signature' | 'like';
+  pendingDance?: PendingDancePlan;
   ttsHint?: QueueTtsHint;
 }
 
@@ -625,7 +633,7 @@ export function applyGiftToState(
     }
   }
 
-  // Step 4: Trigger or extend synchronized 2-bartender TikTok Dance (capped at 8s max!)
+  // Step 4: Trigger or defer TikTok Dance so music + dance drop right when intro speech ends
   const danceDurationMs = getDanceDurationMs(tier);
   const wasAlreadyDancing = now < state.danceUntil;
   const maxAllowedUntil = now + GAMEPLAY_LIMITS.DANCE_MAX_DURATION_MS;
@@ -639,6 +647,7 @@ export function applyGiftToState(
   const nextStyle = resolveDanceStyleForTier(nextTier);
   const isStyleSwitch = wasAlreadyDancing && nextStyle !== state.danceStyle;
   const nextDanceStartedAt = !wasAlreadyDancing || isStyleSwitch ? now : state.danceStartedAt;
+  const shouldDeferForTts = state.config.ttsEnabled && !wasAlreadyDancing;
 
   const thanksText = formatShortThanks(
     normalizedUser.nickname,
@@ -646,6 +655,7 @@ export function applyGiftToState(
     GAMEPLAY_LIMITS.SPEECH_MAX_CHARS
   );
 
+  const pendingIntroMs = GAMEPLAY_LIMITS.TTS_WATCHDOG_MS;
   let nextState: DrinkBarLiveState = {
     ...state,
     activeDrink: nextActive,
@@ -654,14 +664,14 @@ export function applyGiftToState(
     vipQueue: nextVipQueue,
     normalQueue: nextNormalQueue,
     inventory: nextInventory,
-    bartenderMood: 'TIKTOK_DANCE',
+    bartenderMood: shouldDeferForTts ? 'HAPPY' : 'TIKTOK_DANCE',
     bartenderSpeech: {
       text: thanksText,
-      expiresAt: nextDanceUntil,
+      expiresAt: shouldDeferForTts ? now + pendingIntroMs : nextDanceUntil,
     },
-    waveUntil: nextDanceUntil,
-    danceUntil: nextDanceUntil,
-    danceStartedAt: nextDanceStartedAt,
+    waveUntil: shouldDeferForTts ? now + pendingIntroMs : nextDanceUntil,
+    danceUntil: shouldDeferForTts ? 0 : nextDanceUntil,
+    danceStartedAt: shouldDeferForTts ? 0 : nextDanceStartedAt,
     danceTier: nextTier,
     danceStyle: nextStyle,
     lastEventAt: now,
@@ -669,14 +679,21 @@ export function applyGiftToState(
 
   nextState = promoteNextFromQueue(nextState, now);
 
-  const sfxToPlay: SfxKind = 'dance_jingle';
   const burstKind = nextTier === 'LARGE' ? 'signature' : 'topping';
 
   return {
     state: nextState,
     effects: {
-      sfxToPlay,
+      sfxToPlay: shouldDeferForTts ? 'chime' : 'dance_jingle',
       burstKind,
+      pendingDance: shouldDeferForTts
+        ? {
+            tier: nextTier,
+            style: nextStyle,
+            durationMs: danceDurationMs,
+            thanksText,
+          }
+        : undefined,
       ttsHint: {
         kind: 'donate',
         nickname: normalizedUser.nickname,
@@ -697,6 +714,8 @@ export function triggerManualTikTokDance(
   const effectiveTier = requestedStyle ? resolveTierForDanceStyle(requestedStyle) : tier;
   const effectiveStyle = requestedStyle ?? resolveDanceStyleForTier(effectiveTier);
   const danceDurationMs = getDanceDurationMs(effectiveTier);
+  const wasAlreadyDancing = now < state.danceUntil;
+  const shouldDeferForTts = state.config.ttsEnabled && !wasAlreadyDancing;
   const nextDanceUntil = Math.min(
     now + GAMEPLAY_LIMITS.DANCE_MAX_DURATION_MS,
     now + danceDurationMs
@@ -706,25 +725,34 @@ export function triggerManualTikTokDance(
     state.config.language,
     GAMEPLAY_LIMITS.SPEECH_MAX_CHARS
   );
+  const pendingIntroMs = GAMEPLAY_LIMITS.TTS_WATCHDOG_MS;
 
   return {
     state: {
       ...state,
-      bartenderMood: 'TIKTOK_DANCE',
+      bartenderMood: shouldDeferForTts ? 'HAPPY' : 'TIKTOK_DANCE',
       bartenderSpeech: {
         text: thanksText,
-        expiresAt: nextDanceUntil,
+        expiresAt: shouldDeferForTts ? now + pendingIntroMs : nextDanceUntil,
       },
-      waveUntil: nextDanceUntil,
-      danceUntil: nextDanceUntil,
-      danceStartedAt: now,
+      waveUntil: shouldDeferForTts ? now + pendingIntroMs : nextDanceUntil,
+      danceUntil: shouldDeferForTts ? 0 : nextDanceUntil,
+      danceStartedAt: shouldDeferForTts ? 0 : now,
       danceTier: effectiveTier,
       danceStyle: effectiveStyle,
       lastEventAt: now,
     },
     effects: {
-      sfxToPlay: 'dance_jingle',
+      sfxToPlay: shouldDeferForTts ? 'chime' : 'dance_jingle',
       burstKind: effectiveTier === 'LARGE' ? 'signature' : 'topping',
+      pendingDance: shouldDeferForTts
+        ? {
+            tier: effectiveTier,
+            style: effectiveStyle,
+            durationMs: danceDurationMs,
+            thanksText,
+          }
+        : undefined,
       ttsHint: {
         kind: 'donate',
         nickname: '',
@@ -732,6 +760,35 @@ export function triggerManualTikTokDance(
         tier: effectiveTier,
         isManual: true,
       },
+    },
+  };
+}
+
+export function activatePendingDanceOnState(
+  state: DrinkBarLiveState,
+  plan: PendingDancePlan,
+  now: number
+): QueueTransitionResult {
+  const cappedDurationMs = Math.min(GAMEPLAY_LIMITS.DANCE_MAX_DURATION_MS, plan.durationMs);
+  const danceUntil = now + cappedDurationMs;
+  return {
+    state: {
+      ...state,
+      bartenderMood: 'TIKTOK_DANCE',
+      bartenderSpeech: {
+        text: plan.thanksText,
+        expiresAt: danceUntil,
+      },
+      waveUntil: danceUntil,
+      danceUntil,
+      danceStartedAt: now,
+      danceTier: plan.tier,
+      danceStyle: plan.style,
+      lastEventAt: now,
+    },
+    effects: {
+      sfxToPlay: 'dance_jingle',
+      burstKind: plan.tier === 'LARGE' ? 'signature' : 'topping',
     },
   };
 }
