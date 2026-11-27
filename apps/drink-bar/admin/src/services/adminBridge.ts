@@ -3,10 +3,12 @@ import {
   DEMO_BOT_NAMES,
   DRINK_BAR_PORTS,
   DRINK_BAR_SOCKET_EVENTS,
+  GAMEPLAY_LIMITS,
 } from '@shared/config';
 import { RECIPE_LIST, RECIPE_MAP } from '@shared/recipes';
 import { isRecipeAvailable } from '@shared/inventory';
 import { sharedSoundEngine } from '@shared/soundEngine';
+import { sharedTtsPlayer } from '@shared/ttsPlayer';
 import type {
   DanceStyle,
   DrinkBarAdminActionName,
@@ -67,6 +69,8 @@ class DrinkBarAdminBridge {
           this.snapshotListeners.forEach((cb) => cb(msg.snapshot));
         } else if (msg.type === 'RELAY_SFX') {
           sharedSoundEngine.play(msg.kind, msg.tier, msg.danceStyle, msg.pitchScale);
+        } else if (msg.type === 'RELAY_TTS') {
+          handleRelayedTts(msg);
         }
       };
       window.addEventListener('message', this.messageHandler);
@@ -154,6 +158,7 @@ class DrinkBarAdminBridge {
   }
 
   public emitLiveEvent(event: NormalizedLiveEvent): void {
+    void sharedSoundEngine.unlock(false);
     this.dispatchSync({
       type: 'LIVE_EVENT',
       eventId: createEventId('ev'),
@@ -169,6 +174,12 @@ class DrinkBarAdminBridge {
     if (typeof payload.sfxMusicEnabled === 'boolean') {
       sharedSoundEngine.setMusicEnabled(payload.sfxMusicEnabled);
     }
+    if (typeof payload.bgmEnabled === 'boolean') {
+      sharedSoundEngine.setBgmEnabled(payload.bgmEnabled);
+    }
+    if (typeof payload.ttsEnabled === 'boolean' && !payload.ttsEnabled) {
+      sharedTtsPlayer.stopAll();
+    }
     if (typeof payload.masterVolume === 'number') {
       sharedSoundEngine.setMasterVolume(payload.masterVolume);
     }
@@ -181,6 +192,7 @@ class DrinkBarAdminBridge {
     action: DrinkBarAdminActionName,
     payload?: DrinkBarAdminActionPayload
   ): void {
+    void sharedSoundEngine.unlock(false);
     if (payload) {
       this.syncLocalAudioConfig(payload);
     }
@@ -231,6 +243,27 @@ class DrinkBarAdminBridge {
   public async disconnectTikTok(): Promise<void> {
     await fetch('/api/tiktok/disconnect', { method: 'POST' }).catch(() => {});
   }
+}
+
+function handleRelayedTts(
+  msg: Extract<DrinkBarSyncMessage, { type: 'RELAY_TTS' }>
+): void {
+  if (msg.action === 'CANCEL') {
+    sharedTtsPlayer.stopAll();
+    return;
+  }
+  if (!msg.text) return;
+  void sharedTtsPlayer.speak({
+    text: msg.text,
+    language: msg.language ?? 'VI',
+    rate: msg.rate ?? GAMEPLAY_LIMITS.TTS_RATE,
+    pitch: msg.pitch ?? GAMEPLAY_LIMITS.TTS_PITCH,
+    volume: msg.volume ?? GAMEPLAY_LIMITS.NORMAL_VOLUME_GAIN,
+    allowIframeRelay: false,
+    onFinish: () => {
+      // Handled internally by sharedTtsPlayer
+    },
+  });
 }
 
 export const drinkBarAdminBridge = new DrinkBarAdminBridge();

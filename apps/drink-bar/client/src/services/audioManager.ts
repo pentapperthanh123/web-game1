@@ -10,12 +10,24 @@ class DrinkBarAudioManager {
     soundEngine.setMusicEnabled(enabled);
   }
 
+  public setBgmEnabled(enabled: boolean): void {
+    soundEngine.setBgmEnabled(enabled);
+  }
+
+  public enableAutoCafeBgm(enabled: boolean): void {
+    soundEngine.enableAutoCafeBgm(enabled);
+  }
+
   public setMasterVolume(volume: number): void {
     soundEngine.setMasterVolume(volume);
   }
 
   public setMicMode(micMode: boolean): void {
     soundEngine.setMicMode(micMode);
+  }
+
+  public setTtsDucking(ducking: boolean): void {
+    soundEngine.setTtsDucking(ducking);
   }
 
   public isUnlocked(): boolean {

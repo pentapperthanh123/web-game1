@@ -170,6 +170,8 @@ export interface DrinkBarConfig {
   brewDurationSec: number;
   sfxEnabled: boolean;
   sfxMusicEnabled: boolean;
+  bgmEnabled: boolean;
+  ttsEnabled: boolean;
   masterVolume: number;
   micMode: boolean;
   showSafeZone: boolean;
@@ -205,6 +207,8 @@ export type DrinkBarAdminActionName =
   | 'SET_BREW_DURATION'
   | 'SET_SFX_ENABLED'
   | 'SET_MUSIC_ENABLED'
+  | 'SET_BGM_ENABLED'
+  | 'SET_TTS_ENABLED'
   | 'SET_MASTER_VOLUME'
   | 'SET_MIC_MODE'
   | 'SET_SAFE_ZONE'
@@ -212,6 +216,7 @@ export type DrinkBarAdminActionName =
   | 'ADD_TOPPING'
   | 'NEXT_CUSTOMER'
   | 'CLEAR_SHELF'
+  | 'RESET_DEFAULT'
   | 'TRIGGER_TIKTOK_DANCE'
   | 'SET_BREW_PROGRESS'
   | 'RESTOCK_RECIPE'
@@ -225,6 +230,8 @@ export interface DrinkBarAdminActionPayload {
   brewDurationSec?: number;
   sfxEnabled?: boolean;
   sfxMusicEnabled?: boolean;
+  bgmEnabled?: boolean;
+  ttsEnabled?: boolean;
   masterVolume?: number;
   micMode?: boolean;
   showSafeZone?: boolean;
@@ -268,5 +275,15 @@ export type DrinkBarSyncMessage =
       tier?: GiftTier;
       danceStyle?: DanceStyle;
       pitchScale?: number;
+      timestamp: number;
+    }
+  | {
+      type: 'RELAY_TTS';
+      action: 'SPEAK' | 'CANCEL';
+      text?: string;
+      language?: Language;
+      volume?: number;
+      rate?: number;
+      pitch?: number;
       timestamp: number;
     };

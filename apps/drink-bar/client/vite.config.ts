@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 import { DRINK_BAR_PORTS } from '../shared/config';
+import { drinkBarGoogleTtsPlugin } from '../shared/viteTtsPlugin';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -24,7 +25,7 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), drinkBarGoogleTtsPlugin()],
     resolve: {
       alias: {
         '@shared': path.resolve(__dirname, '../shared'),

@@ -782,49 +782,85 @@ export function drawStainlessPitcherWithFrother(
   ctx.arc(cx + Math.sin(spin * 0.8) * 4, topY + 1, 2.8, 0, Math.PI * 2);
   ctx.fill();
 
-  // Handheld electric milk frother wand (máy đánh tơi cầm tay — sleek matte black body + vibrating steel whisk shaft)
-  const vibX = Math.sin(spin * 1.4) * 2.4;
-  const vibY = Math.cos(spin * 1.4) * 1.5;
-  const gripX = cx + 10 + vibX;
-  const gripY = topY - 26 + vibY;
+  // Handheld electric milk frother (white ergonomic body + terracotta collar + steel shaft & spiral whisk)
+  const vibX = Math.sin(spin * 1.6) * 2.2;
+  const vibY = Math.cos(spin * 1.6) * 1.4;
+  const gripX = cx + 11 + vibX;
+  const gripY = topY - 28 + vibY;
 
   ctx.save();
   ctx.translate(gripX, gripY);
-  ctx.rotate(0.32);
+  ctx.rotate(0.28);
 
-  // Vibrating stainless whisk shaft dipping into pitcher foam
+  // Stainless steel shaft dipping into pitcher foam
   ctx.strokeStyle = '#9BA7B4';
   ctx.lineWidth = 2.4;
   ctx.beginPath();
-  ctx.moveTo(0, 12);
-  ctx.lineTo(0, 30);
+  ctx.moveTo(0, 14);
+  ctx.lineTo(0, 31);
   ctx.stroke();
 
-  // Matte black ergonomic handheld frother body (inspired by real barista milk frother)
-  roundedRectPath(ctx, -5.5, -14, 11, 28, 5);
-  ctx.fillStyle = '#3B2820';
+  // Spinning spiral ring whisk head at shaft tip
+  const whiskSquash = 0.65 + Math.abs(Math.cos(spin * 1.8)) * 0.35;
+  ctx.strokeStyle = '#7E8C9B';
+  ctx.lineWidth = 1.9;
+  ctx.beginPath();
+  ctx.ellipse(0, 31, 5.2 * whiskSquash, 2.2, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Tapered terracotta/copper neck collar
+  ctx.fillStyle = '#D68A6C';
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.lineWidth = 2.0;
+  ctx.beginPath();
+  ctx.moveTo(-4, 10);
+  ctx.lineTo(-2.2, 16);
+  ctx.lineTo(2.2, 16);
+  ctx.lineTo(4, 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // White ergonomic handheld frother body (Uniblend-style)
+  ctx.beginPath();
+  ctx.moveTo(-5.8, -14);
+  ctx.quadraticCurveTo(-6.2, -2, -4.5, 11);
+  ctx.lineTo(4.5, 11);
+  ctx.quadraticCurveTo(6.2, -2, 5.8, -14);
+  ctx.closePath();
+  ctx.fillStyle = '#FFFDF9';
   ctx.fill();
   ctx.lineWidth = 2.2;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  // Subtle metallic power button & highlight on frother handle
-  ctx.fillStyle = '#F4A6BE';
+  // Soft body shading & terracotta top cap
+  ctx.fillStyle = '#D68A6C';
+  roundedRectPath(ctx, -5.8, -16, 11.6, 4.2, 2);
+  ctx.fill();
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // Side power switch & brand dot
+  ctx.fillStyle = '#E8907C';
+  roundedRectPath(ctx, 4.4, -3, 2.8, 6.5, 1.2);
+  ctx.fill();
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  ctx.fillStyle = '#E8907C';
   ctx.beginPath();
-  ctx.arc(0, -4, 2.1, 0, Math.PI * 2);
+  ctx.arc(0, -5, 1.8, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.32)';
-  ctx.fillRect(-3.2, -11, 1.8, 20);
-
-  // Micro vibration arcs near frother head
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+  // Micro vibration arcs near frother whisk head
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
   ctx.lineWidth = 1.8;
   ctx.beginPath();
-  ctx.arc(-9, 18, 5, Math.PI * 0.7, Math.PI * 1.3);
+  ctx.arc(-9, 24, 5, Math.PI * 0.7, Math.PI * 1.3);
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(9, 18, 5, -Math.PI * 0.3, Math.PI * 0.3);
+  ctx.arc(9, 24, 5, -Math.PI * 0.3, Math.PI * 0.3);
   ctx.stroke();
 
   ctx.restore();

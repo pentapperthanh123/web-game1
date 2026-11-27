@@ -198,11 +198,82 @@ export function isHoldingOatsideSubstep(drink: ActiveDrink | null): boolean {
   return resolvePourRatio(drink) <= MATCHA_MILK_SPLIT_RATIO + 0.05;
 }
 
+const IDLE_PHASE_TIMINGS = {
+  STROLL_END_SEC: 7.0,
+  LOOK_END_SEC: 12.0,
+  YAWN_END_SEC: 15.6,
+  CYCLE_DURATION_SEC: 26.0,
+} as const;
+
+type IdleBaristaPhase = 'STROLL' | 'LOOK_AROUND' | 'YAWN' | 'DOZE';
+
+function resolveIdleBaristaPhase(idleElapsedSec: number): {
+  phase: IdleBaristaPhase;
+  phaseElapsed: number;
+  phaseDuration: number;
+} {
+  const t = ((idleElapsedSec % IDLE_PHASE_TIMINGS.CYCLE_DURATION_SEC) + IDLE_PHASE_TIMINGS.CYCLE_DURATION_SEC) % IDLE_PHASE_TIMINGS.CYCLE_DURATION_SEC;
+  if (t < IDLE_PHASE_TIMINGS.STROLL_END_SEC) {
+    return { phase: 'STROLL', phaseElapsed: t, phaseDuration: IDLE_PHASE_TIMINGS.STROLL_END_SEC };
+  }
+  if (t < IDLE_PHASE_TIMINGS.LOOK_END_SEC) {
+    return {
+      phase: 'LOOK_AROUND',
+      phaseElapsed: t - IDLE_PHASE_TIMINGS.STROLL_END_SEC,
+      phaseDuration: IDLE_PHASE_TIMINGS.LOOK_END_SEC - IDLE_PHASE_TIMINGS.STROLL_END_SEC,
+    };
+  }
+  if (t < IDLE_PHASE_TIMINGS.YAWN_END_SEC) {
+    return {
+      phase: 'YAWN',
+      phaseElapsed: t - IDLE_PHASE_TIMINGS.LOOK_END_SEC,
+      phaseDuration: IDLE_PHASE_TIMINGS.YAWN_END_SEC - IDLE_PHASE_TIMINGS.LOOK_END_SEC,
+    };
+  }
+  return {
+    phase: 'DOZE',
+    phaseElapsed: t - IDLE_PHASE_TIMINGS.YAWN_END_SEC,
+    phaseDuration: IDLE_PHASE_TIMINGS.CYCLE_DURATION_SEC - IDLE_PHASE_TIMINGS.YAWN_END_SEC,
+  };
+}
+
+function computeDozeBlend(idle: { phase: IdleBaristaPhase; phaseElapsed: number; phaseDuration: number } | null): number {
+  if (!idle || idle.phase !== 'DOZE') return 0;
+  const enterSec = 1.1;
+  const exitSec = 0.9;
+  const inT = clamp01(idle.phaseElapsed / enterSec);
+  const outT = clamp01((idle.phaseDuration - idle.phaseElapsed) / exitSec);
+  const smoothIn = inT * inT * (3 - 2 * inT);
+  const smoothOut = outT * outT * (3 - 2 * outT);
+  return Math.min(smoothIn, smoothOut);
+}
+
 export function resolveTargetBaristaX(
   drink: ActiveDrink | null,
-  isDancing: boolean
+  isDancing: boolean,
+  isWaving = false,
+  idleElapsedSec = 0
 ): number {
-  if (isDancing || !drink || drink.phase !== 'BREWING') {
+  if (isDancing) {
+    return BARISTA_CENTER_X;
+  }
+  if (!drink || drink.phase !== 'BREWING') {
+    if (isWaving || (drink && drink.phase === 'SHOWCASE') || idleElapsedSec < 0.8) {
+      return BARISTA_CENTER_X;
+    }
+    const idle = resolveIdleBaristaPhase(idleElapsedSec);
+    if (idle.phase === 'STROLL') {
+      const progress = idle.phaseElapsed / idle.phaseDuration;
+      if (progress < 0.34) return 286;
+      if (progress < 0.72) return 434;
+      return BARISTA_CENTER_X;
+    }
+    if (idle.phase === 'LOOK_AROUND') {
+      const progress = idle.phaseElapsed / idle.phaseDuration;
+      if (progress < 0.36) return 382;
+      if (progress < 0.72) return 338;
+      return BARISTA_CENTER_X;
+    }
     return BARISTA_CENTER_X;
   }
 
@@ -274,7 +345,7 @@ export function resolveTargetBaristaX(
   return BARISTA_CENTER_X;
 }
 
-interface DanceMotion {
+export interface DanceMotion {
   isDancing: boolean;
   style: DanceStyle;
   blend: number;
@@ -282,26 +353,43 @@ interface DanceMotion {
   bounceY: number;
   headTiltRad: number;
   beatPhase: number;
+  beatPulse: number;
+  beatIndex: number;
   poseIndex: number;
+  leftHandX: number;
+  leftHandY: number;
+  rightHandX: number;
+  rightHandY: number;
+  leftElbowBiasX: number;
+  leftElbowBiasY: number;
+  rightElbowBiasX: number;
+  rightElbowBiasY: number;
+  showCenterHeart: boolean;
+  heartPulseScale: number;
 }
 
 const DANCE_BPM_OMEGA: Readonly<Record<DanceStyle, number>> = {
-  heart_sway: (118 / 60) * Math.PI,  // ~6.18 rad/s -> 1 bounce per 118 BPM beat
-  groove_wave: (105 / 60) * Math.PI, // ~5.50 rad/s -> smooth 105 BPM groove pocket
-  party_hype: (130 / 60) * Math.PI,  // ~6.81 rad/s -> crisp 130 BPM EDM/Phonk beat
+  heart_sway: (126 / 60) * Math.PI,  // ~6.60 rad/s -> upbeat 126 BPM Jingle Bells Pop
+  groove_wave: (114 / 60) * Math.PI, // ~5.97 rad/s -> lively 114 BPM Noel Groove
+  party_hype: (138 / 60) * Math.PI,  // ~7.23 rad/s -> hype 138 BPM Carol of the Bells EDM
 };
 
 const DANCE_AMP_MAP: Readonly<Record<DanceStyle, number>> = {
-  heart_sway: 0.88,
+  heart_sway: 0.9,
   groove_wave: 1.05,
-  party_hype: 1.32,
+  party_hype: 1.25,
 };
+
+const MAX_DANCE_ARM_REACH = 74;
+const MIN_DANCE_ARM_REACH = 20;
+const MAX_ELBOW_BEND_PX = 22;
+const DANCE_COUNTER_CLEAR_Y = STAGE_METRICS.COUNTER_TOP_Y - 12;
 
 const DANCE_NOTE_X_OFFSETS: readonly number[] = [-68, -42, 42, 68];
 const DANCE_NOTE_SYMBOLS: readonly string[] = ['♪', '♫', '♫', '♪'];
 const DANCE_NOTE_COLORS: readonly string[] = ['#F0788C', '#F7C95B', '#7FC8D9', '#A7D397'];
 
-// Reusable mutable dance state object (zero per-frame allocations at 30 FPS)
+// Reusable mutable dance & joint-clamp buffers (zero per-frame allocations at 30 FPS)
 const reusableDanceMotion: DanceMotion = {
   isDancing: false,
   style: 'heart_sway',
@@ -310,14 +398,70 @@ const reusableDanceMotion: DanceMotion = {
   bounceY: 0,
   headTiltRad: 0,
   beatPhase: 0,
+  beatPulse: 0,
+  beatIndex: 0,
   poseIndex: 0,
+  leftHandX: BARISTA_CENTER_X - 46,
+  leftHandY: BARISTA_HEAD_Y - 8,
+  rightHandX: BARISTA_CENTER_X + 46,
+  rightHandY: BARISTA_HEAD_Y - 8,
+  leftElbowBiasX: -12,
+  leftElbowBiasY: 14,
+  rightElbowBiasX: 12,
+  rightElbowBiasY: 14,
+  showCenterHeart: false,
+  heartPulseScale: 1,
 };
 
-function computeDanceMotion(
+const reusableTargetMotion = {
+  swayX: 0,
+  bounceY: 0,
+  headTiltRad: 0,
+  leftHandX: BARISTA_CENTER_X - 46,
+  leftHandY: BARISTA_HEAD_Y - 8,
+  rightHandX: BARISTA_CENTER_X + 46,
+  rightHandY: BARISTA_HEAD_Y - 8,
+  leftElbowBiasX: -12,
+  leftElbowBiasY: 14,
+  rightElbowBiasX: 12,
+  rightElbowBiasY: 14,
+};
+
+const clampedWristScratch = { x: 0, y: 0 };
+
+function clampDanceWristTarget(
+  sx: number,
+  sy: number,
+  tx: number,
+  ty: number,
+  out: { x: number; y: number }
+): void {
+  let dx = tx - sx;
+  let dy = ty - sy;
+  const dist = Math.hypot(dx, dy);
+  if (dist > MAX_DANCE_ARM_REACH && dist > 0.001) {
+    const scale = MAX_DANCE_ARM_REACH / dist;
+    dx *= scale;
+    dy *= scale;
+  } else if (dist < MIN_DANCE_ARM_REACH && dist > 0.001) {
+    const scale = MIN_DANCE_ARM_REACH / dist;
+    dx *= scale;
+    dy *= scale;
+  }
+  out.x = sx + dx;
+  out.y = Math.min(DANCE_COUNTER_CLEAR_Y, sy + dy);
+}
+
+export function resetDanceJointTransition(): void {
+  reusableDanceMotion.blend = 0;
+}
+
+export function stepDanceKinematics(
   isDancing: boolean,
   danceStyle: DanceStyle,
   danceStartedAt: number,
-  elapsedSec: number
+  elapsedSec: number,
+  dtSec: number
 ): DanceMotion {
   if (!isDancing) {
     reusableDanceMotion.isDancing = false;
@@ -327,7 +471,10 @@ function computeDanceMotion(
     reusableDanceMotion.bounceY = 0;
     reusableDanceMotion.headTiltRad = 0;
     reusableDanceMotion.beatPhase = 0;
+    reusableDanceMotion.beatPulse = 0;
+    reusableDanceMotion.beatIndex = 0;
     reusableDanceMotion.poseIndex = 0;
+    reusableDanceMotion.showCenterHeart = false;
     return reusableDanceMotion;
   }
 
@@ -338,32 +485,156 @@ function computeDanceMotion(
 
   const omega = DANCE_BPM_OMEGA[danceStyle];
   const amp = DANCE_AMP_MAP[danceStyle] * blend;
-  const beatPhase = elapsedSec * omega;
+  const danceLocalSec = danceStartedAt > 0 ? Math.max(0, (Date.now() - danceStartedAt) / 1000) : elapsedSec;
+  const beatPhase = danceLocalSec * omega;
   const halfBeatSin = Math.sin(beatPhase * 0.5);
+  const beatSin = Math.sin(beatPhase);
+  const beatCos = Math.cos(beatPhase);
+  const beatPulse = Math.pow(Math.abs(beatSin), 1.4);
 
   reusableDanceMotion.isDancing = true;
   reusableDanceMotion.style = danceStyle;
   reusableDanceMotion.blend = blend;
   reusableDanceMotion.beatPhase = beatPhase;
+  reusableDanceMotion.beatPulse = beatPulse;
+  reusableDanceMotion.beatIndex = Math.floor(beatPhase / Math.PI);
+  reusableDanceMotion.poseIndex = Math.floor(beatPhase / (Math.PI * 2)) % 2;
 
   if (danceStyle === 'heart_sway') {
-    reusableDanceMotion.swayX = halfBeatSin * 9 * amp;
-    reusableDanceMotion.bounceY = -Math.abs(Math.sin(beatPhase)) * 7.5 * amp;
-    reusableDanceMotion.headTiltRad = halfBeatSin * 0.14 * amp;
-    reusableDanceMotion.poseIndex = Math.floor(beatPhase / (Math.PI * 2)) % 2;
+    reusableTargetMotion.swayX = halfBeatSin * 8.5 * amp;
+    reusableTargetMotion.bounceY = -Math.abs(beatSin) * 7.5 * amp;
+    reusableTargetMotion.headTiltRad = halfBeatSin * 0.14 * amp;
+
+    const cx = BARISTA_CENTER_X + reusableTargetMotion.swayX;
+    const headY = BARISTA_HEAD_Y + reusableTargetMotion.bounceY;
+    const torsoY = BARISTA_TORSO_Y + reusableTargetMotion.bounceY;
+    // Smooth continuous chest-cupping -> open "bắn tim" release inside every bar
+    const heartOpen = 0.5 - 0.5 * Math.cos(beatPhase * 0.5);
+    const popLift = Math.abs(beatSin) * 5;
+
+    const cupLx = cx - 15;
+    const cupLy = torsoY + 6 + popLift * 0.6;
+    const cupRx = cx + 15;
+    const cupRy = torsoY + 6 + popLift * 0.6;
+
+    const openLx = cx - 46 + beatSin * 4;
+    const openLy = headY - 8 + beatCos * 5;
+    const openRx = cx + 46 + beatSin * 4;
+    const openRy = headY - 8 - beatCos * 5;
+
+    reusableTargetMotion.leftHandX = cupLx + (openLx - cupLx) * heartOpen;
+    reusableTargetMotion.leftHandY = cupLy + (openLy - cupLy) * heartOpen;
+    reusableTargetMotion.rightHandX = cupRx + (openRx - cupRx) * heartOpen;
+    reusableTargetMotion.rightHandY = cupRy + (openRy - cupRy) * heartOpen;
+    reusableTargetMotion.leftElbowBiasX = -10 - heartOpen * 6;
+    reusableTargetMotion.leftElbowBiasY = 12 + (1 - heartOpen) * 6;
+    reusableTargetMotion.rightElbowBiasX = 10 + heartOpen * 6;
+    reusableTargetMotion.rightElbowBiasY = 12 + (1 - heartOpen) * 6;
+
+    reusableDanceMotion.showCenterHeart = heartOpen < 0.48;
+    reusableDanceMotion.heartPulseScale = 1 + Math.abs(beatSin) * 0.25;
   } else if (danceStyle === 'groove_wave') {
-    reusableDanceMotion.swayX = halfBeatSin * 15 * amp;
-    reusableDanceMotion.bounceY = -Math.abs(Math.sin(beatPhase)) * 6.5 * amp;
-    reusableDanceMotion.headTiltRad = Math.cos(beatPhase * 0.5) * 0.11 * amp;
-    reusableDanceMotion.poseIndex = Math.floor(beatPhase / (Math.PI * 2)) % 2;
+    reusableTargetMotion.swayX = halfBeatSin * 15 * amp;
+    reusableTargetMotion.bounceY = -Math.abs(beatSin) * 6.0 * amp;
+    reusableTargetMotion.headTiltRad = Math.cos(beatPhase * 0.5) * 0.1 * amp;
+
+    const cx = BARISTA_CENTER_X + reusableTargetMotion.swayX;
+    const headY = BARISTA_HEAD_Y + reusableTargetMotion.bounceY;
+    // Cascading wave: shoulder -> elbow -> wrist offset across left & right arms (never crosses face)
+    const sweepX = Math.sin(beatPhase * 0.5) * 14;
+    const leftElbowWave = Math.sin(beatPhase - 0.55);
+    const leftWristWave = Math.sin(beatPhase - 1.15);
+    const rightElbowWave = Math.sin(beatPhase - 1.85);
+    const rightWristWave = Math.sin(beatPhase - 2.45);
+
+    reusableTargetMotion.leftHandX = Math.min(cx - 34, cx - 44 + sweepX);
+    reusableTargetMotion.leftHandY = headY - 4 + leftWristWave * 18;
+    reusableTargetMotion.rightHandX = Math.max(cx + 34, cx + 44 + sweepX);
+    reusableTargetMotion.rightHandY = headY - 4 + rightWristWave * 18;
+    reusableTargetMotion.leftElbowBiasX = -14 + leftElbowWave * 4;
+    reusableTargetMotion.leftElbowBiasY = 12 + leftElbowWave * 9;
+    reusableTargetMotion.rightElbowBiasX = 14 + rightElbowWave * 4;
+    reusableTargetMotion.rightElbowBiasY = 12 + rightElbowWave * 9;
+
+    reusableDanceMotion.showCenterHeart = false;
   } else {
-    reusableDanceMotion.swayX = halfBeatSin * 11 * amp;
-    reusableDanceMotion.bounceY = -Math.pow(Math.abs(Math.sin(beatPhase)), 0.72) * 10.5 * amp;
-    reusableDanceMotion.headTiltRad = Math.sin(beatPhase) * 0.11 * amp;
-    reusableDanceMotion.poseIndex = Math.floor(beatPhase / (Math.PI * 2)) % 2;
+    // Style 3 (130 BPM EDM/Phonk): Crisp beat-locked pumps strictly bounded within joint limits
+    reusableTargetMotion.swayX = halfBeatSin * 10.5 * amp;
+    reusableTargetMotion.bounceY = -Math.pow(Math.abs(beatSin), 0.68) * 10.2 * amp;
+    reusableTargetMotion.headTiltRad = beatSin * 0.1 * amp;
+
+    const cx = BARISTA_CENTER_X + reusableTargetMotion.swayX;
+    const headY = BARISTA_HEAD_Y + reusableTargetMotion.bounceY;
+    const pumpMix = 0.5 - 0.5 * Math.cos(beatPhase * 0.5);
+    const upPumpL = headY - 28 + Math.abs(beatCos) * 12;
+    const upPumpR = headY - 28 + Math.abs(beatCos) * 12;
+    const crossPumpL = headY - 8 + beatSin * 18;
+    const crossPumpR = headY - 8 - beatSin * 18;
+
+    reusableTargetMotion.leftHandX = cx - 36 - pumpMix * 8 + beatSin * 5;
+    reusableTargetMotion.leftHandY = upPumpL + (crossPumpL - upPumpL) * pumpMix;
+    reusableTargetMotion.rightHandX = cx + 36 + pumpMix * 8 + beatSin * 5;
+    reusableTargetMotion.rightHandY = upPumpR + (crossPumpR - upPumpR) * pumpMix;
+    reusableTargetMotion.leftElbowBiasX = -14;
+    reusableTargetMotion.leftElbowBiasY = 13 + Math.abs(beatSin) * 5;
+    reusableTargetMotion.rightElbowBiasX = 14;
+    reusableTargetMotion.rightElbowBiasY = 13 + Math.abs(beatCos) * 5;
+
+    reusableDanceMotion.showCenterHeart = false;
   }
 
+  // Clamp wrist targets strictly within anatomical shoulder reach & counter boundary
+  const targetLeftShoulderX = BARISTA_CENTER_X + reusableTargetMotion.swayX - 36;
+  const targetRightShoulderX = BARISTA_CENTER_X + reusableTargetMotion.swayX + 36;
+  const targetShoulderY = BARISTA_TORSO_Y + reusableTargetMotion.bounceY + 22;
+
+  clampDanceWristTarget(
+    targetLeftShoulderX,
+    targetShoulderY,
+    reusableTargetMotion.leftHandX,
+    reusableTargetMotion.leftHandY,
+    clampedWristScratch
+  );
+  reusableTargetMotion.leftHandX = clampedWristScratch.x;
+  reusableTargetMotion.leftHandY = clampedWristScratch.y;
+
+  clampDanceWristTarget(
+    targetRightShoulderX,
+    targetShoulderY,
+    reusableTargetMotion.rightHandX,
+    reusableTargetMotion.rightHandY,
+    clampedWristScratch
+  );
+  reusableTargetMotion.rightHandX = clampedWristScratch.x;
+  reusableTargetMotion.rightHandY = clampedWristScratch.y;
+
+  // Smooth joint reset interpolation (~120ms settle when switching styles)
+  const smoothAlpha = dtSec > 0 ? clamp01(1 - Math.exp(-18 * dtSec)) : 1;
+  reusableDanceMotion.swayX += (reusableTargetMotion.swayX - reusableDanceMotion.swayX) * smoothAlpha;
+  reusableDanceMotion.bounceY += (reusableTargetMotion.bounceY - reusableDanceMotion.bounceY) * smoothAlpha;
+  reusableDanceMotion.headTiltRad += (reusableTargetMotion.headTiltRad - reusableDanceMotion.headTiltRad) * smoothAlpha;
+  reusableDanceMotion.leftHandX += (reusableTargetMotion.leftHandX - reusableDanceMotion.leftHandX) * smoothAlpha;
+  reusableDanceMotion.leftHandY += (reusableTargetMotion.leftHandY - reusableDanceMotion.leftHandY) * smoothAlpha;
+  reusableDanceMotion.rightHandX += (reusableTargetMotion.rightHandX - reusableDanceMotion.rightHandX) * smoothAlpha;
+  reusableDanceMotion.rightHandY += (reusableTargetMotion.rightHandY - reusableDanceMotion.rightHandY) * smoothAlpha;
+  reusableDanceMotion.leftElbowBiasX += (reusableTargetMotion.leftElbowBiasX - reusableDanceMotion.leftElbowBiasX) * smoothAlpha;
+  reusableDanceMotion.leftElbowBiasY += (reusableTargetMotion.leftElbowBiasY - reusableDanceMotion.leftElbowBiasY) * smoothAlpha;
+  reusableDanceMotion.rightElbowBiasX += (reusableTargetMotion.rightElbowBiasX - reusableDanceMotion.rightElbowBiasX) * smoothAlpha;
+  reusableDanceMotion.rightElbowBiasY += (reusableTargetMotion.rightElbowBiasY - reusableDanceMotion.rightElbowBiasY) * smoothAlpha;
+
   return reusableDanceMotion;
+}
+
+function computeDanceMotion(
+  isDancing: boolean,
+  danceStyle: DanceStyle,
+  danceStartedAt: number,
+  elapsedSec: number
+): DanceMotion {
+  if (reusableDanceMotion.isDancing === isDancing && reusableDanceMotion.style === danceStyle) {
+    return reusableDanceMotion;
+  }
+  return stepDanceKinematics(isDancing, danceStyle, danceStartedAt, elapsedSec, 1 / 30);
 }
 
 function computeCharacterBob(
@@ -447,7 +718,8 @@ export function drawBartenderBody(
   danceStartedAt: number,
   elapsedSec: number,
   baristaPosX = BARISTA_CENTER_X,
-  walkVelocity = 0
+  walkVelocity = 0,
+  idleElapsedSec = 0
 ): void {
   ctx.save();
   ctx.lineCap = 'round';
@@ -460,16 +732,37 @@ export function drawBartenderBody(
     Boolean(activeDrink && (activeDrink.phase === 'SHOWCASE' || activeDrink.progress >= 94));
   const rhythmFreq = isFastBoost ? 9.5 : 5.2;
 
+  const isTrueIdle = !isDancing && !isWorking && !isCelebrating;
+  const idle = isTrueIdle ? resolveIdleBaristaPhase(idleElapsedSec) : null;
+  let idleBobOffset = 0;
+  let idleHeadTilt = Math.sin(elapsedSec * 1.45) * 0.024;
+
+  if (idle) {
+    if (idle.phase === 'YAWN') {
+      const p = clamp01(idle.phaseElapsed / idle.phaseDuration);
+      const yawnPeak = p < 0.65 ? Math.sin((p / 0.65) * Math.PI) : 0;
+      const settle = p > 0.65 ? clamp01((p - 0.65) / 0.35) : 0;
+      idleBobOffset = -yawnPeak * 2.5 + settle * 14;
+      idleHeadTilt = -0.07 * yawnPeak + settle * 0.08;
+    } else if (idle.phase === 'DOZE') {
+      // Lean forward and rest head cozily onto folded arms on the counter table
+      const dozeBlend = computeDozeBlend(idle);
+      const breathe = Math.sin(elapsedSec * 2.0) * 1.8 * dozeBlend;
+      idleBobOffset = dozeBlend * 112 + breathe;
+      idleHeadTilt = dozeBlend * 0.24;
+    } else if (idle.phase === 'LOOK_AROUND') {
+      idleHeadTilt = Math.sin(elapsedSec * 2.1) * 0.09;
+    }
+  }
+
   const walkSpeedNorm = clamp01(Math.abs(walkVelocity) / 42);
   const walkHop = -Math.abs(Math.sin(elapsedSec * 14)) * 4.5 * walkSpeedNorm;
   const bob =
     computeCharacterBob(dance, isWorking, elapsedSec, rhythmFreq) +
-    (dance.isDancing ? 0 : walkHop);
+    (dance.isDancing ? 0 : walkHop + idleBobOffset);
   const effectiveMood: BartenderMood = dance.isDancing ? 'TIKTOK_DANCE' : mood;
   const walkTilt = Math.sign(walkVelocity) * 0.045 * walkSpeedNorm;
-  const headTilt = dance.isDancing
-    ? dance.headTiltRad
-    : Math.sin(elapsedSec * 1.45) * 0.024 + walkTilt;
+  const headTilt = dance.isDancing ? dance.headTiltRad : idleHeadTilt + walkTilt;
 
   const cx = dance.isDancing ? BARISTA_CENTER_X + dance.swayX : baristaPosX;
 
@@ -487,7 +780,8 @@ export function drawBartenderBody(
     cx,
     bob,
     headTilt,
-    elapsedSec
+    elapsedSec,
+    idle
   );
 
   ctx.restore();
@@ -572,9 +866,11 @@ function drawCentralBaristaTorsoAndHead(
   cx: number,
   bob: number,
   headTiltRad: number,
-  elapsedSec: number
+  elapsedSec: number,
+  idle: { phase: IdleBaristaPhase; phaseElapsed: number; phaseDuration: number } | null = null
 ): void {
-  const headY = BARISTA_HEAD_Y + bob;
+  const dozeBlend = computeDozeBlend(idle);
+  const headY = BARISTA_HEAD_Y + bob + dozeBlend * 22;
   const torsoY = BARISTA_TORSO_Y + bob;
 
   // Back hair silhouette framing neck & shoulders
@@ -587,12 +883,12 @@ function drawCentralBaristaTorsoAndHead(
   ctx.fill();
   ctx.stroke();
 
-  // Clean raglan white shirt torso
+  // Clean raglan white shirt torso (extends below counter top so character never floats)
   ctx.beginPath();
   ctx.moveTo(cx - 26, torsoY);
   ctx.quadraticCurveTo(cx - 46, torsoY + 6, cx - 44, torsoY + 36);
-  ctx.lineTo(cx - 41, torsoY + 148);
-  ctx.lineTo(cx + 41, torsoY + 148);
+  ctx.lineTo(cx - 41, torsoY + 160);
+  ctx.lineTo(cx + 41, torsoY + 160);
   ctx.lineTo(cx + 44, torsoY + 36);
   ctx.quadraticCurveTo(cx + 46, torsoY + 6, cx + 26, torsoY);
   ctx.closePath();
@@ -601,7 +897,7 @@ function drawCentralBaristaTorsoAndHead(
   ctx.stroke();
 
   // Cute pastel strawberry-pink barista apron
-  roundedRectPath(ctx, cx - 31, torsoY + 28, 62, 122, 14);
+  roundedRectPath(ctx, cx - 31, torsoY + 28, 62, 134, 14);
   ctx.fillStyle = '#F29BB5';
   ctx.fill();
   ctx.stroke();
@@ -730,7 +1026,37 @@ function drawCentralBaristaTorsoAndHead(
   ctx.arc(0, -26, 2.8, 0, Math.PI * 2);
   ctx.fill();
 
-  drawCharacterFace(ctx, mood, isCelebrating, elapsedSec);
+  drawCharacterFace(ctx, mood, isCelebrating, elapsedSec, idle);
+  ctx.restore();
+
+  if (idle?.phase === 'DOZE') {
+    drawSleepyZzzGlyphs(ctx, cx + 40, headY - 32, idle.phaseElapsed);
+  }
+}
+
+function drawSleepyZzzGlyphs(
+  ctx: CanvasRenderingContext2D,
+  originX: number,
+  originY: number,
+  phaseElapsed: number
+): void {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < 3; i += 1) {
+    const t = ((phaseElapsed * 0.55 + i * 0.33) % 1);
+    const zx = originX + i * 10 + Math.sin(phaseElapsed * 2.2 + i) * 4;
+    const zy = originY - t * 38;
+    const alpha = Math.sin(t * Math.PI) * 0.9;
+    const fontSize = Math.round(12 + i * 2.5);
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.font = `900 ${fontSize}px "Fredoka", "Nunito", sans-serif`;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+    ctx.strokeText('z', zx, zy);
+    ctx.fillStyle = '#E8F7FA';
+    ctx.fillText('z', zx, zy);
+  }
   ctx.restore();
 }
 
@@ -738,10 +1064,14 @@ function drawCharacterFace(
   ctx: CanvasRenderingContext2D,
   mood: BartenderMood,
   isCelebrating: boolean,
-  elapsedSec: number
+  elapsedSec: number,
+  idle: { phase: IdleBaristaPhase; phaseElapsed: number; phaseDuration: number } | null = null
 ): void {
   const isBlinking = elapsedSec % 3.8 > 3.62;
   const isExcited = mood === 'TIKTOK_DANCE' || isCelebrating;
+  const isYawning = Boolean(!isExcited && idle?.phase === 'YAWN');
+  const isDozing = Boolean(!isExcited && idle?.phase === 'DOZE');
+  const isDozingEyesClosed = isDozing && computeDozeBlend(idle) > 0.35;
 
   ctx.fillStyle = 'rgba(244, 139, 163, 0.55)';
   ctx.beginPath();
@@ -760,6 +1090,14 @@ function drawCharacterFace(
     ctx.beginPath();
     ctx.arc(14, 5, 5.5, Math.PI * 1.15, Math.PI * 1.85, false);
     ctx.stroke();
+  } else if (isYawning || isDozingEyesClosed) {
+    // Cozy downward sleepy closed-eye arcs (︶ ︶)
+    ctx.beginPath();
+    ctx.arc(-14, 4, 5.2, Math.PI * 0.12, Math.PI * 0.88, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(14, 4, 5.2, Math.PI * 0.12, Math.PI * 0.88, false);
+    ctx.stroke();
   } else if (isBlinking) {
     ctx.beginPath();
     ctx.moveTo(-19, 5);
@@ -768,19 +1106,47 @@ function drawCharacterFace(
     ctx.lineTo(19, 5);
     ctx.stroke();
   } else {
+    const lookOffsetX =
+      idle?.phase === 'LOOK_AROUND' ? Math.sin(elapsedSec * 2.1) * 1.8 : 0;
     ctx.beginPath();
-    ctx.arc(-14, 5, 4.6, 0, Math.PI * 2);
-    ctx.arc(14, 5, 4.6, 0, Math.PI * 2);
+    ctx.arc(-14 + lookOffsetX, 5, 4.6, 0, Math.PI * 2);
+    ctx.arc(14 + lookOffsetX, 5, 4.6, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(-15.5, 3.4, 1.8, 0, Math.PI * 2);
-    ctx.arc(12.5, 3.4, 1.8, 0, Math.PI * 2);
+    ctx.arc(-15.5 + lookOffsetX, 3.4, 1.8, 0, Math.PI * 2);
+    ctx.arc(12.5 + lookOffsetX, 3.4, 1.8, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  if (isExcited) {
+  if (isYawning && idle) {
+    const yawnOpen = Math.sin((idle.phaseElapsed / idle.phaseDuration) * Math.PI);
+    const rx = 3.2 + yawnOpen * 2.6;
+    const ry = 3.5 + yawnOpen * 4.4;
+    ctx.beginPath();
+    ctx.ellipse(0, 15, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#E47B92';
+    ctx.fill();
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+  } else if (isDozingEyesClosed) {
+    // Tiny cute O-mouth + gentle pastel sleep bubble
+    ctx.beginPath();
+    ctx.arc(0, 14.5, 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#E47B92';
+    ctx.fill();
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    const bubbleR = 3.2 + Math.sin(elapsedSec * 2.6) * 1.4;
+    ctx.beginPath();
+    ctx.arc(4, 16.5, bubbleR, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(232, 247, 250, 0.85)';
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else if (isExcited) {
     ctx.beginPath();
     ctx.arc(0, 14, 6.5, 0, Math.PI, false);
     ctx.closePath();
@@ -808,7 +1174,8 @@ export function drawBartenderForegroundArmsAndSpeech(
   danceStartedAt: number,
   elapsedSec: number,
   baristaPosX = BARISTA_CENTER_X,
-  walkVelocity = 0
+  walkVelocity = 0,
+  idleElapsedSec = 0
 ): void {
   ctx.save();
   ctx.lineCap = 'round';
@@ -835,21 +1202,39 @@ export function drawBartenderForegroundArmsAndSpeech(
 
   const freq = isFastBoost ? 9.5 : 5.2;
   const isWorking = Boolean(activeDrink && activeDrink.phase === 'BREWING');
+  const isCelebrating = isWaving || Boolean(activeDrink && activeDrink.phase === 'SHOWCASE');
+  const isTrueIdle = !isWorking && !isCelebrating;
+  const idle = isTrueIdle ? resolveIdleBaristaPhase(idleElapsedSec) : null;
+
+  let idleBobOffset = 0;
+  if (idle?.phase === 'YAWN') {
+    const p = clamp01(idle.phaseElapsed / idle.phaseDuration);
+    const yawnPeak = p < 0.65 ? Math.sin((p / 0.65) * Math.PI) : 0;
+    const settle = p > 0.65 ? clamp01((p - 0.65) / 0.35) : 0;
+    idleBobOffset = -yawnPeak * 2.5 + settle * 14;
+  } else if (idle?.phase === 'DOZE') {
+    const dozeBlend = computeDozeBlend(idle);
+    const breathe = Math.sin(elapsedSec * 2.0) * 1.8 * dozeBlend;
+    idleBobOffset = dozeBlend * 112 + breathe;
+  }
+
   const walkSpeedNorm = clamp01(Math.abs(walkVelocity) / 42);
   const walkHop = -Math.abs(Math.sin(elapsedSec * 14)) * 4.5 * walkSpeedNorm;
-  const bob = computeCharacterBob(dance, isWorking, elapsedSec, freq) + walkHop;
+  const bob = computeCharacterBob(dance, isWorking, elapsedSec, freq) + walkHop + idleBobOffset;
+  const dozeHeadExtraY = computeDozeBlend(idle) * 22;
 
   drawCentralBaristaArms(
     ctx,
     baristaPosX,
-    BARISTA_HEAD_Y,
+    BARISTA_HEAD_Y + idleBobOffset + dozeHeadExtraY,
     BARISTA_TORSO_Y,
     activeDrink,
     bob,
     isFastBoost,
     isWaving,
     freq,
-    elapsedSec
+    elapsedSec,
+    idle
   );
 
   if (speech && speech.text.trim()) {
@@ -869,7 +1254,8 @@ function drawCentralBaristaArms(
   isFastBoost: boolean,
   isWaving: boolean,
   freq: number,
-  elapsedSec: number
+  elapsedSec: number,
+  idle: { phase: IdleBaristaPhase; phaseElapsed: number; phaseDuration: number } | null = null
 ): void {
   const leftShoulderX = cx - 36;
   const leftShoulderY = torsoY + 24 + bob;
@@ -895,19 +1281,115 @@ function drawCentralBaristaArms(
   const action = resolveBrewAction(drink);
 
   if (!action || !drink) {
-    const waveOffset = Math.sin(elapsedSec * 5.2) * 10;
-    const leftHandX = cx - 48 + (isWaving ? waveOffset : 0);
-    const leftHandY = isWaving ? headY + 8 : STAGE_METRICS.COUNTER_TOP_Y - 6;
-    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
-    drawHandCircle(ctx, leftHandX, leftHandY);
+    if (isWaving) {
+      const waveOffset = Math.sin(elapsedSec * 5.2) * 10;
+      const leftHandX = cx - 48 + waveOffset;
+      const leftHandY = headY + 8;
+      drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
+      drawHandCircle(ctx, leftHandX, leftHandY);
 
-    const idleBob = Math.sin(elapsedSec * 2.2) * 4;
-    const rightHandX = cx + 46 + idleBob;
-    const rightHandY = STAGE_METRICS.COUNTER_TOP_Y - 6;
-    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightHandX, rightHandY, 1);
-    drawHandCircle(ctx, rightHandX, rightHandY);
+      const rightHandX = cx + 46;
+      const rightHandY = STAGE_METRICS.COUNTER_TOP_Y - 6;
+      drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightHandX, rightHandY, 1);
+      drawHandCircle(ctx, rightHandX, rightHandY);
+      return;
+    }
+
+    drawIdleBaristaArms(
+      ctx,
+      cx,
+      headY,
+      torsoY,
+      leftShoulderX,
+      leftShoulderY,
+      rightShoulderX,
+      rightShoulderY,
+      elapsedSec,
+      idle
+    );
     return;
   }
+
+function drawIdleBaristaArms(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  headY: number,
+  torsoY: number,
+  leftShoulderX: number,
+  leftShoulderY: number,
+  rightShoulderX: number,
+  rightShoulderY: number,
+  elapsedSec: number,
+  idle: { phase: IdleBaristaPhase; phaseElapsed: number; phaseDuration: number } | null
+): void {
+  const phase = idle?.phase ?? 'STROLL';
+  const counterY = STAGE_METRICS.COUNTER_TOP_Y - 6;
+
+  if (phase === 'YAWN' && idle) {
+    const p = clamp01(idle.phaseElapsed / idle.phaseDuration);
+    const yawnPeak = p < 0.65 ? Math.sin((p / 0.65) * Math.PI) : 0;
+    const settle = p > 0.65 ? clamp01((p - 0.65) / 0.35) : 0;
+    // Left hand covers mouth politely while yawning, then lowers onto counter; right hand rests calmly on counter
+    const coverX = cx - 10 - (1 - yawnPeak) * 28 + settle * 12;
+    const coverY = headY + 24 + (1 - yawnPeak) * (counterY - (headY + 24));
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, coverX, coverY, -1);
+    drawHandCircle(ctx, coverX, coverY);
+
+    const restRightX = cx + 38 - settle * 6;
+    const restRightY = counterY;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, restRightX, restRightY, 1);
+    drawHandCircle(ctx, restRightX, restRightY);
+    return;
+  }
+
+  if (phase === 'DOZE') {
+    // Folded pillow arms resting flat on the counter table beneath her head
+    const dozeBlend = computeDozeBlend(idle);
+    const restY = STAGE_METRICS.COUNTER_TOP_Y - 7;
+    const leftX = cx - 42 + (cx + 16 - (cx - 42)) * dozeBlend;
+    const rightX = cx + 42 + (cx - 18 - (cx + 42)) * dozeBlend;
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftX, restY + 1, -1);
+    drawHandCircle(ctx, leftX, restY + 1);
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightX, restY - 2, 1);
+    drawHandCircle(ctx, rightX, restY - 2);
+    return;
+  }
+
+  if (phase === 'LOOK_AROUND') {
+    // One hand rests on hip/apron, right hand taps rhythmically on counter while scanning for customers
+    const leftHipX = cx - 42;
+    const leftHipY = torsoY + 64;
+    drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHipX, leftHipY, -1);
+    drawHandCircle(ctx, leftHipX, leftHipY);
+
+    const tapLift = Math.abs(Math.sin(elapsedSec * 4.2)) * 5;
+    const rightTapX = cx + 44 + Math.sin(elapsedSec * 2.1) * 4;
+    const rightTapY = counterY - tapLift;
+    drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightTapX, rightTapY, 1);
+    drawHandCircle(ctx, rightTapX, rightTapY);
+    return;
+  }
+
+  // STROLL: Pacing left/right while tidying & wiping counter with a small pastel cloth
+  const leftSwing = Math.sin(elapsedSec * 4.5) * 8;
+  const leftX = cx - 46 + leftSwing;
+  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftX, counterY - 2, -1);
+  drawHandCircle(ctx, leftX, counterY - 2);
+
+  const wipeOffset = Math.sin(elapsedSec * 5.6) * 14;
+  const clothX = cx + 38 + wipeOffset;
+  const clothY = counterY - 1;
+  ctx.save();
+  roundedRectPath(ctx, clothX - 11, clothY - 4, 22, 10, 4);
+  ctx.fillStyle = '#D9F0F6';
+  ctx.fill();
+  ctx.lineWidth = 2.0;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+  ctx.restore();
+  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, clothX, clothY - 2, 1);
+  drawHandCircle(ctx, clothX, clothY - 2);
+}
 
   // SUB-STEP 0..7%: Lấy cốc từ chồng ly bên phải đặt vào đế pha chính (x=360)
   if (isCupPickupSubstep(drink)) {
@@ -2587,7 +3069,7 @@ function drawPlaceFruitGarnishAction(
 function drawSynchronizedTikTokDanceArms(
   ctx: CanvasRenderingContext2D,
   cx: number,
-  headY: number,
+  _headY: number,
   torsoY: number,
   dance: DanceMotion
 ): void {
@@ -2596,59 +3078,76 @@ function drawSynchronizedTikTokDanceArms(
   const rightShoulderX = cx + 36;
   const rightShoulderY = torsoY + 22;
 
-  const beatSin = Math.sin(dance.beatPhase);
-  const beatCos = Math.cos(dance.beatPhase);
-
-  let leftHandX = cx - 46;
-  let leftHandY = headY - 8;
-  let rightHandX = cx + 46;
-  let rightHandY = headY - 8;
-
-  if (dance.style === 'heart_sway') {
-    // Style 1 (118 BPM Pop/Cute): Distinct heart-shooting gesture + cute pop cheek-wave
-    const popPulse = Math.abs(beatSin);
-    if (dance.poseIndex === 0) {
-      leftHandX = cx - 15 + beatSin * 3.5;
-      leftHandY = torsoY + 2 + popPulse * 4;
-      rightHandX = cx + 15 - beatSin * 3.5;
-      rightHandY = torsoY + 2 + popPulse * 4;
-      drawFloatingHeart(ctx, cx, torsoY - 14 - popPulse * 10, 10 + popPulse * 2.5);
-    } else {
-      leftHandX = cx - 44 + beatSin * 6;
-      leftHandY = headY - 8 + beatCos * 6;
-      rightHandX = cx + 44 + beatSin * 6;
-      rightHandY = headY - 8 - beatCos * 6;
-      drawFloatingHeart(ctx, cx + beatSin * 14, headY - 36 - popPulse * 8, 8.5);
-    }
-  } else if (dance.style === 'groove_wave') {
-    // Style 2 (105 BPM Groove/Chill): Silky cascading arm-wave (left leads right by phase offset)
-    const sweepX = Math.sin(dance.beatPhase * 0.5) * 22;
-    const leftWaveY = Math.sin(dance.beatPhase) * 16;
-    const rightWaveY = Math.sin(dance.beatPhase - 1.55) * 16;
-    leftHandX = cx - 34 + sweepX;
-    leftHandY = headY - 6 + leftWaveY;
-    rightHandX = cx + 34 + sweepX;
-    rightHandY = headY - 6 + rightWaveY;
-  } else {
-    // Style 3 (130 BPM EDM/Phonk): Crisp beat-locked hype pumps strictly bounded inside counter frame
-    const punch = Math.sin(dance.beatPhase);
-    if (dance.poseIndex === 0) {
-      leftHandX = cx - 32 + punch * 8;
-      leftHandY = headY - 34 + Math.abs(beatCos) * 12;
-      rightHandX = cx + 32 - punch * 8;
-      rightHandY = headY - 34 + Math.abs(beatCos) * 12;
-    } else {
-      leftHandX = cx - 46 + punch * 6;
-      leftHandY = headY - 8 + punch * 20;
-      rightHandX = cx + 46 + punch * 6;
-      rightHandY = headY - 8 - punch * 20;
-    }
+  if (dance.style === 'heart_sway' && dance.showCenterHeart) {
+    drawFloatingHeart(ctx, cx, torsoY - 12, 9.5 * dance.heartPulseScale);
   }
 
-  drawCartoonArm(ctx, leftShoulderX, leftShoulderY, leftHandX, leftHandY, -1);
-  drawHandCircle(ctx, leftHandX, leftHandY);
-  drawCartoonArm(ctx, rightShoulderX, rightShoulderY, rightHandX, rightHandY, 1);
-  drawHandCircle(ctx, rightHandX, rightHandY);
+  drawArticulatedDanceArm(
+    ctx,
+    leftShoulderX,
+    leftShoulderY,
+    dance.leftHandX,
+    dance.leftHandY,
+    dance.leftElbowBiasX,
+    dance.leftElbowBiasY
+  );
+  drawHandCircle(ctx, dance.leftHandX, dance.leftHandY);
+
+  drawArticulatedDanceArm(
+    ctx,
+    rightShoulderX,
+    rightShoulderY,
+    dance.rightHandX,
+    dance.rightHandY,
+    dance.rightElbowBiasX,
+    dance.rightElbowBiasY
+  );
+  drawHandCircle(ctx, dance.rightHandX, dance.rightHandY);
+}
+
+function drawArticulatedDanceArm(
+  ctx: CanvasRenderingContext2D,
+  sx: number,
+  sy: number,
+  hx: number,
+  hy: number,
+  elbowBiasX: number,
+  elbowBiasY: number
+): void {
+  const clampedBiasX = Math.max(-MAX_ELBOW_BEND_PX, Math.min(MAX_ELBOW_BEND_PX, elbowBiasX));
+  const clampedBiasY = Math.max(-MAX_ELBOW_BEND_PX, Math.min(MAX_ELBOW_BEND_PX, elbowBiasY));
+  const elbowX = (sx + hx) * 0.5 + clampedBiasX;
+  const elbowY = Math.min(DANCE_COUNTER_CLEAR_Y, (sy + hy) * 0.5 + clampedBiasY);
+
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.quadraticCurveTo(elbowX, elbowY, hx, hy);
+  ctx.lineWidth = 15.6;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  ctx.lineWidth = 10.8;
+  ctx.strokeStyle = BARISTA_SKIN;
+  ctx.stroke();
+
+  const sleeveT = 0.48;
+  const q0x = sx + (elbowX - sx) * sleeveT;
+  const q0y = sy + (elbowY - sy) * sleeveT;
+  const q1x = elbowX + (hx - elbowX) * sleeveT;
+  const q1y = elbowY + (hy - elbowY) * sleeveT;
+  const sleeveEndX = q0x + (q1x - q0x) * sleeveT;
+  const sleeveEndY = q0y + (q1y - q0y) * sleeveT;
+
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.quadraticCurveTo(q0x, q0y, sleeveEndX, sleeveEndY);
+  ctx.lineWidth = 16.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  ctx.lineWidth = 11.4;
+  ctx.strokeStyle = '#FFFDF9';
+  ctx.stroke();
 }
 
 function drawTikTokDanceMusicNotesAndSparkles(

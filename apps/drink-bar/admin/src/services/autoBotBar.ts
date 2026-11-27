@@ -39,6 +39,7 @@ class AutoBotBarEngine {
   }
 
   private step(): void {
+    if (!this.isRunning) return;
     const preset = AUTOBOT_PACE_PRESETS[this.pace];
     const roll = Math.random();
     let acc = preset.orderChance;
@@ -78,3 +79,9 @@ class AutoBotBarEngine {
 }
 
 export const autoBotBar = new AutoBotBarEngine();
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    autoBotBar.stop();
+  });
+}

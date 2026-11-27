@@ -8,11 +8,20 @@ import {
   CUP_TOP_Y,
 } from './brewEffects';
 
-export type ParticleKind = 'bubble' | 'droplet' | 'sparkle' | 'confetti';
+export type ParticleKind =
+  | 'bubble'
+  | 'droplet'
+  | 'sparkle'
+  | 'confetti'
+  | 'heart'
+  | 'star'
+  | 'wave_trail';
+export type ParticleTag = 'brew' | 'dance';
 export type CupStationId = 1 | 2;
 
 interface PooledParticle {
   active: boolean;
+  tag: ParticleTag;
   cupId: CupStationId;
   boundedToCup: boolean;
   minX: number;
@@ -31,6 +40,13 @@ interface PooledParticle {
   rotation: number;
   vRot: number;
 }
+
+const DANCE_STAGE_BOUNDS = {
+  MIN_X: 110,
+  MAX_X: 610,
+  MIN_Y: 196,
+  MAX_Y: STAGE_METRICS.COUNTER_TOP_Y + 8,
+} as const;
 
 const CONFETTI_COLORS: readonly string[] = [
   '#F7C95B',
@@ -53,6 +69,7 @@ export class DrinkBarParticlePool {
     for (let i = 0; i < capacity; i += 1) {
       this.pool.push({
         active: false,
+        tag: 'brew',
         cupId: 1,
         boundedToCup: true,
         minX: CUP1_CX - CUP_BOTTOM_HALF_W,
@@ -109,6 +126,7 @@ export class DrinkBarParticlePool {
 
     const p = this.acquireSlot();
     p.active = true;
+    p.tag = 'brew';
     p.cupId = cupId;
     p.boundedToCup = boundedToCup;
     p.minX = minX;
@@ -126,6 +144,47 @@ export class DrinkBarParticlePool {
     p.color = color;
     p.rotation = Math.random() * Math.PI * 2;
     p.vRot = (Math.random() - 0.5) * 4;
+  }
+
+  public spawnDanceParticle(
+    kind: 'heart' | 'sparkle' | 'star' | 'wave_trail',
+    x: number,
+    y: number,
+    vx: number,
+    vy: number,
+    size: number,
+    maxLife: number,
+    color: string
+  ): void {
+    const p = this.acquireSlot();
+    p.active = true;
+    p.tag = 'dance';
+    p.cupId = 1;
+    p.boundedToCup = false;
+    p.minX = DANCE_STAGE_BOUNDS.MIN_X;
+    p.maxX = DANCE_STAGE_BOUNDS.MAX_X;
+    p.minY = DANCE_STAGE_BOUNDS.MIN_Y;
+    p.maxY = DANCE_STAGE_BOUNDS.MAX_Y;
+    p.kind = kind;
+    p.x = Math.max(p.minX, Math.min(p.maxX, x));
+    p.y = Math.max(p.minY, Math.min(p.maxY, y));
+    p.vx = vx;
+    p.vy = vy;
+    p.size = size;
+    p.life = maxLife;
+    p.maxLife = maxLife;
+    p.color = color;
+    p.rotation = kind === 'wave_trail' ? Math.atan2(vy, vx) : (Math.random() - 0.5) * 0.35;
+    p.vRot = kind === 'wave_trail' ? 0 : (Math.random() - 0.5) * 2.4;
+  }
+
+  public clearDanceParticles(): void {
+    const len = this.pool.length;
+    for (let i = 0; i < len; i += 1) {
+      if (this.pool[i].tag === 'dance') {
+        this.pool[i].active = false;
+      }
+    }
   }
 
   public emitAmbientPour(
@@ -280,6 +339,15 @@ export class DrinkBarParticlePool {
         p.vx *= 0.98;
       } else if (p.kind === 'bubble') {
         p.vx *= 0.94;
+      } else if (p.kind === 'heart') {
+        p.vx += Math.sin(p.life * 8 + i) * 14 * dtSec;
+        p.vx *= 0.96;
+      } else if (p.kind === 'wave_trail') {
+        p.vx *= 0.92;
+        p.vy *= 0.92;
+      } else if (p.kind === 'star') {
+        p.vx *= 0.95;
+        p.vy *= 0.95;
       }
 
       if (p.boundedToCup) {
@@ -289,6 +357,9 @@ export class DrinkBarParticlePool {
         }
       } else {
         p.x = Math.max(p.minX, Math.min(p.maxX, p.x));
+        if (p.y < p.minY || p.y > p.maxY) {
+          p.active = false;
+        }
       }
     }
   }
@@ -319,8 +390,12 @@ export class DrinkBarParticlePool {
         ctx.lineWidth = 1.4;
         ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
         ctx.stroke();
-      } else if (p.kind === 'sparkle') {
+      } else if (p.kind === 'sparkle' || p.kind === 'star') {
         drawFourPointStar(ctx, p.x, p.y, p.size, p.color);
+      } else if (p.kind === 'heart') {
+        drawPooledHeart(ctx, p.x, p.y, p.size, p.rotation, p.color);
+      } else if (p.kind === 'wave_trail') {
+        drawPastelWaveTrail(ctx, p.x, p.y, p.size, p.rotation, p.color, alpha);
       } else {
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
@@ -362,6 +437,46 @@ function drawFourPointStar(
   ctx.lineWidth = 1.6;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
+}
+
+function drawPooledHeart(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  rotation: number,
+  color: string
+): void {
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation * 0.25);
+  ctx.beginPath();
+  ctx.moveTo(0, size * 0.35);
+  ctx.bezierCurveTo(-size, -size * 0.3, -size * 0.9, -size * 1.08, 0, -size * 0.42);
+  ctx.bezierCurveTo(size * 0.9, -size * 1.08, size, -size * 0.3, 0, size * 0.35);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.lineWidth = 2.0;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+}
+
+function drawPastelWaveTrail(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  rotation: number,
+  color: string,
+  alpha: number
+): void {
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+  ctx.globalAlpha = alpha * 0.68;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * 1.8, size * 0.55, 0, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
 }
 
 export const drinkParticles = new DrinkBarParticlePool(STAGE_METRICS.MAX_PARTICLES);

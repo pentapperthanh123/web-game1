@@ -1,6 +1,6 @@
 import { DRINK_BAR_PALETTE, STAGE_METRICS } from '@shared/config';
 import type { BrewPhaseAction } from '@shared/recipes';
-import type { RecipeId } from '@shared/types';
+import type { DanceStyle, RecipeId } from '@shared/types';
 import { drawMatchaCanister, drawMotionArcs, drawRealisticBobaShaker } from './brewEffects';
 
 const { WIDTH, HEIGHT, COUNTER_TOP_Y, COUNTER_END_Y } = STAGE_METRICS;
@@ -50,6 +50,8 @@ export interface BarEquipmentState {
   isUsingFrother: boolean;
   isScoopingBoba: boolean;
   isScoopingIce: boolean;
+  danceStyle: DanceStyle | null;
+  danceBeatPulse: number;
 }
 
 const IDLE_EQUIPMENT_STATE: BarEquipmentState = {
@@ -67,6 +69,8 @@ const IDLE_EQUIPMENT_STATE: BarEquipmentState = {
   isUsingFrother: false,
   isScoopingBoba: false,
   isScoopingIce: false,
+  danceStyle: null,
+  danceBeatPulse: 0,
 };
 
 export function roundedRectPath(
@@ -124,9 +128,18 @@ export function drawBarBackdrop(
   ctx.fill();
   ctx.stroke();
 
-  // Delicate inner cream molding arch
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-  ctx.lineWidth = 2.4;
+  // Delicate inner cream molding arch (pulses smoothly on beat during TikTok dances, especially Quẩy Nhiệt!)
+  const archBeat = equip.danceStyle ? equip.danceBeatPulse : 0;
+  let archRimStroke = 'rgba(255, 255, 255, 0.8)';
+  if (equip.danceStyle === 'party_hype') {
+    archRimStroke = `rgba(247, 201, 91, ${(0.42 + archBeat * 0.45).toFixed(2)})`;
+  } else if (equip.danceStyle === 'groove_wave') {
+    archRimStroke = `rgba(127, 200, 217, ${(0.4 + archBeat * 0.35).toFixed(2)})`;
+  } else if (equip.danceStyle === 'heart_sway') {
+    archRimStroke = `rgba(244, 166, 190, ${(0.4 + archBeat * 0.35).toFixed(2)})`;
+  }
+  ctx.strokeStyle = archRimStroke;
+  ctx.lineWidth = equip.danceStyle === 'party_hype' ? 2.4 + archBeat * 2.2 : 2.4;
   ctx.beginPath();
   ctx.ellipse(360, 344, 261, 138, 0, Math.PI, 0, false);
   ctx.lineTo(621, COUNTER_TOP_Y - 2);
@@ -134,10 +147,16 @@ export function drawBarBackdrop(
   ctx.lineTo(99, 344);
   ctx.stroke();
 
-  // Soft warm ambient light halo behind back shelves
+  // Soft warm ambient light halo behind back shelves (syncs gently to beat during Quẩy Nhiệt)
+  const haloBoost = equip.danceStyle === 'party_hype' ? archBeat * 0.24 : archBeat * 0.1;
   const archGlow = ctx.createRadialGradient(360, 326, 28, 360, 326, 210);
-  archGlow.addColorStop(0, 'rgba(255, 246, 224, 0.52)');
-  archGlow.addColorStop(0.6, 'rgba(255, 236, 240, 0.18)');
+  if (equip.danceStyle === 'party_hype') {
+    archGlow.addColorStop(0, `rgba(255, 234, 175, ${(0.5 + haloBoost).toFixed(2)})`);
+    archGlow.addColorStop(0.6, `rgba(244, 166, 190, ${(0.18 + haloBoost * 0.7).toFixed(2)})`);
+  } else {
+    archGlow.addColorStop(0, `rgba(255, 246, 224, ${(0.52 + haloBoost).toFixed(2)})`);
+    archGlow.addColorStop(0.6, 'rgba(255, 236, 240, 0.18)');
+  }
   archGlow.addColorStop(1, 'rgba(255, 236, 240, 0)');
   ctx.fillStyle = archGlow;
   ctx.beginPath();
@@ -765,7 +784,7 @@ export function drawBarCounter(
 
   const shakerLiquidColor = equip.activeRecipeId === 'peach_tea' ? '#FF9D5C' : '#D89E68';
 
-  // Left Wing: Evenly spaced Shaker (16..104) + Sugar (112..164) + Boba (174..220) + Ice (230..274) + Menu (282..316)
+  // Left Wing: Evenly spaced Shaker (16..104) + Sugar (112..164) + Boba (174..220) + Ice (230..274)
   drawDoubleShakerMachine(
     ctx,
     16,
@@ -780,7 +799,6 @@ export function drawBarCounter(
   drawSugarJarAndButton(ctx, 118, COUNTER_TOP_Y + 16, equip.isPressingSugarButton, elapsedSec);
   drawCounterBobaJar(ctx, 174, COUNTER_TOP_Y + 16, equip.isScoopingBoba);
   drawCounterIceBin(ctx, 230, COUNTER_TOP_Y + 16, equip.isScoopingIce);
-  drawMiniTableMenuStand(ctx, 282, COUNTER_TOP_Y + 16);
 
   // Right Wing: Prep Pad (404..440) + Fresh Fruit Jar (446..480) + Cup/Lid Stacks (486..544) + Espresso (554..636) + Frother (646..704)
   drawCounterFruitJar(ctx, 446, COUNTER_TOP_Y + 16);
@@ -1127,16 +1145,6 @@ function drawDoubleShakerMachine(
   ctx.restore();
 }
 
-const MINI_MENU_SWATCHES: readonly string[] = [
-  '#A7D397',
-  '#D89E68',
-  '#FF9D5C',
-  '#A4D466',
-  '#5A321C',
-  '#7FC8D9',
-  '#FF9526',
-];
-
 function drawCounterFruitJar(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -1191,53 +1199,6 @@ function drawCounterFruitJar(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('TRÁI CÂY', x + w * 0.5, topY + 9);
-
-  ctx.restore();
-}
-
-function drawMiniTableMenuStand(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  baseY: number
-): void {
-  ctx.save();
-  ctx.lineWidth = 2.2;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-
-  // Stand foot
-  roundedRectPath(ctx, x, baseY - 6, 34, 7, 3);
-  ctx.fillStyle = '#C48285';
-  ctx.fill();
-  ctx.stroke();
-
-  // Cream acrylic tabletop menu board showing all 7 drinks
-  roundedRectPath(ctx, x + 2, baseY - 46, 30, 42, 4.5);
-  ctx.fillStyle = '#FFFDF9';
-  ctx.fill();
-  ctx.stroke();
-
-  // Pink header banner with "MENU"
-  roundedRectPath(ctx, x + 4.5, baseY - 43, 25, 7, 2.2);
-  ctx.fillStyle = '#F4A6BE';
-  ctx.fill();
-
-  ctx.font = '900 5.0px "Fredoka", "Nunito", sans-serif';
-  ctx.fillStyle = '#3B2820';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('MENU', x + 17, baseY - 39.2);
-
-  // 7 Drink color icon dots + mini menu lines
-  for (let i = 0; i < MINI_MENU_SWATCHES.length; i += 1) {
-    const rowY = baseY - 32.5 + i * 3.9;
-    ctx.fillStyle = MINI_MENU_SWATCHES[i];
-    ctx.beginPath();
-    ctx.arc(x + 8.5, rowY, 1.65, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(59, 40, 32, 0.36)';
-    ctx.fillRect(x + 12.2, rowY - 0.9, i % 2 === 0 ? 14 : 11, 1.5);
-  }
 
   ctx.restore();
 }
@@ -1455,7 +1416,7 @@ function drawFrotherStandAndPlant(
     ctx.lineWidth = 2.3;
     ctx.stroke();
 
-    // Handheld electric frother resting on chrome stand beside pitcher
+    // Handheld white electric frother resting on stand beside pitcher
     const fX = x + 39;
     ctx.strokeStyle = '#9BA7B4';
     ctx.lineWidth = 2.2;
@@ -1463,17 +1424,22 @@ function drawFrotherStandAndPlant(
     ctx.moveTo(fX + 4.5, baseY - 20);
     ctx.lineTo(fX + 4.5, baseY - 6);
     ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(fX + 4.5, baseY - 6, 4.2, 1.6, 0, 0, Math.PI * 2);
+    ctx.stroke();
 
     roundedRectPath(ctx, fX, baseY - 40, 9, 20, 4);
-    ctx.fillStyle = '#3B2820';
+    ctx.fillStyle = '#FFFDF9';
     ctx.fill();
     ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
     ctx.lineWidth = 2.0;
     ctx.stroke();
 
-    ctx.fillStyle = '#F4A6BE';
+    ctx.fillStyle = '#D68A6C';
+    roundedRectPath(ctx, fX + 1.5, baseY - 22, 6, 3.5, 1.5);
+    ctx.fill();
     ctx.beginPath();
-    ctx.arc(fX + 4.5, baseY - 32, 1.8, 0, Math.PI * 2);
+    ctx.arc(fX + 4.5, baseY - 32, 1.7, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -1491,10 +1457,10 @@ function drawCustomerFloorMat(ctx: CanvasRenderingContext2D): void {
   ctx.fillRect(0, COUNTER_END_Y + 1, WIDTH, 32);
 
   // Full-width cozy pastel floor runner framing dynamic guest queue cleanly above y=960 chat zone
-  const matX = 24;
-  const matY = COUNTER_END_Y + 5;
-  const matW = 672;
-  const matH = 116;
+  const matX = 22;
+  const matY = COUNTER_END_Y + 4;
+  const matW = 676;
+  const matH = 122;
 
   // Ground drop shadow
   roundedRectPath(ctx, matX + 2, matY + 4, matW, matH, 24);

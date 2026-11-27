@@ -32,6 +32,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) =>
     drinkBarAdminBridge.syncConfigToPreviewOnly('SET_MUSIC_ENABLED', {
       sfxMusicEnabled: config.sfxMusicEnabled,
     });
+    drinkBarAdminBridge.syncConfigToPreviewOnly('SET_BGM_ENABLED', {
+      bgmEnabled: config.bgmEnabled,
+    });
+    drinkBarAdminBridge.syncConfigToPreviewOnly('SET_TTS_ENABLED', {
+      ttsEnabled: config.ttsEnabled,
+    });
     drinkBarAdminBridge.syncConfigToPreviewOnly('SET_MASTER_VOLUME', {
       masterVolume: config.masterVolume,
     });

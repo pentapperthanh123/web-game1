@@ -23,6 +23,7 @@ import {
 import type {
   ActiveDrink,
   DanceStyle,
+  DrinkBarConfig,
   DrinkBarLiveState,
   DrinkOrder,
   FinishedDrink,
@@ -60,9 +61,19 @@ export function resolveTierForDanceStyle(style: DanceStyle): GiftTier {
   return DANCE_STYLE_TO_TIER[style];
 }
 
+export interface QueueTtsHint {
+  kind: 'donate' | 'order' | 'ready' | 'like' | 'switch';
+  nickname: string;
+  recipeId?: RecipeId;
+  danceStyle?: DanceStyle;
+  tier?: GiftTier;
+  isManual?: boolean;
+}
+
 export interface QueueStepSideEffects {
   sfxToPlay?: SfxKind;
   burstKind?: 'topping' | 'complete' | 'signature' | 'like';
+  ttsHint?: QueueTtsHint;
 }
 
 export interface QueueTransitionResult {
@@ -236,103 +247,24 @@ export function promoteNextFromQueue(
 }
 
 export function createInitialDrinkBarState(now = Date.now()): DrinkBarLiveState {
-  let inventory = createInitialInventory(DEFAULT_DRINK_BAR_CONFIG.defaultCapacityMl);
-  inventory = deductDrinkStock(inventory, 'matcha', true, now);
-  inventory = deductDrinkStock(inventory, 'thai_tea', true, now);
-  inventory = deductDrinkStock(inventory, 'berry_soda', true, now);
-  inventory = deductDrinkStock(inventory, 'coffee_milk', true, now);
+  return createEmptyResetDrinkBarState(DEFAULT_DRINK_BAR_CONFIG, now);
+}
 
-  const starterActive: ActiveDrink = {
-    orderId: 'demo_active_1',
-    user: { id: 'demo_linh', nickname: 'Linh Chi' },
-    recipeId: 'matcha',
-    toppings: [],
-    sugarLevel: 'NORMAL',
-    iceLevel: 'NORMAL',
-    isVip: false,
-    isSignature: false,
-    isGlowUpgraded: false,
-    createdAt: now - 4000,
-    progress: 14,
-    phase: 'BREWING',
-    showcaseRemainingMs: 0,
-    lastUpdatedAt: now,
-  };
-
-  const starterVipQueue: DrinkOrder[] = [
-    {
-      orderId: 'demo_vip_1',
-      user: { id: 'demo_huy', nickname: 'Gia Huy' },
-      recipeId: 'thai_tea',
-      toppings: ['cream_swirl'],
-      sugarLevel: 'NORMAL',
-      iceLevel: 'EXTRA',
-      isVip: true,
-      isSignature: false,
-      isGlowUpgraded: true,
-      createdAt: now - 2500,
-    },
-  ];
-
-  const starterNormalQueue: DrinkOrder[] = [
-    {
-      orderId: 'demo_normal_1',
-      user: { id: 'demo_ngoc', nickname: 'Bảo Ngọc' },
-      recipeId: 'coffee_milk',
-      toppings: [],
-      sugarLevel: 'NORMAL',
-      iceLevel: 'NORMAL',
-      isVip: false,
-      isSignature: false,
-      isGlowUpgraded: false,
-      createdAt: now - 1800,
-    },
-    {
-      orderId: 'demo_normal_2',
-      user: { id: 'demo_minh', nickname: 'Minh Anh' },
-      recipeId: 'blue_citrus',
-      toppings: [],
-      sugarLevel: 'LESS',
-      iceLevel: 'NORMAL',
-      isVip: false,
-      isSignature: false,
-      isGlowUpgraded: false,
-      createdAt: now - 1200,
-    },
-  ];
-
-  const starterShelf: FinishedDrink[] = [
-    {
-      orderId: 'demo_done_1',
-      user: { id: 'demo_nam', nickname: 'Hoàng Nam' },
-      recipeId: 'coffee_milk',
-      toppings: ['cream_swirl', 'sparkle_aura'],
-      isVip: true,
-      isSignature: true,
-      completedAt: now - 45000,
-    },
-    {
-      orderId: 'demo_done_2',
-      user: { id: 'demo_vy', nickname: 'Khánh Vy' },
-      recipeId: 'blue_citrus',
-      toppings: ['fruit_slice'],
-      isVip: false,
-      isSignature: false,
-      completedAt: now - 20000,
-    },
-  ];
-
+export function createEmptyResetDrinkBarState(
+  currentConfig: DrinkBarConfig,
+  now = Date.now()
+): DrinkBarLiveState {
   return {
-    config: { ...DEFAULT_DRINK_BAR_CONFIG },
-    activeDrink: starterActive,
+    config: { ...currentConfig },
+    activeDrink: null,
     secondaryDrink: null,
-    activeSlots: [starterActive, null],
-    vipQueue: starterVipQueue,
-    normalQueue: starterNormalQueue,
-    finishedShelf: starterShelf,
-    inventory,
-    todayDoneCount: starterShelf.length,
-    bartenderMood: 'BREWING',
+    activeSlots: [null, null],
+    vipQueue: [],
+    normalQueue: [],
+    finishedShelf: [],
+    inventory: createInitialInventory(currentConfig.defaultCapacityMl),
+    todayDoneCount: 0,
+    bartenderMood: 'IDLE',
     bartenderSpeech: null,
     speedBoostUntil: 0,
     waveUntil: 0,
@@ -420,7 +352,17 @@ export function applyChatToState(
         normalQueue: [...nextState.normalQueue, newOrder],
       };
       nextState = promoteNextFromQueue(nextState, now);
-      return { state: nextState, effects: { sfxToPlay: 'chat_pop' } };
+      return {
+        state: nextState,
+        effects: {
+          sfxToPlay: 'chat_pop',
+          ttsHint: {
+            kind: 'order',
+            nickname: newOrder.user.nickname,
+            recipeId: newOrder.recipeId,
+          },
+        },
+      };
     }
   }
 
@@ -468,7 +410,19 @@ export function applyChatToState(
       normalQueue: nextState.normalQueue.map(updateOrder),
       inventory: workingInventory,
     };
-    return { state: nextState, effects: { sfxToPlay: 'shaker' } };
+    return {
+      state: nextState,
+      effects: {
+        sfxToPlay: 'shaker',
+        ttsHint: parsed.recipeId
+          ? {
+              kind: 'switch',
+              nickname: user.nickname,
+              recipeId: parsed.recipeId,
+            }
+          : undefined,
+      },
+    };
   }
 
   return { state: nextState, effects: {} };
@@ -550,7 +504,14 @@ export function applyLikesToState(
 
   return {
     state: workingState,
-    effects: { burstKind, sfxToPlay: sfxToPlay ?? (burstKind ? 'like_pop' : undefined) },
+    effects: {
+      burstKind,
+      sfxToPlay: sfxToPlay ?? (burstKind ? 'like_pop' : undefined),
+      ttsHint:
+        !sfxToPlay && burstKind === 'like'
+          ? { kind: 'like', nickname: '' }
+          : undefined,
+    },
   };
 }
 
@@ -676,7 +637,8 @@ export function applyGiftToState(
       ? state.danceTier
       : tier;
   const nextStyle = resolveDanceStyleForTier(nextTier);
-  const nextDanceStartedAt = wasAlreadyDancing ? state.danceStartedAt : now;
+  const isStyleSwitch = wasAlreadyDancing && nextStyle !== state.danceStyle;
+  const nextDanceStartedAt = !wasAlreadyDancing || isStyleSwitch ? now : state.danceStartedAt;
 
   const thanksText = formatShortThanks(
     normalizedUser.nickname,
@@ -712,7 +674,17 @@ export function applyGiftToState(
 
   return {
     state: nextState,
-    effects: { sfxToPlay, burstKind },
+    effects: {
+      sfxToPlay,
+      burstKind,
+      ttsHint: {
+        kind: 'donate',
+        nickname: normalizedUser.nickname,
+        danceStyle: nextStyle,
+        tier: nextTier,
+        isManual: false,
+      },
+    },
   };
 }
 
@@ -729,7 +701,6 @@ export function triggerManualTikTokDance(
     now + GAMEPLAY_LIMITS.DANCE_MAX_DURATION_MS,
     now + danceDurationMs
   );
-  const wasAlreadyDancing = now < state.danceUntil;
   const thanksText = formatShortThanks(
     'TikTok Dance',
     state.config.language,
@@ -746,7 +717,7 @@ export function triggerManualTikTokDance(
       },
       waveUntil: nextDanceUntil,
       danceUntil: nextDanceUntil,
-      danceStartedAt: wasAlreadyDancing ? state.danceStartedAt : now,
+      danceStartedAt: now,
       danceTier: effectiveTier,
       danceStyle: effectiveStyle,
       lastEventAt: now,
@@ -754,6 +725,13 @@ export function triggerManualTikTokDance(
     effects: {
       sfxToPlay: 'dance_jingle',
       burstKind: effectiveTier === 'LARGE' ? 'signature' : 'topping',
+      ttsHint: {
+        kind: 'donate',
+        nickname: '',
+        danceStyle: effectiveStyle,
+        tier: effectiveTier,
+        isManual: true,
+      },
     },
   };
 }
@@ -847,6 +825,11 @@ function completeDrinkInSlot(
     effects: {
       sfxToPlay: completed.isSignature ? 'signature' : 'chime',
       burstKind: completed.isSignature ? 'signature' : 'complete',
+      ttsHint: {
+        kind: 'ready',
+        nickname: completed.user.nickname,
+        recipeId: completed.recipeId,
+      },
     },
   };
 }

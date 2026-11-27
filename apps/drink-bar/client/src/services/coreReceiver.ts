@@ -130,7 +130,11 @@ export class DrinkBarCoreReceiver {
       return;
     }
 
-    if (msg.type === 'STATE_SNAPSHOT' || msg.type === 'RELAY_SFX') {
+    if (
+      msg.type === 'STATE_SNAPSHOT' ||
+      msg.type === 'RELAY_SFX' ||
+      msg.type === 'RELAY_TTS'
+    ) {
       return;
     }
 
@@ -185,6 +189,16 @@ export class DrinkBarCoreReceiver {
           store.setMusicEnabled(payload.sfxMusicEnabled);
         }
         break;
+      case 'SET_BGM_ENABLED':
+        if (typeof payload.bgmEnabled === 'boolean') {
+          store.setBgmEnabled(payload.bgmEnabled);
+        }
+        break;
+      case 'SET_TTS_ENABLED':
+        if (typeof payload.ttsEnabled === 'boolean') {
+          store.setTtsEnabled(payload.ttsEnabled);
+        }
+        break;
       case 'SET_MASTER_VOLUME':
         if (typeof payload.masterVolume === 'number') {
           store.setMasterVolume(payload.masterVolume);
@@ -211,6 +225,9 @@ export class DrinkBarCoreReceiver {
         break;
       case 'CLEAR_SHELF':
         store.clearShelf();
+        break;
+      case 'RESET_DEFAULT':
+        store.resetToDefaultEmpty();
         break;
       case 'TRIGGER_TIKTOK_DANCE':
         store.triggerTikTokDance(payload.danceTier, payload.danceStyle);

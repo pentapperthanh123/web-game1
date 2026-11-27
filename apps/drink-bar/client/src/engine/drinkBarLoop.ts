@@ -1,6 +1,6 @@
 import { STAGE_METRICS } from '@shared/config';
 import { getBrewStep, RECIPE_MAP, type BrewPhaseAction } from '@shared/recipes';
-import type { ActiveDrink, RecipeId, SfxKind } from '@shared/types';
+import type { ActiveDrink, DanceStyle, RecipeId, SfxKind } from '@shared/types';
 import { drinkBarAudio } from '../services/audioManager';
 import { useDrinkBarStore } from '../store/drinkBarStore';
 import {
@@ -33,8 +33,11 @@ import {
   isShakerDetachedSubstep,
   isShakerLiftSubstep,
   isSugarButtonSubstep,
+  resetDanceJointTransition,
   resolveShakerMachineFillRatio,
   resolveTargetBaristaX,
+  stepDanceKinematics,
+  type DanceMotion,
 } from './drawBartender';
 import { drawBarDrinkCups } from './drawDrinkCup';
 import { drinkParticles, type CupStationId } from './particlePool';
@@ -70,21 +73,26 @@ function resolvePhaseSfx(drink: ActiveDrink, action: BrewPhaseAction): SfxKind |
   }
   switch (action) {
     case 'dispense':
-      return drink.recipeId === 'coffee_milk' ? 'cafe_drip' : 'pour';
+      if (drink.recipeId === 'coffee_milk') return 'cafe_drip';
+      if (drink.recipeId === 'blue_citrus') return 'juicer';
+      if (drink.recipeId === 'berry_soda') return 'soda_fizz';
+      return 'pour';
     case 'tool_prep':
       return STEP2_PREP_SFX_MAP[drink.recipeId];
     case 'add_ice':
       return drink.iceLevel === 'NONE' ? null : 'ice_clink';
     case 'pour_mix':
-      return 'pour';
+      return drink.recipeId === 'berry_soda' ? 'soda_fizz' : 'pour';
     case 'topping':
       return 'topping';
     case 'seal':
       if (drink.progress >= STRAW_INSERT_START_PROGRESS) {
         return 'straw_insert';
       }
-      // Fire crisp lid_snap strictly at the exact snap-lock frame (93.5%), not during downward approach
-      return drink.progress >= LID_SNAP_MOMENT_PROGRESS ? 'lid_snap' : null;
+      if (drink.progress >= LID_SNAP_MOMENT_PROGRESS) {
+        return 'lid_snap';
+      }
+      return drink.progress >= LID_PICKUP_END_PROGRESS ? 'cup_place' : null;
   }
 }
 
@@ -115,6 +123,10 @@ function resolveSubstepKey(drink: ActiveDrink, stepNumber: number): string {
   return `${drink.orderId}:${stepNumber}`;
 }
 
+const DANCE_HEART_COLORS: readonly string[] = ['#F0788C', '#FF5E7E', '#FF8FA3'];
+const DANCE_WAVE_TRAIL_COLORS: readonly string[] = ['#7FC8D9', '#A8E6CF', '#F4A6BE'];
+const DANCE_HYPE_STAR_COLORS: readonly string[] = ['#F7C95B', '#7FC8D9', '#F0788C'];
+
 export class DrinkBarCanvasLoop {
   private readonly canvas: HTMLCanvasElement;
   private rafId: number | null = null;
@@ -123,9 +135,14 @@ export class DrinkBarCanvasLoop {
   private prevStationKey1 = '';
   private lastAmbientSfxSec = 0;
   private wasDancing = false;
+  private prevDanceStyle: DanceStyle | null = null;
+  private prevDanceStartedAt = 0;
+  private prevDanceBeatIndex = -1;
+  private danceFrameCounter = 0;
   // Smooth horizontal barista walk position & velocity (zero per-frame allocations)
   private baristaPosX = BARISTA_CENTER_X;
   private baristaWalkVelocity = 0;
+  private idleElapsedSec = 0;
   // Reusable mutable equipment state object (zero per-frame object allocations)
   private readonly equipmentState: BarEquipmentState = {
     activeRecipeId: null,
@@ -142,6 +159,8 @@ export class DrinkBarCanvasLoop {
     isUsingFrother: false,
     isScoopingBoba: false,
     isScoopingIce: false,
+    danceStyle: null,
+    danceBeatPulse: 0,
   };
 
   constructor(canvas: HTMLCanvasElement) {
@@ -186,23 +205,56 @@ export class DrinkBarCanvasLoop {
     const isWaving = nowEpoch < state.waveUntil;
     const isDancing = nowEpoch < state.danceUntil;
 
-    if (!this.wasDancing && isDancing) {
-      drinkBarAudio.stopBrewingSfx();
-    } else if (this.wasDancing && !isDancing) {
+    if (isDancing) {
+      const styleSwitched = this.wasDancing && this.prevDanceStyle !== state.danceStyle;
+      const restarted = this.wasDancing && this.prevDanceStartedAt !== state.danceStartedAt;
+      if (!this.wasDancing) {
+        drinkBarAudio.stopBrewingSfx();
+      }
+      if (styleSwitched || restarted) {
+        drinkParticles.clearDanceParticles();
+        resetDanceJointTransition();
+        this.prevDanceBeatIndex = -1;
+      }
+      this.prevDanceStyle = state.danceStyle;
+      this.prevDanceStartedAt = state.danceStartedAt;
+    } else if (this.wasDancing) {
       drinkBarAudio.stopDanceMusic();
+      drinkParticles.clearDanceParticles();
+      resetDanceJointTransition();
       this.prevStationKey1 = '';
+      this.prevDanceStyle = null;
+      this.prevDanceStartedAt = 0;
+      this.prevDanceBeatIndex = -1;
     }
     this.wasDancing = isDancing;
 
+    const danceMotion = stepDanceKinematics(
+      isDancing,
+      state.danceStyle,
+      state.danceStartedAt,
+      this.elapsedSec,
+      dtSec
+    );
+
     const primary = state.activeSlots[0];
+    if (!isDancing && !isWaving && !primary) {
+      this.idleElapsedSec += dtSec;
+    } else {
+      this.idleElapsedSec = 0;
+    }
+
     this.syncBrewingPhaseSfx(primary, isDancing);
     this.emitStationAmbientParticles(primary, 1, isFastBoost, isDancing);
+    this.emitDanceVfxParticles(danceMotion);
     drinkParticles.update(dtSec);
 
-    // Smoothly lerp barista X position toward active station equipment
-    const targetBaristaX = resolveTargetBaristaX(primary, isDancing);
+    // Smoothly lerp barista X position toward active station equipment (gentle stroll when idle)
+    const targetBaristaX = resolveTargetBaristaX(primary, isDancing, isWaving, this.idleElapsedSec);
     const prevBaristaX = this.baristaPosX;
-    const lerpAlpha = 1 - Math.exp(-7.5 * dtSec);
+    const isIdleStroll = !isDancing && !isWaving && !primary;
+    const lerpRate = isIdleStroll ? 2.8 : 7.5;
+    const lerpAlpha = 1 - Math.exp(-lerpRate * dtSec);
     this.baristaPosX += (targetBaristaX - this.baristaPosX) * lerpAlpha;
     if (Math.abs(targetBaristaX - this.baristaPosX) < 0.4) {
       this.baristaPosX = targetBaristaX;
@@ -210,6 +262,9 @@ export class DrinkBarCanvasLoop {
     this.baristaWalkVelocity = dtSec > 0 ? (this.baristaPosX - prevBaristaX) / dtSec : 0;
 
     // Update reusable equipment state snapshot in-place (zero per-frame allocations)
+    this.equipmentState.danceStyle = isDancing ? state.danceStyle : null;
+    this.equipmentState.danceBeatPulse = isDancing ? danceMotion.beatPulse : 0;
+
     if (primary && primary.phase === 'BREWING' && !isDancing) {
       const step = getBrewStep(primary.progress, primary.recipeId);
       const span = Math.max(1, step.maxProgress - step.minProgress);
@@ -279,7 +334,8 @@ export class DrinkBarCanvasLoop {
       state.danceStartedAt,
       this.elapsedSec,
       this.baristaPosX,
-      this.baristaWalkVelocity
+      this.baristaWalkVelocity,
+      this.idleElapsedSec
     );
 
     // Layer 3: Full-width wooden counter + shaker, sugar jar + button, ice bin, menu stand, cups/lids, espresso & plant
@@ -307,7 +363,8 @@ export class DrinkBarCanvasLoop {
       state.danceStartedAt,
       this.elapsedSec,
       this.baristaPosX,
-      this.baristaWalkVelocity
+      this.baristaWalkVelocity,
+      this.idleElapsedSec
     );
 
     // Layer 6: Fixed-pool particles (<= 60)
@@ -345,6 +402,95 @@ export class DrinkBarCanvasLoop {
     drinkParticles.emitAmbientPour(cupId, surfaceY, accent, isFastBoost, isSodaPouring);
   }
 
+  private emitDanceVfxParticles(dance: DanceMotion): void {
+    if (!dance.isDancing) return;
+    this.danceFrameCounter += 1;
+    const isNewBeat = dance.beatIndex !== this.prevDanceBeatIndex;
+    if (isNewBeat) {
+      this.prevDanceBeatIndex = dance.beatIndex;
+    }
+
+    const cx = BARISTA_CENTER_X + dance.swayX;
+    if (dance.style === 'heart_sway') {
+      if (!isNewBeat) return;
+      for (let i = 0; i < 3; i += 1) {
+        const sideSign = i === 0 ? -1 : i === 1 ? 1 : Math.random() > 0.5 ? 1 : -1;
+        const hx = i === 0 ? dance.leftHandX : i === 1 ? dance.rightHandX : cx;
+        const hy = i === 0 ? dance.leftHandY : i === 1 ? dance.rightHandY : 494;
+        drinkParticles.spawnDanceParticle(
+          'heart',
+          hx + (Math.random() - 0.5) * 10,
+          hy - 6,
+          sideSign * (14 + Math.random() * 18),
+          -(38 + Math.random() * 26),
+          6.2 + Math.random() * 2.2,
+          0.95,
+          DANCE_HEART_COLORS[i % DANCE_HEART_COLORS.length]
+        );
+      }
+      drinkParticles.spawnDanceParticle(
+        'sparkle',
+        cx + (Math.random() - 0.5) * 84,
+        448 + Math.random() * 28,
+        (Math.random() - 0.5) * 20,
+        -(24 + Math.random() * 20),
+        4.2,
+        0.75,
+        '#F7C95B'
+      );
+      return;
+    }
+
+    if (dance.style === 'groove_wave') {
+      // Emit delicate pastel light trail strictly at hand positions clear of barista face box
+      if (this.danceFrameCounter % 2 !== 0) return;
+      if (Math.abs(dance.leftHandX - cx) >= 28) {
+        drinkParticles.spawnDanceParticle(
+          'wave_trail',
+          dance.leftHandX,
+          dance.leftHandY,
+          -12 + Math.cos(dance.beatPhase) * 8,
+          -8,
+          4.2,
+          0.42,
+          DANCE_WAVE_TRAIL_COLORS[this.danceFrameCounter % DANCE_WAVE_TRAIL_COLORS.length]
+        );
+      }
+      if (Math.abs(dance.rightHandX - cx) >= 28) {
+        drinkParticles.spawnDanceParticle(
+          'wave_trail',
+          dance.rightHandX,
+          dance.rightHandY,
+          12 + Math.cos(dance.beatPhase) * 8,
+          -8,
+          4.2,
+          0.42,
+          DANCE_WAVE_TRAIL_COLORS[(this.danceFrameCounter + 1) % DANCE_WAVE_TRAIL_COLORS.length]
+        );
+      }
+      return;
+    }
+
+    // Style 3 ("Quẩy Nhiệt"): Beat-synced stars & small energy bursts
+    if (!isNewBeat) return;
+    for (let i = 0; i < 4; i += 1) {
+      const angle = (Math.PI * 2 * i) / 4 + Math.random() * 0.45;
+      const speed = 34 + Math.random() * 34;
+      const originX = i % 2 === 0 ? dance.leftHandX : dance.rightHandX;
+      const originY = i % 2 === 0 ? dance.leftHandY : dance.rightHandY;
+      drinkParticles.spawnDanceParticle(
+        'star',
+        originX,
+        originY - 4,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed - 18,
+        4.6 + Math.random() * 2.0,
+        0.65,
+        DANCE_HYPE_STAR_COLORS[i % DANCE_HYPE_STAR_COLORS.length]
+      );
+    }
+  }
+
   private syncBrewingPhaseSfx(
     primary: ActiveDrink | null,
     isDancing: boolean
@@ -379,8 +525,13 @@ export class DrinkBarCanvasLoop {
       return nextKey;
     }
 
-    const sfxIntervalSec =
-      drink.recipeId === 'thai_tea' || drink.recipeId === 'peach_tea' ? 0.46 : 0.62;
+    const stepSfx = resolvePhaseSfx(drink, step.action);
+    let sfxIntervalSec = 0.62;
+    if (stepSfx === 'whip_froth') {
+      sfxIntervalSec = 0.28;
+    } else if (drink.recipeId === 'thai_tea' || drink.recipeId === 'peach_tea') {
+      sfxIntervalSec = 0.46;
+    }
     if (
       !isCupPickupSubstep(drink) &&
       !isLidPickupSubstep(drink) &&
@@ -391,9 +542,8 @@ export class DrinkBarCanvasLoop {
       this.elapsedSec - this.lastAmbientSfxSec >= sfxIntervalSec
     ) {
       this.lastAmbientSfxSec = this.elapsedSec;
-      const sfx = resolvePhaseSfx(drink, step.action);
-      if (sfx) {
-        drinkBarAudio.play(sfx);
+      if (stepSfx) {
+        drinkBarAudio.play(stepSfx);
       }
     } else if (
       isBobaScoopSubstep(drink) &&

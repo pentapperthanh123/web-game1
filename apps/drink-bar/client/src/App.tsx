@@ -66,6 +66,7 @@ const DrinkBarStage: React.FC = () => {
   const sfxMusicEnabled = useDrinkBarStore((s) => s.config.sfxMusicEnabled);
 
   useEffect(() => {
+    drinkBarAudio.enableAutoCafeBgm(!isMirrorPreview);
     const offAudio = drinkBarAudio.subscribeUnlocked(setIsAudioUnlocked);
     const receiver = new DrinkBarCoreReceiver();
     receiver.start();
@@ -73,7 +74,7 @@ const DrinkBarStage: React.FC = () => {
       offAudio();
       receiver.stop();
     };
-  }, []);
+  }, [isMirrorPreview]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

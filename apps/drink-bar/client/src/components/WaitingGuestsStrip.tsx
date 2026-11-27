@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Crown } from 'lucide-react';
+import { Crown, Sparkles } from 'lucide-react';
 import { GAMEPLAY_LIMITS } from '@shared/config';
+import { getMessages } from '@shared/i18n';
 import type { DrinkOrder, GuestBubble } from '@shared/types';
 import type { GuestLaneIndex } from '../store/drinkBarStore';
 import { useDrinkBarStore } from '../store/drinkBarStore';
@@ -33,6 +34,23 @@ const SKIN_COLOR = '#FDE0C2';
 const BLUSH_COLOR = '#F48BA3';
 const CHIBI_STROKE_WIDTH = 2.5;
 const MAX_PER_LANE = 12;
+const FIXED_GUEST_SCALE = 0.72;
+const ORDER_ZONE_SCALE = 0.82;
+const ORDER_ZONE_COLS: readonly number[] = [252, 468, 150, 570, 58, 662];
+const ORDER_ZONE_TOP_Y = 678;
+const OUTER_CROWD_COLS: readonly number[] = [56, 142, 228, 314, 406, 492, 578, 664];
+const OUTER_CROWD_ROWS_Y: readonly number[] = [800, 844];
+const OUTER_CROWD_MIN_X = 48;
+const OUTER_CROWD_MAX_X = 672;
+const OUTER_CROWD_MIN_Y = 796;
+const OUTER_CROWD_MAX_Y = 856;
+
+const EMPTY_LOBBY_MAT_METRICS = {
+  TOP_Y: 832,
+  LEFT_X: 22,
+  WIDTH: 676,
+  HEIGHT: 122,
+} as const;
 
 const GUEST_SHIRT_COLORS: readonly string[] = [
   '#F7C6D7',
@@ -52,95 +70,56 @@ const GUEST_BOTTOM_COLORS: readonly string[] = [
   '#5D7679',
 ];
 
-interface GridRowSpec {
-  readonly top: number;
-  readonly scale: number;
-}
-
-interface AdaptiveGridPreset {
-  readonly maxGuests: number;
-  readonly cols: readonly number[];
-  readonly rows: readonly GridRowSpec[];
-}
-
-// Dynamic grid presets keeping all guests cleanly arranged front-to-back,
-// preserving the center cup/badge aisle (x=360) and staying strictly above y=960 chat safe zone.
-const ADAPTIVE_GRID_PRESETS: readonly AdaptiveGridPreset[] = [
-  {
-    maxGuests: 2,
-    cols: [232, 488],
-    rows: [{ top: 682, scale: 1.04 }],
-  },
-  {
-    maxGuests: 4,
-    cols: [232, 488],
-    rows: [
-      { top: 676, scale: 1.0 },
-      { top: 814, scale: 0.94 },
-    ],
-  },
-  {
-    maxGuests: 8,
-    cols: [98, 246, 474, 622],
-    rows: [
-      { top: 682, scale: 0.88 },
-      { top: 818, scale: 0.84 },
-    ],
-  },
-  {
-    maxGuests: 12,
-    cols: [68, 172, 276, 444, 548, 652],
-    rows: [
-      { top: 690, scale: 0.72 },
-      { top: 822, scale: 0.7 },
-    ],
-  },
-  {
-    maxGuests: 18,
-    cols: [68, 172, 276, 444, 548, 652],
-    rows: [
-      { top: 680, scale: 0.62 },
-      { top: 770, scale: 0.6 },
-      { top: 858, scale: 0.58 },
-    ],
-  },
-  {
-    maxGuests: 24,
-    cols: [52, 134, 216, 298, 422, 504, 586, 668],
-    rows: [
-      { top: 684, scale: 0.52 },
-      { top: 770, scale: 0.5 },
-      { top: 856, scale: 0.48 },
-    ],
-  },
-];
-
-function computeGuestFloorCoord(slotIndex: number, totalGuests: number): FloorSlotCoord {
-  const safeCount = Math.max(1, totalGuests);
-  let preset = ADAPTIVE_GRID_PRESETS[ADAPTIVE_GRID_PRESETS.length - 1];
-  for (const candidate of ADAPTIVE_GRID_PRESETS) {
-    if (safeCount <= candidate.maxGuests) {
-      preset = candidate;
-      break;
-    }
+function hashString(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
   }
-  const colCount = preset.cols.length;
-  const rowIdx = Math.min(preset.rows.length - 1, Math.floor(slotIndex / colCount));
-  const colIdx = slotIndex % colCount;
-  const rowSpec = preset.rows[rowIdx];
+  return hash >>> 0;
+}
+
+function clampRange(val: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, val));
+}
+
+// Uniform guest scale across waiting crowd, larger prominence in front Order Zone:
+// - Front Order Zone (slots 0..5): 6 balanced spots along the counter leaving center aisle (x=360) clear
+// - Outer Crowd (slots 6+): stratified wide distribution across full floor width & 2 depth bands
+//   with deterministic organic jitter so guests spread evenly without clumping, staying strictly above y=960.
+function computeGuestFloorCoord(slotIndex: number, orderId: string): FloorSlotCoord {
+  if (slotIndex < ORDER_ZONE_COLS.length) {
+    return {
+      left: ORDER_ZONE_COLS[slotIndex],
+      top: ORDER_ZONE_TOP_Y,
+      scale: ORDER_ZONE_SCALE,
+      zIndex: 20,
+    };
+  }
+
+  const outerIdx = slotIndex - ORDER_ZONE_COLS.length;
+  const colCount = OUTER_CROWD_COLS.length;
+  const colIdx = outerIdx % colCount;
+  const rowIdx = Math.floor(outerIdx / colCount) % OUTER_CROWD_ROWS_Y.length;
+
+  const jitterX = (hashString(`${orderId}_jx`) % 29) - 14;
+  const jitterY = (hashString(`${orderId}_jy`) % 17) - 8;
+
+  const left = clampRange(OUTER_CROWD_COLS[colIdx] + jitterX, OUTER_CROWD_MIN_X, OUTER_CROWD_MAX_X);
+  const top = clampRange(OUTER_CROWD_ROWS_Y[rowIdx] + jitterY, OUTER_CROWD_MIN_Y, OUTER_CROWD_MAX_Y);
 
   return {
-    left: preset.cols[colIdx],
-    top: rowSpec.top,
-    scale: rowSpec.scale,
-    zIndex: 20 + rowIdx * 2,
+    left,
+    top,
+    scale: FIXED_GUEST_SCALE,
+    zIndex: 24 + Math.round((top - OUTER_CROWD_MIN_Y) / 2),
   };
 }
 
 const CENTER_PICKUP_COORD: FloorSlotCoord = {
   left: 360,
-  top: 694,
-  scale: 1.04,
+  top: 682,
+  scale: ORDER_ZONE_SCALE,
   zIndex: 29,
 };
 
@@ -779,6 +758,7 @@ const GuestHeadAvatarBadge: React.FC<{
 };
 
 export const WaitingGuestsStrip: React.FC = () => {
+  const language = useDrinkBarStore((s) => s.config.language);
   const vipQueue = useDrinkBarStore((s) => s.vipQueue);
   const normalQueue = useDrinkBarStore((s) => s.normalQueue);
   const guestBubbles = useDrinkBarStore((s) => s.guestBubbles);
@@ -790,7 +770,30 @@ export const WaitingGuestsStrip: React.FC = () => {
   const queued = [...vipQueue, ...normalQueue].slice(0, GAMEPLAY_LIMITS.MAX_GUEST_SLOTS);
   const overflowCount = Math.max(0, allQueuedCount - queued.length);
   if (queued.length === 0 && departingGuests.length === 0) {
-    return null;
+    const msg = getMessages(language);
+    return (
+      <section
+        className="absolute pointer-events-none z-20 flex items-center justify-center px-4"
+        style={{
+          top: EMPTY_LOBBY_MAT_METRICS.TOP_Y,
+          left: EMPTY_LOBBY_MAT_METRICS.LEFT_X,
+          width: EMPTY_LOBBY_MAT_METRICS.WIDTH,
+          height: EMPTY_LOBBY_MAT_METRICS.HEIGHT,
+        }}
+        aria-label="Empty lobby order guide"
+      >
+        <div className="w-[624px] max-w-full rounded-[16px] bg-[#FFFDF9]/96 border-[2.2px] border-[#3B2820] px-4 py-2 shadow-[0_2.5px_0_#3B2820] text-center">
+          <div className="flex items-center justify-center gap-1.5 text-[12.5px] font-black text-[#3B2820] tracking-tight">
+            <Sparkles className="w-3.5 h-3.5 text-[#F48BA3]" strokeWidth={2.5} />
+            <span>{msg.lobbyIdleTitle}</span>
+            <Sparkles className="w-3.5 h-3.5 text-[#F7C95B]" strokeWidth={2.5} />
+          </div>
+          <p className="mt-0.5 text-[11px] font-bold text-[#7A5460] leading-snug">
+            {msg.lobbyIdleDesc}
+          </p>
+        </div>
+      </section>
+    );
   }
 
   const laneRowCounts: [number, number] = [0, 0];
@@ -829,23 +832,21 @@ export const WaitingGuestsStrip: React.FC = () => {
     }
   );
 
-  const totalVisible = guests.length;
-
   return (
     <section
       className="absolute inset-0 pointer-events-none z-20"
       aria-label="Waiting guests standing dynamically on floor"
     >
-      {/* Active queued customers: smoothly glide forward as front orders complete */}
+      {/* Active queued customers: smoothly walk from outer crowd into counter order zone */}
       {guests.map((guest, idx) => {
-        const coord = computeGuestFloorCoord(idx, totalVisible);
+        const coord = computeGuestFloorCoord(idx, guest.id);
         const bobClass =
           guest.isHeadOfQueue || guest.isHappy ? 'animate-guest-eager' : 'animate-guest-bob';
 
         return (
           <div
             key={guest.id}
-            className="absolute w-[136px] transition-[left,top] duration-500 ease-in-out"
+            className="absolute w-[136px] transition-[left,top] duration-700 ease-out"
             style={{
               left: `${coord.left - 68}px`,
               top: `${coord.top}px`,
@@ -919,7 +920,7 @@ export const WaitingGuestsStrip: React.FC = () => {
       {departingGuests.map((dep) => {
         const coord = dep.isCenterPickup
           ? CENTER_PICKUP_COORD
-          : computeGuestFloorCoord(dep.slotIndex, dep.totalSlotsAtLeave);
+          : computeGuestFloorCoord(dep.slotIndex, dep.order.orderId);
         const styleIdx = hashOrderStyle(dep.order.orderId);
         const shirtColor = GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length];
         const bottomColor = GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length];

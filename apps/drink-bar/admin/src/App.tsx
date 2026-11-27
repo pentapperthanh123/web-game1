@@ -3,6 +3,7 @@ import { Coffee, Crown, Sparkles, Users } from 'lucide-react';
 import { DEFAULT_DRINK_BAR_CONFIG } from '@shared/config';
 import { getMessages } from '@shared/i18n';
 import { formatBrewStepBadge, getRecipeLabel } from '@shared/recipes';
+import { sharedSoundEngine } from '@shared/soundEngine';
 import type {
   AutoBotPace,
   DrinkBarConfig,
@@ -30,6 +31,8 @@ export const App: React.FC = () => {
   const [botPace, setBotPace] = useState<AutoBotPace>('NORMAL');
 
   useEffect(() => {
+    autoBotBar.stop();
+    sharedSoundEngine.enableAutoCafeBgm(true);
     drinkBarAdminBridge.start();
     const offSnapshot = drinkBarAdminBridge.subscribeSnapshot(setLiveSnapshot);
     const offStatus = drinkBarAdminBridge.subscribeTikTokStatus(setTiktokStatus);
@@ -77,6 +80,18 @@ export const App: React.FC = () => {
     const next = !config.sfxMusicEnabled;
     setConfig((prev) => ({ ...prev, sfxMusicEnabled: next }));
     drinkBarAdminBridge.emitAdminAction('SET_MUSIC_ENABLED', { sfxMusicEnabled: next });
+  };
+
+  const handleToggleBgm = () => {
+    const next = !config.bgmEnabled;
+    setConfig((prev) => ({ ...prev, bgmEnabled: next }));
+    drinkBarAdminBridge.emitAdminAction('SET_BGM_ENABLED', { bgmEnabled: next });
+  };
+
+  const handleToggleTts = () => {
+    const next = !config.ttsEnabled;
+    setConfig((prev) => ({ ...prev, ttsEnabled: next }));
+    drinkBarAdminBridge.emitAdminAction('SET_TTS_ENABLED', { ttsEnabled: next });
   };
 
   const handleChangeMasterVolume = (masterVolume: number) => {
@@ -195,6 +210,8 @@ export const App: React.FC = () => {
             onToggleUnlimitedInventory={handleToggleUnlimitedInventory}
             onToggleSfx={handleToggleSfx}
             onToggleMusic={handleToggleMusic}
+            onToggleBgm={handleToggleBgm}
+            onToggleTts={handleToggleTts}
             onChangeMasterVolume={handleChangeMasterVolume}
             onToggleMicMode={handleToggleMicMode}
             onToggleSafeZone={handleToggleSafeZone}

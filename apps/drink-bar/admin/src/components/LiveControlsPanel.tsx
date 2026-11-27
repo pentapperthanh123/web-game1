@@ -13,6 +13,7 @@ import {
   Plus,
   Radio,
   RefreshCw,
+  RotateCcw,
   SkipForward,
   SlidersHorizontal,
   Sparkles,
@@ -24,6 +25,7 @@ import { DRINK_BAR_STORAGE_KEYS, GAMEPLAY_LIMITS } from '@shared/config';
 import { getConnectionStatusLabel, getMessages } from '@shared/i18n';
 import { RECIPE_LIST } from '@shared/recipes';
 import { sharedSoundEngine } from '@shared/soundEngine';
+import { sharedTtsPlayer } from '@shared/ttsPlayer';
 import type {
   DrinkBarConfig,
   DrinkInventoryMap,
@@ -48,6 +50,8 @@ interface LiveControlsPanelProps {
   onToggleUnlimitedInventory: () => void;
   onToggleSfx: () => void;
   onToggleMusic: () => void;
+  onToggleBgm: () => void;
+  onToggleTts: () => void;
   onChangeMasterVolume: (volume: number) => void;
   onToggleMicMode: () => void;
   onToggleSafeZone: () => void;
@@ -82,6 +86,8 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
   onToggleUnlimitedInventory,
   onToggleSfx,
   onToggleMusic,
+  onToggleBgm,
+  onToggleTts,
   onChangeMasterVolume,
   onToggleMicMode,
   onToggleSafeZone,
@@ -101,7 +107,19 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
   }, []);
 
   const handleTestAudio = () => {
-    void sharedSoundEngine.unlock(true);
+    void sharedSoundEngine.unlock(true).then((ok) => {
+      if (!ok || !config.ttsEnabled) return;
+      const sampleText =
+        config.language === 'EN'
+          ? 'Drink bar audio and voice ready!'
+          : 'Âm thanh quầy pha chế và giọng chị Google đã sẵn sàng!';
+      void sharedTtsPlayer.speak({
+        text: sampleText,
+        language: config.language,
+        volume: config.masterVolume,
+        onFinish: () => {},
+      });
+    });
   };
 
   const msg = getMessages(config.language);
@@ -231,6 +249,15 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
           >
             <Trash2 className="w-3.5 h-3.5 shrink-0 text-[#7A5F52]" />
             <span>{msg.btnClearShelf}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => drinkBarAdminBridge.emitAdminAction('RESET_DEFAULT')}
+            className="col-span-2 bar-btn bg-[#FAD7DC] hover:bg-[#F5C0C8] px-2.5 py-2 text-[12px] font-black text-[#8E2536] inline-flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5 shrink-0 text-[#8E2536]" />
+            <span>{msg.btnResetDefault}</span>
           </button>
         </div>
       </div>
@@ -439,7 +466,7 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
           className="w-full accent-[#245B3A] cursor-pointer"
         />
 
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
           <button
             type="button"
             onClick={onToggleSfx}
@@ -468,6 +495,36 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
           >
             <Music className="w-4 h-4" />
             <span className="truncate max-w-full">{msg.sfxMusicLabel}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleBgm}
+            className={`bar-btn px-1.5 py-2 text-[10.5px] font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+              config.bgmEnabled
+                ? 'bg-[#D9F0F6] text-[#235F70]'
+                : 'bg-[#F5E7D6] text-[#7A5F52]'
+            }`}
+          >
+            <Music className="w-4 h-4" />
+            <span className="truncate max-w-full">{msg.bgmLabel}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleTts}
+            className={`bar-btn px-1.5 py-2 text-[10.5px] font-black flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+              config.ttsEnabled
+                ? 'bg-[#FDE4EC] text-[#9E3A5A]'
+                : 'bg-[#F5E7D6] text-[#7A5F52]'
+            }`}
+          >
+            {config.ttsEnabled ? (
+              <Volume2 className="w-4 h-4" />
+            ) : (
+              <VolumeX className="w-4 h-4" />
+            )}
+            <span className="truncate max-w-full">{msg.voiceTtsLabel}</span>
           </button>
 
           <button

@@ -7,6 +7,7 @@ import {
   applyGiftToState,
   applyLikesToState,
   completeActiveDrink,
+  createEmptyResetDrinkBarState,
   createInitialDrinkBarState,
   promoteNextFromQueue,
   restockAllInState,
@@ -30,11 +31,45 @@ import type {
 } from '@shared/types';
 import { drinkParticles } from '../engine/particlePool';
 import { drinkBarAudio } from '../services/audioManager';
+import { drinkBarTts } from '../services/ttsEngine';
 
 function detectIsMirrorPreview(): boolean {
   if (typeof window === 'undefined') return false;
   const params = new URLSearchParams(window.location.search);
   return params.get('mirror') === '1';
+}
+
+function runTtsSideEffect(
+  state: DrinkBarLiveState,
+  effects: QueueStepSideEffects
+): void {
+  const hint = effects.ttsHint;
+  if (!hint) return;
+  const lang = state.config.language;
+  if (hint.kind === 'donate') {
+    drinkBarTts.enqueueDonate(
+      hint.nickname,
+      hint.danceStyle ?? state.danceStyle,
+      lang,
+      Boolean(hint.isManual)
+    );
+    return;
+  }
+  if (hint.kind === 'order' && hint.recipeId) {
+    drinkBarTts.enqueueOrder(hint.nickname, hint.recipeId, lang);
+    return;
+  }
+  if (hint.kind === 'ready' && hint.recipeId) {
+    drinkBarTts.enqueueReady(hint.nickname, hint.recipeId, lang);
+    return;
+  }
+  if (hint.kind === 'switch' && hint.recipeId) {
+    drinkBarTts.enqueueFlavorSwitch(hint.nickname, hint.recipeId, lang);
+    return;
+  }
+  if (hint.kind === 'like') {
+    drinkBarTts.enqueueLikeCheer(lang);
+  }
 }
 
 function runSideEffects(
@@ -44,6 +79,7 @@ function runSideEffects(
   if (effects.sfxToPlay) {
     drinkBarAudio.play(effects.sfxToPlay, state.danceTier, state.danceStyle);
   }
+  runTtsSideEffect(state, effects);
   if (effects.burstKind) {
     const isCompletion =
       effects.burstKind === 'complete' || effects.burstKind === 'signature';
@@ -206,6 +242,8 @@ export interface DrinkBarStore extends DrinkBarLiveState {
   setBrewDuration: (sec: number) => void;
   setSfxEnabled: (enabled: boolean) => void;
   setMusicEnabled: (enabled: boolean) => void;
+  setBgmEnabled: (enabled: boolean) => void;
+  setTtsEnabled: (enabled: boolean) => void;
   setMasterVolume: (volume: number) => void;
   setMicMode: (enabled: boolean) => void;
   setShowSafeZone: (show: boolean) => void;
@@ -214,6 +252,7 @@ export interface DrinkBarStore extends DrinkBarLiveState {
   setBrewProgress: (progress: number) => void;
   nextCustomer: () => void;
   clearShelf: () => void;
+  resetToDefaultEmpty: () => void;
   triggerTikTokDance: (tier?: GiftTier, danceStyle?: DanceStyle) => void;
   restockRecipe: (recipeId: RecipeId, addMl?: number) => void;
   restockAll: () => void;
@@ -383,6 +422,12 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       const { state, effects } = advanceDrinkBarTick(get().getSnapshot(), dtSec, now);
       commitLiveState(state);
       runSideEffects(state, effects);
+      const isShopIdle =
+        state.activeDrink === null &&
+        state.vipQueue.length === 0 &&
+        state.normalQueue.length === 0 &&
+        now >= state.danceUntil;
+      drinkBarTts.updateShopIdleState(isShopIdle, state.config.language);
     },
 
     processChat: (user, text) => {
@@ -407,6 +452,7 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     },
 
   setLanguage: (language) => {
+    drinkBarTts.setLanguage(language);
     set((prev) => ({
       config: { ...prev.config, language },
     }));
@@ -436,9 +482,24 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
     }));
   },
 
+  setBgmEnabled: (bgmEnabled) => {
+    drinkBarAudio.setBgmEnabled(bgmEnabled);
+    set((prev) => ({
+      config: { ...prev.config, bgmEnabled },
+    }));
+  },
+
+  setTtsEnabled: (ttsEnabled) => {
+    drinkBarTts.setEnabled(ttsEnabled);
+    set((prev) => ({
+      config: { ...prev.config, ttsEnabled },
+    }));
+  },
+
   setMasterVolume: (masterVolume) => {
     const clamped = Math.max(0, Math.min(1, masterVolume));
     drinkBarAudio.setMasterVolume(clamped);
+    drinkBarTts.setMasterVolume(clamped);
     set((prev) => ({
       config: { ...prev.config, masterVolume: clamped },
     }));
@@ -513,6 +574,24 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
 
     clearShelf: () => {
       set({ finishedShelf: [] });
+    },
+
+    resetToDefaultEmpty: () => {
+      const now = Date.now();
+      const emptyState = createEmptyResetDrinkBarState(get().config, now);
+      drinkBarAudio.stopBrewingSfx();
+      drinkBarAudio.stopDanceMusic();
+      drinkParticles.clearDanceParticles();
+      drinkBarTts.stopAll();
+      set({
+        ...emptyState,
+        guestLaneByOrderId: {},
+        celebratingByOrderId: {},
+        departingGuests: [],
+      });
+      drinkBarTts.updateShopIdleState(true, emptyState.config.language);
+      drinkBarTts.triggerIdlePromptSoon(900);
+      drinkBarAudio.play('chime');
     },
 
     triggerTikTokDance: (tier = 'MEDIUM', danceStyle) => {

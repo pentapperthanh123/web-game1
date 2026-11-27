@@ -1,4 +1,4 @@
-import type { AutoBotPace, Language, TikTokConnectionState } from './types';
+import type { AutoBotPace, DanceStyle, Language, TikTokConnectionState } from './types';
 
 export interface DrinkBarMessages {
   brandTitle: string;
@@ -31,6 +31,8 @@ export interface DrinkBarMessages {
   nowLabel: string;
   waitingIdle: string;
   queueEmptyHint: string;
+  lobbyIdleTitle: string;
+  lobbyIdleDesc: string;
   nextUpLabel: string;
   safeZoneLabel: string;
   thanksPrefix: string;
@@ -94,9 +96,19 @@ export interface DrinkBarMessages {
   btnAddTopping: string;
   btnNextCustomer: string;
   btnClearShelf: string;
+  btnResetDefault: string;
   audioLabel: string;
   sfxLabel: string;
   sfxMusicLabel: string;
+  bgmLabel: string;
+  voiceTtsLabel: string;
+  voiceToggleOnLabel: string;
+  voiceToggleOffLabel: string;
+  voiceToggleTitle: string;
+  danceNameHeart: string;
+  danceNameWave: string;
+  danceNameHype: string;
+  ttsIdlePhrases: readonly string[];
   masterVolumeLabel: string;
   btnTestAudio: string;
   btnEnableAudioStage: string;
@@ -159,6 +171,8 @@ const EN_MESSAGES: DrinkBarMessages = {
   nowLabel: 'NOW',
   waitingIdle: 'Type a drink keyword!',
   queueEmptyHint: 'Type matcha / tra / cafe...',
+  lobbyIdleTitle: 'LOBBY IS OPEN — PLACE YOUR ORDER!',
+  lobbyIdleDesc: 'Type a drink (matcha, tra, cafe, soda...) in chat to join • Tap Like to brew faster • Gift to dance!',
   nextUpLabel: 'NEXT UP',
   safeZoneLabel: 'TikTok LIVE Chat Safe Zone (960–1280)',
   thanksPrefix: 'Thanks',
@@ -219,9 +233,24 @@ const EN_MESSAGES: DrinkBarMessages = {
   btnAddTopping: 'Add Topping',
   btnNextCustomer: 'Next Customer',
   btnClearShelf: 'Clear Shelf',
+  btnResetDefault: 'Reset Empty Lobby',
   audioLabel: 'Chill SFX & Voice',
   sfxLabel: 'Bar ASMR',
   sfxMusicLabel: 'Dance Music',
+  bgmLabel: 'Cafe BGM',
+  voiceTtsLabel: 'AI Voice',
+  voiceToggleOnLabel: 'Voice',
+  voiceToggleOffLabel: 'Muted',
+  voiceToggleTitle: 'Toggle AI Voice Announcements',
+  danceNameHeart: 'Heart Sway',
+  danceNameWave: 'Groove Wave',
+  danceNameHype: 'Party Hype',
+  ttsIdlePhrases: [
+    'Hey cuties! The drink bar is open, drop matcha, tea, coffee or soda in chat so I can mix one for you!',
+    'Yawn... getting a tiny bit sleepy waiting for orders! Someone order an iced coffee to wake me up!',
+    'Tap like for super speedy brewing, or send a little rose to watch a cute TikTok dance!',
+    'Fresh peach tea, iced matcha and sparkling soda are waiting for your order right here!',
+  ],
   masterVolumeLabel: 'Master Volume',
   btnTestAudio: 'Test Audio',
   btnEnableAudioStage: 'Click to Enable Sound',
@@ -284,6 +313,8 @@ const VI_MESSAGES: DrinkBarMessages = {
   nowLabel: 'NOW',
   waitingIdle: 'Gõ tên món trên Menu!',
   queueEmptyHint: 'Gõ matcha / tra / cafe...',
+  lobbyIdleTitle: 'SẢNH CHỜ ĐANG MỞ — MỜI BẠN ORDER!',
+  lobbyIdleDesc: 'Gõ tên món (matcha, tra, cafe, soda...) vào chat để xếp hàng • Thả Like pha nhanh • Donate nhảy TikTok!',
   nextUpLabel: 'TIẾP THEO',
   safeZoneLabel: 'Vùng an toàn Chat TikTok LIVE (960–1280)',
   thanksPrefix: 'Cảm ơn',
@@ -344,9 +375,26 @@ const VI_MESSAGES: DrinkBarMessages = {
   btnAddTopping: 'Add Topping',
   btnNextCustomer: 'Next Customer',
   btnClearShelf: 'Clear Shelf',
+  btnResetDefault: 'Reset Trống Khách',
   audioLabel: 'Âm thanh & Giọng Host',
   sfxLabel: 'Âm ASMR',
   sfxMusicLabel: 'Nhạc nhảy',
+  bgmLabel: 'Nhạc quán',
+  voiceTtsLabel: 'Giọng đọc',
+  voiceToggleOnLabel: 'Giọng',
+  voiceToggleOffLabel: 'Tắt giọng',
+  voiceToggleTitle: 'Bật / Tắt giọng đọc Chị Google',
+  danceNameHeart: 'Bắn Tim',
+  danceNameWave: 'Sóng Tay',
+  danceNameHype: 'Quẩy Nhiệt',
+  ttsIdlePhrases: [
+    'Sảnh chờ đang vắng nè mấy bạn yêu ơi! Gõ matcha, trà sữa, cafe hay soda vào chat để mình pha cho nha!',
+    'Ngáp một cái nhẹ luôn á! Buồn ngủ quá trời rồi nè, ai order ly cafe sữa cho chủ quán tỉnh táo đi nào!',
+    'Thả tim cho quầy xôm tụ đi cả nhà ơi, tặng hoa hồng là có ngay điệu nhảy Bắn Tim siêu cưng nha!',
+    'Trà đào, trà chanh, nước cam tươi mát lạnh đang chờ mấy bạn chốt đơn nè, gõ liền tay nha!',
+    'Ngồi gật gù chờ khách nè mấy bạn ơi, vào bình luận món yêu thích để mình pha liền tay nha!',
+    'Vào xem live nhớ thả tim và gọi một ly nước thiệt ngon cho vui nha mấy bạn yêu ơi!',
+  ],
   masterVolumeLabel: 'Âm lượng tổng',
   btnTestAudio: 'Thử âm thanh',
   btnEnableAudioStage: 'Chạm để bật âm thanh',
@@ -426,4 +474,117 @@ export function formatShortThanks(
   const availableForName = Math.max(3, maxChars - prefix.length - 5);
   const shortName = trimmedName.slice(0, availableForName).trim();
   return `${prefix} ${shortName}! ✨`;
+}
+
+export function getDanceDisplayName(style: DanceStyle, language: Language): string {
+  const msg = getMessages(language);
+  const nameMap: Record<DanceStyle, string> = {
+    heart_sway: msg.danceNameHeart,
+    groove_wave: msg.danceNameWave,
+    party_hype: msg.danceNameHype,
+  };
+  return nameMap[style];
+}
+
+function pickRandomVariant(variants: readonly string[]): string {
+  return variants[Math.floor(Math.random() * variants.length)];
+}
+
+export function formatTtsDonateMessage(
+  nickname: string,
+  danceStyle: DanceStyle,
+  language: Language,
+  isManual = false
+): string {
+  const danceName = getDanceDisplayName(danceStyle, language);
+  const cleanName = nickname.trim() || (language === 'EN' ? 'friend' : 'bạn yêu');
+  if (language === 'EN') {
+    if (isManual) {
+      return pickRandomVariant([
+        `Cue the music! Starting the cute ${danceName} dance right now!`,
+        `Yay! Time to groove with ${danceName} for everyone!`,
+      ]);
+    }
+    return pickRandomVariant([
+      `Aww thank you so much ${cleanName} for the sweet gift! Let's dance ${danceName}!`,
+      `Yay ${cleanName} sent a gift! Raising the vibe with ${danceName} dance!`,
+    ]);
+  }
+  if (isManual) {
+    return pickRandomVariant([
+      `Lên nhạc nè cả nhà ơi! Bắt đầu điệu nhảy ${danceName} siêu cưng nha!`,
+      `Quẩy lên nào! Nhân viên quầy nhảy điệu ${danceName} tặng mấy bạn yêu nè!`,
+    ]);
+  }
+  return pickRandomVariant([
+    `Á á cảm ơn ${cleanName} nhiều lắm luôn nha! Lên nhạc nhảy ${danceName} tặng bạn yêu nè!`,
+    `Quà xịn từ ${cleanName} nè trời ơi! Quầy quẩy ngay điệu ${danceName} siêu cưng luôn nha!`,
+    `Thương ${cleanName} quá trời ơi! Mời cả nhà cùng xem điệu nhảy ${danceName} nhé!`,
+  ]);
+}
+
+export function formatTtsOrderMessage(
+  nickname: string,
+  drinkLabel: string,
+  language: Language
+): string {
+  const cleanName = nickname.trim() || (language === 'EN' ? 'cutie' : 'bạn yêu');
+  if (language === 'EN') {
+    return pickRandomVariant([
+      `Yay! Got a fresh ${drinkLabel} order for ${cleanName}!`,
+      `Ooh, mixing a yummy ${drinkLabel} for ${cleanName} right away!`,
+    ]);
+  }
+  return pickRandomVariant([
+    `Okila ${cleanName} ơi, có ngay một ly ${drinkLabel} mát rượi nè!`,
+    `Chốt đơn cho ${cleanName} nha, đợi xíu mình pha ly ${drinkLabel} ngon xỉu luôn!`,
+    `Hello ${cleanName} nè, nhận đơn ${drinkLabel} liền tay cho bạn yêu nha!`,
+    `Ting ting, lên đơn ly ${drinkLabel} siêu xinh cho ${cleanName} rồi á!`,
+  ]);
+}
+
+export function formatTtsReadyMessage(
+  nickname: string,
+  drinkLabel: string,
+  language: Language
+): string {
+  const cleanName = nickname.trim() || (language === 'EN' ? 'cutie' : 'bạn yêu');
+  if (language === 'EN') {
+    return pickRandomVariant([
+      `Ding ding! ${cleanName}, your yummy ${drinkLabel} is ready!`,
+      `All done for ${cleanName}! Enjoy your fresh ${drinkLabel}!`,
+    ]);
+  }
+  return pickRandomVariant([
+    `Ting ting! Ly ${drinkLabel} của ${cleanName} xong rồi nè, mời bạn yêu thưởng thức nha!`,
+    `Ly ${drinkLabel} thơm ngon ra lò cho ${cleanName} rồi á, chúc bạn uống ngon miệng nhé!`,
+    `Xong xuôi rồi nè ${cleanName} ơi, nhận ngay ly ${drinkLabel} siêu cưng của mình nha!`,
+    `Mời ${cleanName} nhận ly ${drinkLabel} mát lạnh nè, cảm ơn bạn đã ghé quầy nha!`,
+  ]);
+}
+
+export function formatTtsLikeCheerMessage(language: Language): string {
+  if (language === 'EN') {
+    return pickRandomVariant([
+      'So many hearts! Brewing at turbo cute speed right now!',
+      'Thank you for the likes cuties, shaking even faster!',
+    ]);
+  }
+  return pickRandomVariant([
+    'Ôi tim bay ngập quầy luôn nè, pha nhanh hết tốc lực luôn nha cả nhà!',
+    'Cảm ơn mấy bạn yêu thả tim nhiệt tình quá trời, tăng tốc pha nước liền nè!',
+    'Tim hồng nhiều xỉu luôn á, quầy pha siêu tốc phục vụ mấy bạn yêu nha!',
+  ]);
+}
+
+export function formatTtsSwitchFlavorMessage(
+  nickname: string,
+  drinkLabel: string,
+  language: Language
+): string {
+  const cleanName = nickname.trim() || (language === 'EN' ? 'cutie' : 'bạn yêu');
+  if (language === 'EN') {
+    return `Switched ${cleanName}'s cup to ${drinkLabel} right away!`;
+  }
+  return `Okila ${cleanName} ơi, đã đổi món sang ${drinkLabel} cho bạn yêu rồi nè!`;
 }

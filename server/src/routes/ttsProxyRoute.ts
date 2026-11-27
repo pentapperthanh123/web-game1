@@ -38,11 +38,14 @@ export function registerTtsProxyRoute(app: Express, casterTts?: CasterTtsService
       return;
     }
 
+    const tl = req.query.tl === 'en' ? 'en' : 'vi';
+    const cacheKey = `${tl}:${text}`;
+
     // Cache hit — move to end (refresh LRU position)
-    const cached = audioCache.get(text);
+    const cached = audioCache.get(cacheKey);
     if (cached) {
-      audioCache.delete(text);
-      audioCache.set(text, cached);
+      audioCache.delete(cacheKey);
+      audioCache.set(cacheKey, cached);
       res.set('Content-Type', TTS_PROXY.CONTENT_TYPE);
       res.set('Cache-Control', TTS_PROXY.CACHE_CONTROL);
       res.send(cached);
@@ -56,10 +59,10 @@ export function registerTtsProxyRoute(app: Express, casterTts?: CasterTtsService
     if (casterTts && !forceGoogle) {
       try {
         const role = req.query.role === 'female' ? CASTER_VOICE_ROLE.FEMALE : CASTER_VOICE_ROLE.MALE;
-        const result = await casterTts.synthesize(text, 'vi', { role });
+        const result = await casterTts.synthesize(text, tl, { role });
         if (result.audio) {
           evictIfFull();
-          audioCache.set(text, result.audio);
+          audioCache.set(cacheKey, result.audio);
           res.set('Content-Type', TTS_PROXY.CONTENT_TYPE);
           res.set('Cache-Control', TTS_PROXY.CACHE_CONTROL);
           res.send(result.audio);
@@ -71,7 +74,7 @@ export function registerTtsProxyRoute(app: Express, casterTts?: CasterTtsService
     }
 
     // Fallback to Google Translate TTS
-    const url = `${TTS_PROXY.GOOGLE_TTS_URL}?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(text)}`;
+    const url = `${TTS_PROXY.GOOGLE_TTS_URL}?ie=UTF-8&tl=${tl}&client=tw-ob&q=${encodeURIComponent(text)}`;
 
     try {
       const controller = new AbortController();
