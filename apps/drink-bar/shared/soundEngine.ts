@@ -216,7 +216,7 @@ export class WebAudioSoundEngine {
     const trackUrl = playlist[this.bgmTrackIndex % playlist.length];
     const sessionSeq = ++this.bgmSessionSeq;
     const audio = new Audio(trackUrl);
-    audio.preload = 'auto';
+    audio.preload = 'metadata';
     audio.loop = false;
 
     let mediaSource: MediaElementAudioSourceNode | null = null;

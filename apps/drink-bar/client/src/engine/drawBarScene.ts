@@ -55,6 +55,7 @@ export interface BarEquipmentState {
   isPickingLid: boolean;
   isTakingMatchaFromShelf: boolean;
   isHoldingOatside: boolean;
+  isHoldingSodaBottle: boolean;
   isShakerDetached: boolean;
   shakerFillRatio: number; // 0..1 visible milk tea level inside machine shaker (stays 0 after pouring!)
   isPressingSugarButton: boolean;
@@ -64,6 +65,7 @@ export interface BarEquipmentState {
   danceStyle: DanceStyle | null;
   danceBeatPulse: number;
   manekiExcitedProgress: number;
+  hasQueuedGuests: boolean;
 }
 
 const IDLE_EQUIPMENT_STATE: BarEquipmentState = {
@@ -75,6 +77,7 @@ const IDLE_EQUIPMENT_STATE: BarEquipmentState = {
   isPickingLid: false,
   isTakingMatchaFromShelf: false,
   isHoldingOatside: false,
+  isHoldingSodaBottle: false,
   isShakerDetached: false,
   shakerFillRatio: 0,
   isPressingSugarButton: false,
@@ -84,6 +87,7 @@ const IDLE_EQUIPMENT_STATE: BarEquipmentState = {
   danceStyle: null,
   danceBeatPulse: 0,
   manekiExcitedProgress: 0,
+  hasQueuedGuests: false,
 };
 
 export function roundedRectPath(
@@ -235,19 +239,28 @@ export function drawBarBackdrop(
 
   // Prominent Shelf Matcha Tin ("MATCHA" ceramic canister with bamboo lid — hides while barista lifts it!)
   if (!equip.isTakingMatchaFromShelf) {
-    drawShelfMatchaTin(ctx, 462, 348);
+    drawShelfMatchaTin(ctx, 450, 348);
   } else {
     // Subtle resting shadow pad where Matcha tin was lifted from
-    roundedRectPath(ctx, 466, 394, 28, 4, 2);
+    roundedRectPath(ctx, 454, 394, 28, 4, 2);
     ctx.fillStyle = 'rgba(133, 94, 104, 0.22)';
     ctx.fill();
   }
 
-  // Cute resting OATSIDE milk carton on far right of lower shelf (hides when barista is pouring/holding it!)
+  // Cute resting OATSIDE milk carton on lower shelf (hides when barista is pouring/holding it!)
   if (!equip.isHoldingOatside) {
-    drawShelfOatsideCarton(ctx, 514, 354);
+    drawShelfOatsideCarton(ctx, 494, 354);
   } else {
-    roundedRectPath(ctx, 517, 394, 22, 4, 2);
+    roundedRectPath(ctx, 497, 394, 22, 4, 2);
+    ctx.fillStyle = 'rgba(133, 94, 104, 0.22)';
+    ctx.fill();
+  }
+
+  // Refreshing sparkling SODA bottle on lower shelf (hides when barista is pouring/holding it!)
+  if (!equip.isHoldingSodaBottle) {
+    drawShelfSodaBottle(ctx, 530, 352, elapsedSec);
+  } else {
+    roundedRectPath(ctx, 532, 394, 18, 4, 2);
     ctx.fillStyle = 'rgba(133, 94, 104, 0.22)';
     ctx.fill();
   }
@@ -712,7 +725,10 @@ export function drawBarCounter(
     ctx.stroke();
   }
 
-  // Mid-level horizontal trim rail + centered heart medallion
+  // Cute scalloped pastel trim rủ nhẹ beneath counter top ledge
+  drawCounterScallopedTrim(ctx, bodyY);
+
+  // Mid-level horizontal trim rail + centered mini sweet bar plaque
   const trimY = bodyY + 42;
   roundedRectPath(ctx, 18, trimY, WIDTH - 36, 10, 4.5);
   ctx.fillStyle = DRINK_BAR_PALETTE.COUNTER_PANEL;
@@ -728,21 +744,7 @@ export function drawBarCounter(
   ctx.lineWidth = 1.6;
   ctx.stroke();
 
-  ctx.beginPath();
-  ctx.arc(360, trimY + 5, 9, 0, Math.PI * 2);
-  ctx.fillStyle = '#FFF7F9';
-  ctx.fill();
-  ctx.lineWidth = 2.2;
-  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
-  ctx.stroke();
-
-  ctx.fillStyle = '#F4A6BE';
-  ctx.beginPath();
-  ctx.moveTo(360, trimY + 8.5);
-  ctx.bezierCurveTo(355, trimY + 5.2, 355.5, trimY + 1.5, 360, trimY + 3.6);
-  ctx.bezierCurveTo(364.5, trimY + 1.5, 365, trimY + 5.2, 360, trimY + 8.5);
-  ctx.closePath();
-  ctx.fill();
+  drawCounterMiniPlaque(ctx, trimY);
 
   // Bottom kickplate baseboard
   const kickY = COUNTER_END_Y - 18;
@@ -836,7 +838,7 @@ export function drawBarCounter(
   drawFrotherStandAndPlant(ctx, 646, COUNTER_TOP_Y + 16, equip.isUsingFrother);
 
   // 4. Cozy pastel floor welcome mat beneath waiting customer lanes
-  drawCustomerFloorMat(ctx);
+  drawCustomerFloorMat(ctx, equip.hasQueuedGuests);
 
   ctx.restore();
 }
@@ -1164,6 +1166,77 @@ function drawDoubleShakerMachine(
   ctx.stroke();
 
   ctx.restore();
+  ctx.restore();
+}
+
+function drawShelfSodaBottle(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  elapsedSec: number
+): void {
+  const w = 22;
+  const h = 46;
+
+  ctx.save();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+
+  // Slender glass bottle neck & lip at top
+  roundedRectPath(ctx, x + 6, y + 4, 10, 11, 2.5);
+  ctx.fillStyle = '#E8F7FA';
+  ctx.fill();
+  ctx.stroke();
+
+  // Metallic golden crown cap on bottle mouth
+  roundedRectPath(ctx, x + 5, y - 1, 12, 5.5, 2);
+  ctx.fillStyle = '#F7C95B';
+  ctx.fill();
+  ctx.stroke();
+
+  // Main glass bottle body
+  roundedRectPath(ctx, x, y + 13, w, h - 13, 5);
+  ctx.fillStyle = 'rgba(232, 247, 250, 0.95)';
+  ctx.fill();
+  ctx.stroke();
+
+  // Refreshing turquoise soda liquid fill inside bottle
+  roundedRectPath(ctx, x + 2.2, y + 15, w - 4.4, h - 17.5, 3.5);
+  ctx.fillStyle = '#7FC8D9';
+  ctx.fill();
+
+  // Sparkling animated effervescent bubbles rising
+  const b1Y = y + 38 - ((elapsedSec * 14) % 20);
+  const b2Y = y + 36 - (((elapsedSec + 0.45) * 12) % 18);
+  const b3Y = y + 34 - (((elapsedSec + 0.9) * 16) % 16);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+  ctx.beginPath();
+  ctx.arc(x + 6, b1Y, 1.2, 0, Math.PI * 2);
+  ctx.arc(x + 16, b2Y, 1.0, 0, Math.PI * 2);
+  ctx.arc(x + 11, b3Y, 1.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Vertical glass highlight shine
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+  ctx.fillRect(x + 3.5, y + 16, 2, 25);
+
+  // Crisp retro soda label pill
+  roundedRectPath(ctx, x + 1.8, y + 25, w - 3.6, 12.5, 3);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+
+  roundedRectPath(ctx, x + 3.2, y + 26.5, w - 6.4, 9.5, 2);
+  ctx.fillStyle = '#E2F4F7';
+  ctx.fill();
+
+  ctx.font = '900 5.4px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = '#2C6272';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SODA', x + w * 0.5, y + 31.5);
+
   ctx.restore();
 }
 
@@ -1722,9 +1795,80 @@ function drawFrotherStandAndPlant(
   ctx.restore();
 }
 
+function drawCounterScallopedTrim(ctx: CanvasRenderingContext2D, bodyY: number): void {
+  const scallopW = 24;
+  const scallopH = 7.5;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, bodyY);
+  for (let sx = 0; sx < WIDTH; sx += scallopW) {
+    ctx.quadraticCurveTo(sx + scallopW * 0.5, bodyY + scallopH, sx + scallopW, bodyY);
+  }
+  ctx.lineTo(WIDTH, bodyY);
+  ctx.closePath();
+  ctx.fillStyle = '#FFF8FA';
+  ctx.fill();
+  ctx.lineWidth = OUTLINE_MEDIUM;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  // Subtle soft pink accent line along the counter ledge
+  ctx.beginPath();
+  ctx.moveTo(0, bodyY + 1.5);
+  ctx.lineTo(WIDTH, bodyY + 1.5);
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = '#F4A6BE';
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCounterMiniPlaque(ctx: CanvasRenderingContext2D, trimY: number): void {
+  const plaqueW = 92;
+  const plaqueH = 22;
+  const plaqueX = 360 - plaqueW * 0.5;
+  const plaqueY = trimY + 5 - plaqueH * 0.5;
+
+  ctx.save();
+
+  // Subtle drop shadow
+  roundedRectPath(ctx, plaqueX + 1, plaqueY + 2, plaqueW, plaqueH, 6.5);
+  ctx.fillStyle = 'rgba(59, 40, 32, 0.2)';
+  ctx.fill();
+
+  // Outer wooden plaque body
+  roundedRectPath(ctx, plaqueX, plaqueY, plaqueW, plaqueH, 6.5);
+  ctx.fillStyle = '#FFFDF9';
+  ctx.fill();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
+  ctx.stroke();
+
+  // Inner pastel pink inset band
+  roundedRectPath(ctx, plaqueX + 3.5, plaqueY + 3, plaqueW - 7, plaqueH - 6, 4);
+  ctx.fillStyle = '#FDEBF1';
+  ctx.fill();
+
+  // Tiny corner brass screw accents
+  ctx.fillStyle = '#D99B66';
+  ctx.beginPath();
+  ctx.arc(plaqueX + 6.5, plaqueY + plaqueH * 0.5, 1.6, 0, Math.PI * 2);
+  ctx.arc(plaqueX + plaqueW - 6.5, plaqueY + plaqueH * 0.5, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Crisp centered brand text "♡ SWEET BAR ♡"
+  ctx.font = '900 8.5px "Fredoka", "Nunito", sans-serif';
+  ctx.fillStyle = '#9E3A5A';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('♡ SWEET BAR ♡', 360, plaqueY + plaqueH * 0.5 + 0.6);
+
+  ctx.restore();
+}
+
 const CUSTOMER_LANE_CENTERS: readonly number[] = [232, 488];
 
-function drawCustomerFloorMat(ctx: CanvasRenderingContext2D): void {
+function drawCustomerFloorMat(ctx: CanvasRenderingContext2D, hasQueuedGuests = true): void {
   // Soft warm ambient floor shadow cast beneath the bar kickplate
   const floorShadow = ctx.createLinearGradient(0, COUNTER_END_Y, 0, COUNTER_END_Y + 32);
   floorShadow.addColorStop(0, 'rgba(59, 40, 32, 0.16)');
@@ -1764,27 +1908,29 @@ function drawCustomerFloorMat(ctx: CanvasRenderingContext2D): void {
   ctx.stroke();
   ctx.restore();
 
-  // Dual symmetric pastel lane guides (Lane 0 x=248, Lane 1 x=472) with gentle upward queue chevrons
-  for (let i = 0; i < CUSTOMER_LANE_CENTERS.length; i += 1) {
-    const lx = CUSTOMER_LANE_CENTERS[i];
-    roundedRectPath(ctx, lx - 58, matY + 15, 116, matH - 30, 16);
-    ctx.fillStyle = 'rgba(244, 166, 190, 0.12)';
-    ctx.fill();
+  // Dual symmetric pastel lane guides (Lane 0 x=248, Lane 1 x=472): only drawn when guests exist!
+  if (hasQueuedGuests) {
+    for (let i = 0; i < CUSTOMER_LANE_CENTERS.length; i += 1) {
+      const lx = CUSTOMER_LANE_CENTERS[i];
+      roundedRectPath(ctx, lx - 58, matY + 15, 116, matH - 30, 16);
+      ctx.fillStyle = 'rgba(244, 166, 190, 0.12)';
+      ctx.fill();
 
-    // Subtle upward chevron hinting queue direction toward counter
-    ctx.strokeStyle = 'rgba(196, 130, 133, 0.36)';
-    ctx.lineWidth = 2.0;
-    ctx.beginPath();
-    ctx.moveTo(lx - 8, matY + 32);
-    ctx.lineTo(lx, matY + 25);
-    ctx.lineTo(lx + 8, matY + 32);
-    ctx.stroke();
+      // Subtle upward chevron hinting queue direction toward counter
+      ctx.strokeStyle = 'rgba(196, 130, 133, 0.36)';
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.moveTo(lx - 8, matY + 32);
+      ctx.lineTo(lx, matY + 25);
+      ctx.lineTo(lx + 8, matY + 32);
+      ctx.stroke();
 
-    // Soft standing-spot pad for back guest
-    ctx.fillStyle = 'rgba(217, 155, 156, 0.22)';
-    ctx.beginPath();
-    ctx.ellipse(lx, matY + matH - 22, 44, 9.5, 0, 0, Math.PI * 2);
-    ctx.fill();
+      // Soft standing-spot pad for back guest
+      ctx.fillStyle = 'rgba(217, 155, 156, 0.22)';
+      ctx.beginPath();
+      ctx.ellipse(lx, matY + matH - 22, 44, 9.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   // Gentle floor-to-chat transition tint below y=956 so bottom TikTok chat zone stays open & balanced

@@ -17,14 +17,14 @@ export default defineConfig(({ mode }) => {
       target: backendTarget,
       ws: true,
       changeOrigin: true,
-      proxyTimeout: 5000,
-      timeout: 5000,
+      proxyTimeout: 1500,
+      timeout: 1500,
     },
     '/api': {
       target: backendTarget,
       changeOrigin: true,
-      proxyTimeout: 5000,
-      timeout: 5000,
+      proxyTimeout: 1500,
+      timeout: 1500,
     },
   };
 

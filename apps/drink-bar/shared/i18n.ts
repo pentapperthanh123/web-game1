@@ -33,6 +33,7 @@ export interface DrinkBarMessages {
   queueEmptyHint: string;
   lobbyIdleTitle: string;
   lobbyIdleDesc: string;
+  lobbyIdleOneLine: string;
   nextUpLabel: string;
   safeZoneLabel: string;
   thanksPrefix: string;
@@ -174,6 +175,7 @@ const EN_MESSAGES: DrinkBarMessages = {
   queueEmptyHint: 'Type matcha / tra / cafe...',
   lobbyIdleTitle: 'LOBBY IS OPEN — PLACE YOUR ORDER!',
   lobbyIdleDesc: 'Type a drink (matcha, tra, cafe, soda...) in chat to join • Tap Like to brew faster • Gift to dance!',
+  lobbyIdleOneLine: 'LOBBY IS OPEN — TYPE A DRINK NAME TO QUEUE UP!',
   nextUpLabel: 'NEXT UP',
   safeZoneLabel: 'TikTok LIVE Chat Safe Zone (960–1280)',
   thanksPrefix: 'Thanks',
@@ -317,6 +319,7 @@ const VI_MESSAGES: DrinkBarMessages = {
   queueEmptyHint: 'Gõ matcha / tra / cafe...',
   lobbyIdleTitle: 'SẢNH CHỜ ĐANG MỞ — MỜI BẠN ORDER!',
   lobbyIdleDesc: 'Gõ tên món (matcha, tra, cafe, soda...) vào chat để xếp hàng • Thả Like pha nhanh • Donate nhảy TikTok!',
+  lobbyIdleOneLine: 'SẢNH CHỜ ĐANG MỞ — GÕ TÊN MÓN ĐỂ XẾP HÀNG!',
   nextUpLabel: 'TIẾP THEO',
   safeZoneLabel: 'Vùng an toàn Chat TikTok LIVE (960–1280)',
   thanksPrefix: 'Cảm ơn',

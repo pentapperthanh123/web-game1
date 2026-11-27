@@ -336,6 +336,11 @@ const initialLanes = reconcileGuestLanes(
   initialBase.normalQueue
 );
 
+function hasAnyKeys(obj: Record<string, unknown>): boolean {
+  for (const _ in obj) return true;
+  return false;
+}
+
 export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
   const commitLiveState = (
     nextState: DrinkBarLiveState,
@@ -355,8 +360,8 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       prevStore.guestBubbles === nextState.guestBubbles &&
       prevStore.inventory === nextState.inventory &&
       prevStore.departingGuests.length === 0 &&
-      Object.keys(prevStore.celebratingByOrderId).length === 0 &&
-      Object.keys(prevStore.guestLaneByOrderId).length === 0 &&
+      !hasAnyKeys(prevStore.celebratingByOrderId as Record<string, unknown>) &&
+      !hasAnyKeys(prevStore.guestLaneByOrderId as Record<string, unknown>) &&
       prevStore.bartenderMood === nextState.bartenderMood &&
       prevStore.todayDoneCount === nextState.todayDoneCount &&
       prevStore.speedBoostUntil === nextState.speedBoostUntil &&

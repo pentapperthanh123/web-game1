@@ -822,15 +822,12 @@ export const WaitingGuestsStrip: React.FC = () => {
         }}
         aria-label="Empty lobby order guide"
       >
-        <div className="w-[624px] max-w-full rounded-[16px] bg-[#FFFDF9]/96 border-[2.2px] border-[#3B2820] px-4 py-2 shadow-[0_2.5px_0_#3B2820] text-center">
-          <div className="flex items-center justify-center gap-1.5 text-[12.5px] font-black text-[#3B2820] tracking-tight">
-            <Sparkles className="w-3.5 h-3.5 text-[#F48BA3]" strokeWidth={2.5} />
-            <span>{msg.lobbyIdleTitle}</span>
-            <Sparkles className="w-3.5 h-3.5 text-[#F7C95B]" strokeWidth={2.5} />
-          </div>
-          <p className="mt-0.5 text-[11px] font-bold text-[#7A5460] leading-snug">
-            {msg.lobbyIdleDesc}
-          </p>
+        <div className="w-[560px] max-w-full rounded-full bg-[#FFFDF9]/96 border-[2.2px] border-[#3B2820] px-5 py-2 shadow-[0_2.5px_0_#3B2820] flex items-center justify-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-[#F48BA3] shrink-0" strokeWidth={2.5} />
+          <span className="text-[12.5px] font-black text-[#3B2820] tracking-tight uppercase select-none">
+            {msg.lobbyIdleOneLine}
+          </span>
+          <Sparkles className="w-3.5 h-3.5 text-[#F7C95B] shrink-0" strokeWidth={2.5} />
         </div>
       </section>
     );

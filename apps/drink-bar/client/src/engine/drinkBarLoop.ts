@@ -29,6 +29,7 @@ import {
   isBobaScoopSubstep,
   isCupPickupSubstep,
   isHoldingOatsideSubstep,
+  isHoldingSodaBottleSubstep,
   isLidPickupSubstep,
   isMatchaGrabSubstep,
   isMatchaReturnSubstep,
@@ -173,6 +174,7 @@ export class DrinkBarCanvasLoop {
     isPickingLid: false,
     isTakingMatchaFromShelf: false,
     isHoldingOatside: false,
+    isHoldingSodaBottle: false,
     isShakerDetached: false,
     shakerFillRatio: 0,
     isPressingSugarButton: false,
@@ -182,6 +184,7 @@ export class DrinkBarCanvasLoop {
     danceStyle: null,
     danceBeatPulse: 0,
     manekiExcitedProgress: 0,
+    hasQueuedGuests: false,
   };
 
   constructor(canvas: HTMLCanvasElement) {
@@ -204,6 +207,7 @@ export class DrinkBarCanvasLoop {
       this.visibilityHandler = () => {
         if (document.visibilityState === 'visible') {
           this.lastTickMs = performance.now();
+          this.lastSimWallMs = Date.now();
           this.renderCurrentFrame();
         }
       };
@@ -229,14 +233,18 @@ export class DrinkBarCanvasLoop {
   private onBackgroundTick(): void {
     const nowWall = Date.now();
     const gapMs = nowWall - this.lastSimWallMs;
-    // Step smoothly at ~30 FPS whenever rAF is paused/throttled (inactive tab or background window)
-    if (gapMs < STAGE_METRICS.FRAME_INTERVAL_MS * 1.15) {
+    const isHidden = typeof document !== 'undefined' && document.hidden;
+    const isDeeplyThrottled = gapMs >= 200;
+
+    // Background ticker ONLY steps when tab is actually hidden or rAF is deeply throttled (>200ms)
+    // Never compete with active requestAnimationFrame on foreground tabs!
+    if (!isHidden && !isDeeplyThrottled) {
       return;
     }
     this.lastSimWallMs = nowWall;
     this.lastTickMs = performance.now();
 
-    let remainingSec = Math.min(5.0, gapMs / 1000);
+    let remainingSec = Math.min(3.0, gapMs / 1000);
     while (remainingSec > 0.001) {
       const stepSec = Math.min(0.2, remainingSec);
       this.stepSimulation(stepSec);
@@ -379,6 +387,8 @@ export class DrinkBarCanvasLoop {
     this.baristaWalkVelocity = dtSec > 0 ? (this.baristaPosX - prevBaristaX) / dtSec : 0;
 
     // Update reusable equipment state snapshot in-place (zero per-frame allocations)
+    this.equipmentState.hasQueuedGuests =
+      state.vipQueue.length + state.normalQueue.length + state.departingGuests.length > 0;
     this.equipmentState.danceStyle = isDancing ? state.danceStyle : null;
     this.equipmentState.danceBeatPulse = isDancing ? danceMotion.beatPulse : 0;
     const excitedRemainingMs = Math.max(0, state.manekiExcitedUntil - nowEpoch);
@@ -397,6 +407,7 @@ export class DrinkBarCanvasLoop {
       this.equipmentState.isPickingLid = isLidPickupSubstep(primary);
       this.equipmentState.isTakingMatchaFromShelf = isMatchaShelfSubstep(primary);
       this.equipmentState.isHoldingOatside = isHoldingOatsideSubstep(primary);
+      this.equipmentState.isHoldingSodaBottle = isHoldingSodaBottleSubstep(primary);
       this.equipmentState.isShakerDetached = isShakerDetachedSubstep(primary);
       this.equipmentState.shakerFillRatio = resolveShakerMachineFillRatio(primary);
       this.equipmentState.isPressingSugarButton = isSugarButtonSubstep(primary);
@@ -417,6 +428,7 @@ export class DrinkBarCanvasLoop {
       this.equipmentState.isPickingLid = false;
       this.equipmentState.isTakingMatchaFromShelf = false;
       this.equipmentState.isHoldingOatside = false;
+      this.equipmentState.isHoldingSodaBottle = false;
       this.equipmentState.isShakerDetached = false;
       this.equipmentState.shakerFillRatio = 0;
       this.equipmentState.isPressingSugarButton = false;

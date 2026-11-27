@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { MonitorPlay } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Loader2, MonitorPlay } from 'lucide-react';
 import { getMessages } from '@shared/i18n';
 import type { DrinkBarConfig } from '@shared/types';
 import { drinkBarAdminBridge, getClientStageUrl } from '../services/adminBridge';
@@ -10,13 +10,23 @@ interface LivePreviewPanelProps {
 
 export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [isIframeMounted, setIsIframeMounted] = useState<boolean>(false);
   const msg = getMessages(config.language);
   const mirrorUrl = getClientStageUrl(true);
 
   useEffect(() => {
-    drinkBarAdminBridge.setPreviewIframe(iframeRef.current);
-    return () => drinkBarAdminBridge.setPreviewIframe(null);
+    const timer = setTimeout(() => {
+      setIsIframeMounted(true);
+    }, 250);
+    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (isIframeMounted) {
+      drinkBarAdminBridge.setPreviewIframe(iframeRef.current);
+    }
+    return () => drinkBarAdminBridge.setPreviewIframe(null);
+  }, [isIframeMounted]);
 
   const handleIframeLoad = () => {
     drinkBarAdminBridge.setPreviewIframe(iframeRef.current);
@@ -83,20 +93,29 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) =>
         style={{ containerType: 'size' }}
       >
         <div
-          className="relative overflow-hidden bg-[#FFF5F7] flex items-center justify-center"
+          className="relative overflow-hidden bg-[#FFF5F7] flex items-center justify-center w-full h-full"
           style={{
             width: 'min(100cqw, calc(100cqh * 9 / 16))',
             height: 'min(100cqh, calc(100cqw * 16 / 9))',
           }}
         >
-          <iframe
-            ref={iframeRef}
-            src={mirrorUrl}
-            allow="autoplay"
-            onLoad={handleIframeLoad}
-            title="Drink Bar Live Preview 9:16"
-            className="w-full h-full block border-0"
-          />
+          {isIframeMounted ? (
+            <iframe
+              ref={iframeRef}
+              src={mirrorUrl}
+              allow="autoplay"
+              onLoad={handleIframeLoad}
+              title="Drink Bar Live Preview 9:16"
+              className="w-full h-full block border-0"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2.5 p-6 rounded-2xl bg-[#FFF9FA] border-2 border-[#3B2820]/30 shadow-sm animate-pulse">
+              <Loader2 className="w-6 h-6 text-[#D89B63] animate-spin" />
+              <span className="font-display font-bold text-xs text-[#7A5F52]">
+                {msg.previewHeaderTitle}...
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </aside>

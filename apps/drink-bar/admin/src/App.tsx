@@ -32,7 +32,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     autoBotBar.stop();
-    sharedSoundEngine.enableAutoCafeBgm(true);
+    sharedSoundEngine.enableAutoCafeBgm(false);
     drinkBarAdminBridge.start();
     const offSnapshot = drinkBarAdminBridge.subscribeSnapshot(setLiveSnapshot);
     const offStatus = drinkBarAdminBridge.subscribeTikTokStatus(setTiktokStatus);

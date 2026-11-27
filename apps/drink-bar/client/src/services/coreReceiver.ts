@@ -310,11 +310,11 @@ export class DrinkBarCoreReceiver {
         (typeof window !== 'undefined' ? window.location.origin : '');
 
       this.socket = io(socketUrl, {
-        transports: ['websocket', 'polling'],
-        reconnectionAttempts: Infinity,
-        reconnectionDelay: 4000,
-        reconnectionDelayMax: 20000,
-        timeout: 5000,
+        transports: ['websocket'],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 5000,
+        reconnectionDelayMax: 15000,
+        timeout: 2000,
       });
 
       // Canonical NormalizedLiveEvent stream from Core Connect / Gateway

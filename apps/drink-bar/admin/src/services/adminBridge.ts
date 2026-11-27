@@ -98,9 +98,10 @@ class DrinkBarAdminBridge {
           import.meta.env.VITE_SERVER_URL?.trim() ||
           (typeof window !== 'undefined' ? window.location.origin : '');
         this.socket = io(serverOrigin, {
-          transports: ['websocket', 'polling'],
-          reconnectionAttempts: Infinity,
-          reconnectionDelay: 2500,
+          transports: ['websocket'],
+          reconnectionAttempts: 5,
+          reconnectionDelay: 5000,
+          timeout: 2000,
         });
 
         this.socket.on('tiktok:status', (payload: TikTokStatusPayload) => {

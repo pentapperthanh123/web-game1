@@ -6,7 +6,12 @@ interface ScaledStageProps {
 }
 
 export const ScaledStage: React.FC<ScaledStageProps> = ({ children }) => {
-  const [scale, setScale] = useState<number>(1);
+  const [scale, setScale] = useState<number>(() => {
+    if (typeof window === 'undefined') return 1;
+    const sx = window.innerWidth / STAGE_METRICS.WIDTH;
+    const sy = window.innerHeight / STAGE_METRICS.HEIGHT;
+    return Math.min(sx, sy);
+  });
 
   useEffect(() => {
     const updateScale = () => {

@@ -200,6 +200,13 @@ export function isHoldingOatsideSubstep(drink: ActiveDrink | null): boolean {
   return resolvePourRatio(drink) <= MATCHA_MILK_SPLIT_RATIO + 0.05;
 }
 
+export function isHoldingSodaBottleSubstep(drink: ActiveDrink | null): boolean {
+  if (!drink || drink.phase !== 'BREWING' || drink.recipeId !== 'berry_soda') return false;
+  const action = getBrewStep(drink.progress, drink.recipeId).action;
+  if (action !== 'pour_mix') return false;
+  return resolvePourRatio(drink) > SODA_SYRUP_SPLIT_RATIO;
+}
+
 export const IDLE_PHASE_TIMINGS = {
   WIPE_END_SEC: 4.5,
   STRETCH_YAWN_END_SEC: 6.8,
