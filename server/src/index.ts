@@ -65,8 +65,13 @@ app.use(express.json({ limit: '5mb' }));
 app.use(requireAdminForApiWrites);
 
 const httpServer = createServer(app);
+httpServer.on('connection', (socket) => {
+  socket.setNoDelay(true);
+});
 const io = new Server(httpServer, {
   maxHttpBufferSize: 5e6,
+  perMessageDeflate: false,
+  httpCompression: false,
   cors: {
     origin: corsOrigin,
     methods: ['GET', 'POST'],
@@ -78,6 +83,7 @@ const liveOpsConfig = loadLiveOpsConfigFromDisk();
 const initialTikTokUsername = (process.env.TIKTOK_USERNAME || DEFAULT_TIKTOK_USERNAME)
   .trim()
   .replace(/^@+/, '');
+const initialTikTokRoomId = process.env.TIKTOK_ROOM_ID?.trim() || undefined;
 
 const initialSeriesConfig = loadSeriesConfigFromDisk();
 const initialGameTheme = getBossThemeForRound(
@@ -102,6 +108,7 @@ const state: ServerState = {
   chatLimitConfig: liveOpsConfig.chatLimitConfig,
   casterConfig: liveOpsConfig.casterConfig,
   tiktokUsername: initialTikTokUsername,
+  tiktokRoomId: initialTikTokRoomId,
   connectionStatus: 'DISCONNECTED',
   lastErrorMessage: '',
   reconnectAttempt: 0,

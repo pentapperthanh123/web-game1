@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Check,
   CheckCircle2,
-  Copy,
   Droplets,
-  ExternalLink,
   Globe,
   Layers,
   Mic,
@@ -12,7 +9,6 @@ import {
   Moon,
   Music,
   Plus,
-  Radio,
   RefreshCw,
   RotateCcw,
   SkipForward,
@@ -22,23 +18,22 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { DRINK_BAR_STORAGE_KEYS, GAMEPLAY_LIMITS } from '@shared/config';
-import { getConnectionStatusLabel, getMessages } from '@shared/i18n';
-import { RECIPE_LIST } from '@shared/recipes';
+import { GAMEPLAY_LIMITS, MAX_ORDERS_PER_USER_OPTIONS } from '@shared/config';
+import { getMessages } from '@shared/i18n';
+import { MENU_RECIPE_LIST } from '@shared/recipes';
 import { sharedSoundEngine } from '@shared/soundEngine';
 import { sharedTtsPlayer } from '@shared/ttsPlayer';
 import type {
   DrinkBarConfig,
   DrinkInventoryMap,
   Language,
-  TikTokConnectionState,
   TikTokStatusPayload,
 } from '@shared/types';
 import {
   drinkBarAdminBridge,
-  getClientStageUrl,
   triggerJumpBrewStep,
 } from '../services/adminBridge';
+import { TikTokConnectCard } from './TikTokConnectCard';
 
 interface LiveControlsPanelProps {
   config: DrinkBarConfig;
@@ -46,6 +41,7 @@ interface LiveControlsPanelProps {
   tiktokStatus: TikTokStatusPayload;
   onChangeLanguage: (language: Language) => void;
   onChangeBrewDuration: (sec: number) => void;
+  onChangeMaxOrdersPerUser: (maxCups: number) => void;
   onChangeDefaultCapacity: (ml: number) => void;
   onToggleAutoRestock: () => void;
   onToggleUnlimitedInventory: () => void;
@@ -57,14 +53,6 @@ interface LiveControlsPanelProps {
   onToggleMicMode: () => void;
   onToggleSafeZone: () => void;
 }
-
-const STATUS_STYLE_MAP: Record<TikTokConnectionState, string> = {
-  CONNECTED: 'bg-[#CBEAD2] text-[#245B3A]',
-  CONNECTING: 'bg-[#FFF1C2] text-[#8A5200]',
-  RECONNECTING: 'bg-[#FDE0C6] text-[#9A4E1A]',
-  ERROR: 'bg-[#FAD7DC] text-[#8E2536]',
-  DISCONNECTED: 'bg-[#EFE0CC] text-[#7A5F52]',
-};
 
 function resolveAutoRestockBtnClass(isUnlimited: boolean, isAutoRestock: boolean): string {
   if (isUnlimited) {
@@ -82,6 +70,7 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
   tiktokStatus,
   onChangeLanguage,
   onChangeBrewDuration,
+  onChangeMaxOrdersPerUser,
   onChangeDefaultCapacity,
   onToggleAutoRestock,
   onToggleUnlimitedInventory,
@@ -93,12 +82,6 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
   onToggleMicMode,
   onToggleSafeZone,
 }) => {
-  const [tiktokId, setTiktokId] = useState<string>(() => {
-    if (typeof window === 'undefined') return '';
-    return localStorage.getItem(DRINK_BAR_STORAGE_KEYS.LAST_TIKTOK_ID) || '';
-  });
-  const [connectError, setConnectError] = useState<string>('');
-  const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isAudioUnlocked, setIsAudioUnlocked] = useState<boolean>(() =>
     sharedSoundEngine.isUnlocked()
   );
@@ -124,32 +107,6 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
   };
 
   const msg = getMessages(config.language);
-  const stageUrl = getClientStageUrl(false);
-
-  const handleConnect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = tiktokId.trim().replace(/^@+/, '');
-    if (!clean) {
-      setConnectError(msg.connectErrorMissingId);
-      return;
-    }
-    localStorage.setItem(DRINK_BAR_STORAGE_KEYS.LAST_TIKTOK_ID, clean);
-    setConnectError('');
-    try {
-      const res = await drinkBarAdminBridge.connectTikTok(clean);
-      if (!res.ok) {
-        setConnectError(res.error || msg.connectErrorServer);
-      }
-    } catch {
-      setConnectError(msg.connectErrorServer);
-    }
-  };
-
-  const handleCopyStageUrl = () => {
-    void navigator.clipboard.writeText(stageUrl);
-    setIsCopied(true);
-    window.setTimeout(() => setIsCopied(false), 1600);
-  };
 
   return (
     <section className="bar-panel p-3.5 space-y-3">
@@ -207,6 +164,43 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
           <span>{GAMEPLAY_LIMITS.MIN_BREW_DURATION_SEC}s</span>
           <span>{GAMEPLAY_LIMITS.DEFAULT_BREW_DURATION_SEC}s</span>
           <span>{GAMEPLAY_LIMITS.MAX_BREW_DURATION_SEC}s</span>
+        </div>
+      </div>
+
+      {/* Max Orders Per Viewer Selector (1, 2, 3, 5, Unlimited) */}
+      <div className="rounded-[14px] bg-[#F9EFE2] border-2 border-[#3B2820]/25 px-3 py-2 space-y-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span className="block text-[12px] font-black text-[#3B2820]">
+              {msg.maxOrdersPerUserLabel}
+            </span>
+            <span className="block text-[10px] font-bold text-[#7A5F52]">
+              {msg.maxOrdersPerUserHint}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            {MAX_ORDERS_PER_USER_OPTIONS.map((limitVal) => {
+              const isSelected = (config.maxOrdersPerUser ?? 1) === limitVal;
+              const pillLabel =
+                limitVal === 0
+                  ? msg.unlimitedCupsPerUserLabel
+                  : `${limitVal} ${msg.cupsPerUserUnit}`;
+              return (
+                <button
+                  key={limitVal}
+                  type="button"
+                  onClick={() => onChangeMaxOrdersPerUser(limitVal)}
+                  className={`px-2.5 py-0.5 rounded-full border-2 border-[#3B2820] text-[10.5px] font-black cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-[#D9F0F6] text-[#235F70]'
+                      : 'bg-[#FFFDF9] text-[#7A5F52] hover:text-[#3B2820]'
+                  }`}
+                >
+                  {pillLabel}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -385,7 +379,7 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
 
         {/* Recipe Stock Rows */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-          {RECIPE_LIST.map((recipe) => {
+          {MENU_RECIPE_LIST.map((recipe) => {
             const slot = inventory?.[recipe.id];
             const currentMl = slot?.currentMl ?? config.defaultCapacityMl;
             const maxMl = slot?.maxMl ?? config.defaultCapacityMl;
@@ -570,80 +564,8 @@ export const LiveControlsPanel: React.FC<LiveControlsPanelProps> = ({
         </div>
       </div>
 
-      {/* Compact Core Connect Service (server/) Bar */}
-      <div className="rounded-[14px] bg-[#F9EFE2] border-2 border-[#3B2820]/25 p-2.5 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <Radio className="w-3.5 h-3.5 text-[#C5834B]" />
-            <span className="text-[11.5px] font-black text-[#3B2820]">
-              {msg.tiktokConnectTitle}
-            </span>
-          </div>
-          <span
-            className={`px-2 py-0.5 rounded-full border-[1.5px] border-[#3B2820] text-[10px] font-black ${
-              STATUS_STYLE_MAP[tiktokStatus.status]
-            }`}
-          >
-            {getConnectionStatusLabel(tiktokStatus.status, config.language)}
-          </span>
-        </div>
-
-        <form onSubmit={(e) => void handleConnect(e)} className="flex gap-1.5">
-          <input
-            type="text"
-            value={tiktokId}
-            onChange={(e) => setTiktokId(e.target.value)}
-            placeholder={msg.tiktokPlaceholder}
-            className="flex-1 min-w-0 bg-[#FFFDF9] border-2 border-[#3B2820] rounded-[11px] px-2.5 py-1 text-[11.5px] font-bold text-[#3B2820] placeholder:text-[#9A7F70] focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="bar-btn bg-[#A7D397] hover:bg-[#93C780] px-3 py-1 text-[11.5px] font-black text-[#3B2820] cursor-pointer"
-          >
-            {msg.btnConnect}
-          </button>
-          {tiktokStatus.status !== 'DISCONNECTED' && (
-            <button
-              type="button"
-              onClick={() => void drinkBarAdminBridge.disconnectTikTok()}
-              className="bar-btn bg-[#FAD7DC] hover:bg-[#F5C0C8] px-2.5 py-1 text-[11.5px] font-black text-[#3B2820] cursor-pointer"
-            >
-              {msg.btnDisconnect}
-            </button>
-          )}
-        </form>
-
-        {(connectError || tiktokStatus.error) && (
-          <p className="text-[11px] font-bold text-[#9C2B3C]">
-            {connectError || tiktokStatus.error}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#3B2820]/12">
-          <span className="text-[10.5px] font-bold text-[#7A5F52] truncate font-mono">
-            {msg.stageUrlLabel}: {stageUrl}
-          </span>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={handleCopyStageUrl}
-              className="px-2 py-0.5 rounded-[8px] bg-[#FFFDF9] border-2 border-[#3B2820] text-[10.5px] font-black inline-flex items-center gap-1 cursor-pointer"
-            >
-              {isCopied ? <Check className="w-3 h-3 text-[#245B3A]" /> : <Copy className="w-3 h-3" />}
-              {isCopied ? msg.btnCopied : msg.btnCopyUrl}
-            </button>
-            <a
-              href={stageUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="px-2 py-0.5 rounded-[8px] bg-[#FDE0C6] border-2 border-[#3B2820] text-[10.5px] font-black inline-flex items-center gap-1 text-[#3B2820] no-underline"
-            >
-              <ExternalLink className="w-3 h-3" />
-              {msg.btnOpenStage}
-            </a>
-          </div>
-        </div>
-      </div>
+      {/* Compact Core Connect Service (server/) Bar with 1-Click Room ID Resolver */}
+      <TikTokConnectCard language={config.language} tiktokStatus={tiktokStatus} />
     </section>
   );
 };

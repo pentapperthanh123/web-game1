@@ -4,6 +4,7 @@ import type { Language } from './types';
 
 export interface TtsSpeakRequest {
   text: string;
+  fallbackTexts?: readonly string[];
   language: Language;
   rate?: number;
   pitch?: number;
@@ -14,8 +15,9 @@ export interface TtsSpeakRequest {
   onBlockedRelay?: () => boolean;
 }
 
-const MAX_CACHE_ENTRIES = 40;
-const FETCH_TIMEOUT_MS = 5000;
+const MAX_CACHE_ENTRIES = 160;
+const FETCH_TIMEOUT_MS = 3200;
+const MAX_CONCURRENT_PREWARMS = 6;
 const TTS_ROUTE = '/api/tts';
 
 export function selectPreferredSpeechVoice(
@@ -45,7 +47,9 @@ export function selectPreferredSpeechVoice(
 
 class SharedGoogleTtsPlayer {
   private readonly bufferCache = new Map<string, ArrayBuffer>();
+  private readonly inFlightFetches = new Map<string, Promise<ArrayBuffer | null>>();
   private activeSeq = 0;
+  private hasSucceededGoogleTts = false;
   private activeHtmlAudio: HTMLAudioElement | null = null;
   private activeBlobUrl: string | null = null;
   private activeWatchdog: ReturnType<typeof setTimeout> | null = null;
@@ -80,6 +84,17 @@ class SharedGoogleTtsPlayer {
       window.speechSynthesis.addEventListener('voiceschanged', refresh);
     } catch {
       // Ignore browsers without addEventListener on speechSynthesis
+    }
+  }
+
+  public prewarmPhrases(texts: readonly string[], language: Language): void {
+    for (const raw of texts) {
+      if (this.inFlightFetches.size >= MAX_CONCURRENT_PREWARMS) {
+        break;
+      }
+      const clean = raw.trim();
+      if (!clean) continue;
+      void this.fetchGoogleTtsBuffer(clean, language);
     }
   }
 
@@ -130,13 +145,29 @@ class SharedGoogleTtsPlayer {
     const volume = Math.max(0.15, Math.min(1, req.volume ?? 0.85));
 
     // Try real Chị Google audio via `/api/tts?provider=google` first
-    const audioBuf = await this.fetchGoogleTtsBuffer(text, req.language);
+    let audioBuf = await this.fetchGoogleTtsBuffer(text, req.language);
     if (seq !== this.activeSeq) {
       finishOnce();
       return;
     }
 
+    // If personalized text timed out/throttled under burst traffic, fall back to cached generic Chị Google line
+    // so voice stays 100% consistent instead of switching to a robotic OS voice!
+    if (!audioBuf && req.fallbackTexts?.length) {
+      for (const fallbackText of req.fallbackTexts) {
+        const cleanFallback = fallbackText.trim();
+        if (!cleanFallback) continue;
+        audioBuf = await this.fetchGoogleTtsBuffer(cleanFallback, req.language);
+        if (seq !== this.activeSeq) {
+          finishOnce();
+          return;
+        }
+        if (audioBuf) break;
+      }
+    }
+
     if (audioBuf) {
+      this.hasSucceededGoogleTts = true;
       if (req.allowIframeRelay && !sharedSoundEngine.isUnlocked() && req.onBlockedRelay?.()) {
         return;
       }
@@ -180,6 +211,12 @@ class SharedGoogleTtsPlayer {
       }
     }
 
+    // Never mix inconsistent robotic browser voice once Chị Google TTS is confirmed active
+    if (this.hasSucceededGoogleTts) {
+      finishOnce();
+      return;
+    }
+
     // Fallback: If iframe lacks gesture, relay to Admin parent first before browser speechSynthesis
     if (req.allowIframeRelay && !sharedSoundEngine.isUnlocked() && req.onBlockedRelay?.()) {
       return;
@@ -202,33 +239,47 @@ class SharedGoogleTtsPlayer {
       return cached.slice(0);
     }
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    const url = `${TTS_ROUTE}?provider=google&tl=${tl}&text=${encodeURIComponent(text)}`;
-
-    try {
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timer);
-      if (!res.ok) return null;
-      const contentType = res.headers.get('content-type') ?? '';
-      if (!contentType.includes('audio') && !contentType.includes('octet-stream')) {
-        return null;
-      }
-      const raw = await res.arrayBuffer();
-      if (raw.byteLength < 128) return null;
-
-      if (this.bufferCache.size >= MAX_CACHE_ENTRIES) {
-        const oldestKey = this.bufferCache.keys().next().value;
-        if (oldestKey) {
-          this.bufferCache.delete(oldestKey);
-        }
-      }
-      this.bufferCache.set(key, raw.slice(0));
-      return raw;
-    } catch {
-      clearTimeout(timer);
-      return null;
+    const existingFetch = this.inFlightFetches.get(key);
+    if (existingFetch) {
+      const shared = await existingFetch;
+      return shared ? shared.slice(0) : null;
     }
+
+    const fetchPromise = (async (): Promise<ArrayBuffer | null> => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      const url = `${TTS_ROUTE}?provider=google&tl=${tl}&text=${encodeURIComponent(text)}`;
+
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) return null;
+        const contentType = res.headers.get('content-type') ?? '';
+        if (!contentType.includes('audio') && !contentType.includes('octet-stream')) {
+          return null;
+        }
+        const raw = await res.arrayBuffer();
+        if (raw.byteLength < 128) return null;
+
+        if (this.bufferCache.size >= MAX_CACHE_ENTRIES) {
+          const oldestKey = this.bufferCache.keys().next().value;
+          if (oldestKey) {
+            this.bufferCache.delete(oldestKey);
+          }
+        }
+        this.bufferCache.set(key, raw.slice(0));
+        return raw;
+      } catch {
+        clearTimeout(timer);
+        return null;
+      } finally {
+        this.inFlightFetches.delete(key);
+      }
+    })();
+
+    this.inFlightFetches.set(key, fetchPromise);
+    const result = await fetchPromise;
+    return result ? result.slice(0) : null;
   }
 
   private async playViaHtmlAudio(

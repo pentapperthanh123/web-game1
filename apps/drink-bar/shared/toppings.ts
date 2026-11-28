@@ -113,9 +113,11 @@ export function mergeUniqueToppings(
 
 const RECIPE_TOPPING_POOL_MAP: Partial<Record<RecipeId, readonly ToppingId[]>> = {
   matcha: MATCHA_TOPPING_ROTATION,
+  thai_tea: BASIC_TOPPING_ROTATION,
   peach_tea: CITRUS_TOPPING_ROTATION,
   lime_tea: CITRUS_TOPPING_ROTATION,
   coffee_milk: MATCHA_TOPPING_ROTATION,
+  cacao: MATCHA_TOPPING_ROTATION,
   berry_soda: CITRUS_TOPPING_ROTATION,
   blue_citrus: CITRUS_TOPPING_ROTATION,
 };

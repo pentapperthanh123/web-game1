@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Crown, Sparkles } from 'lucide-react';
 import { GAMEPLAY_LIMITS } from '@shared/config';
 import { getMessages } from '@shared/i18n';
-import type { DrinkOrder, GuestBubble } from '@shared/types';
-import type { GuestLaneIndex } from '../store/drinkBarStore';
+import { normalizeUserId } from '@shared/queue';
+import type { DrinkOrder } from '@shared/types';
+import type { CelebratingGuestState, GuestLaneIndex } from '../store/drinkBarStore';
 import { useDrinkBarStore } from '../store/drinkBarStore';
 
 interface DisplayGuestSlot {
@@ -14,6 +15,7 @@ interface DisplayGuestSlot {
   bottomColor: string;
   isVip: boolean;
   isSignature: boolean;
+  cupCount: number;
   bubbleText?: string;
   bubbleKey?: string;
   styleIdx: number;
@@ -34,22 +36,22 @@ const SKIN_COLOR = '#FDE0C2';
 const BLUSH_COLOR = '#F48BA3';
 const CHIBI_STROKE_WIDTH = 2.5;
 const MAX_PER_LANE = 12;
-const FIXED_GUEST_SCALE = 0.72;
-const ORDER_ZONE_SCALE = 0.82;
-const ORDER_ZONE_COLS: readonly number[] = [252, 468, 150, 570, 58, 662];
-const ORDER_ZONE_TOP_Y = 678;
-const OUTER_CROWD_COLS: readonly number[] = [56, 142, 228, 314, 406, 492, 578, 664];
-const OUTER_CROWD_ROWS_Y: readonly number[] = [800, 844];
-const OUTER_CROWD_MIN_X = 48;
-const OUTER_CROWD_MAX_X = 672;
-const OUTER_CROWD_MIN_Y = 796;
-const OUTER_CROWD_MAX_Y = 856;
+const FIXED_GUEST_SCALE = 0.56;
+const ORDER_ZONE_SCALE = 0.8;
+const ORDER_ZONE_COLS: readonly number[] = [248, 472, 146, 574, 54, 666];
+const ORDER_ZONE_TOP_Y = 746;
+const OUTER_CROWD_COLS: readonly number[] = [48, 126, 204, 282, 360, 438, 516, 594, 672];
+const OUTER_CROWD_ROWS_Y: readonly number[] = [846, 916];
+const OUTER_CROWD_MIN_X = 42;
+const OUTER_CROWD_MAX_X = 678;
+const OUTER_CROWD_MIN_Y = 844;
+const OUTER_CROWD_MAX_Y = 922;
 
 const EMPTY_LOBBY_MAT_METRICS = {
   TOP_Y: 832,
   LEFT_X: 22,
   WIDTH: 676,
-  HEIGHT: 122,
+  HEIGHT: 184,
 } as const;
 
 const GUEST_SHIRT_COLORS: readonly string[] = [
@@ -100,10 +102,10 @@ function computeGuestFloorCoord(slotIndex: number, orderId: string): FloorSlotCo
   const outerIdx = slotIndex - ORDER_ZONE_COLS.length;
   const colCount = OUTER_CROWD_COLS.length;
   const colIdx = outerIdx % colCount;
-  const rowIdx = Math.floor(outerIdx / colCount) % OUTER_CROWD_ROWS_Y.length;
+  const rowIdx = Math.min(OUTER_CROWD_ROWS_Y.length - 1, Math.floor(outerIdx / colCount));
 
-  const jitterX = (hashString(`${orderId}_jx`) % 29) - 14;
-  const jitterY = (hashString(`${orderId}_jy`) % 17) - 8;
+  const jitterX = (hashString(`${orderId}_jx`) % 7) - 3;
+  const jitterY = (hashString(`${orderId}_jy`) % 5) - 2;
 
   const left = clampRange(OUTER_CROWD_COLS[colIdx] + jitterX, OUTER_CROWD_MIN_X, OUTER_CROWD_MAX_X);
   const top = clampRange(OUTER_CROWD_ROWS_Y[rowIdx] + jitterY, OUTER_CROWD_MIN_Y, OUTER_CROWD_MAX_Y);
@@ -112,14 +114,14 @@ function computeGuestFloorCoord(slotIndex: number, orderId: string): FloorSlotCo
     left,
     top,
     scale: FIXED_GUEST_SCALE,
-    zIndex: 24 + Math.round((top - OUTER_CROWD_MIN_Y) / 2),
+    zIndex: 24 + rowIdx * 2,
   };
 }
 
 const CENTER_PICKUP_COORD: FloorSlotCoord = {
   left: 360,
-  top: 682,
-  scale: ORDER_ZONE_SCALE,
+  top: 762,
+  scale: 0.85,
   zIndex: 29,
 };
 
@@ -139,16 +141,6 @@ function resolveBubblePositionClass(centerX: number): string {
     return 'top-[12px] -left-[42px]';
   }
   return centerX < 360 ? 'top-[18px] -left-[48px]' : 'top-[18px] -right-[48px]';
-}
-
-function findBubbleForGuest(
-  bubbles: readonly GuestBubble[],
-  order: DrinkOrder,
-  queueIndex: number
-): GuestBubble | undefined {
-  const exact = bubbles.find((b) => b.userId === order.user.id);
-  if (exact) return exact;
-  return bubbles.find((b) => b.slotIndex === queueIndex);
 }
 
 const ChibiBackViewHair: React.FC<{ styleIdx: number }> = ({ styleIdx }) => {
@@ -752,14 +744,55 @@ const StandingChibiSvg: React.FC<{
   );
 };
 
-function extractAvatarInitials(nickname: string): string {
-  const clean = nickname.replace(/\d+$/g, '').trim() || nickname.trim();
-  const parts = clean.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+const ChibiFallbackPortrait: React.FC<{ bgColor: string }> = ({ bgColor }) => (
+  <svg viewBox="0 0 52 52" className="w-full h-full block" aria-hidden="true">
+    <rect width="52" height="52" fill={bgColor} />
+    <circle cx="26" cy="27" r="14.5" fill={SKIN_COLOR} stroke={OUTLINE_COLOR} strokeWidth="2.2" />
+    <path
+      d="M11.5 23 C12 10, 40 10, 40.5 23 C36 17, 29 19, 26 16 C22 19, 16 17, 11.5 23 Z"
+      fill="#4B3227"
+      stroke={OUTLINE_COLOR}
+      strokeWidth="2.1"
+      strokeLinejoin="round"
+    />
+    <circle cx="20.5" cy="27.5" r="2.2" fill={OUTLINE_COLOR} />
+    <circle cx="31.5" cy="27.5" r="2.2" fill={OUTLINE_COLOR} />
+    <circle cx="20" cy="26.8" r="0.8" fill="#FFFFFF" />
+    <circle cx="31" cy="26.8" r="0.8" fill="#FFFFFF" />
+    <ellipse cx="16.8" cy="30.5" rx="2.6" ry="1.5" fill={BLUSH_COLOR} opacity="0.7" />
+    <ellipse cx="35.2" cy="30.5" rx="2.6" ry="1.5" fill={BLUSH_COLOR} opacity="0.7" />
+    <path
+      d="M22.5 32.5 Q26 35.5 29.5 32.5"
+      fill="none"
+      stroke={OUTLINE_COLOR}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const AvatarPortraitImg: React.FC<{
+  nickname: string;
+  avatarUrl?: string;
+  bgColor: string;
+}> = ({ nickname, avatarUrl, bgColor }) => {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showPhoto = Boolean(avatarUrl && failedUrl !== avatarUrl);
+
+  if (showPhoto) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={nickname}
+        referrerPolicy="no-referrer"
+        draggable={false}
+        onError={() => setFailedUrl(avatarUrl ?? null)}
+        className="w-full h-full object-cover"
+      />
+    );
   }
-  return clean.slice(0, 2).toUpperCase() || 'VIP';
-}
+  return <ChibiFallbackPortrait bgColor={bgColor} />;
+};
 
 const GuestHeadAvatarBadge: React.FC<{
   nickname: string;
@@ -767,53 +800,212 @@ const GuestHeadAvatarBadge: React.FC<{
   bgColor: string;
   isSignature: boolean;
 }> = ({ nickname, avatarUrl, bgColor, isSignature }) => {
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const showPhoto = Boolean(avatarUrl && failedUrl !== avatarUrl);
   const ringBorderColor = isSignature ? '#D99526' : OUTLINE_COLOR;
 
   return (
     <div
-      className="absolute top-[16px] left-1/2 -translate-x-1/2 w-[50px] h-[50px] rounded-full overflow-hidden z-20 flex items-center justify-center shadow-[0_1.5px_0_rgba(59,40,32,0.28)]"
+      className="absolute top-[14px] left-1/2 -translate-x-1/2 w-[52px] h-[52px] rounded-full overflow-hidden z-20 flex items-center justify-center shadow-[0_2px_0_rgba(59,40,32,0.32)]"
       style={{
-        border: `2.4px solid ${ringBorderColor}`,
-        backgroundColor: bgColor,
+        border: `2.6px solid ${ringBorderColor}`,
+        backgroundColor: avatarUrl ? '#FFFDF9' : bgColor,
       }}
     >
-      {showPhoto ? (
-        <img
-          src={avatarUrl}
-          alt={nickname}
-          referrerPolicy="no-referrer"
-          draggable={false}
-          onError={() => setFailedUrl(avatarUrl ?? null)}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <span className="font-display font-bold text-[16px] tracking-tight text-[#3B2820] leading-none select-none">
-          {extractAvatarInitials(nickname)}
-        </span>
-      )}
+      <AvatarPortraitImg nickname={nickname} avatarUrl={avatarUrl} bgColor={bgColor} />
     </div>
   );
 };
 
+interface GuestCharacterViewProps {
+  nickname: string;
+  avatarUrl?: string;
+  shirtColor: string;
+  bottomColor: string;
+  styleIdx: number;
+  isVip: boolean;
+  isSignature: boolean;
+  cupCount?: number;
+  isHappy?: boolean;
+  isReaching?: boolean;
+  holdingCupColor?: string;
+  bobClass?: string;
+  bobDelaySec?: number;
+  bubbleText?: string;
+  bubbleKey?: string;
+  bubblePositionClass?: string;
+  keepBubbleVisible?: boolean;
+}
+
+const GuestCharacterView: React.FC<GuestCharacterViewProps> = ({
+  nickname,
+  avatarUrl,
+  shirtColor,
+  bottomColor,
+  styleIdx,
+  isVip,
+  isSignature,
+  cupCount = 1,
+  isHappy = false,
+  isReaching = false,
+  holdingCupColor,
+  bobClass = 'animate-guest-eager',
+  bobDelaySec = 0,
+  bubbleText,
+  bubbleKey,
+  bubblePositionClass = 'top-[6px] -right-[78px]',
+  keepBubbleVisible = false,
+}) => {
+  const bubbleAnimClass = keepBubbleVisible ? 'animate-bubble-pop' : 'animate-guest-bubble';
+  return (
+    <>
+      {bubbleText && (
+        <div
+          key={bubbleKey}
+          className={`absolute min-w-[78px] max-w-[168px] bg-[#FFFDF9] border-[2.4px] border-[#3B2820] rounded-[12px] px-2.5 py-[3.5px] shadow-[0_2px_0_#3B2820] z-40 ${bubbleAnimClass} ${bubblePositionClass}`}
+        >
+          <p className="text-[12.5px] font-black text-[#2B1B15] tracking-tight leading-tight text-center whitespace-nowrap truncate">
+            {bubbleText}
+          </p>
+        </div>
+      )}
+
+      <div
+        className={`relative flex flex-col items-center ${bobClass}`}
+        style={bobDelaySec > 0 ? { animationDelay: `${bobDelaySec}s` } : undefined}
+      >
+        {isVip && (
+          <span className="absolute -top-[6px] right-[12px] w-5 h-5 rounded-full bg-[#F7C95B] border-[2px] border-[#3B2820] flex items-center justify-center z-30 shadow-[0_1.5px_0_#3B2820]">
+            <Crown className="w-3 h-3 text-[#3B2820]" strokeWidth={2.8} />
+          </span>
+        )}
+
+        <StandingChibiSvg
+          shirtColor={shirtColor}
+          bottomColor={bottomColor}
+          styleIdx={styleIdx}
+          isSignature={isSignature}
+          isHappy={isHappy}
+          isReaching={isReaching}
+          holdingCupColor={holdingCupColor}
+        />
+        <GuestHeadAvatarBadge
+          nickname={nickname}
+          avatarUrl={avatarUrl}
+          bgColor={shirtColor}
+          isSignature={isSignature}
+        />
+      </div>
+
+      <div
+        className={`-mt-[4px] px-2.5 py-[3px] rounded-full border-[2.4px] border-[#3B2820] shadow-[0_2px_0_#3B2820] max-w-[162px] flex items-center justify-center gap-1 ${
+          isSignature ? 'bg-[#FFF1C2]' : 'bg-[#FFFDF9]'
+        }`}
+      >
+        <span className="text-[12.5px] font-black tracking-tight text-[#2B1B15] truncate leading-none">
+          {nickname}
+        </span>
+        {cupCount > 1 && (
+          <span className="shrink-0 rounded-full bg-[#F7C95B] border-[1.5px] border-[#3B2820] px-1.5 py-[1px] text-[10px] font-black text-[#2B1B15] leading-none">
+            x{cupCount}
+          </span>
+        )}
+      </div>
+    </>
+  );
+};
+
+interface GroupedWaitingOrder {
+  representativeOrder: DrinkOrder;
+  userKey: string;
+  cupCount: number;
+  isVip: boolean;
+  isSignature: boolean;
+  celeb?: CelebratingGuestState;
+}
+
+function groupWaitingOrdersByUser(
+  orders: readonly DrinkOrder[],
+  excludedUserKeys: ReadonlySet<string>,
+  celebratingByOrderId: Readonly<Record<string, CelebratingGuestState>>
+): GroupedWaitingOrder[] {
+  const byUser = new Map<string, GroupedWaitingOrder>();
+
+  for (const order of orders) {
+    const userKey = normalizeUserId(order.user);
+    if (excludedUserKeys.has(userKey)) {
+      continue;
+    }
+
+    const orderCeleb = celebratingByOrderId[order.orderId];
+    const existing = byUser.get(userKey);
+    if (existing) {
+      existing.cupCount += 1;
+      if (order.isVip) existing.isVip = true;
+      if (order.isSignature) existing.isSignature = true;
+      if (!existing.celeb && orderCeleb) existing.celeb = orderCeleb;
+      continue;
+    }
+
+    byUser.set(userKey, {
+      representativeOrder: order,
+      userKey,
+      cupCount: 1,
+      isVip: order.isVip,
+      isSignature: order.isSignature,
+      celeb: orderCeleb,
+    });
+  }
+
+  return Array.from(byUser.values());
+}
+
+function resolveGuestRingColor(isSignature: boolean, isVip: boolean): string {
+  if (isSignature) return '#D99526';
+  if (isVip) return '#F7C95B';
+  return OUTLINE_COLOR;
+}
+
 export const WaitingGuestsStrip: React.FC = () => {
   const language = useDrinkBarStore((s) => s.config.language);
+  const activeSlotDrink = useDrinkBarStore((s) => s.activeSlots[0]);
   const vipQueue = useDrinkBarStore((s) => s.vipQueue);
   const normalQueue = useDrinkBarStore((s) => s.normalQueue);
-  const guestBubbles = useDrinkBarStore((s) => s.guestBubbles);
   const guestLaneByOrderId = useDrinkBarStore((s) => s.guestLaneByOrderId);
   const celebratingByOrderId = useDrinkBarStore((s) => s.celebratingByOrderId);
   const departingGuests = useDrinkBarStore((s) => s.departingGuests);
 
-  const allQueuedCount = vipQueue.length + normalQueue.length;
-  const queued = [...vipQueue, ...normalQueue].slice(0, GAMEPLAY_LIMITS.MAX_GUEST_SLOTS);
-  const overflowCount = Math.max(0, allQueuedCount - queued.length);
-  if (queued.length === 0 && departingGuests.length === 0) {
+  const activeBrewingDrink =
+    activeSlotDrink &&
+    activeSlotDrink.phase === 'BREWING' &&
+    !departingGuests.some((dep) => dep.order.orderId === activeSlotDrink.orderId)
+      ? activeSlotDrink
+      : null;
+
+  const activeBrewingUserKey = activeBrewingDrink
+    ? normalizeUserId(activeBrewingDrink.user)
+    : null;
+  const counterUserKeys = new Set<string>();
+  if (activeBrewingUserKey) {
+    counterUserKeys.add(activeBrewingUserKey);
+  }
+  for (const dep of departingGuests) {
+    if (dep.isCenterPickup) {
+      counterUserKeys.add(normalizeUserId(dep.order.user));
+    }
+  }
+  const allCombinedQueue = [...vipQueue, ...normalQueue];
+  const groupedWaiting = groupWaitingOrdersByUser(
+    allCombinedQueue,
+    counterUserKeys,
+    celebratingByOrderId
+  );
+  const visibleWaiting = groupedWaiting.slice(0, GAMEPLAY_LIMITS.MAX_GUEST_SLOTS);
+  const overflowWaiting = groupedWaiting.slice(GAMEPLAY_LIMITS.MAX_GUEST_SLOTS);
+
+  if (!activeBrewingDrink && visibleWaiting.length === 0 && departingGuests.length === 0) {
     const msg = getMessages(language);
     return (
       <section
-        className="absolute pointer-events-none z-20 flex items-center justify-center px-4"
+        className="absolute pointer-events-none z-20 flex items-center justify-center px-5"
         style={{
           top: EMPTY_LOBBY_MAT_METRICS.TOP_Y,
           left: EMPTY_LOBBY_MAT_METRICS.LEFT_X,
@@ -822,7 +1014,7 @@ export const WaitingGuestsStrip: React.FC = () => {
         }}
         aria-label="Empty lobby order guide"
       >
-        <div className="w-[560px] max-w-full rounded-full bg-[#FFFDF9]/96 border-[2.2px] border-[#3B2820] px-5 py-2 shadow-[0_2.5px_0_#3B2820] flex items-center justify-center gap-2">
+        <div className="w-full rounded-full bg-[#FFFDF9]/96 border-[2.2px] border-[#3B2820] px-5 py-2 shadow-[0_2.5px_0_#3B2820] flex items-center justify-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-[#F48BA3] shrink-0" strokeWidth={2.5} />
           <span className="text-[12.5px] font-black text-[#3B2820] tracking-tight uppercase select-none">
             {msg.lobbyIdleOneLine}
@@ -834,8 +1026,9 @@ export const WaitingGuestsStrip: React.FC = () => {
   }
 
   const laneRowCounts: [number, number] = [0, 0];
-  const guests: (DisplayGuestSlot & { isHappy: boolean; holdingCupColor?: string })[] = queued.map(
-    (order, idx) => {
+  const guests: (DisplayGuestSlot & { isHappy: boolean; holdingCupColor?: string })[] =
+    visibleWaiting.map((group, idx) => {
+      const order = group.representativeOrder;
       const fallbackLane: GuestLaneIndex = laneRowCounts[0] <= laneRowCounts[1] ? 0 : 1;
       const assigned = guestLaneByOrderId[order.orderId];
       const lane: GuestLaneIndex =
@@ -845,9 +1038,8 @@ export const WaitingGuestsStrip: React.FC = () => {
       const baseRow = laneRowCounts[lane];
       laneRowCounts[lane] += 1;
 
-      const styleIdx = hashOrderStyle(order.orderId);
-      const bubble = findBubbleForGuest(guestBubbles, order, idx);
-      const celeb = celebratingByOrderId[order.orderId];
+      const styleIdx = hashOrderStyle(group.userKey);
+      const celeb = group.celeb;
 
       return {
         id: order.orderId,
@@ -855,10 +1047,11 @@ export const WaitingGuestsStrip: React.FC = () => {
         avatarUrl: order.user.avatarUrl,
         shirtColor: GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length],
         bottomColor: GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length],
-        isVip: order.isVip,
-        isSignature: order.isSignature,
-        bubbleText: celeb?.text ?? bubble?.text,
-        bubbleKey: celeb ? `celeb_${order.orderId}` : bubble ? `${bubble.id}` : undefined,
+        isVip: group.isVip,
+        isSignature: group.isSignature,
+        cupCount: group.cupCount,
+        bubbleText: celeb?.text,
+        bubbleKey: celeb ? `celeb_${order.orderId}` : undefined,
         styleIdx,
         lane,
         row: baseRow,
@@ -866,14 +1059,68 @@ export const WaitingGuestsStrip: React.FC = () => {
         isHappy: Boolean(celeb),
         holdingCupColor: celeb?.recipeColor,
       };
-    }
-  );
+    });
+
+  const activeBrewingGuest = activeBrewingDrink
+    ? (() => {
+        const userKey = activeBrewingUserKey ?? normalizeUserId(activeBrewingDrink.user);
+        const queuedForActiveUser = allCombinedQueue.filter(
+          (o) => normalizeUserId(o.user) === userKey
+        ).length;
+        const styleIdx = hashOrderStyle(userKey);
+        return {
+          id: activeBrewingDrink.orderId,
+          nickname: activeBrewingDrink.user.nickname,
+          avatarUrl: activeBrewingDrink.user.avatarUrl,
+          shirtColor: GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length],
+          bottomColor: GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length],
+          isVip: activeBrewingDrink.isVip,
+          isSignature: activeBrewingDrink.isSignature,
+          cupCount: 1 + queuedForActiveUser,
+          styleIdx,
+        };
+      })()
+    : null;
 
   return (
     <section
       className="absolute inset-0 pointer-events-none z-20"
       aria-label="Waiting guests standing dynamically on floor"
     >
+      {/* Customer currently being served at center counter: stands right in front of barista on floor mat */}
+      {activeBrewingGuest && (
+        <div
+          key={`brewing_${activeBrewingGuest.id}`}
+          className="absolute w-[136px] transition-[left,top] duration-700 ease-out"
+          style={{
+            left: `${CENTER_PICKUP_COORD.left - 68}px`,
+            top: `${CENTER_PICKUP_COORD.top}px`,
+            zIndex: CENTER_PICKUP_COORD.zIndex,
+          }}
+        >
+          <div className="w-full flex flex-col items-center animate-queue-enter-vertical">
+            <div
+              className="w-full flex flex-col items-center transition-transform duration-500 ease-in-out"
+              style={{
+                transform: `scale(${CENTER_PICKUP_COORD.scale})`,
+                transformOrigin: 'top center',
+              }}
+            >
+              <GuestCharacterView
+                nickname={activeBrewingGuest.nickname}
+                avatarUrl={activeBrewingGuest.avatarUrl}
+                shirtColor={activeBrewingGuest.shirtColor}
+                bottomColor={activeBrewingGuest.bottomColor}
+                styleIdx={activeBrewingGuest.styleIdx}
+                isVip={activeBrewingGuest.isVip}
+                isSignature={activeBrewingGuest.isSignature}
+                cupCount={activeBrewingGuest.cupCount}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Active queued customers: smoothly walk from outer crowd into counter order zone */}
       {guests.map((guest, idx) => {
         const coord = computeGuestFloorCoord(idx, guest.id);
@@ -898,55 +1145,24 @@ export const WaitingGuestsStrip: React.FC = () => {
                   transformOrigin: 'top center',
                 }}
               >
-                {/* Auto-fading compact drink / VIP / celebration speech bubble clamped safely inside stage */}
-                {guest.bubbleText && (
-                  <div
-                    key={guest.bubbleKey}
-                    className={`absolute max-w-[116px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-guest-bubble z-40 ${resolveBubblePositionClass(coord.left)}`}
-                  >
-                    <p className="text-[10px] font-black text-[#3B2820] leading-tight text-center truncate">
-                      {guest.bubbleText}
-                    </p>
-                  </div>
-                )}
-
-                {/* Full-body standing chibi guest facing bar counter (~1.3x scale) */}
-                <div
-                  className={`relative flex flex-col items-center ${bobClass}`}
-                  style={{ animationDelay: `${idx * 0.28}s` }}
-                >
-                  {guest.isVip && (
-                    <span className="absolute -top-[6px] right-[12px] w-5 h-5 rounded-full bg-[#F7C95B] border-[2px] border-[#3B2820] flex items-center justify-center z-30 shadow-[0_1.5px_0_#3B2820]">
-                      <Crown className="w-3 h-3 text-[#3B2820]" strokeWidth={2.8} />
-                    </span>
-                  )}
-
-                  <StandingChibiSvg
-                    shirtColor={guest.shirtColor}
-                    bottomColor={guest.bottomColor}
-                    styleIdx={guest.styleIdx}
-                    isSignature={guest.isSignature}
-                    isHappy={guest.isHappy}
-                    holdingCupColor={guest.holdingCupColor}
-                  />
-                  <GuestHeadAvatarBadge
-                    nickname={guest.nickname}
-                    avatarUrl={guest.avatarUrl}
-                    bgColor={guest.shirtColor}
-                    isSignature={guest.isSignature}
-                  />
-                </div>
-
-                {/* Compact Guest Name Tag beneath feet */}
-                <div
-                  className={`-mt-[6px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[118px] ${
-                    guest.isSignature ? 'bg-[#FFF1C2]' : 'bg-[#FFF9FA]'
-                  }`}
-                >
-                  <span className="block text-[10.5px] font-black text-[#3B2820] truncate leading-none">
-                    {guest.nickname}
-                  </span>
-                </div>
+                <GuestCharacterView
+                  nickname={guest.nickname}
+                  avatarUrl={guest.avatarUrl}
+                  shirtColor={guest.shirtColor}
+                  bottomColor={guest.bottomColor}
+                  styleIdx={guest.styleIdx}
+                  isVip={guest.isVip}
+                  isSignature={guest.isSignature}
+                  cupCount={guest.cupCount}
+                  isHappy={guest.isHappy}
+                  holdingCupColor={guest.holdingCupColor}
+                  bobClass={bobClass}
+                  bobDelaySec={idx * 0.28}
+                  bubbleText={guest.bubbleText}
+                  bubbleKey={guest.bubbleKey}
+                  bubblePositionClass={resolveBubblePositionClass(coord.left)}
+                  keepBubbleVisible={idx < 2}
+                />
               </div>
             </div>
           </div>
@@ -958,7 +1174,11 @@ export const WaitingGuestsStrip: React.FC = () => {
         const coord = dep.isCenterPickup
           ? CENTER_PICKUP_COORD
           : computeGuestFloorCoord(dep.slotIndex, dep.order.orderId);
-        const styleIdx = hashOrderStyle(dep.order.orderId);
+        const depUserKey = normalizeUserId(dep.order.user);
+        const styleIdx = hashOrderStyle(depUserKey);
+        const depQueuedRemaining = dep.isCenterPickup
+          ? allCombinedQueue.filter((o) => normalizeUserId(o.user) === depUserKey).length
+          : 0;
         const shirtColor = GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length];
         const bottomColor = GUEST_BOTTOM_COLORS[styleIdx % GUEST_BOTTOM_COLORS.length];
         const isReaching = Boolean(dep.isCenterPickup && dep.phase === 'REACHING');
@@ -981,60 +1201,68 @@ export const WaitingGuestsStrip: React.FC = () => {
             }}
           >
             <div className="w-full flex flex-col items-center">
-              {!isReaching && (
-                <div
-                  className={`absolute max-w-[120px] bg-[#FFFDF9] border-[2.2px] border-[#3B2820] rounded-[11px] px-2.5 py-[2.5px] shadow-[0_2px_0_#3B2820] animate-bubble-pop z-40 ${
-                    dep.isCenterPickup ? 'top-[12px] -right-[58px]' : resolveBubblePositionClass(coord.left)
-                  }`}
-                >
-                  <p className="text-[10px] font-black text-[#3B2820] leading-tight text-center truncate">
-                    {dep.bubbleText}
-                  </p>
-                </div>
-              )}
-
-              <div className="relative flex flex-col items-center animate-guest-eager">
-                {dep.order.isVip && (
-                  <span className="absolute -top-[6px] right-[12px] w-5 h-5 rounded-full bg-[#F7C95B] border-[2px] border-[#3B2820] flex items-center justify-center z-30 shadow-[0_1.5px_0_#3B2820]">
-                    <Crown className="w-3 h-3 text-[#3B2820]" strokeWidth={2.8} />
-                  </span>
-                )}
-
-                <StandingChibiSvg
-                  shirtColor={shirtColor}
-                  bottomColor={bottomColor}
-                  styleIdx={styleIdx}
-                  isSignature={dep.order.isSignature}
-                  isHappy={!isReaching}
-                  isReaching={isReaching}
-                  holdingCupColor={isReaching ? undefined : dep.recipeColor}
-                />
-                <GuestHeadAvatarBadge
-                  nickname={dep.order.user.nickname}
-                  avatarUrl={dep.order.user.avatarUrl}
-                  bgColor={shirtColor}
-                  isSignature={dep.order.isSignature}
-                />
-              </div>
-
-              <div
-                className={`-mt-[2px] px-2.5 py-[2px] rounded-full border-[2px] border-[#3B2820] text-center shadow-[0_1.5px_0_#3B2820] max-w-[112px] ${
-                  dep.order.isSignature ? 'bg-[#FFF1C2]' : 'bg-[#FFF9FA]'
-                }`}
-              >
-                <span className="block text-[10px] font-black text-[#3B2820] truncate leading-none">
-                  {dep.order.user.nickname}
-                </span>
-              </div>
+              <GuestCharacterView
+                nickname={dep.order.user.nickname}
+                avatarUrl={dep.order.user.avatarUrl}
+                shirtColor={shirtColor}
+                bottomColor={bottomColor}
+                styleIdx={styleIdx}
+                isVip={dep.order.isVip}
+                isSignature={dep.order.isSignature}
+                cupCount={1 + depQueuedRemaining}
+                isHappy={!isReaching}
+                isReaching={isReaching}
+                holdingCupColor={isReaching ? undefined : dep.recipeColor}
+                bubbleText={!isReaching ? dep.bubbleText : undefined}
+                bubblePositionClass={
+                  dep.isCenterPickup ? 'top-[6px] -right-[78px]' : resolveBubblePositionClass(coord.left)
+                }
+                keepBubbleVisible
+              />
             </div>
           </div>
         );
       })}
 
-      {/* Overflow badge when burst exceeds 24 visible stage slots (safely above y=960) */}
-      {overflowCount > 0 && (
-        <div className="absolute top-[930px] right-[14px] px-2.5 py-0.5 rounded-full bg-[#FFF1C2] border-[2px] border-[#3B2820] shadow-[0_2px_0_#3B2820] text-[10.5px] font-black text-[#8A5200]">
-          +{overflowCount}
+      {/* Full avatar gallery for every waiting viewer beyond the 24 standing chibi slots */}
+      {overflowWaiting.length > 0 && (
+        <div
+          className="absolute top-[984px] left-[22px] right-[22px] flex flex-wrap items-center justify-center gap-1.5 z-30"
+          aria-label="Remaining queued customer avatars"
+        >
+          {overflowWaiting.map((group) => {
+            const order = group.representativeOrder;
+            const styleIdx = hashOrderStyle(group.userKey);
+            const bgColor = GUEST_SHIRT_COLORS[styleIdx % GUEST_SHIRT_COLORS.length];
+            const ringColor = resolveGuestRingColor(group.isSignature, group.isVip);
+            const avatarSizeClass = overflowWaiting.length > 20 ? 'w-[22px] h-[22px]' : 'w-[26px] h-[26px]';
+
+            return (
+              <div
+                key={`overflow_${order.orderId}`}
+                className="relative flex flex-col items-center"
+              >
+                <div
+                  className={`${avatarSizeClass} rounded-full overflow-hidden shadow-[0_1.5px_0_rgba(59,40,32,0.3)] flex items-center justify-center`}
+                  style={{
+                    border: `2px solid ${ringColor}`,
+                    backgroundColor: bgColor,
+                  }}
+                >
+                  <AvatarPortraitImg
+                    nickname={order.user.nickname}
+                    avatarUrl={order.user.avatarUrl}
+                    bgColor={bgColor}
+                  />
+                </div>
+                {group.cupCount > 1 && (
+                  <span className="absolute -top-1 -right-1 rounded-full bg-[#F7C95B] border border-[#3B2820] px-1 text-[8px] font-black text-[#2B1B15] leading-tight">
+                    x{group.cupCount}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </section>

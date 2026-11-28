@@ -173,6 +173,7 @@ export interface ServerState {
   chatLimitConfig: ChatLimitConfig;
   casterConfig: CasterConfig;
   tiktokUsername: string;
+  tiktokRoomId?: string;
   connectionStatus: TikTokConnectionStatus;
   lastErrorMessage: string;
   /** Current auto-reconnect attempt number (0 when not reconnecting). */

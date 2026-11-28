@@ -6,6 +6,7 @@ export type RecipeId =
   | 'peach_tea'
   | 'lime_tea'
   | 'coffee_milk'
+  | 'cacao'
   | 'berry_soda'
   | 'blue_citrus';
 
@@ -96,6 +97,7 @@ export interface NormalizedLiveEvent {
   isStreakEnd?: boolean;
   count?: number;
   viewerCount?: number;
+  activeUserIds?: string[];
 }
 
 export type TikTokConnectionState =
@@ -108,9 +110,38 @@ export type TikTokConnectionState =
 export interface TikTokStatusPayload {
   status: TikTokConnectionState;
   username: string;
+  roomId?: string;
   error?: string;
   attempt?: number;
   nextRetryAt?: number | null;
+}
+
+export type TikTokCheckStatusCode =
+  | 'LIVE'
+  | 'OFFLINE'
+  | 'USER_NOT_FOUND'
+  | 'BLOCKED'
+  | 'ERROR';
+
+export interface TikTokCheckResult {
+  success: boolean;
+  status: TikTokCheckStatusCode;
+  username: string;
+  roomId?: string;
+  title?: string;
+  streamerNickname?: string;
+  viewerCount?: number;
+  isLive: boolean;
+  latencyMs: number;
+  connectorVersion: string;
+  message: string;
+  checkedAt: number;
+  details?: {
+    rawStatus?: number;
+    activeSessionStatus: string;
+    hasActiveConnection: boolean;
+    activeRoomId?: string;
+  };
 }
 
 export interface DrinkOrder {
@@ -124,6 +155,7 @@ export interface DrinkOrder {
   isSignature: boolean;
   isGlowUpgraded: boolean;
   createdAt: number;
+  lastActiveAt?: number;
 }
 
 export interface ActiveDrink extends DrinkOrder {
@@ -179,10 +211,12 @@ export interface DrinkBarConfig {
   defaultCapacityMl: number;
   autoRestockEnabled: boolean;
   unlimitedInventory: boolean;
+  maxOrdersPerUser: number; // 0 = unlimited orders per viewer
 }
 
 export interface DrinkBarLiveState {
   config: DrinkBarConfig;
+  resetEpoch: number;
   activeDrink: ActiveDrink | null;
   secondaryDrink: ActiveDrink | null;
   activeSlots: [ActiveDrink | null, ActiveDrink | null];
@@ -225,7 +259,8 @@ export type DrinkBarAdminActionName =
   | 'RESTOCK_ALL'
   | 'SET_DEFAULT_CAPACITY'
   | 'SET_AUTO_RESTOCK'
-  | 'SET_UNLIMITED_INVENTORY';
+  | 'SET_UNLIMITED_INVENTORY'
+  | 'SET_MAX_ORDERS_PER_USER';
 
 export interface DrinkBarAdminActionPayload {
   language?: Language;
@@ -246,6 +281,7 @@ export interface DrinkBarAdminActionPayload {
   defaultCapacityMl?: number;
   autoRestockEnabled?: boolean;
   unlimitedInventory?: boolean;
+  maxOrdersPerUser?: number;
 }
 
 export type DrinkBarSyncMessage =
@@ -264,6 +300,7 @@ export type DrinkBarSyncMessage =
     }
   | {
       type: 'STATE_SNAPSHOT';
+      senderId?: string;
       snapshot: DrinkBarLiveState;
       timestamp: number;
     }
@@ -284,6 +321,7 @@ export type DrinkBarSyncMessage =
       action: 'SPEAK' | 'CANCEL' | 'DONE';
       utteranceId?: number;
       text?: string;
+      fallbackTexts?: readonly string[];
       language?: Language;
       volume?: number;
       rate?: number;

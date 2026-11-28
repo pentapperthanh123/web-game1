@@ -265,10 +265,10 @@ export function drawBarBackdrop(
     ctx.fill();
   }
 
-  // 5. Two balanced warm pastel pendant lamps anchored cleanly to bottom edge of docked HUD (y: 86 -> 150)
+  // 5. Two balanced warm pastel pendant lamps centered symmetrically between left/right boards & above shelf
   const glowPulse = 0.92 + Math.sin(elapsedSec * 1.8) * 0.08;
-  drawPendantLamp(ctx, 104, 86, 46, glowPulse);
-  drawPendantLamp(ctx, 616, 86, 46, glowPulse);
+  drawPendantLamp(ctx, 246, 86, 46, glowPulse);
+  drawPendantLamp(ctx, 474, 86, 46, glowPulse);
 
   // Subtle warm pastel wainscot accent near counter top
   const wainscotGrad = ctx.createLinearGradient(0, 558, 0, COUNTER_TOP_Y);
@@ -1876,11 +1876,11 @@ function drawCustomerFloorMat(ctx: CanvasRenderingContext2D, hasQueuedGuests = t
   ctx.fillStyle = floorShadow;
   ctx.fillRect(0, COUNTER_END_Y + 1, WIDTH, 32);
 
-  // Full-width cozy pastel floor runner framing dynamic guest queue cleanly above y=960 chat zone
+  // Full-width cozy pastel floor runner framing dynamic guest queue cleanly across lower floor
   const matX = 22;
   const matY = COUNTER_END_Y + 4;
   const matW = 676;
-  const matH = 122;
+  const matH = 184;
 
   // Ground drop shadow
   roundedRectPath(ctx, matX + 2, matY + 4, matW, matH, 24);

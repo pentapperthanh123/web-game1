@@ -1,23 +1,28 @@
 import { io, type Socket } from 'socket.io-client';
 import { startBackgroundTicker, type BackgroundTickerHandle } from '@shared/backgroundTicker';
 import {
+  DRINK_BAR_LOCAL_SYNC_ENDPOINTS,
   DRINK_BAR_SOCKET_EVENTS,
   DRINK_BAR_SYNC_CHANNEL,
   GAMEPLAY_LIMITS,
 } from '@shared/config';
+import { normalizeUserId } from '@shared/queue';
 import type { DrinkBarSyncMessage, NormalizedLiveEvent } from '@shared/types';
 import { requestBaristaForceSleep } from '../engine/drinkBarLoop';
 import { drinkBarTts } from './ttsEngine';
 import { useDrinkBarStore } from '../store/drinkBarStore';
 
 interface ServerChatPayload {
+  uniqueId?: string;
   userName?: string;
   text?: string;
+  rawText?: string;
   avatarUrl?: string;
   userAvatar?: string;
 }
 
 interface ServerGiftPayload {
+  uniqueId?: string;
   donorName?: string;
   userName?: string;
   donorAvatarUrl?: string;
@@ -29,18 +34,42 @@ interface ServerGiftPayload {
   isComboFinal?: boolean;
 }
 
+function buildTikTokUserId(uniqueId: string | undefined, nickname: string): string {
+  const userKey = (uniqueId || nickname).trim().toLowerCase().replace(/\s+/g, '_');
+  return `tt_${userKey}`;
+}
+
 interface ServerLikePayload {
+  uniqueId?: string;
   count?: number;
   userName?: string;
 }
 
-const MAX_SEEN_EVENT_IDS = 120;
+interface ServerJoinPayload {
+  uniqueId?: string;
+  userName?: string;
+  viewerCount?: number;
+  topViewerIds?: string[];
+}
+
+const MAX_SEEN_EVENT_IDS = 600;
 const SNAPSHOT_PUSH_INTERVAL_MS = 450;
+const SNAPSHOT_IMMEDIATE_THROTTLE_MS = 100;
+
+function createReceiverInstanceId(): string {
+  return `rx_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export class DrinkBarCoreReceiver {
+  private readonly instanceId = createReceiverInstanceId();
   private socket: Socket | null = null;
   private channel: BroadcastChannel | null = null;
+  private eventSource: EventSource | null = null;
   private pendingLikes = 0;
+  private lastLikeFlushMs = 0;
+  private lastImmediatePushAt = 0;
+  private immediatePushTimer: ReturnType<typeof setTimeout> | null = null;
+  private unsubscribeStore: (() => void) | null = null;
   private likeBatchTicker: BackgroundTickerHandle | null = null;
   private snapshotTicker: BackgroundTickerHandle | null = null;
   private messageHandler: ((event: MessageEvent<unknown>) => void) | null = null;
@@ -69,13 +98,14 @@ export class DrinkBarCoreReceiver {
       }
     }
 
-    // 3. Batch LIKE ticker (200ms, active even when tab is inactive)
+    // 3. Batch LIKE ticker (60ms, active even when tab is inactive)
     this.likeBatchTicker = startBackgroundTicker(
       GAMEPLAY_LIMITS.LIKE_BATCH_INTERVAL_MS,
       () => {
         if (this.pendingLikes <= 0) return;
         const count = this.pendingLikes;
         this.pendingLikes = 0;
+        this.lastLikeFlushMs = Date.now();
         useDrinkBarStore.getState().processLikes(count);
       }
     );
@@ -85,12 +115,37 @@ export class DrinkBarCoreReceiver {
       this.broadcastSnapshot();
     });
 
-    // 5. Connect to Core Connect Service (server:4000 via Vite proxy)
+    // Push key count/queue transitions promptly (throttled to 100ms) so Admin stays 1:1 synced
+    this.unsubscribeStore = useDrinkBarStore.subscribe((next, prev) => {
+      const didImportantFieldChange =
+        next.todayDoneCount !== prev.todayDoneCount ||
+        next.resetEpoch !== prev.resetEpoch ||
+        next.activeDrink?.orderId !== prev.activeDrink?.orderId ||
+        next.activeDrink?.phase !== prev.activeDrink?.phase ||
+        next.vipQueue.length !== prev.vipQueue.length ||
+        next.normalQueue.length !== prev.normalQueue.length;
+      if (didImportantFieldChange) {
+        this.scheduleImmediateSnapshot();
+      }
+    });
+
+    // 5. Connect to Local Vite SSE Sync Hub (100% reliable across all tabs/windows & OBS even when BroadcastChannel is partitioned)
+    this.connectSseHub();
+
+    // 6. Connect to Core Connect Service (server:4000 via Vite proxy)
     this.connectSocket();
     this.broadcastSnapshot();
   }
 
   public stop(): void {
+    if (this.unsubscribeStore) {
+      this.unsubscribeStore();
+      this.unsubscribeStore = null;
+    }
+    if (this.immediatePushTimer) {
+      clearTimeout(this.immediatePushTimer);
+      this.immediatePushTimer = null;
+    }
     if (this.likeBatchTicker) {
       this.likeBatchTicker.stop();
       this.likeBatchTicker = null;
@@ -106,6 +161,10 @@ export class DrinkBarCoreReceiver {
     if (this.channel) {
       this.channel.close();
       this.channel = null;
+    }
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
     }
     if (this.socket) {
       this.socket.disconnect();
@@ -129,7 +188,7 @@ export class DrinkBarCoreReceiver {
 
   private handleIncomingSync(
     msg: DrinkBarSyncMessage,
-    origin: 'POST_MESSAGE' | 'BROADCAST' | 'SOCKET'
+    origin: 'POST_MESSAGE' | 'BROADCAST' | 'SOCKET' | 'SSE'
   ): void {
     if (msg.type === 'REQUEST_SNAPSHOT') {
       this.broadcastSnapshot();
@@ -141,11 +200,15 @@ export class DrinkBarCoreReceiver {
       return;
     }
 
-    if (
-      msg.type === 'STATE_SNAPSHOT' ||
-      msg.type === 'RELAY_SFX' ||
-      msg.type === 'RELAY_TTS'
-    ) {
+    if (msg.type === 'STATE_SNAPSHOT') {
+      if (msg.senderId && msg.senderId === this.instanceId) {
+        return;
+      }
+      useDrinkBarStore.getState().applyExternalSnapshot(msg.snapshot);
+      return;
+    }
+
+    if (msg.type === 'RELAY_SFX' || msg.type === 'RELAY_TTS') {
       return;
     }
 
@@ -165,13 +228,13 @@ export class DrinkBarCoreReceiver {
 
     if (msg.type === 'LIVE_EVENT') {
       this.processNormalizedEvent(msg.event);
-      this.broadcastSnapshot();
+      this.scheduleImmediateSnapshot();
       return;
     }
 
     if (msg.type === 'ADMIN_ACTION') {
       this.applyAdminAction(msg);
-      this.broadcastSnapshot();
+      this.scheduleImmediateSnapshot();
     }
   }
 
@@ -275,7 +338,30 @@ export class DrinkBarCoreReceiver {
           store.setUnlimitedInventory(payload.unlimitedInventory);
         }
         break;
+      case 'SET_MAX_ORDERS_PER_USER':
+        if (typeof payload.maxOrdersPerUser === 'number') {
+          store.setMaxOrdersPerUser(payload.maxOrdersPerUser);
+        }
+        break;
     }
+  }
+
+  private scheduleImmediateSnapshot(): void {
+    const now = Date.now();
+    const elapsed = now - this.lastImmediatePushAt;
+    if (elapsed >= SNAPSHOT_IMMEDIATE_THROTTLE_MS) {
+      this.lastImmediatePushAt = now;
+      this.broadcastSnapshot();
+      return;
+    }
+    if (this.immediatePushTimer) {
+      return;
+    }
+    this.immediatePushTimer = setTimeout(() => {
+      this.immediatePushTimer = null;
+      this.lastImmediatePushAt = Date.now();
+      this.broadcastSnapshot();
+    }, SNAPSHOT_IMMEDIATE_THROTTLE_MS - elapsed);
   }
 
   private broadcastSnapshot(): void {
@@ -283,6 +369,7 @@ export class DrinkBarCoreReceiver {
     const message: DrinkBarSyncMessage = {
       type: 'STATE_SNAPSHOT',
       snapshot,
+      senderId: this.instanceId,
       timestamp: Date.now(),
     };
 
@@ -301,6 +388,37 @@ export class DrinkBarCoreReceiver {
         // Ignore closed channel
       }
     }
+
+    if (this.socket?.connected) {
+      this.socket.emit(DRINK_BAR_SOCKET_EVENTS.SYNC, message);
+    }
+
+    // Active Stage or Mirror Preview pushes snapshot to SSE Hub so Admin & newly opened :8070 tabs stay in sync even when Preview is hidden
+    if (typeof fetch !== 'undefined') {
+      void fetch(DRINK_BAR_LOCAL_SYNC_ENDPOINTS.EMIT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message),
+      }).catch(() => {});
+    }
+  }
+
+  private connectSseHub(): void {
+    if (typeof EventSource === 'undefined' || this.eventSource) return;
+    try {
+      this.eventSource = new EventSource(DRINK_BAR_LOCAL_SYNC_ENDPOINTS.EVENTS);
+      this.eventSource.onmessage = (ev: MessageEvent<string>) => {
+        try {
+          const parsed = JSON.parse(ev.data) as unknown;
+          if (!isSyncMessage(parsed)) return;
+          this.handleIncomingSync(parsed, 'SSE');
+        } catch {
+          // Ignore malformed SSE payload
+        }
+      };
+    } catch (err) {
+      console.warn('[DrinkBarCoreReceiver] SSE Hub unavailable:', err);
+    }
   }
 
   private connectSocket(): void {
@@ -310,11 +428,12 @@ export class DrinkBarCoreReceiver {
         (typeof window !== 'undefined' ? window.location.origin : '');
 
       this.socket = io(socketUrl, {
-        transports: ['websocket'],
-        reconnectionAttempts: 5,
-        reconnectionDelay: 5000,
-        reconnectionDelayMax: 15000,
-        timeout: 2000,
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 800,
+        reconnectionDelayMax: 3000,
+        timeout: 2500,
       });
 
       // Canonical NormalizedLiveEvent stream from Core Connect / Gateway
@@ -330,20 +449,22 @@ export class DrinkBarCoreReceiver {
 
       // Core server legacy events normalized into NormalizedLiveEvent
       this.socket.on('game:chat', (data: ServerChatPayload) => {
-        const nickname = (data.userName || 'Guest').trim();
+        const nickname = (data.userName || data.uniqueId || 'Guest').trim();
         if (nickname === 'Hệ Thống') return;
+        const chatText = data.rawText || data.text || '';
         this.processNormalizedEvent({
           type: 'CHAT',
           source: 'REAL',
           timestamp: Date.now(),
           user: {
-            id: `tt_${nickname.toLowerCase()}`,
+            id: buildTikTokUserId(data.uniqueId, nickname),
             nickname,
             avatarUrl: data.avatarUrl || data.userAvatar,
           },
-          text: data.text || '',
-          cleanText: data.text || '',
+          text: chatText,
+          cleanText: chatText,
         });
+        this.scheduleImmediateSnapshot();
       });
 
       this.socket.on('game:gift', (data: ServerGiftPayload) => {
@@ -354,7 +475,7 @@ export class DrinkBarCoreReceiver {
           source: 'REAL',
           timestamp: Date.now(),
           user: {
-            id: `tt_${nickname.toLowerCase()}`,
+            id: buildTikTokUserId(data.uniqueId, nickname),
             nickname,
             avatarUrl: data.donorAvatarUrl || data.userAvatar,
           },
@@ -363,15 +484,49 @@ export class DrinkBarCoreReceiver {
           repeatCount: data.streakCount ?? 1,
           isStreakEnd: data.isComboFinal,
         });
+        this.scheduleImmediateSnapshot();
       });
 
       this.socket.on('game:like', (data: ServerLikePayload) => {
+        const nickname = (data.userName || data.uniqueId || '').trim();
+        const user =
+          data.uniqueId || nickname
+            ? {
+                id: buildTikTokUserId(data.uniqueId, nickname || 'guest'),
+                nickname: nickname || 'Guest',
+              }
+            : undefined;
         this.processNormalizedEvent({
           type: 'LIKE',
           source: 'REAL',
           timestamp: Date.now(),
+          user,
           count: Math.max(1, Number(data.count) || 1),
         });
+      });
+
+      this.socket.on('game:join', (data: ServerJoinPayload) => {
+        if (data.uniqueId || data.userName) {
+          const nickname = (data.userName || data.uniqueId || 'Guest').trim();
+          this.processNormalizedEvent({
+            type: 'JOIN',
+            source: 'REAL',
+            timestamp: Date.now(),
+            user: {
+              id: buildTikTokUserId(data.uniqueId, nickname),
+              nickname,
+            },
+          });
+        }
+        if (Array.isArray(data.topViewerIds) && data.topViewerIds.length > 0) {
+          this.processNormalizedEvent({
+            type: 'ROOM_STATS',
+            source: 'REAL',
+            timestamp: Date.now(),
+            viewerCount: data.viewerCount,
+            activeUserIds: data.topViewerIds.map((id) => buildTikTokUserId(id, id)),
+          });
+        }
       });
     } catch (err) {
       console.warn('[DrinkBarCoreReceiver] Socket init warning:', err);
@@ -390,7 +545,32 @@ export class DrinkBarCoreReceiver {
         break;
       }
       case 'LIKE': {
-        this.pendingLikes += Math.max(1, event.count ?? 1);
+        if (event.user) {
+          store.markUsersOnline([normalizeUserId(event.user)]);
+        }
+        const added = Math.max(1, event.count ?? 1);
+        const now = Date.now();
+        // Leading-edge immediate reaction: flush first like burst at 0ms, batch rapid follow-up taps within 60ms
+        if (this.pendingLikes === 0 && now - this.lastLikeFlushMs >= GAMEPLAY_LIMITS.LIKE_BATCH_INTERVAL_MS) {
+          this.lastLikeFlushMs = now;
+          store.processLikes(added);
+        } else {
+          this.pendingLikes += added;
+        }
+        break;
+      }
+      case 'JOIN':
+      case 'FOLLOW':
+      case 'SHARE': {
+        if (event.user) {
+          store.markUsersOnline([normalizeUserId(event.user)]);
+        }
+        break;
+      }
+      case 'ROOM_STATS': {
+        if (event.activeUserIds && event.activeUserIds.length > 0) {
+          store.markUsersOnline(event.activeUserIds);
+        }
         break;
       }
       case 'GIFT': {

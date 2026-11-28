@@ -41,6 +41,7 @@ export function registerSocketHub(
     socket.emit('tiktok:status', {
       status: ctx.state.connectionStatus,
       username: ctx.state.tiktokUsername,
+      roomId: ctx.state.tiktokRoomId,
       error: ctx.state.lastErrorMessage,
       attempt: ctx.state.reconnectAttempt,
       nextRetryAt: ctx.state.nextRetryAt,

@@ -40,5 +40,33 @@
     "durationMs": 11044,
     "reason": "Error connecting to WebSocket with message: DEVICE_BLOCKED",
     "username": "bap.daily.lifestyle99"
+  },
+  {
+    "from": 1795838646024,
+    "to": 1795838657159,
+    "durationMs": 11135,
+    "reason": "TikTok connection dropped",
+    "username": "bap.daily.lifestyle99"
+  },
+  {
+    "from": 1795839924439,
+    "to": 1795839927808,
+    "durationMs": 3369,
+    "reason": "Error connecting to WebSocket with message: DEVICE_BLOCKED",
+    "username": "bap.daily.lifestyle99"
+  },
+  {
+    "from": 1795856293622,
+    "to": 1795856299641,
+    "durationMs": 6019,
+    "reason": "TikTok connection dropped",
+    "username": "bap.daily.lifestyle99"
+  },
+  {
+    "from": 1795858081619,
+    "to": 1795858092212,
+    "durationMs": 10593,
+    "reason": "[Sign Error] [fetchSignedWebSocketFromEulerRoute] Unexpected sign server status 500. Payload:\n{\"message\":\"A 500 error occurred whilst fetching the webcast URL. Log ID: 70bef36f-9212-4e67-9d42-7c9f22b74579\",\"code\":500,\"fallback_message\":\"illegal web id\"}",
+    "username": "bap.daily.lifestyle99"
   }
 ]

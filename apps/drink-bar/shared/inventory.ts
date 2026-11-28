@@ -1,5 +1,5 @@
 import { GAMEPLAY_LIMITS } from './config';
-import { RECIPE_LIST } from './recipes';
+import { MENU_RECIPE_LIST, RECIPE_LIST } from './recipes';
 import type { DrinkInventoryMap, InventorySlot, RecipeId } from './types';
 
 function clampCapacity(ml: number): number {
@@ -39,15 +39,15 @@ export function isRecipeLowStock(slot: InventorySlot): boolean {
 }
 
 export function areAllRecipesSoldOut(inventory: DrinkInventoryMap): boolean {
-  return RECIPE_LIST.every(
+  return MENU_RECIPE_LIST.every(
     (recipe) => inventory[recipe.id].currentMl < GAMEPLAY_LIMITS.COST_PER_DRINK_ML
   );
 }
 
 export function pickAvailableRecipeId(inventory: DrinkInventoryMap): RecipeId {
-  const available = RECIPE_LIST.filter((r) => isRecipeAvailable(inventory, r.id));
+  const available = MENU_RECIPE_LIST.filter((r) => isRecipeAvailable(inventory, r.id));
   if (available.length === 0) {
-    return RECIPE_LIST[0].id;
+    return MENU_RECIPE_LIST[0].id;
   }
   const index = Math.floor(Math.random() * available.length);
   return available[index].id;
@@ -135,10 +135,10 @@ export function resupplyLowestOnGift(
   inventory: DrinkInventoryMap,
   amountMl: number = GAMEPLAY_LIMITS.GIFT_RESUPPLY_ML
 ): DrinkInventoryMap {
-  let targetRecipe: RecipeId = RECIPE_LIST[0].id;
+  let targetRecipe: RecipeId = MENU_RECIPE_LIST[0].id;
   let lowestMl = Number.POSITIVE_INFINITY;
 
-  for (const recipe of RECIPE_LIST) {
+  for (const recipe of MENU_RECIPE_LIST) {
     const slot = inventory[recipe.id];
     if (slot.currentMl < slot.maxMl && slot.currentMl < lowestMl) {
       lowestMl = slot.currentMl;

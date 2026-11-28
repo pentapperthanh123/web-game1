@@ -55,6 +55,46 @@ export const App: React.FC = () => {
   return <DrinkBarStage />;
 };
 
+function applyUrlDemoPreset(): void {
+  if (typeof window === 'undefined') return;
+  const preset = new URLSearchParams(window.location.search).get('demoScene');
+  if (!preset) return;
+  const store = useDrinkBarStore.getState();
+  store.resetToDefaultEmpty();
+  store.setUnlimitedInventory(true);
+
+  if (preset === 'idle') {
+    return;
+  }
+
+  store.processChat({ id: 'u1', nickname: 'Minh Anh' }, 'matcha');
+  store.processChat({ id: 'u2', nickname: 'Bảo Ngọc' }, 'tradao it da');
+  store.processChat({ id: 'u3', nickname: 'Gia Huy' }, 'cafe');
+  store.processChat({ id: 'u4', nickname: 'Khánh Vy' }, 'trachanh');
+  store.processChat({ id: 'u5', nickname: 'Tuấn Kiệt' }, 'soda');
+
+  if (preset === 'orders') {
+    store.setBrewProgress(34);
+    return;
+  }
+
+  if (preset === 'pouring') {
+    store.setBrewProgress(78);
+    return;
+  }
+
+  if (preset === 'dance') {
+    store.processGift({ id: 'u6', nickname: 'Linh Chi VIP' }, 35);
+    store.triggerTikTokDance('LARGE', 'party_hype');
+    store.activatePendingDance();
+    return;
+  }
+
+  if (preset === 'handoff') {
+    store.setBrewProgress(96);
+  }
+}
+
 const DrinkBarStage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isAudioUnlocked, setIsAudioUnlocked] = useState<boolean>(() =>
@@ -66,7 +106,11 @@ const DrinkBarStage: React.FC = () => {
   const sfxMusicEnabled = useDrinkBarStore((s) => s.config.sfxMusicEnabled);
 
   useEffect(() => {
+    applyUrlDemoPreset();
     drinkBarAudio.enableAutoCafeBgm(!isMirrorPreview);
+    if (!isMirrorPreview) {
+      void drinkBarAudio.unlock(false);
+    }
     const offAudio = drinkBarAudio.subscribeUnlocked(setIsAudioUnlocked);
     const receiver = new DrinkBarCoreReceiver();
     receiver.start();
@@ -90,10 +134,10 @@ const DrinkBarStage: React.FC = () => {
 
   return (
     <ScaledStage>
-      {/* 720x1280 30FPS DPR=1 Cartoon Cafe Canvas (Bar, Cup, Bartender, Particles) */}
+      {/* 720x1080 30FPS DPR=1 Cartoon Cafe Canvas (Bar, Cup, Bartender, Particles) */}
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-[720px] h-[1280px] block"
+        className="absolute inset-0 w-full h-full block"
       />
 
       {/* Zone 1 (y: 0 -> 120): Edge-to-edge 2-Tier Header & Centered Slim Menu Ribbon */}

@@ -1,14 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader2, MonitorPlay } from 'lucide-react';
+import { EyeOff, Loader2, MonitorPlay } from 'lucide-react';
 import { getMessages } from '@shared/i18n';
 import type { DrinkBarConfig } from '@shared/types';
 import { drinkBarAdminBridge, getClientStageUrl } from '../services/adminBridge';
 
 interface LivePreviewPanelProps {
   config: DrinkBarConfig;
+  onTogglePreview?: () => void;
 }
 
-export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) => {
+export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
+  config,
+  onTogglePreview,
+}) => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [isIframeMounted, setIsIframeMounted] = useState<boolean>(false);
   const msg = getMessages(config.language);
@@ -66,6 +70,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) =>
     drinkBarAdminBridge.syncConfigToPreviewOnly('SET_UNLIMITED_INVENTORY', {
       unlimitedInventory: config.unlimitedInventory,
     });
+    drinkBarAdminBridge.syncConfigToPreviewOnly('SET_MAX_ORDERS_PER_USER', {
+      maxOrdersPerUser: config.maxOrdersPerUser,
+    });
   };
 
   return (
@@ -81,24 +88,28 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({ config }) =>
           </h2>
         </div>
 
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#3B2820] text-[10px] font-black bg-[#CBEAD2] text-[#245B3A] shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#249A55] animate-pulse" />
-          <span>{msg.mirrorLiveBadge}</span>
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#3B2820] text-[10px] font-black bg-[#CBEAD2] text-[#245B3A] shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#249A55] animate-pulse" />
+            <span>{msg.mirrorLiveBadge}</span>
+          </span>
+          {onTogglePreview && (
+            <button
+              type="button"
+              onClick={onTogglePreview}
+              title={msg.btnHidePreview}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border-[1.5px] border-[#3B2820] text-[10px] font-black bg-[#F9EFE2] hover:bg-[#EFE0CC] text-[#3B2820] cursor-pointer transition-colors"
+            >
+              <EyeOff className="w-3 h-3 shrink-0" />
+              <span>{msg.btnHidePreview}</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Main Full-Height 9:16 Stage Frame - Edge-to-Edge Clean Preview */}
-      <div
-        className="flex-1 min-h-0 w-full flex items-center justify-center relative overflow-hidden bg-[#FFF5F7]"
-        style={{ containerType: 'size' }}
-      >
-        <div
-          className="relative overflow-hidden bg-[#FFF5F7] flex items-center justify-center w-full h-full"
-          style={{
-            width: 'min(100cqw, calc(100cqh * 9 / 16))',
-            height: 'min(100cqh, calc(100cqw * 16 / 9))',
-          }}
-        >
+      {/* Main Full-Width & Full-Height Stage Frame - Edge-to-Edge Clean Preview */}
+      <div className="flex-1 min-h-0 w-full flex items-center justify-center relative overflow-hidden bg-[#FFF5F7]">
+        <div className="relative overflow-hidden bg-[#FFF5F7] flex items-center justify-center w-full h-full">
           {isIframeMounted ? (
             <iframe
               ref={iframeRef}

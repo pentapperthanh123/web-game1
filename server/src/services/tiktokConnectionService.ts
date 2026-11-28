@@ -82,8 +82,15 @@ interface ProtoFetchResultRaw {
         data.anchorsInfo = {};
       }
 
+      // Extract avatar URL from raw proto user before simplifyObject deletes `data.user`
+      const rawUser = data.user as Record<string, unknown> | undefined;
+      const preservedAvatar = extractAvatarUrlFromTikTokEvent(rawUser);
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const simplifiedObj = simplifyObject(message.method as any, data) as Record<string, unknown>;
+      if (preservedAvatar && !simplifiedObj.profilePictureUrl) {
+        simplifiedObj.profilePictureUrl = preservedAvatar;
+      }
       instance.emit('decodedData', message.method, simplifiedObj, message.payload);
 
       switch (message.method) {
@@ -216,11 +223,28 @@ function cleanTikTokInput(input: string): { cleanUsername: string; directRoomId?
   return { cleanUsername };
 }
 
+function resolveEffectiveTikTokUsername(username: string, stateUsername?: string): string {
+  if (!/^\d{15,22}$/.test(username)) {
+    return username;
+  }
+  if (stateUsername && !/^\d{15,22}$/.test(stateUsername)) {
+    return stateUsername;
+  }
+  return 'bap.daily.lifestyle99';
+}
+
 function resolveTikTokSessionId(): string | undefined {
   dotenv.config({ path: path.resolve(process.cwd(), 'server', '.env'), override: true });
   dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
   const sessionId = process.env.TIKTOK_SESSION_ID?.trim();
   return sessionId && sessionId.length > 0 ? sessionId : undefined;
+}
+
+function resolveTikTokDefaultRoomId(): string | undefined {
+  dotenv.config({ path: path.resolve(process.cwd(), 'server', '.env'), override: true });
+  dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
+  const roomId = process.env.TIKTOK_ROOM_ID?.trim();
+  return roomId && /^\d{15,22}$/.test(roomId) ? roomId : undefined;
 }
 
 export interface TikTokConnectionService {
@@ -240,17 +264,52 @@ export interface TikTokConnectionDeps {
   opsAlerts: OpsAlertService;
 }
 
+function firstHttpUrl(candidate: unknown): string | undefined {
+  if (typeof candidate === 'string' && candidate.startsWith('http')) {
+    return candidate;
+  }
+  if (Array.isArray(candidate)) {
+    return candidate.find((item): item is string => typeof item === 'string' && item.startsWith('http'));
+  }
+  if (candidate && typeof candidate === 'object') {
+    const obj = candidate as { urlList?: unknown; url_list?: unknown };
+    return firstHttpUrl(obj.urlList) ?? firstHttpUrl(obj.url_list);
+  }
+  return undefined;
+}
+
 /**
- * Viewer avatar from a simplified TikTok event. tiktok-live-connector@2.5.0's legacy adapter passes
- * `avatarLarge` (an object `{ urlList }`) to a helper expecting an array, so `profilePictureUrl` is
- * always null; the same URL survives in `userDetails.profilePictureUrls`.
+ * Viewer avatar from a raw or simplified TikTok event.
  */
 const extractAvatarUrlFromTikTokEvent = (data: unknown): string | undefined => {
   if (!data || typeof data !== 'object') return undefined;
-  const raw = data as { profilePictureUrl?: unknown; userDetails?: { profilePictureUrls?: unknown } };
-  const candidates = [raw.profilePictureUrl, raw.userDetails?.profilePictureUrls];
-  const url = candidates.find((value): value is string => typeof value === 'string' && value.startsWith('http'));
-  return url;
+  const raw = data as {
+    profilePictureUrl?: unknown;
+    userDetails?: { profilePictureUrls?: unknown };
+    avatarLarge?: unknown;
+    avatarMedium?: unknown;
+    avatarThumb?: unknown;
+    avatar_large?: unknown;
+    avatar_medium?: unknown;
+    avatar_thumb?: unknown;
+    user?: unknown;
+  };
+  const candidates = [
+    raw.profilePictureUrl,
+    raw.userDetails?.profilePictureUrls,
+    raw.avatarLarge,
+    raw.avatarMedium,
+    raw.avatarThumb,
+    raw.avatar_large,
+    raw.avatar_medium,
+    raw.avatar_thumb,
+    raw.user ? extractAvatarUrlFromTikTokEvent(raw.user) : undefined,
+  ];
+  for (const candidate of candidates) {
+    const url = firstHttpUrl(candidate);
+    if (url) return url;
+  }
+  return undefined;
 };
 
 const extractFansLevelFromTikTokEvent = (data: unknown): number => {
@@ -534,8 +593,12 @@ export function createTikTokConnectionService(
 
     connection.on('member', (data) => {
       try {
-        const userName = String(data?.nickname || data?.uniqueId || 'Khách');
-        ctx.io.emit('game:join', { userName });
+        const uniqueId = String(data?.uniqueId || data?.userId || '').trim().toLowerCase();
+        const userName = String(data?.nickname || uniqueId || 'Khách');
+        ctx.io.emit('game:join', {
+          uniqueId: uniqueId || undefined,
+          userName,
+        });
       } catch {
         // Non-critical viewer join event
       }
@@ -544,8 +607,18 @@ export function createTikTokConnectionService(
     connection.on('roomUser', (data) => {
       try {
         const viewerCount = Number(data?.viewerCount);
-        if (Number.isFinite(viewerCount) && viewerCount > 0) {
-          ctx.io.emit('game:join', { viewerCount });
+        const rawRanks = Array.isArray((data as { ranksList?: unknown[] } | undefined)?.ranksList)
+          ? (data as { ranksList: Array<{ user?: { uniqueId?: string; id?: string | number } }> }).ranksList
+          : [];
+        const topViewerIds = rawRanks
+          .map((entry) => String(entry?.user?.uniqueId || entry?.user?.id || '').trim().toLowerCase())
+          .filter(Boolean);
+
+        if ((Number.isFinite(viewerCount) && viewerCount > 0) || topViewerIds.length > 0) {
+          ctx.io.emit('game:join', {
+            viewerCount: Number.isFinite(viewerCount) && viewerCount > 0 ? viewerCount : undefined,
+            topViewerIds: topViewerIds.length > 0 ? topViewerIds : undefined,
+          });
         }
       } catch {
         // Non-critical room user count event
@@ -562,6 +635,7 @@ export function createTikTokConnectionService(
     ctx.io.emit('tiktok:status', {
       status: ctx.state.connectionStatus,
       username: ctx.state.tiktokUsername,
+      roomId: ctx.state.tiktokRoomId || lastResolvedRoomId || undefined,
       attempt: ctx.state.reconnectAttempt,
       nextRetryAt: ctx.state.nextRetryAt,
       error: ctx.state.lastErrorMessage || undefined,
@@ -600,7 +674,10 @@ export function createTikTokConnectionService(
     return Math.round(baseDelay * jitterFactor);
   };
 
-  let lastResolvedRoomId: string | undefined = undefined;
+  let lastResolvedRoomId: string | undefined = resolveTikTokDefaultRoomId();
+  if (lastResolvedRoomId && !ctx.state.tiktokRoomId) {
+    ctx.state.tiktokRoomId = lastResolvedRoomId;
+  }
 
   // Forward declaration so openConnection and scheduleReconnect can reference each other.
   let openConnection: (username: string, directRoomId?: string) => Promise<void> = async () => undefined;
@@ -651,9 +728,10 @@ export function createTikTokConnectionService(
     cancelPendingReconnect();
     downtimeTracker.markUp();
     ctx.state.connectionStatus = 'CONNECTED';
+    ctx.state.tiktokRoomId = roomId || lastResolvedRoomId;
     ctx.state.lastErrorMessage = '';
     console.log(`[TikTok Live] Connected to room ID: ${roomId}`);
-    emitStatus({ roomId });
+    emitStatus({ roomId: ctx.state.tiktokRoomId });
     // Real gift names / prices / icons for the admin gift config
     void refreshGiftCatalog(ctx);
   };
@@ -689,14 +767,16 @@ export function createTikTokConnectionService(
 
   openConnection = async (username: string, directRoomId?: string): Promise<void> => {
     releaseConnection();
-    const effectiveUsername =
-      /^\d{15,22}$/.test(username) && ctx.state.tiktokUsername && !/^\d{15,22}$/.test(ctx.state.tiktokUsername)
-        ? ctx.state.tiktokUsername
-        : username;
+    const effectiveUsername = resolveEffectiveTikTokUsername(username, ctx.state.tiktokUsername);
     const sessionId = resolveTikTokSessionId();
+    let targetRoomId = directRoomId;
     const connection = new WebcastPushConnection(effectiveUsername, {
-      processInitialData: false,
+      processInitialData: true,
+      fetchRoomInfoOnConnect: false,
       enableExtendedGiftInfo: false,
+      wsClientOptions: {
+        perMessageDeflate: false,
+      },
       ...(sessionId
         ? {
             session: {
@@ -715,7 +795,6 @@ export function createTikTokConnectionService(
     attachRoomListeners(connection);
     attachLifecycleListeners(connection);
 
-    let targetRoomId = directRoomId || lastResolvedRoomId;
     if (!targetRoomId) {
       try {
         const info = (await connection.fetchRoomInfo()) as Record<string, unknown> | undefined;
@@ -730,50 +809,80 @@ export function createTikTokConnectionService(
         if (resolvedId) {
           targetRoomId = resolvedId;
           lastResolvedRoomId = resolvedId;
+          ctx.state.tiktokRoomId = resolvedId;
+          emitStatus({ roomId: resolvedId });
         }
       } catch {
         // Fallback to internal room resolution in connection.connect()
       }
-    } else {
+    }
+
+    if (!targetRoomId && lastResolvedRoomId) {
+      targetRoomId = lastResolvedRoomId;
+    }
+
+    if (targetRoomId) {
       lastResolvedRoomId = targetRoomId;
+      ctx.state.tiktokRoomId = targetRoomId;
+      emitStatus({ roomId: targetRoomId });
     }
 
     connection
       .connect(targetRoomId)
       .then((roomState) => handleConnectSuccess(connection, roomState?.roomId || targetRoomId || ''))
-      .catch((err: unknown) => handleConnectFailure(connection, err));
+      .catch(async (err: unknown) => {
+        // If explicit/cached Room ID failed or ended, fallback to resolving live room from @effectiveUsername
+        if (targetRoomId && ctx.state.tiktokConnection === connection) {
+          try {
+            const freshRoomId = await connection.fetchRoomId(effectiveUsername);
+            if (freshRoomId && freshRoomId !== targetRoomId) {
+              lastResolvedRoomId = freshRoomId;
+              ctx.state.tiktokRoomId = freshRoomId;
+              const roomState = await connection.connect(freshRoomId);
+              handleConnectSuccess(connection, roomState?.roomId || freshRoomId);
+              return;
+            }
+          } catch {
+            // Ignore fallback error and report original failure
+          }
+        }
+        handleConnectFailure(connection, err);
+      });
   };
 
   const connectToRoom = (rawUsername: string): { cleanUsername: string } => {
     const { cleanUsername, directRoomId } = cleanTikTokInput(rawUsername);
+    const resolvedDirectRoomId = directRoomId;
     cancelPendingReconnect();
     downtimeTracker.cancel();
     reconnectState.isConnectionWanted = true;
-    lastResolvedRoomId = directRoomId;
+    lastResolvedRoomId = resolvedDirectRoomId;
 
     if (directRoomId && (!ctx.state.tiktokUsername || /^\d{15,22}$/.test(ctx.state.tiktokUsername))) {
       ctx.state.tiktokUsername = 'bap.daily.lifestyle99';
     } else if (!directRoomId) {
       ctx.state.tiktokUsername = cleanUsername;
     }
+    ctx.state.tiktokRoomId = resolvedDirectRoomId;
     ctx.state.connectionStatus = 'CONNECTING';
     ctx.state.lastErrorMessage = '';
     emitStatus();
 
     resetStats();
-    void openConnection(cleanUsername, directRoomId);
+    void openConnection(cleanUsername, resolvedDirectRoomId);
     return { cleanUsername: ctx.state.tiktokUsername };
   };
 
   const disconnectFromRoom = (): void => {
     lastResolvedRoomId = undefined;
+    ctx.state.tiktokRoomId = undefined;
     reconnectState.isConnectionWanted = false;
     cancelPendingReconnect();
     downtimeTracker.cancel();
     releaseConnection();
     ctx.state.connectionStatus = 'DISCONNECTED';
     ctx.state.lastErrorMessage = '';
-    emitStatus();
+    emitStatus({ roomId: undefined });
   };
 
   const disconnectOnShutdown = (): void => {
@@ -809,7 +918,9 @@ export function createTikTokConnectionService(
 
     try {
       const sessionId = resolveTikTokSessionId();
-      const probeConnection = new WebcastPushConnection(cleanUsername, {
+      const probeRoomId = directRoomId;
+      const effectiveProbeUser = resolveEffectiveTikTokUsername(cleanUsername, ctx.state.tiktokUsername);
+      const probeConnection = new WebcastPushConnection(effectiveProbeUser, {
         processInitialData: false,
         enableExtendedGiftInfo: false,
         ...(sessionId
@@ -827,24 +938,32 @@ export function createTikTokConnectionService(
           : {}),
       });
 
-      const isLive = await probeConnection.fetchIsLive();
       let rawData: Record<string, unknown> | undefined;
       try {
-        const info = (await probeConnection.fetchRoomInfo()) as Record<string, unknown> | undefined;
+        const info = (await probeConnection.fetchRoomInfo(probeRoomId)) as Record<string, unknown> | undefined;
         rawData = info?.data && typeof info.data === 'object' ? (info.data as Record<string, unknown>) : info;
       } catch {
         // Fallback if fetchRoomInfo fails
       }
+      const isLive =
+        typeof rawData?.status === 'number'
+          ? rawData.status === 2
+          : await probeConnection.fetchIsLive().catch(() => false);
 
       const latencyMs = Date.now() - startMs;
       const rawStatus = typeof rawData?.status === 'number' ? rawData.status : (isLive ? 2 : 4);
-      const rawId = rawData?.id_str || (rawData?.id ? String(rawData.id) : directRoomId);
+      const rawId = rawData?.id_str || (rawData?.id ? String(rawData.id) : probeRoomId);
       const roomId = typeof rawId === 'string' ? rawId : undefined;
       const title = typeof rawData?.title === 'string' ? rawData.title : undefined;
       const owner =
         rawData?.owner && typeof rawData.owner === 'object' ? (rawData.owner as Record<string, unknown>) : null;
       const streamerNickname = typeof owner?.nickname === 'string' ? owner.nickname : undefined;
       const viewerCount = typeof rawData?.user_count === 'number' ? rawData.user_count : undefined;
+
+      if (roomId) {
+        lastResolvedRoomId = roomId;
+        ctx.state.tiktokRoomId = roomId;
+      }
 
       if (isLive) {
         return {

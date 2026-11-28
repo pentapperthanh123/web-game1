@@ -62,9 +62,10 @@ export function resolveTierForDanceStyle(style: DanceStyle): GiftTier {
 }
 
 export interface QueueTtsHint {
-  kind: 'donate' | 'order' | 'ready' | 'like' | 'switch';
+  kind: 'donate' | 'order' | 'start_brew' | 'ready' | 'like' | 'switch';
   nickname: string;
   recipeId?: RecipeId;
+  recipeIds?: RecipeId[];
   danceStyle?: DanceStyle;
   tier?: GiftTier;
   isManual?: boolean;
@@ -100,6 +101,15 @@ export function normalizeUserId(user: ViewerProfile): string {
   const cleanId = user.id.trim().toLowerCase();
   if (cleanId) return cleanId;
   return `guest_${user.nickname.trim().toLowerCase().replace(/\s+/g, '_')}`;
+}
+
+// Queue already orders guests cleanly; keep steady configured pacing so animations and TTS stay 1:1 synchronized
+export function computeCrowdSpeedMultiplier(_waitingCount: number): number {
+  return 1;
+}
+
+export function computeCrowdShowcaseMs(_waitingCount: number): number {
+  return GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS;
 }
 
 export function getDanceDurationMs(tier: GiftTier): number {
@@ -143,6 +153,31 @@ export function isUserActiveNow(state: DrinkBarLiveState, userId: string): boole
   return Boolean(
     state.activeDrink && normalizeUserId(state.activeDrink.user) === userId
   );
+}
+
+export function countUserActiveAndQueuedOrders(state: DrinkBarLiveState, userId: string): number {
+  let count = isUserActiveNow(state, userId) ? 1 : 0;
+  for (const item of state.vipQueue) {
+    if (normalizeUserId(item.user) === userId) count += 1;
+  }
+  for (const item of state.normalQueue) {
+    if (normalizeUserId(item.user) === userId) count += 1;
+  }
+  return count;
+}
+
+/**
+ * Counts how many orders currently waiting in queue (vip + normal) belong to other viewers.
+ */
+export function countOtherUsersQueuedOrders(state: DrinkBarLiveState, userId: string): number {
+  let count = 0;
+  for (const item of state.vipQueue) {
+    if (normalizeUserId(item.user) !== userId) count += 1;
+  }
+  for (const item of state.normalQueue) {
+    if (normalizeUserId(item.user) !== userId) count += 1;
+  }
+  return count;
 }
 
 function upsertGuestBubble(
@@ -262,8 +297,10 @@ export function createEmptyResetDrinkBarState(
   currentConfig: DrinkBarConfig,
   now = Date.now()
 ): DrinkBarLiveState {
+  clearOrderSpamTracker();
   return {
     config: { ...currentConfig },
+    resetEpoch: now,
     activeDrink: null,
     secondaryDrink: null,
     activeSlots: [null, null],
@@ -285,6 +322,123 @@ export function createEmptyResetDrinkBarState(
   };
 }
 
+interface UserChatSpamRecord {
+  lastOrderAt: number;
+  lastSwitchAt: number;
+  lastText: string;
+  lastTextAt: number;
+}
+
+const USER_SPAM_TRACKER_LIMIT = 300;
+const userChatSpamMap = new Map<string, UserChatSpamRecord>();
+let lastInactivePruneAt = 0;
+
+function clearOrderSpamTracker(): void {
+  userChatSpamMap.clear();
+  lastInactivePruneAt = 0;
+}
+
+export function markUsersActiveInState(
+  state: DrinkBarLiveState,
+  userIds: readonly string[],
+  now: number
+): DrinkBarLiveState {
+  if (userIds.length === 0 || state.normalQueue.length === 0) {
+    return state;
+  }
+  const activeSet = new Set(
+    userIds.map((id) => id.trim().toLowerCase()).filter(Boolean)
+  );
+  if (activeSet.size === 0) {
+    return state;
+  }
+
+  let didChange = false;
+  const nextNormalQueue = state.normalQueue.map((order) => {
+    if (!activeSet.has(normalizeUserId(order.user))) {
+      return order;
+    }
+    didChange = true;
+    return {
+      ...order,
+      lastActiveAt: now,
+    };
+  });
+
+  if (!didChange) {
+    return state;
+  }
+  return {
+    ...state,
+    normalQueue: nextNormalQueue,
+  };
+}
+
+function pruneInactiveQueueOrders(
+  state: DrinkBarLiveState,
+  now: number
+): DrinkBarLiveState {
+  const totalWaiting = state.vipQueue.length + state.normalQueue.length;
+  if (
+    totalWaiting < GAMEPLAY_LIMITS.INACTIVE_PRUNE_MIN_QUEUE ||
+    state.normalQueue.length === 0
+  ) {
+    return state;
+  }
+  if (now - lastInactivePruneAt < GAMEPLAY_LIMITS.INACTIVE_PRUNE_INTERVAL_MS) {
+    return state;
+  }
+  lastInactivePruneAt = now;
+
+  let workingInventory = state.inventory;
+  const keptOrders: DrinkOrder[] = [];
+  let removedCount = 0;
+  const isUnlimited = state.config.unlimitedInventory;
+
+  for (const order of state.normalQueue) {
+    const lastSeen = order.lastActiveAt ?? order.createdAt;
+    if (now - lastSeen >= GAMEPLAY_LIMITS.INACTIVE_ORDER_TTL_MS) {
+      removedCount += 1;
+      if (!isUnlimited) {
+        workingInventory = refundDrinkStock(workingInventory, order.recipeId);
+      }
+      continue;
+    }
+    keptOrders.push(order);
+  }
+
+  if (removedCount === 0) {
+    return state;
+  }
+
+  return {
+    ...state,
+    normalQueue: keptOrders,
+    inventory: workingInventory,
+  };
+}
+
+function getOrCreateSpamRecord(userId: string): UserChatSpamRecord {
+  const existing = userChatSpamMap.get(userId);
+  if (existing) {
+    return existing;
+  }
+  if (userChatSpamMap.size >= USER_SPAM_TRACKER_LIMIT) {
+    const oldestKey = userChatSpamMap.keys().next().value;
+    if (oldestKey !== undefined) {
+      userChatSpamMap.delete(oldestKey);
+    }
+  }
+  const created: UserChatSpamRecord = {
+    lastOrderAt: 0,
+    lastSwitchAt: 0,
+    lastText: '',
+    lastTextAt: 0,
+  };
+  userChatSpamMap.set(userId, created);
+  return created;
+}
+
 export function applyChatToState(
   state: DrinkBarLiveState,
   user: ViewerProfile,
@@ -296,24 +450,143 @@ export function applyChatToState(
     return { state, effects: {} };
   }
 
-  const parsed = parseDrinkChat(cleanText);
   const userId = normalizeUserId(user);
-  let nextState: DrinkBarLiveState = {
-    ...state,
-    guestBubbles: upsertGuestBubble(state.guestBubbles, user, cleanText, now),
-    lastEventAt: now,
-  };
+  const normalizedChatText = cleanText.toLowerCase().replace(/\s+/g, ' ');
+  const spamRecord = getOrCreateSpamRecord(userId);
+  const parsed = parseDrinkChat(cleanText);
 
-  const isAlreadyActive = isUserActiveNow(nextState, userId);
+  // Check if there are other viewers currently waiting in queue (ít người / không có hàng chờ)
+  const otherQueuedCount = countOtherUsersQueuedOrders(state, userId);
+  const isQueueFreeForUser = otherQueuedCount === 0;
+
+  // Duplicate chat check:
+  // When no other viewers are waiting in queue, allow repeated drink orders after a brief 1.2s gap;
+  // otherwise enforce full DUPLICATE_CHAT_COOLDOWN_MS (10s)
+  const duplicateCooldownMs =
+    isQueueFreeForUser && parsed.isOrderIntent
+      ? 1200
+      : GAMEPLAY_LIMITS.DUPLICATE_CHAT_COOLDOWN_MS;
+
+  const isDuplicateSpam =
+    spamRecord.lastText === normalizedChatText &&
+    now - spamRecord.lastTextAt < duplicateCooldownMs;
+
+  if (isDuplicateSpam) {
+    return { state: markUsersActiveInState(state, [userId], now), effects: {} };
+  }
+  spamRecord.lastText = normalizedChatText;
+  spamRecord.lastTextAt = now;
+
+  let nextState: DrinkBarLiveState = markUsersActiveInState(
+    {
+      ...state,
+      guestBubbles: upsertGuestBubble(state.guestBubbles, user, cleanText, now),
+      lastEventAt: now,
+    },
+    [userId],
+    now
+  );
+
   const isAlreadyQueued = isUserAlreadyInQueue(nextState, userId);
+  const userOrderCount = countUserActiveAndQueuedOrders(nextState, userId);
+  const maxPerUser = nextState.config.maxOrdersPerUser ?? 1;
+
+  // When few viewers / no queue from other viewers, allow the user to order continuously (up to 10 cups);
+  // but once there are other orders waiting in queue ("nhưng khi có order rồi"),
+  // strictly enforce the maxPerUser quota!
+  const MAX_FREE_QUEUE_USER_ORDERS = 10;
+  const canAddAnotherCup =
+    maxPerUser <= 0
+      ? userOrderCount < GAMEPLAY_LIMITS.MAX_QUEUE_TOTAL
+      : isQueueFreeForUser
+      ? userOrderCount < MAX_FREE_QUEUE_USER_ORDERS
+      : userOrderCount < maxPerUser;
+
+  const isPureModifierUpdate =
+    isAlreadyQueued && !parsed.recipeId && Boolean(parsed.sugarLevel || parsed.iceLevel);
+
+  // Order cooldown: 1.2s when queue is free to allow continuous ordering, 5s when other people are queued
+  const orderCooldownMs = isQueueFreeForUser
+    ? 1200
+    : GAMEPLAY_LIMITS.ORDER_SPAM_COOLDOWN_MS;
+
+  const isOrderOnCooldown =
+    spamRecord.lastOrderAt > 0 &&
+    now - spamRecord.lastOrderAt < orderCooldownMs;
 
   const isUnlimited = nextState.config.unlimitedInventory;
 
-  // Rule: Strict 1 cup per user at a time (either active on Station 1 or queued)
-  if (!isAlreadyActive && !isAlreadyQueued && parsed.isOrderIntent) {
-    const requestedId = parsed.recipeId;
+  // Allow viewer to queue 1 or multiple cups parsed from chat up to MAX_CUPS_PER_COMMENT & quota
+  if (canAddAnotherCup && !isPureModifierUpdate && parsed.isOrderIntent && !isOrderOnCooldown) {
+    const requestedSpecs =
+      parsed.items.length > 0
+        ? parsed.items.flatMap((item) =>
+            Array.from({ length: item.quantity }, () => ({
+              recipeId: item.recipeId,
+              sugarLevel: item.sugarLevel ?? parsed.sugarLevel ?? 'NORMAL',
+              iceLevel: item.iceLevel ?? parsed.iceLevel ?? 'NORMAL',
+            }))
+          )
+        : [
+            {
+              recipeId: isUnlimited
+                ? pickRandomRecipeId()
+                : pickAvailableRecipeId(nextState.inventory),
+              sugarLevel: parsed.sugarLevel ?? 'NORMAL',
+              iceLevel: parsed.iceLevel ?? 'NORMAL',
+            },
+          ];
 
-    if (!isUnlimited && requestedId && !isRecipeAvailable(nextState.inventory, requestedId)) {
+    const effectiveLimit =
+      maxPerUser <= 0
+        ? GAMEPLAY_LIMITS.MAX_QUEUE_TOTAL
+        : isQueueFreeForUser
+        ? MAX_FREE_QUEUE_USER_ORDERS
+        : maxPerUser;
+    const remainingUserQuota = Math.max(0, effectiveLimit - userOrderCount);
+    const totalQueued = nextState.vipQueue.length + nextState.normalQueue.length;
+    const remainingStageSpace = Math.max(0, GAMEPLAY_LIMITS.MAX_QUEUE_TOTAL - totalQueued);
+    const maxToEnqueue = Math.min(
+      requestedSpecs.length,
+      GAMEPLAY_LIMITS.MAX_CUPS_PER_COMMENT,
+      remainingUserQuota,
+      remainingStageSpace
+    );
+
+    let workingInventory = nextState.inventory;
+    const createdOrders: DrinkOrder[] = [];
+    let sawSoldOut = false;
+
+    for (let i = 0; i < maxToEnqueue; i += 1) {
+      const spec = requestedSpecs[i];
+      if (!isUnlimited && !isRecipeAvailable(workingInventory, spec.recipeId)) {
+        sawSoldOut = true;
+        continue;
+      }
+      if (!isUnlimited) {
+        workingInventory = deductDrinkStock(
+          workingInventory,
+          spec.recipeId,
+          nextState.config.autoRestockEnabled,
+          now
+        );
+      }
+      createdOrders.push({
+        orderId: createOrderId('order'),
+        user: { ...user, id: userId },
+        recipeId: spec.recipeId,
+        toppings: [],
+        sugarLevel: spec.sugarLevel,
+        iceLevel: spec.iceLevel,
+        isVip: false,
+        isSignature: false,
+        isGlowUpgraded: false,
+        createdAt: now,
+        lastActiveAt: now,
+      });
+    }
+
+    if (createdOrders.length === 0 && sawSoldOut) {
       const msg = getMessages(nextState.config.language);
       return {
         state: {
@@ -327,47 +600,42 @@ export function applyChatToState(
       };
     }
 
-    const totalQueued = nextState.vipQueue.length + nextState.normalQueue.length;
-    if (totalQueued < GAMEPLAY_LIMITS.MAX_QUEUE_TOTAL) {
-      const fallbackRecipeId = isUnlimited
-        ? pickRandomRecipeId()
-        : pickAvailableRecipeId(nextState.inventory);
-      const recipeId: RecipeId = requestedId ?? fallbackRecipeId;
-      const nextInventory = isUnlimited
-        ? nextState.inventory
-        : deductDrinkStock(
-            nextState.inventory,
-            recipeId,
-            nextState.config.autoRestockEnabled,
-            now
-          );
-
-      const newOrder: DrinkOrder = {
-        orderId: createOrderId('order'),
-        user: { ...user, id: userId },
-        recipeId,
-        toppings: [],
-        sugarLevel: parsed.sugarLevel ?? 'NORMAL',
-        iceLevel: parsed.iceLevel ?? 'NORMAL',
-        isVip: false,
-        isSignature: false,
-        isGlowUpgraded: false,
-        createdAt: now,
-      };
+    if (createdOrders.length > 0) {
+      spamRecord.lastOrderAt = now;
       nextState = {
         ...nextState,
-        inventory: nextInventory,
-        normalQueue: [...nextState.normalQueue, newOrder],
+        inventory: workingInventory,
+        normalQueue: [...nextState.normalQueue, ...createdOrders],
       };
+      const wasIdleBeforeOrder = nextState.activeDrink === null;
       nextState = promoteNextFromQueue(nextState, now);
+      if (wasIdleBeforeOrder && nextState.activeDrink) {
+        // Kickstart progress > 0 immediately on the exact arrival frame so barista & HUD react in 0ms
+        nextState = {
+          ...nextState,
+          activeDrink: {
+            ...nextState.activeDrink,
+            progress: 1.5,
+          },
+          activeSlots: [
+            {
+              ...nextState.activeDrink,
+              progress: 1.5,
+            },
+            null,
+          ],
+        };
+      }
+      const firstOrder = createdOrders[0];
       return {
         state: nextState,
         effects: {
           sfxToPlay: 'chat_pop',
           ttsHint: {
             kind: 'order',
-            nickname: newOrder.user.nickname,
-            recipeId: newOrder.recipeId,
+            nickname: firstOrder.user.nickname,
+            recipeId: firstOrder.recipeId,
+            recipeIds: createdOrders.map((o) => o.recipeId),
           },
         },
       };
@@ -375,7 +643,11 @@ export function applyChatToState(
   }
 
   // If user is queued (not brewing yet) and requests a flavor change
-  if (isAlreadyQueued && parsed.hasFlavorModifier) {
+  const isSwitchOnCooldown =
+    spamRecord.lastSwitchAt > 0 &&
+    now - spamRecord.lastSwitchAt < GAMEPLAY_LIMITS.FLAVOR_SWITCH_COOLDOWN_MS;
+  if (isAlreadyQueued && parsed.hasFlavorModifier && !isSwitchOnCooldown) {
+    spamRecord.lastSwitchAt = now;
     let workingInventory = nextState.inventory;
 
     if (!isUnlimited && parsed.recipeId && !isRecipeAvailable(workingInventory, parsed.recipeId)) {
@@ -392,8 +664,24 @@ export function applyChatToState(
       };
     }
 
+    let targetOrderId: string | null = null;
+    for (let i = nextState.vipQueue.length - 1; i >= 0; i -= 1) {
+      if (normalizeUserId(nextState.vipQueue[i].user) === userId) {
+        targetOrderId = nextState.vipQueue[i].orderId;
+        break;
+      }
+    }
+    if (!targetOrderId) {
+      for (let i = nextState.normalQueue.length - 1; i >= 0; i -= 1) {
+        if (normalizeUserId(nextState.normalQueue[i].user) === userId) {
+          targetOrderId = nextState.normalQueue[i].orderId;
+          break;
+        }
+      }
+    }
+
     const updateOrder = (order: DrinkOrder): DrinkOrder => {
-      if (normalizeUserId(order.user) !== userId) return order;
+      if (order.orderId !== targetOrderId) return order;
       const nextRecipeId = parsed.recipeId ?? order.recipeId;
       if (!isUnlimited && nextRecipeId !== order.recipeId) {
         workingInventory = refundDrinkStock(workingInventory, order.recipeId);
@@ -436,21 +724,6 @@ export function applyChatToState(
   return { state: nextState, effects: {} };
 }
 
-function advanceSlotProgressByDelta(
-  drink: ActiveDrink | null,
-  deltaProgress: number,
-  now: number
-): ActiveDrink | null {
-  if (!drink || drink.phase !== 'BREWING') {
-    return drink;
-  }
-  return {
-    ...drink,
-    progress: Math.min(100, drink.progress + deltaProgress),
-    lastUpdatedAt: now,
-  };
-}
-
 export function applyLikesToState(
   state: DrinkBarLiveState,
   likeCount: number,
@@ -460,66 +733,14 @@ export function applyLikesToState(
     return { state, effects: {} };
   }
 
-  const boostUntil = Math.max(
-    state.speedBoostUntil,
-    now + GAMEPLAY_LIMITS.SPEED_BOOST_DURATION_MS
-  );
-  // Pause progress while bartenders are performing TikTok Dance
-  if (now < state.danceUntil) {
-    return {
-      state: {
-        ...state,
-        speedBoostUntil: boostUntil,
-        lastEventAt: now,
-      },
-      effects: {
-        burstKind: state.activeDrink ? 'like' : undefined,
-        sfxToPlay: 'like_pop',
-      },
-    };
-  }
-
-  const deltaProgress = Math.min(
-    GAMEPLAY_LIMITS.LIKE_MAX_BATCH_PROGRESS,
-    likeCount * GAMEPLAY_LIMITS.LIKE_PROGRESS_PER_HEART
-  );
-
-  const nextActiveSlot = advanceSlotProgressByDelta(state.activeDrink, deltaProgress, now);
-
-  let workingState: DrinkBarLiveState = {
-    ...state,
-    activeDrink: nextActiveSlot,
-    secondaryDrink: null,
-    activeSlots: [nextActiveSlot, null],
-    speedBoostUntil: boostUntil,
-    lastEventAt: now,
-  };
-
-  let burstKind: QueueStepSideEffects['burstKind'] =
-    workingState.activeDrink ? 'like' : undefined;
-  let sfxToPlay: SfxKind | undefined;
-
-  if (
-    workingState.activeDrink &&
-    workingState.activeDrink.phase === 'BREWING' &&
-    workingState.activeDrink.progress >= 100
-  ) {
-    const res1 = completeDrinkInSlot(workingState, 1, now);
-    workingState = res1.state;
-    burstKind = res1.effects.burstKind ?? burstKind;
-    sfxToPlay = res1.effects.sfxToPlay ?? sfxToPlay;
-  }
-
+  // Likes no longer boost brew speed or alter active drink progress; keep telemetry timestamp updated
   return {
-    state: workingState,
-    effects: {
-      burstKind,
-      sfxToPlay: sfxToPlay ?? (burstKind ? 'like_pop' : undefined),
-      ttsHint:
-        !sfxToPlay && burstKind === 'like'
-          ? { kind: 'like', nickname: '' }
-          : undefined,
+    state: {
+      ...state,
+      speedBoostUntil: 0,
+      lastEventAt: now,
     },
+    effects: {},
   };
 }
 
@@ -529,12 +750,24 @@ function upgradeActiveDrinkOnGift(
   tier: GiftTier,
   now: number
 ): ActiveDrink | null {
-  if (!drink || drink.phase !== 'BREWING') {
+  if (!drink) {
+    return null;
+  }
+  const isDonorActive = normalizeUserId(drink.user) === donorUserId;
+  if (drink.phase !== 'BREWING' && !isDonorActive) {
     return drink;
+  }
+  if (drink.phase !== 'BREWING') {
+    return {
+      ...drink,
+      isVip: true,
+      isGlowUpgraded: tier === 'MEDIUM' || tier === 'LARGE' ? true : drink.isGlowUpgraded,
+      isSignature: tier === 'LARGE' ? true : drink.isSignature,
+      lastUpdatedAt: now,
+    };
   }
   const addedTopping = pickNextMissingTopping(drink.toppings, undefined, drink.recipeId);
   const nextToppings = mergeUniqueToppings(drink.toppings, [addedTopping]);
-  const isDonorActive = normalizeUserId(drink.user) === donorUserId;
   const upgradedToppings = resolveActiveDrinkToppings(nextToppings, isDonorActive, tier, drink.recipeId);
 
   return {
@@ -548,6 +781,28 @@ function upgradeActiveDrinkOnGift(
     isSignature: isDonorActive && tier === 'LARGE' ? true : drink.isSignature,
     lastUpdatedAt: now,
   };
+}
+
+function resolveOrderTierRank(order: DrinkOrder): number {
+  if (order.isSignature) return TIER_RANK.LARGE;
+  if (order.isGlowUpgraded) return TIER_RANK.MEDIUM;
+  return TIER_RANK.SMALL;
+}
+
+function insertVipOrdersByTier(
+  vipQueue: readonly DrinkOrder[],
+  incoming: readonly DrinkOrder[],
+  tier: GiftTier
+): DrinkOrder[] {
+  const next = [...vipQueue];
+  const incomingRank = TIER_RANK[tier];
+  const insertIdx = next.findIndex((item) => resolveOrderTierRank(item) < incomingRank);
+  if (insertIdx === -1) {
+    next.push(...incoming);
+  } else {
+    next.splice(insertIdx, 0, ...incoming);
+  }
+  return next;
 }
 
 export function applyGiftToState(
@@ -569,85 +824,40 @@ export function applyGiftToState(
     GAMEPLAY_LIMITS.GIFT_RESUPPLY_ML
   );
 
-  // Step 3: VIP Queue placement for donor if not currently being served on NV1
-  let nextVipQueue = [...state.vipQueue];
-  let nextNormalQueue = [...state.normalQueue];
-  const isDonorServed = Boolean(nextActive && normalizeUserId(nextActive.user) === userId);
+  // Step 3: VIP Queue placement — donate upgrades ONLY existing waiting orders (or active counter cup); never creates phantom orders
+  const donorVipOrders = state.vipQueue.filter((o) => normalizeUserId(o.user) === userId);
+  const donorNormalOrders = state.normalQueue.filter((o) => normalizeUserId(o.user) === userId);
+  let nextVipQueue = state.vipQueue.filter((o) => normalizeUserId(o.user) !== userId);
+  const nextNormalQueue = state.normalQueue.filter((o) => normalizeUserId(o.user) !== userId);
 
-  if (!isDonorServed) {
-    const existingVipIdx = nextVipQueue.findIndex((o) => normalizeUserId(o.user) === userId);
-    const existingNormalIdx = nextNormalQueue.findIndex(
-      (o) => normalizeUserId(o.user) === userId
-    );
-
-    let baseOrder: DrinkOrder;
-    if (existingVipIdx >= 0) {
-      baseOrder = nextVipQueue[existingVipIdx];
-      nextVipQueue.splice(existingVipIdx, 1);
-    } else if (existingNormalIdx >= 0) {
-      baseOrder = nextNormalQueue[existingNormalIdx];
-      nextNormalQueue.splice(existingNormalIdx, 1);
-    } else {
-      const isUnlimited = state.config.unlimitedInventory;
-      const recipeId = isUnlimited ? pickRandomRecipeId() : pickAvailableRecipeId(nextInventory);
-      if (!isUnlimited) {
-        nextInventory = deductDrinkStock(
-          nextInventory,
-          recipeId,
-          state.config.autoRestockEnabled,
-          now
-        );
-      }
-      baseOrder = {
-        orderId: createOrderId('vip'),
-        user: normalizedUser,
-        recipeId,
-        toppings: [],
-        sugarLevel: 'NORMAL',
-        iceLevel: 'NORMAL',
-        isVip: true,
-        isSignature: false,
-        isGlowUpgraded: false,
-        createdAt: now,
-      };
-    }
-
-    const upgradedOrder: DrinkOrder = {
+  const donorExistingOrders = [...donorVipOrders, ...donorNormalOrders];
+  if (donorExistingOrders.length > 0) {
+    const upgradedOrders: DrinkOrder[] = donorExistingOrders.map((baseOrder) => ({
       ...baseOrder,
       user: normalizedUser,
       isVip: true,
       isGlowUpgraded: baseOrder.isGlowUpgraded || tier === 'MEDIUM' || tier === 'LARGE',
       isSignature: baseOrder.isSignature || tier === 'LARGE',
       toppings: resolveOrderToppingsForTier(baseOrder.toppings, tier, baseOrder.recipeId),
-    };
+    }));
 
-    if (tier === 'LARGE') {
-      nextVipQueue.unshift(upgradedOrder);
-    } else {
-      const insertIdx = nextVipQueue.findIndex((item) => !item.isSignature);
-      if (insertIdx === -1) {
-        nextVipQueue.push(upgradedOrder);
-      } else {
-        nextVipQueue.splice(insertIdx, 0, upgradedOrder);
-      }
-    }
+    nextVipQueue = insertVipOrdersByTier(nextVipQueue, upgradedOrders, tier);
   }
 
-  // Step 4: Trigger or defer TikTok Dance so music + dance drop right when intro speech ends
+  // Step 4: Trigger TikTok Dance IMMEDIATELY on gift arrival; cap continuous pause by danceStartedAt so rush orders never starve
   const danceDurationMs = getDanceDurationMs(tier);
-  const wasAlreadyDancing = now < state.danceUntil;
-  const maxAllowedUntil = now + GAMEPLAY_LIMITS.DANCE_MAX_DURATION_MS;
+  const wasAlreadyDancing = now < state.danceUntil && state.danceStartedAt > 0;
+  const sessionAnchor = wasAlreadyDancing ? state.danceStartedAt : now;
+  const maxAllowedUntil = sessionAnchor + GAMEPLAY_LIMITS.DANCE_MAX_DURATION_MS;
   const nextDanceUntil = wasAlreadyDancing
-    ? Math.min(maxAllowedUntil, state.danceUntil + danceDurationMs)
+    ? Math.min(maxAllowedUntil, state.danceUntil + GAMEPLAY_LIMITS.DANCE_BURST_EXTEND_MS)
     : Math.min(maxAllowedUntil, now + danceDurationMs);
   const nextTier: GiftTier =
     wasAlreadyDancing && TIER_RANK[state.danceTier] > TIER_RANK[tier]
       ? state.danceTier
       : tier;
   const nextStyle = resolveDanceStyleForTier(nextTier);
-  const isStyleSwitch = wasAlreadyDancing && nextStyle !== state.danceStyle;
-  const nextDanceStartedAt = !wasAlreadyDancing || isStyleSwitch ? now : state.danceStartedAt;
-  const shouldDeferForTts = state.config.ttsEnabled && !wasAlreadyDancing;
+  const nextDanceStartedAt = wasAlreadyDancing ? state.danceStartedAt : now;
 
   const thanksText = formatShortThanks(
     normalizedUser.nickname,
@@ -655,7 +865,6 @@ export function applyGiftToState(
     GAMEPLAY_LIMITS.SPEECH_MAX_CHARS
   );
 
-  const pendingIntroMs = GAMEPLAY_LIMITS.TTS_WATCHDOG_MS;
   let nextState: DrinkBarLiveState = {
     ...state,
     activeDrink: nextActive,
@@ -664,14 +873,14 @@ export function applyGiftToState(
     vipQueue: nextVipQueue,
     normalQueue: nextNormalQueue,
     inventory: nextInventory,
-    bartenderMood: shouldDeferForTts ? 'HAPPY' : 'TIKTOK_DANCE',
+    bartenderMood: 'TIKTOK_DANCE',
     bartenderSpeech: {
       text: thanksText,
-      expiresAt: shouldDeferForTts ? now + pendingIntroMs : nextDanceUntil,
+      expiresAt: nextDanceUntil,
     },
-    waveUntil: shouldDeferForTts ? now + pendingIntroMs : nextDanceUntil,
-    danceUntil: shouldDeferForTts ? 0 : nextDanceUntil,
-    danceStartedAt: shouldDeferForTts ? 0 : nextDanceStartedAt,
+    waveUntil: nextDanceUntil,
+    danceUntil: nextDanceUntil,
+    danceStartedAt: nextDanceStartedAt,
     danceTier: nextTier,
     danceStyle: nextStyle,
     lastEventAt: now,
@@ -684,16 +893,8 @@ export function applyGiftToState(
   return {
     state: nextState,
     effects: {
-      sfxToPlay: shouldDeferForTts ? 'chime' : 'dance_jingle',
+      sfxToPlay: 'dance_jingle',
       burstKind,
-      pendingDance: shouldDeferForTts
-        ? {
-            tier: nextTier,
-            style: nextStyle,
-            durationMs: danceDurationMs,
-            thanksText,
-          }
-        : undefined,
       ttsHint: {
         kind: 'donate',
         nickname: normalizedUser.nickname,
@@ -714,8 +915,6 @@ export function triggerManualTikTokDance(
   const effectiveTier = requestedStyle ? resolveTierForDanceStyle(requestedStyle) : tier;
   const effectiveStyle = requestedStyle ?? resolveDanceStyleForTier(effectiveTier);
   const danceDurationMs = getDanceDurationMs(effectiveTier);
-  const wasAlreadyDancing = now < state.danceUntil;
-  const shouldDeferForTts = state.config.ttsEnabled && !wasAlreadyDancing;
   const nextDanceUntil = Math.min(
     now + GAMEPLAY_LIMITS.DANCE_MAX_DURATION_MS,
     now + danceDurationMs
@@ -725,34 +924,25 @@ export function triggerManualTikTokDance(
     state.config.language,
     GAMEPLAY_LIMITS.SPEECH_MAX_CHARS
   );
-  const pendingIntroMs = GAMEPLAY_LIMITS.TTS_WATCHDOG_MS;
 
   return {
     state: {
       ...state,
-      bartenderMood: shouldDeferForTts ? 'HAPPY' : 'TIKTOK_DANCE',
+      bartenderMood: 'TIKTOK_DANCE',
       bartenderSpeech: {
         text: thanksText,
-        expiresAt: shouldDeferForTts ? now + pendingIntroMs : nextDanceUntil,
+        expiresAt: nextDanceUntil,
       },
-      waveUntil: shouldDeferForTts ? now + pendingIntroMs : nextDanceUntil,
-      danceUntil: shouldDeferForTts ? 0 : nextDanceUntil,
-      danceStartedAt: shouldDeferForTts ? 0 : now,
+      waveUntil: nextDanceUntil,
+      danceUntil: nextDanceUntil,
+      danceStartedAt: now,
       danceTier: effectiveTier,
       danceStyle: effectiveStyle,
       lastEventAt: now,
     },
     effects: {
-      sfxToPlay: shouldDeferForTts ? 'chime' : 'dance_jingle',
+      sfxToPlay: 'dance_jingle',
       burstKind: effectiveTier === 'LARGE' ? 'signature' : 'topping',
-      pendingDance: shouldDeferForTts
-        ? {
-            tier: effectiveTier,
-            style: effectiveStyle,
-            durationMs: danceDurationMs,
-            thanksText,
-          }
-        : undefined,
       ttsHint: {
         kind: 'donate',
         nickname: '',
@@ -798,7 +988,10 @@ function isBobaExcludedRecipe(recipeId?: RecipeId): boolean {
     recipeId === 'matcha' ||
     recipeId === 'blue_citrus' ||
     recipeId === 'peach_tea' ||
-    recipeId === 'lime_tea'
+    recipeId === 'lime_tea' ||
+    recipeId === 'cacao' ||
+    recipeId === 'coffee_milk' ||
+    recipeId === 'berry_soda'
   );
 }
 
@@ -848,11 +1041,12 @@ function completeDrinkInSlot(
     return { state, effects: {} };
   }
 
+  const waitingCount = state.vipQueue.length + state.normalQueue.length;
   const completed: ActiveDrink = {
     ...target,
     progress: 100,
     phase: 'SHOWCASE',
-    showcaseRemainingMs: GAMEPLAY_LIMITS.SHOWCASE_DURATION_MS,
+    showcaseRemainingMs: computeCrowdShowcaseMs(waitingCount),
     lastUpdatedAt: now,
   };
 
@@ -1093,6 +1287,7 @@ export function advanceDrinkBarTick(
     inventory: nextInventory,
   };
 
+  workingState = pruneInactiveQueueOrders(workingState, now);
   workingState = promoteNextFromQueue(workingState, now);
 
   if (!workingState.activeDrink) {
@@ -1110,14 +1305,20 @@ export function advanceDrinkBarTick(
     };
   }
 
-  const isBoosted = now < workingState.speedBoostUntil;
-  const speedMultiplier = isBoosted ? GAMEPLAY_LIMITS.SPEED_BOOST_MULTIPLIER : 1;
+  const waitingCount = workingState.vipQueue.length + workingState.normalQueue.length;
+  const crowdSpeedMultiplier = computeCrowdSpeedMultiplier(waitingCount);
   const durationSec = Math.max(
     GAMEPLAY_LIMITS.MIN_BREW_DURATION_SEC,
     workingState.config.brewDurationSec
   );
 
-  const s1 = tickSingleStation(workingState.activeDrink, dtSec, speedMultiplier, durationSec, now);
+  const s1 = tickSingleStation(
+    workingState.activeDrink,
+    dtSec,
+    crowdSpeedMultiplier,
+    durationSec,
+    now
+  );
 
   workingState = {
     ...workingState,
@@ -1138,7 +1339,15 @@ export function advanceDrinkBarTick(
     const before1 = workingState.activeDrink;
     workingState = promoteNextFromQueue(workingState, now);
     if (!before1 && workingState.activeDrink) {
-      effects = { ...effects, sfxToPlay: effects.sfxToPlay ?? 'pour' };
+      effects = {
+        ...effects,
+        sfxToPlay: effects.sfxToPlay ?? 'pour',
+        ttsHint: effects.ttsHint ?? {
+          kind: 'start_brew',
+          nickname: workingState.activeDrink.user.nickname,
+          recipeId: workingState.activeDrink.recipeId,
+        },
+      };
     }
   }
 

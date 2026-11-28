@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Coffee, Crown, Sparkles, Users } from 'lucide-react';
-import { DEFAULT_DRINK_BAR_CONFIG } from '@shared/config';
+import { Coffee, Crown, Eye, EyeOff, Sparkles, Users } from 'lucide-react';
+import { DEFAULT_DRINK_BAR_CONFIG, DRINK_BAR_STORAGE_KEYS } from '@shared/config';
 import { getMessages } from '@shared/i18n';
 import { formatBrewStepBadge, getRecipeLabel } from '@shared/recipes';
 import { sharedSoundEngine } from '@shared/soundEngine';
+import { sharedTtsPlayer } from '@shared/ttsPlayer';
 import type {
   AutoBotPace,
   DrinkBarConfig,
@@ -29,11 +30,36 @@ export const App: React.FC = () => {
   });
   const [isBotEnabled, setIsBotEnabled] = useState<boolean>(false);
   const [botPace, setBotPace] = useState<AutoBotPace>('NORMAL');
+  const [isPreviewVisible, setIsPreviewVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem(DRINK_BAR_STORAGE_KEYS.SHOW_LIVE_PREVIEW) !== 'false';
+  });
+
+  const handleTogglePreview = () => {
+    setIsPreviewVisible((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(DRINK_BAR_STORAGE_KEYS.SHOW_LIVE_PREVIEW, String(next));
+      } catch {
+        // Ignore storage write errors
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     autoBotBar.stop();
-    sharedSoundEngine.enableAutoCafeBgm(false);
+    sharedSoundEngine.enableAutoCafeBgm(true);
     drinkBarAdminBridge.start();
+    drinkBarAdminBridge.emitAdminAction('SET_BREW_DURATION', {
+      brewDurationSec: DEFAULT_DRINK_BAR_CONFIG.brewDurationSec,
+    });
+    drinkBarAdminBridge.emitAdminAction('SET_MAX_ORDERS_PER_USER', {
+      maxOrdersPerUser: DEFAULT_DRINK_BAR_CONFIG.maxOrdersPerUser,
+    });
+    drinkBarAdminBridge.emitAdminAction('SET_UNLIMITED_INVENTORY', {
+      unlimitedInventory: DEFAULT_DRINK_BAR_CONFIG.unlimitedInventory,
+    });
     const offSnapshot = drinkBarAdminBridge.subscribeSnapshot(setLiveSnapshot);
     const offStatus = drinkBarAdminBridge.subscribeTikTokStatus(setTiktokStatus);
 
@@ -44,6 +70,13 @@ export const App: React.FC = () => {
       drinkBarAdminBridge.stop();
     };
   }, []);
+
+  useEffect(() => {
+    sharedSoundEngine.setHostAudioSuspended(!isPreviewVisible);
+    if (!isPreviewVisible) {
+      sharedTtsPlayer.stopAll();
+    }
+  }, [isPreviewVisible]);
 
   const handleToggleBot = () => {
     if (isBotEnabled) {
@@ -68,6 +101,11 @@ export const App: React.FC = () => {
   const handleChangeBrewDuration = (brewDurationSec: number) => {
     setConfig((prev) => ({ ...prev, brewDurationSec }));
     drinkBarAdminBridge.emitAdminAction('SET_BREW_DURATION', { brewDurationSec });
+  };
+
+  const handleChangeMaxOrdersPerUser = (maxOrdersPerUser: number) => {
+    setConfig((prev) => ({ ...prev, maxOrdersPerUser }));
+    drinkBarAdminBridge.emitAdminAction('SET_MAX_ORDERS_PER_USER', { maxOrdersPerUser });
   };
 
   const handleToggleSfx = () => {
@@ -159,6 +197,24 @@ export const App: React.FC = () => {
                 </p>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleTogglePreview}
+              aria-pressed={isPreviewVisible}
+              className={`bar-btn px-2.5 py-1 text-[11px] font-black inline-flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors ${
+                isPreviewVisible
+                  ? 'bg-[#D9F0F6] hover:bg-[#C3E7F0] text-[#235463]'
+                  : 'bg-[#FFF1C2] hover:bg-[#FCE397] text-[#3B2820]'
+              }`}
+            >
+              {isPreviewVisible ? (
+                <EyeOff className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <Eye className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span>{isPreviewVisible ? msg.btnHidePreview : msg.btnShowPreview}</span>
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
@@ -205,6 +261,7 @@ export const App: React.FC = () => {
             tiktokStatus={tiktokStatus}
             onChangeLanguage={handleChangeLanguage}
             onChangeBrewDuration={handleChangeBrewDuration}
+            onChangeMaxOrdersPerUser={handleChangeMaxOrdersPerUser}
             onChangeDefaultCapacity={handleChangeDefaultCapacity}
             onToggleAutoRestock={handleToggleAutoRestock}
             onToggleUnlimitedInventory={handleToggleUnlimitedInventory}
@@ -219,10 +276,12 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* CỘT PHẢI (Mở rộng tối ưu khung 9:16): Live Preview + Mirror Live */}
-      <div className="w-full lg:w-[420px] xl:w-[480px] 2xl:w-[540px] shrink-0 h-[640px] lg:h-full flex flex-col min-h-0 overflow-hidden">
-        <LivePreviewPanel config={config} />
-      </div>
+      {/* CỘT PHẢI (Mở rộng tối ưu khung 9:16): Chỉ mount & render khi bật Hiện Preview */}
+      {isPreviewVisible && (
+        <div className="w-full lg:w-[420px] xl:w-[480px] 2xl:w-[540px] shrink-0 h-[640px] lg:h-full flex flex-col min-h-0 overflow-hidden">
+          <LivePreviewPanel config={config} onTogglePreview={handleTogglePreview} />
+        </div>
+      )}
     </div>
   );
 };

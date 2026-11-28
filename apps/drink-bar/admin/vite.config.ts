@@ -11,8 +11,15 @@ export default defineConfig(({ mode }) => {
     process.env.VITE_SERVER_URL ||
     env.VITE_SERVER_URL ||
     `http://127.0.0.1:${DRINK_BAR_PORTS.SERVER}`;
+  const clientTarget = `http://127.0.0.1:${DRINK_BAR_PORTS.CLIENT}`;
 
   const proxy = {
+    '/api/drinkbar-sync': {
+      target: clientTarget,
+      changeOrigin: true,
+      proxyTimeout: 3000,
+      timeout: 3000,
+    },
     '/socket.io': {
       target: backendTarget,
       ws: true,

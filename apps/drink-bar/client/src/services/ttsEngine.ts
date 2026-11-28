@@ -1,31 +1,59 @@
 import { GAMEPLAY_LIMITS } from '@shared/config';
 import {
+  formatMultiDrinkLabel,
   formatTtsDonateMessage,
+  formatTtsGenericOrderFallback,
+  formatTtsGroupedOrderMessage,
   formatTtsLikeCheerMessage,
-  formatTtsOrderMessage,
+  formatTtsMultiDrinkOrderMessage,
   formatTtsReadyMessage,
+  formatTtsStartBrewMessage,
   formatTtsSwitchFlavorMessage,
   formatTtsWakeUpMessage,
   getMessages,
+  type GroupedOrderTtsEntry,
 } from '@shared/i18n';
-import { getRecipeLabel } from '@shared/recipes';
+import { getRecipeLabel, MENU_RECIPE_LIST } from '@shared/recipes';
 import { sharedTtsPlayer, selectPreferredSpeechVoice } from '@shared/ttsPlayer';
 import type { DanceStyle, DrinkBarSyncMessage, Language, RecipeId } from '@shared/types';
 import { drinkBarAudio } from './audioManager';
 
-export type TtsPriority = 1 | 2 | 3;
+export type TtsPriority = 1 | 2 | 3 | 4 | 5;
+export type TtsSlotKind = 'donate' | 'order' | 'start_brew' | 'ready' | 'switch' | 'idle' | 'wake';
 
 interface TtsQueueItem {
   id: number;
   priority: TtsPriority;
+  slotKind: TtsSlotKind;
   text: string;
+  fallbackTexts?: readonly string[];
   language: Language;
+  createdAt: number;
+  donors?: string[];
+  orderEntries?: GroupedOrderTtsEntry[];
+  danceStyle?: DanceStyle;
+  isManual?: boolean;
   onDone?: () => void;
 }
 
 const PRIORITY_DONATE: TtsPriority = 1;
-const PRIORITY_ORDER_DELIVER: TtsPriority = 2;
-const PRIORITY_IDLE: TtsPriority = 3;
+const PRIORITY_READY: TtsPriority = 2;
+const PRIORITY_START_BREW: TtsPriority = 3;
+const PRIORITY_ORDER_DELIVER: TtsPriority = 4;
+const PRIORITY_IDLE: TtsPriority = 5;
+const MAX_COALESCED_DONOR_NAMES = 3;
+const MAX_COALESCED_ORDER_ENTRIES = 3;
+const TTS_SAME_USER_COOLDOWN_MS = 2500;
+const MAX_TRACKED_TTS_USERS = 200;
+const COALESCED_PREWARM_DEBOUNCE_MS = 220;
+
+function isQueueItemFresh(item: TtsQueueItem, now: number): boolean {
+  if (item.priority === PRIORITY_DONATE) return true;
+  if (item.slotKind === 'ready') {
+    return now - item.createdAt < GAMEPLAY_LIMITS.TTS_READY_STALE_MS;
+  }
+  return now - item.createdAt < GAMEPLAY_LIMITS.TTS_STALE_ITEM_MS;
+}
 
 function randomBetween(minMs: number, maxMs: number): number {
   return Math.round(minMs + Math.random() * (maxMs - minMs));
@@ -52,13 +80,44 @@ class DrinkBarTtsEngine {
   private activeRelayFinish: (() => void) | null = null;
   private isBaristaDozing = false;
   private lastWakeUpTtsAt = 0;
+  private coalescedPrewarmTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly lastOrderTtsAtByUser = new Map<string, number>();
 
   constructor() {
+    this.prewarmCommonPhrases('VI');
     drinkBarAudio.subscribeUnlocked((unlocked) => {
       if (unlocked && this.isIdleState && !this.isSpeaking) {
-        this.nextIdleSpeakAt = Date.now() + 350;
+        this.nextIdleSpeakAt = Date.now() + 180;
       }
     });
+  }
+
+  private prewarmCommonPhrases(language: Language): void {
+    const msg = getMessages(language);
+    const warmupList: string[] = [
+      ...msg.ttsIdlePhrases.slice(0, 2),
+      formatTtsDonateMessage('', 'heart_sway', language, true),
+      formatTtsDonateMessage('', 'groove_wave', language, true),
+      formatTtsDonateMessage('', 'party_hype', language, true),
+    ];
+    for (const recipe of MENU_RECIPE_LIST) {
+      const label = getRecipeLabel(recipe.id, language, true);
+      warmupList.push(this.buildGenericOrderFallback(label, language));
+      warmupList.push(this.buildGenericReadyFallback(label, language));
+    }
+    sharedTtsPlayer.prewarmPhrases(warmupList, language);
+  }
+
+  private buildGenericOrderFallback(drinkLabel: string, language: Language): string {
+    return language === 'EN'
+      ? `Got a fresh ${drinkLabel} order right away!`
+      : `Chốt đơn một ly ${drinkLabel} liền tay nè!`;
+  }
+
+  private buildGenericReadyFallback(drinkLabel: string, language: Language): string {
+    return language === 'EN'
+      ? `Ding ding! Your fresh ${drinkLabel} is ready!`
+      : `Ting ting! Ly ${drinkLabel} xong rồi nè!`;
   }
 
   public triggerIdlePromptSoon(delayMs = 900): void {
@@ -86,13 +145,31 @@ class DrinkBarTtsEngine {
 
   public setLanguage(language: Language): void {
     this.language = language;
+    this.prewarmCommonPhrases(language);
   }
 
   public setMasterVolume(volume: number): void {
     this.volume = Math.max(0, Math.min(1, volume));
   }
 
+  private clearCoalescedPrewarmTimer(): void {
+    if (this.coalescedPrewarmTimer) {
+      clearTimeout(this.coalescedPrewarmTimer);
+      this.coalescedPrewarmTimer = null;
+    }
+  }
+
+  private scheduleCoalescedOrderPrewarm(texts: readonly string[], language: Language): void {
+    this.clearCoalescedPrewarmTimer();
+    const list = [...texts];
+    this.coalescedPrewarmTimer = setTimeout(() => {
+      this.coalescedPrewarmTimer = null;
+      sharedTtsPlayer.prewarmPhrases(list, language);
+    }, COALESCED_PREWARM_DEBOUNCE_MS);
+  }
+
   public stopAll(): void {
+    this.clearCoalescedPrewarmTimer();
     this.queue = [];
     this.cancelCurrentUtterance();
     this.setDucking(false);
@@ -125,6 +202,14 @@ class DrinkBarTtsEngine {
     finish();
   }
 
+  public onDanceEnded(): void {
+    this.queue = this.queue.filter((q) => q.slotKind !== 'donate');
+    if (this.isSpeaking && this.currentPriority === PRIORITY_DONATE) {
+      this.cancelCurrentUtterance();
+      this.pumpNext();
+    }
+  }
+
   public enqueueDonate(
     nickname: string,
     danceStyle: DanceStyle,
@@ -136,25 +221,149 @@ class DrinkBarTtsEngine {
       onSpeechDone?.();
       return;
     }
-    if (this.isBaristaDozing) {
-      this.enqueueWakeUp(language);
+    this.isBaristaDozing = false;
+    const cleanName = nickname.trim();
+    const genericDonateFallback = [formatTtsDonateMessage('', danceStyle, language, true)];
+
+    // If a pending donate is already waiting in queue, coalesce donors into 1 clear announcement
+    const existingPendingDonate = this.queue.find((q) => q.slotKind === 'donate');
+    if (existingPendingDonate && cleanName) {
+      const donorList = existingPendingDonate.donors ?? [];
+      if (!donorList.includes(cleanName) && donorList.length < MAX_COALESCED_DONOR_NAMES) {
+        donorList.push(cleanName);
+      }
+      const coalescedText = formatTtsDonateMessage(
+        donorList.join(', '),
+        danceStyle,
+        language,
+        isManual && donorList.length === 0,
+        true
+      );
+      existingPendingDonate.donors = donorList;
+      existingPendingDonate.danceStyle = danceStyle;
+      existingPendingDonate.text = coalescedText;
+      existingPendingDonate.fallbackTexts = genericDonateFallback;
+      existingPendingDonate.createdAt = Date.now();
+      sharedTtsPlayer.prewarmPhrases([coalescedText, ...genericDonateFallback], language);
+      const prevOnDone = existingPendingDonate.onDone;
+      existingPendingDonate.onDone = () => {
+        prevOnDone?.();
+        onSpeechDone?.();
+      };
+      return;
     }
-    const text = formatTtsDonateMessage(nickname, danceStyle, language, isManual);
-    this.enqueue(PRIORITY_DONATE, text, language, onSpeechDone);
+
+    // Never cut off an active Donate speech mid-word; queue at most one concise follow-up behind it
+    const isFollowUpWhileDonateSpeaking =
+      this.isSpeaking && this.currentPriority === PRIORITY_DONATE;
+    const text = formatTtsDonateMessage(
+      cleanName,
+      danceStyle,
+      language,
+      isManual,
+      isFollowUpWhileDonateSpeaking
+    );
+    const shouldPreempt = !isFollowUpWhileDonateSpeaking;
+    this.enqueue({
+      priority: PRIORITY_DONATE,
+      slotKind: 'donate',
+      text,
+      fallbackTexts: genericDonateFallback,
+      language,
+      donors: cleanName ? [cleanName] : [],
+      danceStyle,
+      isManual,
+      onDone: onSpeechDone,
+      preemptCurrent: shouldPreempt,
+    });
   }
 
   public enqueueOrder(
     nickname: string,
     recipeId: RecipeId,
+    language: Language = this.language,
+    recipeIds?: readonly RecipeId[]
+  ): void {
+    if (!this.enabled) return;
+    const now = Date.now();
+    const userKey = nickname.trim().toLowerCase();
+    if (userKey) {
+      const prevAt = this.lastOrderTtsAtByUser.get(userKey) ?? 0;
+      if (now - prevAt < TTS_SAME_USER_COOLDOWN_MS) {
+        return;
+      }
+      if (this.lastOrderTtsAtByUser.size >= MAX_TRACKED_TTS_USERS) {
+        const oldestKey = this.lastOrderTtsAtByUser.keys().next().value;
+        if (oldestKey !== undefined) {
+          this.lastOrderTtsAtByUser.delete(oldestKey);
+        }
+      }
+      this.lastOrderTtsAtByUser.set(userKey, now);
+    }
+
+    this.isBaristaDozing = false;
+    const orderedIds = recipeIds && recipeIds.length > 0 ? recipeIds : [recipeId];
+    const drinkLabels = orderedIds.map((id) => getRecipeLabel(id, language, true));
+    const summaryLabel = formatMultiDrinkLabel(drinkLabels, language);
+    const singleFallback = this.buildGenericOrderFallback(drinkLabels[0], language);
+    const multiFallback = formatTtsGenericOrderFallback(drinkLabels, language);
+    const fallbackTexts =
+      drinkLabels.length > 1 ? [multiFallback, singleFallback] : [singleFallback];
+
+    // If another order intro is already queued while speaking, combine them cleanly with matching multi-drink fallback
+    const existingPendingOrder = this.queue.find((q) => q.slotKind === 'order');
+    if (existingPendingOrder && this.isSpeaking) {
+      const merged = [
+        ...(existingPendingOrder.orderEntries ?? []),
+        { nickname, drinkLabel: summaryLabel },
+      ].slice(-MAX_COALESCED_ORDER_ENTRIES);
+      const mergedText = formatTtsGroupedOrderMessage(merged, language);
+      const mergedFallback = formatTtsGenericOrderFallback(
+        merged.map((entry) => entry.drinkLabel),
+        language
+      );
+      existingPendingOrder.orderEntries = merged;
+      existingPendingOrder.language = language;
+      existingPendingOrder.text = mergedText;
+      existingPendingOrder.fallbackTexts = [mergedFallback, singleFallback];
+      existingPendingOrder.createdAt = now;
+      this.scheduleCoalescedOrderPrewarm([mergedText, mergedFallback, singleFallback], language);
+      return;
+    }
+
+    const text = formatTtsMultiDrinkOrderMessage(nickname, drinkLabels, language);
+    // Never interrupt an active order, ready, or donate speech mid-sentence!
+    const shouldPreempt = this.isSpeaking && this.currentPriority === PRIORITY_IDLE;
+    this.enqueue({
+      priority: PRIORITY_ORDER_DELIVER,
+      slotKind: 'order',
+      text,
+      fallbackTexts,
+      language,
+      orderEntries: [{ nickname, drinkLabel: summaryLabel }],
+      preemptCurrent: shouldPreempt,
+    });
+  }
+
+  public enqueueStartBrew(
+    nickname: string,
+    recipeId: RecipeId,
     language: Language = this.language
   ): void {
     if (!this.enabled) return;
-    if (this.isBaristaDozing) {
-      this.enqueueWakeUp(language);
-    }
+    this.isBaristaDozing = false;
     const drinkLabel = getRecipeLabel(recipeId, language, true);
-    const text = formatTtsOrderMessage(nickname, drinkLabel, language);
-    this.enqueue(PRIORITY_ORDER_DELIVER, text, language);
+    const text = formatTtsStartBrewMessage(nickname, drinkLabel, language);
+    const fallbackTexts = [this.buildGenericOrderFallback(drinkLabel, language)];
+    const shouldPreempt = this.isSpeaking && this.currentPriority === PRIORITY_IDLE;
+    this.enqueue({
+      priority: PRIORITY_START_BREW,
+      slotKind: 'start_brew',
+      text,
+      fallbackTexts,
+      language,
+      preemptCurrent: shouldPreempt,
+    });
   }
 
   public enqueueReady(
@@ -165,7 +374,17 @@ class DrinkBarTtsEngine {
     if (!this.enabled) return;
     const drinkLabel = getRecipeLabel(recipeId, language, true);
     const text = formatTtsReadyMessage(nickname, drinkLabel, language);
-    this.enqueue(PRIORITY_ORDER_DELIVER, text, language);
+    const fallbackTexts = [this.buildGenericReadyFallback(drinkLabel, language)];
+    // Never let start_brew or chat order chatter block/expire a cup's ready announcement
+    const shouldPreempt = this.isSpeaking && this.currentPriority >= PRIORITY_START_BREW;
+    this.enqueue({
+      priority: PRIORITY_READY,
+      slotKind: 'ready',
+      text,
+      fallbackTexts,
+      language,
+      preemptCurrent: shouldPreempt,
+    });
   }
 
   public enqueueLikeCheer(language: Language = this.language): void {
@@ -175,11 +394,14 @@ class DrinkBarTtsEngine {
       return;
     }
     this.lastLikeCheerAt = now;
-    if (this.isBaristaDozing) {
-      this.enqueueWakeUp(language);
-    }
+    this.isBaristaDozing = false;
     const text = formatTtsLikeCheerMessage(language);
-    this.enqueue(PRIORITY_ORDER_DELIVER, text, language);
+    this.enqueue({
+      priority: PRIORITY_ORDER_DELIVER,
+      slotKind: 'idle',
+      text,
+      language,
+    });
   }
 
   public enqueueFlavorSwitch(
@@ -190,7 +412,16 @@ class DrinkBarTtsEngine {
     if (!this.enabled) return;
     const drinkLabel = getRecipeLabel(recipeId, language, true);
     const text = formatTtsSwitchFlavorMessage(nickname, drinkLabel, language);
-    this.enqueue(PRIORITY_ORDER_DELIVER, text, language);
+    const fallbackTexts = [this.buildGenericOrderFallback(drinkLabel, language)];
+    const shouldPreempt = this.isSpeaking && this.currentPriority === PRIORITY_IDLE;
+    this.enqueue({
+      priority: PRIORITY_ORDER_DELIVER,
+      slotKind: 'switch',
+      text,
+      fallbackTexts,
+      language,
+      preemptCurrent: shouldPreempt,
+    });
   }
 
   public enqueueWakeUp(language: Language = this.language): void {
@@ -200,10 +431,19 @@ class DrinkBarTtsEngine {
     if (now - this.lastWakeUpTtsAt < 1500) {
       return;
     }
+    // Skip separate wake-up line if an order or donate speech was just queued or is already speaking
+    if (this.isSpeaking || this.queue.some((q) => q.priority <= PRIORITY_ORDER_DELIVER)) {
+      return;
+    }
     this.lastWakeUpTtsAt = now;
     const text = formatTtsWakeUpMessage(language);
     this.interruptIdle();
-    this.enqueue(PRIORITY_DONATE, text, language);
+    this.enqueue({
+      priority: PRIORITY_DONATE,
+      slotKind: 'wake',
+      text,
+      language,
+    });
   }
 
   public updateShopIdleState(isShopIdle: boolean, language: Language = this.language): void {
@@ -248,48 +488,105 @@ class DrinkBarTtsEngine {
           GAMEPLAY_LIMITS.TTS_IDLE_REPEAT_MIN_MS,
           GAMEPLAY_LIMITS.TTS_IDLE_REPEAT_MAX_MS
         );
-      this.enqueue(PRIORITY_IDLE, phrases[idx], language);
+      this.enqueue({
+        priority: PRIORITY_IDLE,
+        slotKind: 'idle',
+        text: phrases[idx],
+        language,
+      });
     }
   }
 
-  private enqueue(
-    priority: TtsPriority,
-    text: string,
-    language: Language,
-    onDone?: () => void
-  ): void {
-    if (!this.enabled || !text.trim()) {
-      onDone?.();
+  private enqueue(opts: {
+    priority: TtsPriority;
+    slotKind: TtsSlotKind;
+    text: string;
+    fallbackTexts?: readonly string[];
+    language: Language;
+    donors?: string[];
+    orderEntries?: GroupedOrderTtsEntry[];
+    danceStyle?: DanceStyle;
+    isManual?: boolean;
+    onDone?: () => void;
+    preemptCurrent?: boolean;
+  }): void {
+    const cleanText = opts.text.trim();
+    if (!this.enabled || !cleanText) {
+      opts.onDone?.();
       return;
     }
 
-    if (priority < PRIORITY_IDLE) {
+    const now = Date.now();
+    // Prune stale pending items (ready has tight TTL so past cups never announce over new ones)
+    this.queue = this.queue.filter((q) => isQueueItemFresh(q, now));
+
+    if (opts.priority < PRIORITY_IDLE) {
       this.interruptIdle();
+      // Prefetch audio buffer immediately upon entering the TTS queue so playback starts at 0ms when its turn comes
+      sharedTtsPlayer.prewarmPhrases([cleanText, ...(opts.fallbackTexts ?? [])], opts.language);
     }
 
     const item: TtsQueueItem = {
       id: this.nextItemId++,
-      priority,
-      text: text.trim(),
-      language,
-      onDone,
+      priority: opts.priority,
+      slotKind: opts.slotKind,
+      text: cleanText,
+      fallbackTexts: opts.fallbackTexts,
+      language: opts.language,
+      createdAt: now,
+      donors: opts.donors,
+      orderEntries: opts.orderEntries,
+      danceStyle: opts.danceStyle,
+      isManual: opts.isManual,
+      onDone: opts.onDone,
     };
 
-    if (priority === PRIORITY_DONATE) {
-      const firstLowerIdx = this.queue.findIndex((q) => q.priority > PRIORITY_DONATE);
-      if (firstLowerIdx === -1) {
-        this.queue.push(item);
+    if (opts.preemptCurrent) {
+      if (opts.priority === PRIORITY_DONATE) {
+        // Drop stale idle/past-cup ready/start_brew items before dance, keeping pending customer chat orders
+        this.queue = this.queue.filter(
+          (q) => q.priority === PRIORITY_DONATE || q.slotKind === 'order'
+        );
       } else {
-        this.queue.splice(firstLowerIdx, 0, item);
+        this.queue = this.queue.filter((q) => q.priority < PRIORITY_IDLE);
       }
-    } else {
+      this.queue.unshift(item);
+      if (this.isSpeaking) {
+        this.cancelCurrentUtterance();
+      }
+      this.pumpNext();
+      return;
+    }
+
+    // Only keep the latest counter step / flavor-switch notice per slot; 'ready' and grouped 'order' stay ordered
+    if (opts.slotKind === 'start_brew' || opts.slotKind === 'switch') {
+      const existingIdx = this.queue.findIndex((q) => q.slotKind === opts.slotKind);
+      if (existingIdx !== -1) {
+        this.queue[existingIdx] = item;
+        if (!this.isSpeaking) {
+          this.pumpNext();
+        }
+        return;
+      }
+    }
+
+    const firstLowerIdx = this.queue.findIndex((q) => q.priority > item.priority);
+    if (firstLowerIdx === -1) {
       this.queue.push(item);
+    } else {
+      this.queue.splice(firstLowerIdx, 0, item);
     }
 
     if (this.queue.length > GAMEPLAY_LIMITS.TTS_MAX_QUEUE_ITEMS) {
-      const oldestNonDonateIdx = this.queue.findIndex((q) => q.priority > PRIORITY_DONATE);
-      if (oldestNonDonateIdx !== -1) {
-        this.queue.splice(oldestNonDonateIdx, 1);
+      let dropIdx = -1;
+      for (let i = this.queue.length - 1; i >= 0; i -= 1) {
+        if (this.queue[i].priority > PRIORITY_DONATE) {
+          dropIdx = i;
+          break;
+        }
+      }
+      if (dropIdx !== -1) {
+        this.queue.splice(dropIdx, 1);
       } else {
         this.queue.shift();
       }
@@ -305,6 +602,9 @@ class DrinkBarTtsEngine {
       this.setDucking(false);
       return;
     }
+
+    const now = Date.now();
+    this.queue = this.queue.filter((q) => isQueueItemFresh(q, now));
 
     const next = this.queue.shift();
     if (!next) {
@@ -347,18 +647,20 @@ class DrinkBarTtsEngine {
     const inIframe =
       typeof window !== 'undefined' && window.parent && window.parent !== window;
 
+    const relayTimeoutMs = Math.min(10500, Math.max(4200, item.text.length * 85 + 3200));
+
     // When running inside Live Preview (?mirror=1) without iframe gesture unlock, relay directly to Admin
     if (inIframe && !drinkBarAudio.isUnlocked() && this.relaySpeakToParent(item)) {
       this.didRelayActiveSpeech = true;
       this.activeRelayUtteranceId = item.id;
       this.activeRelayFinish = finishOnce;
-      const estimatedMs = Math.min(8500, Math.max(2400, item.text.length * 75 + 1500));
-      this.armRelayWatchdog(estimatedMs, finishOnce);
+      this.armRelayWatchdog(relayTimeoutMs, finishOnce);
       return;
     }
 
     void sharedTtsPlayer.speak({
       text: item.text,
+      fallbackTexts: item.fallbackTexts,
       language: item.language,
       rate: GAMEPLAY_LIMITS.TTS_RATE,
       pitch: GAMEPLAY_LIMITS.TTS_PITCH,
@@ -371,8 +673,7 @@ class DrinkBarTtsEngine {
         this.didRelayActiveSpeech = true;
         this.activeRelayUtteranceId = item.id;
         this.activeRelayFinish = finishOnce;
-        const estimatedMs = Math.min(8500, Math.max(2400, item.text.length * 75 + 1500));
-        this.armRelayWatchdog(estimatedMs, finishOnce);
+        this.armRelayWatchdog(relayTimeoutMs, finishOnce);
         return true;
       },
     });
@@ -417,6 +718,7 @@ class DrinkBarTtsEngine {
       action: 'SPEAK',
       utteranceId: item.id,
       text: item.text,
+      fallbackTexts: item.fallbackTexts,
       language: item.language,
       volume: Math.max(0.15, Math.min(1, this.volume)),
       rate: GAMEPLAY_LIMITS.TTS_RATE,

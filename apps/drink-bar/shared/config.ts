@@ -16,11 +16,28 @@ export const DRINK_BAR_SOCKET_EVENTS = {
 export const DRINK_BAR_STORAGE_KEYS = {
   LAST_TIKTOK_ID: 'drink_bar_last_tiktok_id',
   ADMIN_PREFS: 'drink_bar_admin_prefs_v1',
+  SHOW_LIVE_PREVIEW: 'drink_bar_show_live_preview',
 } as const;
+
+export const DEFAULT_TIKTOK_USERNAME = 'bap.daily.lifestyle99' as const;
+export const DEFAULT_TIKTOK_ROOM_ID = '7713147571686476565' as const;
+
+export const TIKTOK_API_ENDPOINTS = {
+  CHECK: '/api/tiktok/check',
+  CONNECT: '/api/tiktok/connect',
+  DISCONNECT: '/api/tiktok/disconnect',
+} as const;
+
+export const DRINK_BAR_LOCAL_SYNC_ENDPOINTS = {
+  EVENTS: '/api/drinkbar-sync/events',
+  EMIT: '/api/drinkbar-sync/emit',
+} as const;
+
+export const COPY_FEEDBACK_DURATION_MS = 1600 as const;
 
 export const STAGE_METRICS = {
   WIDTH: 720,
-  HEIGHT: 1280,
+  HEIGHT: 1080,
   TARGET_FPS: 30,
   FRAME_INTERVAL_MS: 1000 / 30,
   DEVICE_PIXEL_RATIO: 1,
@@ -82,19 +99,26 @@ export const DRINK_BAR_PALETTE = {
 
 export const GAMEPLAY_LIMITS = {
   DEFAULT_BREW_DURATION_SEC: 18,
-  MIN_BREW_DURATION_SEC: 12,
+  MIN_BREW_DURATION_SEC: 10,
+  RUSH_MIN_BREW_DURATION_SEC: 10,
   MAX_BREW_DURATION_SEC: 30,
-  SHOWCASE_DURATION_MS: 1800,
-  LIKE_BATCH_INTERVAL_MS: 200,
+  SHOWCASE_DURATION_MS: 2200,
+  RUSH_MIN_SHOWCASE_DURATION_MS: 2200,
+  ORDER_SPAM_COOLDOWN_MS: 5000,
+  FLAVOR_SWITCH_COOLDOWN_MS: 2500,
+  DUPLICATE_CHAT_COOLDOWN_MS: 10000,
+  MAX_CUPS_PER_COMMENT: 3,
+  LIKE_BATCH_INTERVAL_MS: 60,
   LIKE_PROGRESS_PER_HEART: 0.75,
   LIKE_MAX_BATCH_PROGRESS: 6.5,
   SPEED_BOOST_DURATION_MS: 3200,
   SPEED_BOOST_MULTIPLIER: 1.65,
   WAVE_DURATION_MS: 2500,
-  DANCE_SMALL_DURATION_MS: 3500,
-  DANCE_MEDIUM_DURATION_MS: 5000,
-  DANCE_LARGE_DURATION_MS: 7000,
-  DANCE_MAX_DURATION_MS: 8000,
+  DANCE_SMALL_DURATION_MS: 3800,
+  DANCE_MEDIUM_DURATION_MS: 4800,
+  DANCE_LARGE_DURATION_MS: 6200,
+  DANCE_MAX_DURATION_MS: 7500,
+  DANCE_BURST_EXTEND_MS: 1200,
   DANCE_TRANSITION_MS: 200,
   SPEECH_MAX_CHARS: 24,
   SPEECH_TTL_MS: 3200,
@@ -102,8 +126,11 @@ export const GAMEPLAY_LIMITS = {
   GUEST_BUBBLE_TTL_MS: 3800,
   MAX_SHELF_ITEMS: 4,
   MAX_VISIBLE_QUEUE: 3,
-  MAX_QUEUE_TOTAL: 40,
+  MAX_QUEUE_TOTAL: 80,
   MAX_GUEST_SLOTS: 24,
+  INACTIVE_PRUNE_MIN_QUEUE: 20,
+  INACTIVE_ORDER_TTL_MS: 5 * 60 * 1000,
+  INACTIVE_PRUNE_INTERVAL_MS: 2000,
   MIC_MODE_VOLUME_GAIN: 0.3,
   NORMAL_VOLUME_GAIN: 0.85,
   DEFAULT_CAPACITY_ML: 1500,
@@ -114,17 +141,19 @@ export const GAMEPLAY_LIMITS = {
   LOW_STOCK_THRESHOLD_ML: 250,
   GIFT_RESUPPLY_ML: 500,
   AUTO_RESTOCK_DELAY_MS: 45000,
-  TTS_RATE: 1.26,
-  TTS_PITCH: 1.1,
-  TTS_IDLE_INITIAL_MIN_MS: 1200,
-  TTS_IDLE_INITIAL_MAX_MS: 2200,
+  TTS_RATE: 1.15,
+  TTS_PITCH: 1.08,
+  TTS_IDLE_INITIAL_MIN_MS: 350,
+  TTS_IDLE_INITIAL_MAX_MS: 650,
   TTS_IDLE_REPEAT_MIN_MS: 5500,
   TTS_IDLE_REPEAT_MAX_MS: 7500,
   TTS_LIKE_COOLDOWN_MS: 12000,
   TTS_DUCK_FACTOR: 0.28,
   TTS_SFX_DUCK_FACTOR: 0.85,
-  TTS_MAX_QUEUE_ITEMS: 6,
-  TTS_WATCHDOG_MS: 9500,
+  TTS_MAX_QUEUE_ITEMS: 8,
+  TTS_STALE_ITEM_MS: 16000,
+  TTS_READY_STALE_MS: 3200,
+  TTS_WATCHDOG_MS: 7500,
   CAFE_BGM_URL: '/audio/cafe-bgm.mp3',
   CAFE_BGM_PLAYLIST: [
     '/audio/cafe-bgm.mp3',
@@ -133,7 +162,7 @@ export const GAMEPLAY_LIMITS = {
     '/audio/noel-4.mp3',
   ],
   CAFE_BGM_BASE_GAIN: 0.42,
-  CAFE_BGM_DANCE_DUCK_GAIN: 0.05,
+  CAFE_BGM_DANCE_DUCK_GAIN: 0,
   MANEKI_NEKO_EXCITED_MS: 1500,
 } as const;
 
@@ -141,9 +170,11 @@ export const GIFT_TIER_THRESHOLDS = {
   SMALL_MIN: 1,
   SMALL_MAX: 4,
   MEDIUM_MIN: 5,
-  MEDIUM_MAX: 29,
-  LARGE_MIN: 30,
+  MEDIUM_MAX: 9,
+  LARGE_MIN: 10,
 } as const;
+
+export const MAX_ORDERS_PER_USER_OPTIONS = [1, 2, 3, 5, 0] as const;
 
 export const DEFAULT_DRINK_BAR_CONFIG: DrinkBarConfig = {
   language: 'VI',
@@ -157,7 +188,8 @@ export const DEFAULT_DRINK_BAR_CONFIG: DrinkBarConfig = {
   showSafeZone: false,
   defaultCapacityMl: GAMEPLAY_LIMITS.DEFAULT_CAPACITY_ML,
   autoRestockEnabled: true,
-  unlimitedInventory: false,
+  unlimitedInventory: true,
+  maxOrdersPerUser: 1,
 };
 
 export interface AutoBotPaceConfig {
@@ -173,29 +205,29 @@ export interface AutoBotPaceConfig {
 export const AUTOBOT_PACE_PRESETS: Record<AutoBotPace, AutoBotPaceConfig> = {
   SLOW: {
     intervalMs: 2800,
-    orderChance: 0.28,
-    flavorChatChance: 0.22,
-    likeChance: 0.26,
-    smallGiftChance: 0.13,
+    orderChance: 0.44,
+    flavorChatChance: 0.30,
+    likeChance: 0,
+    smallGiftChance: 0.15,
     mediumGiftChance: 0.08,
     largeGiftChance: 0.03,
   },
   NORMAL: {
     intervalMs: 1650,
-    orderChance: 0.26,
-    flavorChatChance: 0.2,
-    likeChance: 0.26,
-    smallGiftChance: 0.14,
+    orderChance: 0.42,
+    flavorChatChance: 0.28,
+    likeChance: 0,
+    smallGiftChance: 0.16,
     mediumGiftChance: 0.09,
     largeGiftChance: 0.05,
   },
   FAST: {
     intervalMs: 900,
-    orderChance: 0.24,
-    flavorChatChance: 0.18,
-    likeChance: 0.28,
-    smallGiftChance: 0.14,
-    mediumGiftChance: 0.1,
+    orderChance: 0.40,
+    flavorChatChance: 0.28,
+    likeChance: 0,
+    smallGiftChance: 0.16,
+    mediumGiftChance: 0.10,
     largeGiftChance: 0.06,
   },
 };

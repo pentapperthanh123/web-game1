@@ -55,18 +55,17 @@ export const TopHeaderAndShelf: React.FC = () => {
           title={msg.voiceToggleTitle}
           aria-pressed={ttsEnabled}
           aria-label={msg.voiceToggleTitle}
-          className={`pointer-events-auto inline-flex items-center gap-1 rounded-full border-[1.5px] border-[#3B2820] px-2 py-[3px] text-[10.5px] font-black leading-none cursor-pointer transition-colors shadow-[0_1.5px_0_#3B2820] ${
+          className={`pointer-events-auto inline-flex items-center justify-center w-6 h-6 rounded-full border-[1.5px] border-[#3B2820] cursor-pointer transition-colors shadow-[0_1.5px_0_#3B2820] ${
             ttsEnabled
               ? 'bg-[#CBEAD2] hover:bg-[#B6E0BF] text-[#245B3A]'
               : 'bg-[#EFE0CC] hover:bg-[#E5D0B6] text-[#7A5F52]'
           }`}
         >
           {ttsEnabled ? (
-            <Volume2 className="w-3 h-3 shrink-0" strokeWidth={2.6} />
+            <Volume2 className="w-3.5 h-3.5 shrink-0" strokeWidth={2.6} />
           ) : (
-            <VolumeX className="w-3 h-3 shrink-0" strokeWidth={2.6} />
+            <VolumeX className="w-3.5 h-3.5 shrink-0" strokeWidth={2.6} />
           )}
-          <span>{ttsEnabled ? msg.voiceToggleOnLabel : msg.voiceToggleOffLabel}</span>
         </button>
       </div>
     </header>

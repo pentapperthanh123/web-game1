@@ -148,7 +148,7 @@ export function computeLiquidFillSnapshot(
   } else if (recipeId === 'lime_tea') {
     effectiveEnd = 78;
     maxFillFrac = 0.88;
-  } else if (recipeId === 'coffee_milk') {
+  } else if (recipeId === 'coffee_milk' || recipeId === 'cacao') {
     effectiveEnd = CAFE_POUR_END_PROGRESS;
     maxFillFrac = 0.84;
   } else if (recipeId === 'blue_citrus') {

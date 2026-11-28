@@ -364,7 +364,7 @@ export function resolveTargetBaristaX(
     if (drink.recipeId === 'lime_tea') {
       return drink.progress < TEA_URN_DISPENSE_END_PROGRESS ? 296 : 418;
     }
-    if (drink.recipeId === 'coffee_milk') return 508;
+    if (drink.recipeId === 'coffee_milk' || drink.recipeId === 'cacao') return 508;
     if (drink.recipeId === 'berry_soda') return 368;
     if (drink.recipeId === 'matcha') return 408;
     return 296;
@@ -376,6 +376,7 @@ export function resolveTargetBaristaX(
       drink.recipeId === 'matcha' ||
       drink.recipeId === 'lime_tea' ||
       drink.recipeId === 'coffee_milk' ||
+      drink.recipeId === 'cacao' ||
       drink.recipeId === 'berry_soda'
     ) {
       return 408;
@@ -1037,6 +1038,9 @@ function resolveActivePourColor(drink: ActiveDrink): string {
   if (drink.recipeId === 'coffee_milk') {
     return '#613820';
   }
+  if (drink.recipeId === 'cacao') {
+    return '#7B462B';
+  }
   if (drink.recipeId === 'berry_soda') {
     return pourRatio > SODA_SYRUP_SPLIT_RATIO ? '#7FC8D9' : '#E04F6D';
   }
@@ -1049,7 +1053,7 @@ function resolveActivePourVessel(drink: ActiveDrink): PourVesselKind {
   if (drink.recipeId === 'matcha') {
     return pourRatio <= MATCHA_MILK_SPLIT_RATIO ? 'oatside_milk' : 'chasen';
   }
-  if (drink.recipeId === 'coffee_milk') {
+  if (drink.recipeId === 'coffee_milk' || drink.recipeId === 'cacao') {
     return 'steel_pitcher';
   }
   if (drink.recipeId === 'berry_soda') {
@@ -2724,9 +2728,9 @@ function drawIdleBaristaArms(
       return;
     }
 
-    // 4f. Cafe (75..78%): Cất ca cà phê inox & cầm ca kem muối lên
+    // 4f. Cafe & Cacao (75..78%): Cất ca inox & cầm ca kem sữa lên
     if (
-      drink.recipeId === 'coffee_milk' &&
+      (drink.recipeId === 'coffee_milk' || drink.recipeId === 'cacao') &&
       drink.progress >= CAFE_POUR_END_PROGRESS &&
       drink.progress < CAFE_CREAM_START_PROGRESS
     ) {
@@ -2734,10 +2738,11 @@ function drawIdleBaristaArms(
         (drink.progress - CAFE_POUR_END_PROGRESS) /
           (CAFE_CREAM_START_PROGRESS - CAFE_POUR_END_PROGRESS)
       );
+      const creamColor = drink.recipeId === 'cacao' ? '#F3DFCE' : '#FFF6E8';
       drawSwapToCreamerAction(
         ctx,
         swapT,
-        '#FFF6E8',
+        creamColor,
         leftShoulderX,
         leftShoulderY,
         rightShoulderX,
@@ -2746,15 +2751,19 @@ function drawIdleBaristaArms(
       return;
     }
 
-    // 4g. Cafe (78..84%): Rót lớp Kem Muối mịn lên trên cùng sau khi rót xong cà phê!
-    if (drink.recipeId === 'coffee_milk' && drink.progress >= CAFE_CREAM_START_PROGRESS) {
+    // 4g. Cafe & Cacao (78..84%): Rót lớp kem mịn lên trên cùng sau khi rót xong!
+    if (
+      (drink.recipeId === 'coffee_milk' || drink.recipeId === 'cacao') &&
+      drink.progress >= CAFE_CREAM_START_PROGRESS
+    ) {
       const armEnd10 = drawCartoonArm(ctx, leftShoulderX, leftShoulderY, CUP1_CX - CUP_TOP_HALF_W - 2, CUP_TOP_Y + 12, -1);
       drawHandCircle(ctx, armEnd10.x, armEnd10.y);
 
       const creamerX = CUP1_CX + 26 + Math.sin(elapsedSec * 4.5) * 4;
       const creamerY = CUP_TOP_Y - 38 + Math.cos(elapsedSec * 4.5) * 2.5;
       const creamHand = drawCartoonArm(ctx, rightShoulderX, rightShoulderY, creamerX, creamerY, 1);
-      drawBaristaCreamerJugAction(ctx, creamHand.x, creamHand.y, CUP1_CX, 1, elapsedSec, '#FFF6E8');
+      const creamColor = drink.recipeId === 'cacao' ? '#F3DFCE' : '#FFF6E8';
+      drawBaristaCreamerJugAction(ctx, creamHand.x, creamHand.y, CUP1_CX, 1, elapsedSec, creamColor);
       return;
     }
 
@@ -3282,6 +3291,7 @@ const PREP_LIQUID_COLOR_MAP: Readonly<Record<string, string>> = {
   matcha: '#A7D397',
   lime_tea: '#A4D466',
   coffee_milk: '#5A321C',
+  cacao: '#7B462B',
   berry_soda: '#E04F6D',
 };
 
@@ -3289,6 +3299,7 @@ const PREP_FOAM_COLOR_MAP: Readonly<Record<string, string>> = {
   matcha: '#DCF0CE',
   lime_tea: '#EFF9DC',
   coffee_milk: '#FFF6E8',
+  cacao: '#F3DFCE',
   berry_soda: '#FFD6E0',
 };
 
@@ -3409,10 +3420,11 @@ function drawStep1DispenseAction(
     return;
   }
 
-  if (drink.recipeId === 'coffee_milk') {
+  if (drink.recipeId === 'coffee_milk' || drink.recipeId === 'cacao') {
     const jugX = 500;
     const jugBottomY = STAGE_METRICS.COUNTER_TOP_Y + 12;
-    drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, '#F5E4CC', fillLevel * 0.65);
+    const jugLiquidColor = drink.recipeId === 'cacao' ? '#9C6140' : '#F5E4CC';
+    drawGraduatedMeasuringCup(ctx, jugX, jugBottomY, jugLiquidColor, fillLevel * 0.65);
     const armEnd40 = drawCartoonArm(ctx, leftShoulderX, leftShoulderY, jugX - 16, jugBottomY - 14, -1);
     drawHandCircle(ctx, armEnd40.x, armEnd40.y);
 

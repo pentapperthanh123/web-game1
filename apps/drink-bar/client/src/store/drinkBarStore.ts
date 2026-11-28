@@ -10,6 +10,7 @@ import {
   completeActiveDrink,
   createEmptyResetDrinkBarState,
   createInitialDrinkBarState,
+  markUsersActiveInState,
   promoteNextFromQueue,
   restockAllInState,
   restockRecipeInState,
@@ -104,7 +105,11 @@ function runTtsSideEffect(
     return;
   }
   if (hint.kind === 'order' && hint.recipeId) {
-    drinkBarTts.enqueueOrder(hint.nickname, hint.recipeId, lang);
+    drinkBarTts.enqueueOrder(hint.nickname, hint.recipeId, lang, hint.recipeIds);
+    return;
+  }
+  if (hint.kind === 'start_brew' && hint.recipeId) {
+    drinkBarTts.enqueueStartBrew(hint.nickname, hint.recipeId, lang);
     return;
   }
   if (hint.kind === 'ready' && hint.recipeId) {
@@ -302,6 +307,7 @@ export interface DrinkBarStore extends DrinkBarLiveState {
   processChat: (user: ViewerProfile, text: string) => void;
   processLikes: (count: number) => void;
   processGift: (user: ViewerProfile, coins: number) => void;
+  markUsersOnline: (userIds: readonly string[]) => void;
   setLanguage: (language: Language) => void;
   setBrewDuration: (sec: number) => void;
   setSfxEnabled: (enabled: boolean) => void;
@@ -325,6 +331,8 @@ export interface DrinkBarStore extends DrinkBarLiveState {
   setDefaultCapacity: (capacityMl: number) => void;
   setAutoRestock: (enabled: boolean) => void;
   setUnlimitedInventory: (unlimited: boolean) => void;
+  setMaxOrdersPerUser: (maxOrdersPerUser: number) => void;
+  applyExternalSnapshot: (snapshot: DrinkBarLiveState) => void;
   getSnapshot: () => DrinkBarLiveState;
 }
 
@@ -463,9 +471,21 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       existingDepartingIds.add(completed.orderId);
     }
 
+    const stillQueuedOrderIds = new Set<string>([
+      ...nextState.vipQueue.map((o) => o.orderId),
+      ...nextState.normalQueue.map((o) => o.orderId),
+    ]);
+    if (nextState.activeDrink) {
+      stillQueuedOrderIds.add(nextState.activeDrink.orderId);
+    }
+
     for (let prevIdx = 0; prevIdx < prevVisible.length; prevIdx += 1) {
       const prevOrder = prevVisible[prevIdx];
-      if (nextVisibleIds.has(prevOrder.orderId) || existingDepartingIds.has(prevOrder.orderId)) {
+      if (
+        nextVisibleIds.has(prevOrder.orderId) ||
+        stillQueuedOrderIds.has(prevOrder.orderId) ||
+        existingDepartingIds.has(prevOrder.orderId)
+      ) {
         continue;
       }
       const lane = prevLanes[prevOrder.orderId] ?? 0;
@@ -559,6 +579,15 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       const { state, effects } = applyGiftToState(get().getSnapshot(), user, coins, now);
       commitLiveState(state, effects);
       runSideEffects(state, effects, () => get().activatePendingDance());
+    },
+
+    markUsersOnline: (userIds) => {
+      if (userIds.length === 0) return;
+      const currSnapshot = get().getSnapshot();
+      const next = markUsersActiveInState(currSnapshot, userIds, Date.now());
+      if (next !== currSnapshot) {
+        set({ normalQueue: next.normalQueue });
+      }
     },
 
   setLanguage: (language) => {
@@ -682,6 +711,11 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       commitLiveState(promoted);
       if (promoted.activeDrink) {
         drinkBarAudio.play('pour');
+        drinkBarTts.enqueueStartBrew(
+          promoted.activeDrink.user.nickname,
+          promoted.activeDrink.recipeId,
+          promoted.config.language
+        );
       }
     },
 
@@ -783,10 +817,62 @@ export const useDrinkBarStore = create<DrinkBarStore>((set, get) => {
       }));
     },
 
+    setMaxOrdersPerUser: (maxOrdersPerUser) => {
+      const normalized = maxOrdersPerUser <= 0 ? 0 : Math.max(1, Math.min(20, Math.round(maxOrdersPerUser)));
+      set((prev) => ({
+        config: { ...prev.config, maxOrdersPerUser: normalized },
+      }));
+    },
+
+    applyExternalSnapshot: (snapshot) => {
+      const curr = get();
+      const currEpoch = curr.resetEpoch ?? 0;
+      const snapEpoch = snapshot.resetEpoch ?? 0;
+      if (snapEpoch < currEpoch) {
+        return;
+      }
+      if (snapEpoch === currEpoch && snapshot.todayDoneCount < curr.todayDoneCount) {
+        return;
+      }
+
+      const currActiveId = curr.activeDrink?.orderId ?? null;
+      const snapActiveId = snapshot.activeDrink?.orderId ?? null;
+      const currProgress = Math.floor(curr.activeDrink?.progress ?? -1);
+      const snapProgress = Math.floor(snapshot.activeDrink?.progress ?? -1);
+
+      const isOutOfSync =
+        snapEpoch > currEpoch ||
+        currActiveId !== snapActiveId ||
+        curr.activeDrink?.phase !== snapshot.activeDrink?.phase ||
+        Math.abs(currProgress - snapProgress) >= 6 ||
+        curr.vipQueue.length !== snapshot.vipQueue.length ||
+        curr.normalQueue.length !== snapshot.normalQueue.length ||
+        curr.todayDoneCount !== snapshot.todayDoneCount ||
+        curr.bartenderMood !== snapshot.bartenderMood ||
+        curr.config.language !== snapshot.config.language ||
+        curr.config.brewDurationSec !== snapshot.config.brewDurationSec ||
+        curr.config.maxOrdersPerUser !== snapshot.config.maxOrdersPerUser ||
+        curr.config.defaultCapacityMl !== snapshot.config.defaultCapacityMl ||
+        curr.config.autoRestockEnabled !== snapshot.config.autoRestockEnabled ||
+        curr.config.unlimitedInventory !== snapshot.config.unlimitedInventory;
+
+      if (!isOutOfSync) {
+        return;
+      }
+
+      commitLiveState({
+        ...snapshot,
+        resetEpoch: Math.max(currEpoch, snapEpoch),
+        secondaryDrink: null,
+        activeSlots: [snapshot.activeDrink, null],
+      });
+    },
+
     getSnapshot: (): DrinkBarLiveState => {
       const s = get();
       return {
         config: s.config,
+        resetEpoch: s.resetEpoch,
         activeDrink: s.activeDrink,
         secondaryDrink: null,
         activeSlots: [s.activeDrink, null],

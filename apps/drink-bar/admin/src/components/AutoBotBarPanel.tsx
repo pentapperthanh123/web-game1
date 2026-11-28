@@ -2,16 +2,20 @@ import React, { useState } from 'react';
 import {
   Bot,
   Crown,
+  Dices,
   Gift,
+  MessageSquarePlus,
   Music,
   Play,
   PlusCircle,
+  Send,
   Sparkles,
   Square,
 } from 'lucide-react';
-import { GAMEPLAY_LIMITS } from '@shared/config';
+import { DEMO_BOT_NAMES, GAMEPLAY_LIMITS } from '@shared/config';
+import { DrinkProductThumb } from '@shared/DrinkProductThumb';
 import { getMessages, getPaceLabel } from '@shared/i18n';
-import { RECIPE_LIST } from '@shared/recipes';
+import { MENU_RECIPE_LIST } from '@shared/recipes';
 import type {
   AutoBotPace,
   DanceStyle,
@@ -19,9 +23,9 @@ import type {
   GiftTier,
   IceLevel,
   Language,
-  RecipeId,
 } from '@shared/types';
 import {
+  triggerCustomChatSimulation,
   triggerGiftLargeSimulation,
   triggerGiftMediumSimulation,
   triggerGiftSmallSimulation,
@@ -43,25 +47,16 @@ interface AutoBotBarPanelProps {
 const PACE_OPTIONS: readonly AutoBotPace[] = ['SLOW', 'NORMAL', 'FAST'];
 const ICE_OPTIONS: readonly IceLevel[] = ['NORMAL', 'LESS', 'EXTRA', 'NONE'];
 
-const DRINK_PRODUCT_IMAGE_MAP: Readonly<Partial<Record<RecipeId, string>>> = {
-  matcha: '/drinks/matcha.png',
-  thai_tea: '/drinks/thai_tea.png',
-  coffee_milk: '/drinks/coffee_milk.png',
-  berry_soda: '/drinks/berry_soda.png',
-  blue_citrus: '/drinks/blue_citrus.png',
-};
-
-const FruitTeaThumbSvg: React.FC<{ baseColor: string; accentColor: string }> = ({
-  baseColor,
-  accentColor,
-}) => (
-  <svg viewBox="0 0 46 54" className="w-full h-full" aria-hidden="true">
-    <path d="M12 18 H34 L31 46 Q30 49 26 49 H20 Q16 49 15 46 Z" fill={baseColor} stroke="#3B2820" strokeWidth="2" />
-    <path d="M12 18 A11 9 0 0 1 34 18 Z" fill="#FFFDF9" fillOpacity="0.82" stroke="#3B2820" strokeWidth="1.8" />
-    <line x1="23" y1="16" x2="26" y2="5" stroke="#3B2820" strokeWidth="2.2" strokeLinecap="round" />
-    <path d="M29 17 A5.5 5.5 0 0 1 38 17 Z" fill={accentColor} stroke="#3B2820" strokeWidth="1.6" />
-  </svg>
-);
+const QUICK_CHAT_PRESETS: readonly string[] = [
+  'matcha ít đá',
+  'trà đào ít đường',
+  'cà phê ít đá',
+  '1 cf',
+  'trà chanh nhiều đá',
+  'soda',
+  'nước cam ít đá',
+  'cho e order 1 matcha, 1 cà phê, 1 cf cà phê',
+];
 
 const DANCE_TIER_BUTTONS: readonly {
   tier: GiftTier;
@@ -92,14 +87,33 @@ const DANCE_TIER_BUTTONS: readonly {
 export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
   language,
   inventory,
-  unlimitedInventory = false,
+  unlimitedInventory = true,
   isBotEnabled,
   pace,
   onToggleBot,
   onChangePace,
 }) => {
   const [selectedIce, setSelectedIce] = useState<IceLevel>('NORMAL');
+  const [viewerName, setViewerName] = useState<string>('Minh Anh');
+  const [commentText, setCommentText] = useState<string>('tradao it da');
   const msg = getMessages(language);
+
+  const handleRandomViewerName = () => {
+    const picked = DEMO_BOT_NAMES[Math.floor(Math.random() * DEMO_BOT_NAMES.length)];
+    const suffix = Math.floor(10 + Math.random() * 89);
+    setViewerName(`${picked} ${suffix}`);
+  };
+
+  const handleSendTestComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    triggerCustomChatSimulation(viewerName, commentText);
+  };
+
+  const handleClickPresetChip = (presetText: string) => {
+    setCommentText(presetText);
+    triggerCustomChatSimulation(viewerName, presetText);
+  };
 
   const iceLabelMap: Record<IceLevel, string> = {
     NORMAL: msg.iceNormal,
@@ -196,13 +210,12 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-          {RECIPE_LIST.map((recipe) => {
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          {MENU_RECIPE_LIST.map((recipe) => {
             const slot = inventory?.[recipe.id];
             const currentMl = slot?.currentMl ?? GAMEPLAY_LIMITS.DEFAULT_CAPACITY_ML;
             const isSoldOut = !unlimitedInventory && currentMl < GAMEPLAY_LIMITS.COST_PER_DRINK_ML;
             const label = language === 'EN' ? recipe.shortNameEn : recipe.nameVi;
-            const thumbUrl = DRINK_PRODUCT_IMAGE_MAP[recipe.id];
             let stockCaption = `${currentMl}ml`;
             if (unlimitedInventory) {
               stockCaption = '∞';
@@ -225,19 +238,7 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
                 }`}
               >
                 <div className="w-[46px] h-[54px] rounded-[9px] bg-[#FBE7EE] border-[1.5px] border-[#3B2820]/20 overflow-hidden flex items-center justify-center shrink-0 shadow-inner">
-                  {thumbUrl ? (
-                    <img
-                      src={thumbUrl}
-                      alt={label}
-                      draggable={false}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <FruitTeaThumbSvg
-                      baseColor={recipe.baseColor}
-                      accentColor={recipe.accentColor}
-                    />
-                  )}
+                  <DrinkProductThumb recipeId={recipe.id} alt={label} />
                 </div>
                 <span className="truncate max-w-full leading-tight">{label}</span>
                 <span className="text-[9.5px] font-extrabold text-[#7A5F52] leading-none">
@@ -250,11 +251,66 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
           <button
             type="button"
             onClick={() => triggerOrderSimulation('SIMULATOR')}
-            className="bar-btn bg-[#CBEAD2] hover:bg-[#B7E1C0] px-2 py-1.5 text-[11px] font-black text-[#245B3A] flex flex-col items-center justify-center gap-1 cursor-pointer"
+            className="col-span-2 sm:col-span-3 bar-btn bg-[#CBEAD2] hover:bg-[#B7E1C0] px-3 py-1.5 text-[11.5px] font-black text-[#245B3A] flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <PlusCircle className="w-6 h-6 shrink-0" />
+            <PlusCircle className="w-4 h-4 shrink-0" />
             <span className="truncate">{msg.btnAddOrder}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Custom Viewer Comment Simulator (Test chat commands, modifiers & same-user multi-cup queueing) */}
+      <div className="space-y-2 p-2.5 rounded-[12px] bg-[#F9EFE2] border-2 border-[#3B2820]/15">
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-[#3B2820]">
+            <MessageSquarePlus className="w-3.5 h-3.5 text-[#C5834B]" />
+            <span>{msg.testChatTitle}</span>
+          </span>
+          <button
+            type="button"
+            onClick={handleRandomViewerName}
+            className="px-2 py-0.5 rounded-full bg-[#FFFDF9] hover:bg-[#FFF5E6] border-[1.5px] border-[#3B2820] text-[10px] font-black text-[#3B2820] inline-flex items-center gap-1 cursor-pointer"
+          >
+            <Dices className="w-3 h-3 text-[#C5834B]" />
+            <span>{msg.btnRandomViewer}</span>
+          </button>
+        </div>
+
+        <form onSubmit={handleSendTestComment} className="flex flex-wrap gap-1.5">
+          <input
+            type="text"
+            value={viewerName}
+            onChange={(e) => setViewerName(e.target.value)}
+            placeholder={msg.testChatNamePlaceholder}
+            className="w-[128px] sm:w-[144px] bg-[#FFFDF9] border-2 border-[#3B2820] rounded-[10px] px-2.5 py-1 text-[11.5px] font-black text-[#3B2820] placeholder:text-[#9A7F70] focus:outline-none"
+          />
+          <input
+            type="text"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder={msg.testChatTextPlaceholder}
+            className="flex-1 min-w-[180px] bg-[#FFFDF9] border-2 border-[#3B2820] rounded-[10px] px-2.5 py-1 text-[11.5px] font-bold text-[#3B2820] placeholder:text-[#9A7F70] focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="bar-btn bg-[#F4A6BE] hover:bg-[#EE8FA9] px-3 py-1 text-[11.5px] font-black text-[#3B2820] inline-flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>{msg.btnSendTestChat}</span>
+          </button>
+        </form>
+
+        <div className="flex flex-wrap items-center gap-1">
+          {QUICK_CHAT_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => handleClickPresetChip(preset)}
+              className="px-2 py-0.5 rounded-full bg-[#FFFDF9] hover:bg-[#FFF1C2] border-[1.5px] border-[#3B2820]/60 text-[10px] font-mono font-black text-[#3B2820] cursor-pointer transition-colors"
+            >
+              {preset}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -266,7 +322,7 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
         <div className="grid grid-cols-3 gap-1.5">
           <button
             type="button"
-            onClick={() => triggerGiftSmallSimulation('SIMULATOR')}
+            onClick={() => triggerGiftSmallSimulation('SIMULATOR', viewerName)}
             className="bar-btn bg-[#FDE0C6] hover:bg-[#FBD1AC] px-2 py-1.5 text-[11.5px] font-black text-[#3B2820] inline-flex items-center justify-center gap-1 cursor-pointer"
           >
             <Gift className="w-3.5 h-3.5 shrink-0 text-[#B85719]" />
@@ -275,7 +331,7 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
 
           <button
             type="button"
-            onClick={() => triggerGiftMediumSimulation('SIMULATOR')}
+            onClick={() => triggerGiftMediumSimulation('SIMULATOR', viewerName)}
             className="bar-btn bg-[#D9F0F6] hover:bg-[#C3E7F0] px-2 py-1.5 text-[11.5px] font-black text-[#3B2820] inline-flex items-center justify-center gap-1 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#2E7E94]" />
@@ -284,7 +340,7 @@ export const AutoBotBarPanel: React.FC<AutoBotBarPanelProps> = ({
 
           <button
             type="button"
-            onClick={() => triggerGiftLargeSimulation('SIMULATOR')}
+            onClick={() => triggerGiftLargeSimulation('SIMULATOR', viewerName)}
             className="bar-btn bg-[#FFF1C2] hover:bg-[#FCE49A] px-2 py-1.5 text-[11.5px] font-black text-[#3B2820] inline-flex items-center justify-center gap-1 cursor-pointer"
           >
             <Crown className="w-3.5 h-3.5 shrink-0 text-[#B57400]" />

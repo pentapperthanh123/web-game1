@@ -55,6 +55,7 @@ export class WebAudioSoundEngine {
   private voiceGain: GainNode | null = null;
   private activeTrackGain: GainNode | null = null;
   private activeVoiceSource: AudioBufferSourceNode | null = null;
+  private voicePlaySeq = 0;
   private bgmAudioEl: HTMLAudioElement | null = null;
   private bgmMediaSource: MediaElementAudioSourceNode | null = null;
   private bgmConsecutiveFailures = 0;
@@ -68,6 +69,7 @@ export class WebAudioSoundEngine {
   private sfxEnabled = true;
   private musicEnabled = true;
   private bgmEnabled = true;
+  private hostAudioSuspended = false;
   private masterVolume = 0.85;
   private isMicMode = false;
   private isTtsDucking = false;
@@ -130,6 +132,7 @@ export class WebAudioSoundEngine {
   }
 
   public async unlock(playConfirmTone = false): Promise<boolean> {
+    if (this.hostAudioSuspended) return false;
     const ctx = this.ensureContext();
     if (!ctx) return false;
     if (ctx.state === 'suspended') {
@@ -150,6 +153,23 @@ export class WebAudioSoundEngine {
       }
     }
     return ok;
+  }
+
+  public setHostAudioSuspended(suspended: boolean): void {
+    this.hostAudioSuspended = suspended;
+    if (suspended) {
+      this.pendingPlayAfterUnlock = null;
+      this.stopCafeBgm();
+      this.stopActiveDanceMusic();
+      this.stopBrewingSfx();
+      this.stopVoiceAudio();
+      if (this.ctx && this.ctx.state === 'running') {
+        void this.ctx.suspend().catch(() => {});
+      }
+      return;
+    }
+    this.bgmConsecutiveFailures = 0;
+    void this.unlock(false);
   }
 
   private flushPendingPlay(): void {
@@ -189,26 +209,57 @@ export class WebAudioSoundEngine {
       return;
     }
     this.bgmConsecutiveFailures = 0;
-    if (this.bgmEnabled && this.isUnlocked()) {
-      this.ensureCafeBgmStarted();
-    }
+    this.ensureCafeBgmStarted();
   }
 
   private syncBgmGain(): void {
+    if (this.bgmAudioEl) {
+      if (this.isDanceMusicPlaying) {
+        if (!this.bgmAudioEl.paused) {
+          this.bgmAudioEl.pause();
+        }
+        this.bgmAudioEl.volume = 0;
+      } else {
+        this.bgmAudioEl.volume = 1;
+        if (this.bgmDesired && this.bgmEnabled && !this.hostAudioSuspended && this.bgmAudioEl.paused) {
+          void this.bgmAudioEl.play().catch(() => {});
+        }
+      }
+    }
     if (!this.ctx || !this.bgmGain) return;
     const target = this.isDanceMusicPlaying
       ? GAMEPLAY_LIMITS.CAFE_BGM_DANCE_DUCK_GAIN
       : GAMEPLAY_LIMITS.CAFE_BGM_BASE_GAIN;
-    const tau = this.isDanceMusicPlaying ? 0.08 : 0.35;
+    const tau = this.isDanceMusicPlaying ? 0.03 : 0.35;
     this.bgmGain.gain.setTargetAtTime(target, this.ctx.currentTime, tau);
   }
 
   private ensureCafeBgmStarted(): void {
-    if (!this.bgmDesired || !this.bgmEnabled || this.bgmAudioEl || this.bgmLoading) {
+    if (
+      this.hostAudioSuspended ||
+      !this.bgmDesired ||
+      !this.bgmEnabled ||
+      this.bgmAudioEl ||
+      this.bgmLoading
+    ) {
       return;
     }
-    const ctx = this.ensureRunningContext();
-    if (!ctx || !this.bgmGain || typeof Audio === 'undefined') return;
+    if (typeof Audio === 'undefined') return;
+    const ctx = this.ensureContext();
+    if (ctx && ctx.state === 'suspended') {
+      void ctx
+        .resume()
+        .then(() => {
+          this.notifyUnlockListeners();
+          if (ctx.state === 'running') {
+            this.flushPendingPlay();
+            this.ensureCafeBgmStarted();
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+    if (!ctx || ctx.state !== 'running' || !this.bgmGain) return;
 
     const playlist = GAMEPLAY_LIMITS.CAFE_BGM_PLAYLIST;
     if (!playlist.length || this.bgmConsecutiveFailures >= playlist.length) return;
@@ -457,6 +508,7 @@ export class WebAudioSoundEngine {
   }
 
   public stopVoiceAudio(): void {
+    this.voicePlaySeq += 1;
     if (!this.activeVoiceSource) return;
     try {
       this.activeVoiceSource.onended = null;
@@ -472,14 +524,19 @@ export class WebAudioSoundEngine {
     const ctx = this.ensureContext();
     if (!ctx || !this.masterGain) return null;
     if (ctx.state === 'running') return ctx;
-    if (!this.hasGestureActivation) return null;
     try {
       await ctx.resume();
     } catch {
       return null;
     }
     this.notifyUnlockListeners();
-    return ctx.state === 'running' ? ctx : null;
+    if (ctx.state === 'running') {
+      this.hasGestureActivation = true;
+      this.flushPendingPlay();
+      this.ensureCafeBgmStarted();
+      return ctx;
+    }
+    return null;
   }
 
   public async playVoiceAudioBuffer(
@@ -487,12 +544,33 @@ export class WebAudioSoundEngine {
     playbackRate = 1.18,
     onEnded?: () => void
   ): Promise<boolean> {
+    if (this.hostAudioSuspended) return false;
+    const playSeq = ++this.voicePlaySeq;
     const ctx = await this.ensureRunningContextAsync();
-    if (!ctx || !this.voiceGain) return false;
+    if (!ctx || !this.voiceGain || playSeq !== this.voicePlaySeq || this.hostAudioSuspended) {
+      return false;
+    }
     try {
       const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
-      if (ctx.state !== 'running' || !this.voiceGain) return false;
-      this.stopVoiceAudio();
+      if (
+        ctx.state !== 'running' ||
+        !this.voiceGain ||
+        playSeq !== this.voicePlaySeq ||
+        this.hostAudioSuspended
+      ) {
+        return false;
+      }
+      // Stop previous AudioBufferSourceNode without invalidating current playSeq
+      if (this.activeVoiceSource) {
+        try {
+          this.activeVoiceSource.onended = null;
+          this.activeVoiceSource.stop();
+          this.activeVoiceSource.disconnect();
+        } catch {
+          // Ignore already stopped source
+        }
+        this.activeVoiceSource = null;
+      }
       const source = ctx.createBufferSource();
       source.buffer = decoded;
       source.playbackRate.value = playbackRate;
@@ -535,6 +613,7 @@ export class WebAudioSoundEngine {
     danceStyle?: DanceStyle,
     pitchScale = 1
   ): boolean {
+    if (this.hostAudioSuspended) return true;
     if (kind === 'dance_jingle') {
       this.stopBrewingSfx();
       if (!this.musicEnabled) return true;

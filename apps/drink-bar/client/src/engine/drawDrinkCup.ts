@@ -285,7 +285,7 @@ function drawDrinkCupAtStation(
   let creamStartProgress = 78;
   if (drink.recipeId === 'thai_tea') {
     creamStartProgress = THAI_TEA_CREAM_START_PROGRESS;
-  } else if (drink.recipeId === 'coffee_milk') {
+  } else if (drink.recipeId === 'coffee_milk' || drink.recipeId === 'cacao') {
     creamStartProgress = CAFE_CREAM_START_PROGRESS;
   }
   const creamSpan = Math.max(4, 84 - creamStartProgress);
@@ -295,6 +295,8 @@ function drawDrinkCupAtStation(
     const foamGrow = clamp01((progress - creamStartProgress) / creamSpan);
     if (drink.recipeId === 'coffee_milk') {
       drawSaltedCoffeeCreamCap(ctx, cupCx, liquidSurfaceY, foamGrow);
+    } else if (drink.recipeId === 'cacao') {
+      drawInnerFoamLayer(ctx, cupCx, liquidSurfaceY, '#F3DFCE', foamGrow);
     } else if (drink.recipeId === 'thai_tea') {
       drawInnerFoamLayer(ctx, cupCx, liquidSurfaceY, '#FFF6DC', foamGrow);
     } else {
@@ -596,14 +598,15 @@ function drawLiquidLayersByRecipe(
     return fill.surfaceY;
   }
 
-  if (recipeId === 'coffee_milk') {
-    // Already-whisked rich Vietnamese iced coffee blend (NO redundant white milk layer at the bottom!)
+  if (recipeId === 'coffee_milk' || recipeId === 'cacao') {
+    const baseHex = recipeId === 'cacao' ? '#7B462B' : '#613820';
+    const topTint = recipeId === 'cacao' ? 'rgba(168, 108, 72, 0.24)' : 'rgba(138, 86, 48, 0.24)';
+    const bottomTint = recipeId === 'cacao' ? 'rgba(66, 30, 14, 0.38)' : 'rgba(48, 24, 12, 0.34)';
     if (fill.layer1TopY < CUP_BOTTOM_Y - 1) {
-      drawWavyLiquidBand(ctx, cupCx, fill.layer1TopY, fill.layer1BottomY, '#613820', elapsedSec, 1.5, 1.2);
-      // Subtle roasted espresso richness gradient from bottom to top
+      drawWavyLiquidBand(ctx, cupCx, fill.layer1TopY, fill.layer1BottomY, baseHex, elapsedSec, 1.5, 1.2);
       const roastGrad = ctx.createLinearGradient(0, fill.layer1TopY, 0, CUP_BOTTOM_Y);
-      roastGrad.addColorStop(0, 'rgba(138, 86, 48, 0.24)');
-      roastGrad.addColorStop(1, 'rgba(48, 24, 12, 0.34)');
+      roastGrad.addColorStop(0, topTint);
+      roastGrad.addColorStop(1, bottomTint);
       ctx.fillStyle = roastGrad;
       ctx.fillRect(
         cupCx - CUP_TOP_HALF_W,
@@ -1278,8 +1281,8 @@ function drawCupProgressPill(
     isDancing && drink.phase === 'BREWING' ? msg.dancingPauseLabel : undefined
   );
 
-  const pillW = drink.phase === 'SHOWCASE' || isDancing ? 116 : 124;
-  const pillH = 21;
+  const pillW = drink.phase === 'SHOWCASE' || isDancing ? 122 : 132;
+  const pillH = 22;
   const px = cupCx - pillW * 0.5;
   const py = CUP_BOTTOM_Y + 7;
 
@@ -1289,11 +1292,11 @@ function drawCupProgressPill(
   else if (isDancing) pillBg = '#FFE6EE';
   ctx.fillStyle = pillBg;
   ctx.fill();
-  ctx.lineWidth = 2.2;
+  ctx.lineWidth = 2.3;
   ctx.strokeStyle = DRINK_BAR_PALETTE.OUTLINE;
   ctx.stroke();
 
-  ctx.font = '900 10px "Fredoka", "Nunito", sans-serif';
+  ctx.font = '900 10.5px "Fredoka", "Nunito", sans-serif';
   ctx.fillStyle = DRINK_BAR_PALETTE.TEXT_PRIMARY;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

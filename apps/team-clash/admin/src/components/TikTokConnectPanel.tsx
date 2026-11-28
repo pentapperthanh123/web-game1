@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { adminEmitter, type TikTokServerStatus } from '../services/adminEmitter';
 import { gameServerApi, useClashClientUrl } from '../services/clashUrls';
 
-const DEFAULT_CHANNEL_USERNAME = 'bap.media.lifestyle99';
+const DEFAULT_CHANNEL_USERNAME = 'bap.daily.lifestyle99';
 
 type PanelStatus = TikTokServerStatus['status'];
 
@@ -159,7 +159,7 @@ export const TikTokConnectPanel: React.FC = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="bap.media.lifestyle99"
+              placeholder="bap.daily.lifestyle99"
               disabled={status !== 'DISCONNECTED' && status !== 'ERROR'}
               className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-7 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 disabled:opacity-50 font-mono"
             />

@@ -93,3 +93,7 @@ scripts/video/clips/
 
 # Local background music (downloaded, too large for git)
 apps/*/client/public/audio/*.mp3
+scripts/video/drink_bar_frames/
+scripts/video/drink_bar_clips/
+scripts/video/drink_bar_raw/
+scripts/video/drink_bar_voices/

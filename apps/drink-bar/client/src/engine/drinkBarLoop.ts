@@ -54,6 +54,7 @@ const STEP2_PREP_SFX_MAP: Record<RecipeId, SfxKind> = {
   peach_tea: 'shaker',
   lime_tea: 'whip_froth',
   coffee_milk: 'whip_froth',
+  cacao: 'whip_froth',
   berry_soda: 'whip_froth',
   blue_citrus: 'juicer',
 };
@@ -298,6 +299,7 @@ export class DrinkBarCanvasLoop {
       this.prevDanceStartedAt = state.danceStartedAt;
     } else if (this.wasDancing) {
       drinkBarAudio.stopDanceMusic();
+      drinkBarTts.onDanceEnded();
       drinkParticles.clearDanceParticles();
       resetDanceJointTransition();
       this.prevStationKey1 = '';
@@ -388,6 +390,7 @@ export class DrinkBarCanvasLoop {
 
     // Update reusable equipment state snapshot in-place (zero per-frame allocations)
     this.equipmentState.hasQueuedGuests =
+      Boolean(state.activeSlots[0]) ||
       state.vipQueue.length + state.normalQueue.length + state.departingGuests.length > 0;
     this.equipmentState.danceStyle = isDancing ? state.danceStyle : null;
     this.equipmentState.danceBeatPulse = isDancing ? danceMotion.beatPulse : 0;
@@ -396,29 +399,44 @@ export class DrinkBarCanvasLoop {
       excitedRemainingMs / GAMEPLAY_LIMITS.MANEKI_NEKO_EXCITED_MS
     );
 
-    if (primary && primary.phase === 'BREWING' && !isDancing) {
+    if (primary && primary.phase === 'BREWING') {
       const step = getBrewStep(primary.progress, primary.recipeId);
       const span = Math.max(1, step.maxProgress - step.minProgress);
+      const isPausedForDance = isDancing;
+
       this.equipmentState.activeRecipeId = primary.recipeId;
-      this.equipmentState.activeAction = step.action;
-      this.equipmentState.stepProgress = clamp01((primary.progress - step.minProgress) / span);
-      this.equipmentState.isFastBoost = isFastBoost;
-      this.equipmentState.isPickingCup = isCupPickupSubstep(primary);
-      this.equipmentState.isPickingLid = isLidPickupSubstep(primary);
-      this.equipmentState.isTakingMatchaFromShelf = isMatchaShelfSubstep(primary);
-      this.equipmentState.isHoldingOatside = isHoldingOatsideSubstep(primary);
-      this.equipmentState.isHoldingSodaBottle = isHoldingSodaBottleSubstep(primary);
-      this.equipmentState.isShakerDetached = isShakerDetachedSubstep(primary);
-      this.equipmentState.shakerFillRatio = resolveShakerMachineFillRatio(primary);
-      this.equipmentState.isPressingSugarButton = isSugarButtonSubstep(primary);
+      this.equipmentState.activeAction = isPausedForDance ? null : step.action;
+      this.equipmentState.stepProgress = isPausedForDance
+        ? 0
+        : clamp01((primary.progress - step.minProgress) / span);
+      this.equipmentState.isFastBoost = !isPausedForDance && isFastBoost;
+      this.equipmentState.isPickingCup = !isPausedForDance && isCupPickupSubstep(primary);
+      this.equipmentState.isPickingLid = !isPausedForDance && isLidPickupSubstep(primary);
+      this.equipmentState.isTakingMatchaFromShelf = !isPausedForDance && isMatchaShelfSubstep(primary);
+      this.equipmentState.isHoldingOatside = !isPausedForDance && isHoldingOatsideSubstep(primary);
+      this.equipmentState.isHoldingSodaBottle = !isPausedForDance && isHoldingSodaBottleSubstep(primary);
+      this.equipmentState.isShakerDetached = !isPausedForDance && isShakerDetachedSubstep(primary);
+
+      let preservedShakerFill = resolveShakerMachineFillRatio(primary);
+      if (isPausedForDance && isShakerDetachedSubstep(primary)) {
+        const pourProgress = clamp01((primary.progress - 56) / 22);
+        preservedShakerFill = Math.max(0.2, 0.94 * (1 - pourProgress));
+      }
+      this.equipmentState.shakerFillRatio = preservedShakerFill;
+
+      this.equipmentState.isPressingSugarButton = !isPausedForDance && isSugarButtonSubstep(primary);
       this.equipmentState.isUsingFrother =
-        (step.action === 'tool_prep' &&
-          (primary.recipeId === 'coffee_milk' || primary.recipeId === 'berry_soda')) ||
-        (step.action === 'pour_mix' &&
-          primary.recipeId === 'coffee_milk' &&
-          primary.progress < CAFE_POUR_END_PROGRESS);
-      this.equipmentState.isScoopingBoba = isBobaScoopSubstep(primary);
-      this.equipmentState.isScoopingIce = step.action === 'add_ice' && !isBobaScoopSubstep(primary);
+        !isPausedForDance &&
+        ((step.action === 'tool_prep' &&
+          (primary.recipeId === 'coffee_milk' ||
+            primary.recipeId === 'cacao' ||
+            primary.recipeId === 'berry_soda')) ||
+          (step.action === 'pour_mix' &&
+            (primary.recipeId === 'coffee_milk' || primary.recipeId === 'cacao') &&
+            primary.progress < CAFE_POUR_END_PROGRESS));
+      this.equipmentState.isScoopingBoba = !isPausedForDance && isBobaScoopSubstep(primary);
+      this.equipmentState.isScoopingIce =
+        !isPausedForDance && step.action === 'add_ice' && !isBobaScoopSubstep(primary);
     } else {
       this.equipmentState.activeRecipeId = null;
       this.equipmentState.activeAction = null;
@@ -541,7 +559,11 @@ export class DrinkBarCanvasLoop {
     }
 
     if (step.action !== 'pour_mix') return;
-    if (drink.recipeId === 'coffee_milk' && drink.progress >= CAFE_POUR_END_PROGRESS) return;
+    if (
+      (drink.recipeId === 'coffee_milk' || drink.recipeId === 'cacao') &&
+      drink.progress >= CAFE_POUR_END_PROGRESS
+    )
+      return;
 
     const isSodaPouring = drink.recipeId === 'berry_soda';
     const surfaceY = computeLiquidFillSnapshot(drink.recipeId, drink.progress).surfaceY;

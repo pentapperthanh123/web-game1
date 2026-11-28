@@ -308,9 +308,11 @@ export class TikTokLivePipeline {
       parsed.champion || (parsed.team && allowTeamOnly ? this.deps.getRandomChampionName() : undefined);
 
     this.deps.emit('game:chat', {
+      uniqueId: viewerKey,
       userName: displayName,
       avatarUrl: input.userAvatarUrl,
       text: displayText,
+      rawText: comment,
       team: effectiveTeam,
       championName: summonChampion,
       fansLevel: input.fansLevel,
@@ -390,6 +392,7 @@ export class TikTokLivePipeline {
     const totalCoins = rawRepeatCount * unitCoins;
 
     this.deps.emit('game:gift', {
+      uniqueId: viewerKey,
       donorName: displayName,
       donorAvatarUrl: input.userAvatarUrl,
       speechName,
@@ -440,6 +443,7 @@ export class TikTokLivePipeline {
     const { team, source } = this.resolveViewerTeam(viewerKey, input.explicitTeam);
 
     this.deps.emit('game:like', {
+      uniqueId: viewerKey,
       count: clampedCount,
       team,
       userName: displayName,

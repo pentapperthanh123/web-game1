@@ -47,6 +47,11 @@ export interface DrinkBarMessages {
   iceNormal: string;
   orderMenuLabel: string;
   icePickerLabel: string;
+  testChatTitle: string;
+  testChatNamePlaceholder: string;
+  testChatTextPlaceholder: string;
+  btnSendTestChat: string;
+  btnRandomViewer: string;
   donateDanceTitle: string;
   btnDanceSmall: string;
   btnDanceMedium: string;
@@ -92,6 +97,10 @@ export interface DrinkBarMessages {
   liveControlsTitle: string;
   languageLabel: string;
   brewDurationLabel: string;
+  maxOrdersPerUserLabel: string;
+  maxOrdersPerUserHint: string;
+  cupsPerUserUnit: string;
+  unlimitedCupsPerUserLabel: string;
   quickActionsLabel: string;
   btnCompleteNow: string;
   btnAddTopping: string;
@@ -121,13 +130,31 @@ export interface DrinkBarMessages {
   safeZoneToggleLabel: string;
   tiktokConnectTitle: string;
   tiktokPlaceholder: string;
+  btnCheckConfig: string;
+  btnCheckingConfig: string;
   btnConnect: string;
   btnDisconnect: string;
+  roomIdLabel: string;
+  roomIdPending: string;
+  roomIdOffline: string;
+  streamerOwnerLabel: string;
+  viewerCountLabel: string;
+  viewerOfflineText: string;
+  liveTitleLabel: string;
+  liveTitleFallback: string;
+  liveTitleOffline: string;
+  checkStatusLive: string;
+  checkStatusOffline: string;
+  checkStatusNotFound: string;
+  checkStatusBlocked: string;
+  checkStatusError: string;
   stageUrlLabel: string;
   btnCopyUrl: string;
   btnCopied: string;
   btnOpenStage: string;
   previewHeaderTitle: string;
+  btnShowPreview: string;
+  btnHidePreview: string;
   mirrorLiveBadge: string;
   telemetryNow: string;
   telemetryIdle: string;
@@ -160,21 +187,21 @@ const EN_MESSAGES: DrinkBarMessages = {
   giftRowRoseDesc: 'VIP + Topping',
   giftRowMediumLabel: 'Gift (5+)',
   giftRowMediumDesc: 'VIP + Glow Layer',
-  giftRowBigLabel: 'Big (30+)',
+  giftRowBigLabel: 'Big (10+)',
   giftRowBigDesc: 'Top 1 + Signature',
   ctaOrderTitle: 'HOW TO ORDER',
   ctaOrderChatHint: 'Comment a drink:',
   ctaOrderCustomizeHint: 'less ice · less sugar · no ice',
-  ctaDonateTitle: 'DONATE & DANCE',
+  ctaDonateTitle: 'TIPS FOR DANCE',
   ctaDanceSmall: 'VIP + Heart Sway',
   ctaDanceMedium: 'VIP + Groove Wave',
   ctaDanceLarge: 'Top 1 + Party Hype',
   queueCardTitle: 'ORDER QUEUE',
   nowLabel: 'NOW',
   waitingIdle: 'Type a drink keyword!',
-  queueEmptyHint: 'Type matcha / tra / cafe...',
+  queueEmptyHint: 'Type matcha / tradao / cafe...',
   lobbyIdleTitle: 'LOBBY IS OPEN — PLACE YOUR ORDER!',
-  lobbyIdleDesc: 'Type a drink (matcha, tra, cafe, soda...) in chat to join • Tap Like to brew faster • Gift to dance!',
+  lobbyIdleDesc: 'Type a drink (matcha, tradao, cafe, soda...) in chat to join • Gift to dance!',
   lobbyIdleOneLine: 'LOBBY IS OPEN — TYPE A DRINK NAME TO QUEUE UP!',
   nextUpLabel: 'NEXT UP',
   safeZoneLabel: 'TikTok LIVE Chat Safe Zone (960–1280)',
@@ -189,6 +216,11 @@ const EN_MESSAGES: DrinkBarMessages = {
   iceNormal: 'Normal ice',
   orderMenuLabel: 'Click to Order Specific Drink',
   icePickerLabel: 'Ice',
+  testChatTitle: 'Test Viewer Comment & Order Commands',
+  testChatNamePlaceholder: 'Viewer name...',
+  testChatTextPlaceholder: 'Type comment (e.g. tradao it da, matcha it duong)...',
+  btnSendTestChat: 'Send Comment',
+  btnRandomViewer: 'Random Name',
   donateDanceTitle: 'Donate & TikTok Dance (3 Hot Styles)',
   btnDanceSmall: 'Dance 1: Heart Sway',
   btnDanceMedium: 'Dance 2: Groove Wave',
@@ -213,9 +245,9 @@ const EN_MESSAGES: DrinkBarMessages = {
   unlimitedBadge: '∞ Unlimited',
   defaultCapacityLabel: 'Default Tank (ml)',
   adminTitle: 'Drink Bar — Host Console',
-  adminSubtitle: 'TikTok LIVE Interactive · 720×1280 @ 30 FPS',
+  adminSubtitle: 'TikTok LIVE Interactive · 720×1080 @ 30 FPS',
   autoBotTitle: 'Auto-Bot Bar',
-  autoBotSubtitle: 'Auto menu keywords (1 cup/user), likes & TikTok Dance gifts',
+  autoBotSubtitle: 'Auto menu keywords & TikTok Dance gifts',
   autoBotOn: 'Running',
   autoBotOff: 'Paused',
   paceLabel: 'Pace',
@@ -231,6 +263,10 @@ const EN_MESSAGES: DrinkBarMessages = {
   liveControlsTitle: 'Live Bar Controls',
   languageLabel: 'Stage Language',
   brewDurationLabel: 'Standard Brew Time',
+  maxOrdersPerUserLabel: 'Max Cups / Viewer in Queue',
+  maxOrdersPerUserHint: 'How many cups 1 viewer can queue at the same time',
+  cupsPerUserUnit: 'cup',
+  unlimitedCupsPerUserLabel: '∞ Unlimited',
   quickActionsLabel: 'Quick Actions',
   btnCompleteNow: 'Complete Now',
   btnAddTopping: 'Add Topping',
@@ -250,9 +286,9 @@ const EN_MESSAGES: DrinkBarMessages = {
   danceNameWave: 'Groove Wave',
   danceNameHype: 'Party Hype',
   ttsIdlePhrases: [
-    'Hey cuties! The drink bar is open, drop matcha, tea, coffee or soda in chat so I can mix one for you!',
+    'Hey cuties! The drink bar is open, drop matcha, tradao, coffee or soda in chat so I can mix one for you!',
     'Yawn... getting a tiny bit sleepy waiting for orders! Someone order an iced coffee to wake me up!',
-    'Tap like for super speedy brewing, or send a little rose to watch a cute TikTok dance!',
+    'Send a little rose to watch a cute TikTok dance, or drop a drink name to queue up!',
     'Fresh peach tea, iced matcha and sparkling soda are waiting for your order right here!',
   ],
   masterVolumeLabel: 'Master Volume',
@@ -264,14 +300,32 @@ const EN_MESSAGES: DrinkBarMessages = {
   micModeHint: 'Ducks SFX while Host speaks',
   safeZoneToggleLabel: 'Stage Safe-Zone Guide',
   tiktokConnectTitle: 'TikTok LIVE Connect (server/)',
-  tiktokPlaceholder: 'Enter @username or Room ID...',
+  tiktokPlaceholder: 'bap.daily.lifestyle99 or Room ID...',
+  btnCheckConfig: 'Check Room ID',
+  btnCheckingConfig: 'Checking...',
   btnConnect: 'Connect',
   btnDisconnect: 'Disconnect',
+  roomIdLabel: 'Room ID',
+  roomIdPending: 'Resolving...',
+  roomIdOffline: 'None (Offline)',
+  streamerOwnerLabel: 'Channel',
+  viewerCountLabel: 'Viewers',
+  viewerOfflineText: '0 (Offline)',
+  liveTitleLabel: 'Live Title',
+  liveTitleFallback: 'Untitled stream',
+  liveTitleOffline: 'Not streaming',
+  checkStatusLive: 'LIVE STREAMING',
+  checkStatusOffline: 'OFFLINE (NOT LIVE)',
+  checkStatusNotFound: 'USER NOT FOUND',
+  checkStatusBlocked: 'TIKTOK WAF / IP BLOCKED',
+  checkStatusError: 'API CONNECT ERROR',
   stageUrlLabel: 'OBS / Studio URL',
   btnCopyUrl: 'Copy',
   btnCopied: 'Copied',
   btnOpenStage: 'Open',
   previewHeaderTitle: 'Live Preview (9:16)',
+  btnShowPreview: 'Show Preview',
+  btnHidePreview: 'Hide Preview',
   mirrorLiveBadge: 'Mirror Live',
   telemetryNow: 'Brewing',
   telemetryIdle: 'Bar Ready',
@@ -304,21 +358,21 @@ const VI_MESSAGES: DrinkBarMessages = {
   giftRowRoseDesc: 'VIP + Topping',
   giftRowMediumLabel: 'Gift (5+)',
   giftRowMediumDesc: 'VIP + Tầng đẹp',
-  giftRowBigLabel: 'Big (30+)',
+  giftRowBigLabel: 'Big (10+)',
   giftRowBigDesc: 'Top 1 + Signature',
   ctaOrderTitle: 'CÁCH ORDER',
   ctaOrderChatHint: 'Gõ tên món vào chat:',
   ctaOrderCustomizeHint: 'ít đá · ít đường · không đá',
-  ctaDonateTitle: 'DONATE & NHẢY',
+  ctaDonateTitle: 'TIẾT MỤC NHẢY',
   ctaDanceSmall: 'VIP + Nhảy Bắn Tim',
   ctaDanceMedium: 'VIP + Nhảy Sóng Tay',
   ctaDanceLarge: 'Top 1 + Quẩy Nhiệt',
   queueCardTitle: 'HÀNG CHỜ PHA',
   nowLabel: 'NOW',
   waitingIdle: 'Gõ tên món trên Menu!',
-  queueEmptyHint: 'Gõ matcha / tra / cafe...',
+  queueEmptyHint: 'Gõ matcha / trà đào / cà phê...',
   lobbyIdleTitle: 'SẢNH CHỜ ĐANG MỞ — MỜI BẠN ORDER!',
-  lobbyIdleDesc: 'Gõ tên món (matcha, tra, cafe, soda...) vào chat để xếp hàng • Thả Like pha nhanh • Donate nhảy TikTok!',
+  lobbyIdleDesc: 'Gõ tên món (matcha, tradao, cafe, soda...) vào chat để xếp hàng • Donate nhảy TikTok!',
   lobbyIdleOneLine: 'SẢNH CHỜ ĐANG MỞ — GÕ TÊN MÓN ĐỂ XẾP HÀNG!',
   nextUpLabel: 'TIẾP THEO',
   safeZoneLabel: 'Vùng an toàn Chat TikTok LIVE (960–1280)',
@@ -333,6 +387,11 @@ const VI_MESSAGES: DrinkBarMessages = {
   iceNormal: 'Đá vừa',
   orderMenuLabel: 'Chọn nước cần Order (1 click)',
   icePickerLabel: 'Mức đá',
+  testChatTitle: 'Test Bình Luận Khán Giả (Thử Cú Pháp Chat)',
+  testChatNamePlaceholder: 'Tên người xem...',
+  testChatTextPlaceholder: 'Nhập comment (VD: cho e order 1 matcha, 1 cà phê, 1 cf cà phê)...',
+  btnSendTestChat: 'Gửi Comment',
+  btnRandomViewer: 'Đổi tên',
   donateDanceTitle: 'Donate & Nhảy TikTok (3 Điệu Hot)',
   btnDanceSmall: 'Nhảy 1: Bắn Tim',
   btnDanceMedium: 'Nhảy 2: Sóng Tay',
@@ -357,9 +416,9 @@ const VI_MESSAGES: DrinkBarMessages = {
   unlimitedBadge: '∞ Không giới hạn',
   defaultCapacityLabel: 'Dung tích chuẩn',
   adminTitle: 'Drink Bar — Bảng Điều Khiển',
-  adminSubtitle: 'Tương tác TikTok LIVE · 720×1280 @ 30 FPS',
+  adminSubtitle: 'Tương tác TikTok LIVE · 720×1080 @ 30 FPS',
   autoBotTitle: 'Auto-Bot Bar',
-  autoBotSubtitle: 'Tự gõ từ khóa Menu (1 người/1 ly), thả tim & donate nhảy TikTok',
+  autoBotSubtitle: 'Tự gõ từ khóa Menu & donate nhảy TikTok',
   autoBotOn: 'Đang chạy',
   autoBotOff: 'Đang tắt',
   paceLabel: 'Nhịp độ',
@@ -375,6 +434,10 @@ const VI_MESSAGES: DrinkBarMessages = {
   liveControlsTitle: 'Điều Khiển Trực Tiếp',
   languageLabel: 'Ngôn ngữ sân khấu',
   brewDurationLabel: 'Thời lượng chuẩn mỗi ly',
+  maxOrdersPerUserLabel: 'Số ly tối đa / 1 người cùng lúc',
+  maxOrdersPerUserHint: 'Cho phép 1 khán giả đặt liên tiếp nhiều ly vào hàng chờ',
+  cupsPerUserUnit: 'ly',
+  unlimitedCupsPerUserLabel: '∞ Không giới hạn',
   quickActionsLabel: 'Thao tác nhanh',
   btnCompleteNow: 'Complete Now',
   btnAddTopping: 'Add Topping',
@@ -394,12 +457,12 @@ const VI_MESSAGES: DrinkBarMessages = {
   danceNameWave: 'Sóng Tay',
   danceNameHype: 'Quẩy Nhiệt',
   ttsIdlePhrases: [
-    'Sảnh chờ đang vắng nè mấy bạn yêu ơi! Gõ matcha, trà sữa, cafe hay soda vào chat để mình pha cho nha!',
+    'Sảnh chờ đang vắng nè mấy bạn yêu ơi! Gõ matcha, trà đào, cafe hay soda vào chat để mình pha cho nha!',
     'Ngáp một cái nhẹ luôn á! Buồn ngủ quá trời rồi nè, ai order ly cafe sữa cho chủ quán tỉnh táo đi nào!',
-    'Thả tim cho quầy xôm tụ đi cả nhà ơi, tặng hoa hồng là có ngay điệu nhảy Bắn Tim siêu cưng nha!',
+    'Tặng hoa hồng là có ngay điệu nhảy Bắn Tim siêu cưng nha, hoặc gõ tên món để mình pha liền tay!',
     'Trà đào, trà chanh, nước cam tươi mát lạnh đang chờ mấy bạn chốt đơn nè, gõ liền tay nha!',
     'Ngồi gật gù chờ khách nè mấy bạn ơi, vào bình luận món yêu thích để mình pha liền tay nha!',
-    'Vào xem live nhớ thả tim và gọi một ly nước thiệt ngon cho vui nha mấy bạn yêu ơi!',
+    'Vào xem live nhớ gọi một ly nước thiệt ngon cho vui nha mấy bạn yêu ơi!',
   ],
   masterVolumeLabel: 'Âm lượng tổng',
   btnTestAudio: 'Thử âm thanh',
@@ -410,14 +473,32 @@ const VI_MESSAGES: DrinkBarMessages = {
   micModeHint: 'Giảm âm lượng SFX khi Host nói',
   safeZoneToggleLabel: 'Vạch vùng chat trên Stage',
   tiktokConnectTitle: 'Kết nối TikTok LIVE (server/)',
-  tiktokPlaceholder: 'Nhập @username hoặc Room ID...',
+  tiktokPlaceholder: 'bap.daily.lifestyle99 hoặc Room ID...',
+  btnCheckConfig: 'Kiểm Tra & Lấy Room ID',
+  btnCheckingConfig: 'Đang kiểm tra...',
   btnConnect: 'Kết nối',
   btnDisconnect: 'Ngắt',
+  roomIdLabel: 'Room ID',
+  roomIdPending: 'Đang tìm...',
+  roomIdOffline: 'Chưa có (Chưa Live)',
+  streamerOwnerLabel: 'Chủ Kênh',
+  viewerCountLabel: 'Người Xem',
+  viewerOfflineText: '0 (Ngoại Tuyến)',
+  liveTitleLabel: 'Tiêu Đề',
+  liveTitleFallback: 'Không có tiêu đề',
+  liveTitleOffline: 'Chưa phát trực tiếp',
+  checkStatusLive: 'ĐANG PHÁT TRỰC TIẾP',
+  checkStatusOffline: 'NGOẠI TUYẾN (CHƯA LIVE)',
+  checkStatusNotFound: 'KHÔNG TÌM THẤY USER',
+  checkStatusBlocked: 'TIKTOK CHẶN WAF / IP',
+  checkStatusError: 'LỖI KẾT NỐI API',
   stageUrlLabel: 'URL TikTok Studio',
   btnCopyUrl: 'Copy',
   btnCopied: 'Đã copy',
   btnOpenStage: 'Mở',
   previewHeaderTitle: 'Live Preview (9:16)',
+  btnShowPreview: 'Hiện Preview',
+  btnHidePreview: 'Ẩn Preview',
   mirrorLiveBadge: 'Mirror Live',
   telemetryNow: 'Đang pha',
   telemetryIdle: 'Quầy sẵn sàng',
@@ -496,14 +577,321 @@ function pickRandomVariant(variants: readonly string[]): string {
   return variants[Math.floor(Math.random() * variants.length)];
 }
 
+/** Patterns matching external links, phone numbers, or social handles */
+const SENSITIVE_URL_OR_CONTACT_PATTERNS: readonly RegExp[] = [
+  /(https?:\/\/|www\.)\S+/i,
+  /\b[a-z0-9-]{2,}\.(com|net|org|vn|io|me|xyz|link|shop|top|info|biz|cc|vip|live|online|site|app)\b/i,
+  /(?:\+?84|\b0)(?:[\s.-]?\d){8,10}\b/,
+  /@[a-z0-9_.]{2,}/i,
+];
+
+const LEETSPEAK_MAP: Readonly<Record<string, string>> = {
+  '0': 'o',
+  '1': 'i',
+  '3': 'e',
+  '4': 'a',
+  '5': 's',
+  '7': 't',
+  '@': 'a',
+  $: 's',
+};
+
+/**
+ * Substring keywords in collapsed ASCII (accents stripped, leetspeak folded, non-alphanumeric removed).
+ * Catches evasions such as "k u b e t", "k.u.b.e.t", "sh0pee", "s-e-x-y".
+ */
+const SENSITIVE_ASCII_SUBSTRINGS: readonly string[] = [
+  // Competitor platforms, redirection & live commerce policy violations
+  'shopee',
+  'lazada',
+  'tiki',
+  'sendo',
+  'amazon',
+  'ebay',
+  'facebook',
+  'telegram',
+  'instagram',
+  'youtube',
+  'wechat',
+  'whatsapp',
+  // TikTok official impersonation & moderation triggers
+  'tiktok',
+  'douyin',
+  'bytedance',
+  'quantri',
+  'moderator',
+  'tiktokshop',
+  'ttshop',
+  // Gambling, betting, lottery, casino, scams
+  'kubet',
+  'thabet',
+  'sunwin',
+  'go88',
+  'sin88',
+  'rikvip',
+  'nagavip',
+  'socvip',
+  'nohu',
+  '789club',
+  'b52club',
+  'bet168',
+  'fb88',
+  'w88',
+  '188bet',
+  'm88',
+  'jun88',
+  'new88',
+  'shbet',
+  'hi88',
+  'bk8',
+  'dafabet',
+  'taixiu',
+  'banca',
+  'danhbac',
+  'cado',
+  'lode',
+  'soicau',
+  'nhacai',
+  'casino',
+  'gambling',
+  'betting',
+  'luadao',
+  'kiemtienonline',
+  'cobac',
+  'keobong',
+  // Adult, NSFW, prostitution, dating scam
+  'gaigoi',
+  'chatsex',
+  'showhang',
+  'phimsex',
+  'kichduc',
+  'baocaosu',
+  'damdang',
+  'thudam',
+  'loclip',
+  'sugarbaby',
+  'sugardaddy',
+  'sextoy',
+  // Profanity & slurs (compounded)
+  'ditme',
+  'duma',
+  'dume',
+  'dauma',
+  'occho',
+  'sucvat',
+  'thangcho',
+  'concho',
+  'khonnan',
+  'memay',
+  'bomay',
+  'conmemay',
+  'chochet',
+  'vailon',
+  'clmm',
+  'dcmm',
+  'dkm',
+  'motherfucker',
+  'asshole',
+  'bastard',
+  'faggot',
+  'nigger',
+  'nigga',
+  'pussy',
+  // Drugs, self-harm, weapons
+  'matuy',
+  'cansa',
+  'thuocphien',
+  'bongcuoi',
+  'hangtrang',
+  'suicide',
+  'tutu',
+];
+
+/** Substring keywords in collapsed Accented Vietnamese (separators removed) */
+const SENSITIVE_ACCENTED_SUBSTRINGS: readonly string[] = [
+  'tàixỉu',
+  'bắncá',
+  'đánhbạc',
+  'cáđộ',
+  'lôđề',
+  'soicầu',
+  'nhàcái',
+  'gáigọi',
+  'kíchdục',
+  'mẹmày',
+  'bốmày',
+  'ócchó',
+  'súcvật',
+  'khốnnạn',
+  'matúy',
+  'cầnsa',
+  'thuốcphiện',
+  'bóngcười',
+  'tựtử',
+  'đụmẹ',
+  'lừadảo',
+  'lừađảo',
+  'quảntrị',
+];
+
+/** Short sensitive tokens checked against individual words to avoid false positive matches in longer words */
+const SENSITIVE_ACCENTED_TOKENS = new Set<string>([
+  'đĩ',
+  'lồn',
+  'cặc',
+  'buồi',
+  'địt',
+  'đụ',
+  'đéo',
+  'đm',
+  'đmm',
+  'đcm',
+  'đkm',
+  'chó',
+]);
+
+const SENSITIVE_ASCII_TOKENS = new Set<string>([
+  'sex',
+  'xxx',
+  'porn',
+  'fuck',
+  'shit',
+  'cunt',
+  'dick',
+  'slut',
+  'whore',
+  'dm',
+  'dmm',
+  'dcm',
+  'dkm',
+  'vcl',
+  'vkl',
+  'clmm',
+  'zalo',
+  'zl',
+  'fb',
+  'admin',
+]);
+
+function toAsciiFolded(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[013457@$]/g, (char) => LEETSPEAK_MAP[char] ?? char);
+}
+
+/**
+ * Checks whether a nickname contains prohibited, sensitive, copyrighted, or policy-violating keywords.
+ */
+export function isSensitiveTtsNickname(nickname: string): boolean {
+  if (!nickname || typeof nickname !== 'string') return false;
+  const raw = nickname.trim();
+  if (!raw) return false;
+
+  // 1. Unsafe patterns: URLs, links, phone numbers, handles
+  if (SENSITIVE_URL_OR_CONTACT_PATTERNS.some((p) => p.test(raw))) {
+    return true;
+  }
+
+  // 2. Accented collapsed substring match
+  const lowerAccented = raw.toLowerCase().normalize('NFC');
+  const compactAccented = lowerAccented.replace(/[^\p{L}\p{N}]/gu, '');
+  if (SENSITIVE_ACCENTED_SUBSTRINGS.some((sub) => compactAccented.includes(sub))) {
+    return true;
+  }
+
+  // 3. ASCII collapsed substring match (catches spaced/leetspeak evasions like "k u b e t", "sh0pee")
+  const asciiFolded = toAsciiFolded(raw);
+  const compactAscii = asciiFolded.replace(/[^a-z0-9]/g, '');
+  if (SENSITIVE_ASCII_SUBSTRINGS.some((sub) => compactAscii.includes(sub))) {
+    return true;
+  }
+
+  // 4. Token match for short terms (splits on spaces/separators + handles single-letter runs like "s . e . x")
+  const accentedTokens = lowerAccented
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (accentedTokens.some((tok) => SENSITIVE_ACCENTED_TOKENS.has(tok))) {
+    return true;
+  }
+
+  const asciiTokens = asciiFolded
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (asciiTokens.some((tok) => SENSITIVE_ASCII_TOKENS.has(tok))) {
+    return true;
+  }
+
+  // Check single-letter runs in ascii tokens e.g. ["s", "e", "x"] -> "sex"
+  let singleRun = '';
+  for (const tok of asciiTokens) {
+    if (tok.length === 1) {
+      singleRun += tok;
+    } else {
+      if (singleRun.length >= 2 && SENSITIVE_ASCII_TOKENS.has(singleRun)) {
+        return true;
+      }
+      singleRun = '';
+    }
+  }
+  if (singleRun.length >= 2 && SENSITIVE_ASCII_TOKENS.has(singleRun)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function sanitizeTtsNickname(nickname: string, language: Language): string {
+  const fallback = language === 'EN' ? 'friend' : 'bạn yêu';
+  if (!nickname || typeof nickname !== 'string') return fallback;
+
+  // Handle coalesced comma-separated names e.g. "User1, User2"
+  if (nickname.includes(',')) {
+    const parts = nickname.split(',').map((p) => sanitizeTtsNickname(p.trim(), language));
+    const unique: string[] = [];
+    for (const part of parts) {
+      if (!unique.includes(part)) {
+        unique.push(part);
+      }
+    }
+    return unique.join(', ') || fallback;
+  }
+
+  // If nickname contains sensitive, copyrighted, or policy-violating keywords,
+  // do NOT read the nickname aloud — fall back to friendly generic term.
+  if (isSensitiveTtsNickname(nickname)) {
+    return fallback;
+  }
+
+  const clean = nickname
+    .replace(/[^\p{L}\p{N}\s._-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 24);
+  if (clean) return clean;
+  return fallback;
+}
+
 export function formatTtsDonateMessage(
   nickname: string,
   danceStyle: DanceStyle,
   language: Language,
-  isManual = false
+  isManual = false,
+  isShortFollowUp = false
 ): string {
   const danceName = getDanceDisplayName(danceStyle, language);
-  const cleanName = nickname.trim() || (language === 'EN' ? 'friend' : 'bạn yêu');
+  const cleanName = sanitizeTtsNickname(nickname, language);
+  if (isShortFollowUp) {
+    return language === 'EN'
+      ? `Thank you so much ${cleanName} for the gifts!`
+      : `Cảm ơn ${cleanName} nhiều lắm luôn nha!`;
+  }
   if (language === 'EN') {
     if (isManual) {
       return pickRandomVariant([
@@ -534,7 +922,7 @@ export function formatTtsOrderMessage(
   drinkLabel: string,
   language: Language
 ): string {
-  const cleanName = nickname.trim() || (language === 'EN' ? 'cutie' : 'bạn yêu');
+  const cleanName = sanitizeTtsNickname(nickname, language);
   if (language === 'EN') {
     return pickRandomVariant([
       `Yay! Got a fresh ${drinkLabel} order for ${cleanName}!`,
@@ -549,23 +937,131 @@ export function formatTtsOrderMessage(
   ]);
 }
 
+export interface GroupedOrderTtsEntry {
+  nickname: string;
+  drinkLabel: string;
+}
+
+export function formatMultiDrinkLabel(
+  drinkLabels: readonly string[],
+  language: Language
+): string {
+  if (drinkLabels.length === 0) return '';
+  if (drinkLabels.length === 1) return drinkLabels[0];
+
+  const grouped: { label: string; count: number }[] = [];
+  for (const label of drinkLabels) {
+    const cleanLabel = label.trim();
+    if (!cleanLabel) continue;
+    const existing = grouped.find((item) => item.label === cleanLabel);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      grouped.push({ label: cleanLabel, count: 1 });
+    }
+  }
+
+  const parts = grouped.map((item) => {
+    if (item.count <= 1) return item.label;
+    return language === 'EN' ? `${item.count} ${item.label}` : `${item.count} ly ${item.label}`;
+  });
+
+  if (parts.length <= 1) return parts[0] ?? '';
+  const connector = language === 'EN' ? ' and ' : ' và ';
+  if (parts.length === 2) {
+    return `${parts[0]}${connector}${parts[1]}`;
+  }
+  return `${parts.slice(0, -1).join(', ')}${connector}${parts[parts.length - 1]}`;
+}
+
+export function formatTtsMultiDrinkOrderMessage(
+  nickname: string,
+  drinkLabels: readonly string[],
+  language: Language
+): string {
+  if (drinkLabels.length <= 1) {
+    return formatTtsOrderMessage(nickname, drinkLabels[0] ?? '', language);
+  }
+  const cleanName = sanitizeTtsNickname(nickname, language);
+  const summary = formatMultiDrinkLabel(drinkLabels, language);
+  if (language === 'EN') {
+    return pickRandomVariant([
+      `Got ${cleanName}'s order: ${summary} coming right up!`,
+      `Yay ${cleanName}, mixing ${summary} for you right away!`,
+    ]);
+  }
+  return pickRandomVariant([
+    `Okila ${cleanName} ơi, lên đơn ${summary} liền tay nè!`,
+    `Chốt đơn cho ${cleanName} nha: ${summary} ngon xỉu luôn!`,
+  ]);
+}
+
+export function formatTtsGenericOrderFallback(
+  drinkLabels: readonly string[],
+  language: Language
+): string {
+  const summary = formatMultiDrinkLabel(drinkLabels, language);
+  if (language === 'EN') {
+    return `Got a fresh ${summary} order right away!`;
+  }
+  return `Chốt đơn ${summary} liền tay nè!`;
+}
+
+export function formatTtsGroupedOrderMessage(
+  entries: readonly GroupedOrderTtsEntry[],
+  language: Language
+): string {
+  if (entries.length === 0) return '';
+  if (entries.length === 1) {
+    return formatTtsOrderMessage(entries[0].nickname, entries[0].drinkLabel, language);
+  }
+  const parts = entries.map((entry) => {
+    const cleanName = sanitizeTtsNickname(entry.nickname, language);
+    return language === 'EN'
+      ? `${entry.drinkLabel} for ${cleanName}`
+      : `${entry.drinkLabel} của ${cleanName}`;
+  });
+  const summary = parts.join(', ');
+  if (language === 'EN') {
+    return `Got fresh orders right up: ${summary}!`;
+  }
+  return `Chốt đơn liên tục luôn nè: ${summary}!`;
+}
+
+export function formatTtsStartBrewMessage(
+  nickname: string,
+  drinkLabel: string,
+  language: Language
+): string {
+  const cleanName = sanitizeTtsNickname(nickname, language);
+  if (language === 'EN') {
+    return pickRandomVariant([
+      `Next up, ${drinkLabel} for ${cleanName}!`,
+      `Making ${cleanName}'s ${drinkLabel} right now!`,
+    ]);
+  }
+  return pickRandomVariant([
+    `Tới lượt ${cleanName}, pha ly ${drinkLabel} liền nè!`,
+    `Tiếp theo là ${drinkLabel} cho ${cleanName} nha!`,
+  ]);
+}
+
 export function formatTtsReadyMessage(
   nickname: string,
   drinkLabel: string,
   language: Language
 ): string {
-  const cleanName = nickname.trim() || (language === 'EN' ? 'cutie' : 'bạn yêu');
+  const cleanName = sanitizeTtsNickname(nickname, language);
   if (language === 'EN') {
     return pickRandomVariant([
-      `Ding ding! ${cleanName}, your yummy ${drinkLabel} is ready!`,
-      `All done for ${cleanName}! Enjoy your fresh ${drinkLabel}!`,
+      `Ding! ${cleanName}, your ${drinkLabel} is ready!`,
+      `${cleanName}'s fresh ${drinkLabel} is done!`,
     ]);
   }
   return pickRandomVariant([
-    `Ting ting! Ly ${drinkLabel} của ${cleanName} xong rồi nè, mời bạn yêu thưởng thức nha!`,
-    `Ly ${drinkLabel} thơm ngon ra lò cho ${cleanName} rồi á, chúc bạn uống ngon miệng nhé!`,
-    `Xong xuôi rồi nè ${cleanName} ơi, nhận ngay ly ${drinkLabel} siêu cưng của mình nha!`,
-    `Mời ${cleanName} nhận ly ${drinkLabel} mát lạnh nè, cảm ơn bạn đã ghé quầy nha!`,
+    `Ting ting! Ly ${drinkLabel} cho ${cleanName} xong rồi nè!`,
+    `Xong ngay ly ${drinkLabel} của ${cleanName} rồi á!`,
+    `Mời ${cleanName} nhận ly ${drinkLabel} mát lạnh nè!`,
   ]);
 }
 
@@ -588,7 +1084,7 @@ export function formatTtsSwitchFlavorMessage(
   drinkLabel: string,
   language: Language
 ): string {
-  const cleanName = nickname.trim() || (language === 'EN' ? 'cutie' : 'bạn yêu');
+  const cleanName = sanitizeTtsNickname(nickname, language);
   if (language === 'EN') {
     return `Switched ${cleanName}'s cup to ${drinkLabel} right away!`;
   }
